@@ -1,0 +1,452 @@
+/*
+|--------------------------------------------------------------------------
+| Public informational/legal pages (/about, /vision, /terms)
+|--------------------------------------------------------------------------
+| Scoped under .pp-page so Home and player views are unaffected.
+| Accessibility: focus visibility, skip link, reduced-motion support.
+| No external fonts/CDN — inline design tokens only.
+*/
+
+.pp-page {
+    --pp-bg: #0b1220;
+    --pp-panel: #111a2e;
+    --pp-panel-muted: #0e1628;
+    --pp-border: #24304a;
+    --pp-text: #e6edf7;
+    --pp-muted: #9aa8c0;
+    --pp-accent: #f59e0b;
+    --pp-accent-soft: #fbbf24;
+    --pp-focus: #34d399;
+    min-height: 100%;
+    background: var(--pp-bg);
+    color: var(--pp-text);
+    line-height: 1.6;
+}
+
+.pp-page a {
+    color: var(--pp-accent-soft);
+}
+
+.pp-page a:hover {
+    color: #fde68a;
+}
+
+.pp-page a:focus-visible,
+.pp-page button:focus-visible,
+.pp-page [tabindex]:focus-visible {
+    outline: 3px solid var(--pp-focus);
+    outline-offset: 2px;
+}
+
+/* Skip link — visible on focus only */
+.pp-skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    background: var(--pp-focus);
+    color: #04110c;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 0 0 0.5rem 0;
+}
+
+.pp-skip-link:focus {
+    left: 0;
+}
+
+.pp-main:focus {
+    outline: none;
+}
+
+/* Header */
+.pp-header {
+    border-bottom: 1px solid var(--pp-border);
+    background: linear-gradient(180deg, #121c33 0%, var(--pp-bg) 100%);
+    padding: 2.5rem 1.25rem 2rem;
+}
+
+.pp-header__inner {
+    max-width: 56rem;
+    margin: 0 auto;
+}
+
+.pp-header__eyebrow {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--pp-muted);
+    font-weight: 600;
+}
+
+.pp-header__title {
+    margin: 0 0 0.75rem;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #fff;
+}
+
+.pp-header__lead {
+    margin: 0;
+    font-size: 1.0625rem;
+    color: var(--pp-muted);
+    max-width: 46rem;
+}
+
+.pp-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    margin: 1.25rem 0 0;
+    padding: 0.85rem 1rem;
+    background: var(--pp-panel);
+    border: 1px solid var(--pp-border);
+    border-radius: 0.75rem;
+    width: fit-content;
+}
+
+.pp-header__meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.pp-header__meta dt {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pp-muted);
+}
+
+.pp-header__meta dd {
+    margin: 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--pp-accent-soft);
+}
+
+/* Sections */
+.pp-section {
+    padding: 2rem 1.25rem;
+}
+
+.pp-section--muted {
+    background: var(--pp-panel-muted);
+    border-top: 1px solid var(--pp-border);
+    border-bottom: 1px solid var(--pp-border);
+}
+
+.pp-section__inner {
+    max-width: 56rem;
+    margin: 0 auto;
+}
+
+.pp-section__title {
+    margin: 0 0 1rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.pp-section__text {
+    margin: 0 0 1rem;
+    color: var(--pp-text);
+}
+
+.pp-section__action {
+    margin: 1rem 0 0;
+}
+
+.pp-btn {
+    display: inline-block;
+    padding: 0.6rem 1.1rem;
+    background: var(--pp-accent);
+    color: #14100a !important;
+    font-weight: 700;
+    border-radius: 0.6rem;
+    text-decoration: none;
+}
+
+.pp-btn:hover {
+    background: var(--pp-accent-soft);
+    color: #14100a !important;
+}
+
+/* How it works steps */
+.pp-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 720px) {
+    .pp-steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.pp-steps__item {
+    display: flex;
+    gap: 0.85rem;
+    padding: 1rem;
+    background: var(--pp-panel);
+    border: 1px solid var(--pp-border);
+    border-radius: 0.85rem;
+}
+
+.pp-steps__index {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: var(--pp-accent-soft);
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+
+.pp-steps__label {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    color: #fff;
+}
+
+.pp-steps__text {
+    margin: 0;
+    color: var(--pp-muted);
+    font-size: 0.95rem;
+}
+
+/* Useful links */
+.pp-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.pp-links__anchor {
+    display: inline-block;
+    padding: 0.5rem 0.9rem;
+    background: var(--pp-panel);
+    border: 1px solid var(--pp-border);
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.925rem;
+}
+
+/* Vision pair */
+.pp-pair {
+    display: grid;
+    gap: 1.25rem;
+}
+
+@media (min-width: 720px) {
+    .pp-pair {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.pp-pair__card {
+    padding: 1.35rem;
+    background: var(--pp-panel);
+    border: 1px solid var(--pp-border);
+    border-radius: 1rem;
+}
+
+/* Core values */
+.pp-values {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .pp-values {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 960px) {
+    .pp-values {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.pp-values__item {
+    padding: 1.1rem;
+    background: var(--pp-panel);
+    border: 1px solid var(--pp-border);
+    border-radius: 0.9rem;
+}
+
+.pp-values__label {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    color: var(--pp-accent-soft);
+}
+
+.pp-values__text {
+    margin: 0;
+    color: var(--pp-muted);
+    font-size: 0.925rem;
+}
+
+/* Governance */
+.pp-gov {
+    margin: 0 0 1rem;
+    padding-left: 1.2rem;
+    color: var(--pp-text);
+}
+
+.pp-gov__item {
+    margin-bottom: 0.5rem;
+}
+
+.pp-gov__disclaimer {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid var(--pp-accent);
+    background: rgba(245, 158, 11, 0.08);
+    color: var(--pp-muted);
+    font-size: 0.925rem;
+}
+
+/* Terms */
+.pp-terms__toc {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.15rem;
+    background: var(--pp-panel);
+    border: 1px solid var(--pp-border);
+    border-radius: 0.85rem;
+}
+
+.pp-terms__toc-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    columns: 1;
+}
+
+@media (min-width: 640px) {
+    .pp-terms__toc-list {
+        columns: 2;
+        column-gap: 2rem;
+    }
+}
+
+.pp-terms__toc-list a {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.pp-terms__section {
+    padding: 1.15rem 0;
+    border-bottom: 1px solid var(--pp-border);
+    scroll-margin-top: 5rem;
+}
+
+.pp-terms__section:last-child {
+    border-bottom: 0;
+}
+
+.pp-terms__section-title {
+    margin: 0 0 0.6rem;
+    font-size: 1.125rem;
+    color: #fff;
+}
+
+.pp-terms__section-body {
+    margin: 0 0 0.65rem;
+    color: var(--pp-text);
+}
+
+.pp-operator {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.pp-operator dt {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pp-muted);
+}
+
+.pp-operator dd {
+    margin: 0;
+    font-weight: 600;
+    word-break: break-word;
+}
+
+/* Footer */
+.pp-footer {
+    border-top: 1px solid var(--pp-border);
+    background: #090f1c;
+    padding: 1.75rem 1.25rem 2.25rem;
+    margin-top: auto;
+}
+
+.pp-footer__inner {
+    max-width: 56rem;
+    margin: 0 auto;
+}
+
+.pp-footer__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.pp-footer__nav a {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.pp-footer__legal {
+    margin: 0;
+    font-size: 0.825rem;
+    color: var(--pp-muted);
+    max-width: 46rem;
+}
+
+/* Visually hidden utility used by terms TOC heading */
+.pp-page .visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .pp-page *,
+    .pp-page *::before,
+    .pp-page *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

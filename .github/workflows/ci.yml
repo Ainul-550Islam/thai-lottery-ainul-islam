@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: PHP tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: PHP syntax check (php -l on all project PHP files)
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r -d '' f; do
+            if ! php -l "$f" > /dev/null; then
+              echo "::error file=$f::syntax error"
+              fail=1
+            fi
+          done < <(find app bootstrap config database routes tests -name '*.php' -print0)
+          # Required structural files — fail the build if any are missing
+          for req in \
+            app/Models/User.php \
+            app/Models/Agent.php \
+            app/Services/Draw/RealPrizeSettlementService.php \
+            app/Services/Finance/FinancialReconciliationService.php \
+            app/Services/Finance/WithdrawalService.php \
+            app/Console/Commands/GloPublicResultPublishCommand.php \
+            app/Console/Commands/Finance/ReconcileFinancialRecordsCommand.php \
+            app/Filament/Pages/KycReviewPage.php \
+            resources/views/filament/pages/kyc-review-page.blade.php \
+            resources/views/home.blade.php \
+            resources/views/results/index.blade.php \
+            routes/api.php \
+            routes/web.php \
+            config/finance.php \
+            .github/workflows/ci.yml
+          do
+            if [ ! -f "$req" ]; then
+              echo "::error::missing required file: $req"
+              fail=1
+            fi
+          done
+          # At least one test file and one migration must exist
+          if [ -z "$(find tests -name '*Test.php' -print -quit)" ]; then
+            echo "::error::no test files found"
+            fail=1
+          fi
+          if [ -z "$(find database/migrations -name '*.php' -print -quit)" ]; then
+            echo "::error::no migrations found"
+            fail=1
+          fi
+          exit $fail
+
+      - name: Cache and route optimisation
+        run: |
+          cp .env.example .env 2>/dev/null || true
+          php artisan key:generate --force || true
+          php artisan optimize:clear
+          php artisan config:cache
+          # Fail if config:cache did not produce a bootstrap cache
+          test -f bootstrap/cache/config.php
+
+      - name: Migrate fresh with seed
+        run: |
+          php artisan migrate:fresh --force --seed
+
+      - name: Route list (contract smoke)
+        run: |
+          php artisan route:list
+          php artisan route:list --path=/
+          php artisan route:list --path=results
+
+      - name: Run test suite
+        env:
+          APP_ENV: testing
+        run: |
+          # Tests must never be skipped to go green: suite exit code is authoritative
+          php artisan test
+
+      - name: Pint (if configured)
+        run: |
+          if [ -f vendor/bin/pint ]; then
+            vendor/bin/pint --test
+          else
+            echo "Pint not installed — skipping style gate"
+          fi

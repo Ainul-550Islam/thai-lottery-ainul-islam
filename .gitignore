@@ -1,0 +1,17 @@
+/vendor/
+/node_modules/
+/.phpunit.cache/
+/.phpunit.result.cache
+/database/*.sqlite
+/database/thai_lottery_test*
+/database/*.db
+/storage/*.key
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+/bootstrap/cache/*.php
+/.env
+/.env.*
+!/.env.example
+/phpunit.xml.bak
