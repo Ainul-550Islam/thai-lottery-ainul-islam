@@ -24,7 +24,12 @@
                 :text="$home['text']"
                 :live="$home['live_draw']"
             />
-            <x-home.quick-check
+            <x-home.lane-results
+            :text="$home['text']"
+            :lanes="$home['lane_results']"
+        />
+
+        <x-home.quick-check
                 :text="$home['text']"
                 :number="''"
             />

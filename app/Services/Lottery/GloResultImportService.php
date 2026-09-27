@@ -7,7 +7,6 @@ namespace App\Services\Lottery;
 use App\Enums\AuditAction;
 use App\Enums\ResultSourceType;
 use App\Enums\RiskLevel;
-use App\Exceptions\GloSalesException;
 use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\DrawResult;
@@ -125,7 +124,7 @@ class GloResultImportService
             }
         }
 
-        return $this->db->connection()->transaction(function () use ($draw, $drawId, $provider, $payload, $fingerprint, $actor): array {
+        return $this->db->connection()->transaction(function () use ($drawId, $provider, $payload, $fingerprint, $actor): array {
             $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
 
             $result = DrawResult::query()

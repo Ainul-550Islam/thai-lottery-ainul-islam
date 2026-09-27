@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
+use App\Models\Draw;
+use App\Models\DrawResult;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use InvalidArgumentException;
 
@@ -76,7 +78,7 @@ class GloN3TicketChecker
         $tierKey = (string) $this->config->get('glo.tiers.metadata_key', 'glo');
         $raw = null;
 
-        $draw = \App\Models\Draw::query()->find($drawId);
+        $draw = Draw::query()->find($drawId);
 
         if ($draw !== null) {
             $meta = is_array($draw->metadata) ? $draw->metadata : [];
@@ -93,7 +95,7 @@ class GloN3TicketChecker
         }
 
         if ($raw === null) {
-            $result = \App\Models\DrawResult::query()->where('draw_id', $drawId)->first();
+            $result = DrawResult::query()->where('draw_id', $drawId)->first();
 
             if ($result !== null) {
                 $meta = is_array($result->metadata) ? $result->metadata : [];

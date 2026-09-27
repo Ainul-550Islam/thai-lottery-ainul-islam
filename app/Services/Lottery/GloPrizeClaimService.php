@@ -18,7 +18,6 @@ use App\Models\GloPrizePaymentHold;
 use App\Models\GloTicket;
 use App\Models\User;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
@@ -131,7 +130,7 @@ class GloPrizeClaimService
         ]));
 
         return $this->db->connection()->transaction(function () use (
-            $input,
+
             $claimant,
             $ticket,
             $draw,

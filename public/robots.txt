@@ -1,3 +1,23 @@
 User-agent: *
 Disallow: /admin
 Disallow: /api
+
+# Public result SEARCH endpoints are query dependent and sit over an
+# enumerable number space. The pages themselves already send
+# "noindex,follow", but robots.txt is the crawler's first stop and stops the
+# request being made at all, which is the point: a crawler walking a
+# six-digit search space is indistinguishable from an enumeration attempt and
+# would burn the same rate limit real visitors depend on.
+#
+# This is a request, not a control. Both routes stay rate limited, bounded and
+# validated; a crawler that ignores this file is stopped by the limiter, not
+# by these lines.
+#
+# Only the SEARCH paths are disallowed, and only for the lanes that have one.
+# The current result pages, the year archives and the individual draw pages
+# remain fully crawlable - they are the content this product exists to
+# publish.
+Disallow: /national-lottery/search
+Disallow: /weekly-lottery/search
+Disallow: /bingo-lottery/search
+Disallow: /pcso-lottery/search

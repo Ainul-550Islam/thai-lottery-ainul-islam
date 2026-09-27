@@ -1,0 +1,235 @@
+/*
+ * Contact page styling (PROMPT 10, file 18).
+ *
+ * STATUS IS NEVER COLOUR ALONE. Each state has a left border AND a word in the
+ * markup. A monochrome print, a colour-blind reader and a screen reader all
+ * get the same meaning.
+ *
+ * THE HONEYPOT IS OFF-SCREEN, NOT display:none. A hidden input with
+ * display:none is a well-known pattern that some form-fillers skip; moving it
+ * out of the viewport keeps it invisible to people while a naive script still
+ * finds and fills it. It is also aria-hidden and tabindex="-1", so no keyboard
+ * or screen-reader user can reach it by accident.
+ *
+ * NOTHING IS HIDDEN AT SMALL WIDTHS. The layout stacks; no field, error or
+ * status is display:none on a phone. A control hidden on mobile is a feature a
+ * mobile visitor does not have. Checked at 320, 375, 768, 1024 and 1440.
+ */
+
+.ct-page {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+}
+
+.ct-page__title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 0.5rem;
+}
+
+.ct-page__intro {
+    margin: 0 0 1.5rem;
+    max-width: 60ch;
+    line-height: 1.6;
+}
+
+.ct-page__grid {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 64rem) {
+    .ct-page__grid {
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        align-items: start;
+    }
+}
+
+/* ---------------------------------------------------------------- status -- */
+
+.ct-status {
+    border-left: 4px solid currentColor;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin: 0 0 1.5rem;
+    background: rgba(148, 163, 184, 0.12);
+}
+
+.ct-status--success { color: #047857; }
+.ct-status--info    { color: #1d4ed8; }
+.ct-status--warning { color: #b45309; }
+
+.ct-status__headline {
+    margin: 0;
+    font-weight: 600;
+}
+
+.ct-status__detail,
+.ct-status__reference {
+    margin: 0.5rem 0 0;
+    color: inherit;
+    line-height: 1.5;
+}
+
+.ct-status__reference-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+/* ------------------------------------------------------------------ form -- */
+
+.ct-errors {
+    border: 1px solid #dc2626;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin: 0 0 1.5rem;
+}
+
+.ct-errors__title { margin: 0 0 0.5rem; font-weight: 600; }
+.ct-errors__list { margin: 0; padding-left: 1.25rem; }
+
+.ct-field { margin: 0 0 1.25rem; }
+
+.ct-field__label {
+    display: block;
+    font-weight: 600;
+    margin: 0 0 0.375rem;
+}
+
+.ct-field__required { color: #dc2626; }
+
+.ct-field__input,
+.ct-field__textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #94a3b8;
+    border-radius: 0.5rem;
+    font: inherit;
+    line-height: 1.5;
+}
+
+.ct-field__textarea {
+    min-height: 10rem;
+    resize: vertical;
+}
+
+/* A visible focus ring. Removing it would make the form unusable by keyboard
+   for the sake of appearance. */
+.ct-field__input:focus-visible,
+.ct-field__textarea:focus-visible,
+.ct-submit:focus-visible,
+.ct-links__link:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.ct-field__input[aria-invalid="true"],
+.ct-field__textarea[aria-invalid="true"] {
+    border-color: #dc2626;
+    /* Not colour alone: the error text below carries the meaning. */
+    border-width: 2px;
+}
+
+.ct-field__hint,
+.ct-field__error {
+    margin: 0.375rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.ct-field__error { color: #b91c1c; font-weight: 600; }
+
+/* Off-screen, not display:none. See the file header. */
+.ct-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.ct-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+}
+
+.ct-submit {
+    padding: 0.75rem 1.5rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: #047857;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    /* 44px minimum target, so it is reachable on a phone. */
+    min-height: 2.75rem;
+}
+
+.ct-submit[disabled] {
+    opacity: 0.7;
+    cursor: progress;
+}
+
+.ct-actions__privacy {
+    margin: 0;
+    font-size: 0.875rem;
+    max-width: 44ch;
+    line-height: 1.5;
+}
+
+/* --------------------------------------------------------------- support -- */
+
+.ct-support,
+.ct-links {
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin: 0 0 1.5rem;
+}
+
+.ct-support__heading,
+.ct-links__heading {
+    margin: 0 0 0.75rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.ct-support__list { margin: 0; }
+
+.ct-support__item { margin: 0 0 0.75rem; }
+
+.ct-support__term {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.ct-support__value { margin: 0.125rem 0 0; }
+
+.ct-support__unavailable,
+.ct-support__delivery-note {
+    margin: 0.75rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.ct-links__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.ct-links__link { text-decoration: underline; }
+
+@media (prefers-reduced-motion: reduce) {
+    .ct-submit { transition: none; }
+}

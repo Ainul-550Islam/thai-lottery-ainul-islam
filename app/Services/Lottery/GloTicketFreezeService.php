@@ -7,6 +7,7 @@ namespace App\Services\Lottery;
 use App\Enums\AuditAction;
 use App\Enums\GloFreezeStatus;
 use App\Enums\RiskLevel;
+use App\Enums\UserStatus;
 use App\Exceptions\GloFreezeException;
 use App\Models\AuditLog;
 use App\Models\Draw;
@@ -14,6 +15,7 @@ use App\Models\GloTicket;
 use App\Models\GloTicketFreeze;
 use App\Models\User;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -319,7 +321,7 @@ class GloTicketFreezeService
     /**
      * All active freezes on a ticket (for audit payloads and hold creation).
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, GloTicketFreeze>
+     * @return Collection<int, GloTicketFreeze>
      */
     public function activeFreezes(int $ticketId)
     {
@@ -525,7 +527,7 @@ class GloTicketFreezeService
             'username' => 'glo_system_'.$suffix,
             'password' => '!',
         ]);
-        $user->status = \App\Enums\UserStatus::Active;
+        $user->status = UserStatus::Active;
         $user->save();
 
         return $user;

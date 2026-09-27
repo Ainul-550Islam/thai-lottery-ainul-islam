@@ -8,6 +8,13 @@
             <a href="{{ route('about') }}">{{ trans('public_pages.about_meta_title') }}</a>
             <a href="{{ route('vision') }}">{{ trans('public_pages.vision_meta_title') }}</a>
             <a href="{{ route('terms') }}">{{ trans('public_pages.useful_links_terms') }}</a>
+            @if (Route::has('account-grades'))
+                <a href="{{ route('account-grades') }}">{{ trans('account_info.grades_title') }}</a>
+            @endif
+            @if (Route::has('account-verification-guide'))
+                <a href="{{ route('account-verification-guide') }}">{{ trans('account_info.verification_title') }}</a>
+            @endif
+
             <a href="{{ route('privacy') }}">{{ trans('public_pages.useful_links_privacy') }}</a>
             <a href="{{ route('contact') }}">{{ trans('public_pages.useful_links_contact') }}</a>
         </nav>

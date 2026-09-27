@@ -179,7 +179,7 @@ class GloOfficialResultProvider implements GloResultProvider
             return null;
         }
 
-        $asString = is_int($value) ? sprintf('%0'. $digits .'d', $value) : trim((string) $value);
+        $asString = is_int($value) ? sprintf('%0'.$digits.'d', $value) : trim((string) $value);
 
         if (! preg_match('/^\d{'.$digits.'}$/', $asString)) {
             return null;

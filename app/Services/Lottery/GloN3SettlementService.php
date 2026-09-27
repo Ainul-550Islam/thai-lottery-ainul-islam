@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Lottery;
 
 use App\Enums\AuditAction;
-use App\Enums\DrawStatus;
 use App\Enums\RiskLevel;
 use App\Exceptions\GloSalesException;
 use App\Models\AuditLog;
@@ -13,7 +12,6 @@ use App\Models\Draw;
 use App\Models\GloN3Sale;
 use App\Models\User;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Support\Str;
 
 /**
  * N3 settlement service (GLO-7/9).
@@ -103,7 +101,7 @@ class GloN3SettlementService
             ];
         }
 
-        return $this->db->connection()->transaction(function () use ($draw, $drawId, $seat, $pool, $fingerprint, $result, $actor): array {
+        return $this->db->connection()->transaction(function () use ($drawId, $seat, $pool, $fingerprint, $result, $actor): array {
             $fresh = Draw::query()->whereKey($drawId)->lockForUpdate()->firstOrFail();
             $metadata = is_array($fresh->metadata) ? $fresh->metadata : [];
             $tierKey = (string) config('glo.tiers.metadata_key', 'glo');

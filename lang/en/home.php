@@ -20,6 +20,11 @@ return [
     'cta_sign_in' => 'Sign in',
     'cta_register' => 'Create account',
 
+    // The four public result lanes, surfaced on the Home page so they are not
+    // reachable only from the top navigation.
+    'lane_results_title' => 'Latest lottery results',
+    'lane_results_none' => 'No published result yet.',
+    'lane_results_field_none' => 'Not published',
     'current_result_title' => 'Current verified result',
     'current_result_none' => 'No verified result available',
     'next_draw_title' => 'Next draw',

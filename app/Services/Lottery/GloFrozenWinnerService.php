@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Lottery;
 
 use App\Enums\AuditAction;
+use App\Enums\GloClaimStatus;
+use App\Enums\GloFreezeStatus;
 use App\Enums\GloPaymentHoldStatus;
 use App\Enums\RiskLevel;
 use App\Models\AuditLog;
@@ -13,6 +15,7 @@ use App\Models\GloPrizeClaim;
 use App\Models\GloPrizePaymentHold;
 use App\Models\GloPublicTicketStatus;
 use App\Models\GloTicket;
+use App\Models\GloTicketFreeze;
 use App\Models\User;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Str;
@@ -85,7 +88,7 @@ class GloFrozenWinnerService
         $frozenTickets = GloTicket::query()
             ->where('draw_id', $drawId)
             ->whereHas('freezes', function ($query): void {
-                $query->where('status', \App\Enums\GloFreezeStatus::Frozen);
+                $query->where('status', GloFreezeStatus::Frozen);
             })
             ->get();
 
@@ -184,7 +187,7 @@ class GloFrozenWinnerService
         ?User $actor,
         array $recorded = [],
     ): array {
-        return $this->db->connection()->transaction(function () use ($ticket, $draw, $winningCategory, $actor, $recorded): array {
+        return $this->db->connection()->transaction(function () use ($ticket, $draw, $winningCategory, $actor): array {
             $activeFreezes = $this->freezes->activeFreezes((int) $ticket->getKey());
 
             if ($activeFreezes->isEmpty()) {
@@ -293,7 +296,7 @@ class GloFrozenWinnerService
     public function publishPublicAnnouncement(
         GloTicket $ticket,
         Draw $draw,
-        \App\Models\GloTicketFreeze $freeze,
+        GloTicketFreeze $freeze,
         string $winningCategory,
     ): GloPublicTicketStatus {
         $fingerprint = hash('sha256', 'announce|'.$ticket->getKey().'|'.$draw->getKey());
@@ -333,12 +336,12 @@ class GloFrozenWinnerService
 
         $claims = GloPrizeClaim::query()
             ->where('ticket_id', $ticket->getKey())
-            ->whereIn('status', [\App\Enums\GloClaimStatus::Pending, \App\Enums\GloClaimStatus::Eligible, \App\Enums\GloClaimStatus::Approved])
+            ->whereIn('status', [GloClaimStatus::Pending, GloClaimStatus::Eligible, GloClaimStatus::Approved])
             ->lockForUpdate()
             ->get();
 
         foreach ($claims as $claim) {
-            $claim->status = \App\Enums\GloClaimStatus::Hold;
+            $claim->status = GloClaimStatus::Hold;
             $claim->payment_status = (string) config('glo.claims.payment_status_blocked', 'blocked');
             $claim->hold_status = 'active';
             $claim->hold_reason = (string) config('glo.claims.hold_reason_frozen', 'FROZEN_TICKET');
@@ -357,7 +360,7 @@ class GloFrozenWinnerService
     {
         return GloPrizeClaim::query()
             ->where('ticket_id', $ticket->getKey())
-            ->where('status', \App\Enums\GloClaimStatus::Hold)
+            ->where('status', GloClaimStatus::Hold)
             ->exists();
     }
 

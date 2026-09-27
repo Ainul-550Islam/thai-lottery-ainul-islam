@@ -10,7 +10,6 @@ use App\Services\Media\PublicAppLinkService;
 use App\Services\Payments\PublicPaymentMethodsService;
 use App\Services\Promotions\PublicBonusService;
 use App\Services\Support\PublicSupportService;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Single composition point for the public Home page.
@@ -30,6 +29,7 @@ class HomePageDataService
         private readonly PublicPaymentMethodsService $payments,
         private readonly PublicSupportService $support,
         private readonly PublicAppLinkService $appLinks,
+        private readonly PublicLaneResultDigestService $laneResults,
     ) {}
 
     /**
@@ -44,6 +44,9 @@ class HomePageDataService
             'current_result' => $this->section(fn (): array => $this->gloHome->currentResultCard()),
             'next_draw' => $this->section(fn (): array => $this->gloHome->nextDrawCard()),
             'live_draw' => $this->section(fn (): array => $this->gloHome->liveCard()),
+            // The four public result lanes. Wrapped like every other section,
+            // so a lane outage degrades this block instead of the page.
+            'lane_results' => $this->section(fn (): array => $this->laneResults->lanes()),
             'stats' => $this->section(fn (): array => $this->stats->publicStats()),
             'prize_highlight' => $this->section(fn (): array => $this->gloHome->prizeCard()),
             'bonuses' => $this->section(fn (): array => $this->bonuses->activeCampaigns()),

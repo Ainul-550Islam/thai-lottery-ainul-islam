@@ -11,6 +11,7 @@ use App\Models\GloPrizePaymentHold;
 use App\Models\GloPublicTicketStatus;
 use App\Models\GloTicket;
 use App\Models\GloTicketFreeze;
+use Illuminate\Support\Collection;
 
 /**
  * GLO-13 public-safe ticket freeze status lookup.
@@ -94,7 +95,7 @@ class GloPublicTicketVerificationService
     /**
      * Pure derivation from freeze + hold state (no PII reads).
      *
-     * @param  \Illuminate\Support\Collection<int, GloTicketFreeze>  $freezes
+     * @param  Collection<int, GloTicketFreeze>  $freezes
      */
     public function deriveStatus(int $ticketId, iterable $freezes, ?GloPublicTicketStatus $announcement): GloPublicStatus
     {

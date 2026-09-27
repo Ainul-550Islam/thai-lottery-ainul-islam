@@ -199,3 +199,7 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+    <script type="module" src="{{ Vite::asset('resources/js/lottery/countdown.js') }}"></script>
+@endpush

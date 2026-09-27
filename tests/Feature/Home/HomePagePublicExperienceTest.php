@@ -12,6 +12,7 @@ use App\Models\GloSalesPoint;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
@@ -485,7 +486,7 @@ final class HomePagePublicExperienceTest extends TestCase
         Cache::flush();
 
         $queries = 0;
-        \Illuminate\Support\Facades\DB::listen(function () use (&$queries): void {
+        DB::listen(function () use (&$queries): void {
             $queries++;
         });
 
@@ -540,7 +541,7 @@ final class HomePagePublicExperienceTest extends TestCase
         Cache::flush();
 
         $queries = 0;
-        \Illuminate\Support\Facades\DB::listen(function () use (&$queries): void {
+        DB::listen(function () use (&$queries): void {
             $queries++;
         });
 

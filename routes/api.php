@@ -2,21 +2,25 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\OperationsController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BetAmendmentController;
 use App\Http\Controllers\Api\V1\BetCancellationController;
 use App\Http\Controllers\Api\V1\BetController;
 use App\Http\Controllers\Api\V1\BetPurchaseController;
+use App\Http\Controllers\Api\V1\BingoLotteryController;
 use App\Http\Controllers\Api\V1\BulkBetController;
 use App\Http\Controllers\Api\V1\DepositController;
 use App\Http\Controllers\Api\V1\DrawController;
 use App\Http\Controllers\Api\V1\DrawResultController;
 use App\Http\Controllers\Api\V1\GloController;
 use App\Http\Controllers\Api\V1\KycController;
-use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\NationalLotteryController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PaymentWebhookController;
 use App\Http\Controllers\Api\V1\PayoutController;
+use App\Http\Controllers\Api\V1\PcsoLotteryController;
 use App\Http\Controllers\Api\V1\PrizeClaimController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ResponsibleGamingController;
@@ -25,10 +29,13 @@ use App\Http\Controllers\Api\V1\TicketController;
 use App\Http\Controllers\Api\V1\TicketOwnershipController;
 use App\Http\Controllers\Api\V1\TicketProductController;
 use App\Http\Controllers\Api\V1\TicketVerificationController;
-use App\Http\Controllers\Api\V1\Admin\OperationsController;
 use App\Http\Controllers\Api\V1\WalletController;
+use App\Http\Controllers\Api\V1\WeeklyLotteryController;
 use App\Http\Controllers\Api\V1\WithdrawalController;
+use App\Http\Controllers\LottoDiscountController;
+use App\Http\Controllers\PrizeVerificationController;
 use App\Http\Controllers\PublicServicePagesController;
+use App\Support\Admin\AdminAccess;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -144,6 +151,153 @@ Route::middleware(['throttle:glo.public'])->group(function (): void {
         ->name('api.v1.glo.results.show');
 });
 
+/*
+|--------------------------------------------------------------------------
+| PROMPT 5: public National Lottery JSON surface
+|--------------------------------------------------------------------------
+|
+| A SEPARATE LANE from /v1/glo/results above. Different tables, different
+| controller, different limiter, different projection. Nothing here reads a
+| glo_* table and nothing there reads a national_lottery_* one.
+|
+| ORDER IS LOAD-BEARING: /results/year/{year} is declared before
+| /results/{draw}, so the literal segment cannot be captured by the wildcard.
+|
+| The three read endpoints use the generic 'api' limiter; /search uses the
+| dedicated 'national-result-search' limiter, because the six-digit space is
+| enumerable and the generic ceiling is sized for ordinary traffic.
+*/
+Route::prefix('v1/national-lottery')
+    ->name('api.v1.national-lottery.')
+    ->group(function (): void {
+        Route::get('/results', [NationalLotteryController::class, 'index'])
+            ->middleware('throttle:api')
+            ->name('results.index');
+
+        Route::get('/results/year/{year}', [NationalLotteryController::class, 'year'])
+            ->where('year', '[0-9]{1,4}')
+            ->middleware('throttle:api')
+            ->name('results.year');
+
+        Route::get('/search', [NationalLotteryController::class, 'search'])
+            ->middleware('throttle:national-result-search')
+            ->name('search');
+
+        Route::get('/results/{draw}', [NationalLotteryController::class, 'show'])
+            ->where('draw', '[A-Za-z0-9\-]{1,40}')
+            ->middleware('throttle:api')
+            ->name('results.show');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| PROMPT 6: public Weekly Lottery JSON surface
+|--------------------------------------------------------------------------
+|
+| A SEPARATE LANE from /v1/glo/results and /v1/national-lottery. Different
+| tables, different controller, different limiter, different projection.
+|
+| ORDER IS LOAD-BEARING: /results/year/{year} is declared before
+| /results/{draw}, so the literal segment cannot be captured by the wildcard.
+|
+| The three read endpoints use the generic 'api' limiter; /search uses the
+| dedicated 'weekly-result-search' limiter, because the six-digit space is
+| enumerable and the generic ceiling is sized for ordinary traffic.
+*/
+Route::prefix('v1/weekly-lottery')
+    ->name('api.v1.weekly-lottery.')
+    ->group(function (): void {
+        Route::get('/results', [WeeklyLotteryController::class, 'index'])
+            ->middleware('throttle:api')
+            ->name('results.index');
+
+        Route::get('/results/year/{year}', [WeeklyLotteryController::class, 'year'])
+            ->where('year', '[0-9]{1,4}')
+            ->middleware('throttle:api')
+            ->name('results.year');
+
+        Route::get('/search', [WeeklyLotteryController::class, 'search'])
+            ->middleware('throttle:weekly-result-search')
+            ->name('search');
+
+        Route::get('/results/{draw}', [WeeklyLotteryController::class, 'show'])
+            ->where('draw', '[A-Za-z0-9\-]{1,40}')
+            ->middleware('throttle:api')
+            ->name('results.show');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| PROMPT 8: public Bingo / Mega Lottery JSON surface
+|--------------------------------------------------------------------------
+|
+| A SEPARATE LANE from /v1/glo/results, /v1/national-lottery and
+| /v1/weekly-lottery. Same shape, different data, no shared table.
+|
+| Every route is a public GET carrying throttle:api, except /search, which
+| carries the dedicated 'bingo-result-search' limiter because a six-digit
+| space is enumerable. The projection exposes published result fields and
+| provenance-safe metadata only: no token, no endpoint, no internal id, no
+| importer detail.
+|
+*/
+Route::prefix('v1/bingo-lottery')
+    ->name('api.v1.bingo-lottery.')
+    ->group(function (): void {
+        Route::get('/results', [BingoLotteryController::class, 'index'])
+            ->middleware('throttle:api')
+            ->name('results.index');
+
+        Route::get('/results/year/{year}', [BingoLotteryController::class, 'year'])
+            ->where('year', '[0-9]{1,4}')
+            ->middleware('throttle:api')
+            ->name('results.year');
+
+        Route::get('/search', [BingoLotteryController::class, 'search'])
+            ->middleware('throttle:bingo-result-search')
+            ->name('search');
+
+        Route::get('/results/{draw}', [BingoLotteryController::class, 'show'])
+            ->where('draw', '[A-Za-z0-9\-]{1,40}')
+            ->middleware('throttle:api')
+            ->name('results.show');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| PROMPT 9: public PCSO Lottery JSON surface
+|--------------------------------------------------------------------------
+|
+| Same four-route shape as the sibling lanes, different data, no shared
+| table. The projection carries the draw TIME alongside the date, because in
+| this lane a date alone does not identify a draw.
+|
+| No token, no endpoint, no internal id, no importer detail.
+|
+*/
+
+Route::prefix('v1/pcso-lottery')
+    ->name('api.v1.pcso-lottery.')
+    ->group(function (): void {
+        Route::get('/results', [PcsoLotteryController::class, 'index'])
+            ->middleware('throttle:api')
+            ->name('results.index');
+
+        Route::get('/results/year/{year}', [PcsoLotteryController::class, 'year'])
+            ->where('year', '[0-9]{1,4}')
+            ->middleware('throttle:api')
+            ->name('results.year');
+
+        Route::get('/search', [PcsoLotteryController::class, 'search'])
+            ->middleware('throttle:pcso-result-search')
+            ->name('search');
+
+        Route::get('/results/{draw}', [PcsoLotteryController::class, 'show'])
+            ->where('draw', '[A-Za-z0-9\-]{1,40}')
+            ->middleware('throttle:api')
+            ->name('results.show');
+    });
+
 Route::prefix('v1')
     ->name('api.v1.')
     ->group(function (): void {
@@ -151,6 +305,19 @@ Route::prefix('v1')
         Route::get('/fees', [PublicServicePagesController::class, 'feesApi'])
             ->middleware('throttle:api')
             ->name('fees.index');
+
+        // PROMPT 4: public discount catalogue (published rules only, server
+        // computed). Same projection the /discounts page renders, so the JSON
+        // surface cannot drift from the HTML one.
+        Route::get('/discounts', [LottoDiscountController::class, 'indexApi'])
+            ->middleware('throttle:api')
+            ->name('discounts.index');
+
+        // PROMPT 4: public prize verification. Carries the dedicated
+        // enumeration limiter, not the generic api one.
+        Route::post('/prize-verification', [PrizeVerificationController::class, 'verify'])
+            ->middleware('throttle:ticket-verification')
+            ->name('prize-verification.verify');
     });
 
 Route::prefix('v1')
@@ -285,35 +452,35 @@ Route::prefix('v1')
 
         // GLO-11 freeze mutations (permission-gated, default deny via glo.permission).
         Route::post('/glo/tickets/{ticket}/freeze', [GloController::class, 'requestFreeze'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::REQUEST_GLO_FREEZES)
+            ->middleware('glo.permission:'.AdminAccess::REQUEST_GLO_FREEZES)
             ->name('glo.tickets.freeze');
         Route::post('/glo/freezes/{freeze}/review', [GloController::class, 'reviewFreeze'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::REVIEW_GLO_FREEZES)
+            ->middleware('glo.permission:'.AdminAccess::REVIEW_GLO_FREEZES)
             ->name('glo.freezes.review');
         Route::post('/glo/freezes/{freeze}/approve', [GloController::class, 'approveFreeze'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::REVIEW_GLO_FREEZES)
+            ->middleware('glo.permission:'.AdminAccess::REVIEW_GLO_FREEZES)
             ->name('glo.freezes.approve');
         Route::post('/glo/freezes/{freeze}/reject', [GloController::class, 'rejectFreeze'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::REVIEW_GLO_FREEZES)
+            ->middleware('glo.permission:'.AdminAccess::REVIEW_GLO_FREEZES)
             ->name('glo.freezes.reject');
         Route::post('/glo/freezes/{freeze}/release', [GloController::class, 'releaseFreeze'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::REVIEW_GLO_FREEZES)
+            ->middleware('glo.permission:'.AdminAccess::REVIEW_GLO_FREEZES)
             ->name('glo.freezes.release');
 
         // GLO-12/14 claim mutations (401/403 default deny; claimant may submit own claim).
         Route::post('/glo/claims', [GloController::class, 'submitClaim'])->name('glo.claims.store');
         Route::get('/glo/claims/{claim}', [GloController::class, 'claim'])->name('glo.claims.show');
         Route::post('/glo/claims/{claim}/review', [GloController::class, 'reviewClaim'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::MANAGE_GLO_PRIZE_CLAIMS)
+            ->middleware('glo.permission:'.AdminAccess::MANAGE_GLO_PRIZE_CLAIMS)
             ->name('glo.claims.review');
         Route::post('/glo/claims/{claim}/approve', [GloController::class, 'approveClaim'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::MANAGE_GLO_PRIZE_CLAIMS)
+            ->middleware('glo.permission:'.AdminAccess::MANAGE_GLO_PRIZE_CLAIMS)
             ->name('glo.claims.approve');
         Route::post('/glo/claims/{claim}/reject', [GloController::class, 'rejectClaim'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::MANAGE_GLO_PRIZE_CLAIMS)
+            ->middleware('glo.permission:'.AdminAccess::MANAGE_GLO_PRIZE_CLAIMS)
             ->name('glo.claims.reject');
         Route::post('/glo/claims/{claim}/pay', [GloController::class, 'payClaim'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::EXECUTE_GLO_PRIZE_PAYMENTS)
+            ->middleware('glo.permission:'.AdminAccess::EXECUTE_GLO_PRIZE_PAYMENTS)
             ->name('glo.claims.pay');
         Route::post('/glo/claims/{claim}/cancel', [GloController::class, 'cancelClaim'])->name('glo.claims.cancel');
 
@@ -336,15 +503,15 @@ Route::prefix('v1')
 
         // Operator review (permission middleware — default deny).
         Route::get('/glo/operator/dealer-requests', [GloController::class, 'operatorDealerRequests'])
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::REVIEW_GLO_DEALER_REQUESTS)
+            ->middleware('glo.permission:'.AdminAccess::REVIEW_GLO_DEALER_REQUESTS)
             ->name('glo.operator.dealer-requests.index');
         Route::post('/glo/operator/dealer-requests/{reference}/approve', [GloController::class, 'operatorApproveDealerRequest'])
             ->where('reference', '[A-Za-z0-9\-]{6,40}')
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::REVIEW_GLO_DEALER_REQUESTS)
+            ->middleware('glo.permission:'.AdminAccess::REVIEW_GLO_DEALER_REQUESTS)
             ->name('glo.operator.dealer-requests.approve');
         Route::post('/glo/operator/dealer-requests/{reference}/reject', [GloController::class, 'operatorRejectDealerRequest'])
             ->where('reference', '[A-Za-z0-9\-]{6,40}')
-            ->middleware('glo.permission:'.\App\Support\Admin\AdminAccess::REVIEW_GLO_DEALER_REQUESTS)
+            ->middleware('glo.permission:'.AdminAccess::REVIEW_GLO_DEALER_REQUESTS)
             ->name('glo.operator.dealer-requests.reject');
     });
 

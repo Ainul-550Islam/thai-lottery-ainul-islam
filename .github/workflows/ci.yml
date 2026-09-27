@@ -17,14 +17,58 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip
+          # intl is required by filament/support (a transitive composer
+          # requirement) and by the Filament resource render assertions. It is
+          # already present on the runner image; naming it here makes that a
+          # declared dependency rather than a lucky default.
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl
           coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
       - name: Validate composer.json
         run: composer validate --no-check-publish
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install front-end dependencies
+        run: npm ci
+
+      - name: Build front-end assets
+        run: npm run build
+
+      - name: Assert the Vite manifest and every registered entry were built
+        run: |
+          set -euo pipefail
+          test -f public/build/manifest.json
+          # Every input declared in vite.config.js must have produced an asset.
+          # An empty or missing module still "builds", so the manifest is
+          # checked entry by entry rather than as a whole.
+          node -e '
+            const fs = require("fs");
+            const manifest = JSON.parse(fs.readFileSync("public/build/manifest.json", "utf8"));
+            const config = fs.readFileSync("vite.config.js", "utf8");
+            const inputs = [...config.matchAll(/["'"'"'](resources\/(?:js|css)\/[^"'"'"']+)["'"'"']/g)].map(m => m[1]);
+            let failed = false;
+            for (const input of new Set(inputs)) {
+              const record = manifest[input];
+              if (!record || !record.file || !fs.existsSync("public/build/" + record.file)) {
+                console.error("::error::vite entry not built: " + input);
+                failed = true;
+                continue;
+              }
+              if (fs.statSync("resources/" + input.slice("resources/".length)).size === 0) {
+                console.error("::error::vite entry is an empty file: " + input);
+                failed = true;
+              }
+            }
+            process.exit(failed ? 1 : 0);
+          '
 
       - name: PHP syntax check (php -l on all project PHP files)
         run: |
@@ -70,7 +114,45 @@ jobs:
           fi
           exit $fail
 
-      - name: Cache and route optimisation
+      - name: Assert the writable runtime directories are present in the checkout
+        run: |
+          set -euo pipefail
+          fail=0
+          # These are the directories Laravel writes to at runtime. Git does not
+          # track empty directories, so each one needs its own .gitignore marker
+          # to survive a clone. A missing marker only shows up as a confusing
+          # "Please provide a valid cache path" much later.
+          for dir in \
+            bootstrap/cache \
+            storage/app/private \
+            storage/app/public \
+            storage/framework/cache/data \
+            storage/framework/sessions \
+            storage/framework/testing \
+            storage/framework/views \
+            storage/logs
+          do
+            if [ ! -d "$dir" ]; then
+              echo "::error::missing runtime directory: $dir"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Assert every model with HasFactory has a factory
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r -d '' model; do
+            name="$(basename "$model" .php)"
+            if grep -q 'HasFactory' "$model" && [ ! -f "database/factories/${name}Factory.php" ]; then
+              echo "::error file=$model::model declares HasFactory but database/factories/${name}Factory.php is missing"
+              fail=1
+            fi
+          done < <(find app/Models -name '*.php' -print0)
+          exit $fail
+
+      - name: Application key and route optimisation
         run: |
           cp .env.example .env 2>/dev/null || true
           php artisan key:generate --force || true
@@ -93,8 +175,114 @@ jobs:
         env:
           APP_ENV: testing
         run: |
+          # A cached config file wins over phpunit.xml's <env> overrides, which
+          # points the suite at the development database and connection instead
+          # of the in-memory test one. The cache is proven above and discarded
+          # here, before the suite runs.
+          php artisan config:clear
+          test ! -f bootstrap/cache/config.php
           # Tests must never be skipped to go green: suite exit code is authoritative
           php artisan test
+
+      # ---------------------------------------------------------------------
+      # PROMPT 7: the seams between a result lane and the rest of the repo.
+      #
+      # The full suite above already runs these tests. This step exists
+      # because a seam failure is a DIFFERENT KIND of failure: the lane works,
+      # every unit passes, and the feature is still unreachable or its
+      # configuration undocumented. Naming the contract here means the CI log
+      # says which agreement broke instead of just "a test failed".
+      #
+      # Cheap greps first, so an obvious breach fails in a second rather than
+      # after the whole suite.
+      # ---------------------------------------------------------------------
+      - name: Assert the result-lane seams are closed
+        run: |
+          set -euo pipefail
+
+          echo "--- robots.txt: search blocked, content crawlable ---"
+          test -f public/robots.txt
+          for lane in national-lottery weekly-lottery bingo-lottery pcso-lottery; do
+            grep -qx "Disallow: /${lane}/search" public/robots.txt \
+              || { echo "::error::robots.txt does not block /${lane}/search"; exit 1; }
+            # A bare prefix rule would deindex the entire lane.
+            if grep -qE "^Disallow:[[:space:]]*/${lane}/?[[:space:]]*$" public/robots.txt; then
+              echo "::error::robots.txt blocks the whole ${lane} lane, not just its search route"
+              exit 1
+            fi
+            if grep -qE "^Disallow:[[:space:]]*/${lane}/year" public/robots.txt; then
+              echo "::error::robots.txt blocks the ${lane} year archive"
+              exit 1
+            fi
+          done
+
+          echo "--- .env.example documents every key each lane config reads ---"
+          node -e '
+            const fs = require("fs");
+            const example = fs.readFileSync(".env.example", "utf8");
+            let failed = false;
+            for (const lane of ["national_lottery", "weekly_lottery", "bingo_lottery", "pcso_lottery", "contact"]) {
+              const config = fs.readFileSync("config/" + lane + ".php", "utf8");
+              const prefix = lane === "contact" ? "CONTACT" : lane.toUpperCase();
+              const keys = new Set(
+                [...config.matchAll(new RegExp("env\\(\\s*[\x27\"](" + prefix + "_[A-Z0-9_]+)[\x27\"]", "g"))]
+                  .map(m => m[1])
+              );
+              if (keys.size === 0) {
+                console.error("::error::no env keys parsed out of config/" + lane + ".php");
+                failed = true;
+                continue;
+              }
+              for (const key of keys) {
+                // A commented-out entry counts: credentials are named but valueless.
+                if (!new RegExp("^#?\\s*" + key + "=", "m").test(example)) {
+                  console.error("::error::" + key + " is read by config/" + lane + ".php but undocumented in .env.example");
+                  failed = true;
+                }
+                // A credential must never ship with a value.
+                if (/(TOKEN|SECRET|KEY)$/.test(key) && new RegExp("^" + key + "=.+", "m").test(example)) {
+                  console.error("::error::" + key + " has a value in .env.example");
+                  failed = true;
+                }
+              }
+            }
+            process.exit(failed ? 1 : 0);
+          '
+
+          echo "--- /contact must stay crawlable ---"
+          if grep -qE "^Disallow:[[:space:]]*/contact" public/robots.txt; then
+            echo "::error::robots.txt blocks /contact, which is ordinary public content"
+            exit 1
+          fi
+
+          echo "--- no competitor string in any public surface ---"
+          # The reference pages that motivated these lanes may be named in
+          # audit notes and prompts. They must never appear in anything that
+          # ships. Scoped to production source so a research note in a report
+          # file does not fail the build.
+          if grep -rniE "thailotto" \
+               app config routes lang public database \
+               resources/views resources/css resources/js \
+               2>/dev/null | grep -v "^resources/views/vendor/"; then
+            echo "::error::a competitor reference reached production source"
+            exit 1
+          fi
+
+          echo "--- guest navigation links both public lanes ---"
+          for name in national-lottery.index weekly-lottery.index bingo-lottery.index pcso-lottery.index contact; do
+            grep -q "route('${name}')" resources/views/layouts/app.blade.php \
+              || { echo "::error::guest navigation has no link to ${name}"; exit 1; }
+          done
+
+          echo "Seam contracts hold."
+
+      - name: Seam and lane test suites (named, so a failure says which)
+        env:
+          APP_ENV: testing
+        run: |
+          set -euo pipefail
+          php artisan test \
+            --filter='NationalLotteryIntegrationSeamTest|NationalLotteryPublicPageTest|WeeklyLotteryPublicPageTest|BingoLotteryPublicPageTest|PcsoLotteryPublicPageTest|ContactPageTest'
 
       - name: Pint (if configured)
         run: |
@@ -103,3 +291,90 @@ jobs:
           else
             echo "Pint not installed — skipping style gate"
           fi
+
+  # ---------------------------------------------------------------------------
+  # PROMPT 6: the Weekly Lottery integrity crate.
+  #
+  # A SEPARATE JOB, not extra steps on the PHP job, for two reasons. It needs a
+  # Rust toolchain the PHP job has no use for, and the two must be able to fail
+  # independently: a broken canonicalizer and a broken Blade template are
+  # different problems and should not hide behind one red cross.
+  #
+  # --locked everywhere. The lock file is committed, and a CI run that silently
+  # resolved a different dependency tree would not be testing what ships - which
+  # matters more than usual for a component whose whole job is producing a
+  # deterministic hash.
+  # ---------------------------------------------------------------------------
+  rust-integrity:
+    name: Rust integrity verifier
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: security/weekly-result-integrity
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache cargo registry and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            security/weekly-result-integrity/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('security/weekly-result-integrity/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      - name: Formatting
+        run: cargo fmt --check
+
+      - name: Type check
+        run: cargo check --locked --all-targets
+
+      - name: Tests
+        run: cargo test --locked
+
+      - name: Assert the crate cannot reach the network or a database
+        run: |
+          set -euo pipefail
+          # The "no network" property is enforced by ABSENCE of any such
+          # dependency. tests/integrity.rs already asserts this against
+          # Cargo.lock; this repeats it against the RESOLVED tree so a
+          # transitive addition cannot slip in behind a direct one.
+          tree=$(cargo tree --locked --edges normal --prefix none)
+          for crate in tokio reqwest hyper curl ureq socket2 mio rustls native-tls sqlx diesel postgres tokio-postgres; do
+            if printf '%s\n' "$tree" | grep -qE "^${crate} v"; then
+              echo "::error::forbidden dependency in the integrity crate: ${crate}"
+              exit 1
+            fi
+          done
+          echo "No networking or database crate is present."
+
+      - name: Release build (the binary Laravel invokes)
+        run: cargo build --release --locked
+
+      - name: Smoke test the stdin/stdout contract
+        run: |
+          set -euo pipefail
+          # Leading zeros must survive, and a malformed value must be refused
+          # with exit code 2 rather than repaired.
+          ok=$(printf '%s' '{"draw_reference":"WK-20260918","draw_date":"2026-09-18","first_6":"001234","three_ball":"049","two_ball":"09","source_identifier":"CI","parser_version":"1"}' \
+            | ./target/release/weekly-result-integrity)
+          echo "$ok"
+          printf '%s\n' "$ok" | grep -q '"status":"INTEGRITY_HASH_ONLY"'
+          printf '%s\n' "$ok" | grep -q '"acceptable":true'
+
+          set +e
+          printf '%s' '{"draw_reference":"WK-20260918","draw_date":"2026-09-18","first_6":"1234","parser_version":"1"}' \
+            | ./target/release/weekly-result-integrity
+          code=$?
+          set -e
+          test "$code" -eq 2
+          echo "Malformed payload refused with exit code 2."

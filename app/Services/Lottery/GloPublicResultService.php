@@ -12,7 +12,7 @@ use App\Models\DrawResult;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Carbon;
 
 /**
  * GLO-18 public result experience: current + historical 6-digit checks,
@@ -205,7 +205,7 @@ class GloPublicResultService
 
         if (! empty($query['from'])) {
             try {
-                $from = \Illuminate\Support\Carbon::parse((string) $query['from']);
+                $from = Carbon::parse((string) $query['from']);
             } catch (\Throwable) {
                 throw GloDealerException::invalidResultInput('invalid from date');
             }
@@ -216,7 +216,7 @@ class GloPublicResultService
 
         if (! empty($query['to'])) {
             try {
-                \Illuminate\Support\Carbon::parse((string) $query['to']);
+                Carbon::parse((string) $query['to']);
             } catch (\Throwable) {
                 throw GloDealerException::invalidResultInput('invalid to date');
             }

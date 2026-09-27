@@ -12,7 +12,6 @@ use App\Models\Draw;
 use App\Models\GloN3Sale;
 use App\Models\User;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Support\Str;
 
 /**
  * GLO N3 sales seat service (GLO-9).
@@ -35,7 +34,7 @@ class GloN3SaleService
     /**
      * Create or update the N3 sales seat for a draw.
      *
-     * @param array{seats_sold?: int, gross_sales?: string, source_reference?: string|null, provenance?: string} $input
+     * @param  array{seats_sold?: int, gross_sales?: string, source_reference?: string|null, provenance?: string}  $input
      */
     public function seatSales(Draw $draw, array $input, ?User $actor = null): GloN3Sale
     {

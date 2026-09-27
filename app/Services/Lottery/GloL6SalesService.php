@@ -27,7 +27,7 @@ class GloL6SalesService
     ) {}
 
     /**
-     * @param array{units_sold?: int, gross_sales?: string, source_reference?: string|null, provenance?: string} $input
+     * @param  array{units_sold?: int, gross_sales?: string, source_reference?: string|null, provenance?: string}  $input
      */
     public function seatSales(Draw $draw, array $input, ?User $actor = null): GloL6Sale
     {

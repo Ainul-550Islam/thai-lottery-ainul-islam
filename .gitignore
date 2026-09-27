@@ -6,12 +6,29 @@
 /database/thai_lottery_test*
 /database/*.db
 /storage/*.key
+/storage/app/public/*
+!/storage/app/public/.gitignore
+/storage/app/private/*
+!/storage/app/private/.gitignore
 /storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+!/storage/framework/cache/data/
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitignore
 /storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
 /storage/framework/views/*
+!/storage/framework/views/.gitignore
 /storage/logs/*
-/bootstrap/cache/*.php
+!/storage/logs/.gitignore
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
 /.env
 /.env.*
 !/.env.example
 /phpunit.xml.bak
+
+# PROMPT 6: Rust build artefacts. Cargo.lock IS committed (cargo --locked
+# needs it and the crate is an application binary, not a published library);
+# target/ is machine-specific output and is not.
+/security/*/target

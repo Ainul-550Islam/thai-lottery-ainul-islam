@@ -1,0 +1,748 @@
+/*
+ * PCSO Lottery result surface (PROMPT 9, file 25).
+ *
+ * ORIGINAL STYLESHEET. Nothing here was copied from any third-party site: no
+ * class names, no colour tokens, no layout, no markup structure. The naming
+ * follows this repository's own BEM-ish convention (wl-block__element--
+ * modifier), matching the pd-/pp-/glo-/nl- prefixes already in use.
+ *
+ * NO CDN, NO EXTERNAL FONT, NO REMOTE IMAGE. Everything is local, so the page
+ * renders identically offline and adds no third-party request to a page whose
+ * whole job is stating facts.
+ *
+ * RESPONSIVE WITHOUT HIDING DATA. Below the breakpoint each table row becomes
+ * a stack of labelled rows using each cell's data-label. 6D, 3D and
+ * 2D are never display:none - a column hidden on a phone is a missing
+ * result, not a tidier layout. Checked at 320, 375, 768, 1024 and 1440.
+ *
+ * ACCESSIBILITY. Focus rings are never removed, the skip link becomes visible
+ * on focus, status is carried by text as well as colour, contrast is kept high
+ * against the dark application shell, and prefers-reduced-motion disables the
+ * only transition in the file.
+ *
+ * DIGITS. .wl-digits uses a tabular monospace stack with letter-spacing so a
+ * leading zero is visually unmistakable and columns of six-digit numbers line
+ * up. font-variant-numeric: tabular-nums is presentation only; the value is
+ * already an exact string from the server.
+ *
+ * MISSING VALUES look different from present ones on purpose: italic, muted
+ * and in words. A reader must never mistake "not published" for a number.
+ */
+
+.wl-page {
+    --wl-bg: #0b1220;
+    --wl-surface: #111c30;
+    --wl-surface-2: #16243c;
+    --wl-border: #24354f;
+    --wl-text: #e8eef8;
+    --wl-muted: #9fb0c9;
+    --wl-accent: #5eead4;
+    --wl-official: #34d399;
+    --wl-internal: #60a5fa;
+    --wl-fixture: #fbbf24;
+    --wl-unknown: #94a3b8;
+
+    color: var(--wl-text);
+    padding: 1.5rem 1rem 4rem;
+    max-width: 78rem;
+    margin: 0 auto;
+}
+
+.wl-skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--wl-accent);
+    color: #06211c;
+    padding: 0.6rem 1rem;
+    border-radius: 0 0 0.5rem 0;
+    font-weight: 700;
+    z-index: 100;
+}
+
+.wl-skip-link:focus {
+    left: 0;
+}
+
+.wl-main:focus {
+    outline: none;
+}
+
+/* ---------------------------------------------------------------- header */
+
+.wl-header {
+    margin-bottom: 2rem;
+}
+
+.wl-title {
+    font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0 0 0.6rem;
+}
+
+.wl-lead {
+    color: var(--wl-muted);
+    max-width: 62ch;
+    margin: 0 0 0.9rem;
+    line-height: 1.6;
+}
+
+.wl-disclaimer {
+    border-left: 3px solid var(--wl-accent);
+    background: rgba(94, 234, 212, 0.08);
+    padding: 0.75rem 1rem;
+    border-radius: 0 0.5rem 0.5rem 0;
+    color: var(--wl-text);
+    max-width: 78ch;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.wl-breadcrumb {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.wl-breadcrumb__link,
+.wl-link {
+    color: var(--wl-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+/* --------------------------------------------------------------- sections */
+
+.wl-section {
+    margin-top: 2.25rem;
+}
+
+.wl-section__heading {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 0.9rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--wl-border);
+}
+
+.wl-empty {
+    background: var(--wl-surface);
+    border: 1px dashed var(--wl-border);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    color: var(--wl-muted);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.wl-empty__action {
+    margin-top: 0.75rem;
+}
+
+.wl-notice {
+    border-radius: 0.6rem;
+    padding: 0.85rem 1rem;
+    line-height: 1.6;
+    margin: 0 0 1.25rem;
+}
+
+.wl-notice--correction {
+    background: rgba(96, 165, 250, 0.12);
+    border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.wl-chip {
+    display: inline-block;
+    background: var(--wl-surface-2);
+    border: 1px solid var(--wl-border);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    margin: 0 0.25rem 0.25rem 0;
+    font-size: 0.8rem;
+}
+
+/* ------------------------------------------------------------------ digits */
+
+.wl-digits {
+    font-family: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+    font-size: 1.05em;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------- card */
+
+.wl-card {
+    background: var(--wl-surface);
+    border: 1px solid var(--wl-border);
+    border-radius: 0.9rem;
+    padding: 1.25rem;
+}
+
+.wl-card__heading {
+    font-size: 1.05rem;
+    margin: 0 0 0.75rem;
+}
+
+.wl-card__header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.wl-card__date {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.wl-card__date-main {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.wl-card__date-iso,
+.wl-card__date-be {
+    font-size: 0.82rem;
+    color: var(--wl-muted);
+}
+
+/* The missing-result notice is prominent, not a footnote: it is the reason
+   the three cells below are empty. */
+.wl-card__unavailable {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    align-items: baseline;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: 0.6rem;
+    padding: 0.75rem 0.9rem;
+    margin: 0 0 1rem;
+    line-height: 1.6;
+}
+
+.wl-card__unavailable-badge {
+    font-weight: 700;
+    color: var(--wl-fixture);
+}
+
+.wl-card__unavailable-text {
+    color: var(--wl-muted);
+    font-size: 0.9rem;
+    flex: 1 1 18rem;
+}
+
+.wl-card__numbers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.wl-card__number {
+    background: var(--wl-surface-2);
+    border: 1px solid var(--wl-border);
+    border-radius: 0.7rem;
+    padding: 0.75rem;
+}
+
+.wl-card__number--first-6 {
+    grid-column: 1 / -1;
+    border-color: var(--wl-accent);
+}
+
+.wl-card__number--first-6 .wl-digits {
+    font-size: 1.8rem;
+    color: var(--wl-accent);
+}
+
+.wl-card__number-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wl-muted);
+    margin-bottom: 0.35rem;
+}
+
+.wl-card__number-value {
+    margin: 0;
+}
+
+.wl-card__number-missing,
+.wl-table__missing {
+    color: var(--wl-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.wl-card__actions {
+    margin: 1rem 0 0;
+}
+
+.wl-card__link,
+.wl-table__link {
+    color: var(--wl-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+/* ----------------------------------------------------------------- source */
+
+.wl-source {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.wl-source__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--wl-surface-2);
+    border: 1px solid var(--wl-border);
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    width: fit-content;
+}
+
+.wl-source__dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--wl-unknown);
+    flex: none;
+}
+
+.wl-source--official .wl-source__dot { background: var(--wl-official); }
+.wl-source--internal .wl-source__dot { background: var(--wl-internal); }
+.wl-source--fixture .wl-source__dot { background: var(--wl-fixture); }
+
+.wl-source--official .wl-source__badge { border-color: var(--wl-official); }
+.wl-source--internal .wl-source__badge { border-color: var(--wl-internal); }
+.wl-source--fixture .wl-source__badge { border-color: var(--wl-fixture); }
+
+.wl-source__hint,
+.wl-source__explainer {
+    color: var(--wl-muted);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 70ch;
+}
+
+.wl-source__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.wl-source__facts--integrity {
+    border-top: 1px solid var(--wl-border);
+    padding-top: 0.75rem;
+}
+
+.wl-source__fact {
+    background: var(--wl-surface);
+    border: 1px solid var(--wl-border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.65rem;
+}
+
+.wl-source__term {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wl-muted);
+}
+
+.wl-source__value {
+    margin: 0.2rem 0 0;
+    font-size: 0.88rem;
+    word-break: break-all;
+}
+
+.wl-source__hash {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 0.75rem;
+}
+
+/* ------------------------------------------------------------------ table */
+
+.wl-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--wl-border);
+    border-radius: 0.9rem;
+    background: var(--wl-surface);
+}
+
+.wl-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 46rem;
+}
+
+.wl-table__caption {
+    caption-side: top;
+    text-align: start;
+    padding: 0.85rem 1rem;
+    color: var(--wl-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.wl-table__th {
+    text-align: start;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wl-muted);
+    padding: 0.7rem 0.85rem;
+    border-block: 1px solid var(--wl-border);
+    background: var(--wl-surface-2);
+    white-space: nowrap;
+}
+
+.wl-table__cell {
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid var(--wl-border);
+    vertical-align: top;
+    text-align: start;
+    font-weight: 400;
+}
+
+.wl-table__cell--date {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.wl-table__date-alt {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--wl-muted);
+    font-weight: 400;
+}
+
+.wl-table__cell--empty {
+    text-align: center;
+    color: var(--wl-muted);
+    padding: 1.5rem;
+}
+
+/* A draw with no numbers is marked by a border, not by hiding it. */
+.wl-table__row--unavailable .wl-table__cell {
+    background: rgba(251, 191, 36, 0.05);
+}
+
+.wl-table__row:hover .wl-table__cell {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* -------------------------------------------------------------- pagination */
+
+.wl-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.wl-pagination__link {
+    background: var(--wl-surface-2);
+    border: 1px solid var(--wl-border);
+    border-radius: 0.5rem;
+    padding: 0.45rem 0.9rem;
+    color: var(--wl-text);
+    text-decoration: none;
+}
+
+.wl-pagination__link:hover {
+    border-color: var(--wl-accent);
+}
+
+.wl-pagination__status {
+    color: var(--wl-muted);
+    font-size: 0.85rem;
+}
+
+.wl-pagination__total {
+    margin-inline-start: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ years */
+
+.wl-years {
+    margin-top: 2.5rem;
+}
+
+.wl-years__heading {
+    font-size: 1.05rem;
+    margin: 0 0 0.75rem;
+}
+
+.wl-years__empty {
+    color: var(--wl-muted);
+    margin: 0;
+}
+
+.wl-years__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.wl-years__link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    background: var(--wl-surface);
+    border: 1px solid var(--wl-border);
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.85rem;
+    color: var(--wl-text);
+    text-decoration: none;
+    min-width: 6.5rem;
+    transition: border-color 120ms ease;
+}
+
+.wl-years__link:hover,
+.wl-years__link--active {
+    border-color: var(--wl-accent);
+}
+
+.wl-years__label {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.wl-years__count,
+.wl-years__alt {
+    font-size: 0.72rem;
+    color: var(--wl-muted);
+}
+
+/* ----------------------------------------------------------------- search */
+
+.wl-search {
+    background: var(--wl-surface);
+    border: 1px solid var(--wl-border);
+    border-radius: 0.9rem;
+    padding: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.wl-search__heading {
+    font-size: 1.05rem;
+    margin: 0 0 0.35rem;
+}
+
+.wl-search__intro {
+    color: var(--wl-muted);
+    margin: 0 0 1rem;
+    line-height: 1.6;
+    max-width: 70ch;
+}
+
+.wl-search__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1rem;
+}
+
+.wl-search__label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wl-muted);
+    margin-bottom: 0.35rem;
+}
+
+.wl-search__input,
+.wl-search__select {
+    width: 100%;
+    background: var(--wl-bg);
+    border: 1px solid var(--wl-border);
+    border-radius: 0.5rem;
+    color: var(--wl-text);
+    padding: 0.55rem 0.7rem;
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.wl-search__input:focus,
+.wl-search__select:focus,
+.wl-search__submit:focus,
+.wl-years__link:focus,
+.wl-pagination__link:focus,
+.wl-card__link:focus,
+.wl-table__link:focus,
+.wl-skip-link:focus {
+    outline: 2px solid var(--wl-accent);
+    outline-offset: 2px;
+}
+
+.wl-search__hint {
+    font-size: 0.78rem;
+    color: var(--wl-muted);
+    margin: 0.35rem 0 0;
+    line-height: 1.5;
+}
+
+.wl-search__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.wl-search__submit {
+    background: var(--wl-accent);
+    color: #06211c;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.55rem 1.4rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.wl-search__reset {
+    color: var(--wl-muted);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.wl-search__matched {
+    color: var(--wl-muted);
+    font-size: 0.85rem;
+    margin: 0 0 0.75rem;
+}
+
+/* ----------------------------------------------------------------- detail */
+
+.wl-detail__dates {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0 0;
+}
+
+.wl-detail__date {
+    background: var(--wl-surface-2);
+    border: 1px solid var(--wl-border);
+    border-radius: 0.6rem;
+    padding: 0.6rem 0.75rem;
+}
+
+.wl-detail__date dt {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wl-muted);
+}
+
+.wl-detail__date dd {
+    margin: 0.2rem 0 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ responsive */
+
+@media (max-width: 62rem) {
+    .wl-table {
+        min-width: 0;
+    }
+
+    .wl-table__head {
+        /* Visually hidden, still announced: the per-cell data-label below
+           carries the column name into the stacked layout. */
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .wl-table,
+    .wl-table__body,
+    .wl-table__row,
+    .wl-table__cell {
+        display: block;
+        width: 100%;
+    }
+
+    .wl-table__row {
+        border-bottom: 2px solid var(--wl-border);
+        padding: 0.5rem 0;
+    }
+
+    .wl-table__cell {
+        border-bottom: none;
+        display: grid;
+        grid-template-columns: 8rem 1fr;
+        gap: 0.5rem;
+        align-items: baseline;
+        padding: 0.35rem 0.85rem;
+    }
+
+    .wl-table__cell::before {
+        content: attr(data-label);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--wl-muted);
+    }
+
+    .wl-table__cell--empty {
+        grid-template-columns: 1fr;
+    }
+
+    .wl-table__cell--empty::before {
+        content: none;
+    }
+}
+
+/* 320px: the narrowest supported viewport. The label column collapses above
+   the value rather than squeezing it, so a six-digit number never wraps. */
+@media (max-width: 24rem) {
+    .wl-page {
+        padding: 1rem 0.65rem 3rem;
+    }
+
+    .wl-table__cell {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
+
+    .wl-card__number--first-6 .wl-digits {
+        font-size: 1.45rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wl-years__link {
+        transition: none;
+    }
+}
+
+@media (prefers-contrast: more) {
+    .wl-page {
+        --wl-muted: #cbd5e1;
+        --wl-border: #475569;
+    }
+}

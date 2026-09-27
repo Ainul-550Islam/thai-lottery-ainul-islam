@@ -23,7 +23,14 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class PublicLegalHeaders
 {
-    public const CACHEABLE_PATHS = ['about', 'vision', 'terms'];
+    // PROMPT 5 adds 'national-lottery' (the landing page only). The match
+    // below is EXACT, so '/national-lottery/search' is not in this list and
+    // therefore never receives a shared-cache header - a query-dependent
+    // response must not be storable by a proxy. Draw and year pages are also
+    // excluded: their content changes when a correction is published, and the
+    // application-level cache (keyed on the result version) is the correct
+    // place for that, not an edge cache this code cannot purge.
+    public const CACHEABLE_PATHS = ['about', 'vision', 'terms', 'national-lottery', 'weekly-lottery'];
 
     public const PUBLIC_MAX_AGE_SECONDS = 60;
 

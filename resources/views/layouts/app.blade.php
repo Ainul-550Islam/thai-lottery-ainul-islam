@@ -15,6 +15,12 @@
     @hasSection('meta_canonical')
         <link rel="canonical" href="@yield('meta_canonical')">
     @endif
+    {{-- PROMPT 5: pages that must not be indexed (query-dependent search
+         results, empty-state pages) set this section. Pages that do not set
+         it are unaffected, exactly as before. --}}
+    @hasSection('meta_robots')
+        <meta name="robots" content="@yield('meta_robots')">
+    @endif
     @hasSection('meta_og_title')
         <meta property="og:title" content="@yield('meta_og_title')">
     @endif
@@ -122,6 +128,36 @@
                         <a href="{{ route('results.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('results.index') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">Results</a>
                         <a href="{{ route('ticket-check') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('ticket-check*') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">Check</a>
                         <a href="{{ route('sales-points') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('sales-points') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">Sales Points</a>
+                        {{-- PROMPT 7: the National Lottery lane shipped routed,
+                             rendered and tested, but linked from nothing. It
+                             sits between Results and Weekly Lottery because
+                             that is the product order, and it is inside the
+                             guest branch so anonymous visitors reach it
+                             without a login. routeIs('national-lottery*')
+                             keeps it highlighted across the landing, search,
+                             year and draw-detail routes. --}}
+                        <a href="{{ route('national-lottery.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('national-lottery*') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">National Lottery</a>
+                        {{-- PROMPT 6: the Weekly Lottery result surface is a
+                             public product page, so it needs a way in. A page
+                             that only exists at a URL nobody is given is a
+                             half-delivered feature. routeIs('weekly-lottery*')
+                             keeps it highlighted across the landing, year,
+                             search and draw-detail routes. --}}
+                        <a href="{{ route('weekly-lottery.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('weekly-lottery*') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">Weekly Lottery</a>
+                        {{-- PROMPT 8: the Mega Lottery lane. The code calls it
+                             "bingo" because that is the roadmap's name for the
+                             slot; the LABEL says Mega Lottery because that is
+                             what the page actually publishes. National and
+                             Weekly keep their positions - this is appended
+                             after them, not inserted among them. --}}
+                        <a href="{{ route('bingo-lottery.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('bingo-lottery*') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">Mega Lottery</a>
+                        {{-- PROMPT 9: the PCSO lane. Appended after the three
+                             existing lanes rather than inserted among them, so
+                             no existing link moves. --}}
+                        <a href="{{ route('pcso-lottery.index') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('pcso-lottery*') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">PCSO Lottery</a>
+                        {{-- PROMPT 10: Contact. Appended after the four result
+                             lanes, so no existing link moves. --}}
+                        <a href="{{ route('contact') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('contact*') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">Contact Us</a>
                     </nav>
                     <a href="{{ route('register') }}" class="px-3 py-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition">Register</a>
                     <a href="{{ route('login') }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition">

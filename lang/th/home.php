@@ -20,6 +20,9 @@ return [
     'cta_sign_in' => 'Sign in',
     'cta_register' => 'Create account',
 
+    'lane_results_title' => 'ผลรางวัลล่าสุด',
+    'lane_results_none' => 'ยังไม่มีผลรางวัลที่ประกาศ',
+    'lane_results_field_none' => 'ยังไม่ประกาศ',
     'current_result_title' => 'Current verified result',
     'current_result_none' => 'No verified result available',
     'next_draw_title' => 'Next draw',

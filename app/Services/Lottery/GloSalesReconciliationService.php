@@ -37,7 +37,7 @@ class GloSalesReconciliationService
     /**
      * Reconcile one (draw, product).
      *
-     * @param array{expected_seats?: int, expected_gross?: string} $expected
+     * @param  array{expected_seats?: int, expected_gross?: string}  $expected
      * @return array{
      *     reconciliation: GloSalesReconciliation,
      *     status: string,
@@ -59,7 +59,7 @@ class GloSalesReconciliationService
             throw GloSalesException::invalidUnits('unknown product '.$product);
         }
 
-        return $this->db->connection()->transaction(function () use ($draw, $drawId, $product, $expected, $actor, $gate): array {
+        return $this->db->connection()->transaction(function () use ($drawId, $product, $expected, $actor, $gate): array {
             $recordedSeats = 0;
             $recordedGross = '0.00';
             $seatConflicted = false;

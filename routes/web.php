@@ -2,15 +2,23 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\HealthController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\MetricsController;
-use App\Http\Controllers\PublicPagesController;
-use App\Http\Controllers\PublicServicePagesController;
 use App\Http\Controllers\AccountGradeController;
 use App\Http\Controllers\AccountVerificationController;
+use App\Http\Controllers\BingoLotteryController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\HealthController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LottoDiscountController;
+use App\Http\Controllers\MetricsController;
+use App\Http\Controllers\NationalLotteryController;
+use App\Http\Controllers\PcsoLotteryController;
+use App\Http\Controllers\PrizeVerificationController;
+use App\Http\Controllers\PublicAccountInfoController;
+use App\Http\Controllers\PublicPagesController;
+use App\Http\Controllers\PublicServicePagesController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\PlayerWebController;
+use App\Http\Controllers\WeeklyLotteryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -142,6 +150,240 @@ Route::get('/fees', [PublicServicePagesController::class, 'fees'])
     ->middleware('public.legal')
     ->name('fees');
 
+// Public Prize Verification (PROMPT 4) — anonymous ticket / result checker.
+// The POST carries throttle:ticket-verification because a public six-digit
+// checker is an enumeration oracle without a ceiling. The verification answer
+// is a fixed public vocabulary; nothing user-identifying is ever rendered.
+Route::get('/prize-verification', [PrizeVerificationController::class, 'show'])
+    ->middleware('public.legal')
+    ->name('prize-verification');
+Route::post('/prize-verification', [PrizeVerificationController::class, 'verify'])
+    ->middleware('throttle:ticket-verification')
+    ->name('prize-verification.submit');
+
+// Public Lotto Discount catalogue (PROMPT 4) — published rules only, server
+// computed. GLO L6/N3 appear as immutable-price products and can never carry
+// a discount row.
+Route::get('/discounts', [LottoDiscountController::class, 'index'])
+    ->middleware('public.legal')
+    ->name('discounts');
+
+/*
+|--------------------------------------------------------------------------
+| Public National Lottery results (PROMPT 5) — anonymous by design
+|--------------------------------------------------------------------------
+|
+| A SEPARATE PRODUCT LANE. These four routes serve national_lottery_* data
+| only. They do not touch GLO L6/N3 or the operator markets, and they do not
+| collide with the existing public surfaces: /results (GLO result view),
+| /prize-verification and /discounts keep their own paths and their own
+| controllers, unchanged.
+|
+| ORDER IS LOAD-BEARING. /search and /year/{year} are declared BEFORE the
+| /{draw} wildcard, so the literal paths can never be captured and read as a
+| draw reference.
+|
+| BOUNDS ARE ON THE ROUTE, NOT ONLY IN THE CONTROLLER. {year} is at most four
+| digits and {draw} is at most forty characters of an explicit alphabet, so a
+| hostile URL is refused by the router before a controller, a validator or a
+| query is ever reached.
+|
+| /search carries throttle:national-result-search (registered in
+| AppServiceProvider from config('national_lottery.rate_limit')): IP per
+| minute, IP per hour, and a hashed query fingerprint per minute. A public
+| lookup over a 1,000,000-value space is an enumeration oracle without it.
+|
+| public.legal = PublicLegalHeaders: short guest-GET cache headers on the
+| listed cacheable paths only. The search route is deliberately outside that
+| list, so a query-dependent response is never cached at the edge.
+*/
+Route::get('/national-lottery', [NationalLotteryController::class, 'index'])
+    ->middleware('public.legal')
+    ->name('national-lottery.index');
+
+Route::get('/national-lottery/search', [NationalLotteryController::class, 'search'])
+    ->middleware('throttle:national-result-search')
+    ->name('national-lottery.search');
+
+Route::get('/national-lottery/year/{year}', [NationalLotteryController::class, 'year'])
+    ->where('year', '[0-9]{1,4}')
+    ->middleware('public.legal')
+    ->name('national-lottery.year');
+
+Route::get('/national-lottery/{draw}', [NationalLotteryController::class, 'show'])
+    ->where('draw', '[A-Za-z0-9\-]{1,40}')
+    ->middleware('public.legal')
+    ->name('national-lottery.show');
+
+/*
+|--------------------------------------------------------------------------
+| Public Weekly Lottery results (PROMPT 6) — anonymous by design
+|--------------------------------------------------------------------------
+|
+| A SEPARATE PRODUCT LANE. These four routes serve weekly_lottery_* data only.
+| They do not touch GLO L6/N3, the National lane or the operator markets, and
+| they do not collide with the existing public surfaces: /results,
+| /national-lottery, /prize-verification and /discounts keep their own paths
+| and their own controllers, unchanged.
+|
+| ORDER IS LOAD-BEARING. /search and /year/{year} are declared BEFORE the
+| /{draw} wildcard, so the literal paths can never be captured and read as a
+| draw reference.
+|
+| BOUNDS ARE ON THE ROUTE, NOT ONLY IN THE CONTROLLER. {year} is at most four
+| digits and {draw} is at most forty characters of an explicit alphabet, so a
+| hostile URL is refused by the router before a controller, a validator or a
+| query is ever reached.
+|
+| /search carries throttle:weekly-result-search (registered in
+| AppServiceProvider from config('weekly_lottery.rate_limit')): IP per minute,
+| IP per hour, and a hashed query fingerprint per minute. A public lookup over
+| a 1,000,000-value space is an enumeration oracle without it.
+|
+| public.legal = PublicLegalHeaders: short guest-GET cache headers on the
+| listed cacheable paths only. The search route is deliberately outside that
+| list, so a query-dependent response is never cached at the edge.
+*/
+Route::get('/weekly-lottery', [WeeklyLotteryController::class, 'index'])
+    ->middleware('public.legal')
+    ->name('weekly-lottery.index');
+
+Route::get('/weekly-lottery/search', [WeeklyLotteryController::class, 'search'])
+    ->middleware('throttle:weekly-result-search')
+    ->name('weekly-lottery.search');
+
+Route::get('/weekly-lottery/year/{year}', [WeeklyLotteryController::class, 'year'])
+    ->where('year', '[0-9]{1,4}')
+    ->middleware('public.legal')
+    ->name('weekly-lottery.year');
+
+Route::get('/weekly-lottery/{draw}', [WeeklyLotteryController::class, 'show'])
+    ->where('draw', '[A-Za-z0-9\-]{1,40}')
+    ->middleware('public.legal')
+    ->name('weekly-lottery.show');
+/*
+|--------------------------------------------------------------------------
+| PROMPT 8: public Bingo / Mega Lottery result surface
+|--------------------------------------------------------------------------
+|
+| A SEPARATE PRODUCT LANE. These four routes serve bingo_lottery_* data and
+| nothing else: not GLO L6/N3, not the National lane, not the Weekly lane, not
+| an operator market. They read; nothing here writes.
+|
+| ORDER IS LOAD-BEARING. /search and /year/{year} are declared BEFORE
+| /{draw}. Reversed, the wildcard would match the literal string "search" and
+| a visitor asking to search would get a draw-not-found page for a draw named
+| "search".
+|
+| /search carries throttle:bingo-result-search (registered in
+| AppServiceProvider from config('bingo_lottery.rate_limit')): IP per minute,
+| IP per hour, and a hashed query fingerprint per minute. robots.txt asks
+| crawlers to stay out of the same path, but that is a request - this limiter
+| is the control.
+|
+*/
+Route::get('/bingo-lottery', [BingoLotteryController::class, 'index'])
+    ->middleware('public.legal')
+    ->name('bingo-lottery.index');
+
+Route::get('/bingo-lottery/search', [BingoLotteryController::class, 'search'])
+    ->middleware('throttle:bingo-result-search')
+    ->name('bingo-lottery.search');
+
+Route::get('/bingo-lottery/year/{year}', [BingoLotteryController::class, 'year'])
+    ->where('year', '[0-9]{1,4}')
+    ->middleware('public.legal')
+    ->name('bingo-lottery.year');
+
+Route::get('/bingo-lottery/{draw}', [BingoLotteryController::class, 'show'])
+    ->where('draw', '[A-Za-z0-9\-]{1,40}')
+    ->middleware('public.legal')
+    ->name('bingo-lottery.show');
+/*
+|--------------------------------------------------------------------------
+| PROMPT 9: public PCSO Lottery result surface
+|--------------------------------------------------------------------------
+|
+| A SEPARATE PRODUCT LANE. Four routes over pcso_lottery_* data: not GLO
+| L6/N3, not National, not Weekly, not Mega, not an operator market. They
+| read; nothing here writes.
+|
+| ORDER IS LOAD-BEARING. /search and /year/{year} are declared BEFORE
+| /{draw}. Reversed, the wildcard would match the literal string "search" and
+| a visitor asking to search would get a draw-not-found page for a draw named
+| "search".
+|
+| The {draw} pattern allows the longer PCSO reference, which carries a draw
+| TIME as well as a date (PCSO-20260910-2100) because this lane publishes
+| several draws per day.
+|
+| /search carries throttle:pcso-result-search. robots.txt asks crawlers to
+| stay out of the same path, but that is a request - this limiter is the
+| control.
+|
+*/
+
+Route::get('/pcso-lottery', [PcsoLotteryController::class, 'index'])
+    ->middleware('public.legal')
+    ->name('pcso-lottery.index');
+
+Route::get('/pcso-lottery/search', [PcsoLotteryController::class, 'search'])
+    ->middleware('throttle:pcso-result-search')
+    ->name('pcso-lottery.search');
+
+Route::get('/pcso-lottery/year/{year}', [PcsoLotteryController::class, 'year'])
+    ->where('year', '[0-9]{1,4}')
+    ->middleware('public.legal')
+    ->name('pcso-lottery.year');
+
+Route::get('/pcso-lottery/{draw}', [PcsoLotteryController::class, 'show'])
+    ->where('draw', '[A-Za-z0-9\-]{1,40}')
+    ->middleware('public.legal')
+    ->name('pcso-lottery.show');
+
 // Static pages used by footer/support CTAs when configured.
 Route::view('/privacy', 'static.privacy')->name('privacy');
-Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
+/*
+|--------------------------------------------------------------------------
+| PROMPT 10: public Contact / Support centre
+|--------------------------------------------------------------------------
+|
+| The GET route KEEPS ITS NAME. About, both footers, the privacy page and the
+| terms page all link to route('contact'), and existing tests assert those
+| links resolve. Renaming it to something tidier would have broken five
+| surfaces to gain nothing.
+|
+| The POST carries throttle:contact-submit. A public endpoint that sends mail
+| is a relay without one. It is also inside the normal web middleware group,
+| so Laravel's CSRF protection applies - deliberately not excluded to make an
+| AJAX submission simpler.
+|
+*/
+
+/*
+|--------------------------------------------------------------------------
+| Public account-programme explainers
+|--------------------------------------------------------------------------
+|
+| SIGNED-OUT INFORMATION, NOT THE ACCOUNT PAGES. /account/grade and
+| /account/verification stay behind auth and show a person their own figures.
+| These two show the LADDER and the PROCESS to somebody who has not
+| registered and therefore cannot see either.
+|
+| Separate paths on purpose: relaxing auth on the existing routes would have
+| meant one URL answering differently depending on who asked, which is how a
+| personal figure eventually renders for a guest.
+|
+*/
+
+Route::get('/account-grades', [PublicAccountInfoController::class, 'grades'])
+    ->name('account-grades');
+
+Route::get('/account-verification-guide', [PublicAccountInfoController::class, 'verification'])
+    ->name('account-verification-guide');
+
+Route::get('/contact', [ContactController::class, 'show'])->name('contact');
+
+Route::post('/contact', [ContactController::class, 'submit'])
+    ->middleware('throttle:contact-submit')
+    ->name('contact.submit');

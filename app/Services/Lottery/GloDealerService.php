@@ -4,20 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
+use App\Enums\AuditAction;
 use App\Enums\GloDealerStatus;
 use App\Enums\GloSourceState;
-use App\Exceptions\GloDealerException;
+use App\Enums\RiskLevel;
 use App\Models\Agent;
 use App\Models\AuditLog;
-use App\Enums\AuditAction;
-use App\Enums\RiskLevel;
 use App\Models\GloDealer;
 use App\Models\RetailVendor;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
 
 /**
  * GLO dealer profile service (GLO-15).

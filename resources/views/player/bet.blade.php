@@ -3,6 +3,28 @@
 @section('title', 'Place Lottery Bet — Thai Lottery')
 
 @section('content')
+@php
+    // The sellable markets, their digit counts and their payout multipliers are
+    // read from config('lottery.markets') - the same table MarketRuleResolver and
+    // the settlement engine use. They are rendered onto each option as data
+    // attributes so resources/js/lottery/ticket-selector.js enforces the real
+    // rules instead of a second copy of them that could drift.
+    //
+    // The keys below (3d_direct, 3d_tod, 2d_top, 2d_bottom, run_top, run_bottom)
+    // are the vocabulary App\Enums\BetMarket::allMarketKeys() declares and
+    // App\Http\Requests\Api\V1\BulkBetRequest validates against.
+    $marketNames = [
+        '3d_direct' => '3-Digit Top (3 ตัวบน)',
+        '3d_tod' => '3-Digit Tod (3 ตัวโต๊ด)',
+        '2d_top' => '2-Digit Top (2 ตัวบน)',
+        '2d_bottom' => '2-Digit Bottom (2 ตัวล่าง)',
+        'run_top' => 'Run Top (วิ่งบน)',
+        'run_bottom' => 'Run Bottom (วิ่งล่าง)',
+    ];
+
+    $sellableMarkets = collect(config('lottery.markets', []))
+        ->filter(fn (array $market): bool => (bool) ($market['enabled'] ?? false));
+@endphp
 <div class="max-w-6xl mx-auto space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -22,17 +44,23 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Keypad / Market Selection Column (2 Cols) -->
         <div class="lg:col-span-2 space-y-6">
-            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
+            <div data-ticket-selector class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
                 <!-- Market Type Selector -->
                 <div class="mb-6">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Select Market</label>
+                    <label for="market-select" class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Select Market</label>
                     <select id="market-select" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white font-semibold text-sm focus:outline-none focus:border-emerald-500">
-                        <option value="three_digits_top">3-Digit Top (3 ตัวบน) — Multiplier: 900x</option>
-                        <option value="three_digits_tod">3-Digit Tod (3 ตัวโต๊ด) — Multiplier: 120x</option>
-                        <option value="two_digits_top">2-Digit Top (2 ตัวบน) — Multiplier: 90x</option>
-                        <option value="two_digits_bottom">2-Digit Bottom (2 ตัวล่าง) — Multiplier: 90x</option>
-                        <option value="run_top">Run Top (วิ่งบน) — Multiplier: 3.2x</option>
-                        <option value="run_bottom">Run Bottom (วิ่งล่าง) — Multiplier: 4.2x</option>
+                        @foreach($sellableMarkets as $marketKey => $market)
+                            @php
+                                $displayName = $marketNames[$marketKey] ?? ($market['label'] ?? $marketKey);
+                                $multiplier = (float) ($market['payout_multiplier'] ?? 0);
+                            @endphp
+                            <option value="{{ $marketKey }}"
+                                    data-digits="{{ (int) ($market['digits'] ?? 0) }}"
+                                    data-multiplier="{{ $multiplier }}"
+                                    data-label="{{ $displayName }}">
+                                {{ $displayName }} — Multiplier: {{ rtrim(rtrim(number_format($multiplier, 2, '.', ''), '0'), '.') }}x
+                            </option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -75,12 +103,30 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Selection feedback. Written only by ticket-selector.js. -->
+                <p data-selection-status
+                   role="status"
+                   aria-live="polite"
+                   class="mt-4 text-xs min-h-[1rem] text-slate-400 data-[tone=error]:text-rose-400 data-[tone=success]:text-emerald-400"></p>
             </div>
         </div>
 
         <!-- Dynamic Bet Slip Column (1 Col) -->
         <div class="space-y-6">
-            <div id="bet-slip-container" class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between h-full min-h-[420px]">
+            {{--
+                data-max-items mirrors the 50-selection ceiling in BulkBetRequest.
+                data-purchase-endpoint / data-api-token are intentionally absent:
+                POST /api/v1/bets/purchase-bulk is token-authenticated and this
+                application does not enable Sanctum's stateful-frontend
+                middleware, so a session cookie cannot buy. bet-slip.js therefore
+                builds and prices the slip but refuses to submit, and says why,
+                instead of failing silently against a 401.
+            --}}
+            <div id="bet-slip-container"
+                 data-draw-id="{{ $openDraw->id ?? '' }}"
+                 data-max-items="50"
+                 class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between h-full min-h-[420px]">
                 <div>
                     <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
                         <h2 class="text-base font-bold text-white">Bet Slip Basket</h2>
@@ -109,9 +155,20 @@
                             class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold rounded-xl shadow-lg transition duration-150 text-sm">
                         Confirm & Place Bets
                     </button>
+
+                    <!-- Slip feedback. Written only by bet-slip.js. -->
+                    <p data-slip-status
+                       role="status"
+                       aria-live="polite"
+                       class="text-[11px] leading-relaxed min-h-[1rem] text-slate-400 data-[tone=error]:text-rose-400 data-[tone=warning]:text-amber-400 data-[tone=success]:text-emerald-400"></p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+    <script type="module" src="{{ Vite::asset('resources/js/lottery/ticket-selector.js') }}"></script>
+    <script type="module" src="{{ Vite::asset('resources/js/lottery/bet-slip.js') }}"></script>
+@endpush

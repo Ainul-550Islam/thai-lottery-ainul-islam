@@ -1,0 +1,50 @@
+# Isolated, non-networked integrity verifier for Weekly Lottery result payloads.
+#
+# DEPENDENCY POLICY
+# -----------------------------------------------------------------------------
+# Four dependencies, all widely reviewed, none of which can open a socket:
+#
+#   sha2          RustCrypto SHA-256. Pure computation.
+#   ed25519-dalek Ed25519 signature verification. Pure computation.
+#   serde/_json   Parsing the request document on stdin. No IO of its own.
+#   hex           Hex encode/decode. Pure computation.
+#
+# There is deliberately NO http client, NO tokio, NO database driver and NO
+# process-spawning crate in this tree. `cargo tree` is the audit: if a
+# networking crate ever appears in it, this policy has been broken.
+[package]
+name = "weekly-result-integrity"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Deterministic canonicalization and cryptographic integrity verification for Weekly Lottery result payloads."
+license = "MIT"
+publish = false
+
+[lib]
+name = "weekly_result_integrity"
+path = "src/lib.rs"
+
+# A stdin/stdout shim so Laravel can call the verifier as a subprocess.
+# It is NOT a server: no socket is ever opened, no port is ever bound, and the
+# process exits as soon as one document has been answered.
+[[bin]]
+name = "weekly-result-integrity"
+path = "src/main.rs"
+
+[dependencies]
+sha2 = "0.10"
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ed25519-dalek = { version = "2", default-features = false, features = ["alloc"] }
+
+# Signing is a TEST-ONLY capability. The shipped library verifies signatures
+# and can never produce one: a verifier that can sign is a verifier that can
+# forge the thing it is checking.
+[dev-dependencies]
+ed25519-dalek = { version = "2", default-features = false, features = ["alloc", "rand_core"] }
+
+[profile.release]
+opt-level = 2
+panic = "abort"

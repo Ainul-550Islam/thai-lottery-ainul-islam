@@ -10,7 +10,6 @@ use App\Models\GloSalesPoint;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Public, database-backed platform statistics for the Home page.
