@@ -33,7 +33,7 @@
         @if($draw->result)
             <div id="live-results-board" class="space-y-6">
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 text-center">
-                    <span class="text-xs text-slate-400 uppercase tracking-widest font-bold block mb-2">First Prize (รางวัลที่ 1)</span>
+                    <span class="text-xs text-slate-400 uppercase tracking-widest font-bold block mb-2">{{ __('player.first_prize_1') }}</span>
                     <div class="text-4xl sm:text-5xl font-black font-mono text-amber-400 tracking-widest" data-prize="first">
                         {{ $draw->result->first_prize }}
                     </div>
@@ -45,11 +45,11 @@
                         <span class="text-2xl font-bold font-mono text-emerald-400" data-prize="3d_top">{{ $draw->result->three_digits_top }}</span>
                     </div>
                     <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-center">
-                        <span class="text-[11px] text-slate-400 uppercase font-semibold block mb-1">3-Digit Tod</span>
-                        <span class="text-lg font-bold font-mono text-emerald-400" data-prize="3d_tod">All Permutations</span>
+                        <span class="text-[11px] text-slate-400 uppercase font-semibold block mb-1">{{ __('player.digit_3d_tod') }}</span>
+                        <span class="text-lg font-bold font-mono text-emerald-400" data-prize="3d_tod">{{ __('player.all_permutations') }}</span>
                     </div>
                     <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-center">
-                        <span class="text-[11px] text-slate-400 uppercase font-semibold block mb-1">2-Digit Top</span>
+                        <span class="text-[11px] text-slate-400 uppercase font-semibold block mb-1">{{ __('player.digit_2d_top') }}</span>
                         <span class="text-2xl font-bold font-mono text-emerald-400" data-prize="2d_top">{{ substr($draw->result->three_digits_top ?? '00', -2) }}</span>
                     </div>
                     <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-center">
@@ -61,8 +61,8 @@
         @else
             <div class="py-12 text-center text-slate-500">
                 <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <p class="text-sm font-semibold text-slate-400">Results are pending publication.</p>
-                <p class="text-xs text-slate-500 mt-1">Official winning numbers are announced immediately following the government draw ceremony.</p>
+                <p class="text-sm font-semibold text-slate-400">{{ __('player.results_pending') }}</p>
+                <p class="text-xs text-slate-500 mt-1">{{ __('player.results_pending_lead') }}</p>
             </div>
         @endif
     </div>

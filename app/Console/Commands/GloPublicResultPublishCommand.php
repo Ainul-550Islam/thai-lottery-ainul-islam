@@ -23,12 +23,29 @@ class GloPublicResultPublishCommand extends Command
         {--draw= : Local draw id or draw_number}
         {--force : Republish the SAME result_version fingerprint only}
         {--actor= : Operator email for audit attribution}
-        {--json : JSON output}';
+        {--json : JSON output}
+        {--allow-fixture-in-production : Explicitly accept fixture-sourced publication in production}';
 
     protected $description = 'Publish only verified GLO result versions into the public projection (never fabricates)';
 
     public function handle(): int
     {
+        // Gate 0 (audit S3): the official-source mode defaults to fixture
+        // for local/test boots. Production must set GLO_OFFICIAL_SOURCE_MODE
+        // explicitly before this command is trusted with the public result
+        // lane; publishing fixture data there requires the explicit
+        // acknowledgement flag, in the command output and in the audit log.
+        if (config('app.env') === 'production'
+            && (string) config('glo.official_source.mode', 'fixture') === 'fixture'
+            && ! $this->option('allow-fixture-in-production')) {
+            $this->error(
+                'GLO_OFFICIAL_SOURCE_MODE is "fixture" — refusing to publish fixture-sourced results in production. '
+                .'Configure the intended official source mode, or pass --allow-fixture-in-production to accept fixture data explicitly.'
+            );
+
+            return self::FAILURE;
+        }
+
         $asJson = (bool) $this->option('json');
         $drawRef = (string) $this->option('draw');
 

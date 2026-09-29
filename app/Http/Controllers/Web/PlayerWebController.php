@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\Currency;
 use App\Enums\DrawStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\WalletHoldType;
+use App\Exceptions\FinancialException;
+use App\Exceptions\InsufficientBalanceException;
+use App\Exceptions\WithdrawalException;
+use App\Exceptions\WithdrawalKycException;
 use App\Models\Bet;
 use App\Models\Deposit;
 use App\Models\Draw;
@@ -14,13 +20,17 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
+use App\Rules\StrongPasswordRule;
 use App\Services\Finance\DepositService;
+use App\Services\Payment\PaymentInitiationService;
+use App\Services\Finance\Money;
+use App\Services\Finance\WalletHoldService;
 use App\Services\Finance\WithdrawalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -29,9 +39,42 @@ use Illuminate\View\View;
 final class PlayerWebController
 {
     public function __construct(
-        private readonly ?DepositService $depositService = null,
-        private readonly ?WithdrawalService $withdrawalService = null,
+        private readonly DepositService $depositService,
+        private readonly PaymentInitiationService $paymentInitiation,
+        private readonly WithdrawalService $withdrawalService,
+        private readonly WalletHoldService $holdService,
     ) {
+    }
+
+    /**
+     * Closed label map over the canonical PaymentMethod vocabulary. Anything
+     * the config allows but the enum does not define surfaces as its raw
+     * value rather than being silently dropped — a misconfiguration should
+     * be visible, not invisible.
+     *
+     * @param  list<string>  $allowed
+     * @return array<string, string>
+     */
+    private function methodOptions(array $allowed): array
+    {
+        $labels = [
+            PaymentMethod::Stripe->value => 'Stripe (Card)',
+            PaymentMethod::Bkash->value => 'bKash',
+            PaymentMethod::Nagad->value => 'Nagad',
+            PaymentMethod::Crypto->value => 'Crypto',
+            PaymentMethod::BankTransfer->value => 'Thai Bank Transfer',
+            PaymentMethod::Manual->value => 'Manual',
+        ];
+
+        $options = [];
+
+        foreach ($allowed as $method) {
+            if (is_string($method)) {
+                $options[$method] = $labels[$method] ?? $method;
+            }
+        }
+
+        return $options;
     }
 
     /**
@@ -238,8 +281,6 @@ final class PlayerWebController
             ->where('user_id', $user->id)
             ->first();
 
-        $gateways = (array) config('payment.gateways', []);
-
         $recentDeposits = Deposit::query()
             ->where('user_id', $user->id)
             ->latest('id')
@@ -249,7 +290,15 @@ final class PlayerWebController
         return view('player.deposit', [
             'user' => $user,
             'wallet' => $wallet,
-            'gateways' => $gateways,
+            // Audit W3/W7/W8: the page renders the SAME config the finance
+            // engine enforces — limits and the closed method vocabulary —
+            // so the UI can never advertise a rule or a gateway that does
+            // not exist in the canonical payment configuration.
+            'limits' => [
+                'min' => (string) config('payment.deposit.min'),
+                'max' => (string) config('payment.deposit.max'),
+            ],
+            'methods' => $this->methodOptions((array) config('payment.deposit.allowed_methods')),
             'recentDeposits' => $recentDeposits,
         ]);
     }
@@ -262,12 +311,93 @@ final class PlayerWebController
         /** @var User $user */
         $user = Auth::user();
 
+        $limits = (array) config('payment.deposit');
+
         $validated = $request->validate([
-            'amount' => ['required', 'numeric', 'min:100', 'max:500000'],
-            'gateway' => ['required', 'string'],
+            // Bounds come from the SAME config the finance engine enforces
+            // (audit W3): the request gate is a convenience, the service's
+            // assertAmountWithinLimits() remains the exact decimal authority.
+            'amount' => [
+                'required',
+                'numeric',
+                'min:'.(string) ($limits['min'] ?? '50.00'),
+                'max:'.(string) ($limits['max'] ?? '500000.00'),
+            ],
+            'method' => ['required', 'string', Rule::in((array) ($limits['allowed_methods'] ?? []))],
+            // One-time key rendered into the form: a double-submit or a
+            // back-button resubmit replays the SAME key and the service
+            // returns the existing deposit instead of creating a second one.
+            'idempotency_key' => ['required', 'string', 'max:64'],
         ]);
 
-        return redirect()->route('player.deposit')->with('success', 'Deposit order created for ' . $validated['amount'] . ' THB. Please complete payment.');
+        $wallet = Wallet::query()
+            ->where('user_id', $user->id)
+            ->where('currency', Currency::THB->value)
+            ->first();
+
+        if (! $wallet instanceof Wallet) {
+            return redirect()->route('player.deposit')
+                ->with('error', 'No THB wallet found for your account. Please contact support.');
+        }
+
+        // ---------------------------------------------------------
+        // FINAL AUDIT #1: the web deposit path goes through the SAME
+        // orchestrated initiation as the API - capability gate, deposit
+        // intent, gateway session, Payment aggregate - instead of writing
+        // a deposit row and stopping. Nothing is credited here; wallets
+        // only move on verified provider confirmation.
+        // ---------------------------------------------------------
+        try {
+            $initiation = $this->paymentInitiation->initiateDeposit(
+                wallet: $wallet,
+                amount: Money::of((string) $validated['amount'], Currency::THB),
+                method: PaymentMethod::from((string) $validated['method']),
+                idempotencyKey: (string) $validated['idempotency_key'],
+                options: ['metadata' => ['source' => 'web', 'ip' => $request->ip()]],
+            );
+        } catch (FinancialException $exception) {
+            return redirect()->route('player.deposit')
+                ->withInput($request->only('amount', 'method'))
+                ->with('error', $exception->getMessage());
+        }
+
+        $deposit = $initiation['deposit'];
+        $gatewayResponse = $initiation['gateway_response'];
+
+        // Provider refused the session (credentials missing, misconfigured
+        // settlement details, upstream error): honest failure, nothing
+        // redirected, nothing credited. The deposit stays unpaid-pending.
+        if (! $gatewayResponse->successful) {
+            return redirect()->route('player.deposit')
+                ->with('error', $gatewayResponse->errorMessage ?? 'The payment provider could not be reached. Please try again.');
+        }
+
+        // Hosted checkout (Stripe/bKash/Nagad): send the player to the
+        // provider. They come back to /payment/success|failure|cancel,
+        // which shows the AUTHORITATIVE internal state - never this
+        // redirect as proof of payment.
+        if (is_string($gatewayResponse->redirectUrl) && $gatewayResponse->redirectUrl !== '') {
+            return redirect()->away($gatewayResponse->redirectUrl);
+        }
+
+        // Manual settlement (operator-configured bank transfer): show the
+        // operator's real settlement instructions for this reference.
+        $instructions = $gatewayResponse->metadata['instructions'] ?? null;
+
+        if (is_array($instructions) && $instructions !== []) {
+            return redirect()->route('player.deposit')->with('instructions', [
+                'reference' => (string) $deposit->reference_number,
+            ] + $instructions);
+        }
+
+        $status = $deposit->status instanceof \BackedEnum ? $deposit->status->value : (string) $deposit->status;
+
+        return redirect()->route('player.deposit')->with('success', sprintf(
+            'Deposit %s created for %s — status: %s. Complete the payment; funds are credited after confirmation.',
+            (string) $deposit->reference_number,
+            Money::of((string) $deposit->amount, Currency::THB)->format(),
+            $status,
+        ));
     }
 
     /**
@@ -291,6 +421,15 @@ final class PlayerWebController
         return view('player.withdraw', [
             'user' => $user,
             'wallet' => $wallet,
+            // Audit W4/W5/W6: minimum, maximum and the processing window are
+            // rendered from the same config the withdrawal engine enforces,
+            // so the page can never quote a rule the engine does not apply.
+            'limits' => [
+                'min' => (string) config('payment.withdrawal.min'),
+                'max' => (string) config('payment.withdrawal.max'),
+                'processing_hours' => (int) config('payment.withdrawal.processing_hours'),
+            ],
+            'methods' => $this->methodOptions((array) config('payment.withdrawal.allowed_methods')),
             'recentWithdrawals' => $recentWithdrawals,
         ]);
     }
@@ -303,14 +442,82 @@ final class PlayerWebController
         /** @var User $user */
         $user = Auth::user();
 
+        $limits = (array) config('payment.withdrawal');
+
         $validated = $request->validate([
-            'amount' => ['required', 'numeric', 'min:300'],
-            'bank_name' => ['required', 'string'],
-            'account_number' => ['required', 'string'],
-            'account_name' => ['required', 'string'],
+            // Same config as the engine (audit W4/W5): the service's
+            // assertAmountWithinLimits() stays the exact decimal authority.
+            'amount' => [
+                'required',
+                'numeric',
+                'min:'.(string) ($limits['min'] ?? '100.00'),
+                'max:'.(string) ($limits['max'] ?? '500000.00'),
+            ],
+            'method' => ['required', 'string', Rule::in((array) ($limits['allowed_methods'] ?? []))],
+            // Destination fields: bank details for bank_transfer, mobile
+            // number for the wallet rails, address for crypto. The server
+            // keeps whatever was submitted as encrypted payout details.
+            'account_number' => ['required', 'string', 'max:255'],
+            'account_name' => ['required', 'string', 'max:255'],
+            'bank_name' => ['required_if:method,bank_transfer', 'nullable', 'string', 'max:255'],
+            'idempotency_key' => ['required', 'string', 'max:64'],
         ]);
 
-        return redirect()->route('player.withdraw')->with('success', 'Withdrawal request of ' . $validated['amount'] . ' THB submitted for approval and payout.');
+        $wallet = Wallet::query()
+            ->where('user_id', $user->id)
+            ->where('currency', Currency::THB->value)
+            ->first();
+
+        if (! $wallet instanceof Wallet) {
+            return redirect()->route('player.withdraw')
+                ->with('error', 'No THB wallet found for your account. Please contact support.');
+        }
+
+        $amount = Money::of((string) $validated['amount'], Currency::THB);
+
+        $payoutDetails = array_filter([
+            'bank_name' => $validated['bank_name'] ?? null,
+            'account_number' => (string) $validated['account_number'],
+            'account_name' => (string) $validated['account_name'],
+        ], static fn ($value): bool => $value !== null && $value !== '');
+
+        try {
+            $withdrawal = $this->withdrawalService->request(
+                wallet: $wallet,
+                amount: $amount,
+                method: PaymentMethod::from((string) $validated['method']),
+                idempotencyKey: (string) $validated['idempotency_key'],
+                options: [
+                    'payout_details' => $payoutDetails,
+                    'ip' => $request->ip(),
+                ],
+            );
+
+            // Same reservation the API controller makes: the service records
+            // the request, the hold locks the funds for payout.
+            $this->holdService->hold($wallet, $amount, WalletHoldType::Withdrawal, [
+                'withdrawal_id' => $withdrawal->id,
+            ]);
+        } catch (InsufficientBalanceException) {
+            return redirect()->route('player.withdraw')
+                ->withInput($request->only('amount', 'method', 'account_number', 'account_name', 'bank_name'))
+                ->with('error', 'Available balance is insufficient to request this withdrawal amount.');
+        } catch (WithdrawalKycException $exception) {
+            return redirect()->route('player.withdraw')
+                ->withInput($request->only('amount', 'method', 'account_number', 'account_name', 'bank_name'))
+                ->with('error', 'Withdrawal blocked by verification requirements: '.$exception->getMessage());
+        } catch (WithdrawalException|FinancialException $exception) {
+            return redirect()->route('player.withdraw')
+                ->withInput($request->only('amount', 'method', 'account_number', 'account_name', 'bank_name'))
+                ->with('error', $exception->getMessage());
+        }
+
+        return redirect()->route('player.withdraw')->with('success', sprintf(
+            'Withdrawal %s requested for %s — pending approval. Payout is processed within %d hours.',
+            (string) $withdrawal->reference_number,
+            Money::of((string) $withdrawal->amount, Currency::THB)->format(),
+            (int) ($limits['processing_hours'] ?? 24),
+        ));
     }
 
     /**
@@ -354,7 +561,9 @@ final class PlayerWebController
 
         $request->validate([
             'current_password' => ['required', 'current_password'],
-            'new_password' => ['required', 'min:8'],
+            // Audit S2: the SAME centralised rule registration and reset
+            // use — no weaker local policy on the profile surface.
+            'new_password' => ['required', 'string', new StrongPasswordRule()],
         ]);
 
         $user->update([

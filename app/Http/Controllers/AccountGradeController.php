@@ -6,23 +6,20 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\Account\AccountDiscountService;
+use App\Services\Account\AccountGradeEvaluator;
 use App\Services\Account\AccountGradeService;
-use Illuminate\Contracts\View\View;
+use App\Services\Lottery\DiscountParityProjectionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
-/**
- * Authenticated Account Grade page + history.
- *
- * Grade is always calculated server-side for $request->user().
- * Clients cannot set grade, spend, or discount. Cross-user access
- * is impossible: no user id is accepted from the client.
- */
-final class AccountGradeController
+final class AccountGradeController extends Controller
 {
     public function __construct(
         private readonly AccountGradeService $grades,
         private readonly AccountDiscountService $discounts,
+        private readonly AccountGradeEvaluator $evaluator,
+        private readonly DiscountParityProjectionService $projection,
     ) {
     }
 
@@ -35,6 +32,13 @@ final class AccountGradeController
         $history = $this->grades->history($user, 25);
         $discounts = $this->discounts->eligibleForDisplay($user);
 
+        // GRADE PARITY BATCH: the canonical evaluation of the SAME user
+        // through the same window/spend source the engine uses, plus the
+        // explicit per-game entitlement answers for the caller's own
+        // page. Figures arrive pre-resolved; the view only escapes.
+        $evaluation = $this->evaluator->evaluate($user);
+        $nextTier = $this->evaluator->nextTierFor($user);
+
         return view('account.grade', [
             'meta' => [
                 'title' => (string) trans('account_services.grade_meta_title'),
@@ -44,6 +48,11 @@ final class AccountGradeController
             'history' => $history,
             'discounts' => $discounts,
             'tiers' => (array) config('account_grades.tiers', []),
+            'evaluation' => [
+                'spend_remaining_to_next' => $nextTier['remaining'],
+                'eligible_games' => $this->projection->userEntitlements($evaluation->tier),
+                'rule_version' => $evaluation->ruleVersion,
+            ],
         ]);
     }
 

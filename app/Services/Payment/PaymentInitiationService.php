@@ -46,7 +46,34 @@ class PaymentInitiationService
         ?string $idempotencyKey = null,
         array $options = [],
     ): array {
-        return DB::transaction(function () use ($wallet, $amount, $method, $idempotencyKey, $options): array {
+        // -------------------------------------------------------------
+        // FINAL AUDIT #1/#5: the capability contract runs BEFORE a single
+        // row is created. A method outside the configured deposit list, a
+        // disabled gateway, a non-deposit-capable driver or an unsupported
+        // currency must all be refused with nothing persisted - never a
+        // pending deposit that can never be paid.
+        // -------------------------------------------------------------
+        $allowedMethods = (array) config('payment.deposit.allowed_methods', []);
+
+        if ($allowedMethods !== [] && ! in_array($method->value, $allowedMethods, true)) {
+            throw FinancialException::withCode(
+                'payment_method_not_allowed',
+                sprintf('Payment method [%s] is not allowed for deposits.', $method->value),
+                ['method' => $method->value, 'allowed' => $allowedMethods],
+            );
+        }
+
+        $driver = $this->gateways->depositDriver($method);
+
+        if (! $driver->supportsCurrency($amount->currency())) {
+            throw FinancialException::withCode(
+                'unsupported_gateway_currency',
+                sprintf('Gateway [%s] does not support currency [%s].', $driver->name(), $amount->currency()->value),
+                ['gateway' => $driver->name(), 'currency' => $amount->currency()->value],
+            );
+        }
+
+        return DB::transaction(function () use ($wallet, $amount, $method, $idempotencyKey, $options, $driver): array {
             // 1. Create Deposit intent record (pending, credits nothing)
             $deposit = $this->depositService->request(
                 wallet: $wallet,
@@ -56,18 +83,8 @@ class PaymentInitiationService
                 options: $options,
             );
 
-            // 2. Resolve Gateway Driver
-            $driver = $this->gateways->forMethod($method);
-
-            if (! $driver->supportsCurrency($amount->currency())) {
-                throw FinancialException::withCode(
-                    'unsupported_gateway_currency',
-                    sprintf('Gateway [%s] does not support currency [%s].', $driver->name(), $amount->currency()->value),
-                    ['gateway' => $driver->name(), 'currency' => $amount->currency()->value],
-                );
-            }
-
-            // 3. Request checkout session / invoice from provider
+            // 2. Request checkout session / invoice from the ALREADY
+            // validated driver
             $gatewayResponse = $driver->initiateDeposit($deposit, $options);
 
             // 4. Create or update Payment aggregate

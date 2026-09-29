@@ -86,7 +86,11 @@ class WithdrawalDisbursementService
                 throw WithdrawalException::notCompletable($current->id, $current->status);
             }
 
-            $driver = $this->gateways->forMethod($current->method);
+            // FINAL AUDIT #5: withdrawal payout resolves through the
+            // fail-closed guard - a disabled or non-withdrawal-capable
+            // gateway is refused here; the manual-approval design above is
+            // untouched.
+            $driver = $this->gateways->withdrawalDriver($current->method);
 
             if (! $driver->supportsCurrency($current->currency)) {
                 throw FinancialException::withCode(

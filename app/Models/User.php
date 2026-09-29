@@ -75,6 +75,13 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
         'password',
         'avatar_url',
         'preferences',
+        // PROMPT 3 registration details (columns added by migration
+        // 2026_09_28_230001; all nullable, all additive).
+        'date_of_birth',
+        'gender',
+        'city',
+        'country',
+        'nationality',
     ];
 
     /**
@@ -303,6 +310,16 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
         }
 
         return KycStatus::Unverified;
+    }
+
+    /**
+     * PROMPT 3: the member password-reset notification (hashed-token
+     * broker semantics, localized copy, no plaintext password, token
+     * only inside the action link, never logged).
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\AuthPasswordResetNotification($token));
     }
 
     public function isAgent(): bool

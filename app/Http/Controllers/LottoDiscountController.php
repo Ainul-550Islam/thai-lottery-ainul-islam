@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\Affiliate\AffiliateCommissionDisplayService;
+use App\Services\Lottery\DiscountParityProjectionService;
 use App\Services\Pricing\LottoDiscountService;
 use App\Services\Pricing\LottoPayoutRuleService;
 use Illuminate\Contracts\View\View;
@@ -37,6 +38,7 @@ final class LottoDiscountController
         private readonly LottoDiscountService $discounts,
         private readonly LottoPayoutRuleService $payouts,
         private readonly AffiliateCommissionDisplayService $affiliate,
+        private readonly DiscountParityProjectionService $matrixProjection,
     ) {}
 
     /**
@@ -78,6 +80,11 @@ final class LottoDiscountController
             'payout_pairs' => $this->payouts->publicPairs(),
             'affiliate' => $this->affiliate->publicCatalogue(),
             'show_effective_period' => (bool) config('discounts.page.show_effective_period', true),
+            // GRADE PARITY BATCH: the canonical National + Bangkok Weekly
+            // game/prize/discount matrix, projected by the same service
+            // the grade page and the calculators read. No fee, multiplier
+            // or percentage is ever computed in this controller.
+            'matrix' => $this->matrixProjection->discountMatrix($locale),
         ]);
     }
 
@@ -104,6 +111,7 @@ final class LottoDiscountController
                 'catalogue' => $catalogue,
                 'payout_pairs' => $this->payouts->publicPairs(),
                 'affiliate' => $this->affiliate->publicCatalogue(),
+                'matrix' => $this->matrixProjection->discountMatrix($locale),
             ],
         ]);
     }

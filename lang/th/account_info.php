@@ -23,6 +23,16 @@ return [
     'col_grade' => 'ระดับ',
     'col_min_spend' => 'ยอดใช้จ่ายขั้นต่ำ 30 วัน',
     'col_discount' => 'ส่วนลด',
+    'col_sl' => 'SL',
+    'col_discount_of_game' => 'ส่วนลดเกม',
+    'sl_label' => 'ระดับที่ :sl',
+    'min_spend_a11y' => 'ยอดใช้จ่ายขั้นต่ำใน :days วัน',
+    'discount_of_game' => 'ส่วนลดเกม',
+    'discount_of_game_title' => 'เกมที่ได้ส่วนลดสำหรับ :grade',
+    'discount_of_game_lead' => 'ส่วนลดระดับ :percent ใช้กับเกมต่อไปนี้',
+    'discount_of_game_empty' => 'ยังไม่มีเกมที่ได้ส่วนลดในระดับนี้',
+    'discount_of_game_close' => 'ปิด',
+
     'col_scope' => 'ใช้กับ',
 
     'scope_operator_markets' => 'ตลาดของผู้ให้บริการ',

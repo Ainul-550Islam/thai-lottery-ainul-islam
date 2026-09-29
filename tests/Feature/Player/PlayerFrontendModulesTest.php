@@ -6,6 +6,7 @@ namespace Tests\Feature\Player;
 
 use App\Enums\BetMarket;
 use App\Enums\UserStatus;
+use App\Models\Draw;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -262,6 +263,17 @@ final class PlayerFrontendModulesTest extends TestCase
 
     public function test_dashboard_countdown_target_is_a_server_rendered_instant(): void
     {
+        // A REAL open draw carries the countdown target. (Before the S4
+        // audit fix this test was satisfied by a fabricated fallback
+        // instant; the fallback is gone, so the fixture must supply the
+        // draw the assertion is actually about.)
+        Draw::factory()
+            ->open()
+            ->create([
+                'scheduled_at' => now()->addDay(),
+                'betting_close_at' => now()->addHours(3),
+            ]);
+
         $content = (string) $this->actingAs($this->player)
             ->get(route('player.dashboard'))
             ->assertOk()

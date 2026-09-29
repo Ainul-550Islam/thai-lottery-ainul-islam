@@ -5,34 +5,34 @@
 @section('content')
 <div class="space-y-8">
     <div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Wallet & Accounting Ledger</h1>
-        <p class="text-slate-400 text-sm mt-1">Real-time balance, double-entry transaction history, and funds disbursement.</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{{ __('player.wallet_title') }}</h1>
+        <p class="text-slate-400 text-sm mt-1">{{ __('player.wallet_lead') }}</p>
     </div>
 
     <!-- Balance Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Available Balance</span>
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">{{ __('player.available_balance') }}</span>
             <div class="text-3xl font-extrabold font-mono text-amber-400 mt-2">
-                ฿{{ number_format((float) ($wallet->balance ?? 0), 2) }}
+                {{ \App\Services\Finance\Money::of((string) ($wallet->balance ?? '0'), \App\Enums\Currency::THB)->format() }}
             </div>
-            <span class="text-[11px] text-slate-500 mt-1 block">Unrestricted funds ready for betting</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">{{ __('player.available_balance_hint') }}</span>
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Total Deposited</span>
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">{{ __('player.total_deposited') }}</span>
             <div class="text-3xl font-extrabold font-mono text-white mt-2">
-                ฿{{ number_format((float) ($totalDeposited ?? 0), 2) }}
+                {{ \App\Services\Finance\Money::of((string) ($totalDeposited ?? '0'), \App\Enums\Currency::THB)->format() }}
             </div>
-            <span class="text-[11px] text-slate-500 mt-1 block">Lifetime confirmed deposits</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">{{ __('player.total_deposited_hint') }}</span>
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Total Prizes Won</span>
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">{{ __('player.total_prizes') }}</span>
             <div class="text-3xl font-extrabold font-mono text-emerald-400 mt-2">
-                ฿{{ number_format((float) ($totalPrizesWon ?? 0), 2) }}
+                {{ \App\Services\Finance\Money::of((string) ($totalPrizesWon ?? '0'), \App\Enums\Currency::THB)->format() }}
             </div>
-            <span class="text-[11px] text-slate-500 mt-1 block">Lifetime settled payouts</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">{{ __('player.total_prizes_hint') }}</span>
         </div>
     </div>
 
@@ -48,17 +48,17 @@
 
     <!-- Transactions Table -->
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-        <h2 class="text-lg font-bold text-white mb-6">Double-Entry Transaction Journal</h2>
+        <h2 class="text-lg font-bold text-white mb-6">{{ __('player.journal_title') }}</h2>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
                 <thead>
                     <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase font-semibold">
-                        <th class="py-3 px-4">Transaction Ref</th>
-                        <th class="py-3 px-4">Type</th>
-                        <th class="py-3 px-4">Description</th>
-                        <th class="py-3 px-4 text-right">Amount</th>
-                        <th class="py-3 px-4 text-right">Date</th>
+                        <th class="py-3 px-4">{{ __('player.col_transaction_ref') }}</th>
+                        <th class="py-3 px-4">{{ __('player.col_type') }}</th>
+                        <th class="py-3 px-4">{{ __('player.col_description') }}</th>
+                        <th class="py-3 px-4 text-right">{{ __('player.col_amount') }}</th>
+                        <th class="py-3 px-4 text-right">{{ __('player.col_date') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60">
@@ -76,7 +76,7 @@
                                 {{ $tx->description ?? 'Financial entry' }}
                             </td>
                             <td class="py-3.5 px-4 text-right font-mono font-bold {{ $tx->type === 'deposit' || $tx->type === 'payout' ? 'text-emerald-400' : 'text-slate-200' }}">
-                                {{ $tx->type === 'deposit' || $tx->type === 'payout' ? '+' : '-' }}฿{{ number_format((float) $tx->amount, 2) }}
+                                {{ $tx->type === 'deposit' || $tx->type === 'payout' ? '+' : '-' }}{{ \App\Services\Finance\Money::of((string) $tx->amount, \App\Enums\Currency::THB)->format() }}
                             </td>
                             <td class="py-3.5 px-4 text-right text-xs text-slate-500 font-mono">
                                 {{ $tx->created_at ? $tx->created_at->format('M d, Y H:i') : 'N/A' }}

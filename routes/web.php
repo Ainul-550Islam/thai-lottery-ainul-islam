@@ -9,6 +9,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LottoDiscountController;
+use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\NationalLotteryController;
 use App\Http\Controllers\PcsoLotteryController;
@@ -16,7 +17,9 @@ use App\Http\Controllers\PrizeVerificationController;
 use App\Http\Controllers\PublicAccountInfoController;
 use App\Http\Controllers\PublicPagesController;
 use App\Http\Controllers\PublicServicePagesController;
-use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Auth\MemberAuthController;
+use App\Http\Controllers\Verification\AccountVerificationController as MemberAccountVerificationController;
+use App\Http\Controllers\Web\PaymentCallbackController;
 use App\Http\Controllers\Web\PlayerWebController;
 use App\Http\Controllers\WeeklyLotteryController;
 use Illuminate\Support\Facades\Route;
@@ -55,14 +58,31 @@ Route::get('/up/ready', [HealthController::class, 'ready'])->name('health.ready'
 Route::get('/up/live', [HealthController::class, 'live'])->name('health.live');
 
 Route::middleware('guest')->group(function (): void {
-    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.attempt')->middleware('throttle:login');
-    Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-    Route::post('/register', [AuthController::class, 'register'])->name('register.attempt')->middleware('throttle:login');
+    // PROMPT 3: the member auth surface (login / registration /
+    // password recovery) is served by MemberAuthController — thin
+    // orchestration over LoginService / RegistrationService /
+    // PasswordResetService (+ the server-authoritative CaptchaService
+    // gate). Same route names as before, so every existing link,
+    // redirect and test keeps resolving.
+    Route::get('/login', [MemberAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [MemberAuthController::class, 'login'])->name('login.attempt')->middleware('throttle:login');
+    Route::get('/register', [MemberAuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [MemberAuthController::class, 'register'])->name('register.attempt')->middleware('throttle:login');
+
+    // Password recovery: account no./email + CAPTCHA request, then the
+    // token-gated new-password form. Throttled on both POSTs.
+    Route::get('/forgot-password', [MemberAuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [MemberAuthController::class, 'requestReset'])
+        ->middleware('throttle:password-reset')
+        ->name('password.request.attempt');
+    Route::get('/reset-password/{token}', [MemberAuthController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [MemberAuthController::class, 'resetPassword'])
+        ->middleware('throttle:password-reset')
+        ->name('password.reset.attempt');
 });
 
 Route::middleware('auth')->group(function (): void {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/logout', [MemberAuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [PlayerWebController::class, 'dashboard'])->name('player.dashboard');
     Route::get('/draws', [PlayerWebController::class, 'draws'])->name('player.draws');
@@ -93,14 +113,21 @@ Route::middleware('auth')->group(function (): void {
 | account-grade (registered in AppServiceProvider).
 */
 Route::middleware('auth')->group(function (): void {
-    Route::get('/account/verification', [AccountVerificationController::class, 'show'])
+    // PROMPT 3: the member Account Verify page is served by the
+    // Verification controller (policy-authorized, self-scoped, the
+    // immutable submission aggregate behind it). The reviewer decision
+    // route is policy-walled (AccountVerificationPolicy::decide).
+    Route::get('/account/verification', [MemberAccountVerificationController::class, 'show'])
         ->name('account.verification');
-    Route::post('/account/verification', [AccountVerificationController::class, 'submit'])
+    Route::post('/account/verification', [MemberAccountVerificationController::class, 'submit'])
         ->middleware('throttle:account-verification')
         ->name('account.verification.submit');
-    Route::get('/account/verification/document/{document}', [AccountVerificationController::class, 'download'])
+    Route::get('/account/verification/document/{document}', [MemberAccountVerificationController::class, 'download'])
         ->middleware('throttle:account-verification')
         ->name('account.verification.document');
+    Route::post('/account/verification/{verification}/decision', [MemberAccountVerificationController::class, 'decide'])
+        ->middleware('throttle:account-verification')
+        ->name('account.verification.decide');
 
     Route::get('/account/grade', [AccountGradeController::class, 'show'])
         ->middleware('throttle:account-grade')
@@ -384,6 +411,71 @@ Route::get('/account-verification-guide', [PublicAccountInfoController::class, '
 
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 
+// XML sitemap (FINAL AUDIT #15): canonical public URLs only — no auth,
+// admin, API, search-form, payment-return or legacy .php duplicates.
+// Read-only and cacheable.
+Route::get('/sitemap.xml', \App\Http\Controllers\SitemapController::class)
+    ->name('sitemap');
+
+/*
+|--------------------------------------------------------------------------
+| Browser payment-return pages (FINAL AUDIT #2)
+|--------------------------------------------------------------------------
+|
+| Where a gateway drops the player's browser after checkout. PRESENTATION
+| ONLY: the landing route is context, the displayed state is always the
+| internal payment record (see PaymentCallbackController), and nothing on
+| these pages can credit or change money. Paths come from the same
+| config/payment.php callback block the gateway drivers build their
+| success/cancel URLs from, so they can never drift apart.
+|
+*/
+
+Route::middleware('auth')->group(function (): void {
+    // The config values may be absolute URLs ("${APP_URL}/payment/success")
+    // because the gateway drivers hand them to providers; route registration
+    // only wants the path component, so normalize once here.
+    $callbackPath = static function (string $key, string $default): string {
+        $value = (string) config('payment.callback.'.$key, $default);
+        $path = parse_url($value, PHP_URL_PATH);
+
+        return is_string($path) && $path !== '' ? $path : $default;
+    };
+
+    Route::get($callbackPath('success_url', '/payment/success'), [PaymentCallbackController::class, 'success'])
+        ->name('payment.callback.success');
+
+    Route::get($callbackPath('failure_url', '/payment/failure'), [PaymentCallbackController::class, 'failure'])
+        ->name('payment.callback.failure');
+
+    Route::get($callbackPath('cancel_url', '/payment/cancel'), [PaymentCallbackController::class, 'cancel'])
+        ->name('payment.callback.cancel');
+
+    Route::get($callbackPath('pending_url', '/payment/pending'), [PaymentCallbackController::class, 'pending'])
+        ->name('payment.callback.pending');
+});
+
 Route::post('/contact', [ContactController::class, 'submit'])
     ->middleware('throttle:contact-submit')
     ->name('contact.submit');
+
+/*
+|--------------------------------------------------------------------------
+| Legacy .php URL compatibility layer (301)
+|--------------------------------------------------------------------------
+|
+| Single home for every public .php URL the replaced site published:
+| static pages, member auth surfaces, account explainer pages, the broken
+| double-path member URLs, and the per-year archive pages — including the
+| "lottoery" typo form search engines indexed. See LegacyRedirectController
+| for the map and the rules.
+|
+| THIS MUST STAY THE LAST ROUTE IN THIS FILE. It only ever sees paths no
+| real route claimed, because Laravel matches in registration order, and
+| it answers 404 for .php paths it does not know rather than aliasing them.
+|
+*/
+
+Route::match(['get', 'post'], '/{legacyPath}', [LegacyRedirectController::class, 'resolve'])
+    ->where('legacyPath', '.*\.php$')
+    ->name('legacy.redirect');

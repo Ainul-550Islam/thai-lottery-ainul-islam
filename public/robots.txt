@@ -21,3 +21,5 @@ Disallow: /national-lottery/search
 Disallow: /weekly-lottery/search
 Disallow: /bingo-lottery/search
 Disallow: /pcso-lottery/search
+
+Sitemap: /sitemap.xml

@@ -72,7 +72,7 @@ class StripeGateway extends AbstractPaymentGateway
             'mode' => 'payment',
             'client_reference_id' => $deposit->reference_number,
             'success_url' => $this->successUrl().'?session_id={CHECKOUT_SESSION_ID}&reference='.$deposit->reference_number,
-            'cancel_url' => $this->failureUrl().'?reference='.$deposit->reference_number,
+            'cancel_url' => $this->cancelUrl().'?reference='.$deposit->reference_number,
             'payment_method_types' => ['card'],
             'line_items' => [
                 [

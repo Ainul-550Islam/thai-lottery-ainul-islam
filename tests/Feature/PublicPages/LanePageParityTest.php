@@ -133,4 +133,36 @@ final class LanePageParityTest extends TestCase
         $response->assertSee(trans('pcso_lottery.year_nav_heading'), false);
         $response->assertSee(route('pcso-lottery.search'), false);
     }
+
+    // ------------------------------------------------------------------ Fees
+    // (fees parity batch) The Fees page joins the public lane matrix
+    // permanently: same shared footer, same anonymous access, and the same
+    // "a real table or an honest empty state" rule the result lanes follow.
+
+    public function test_the_fees_page_is_part_of_the_public_lane_matrix(): void
+    {
+        $response = $this->get(route('fees'));
+
+        $response->assertOk();
+        // Anonymous access, semantic table, shared footer, working links.
+        $response->assertSee('<table', false);
+        $response->assertSee('pp-footer', false);
+        $response->assertSee(route('home'), false);
+        $response->assertSee(route('terms'), false);
+    }
+
+    public function test_the_fees_page_keeps_its_place_without_touching_the_result_lanes(): void
+    {
+        $this->seedEveryLane();
+
+        // Fees first…
+        $this->get(route('fees'))->assertOk();
+
+        // …then every lane still renders its own results unaffected.
+        foreach (self::lanes() as [$route, $value]) {
+            $response = $this->get(route($route));
+            $response->assertOk();
+            $response->assertSee($value, false);
+        }
+    }
 }

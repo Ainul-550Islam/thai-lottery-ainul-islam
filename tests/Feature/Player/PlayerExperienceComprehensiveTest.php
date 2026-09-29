@@ -845,6 +845,21 @@ final class PlayerExperienceComprehensiveTest extends TestCase
 
     public function test_30_player_can_initiate_deposit(): void
     {
+        // FINAL AUDIT #1/#5: the initiation path resolves the gateway
+        // through the fail-closed capability guard — the operator must have
+        // the provider enabled, and the provider call is faked here.
+        config([
+            'payment.gateways.stripe.enabled' => true,
+            'payment.gateways.stripe.secret' => 'sk_test_example',
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'api.stripe.com/*' => \Illuminate\Support\Facades\Http::response([
+                'id' => 'cs_test_API30',
+                'url' => 'https://checkout.stripe.com/pay/cs_test_API30',
+            ], 200),
+        ]);
+
         $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/deposits', [
                 'amount' => '500.00',

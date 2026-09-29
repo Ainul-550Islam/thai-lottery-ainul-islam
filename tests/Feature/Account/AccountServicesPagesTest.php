@@ -4,20 +4,30 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Account;
 
+use App\Enums\Currency;
 use App\Enums\KycDocumentType;
 use App\Enums\KycStatus;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Enums\UserStatus;
 use App\Models\AccountGradeSnapshot;
+use App\Models\AccountVerification;
+use App\Models\AuditLog;
 use App\Models\FinancialTransaction;
 use App\Models\KycDocument;
 use App\Models\User;
 use App\Services\Account\AccountDiscountService;
 use App\Services\Account\AccountGradeService;
+use App\Services\Account\AccountVerificationDocumentService;
+use App\Services\Account\AccountVerificationService;
+use App\Services\Finance\Money;
+use App\Services\Finance\WithdrawalService;
 use App\Services\PublicPages\FeesPageService;
+use App\Services\Security\KycVerificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -43,7 +53,9 @@ final class AccountServicesPagesTest extends TestCase
     }
 
     // =====================================================================
-    // FEES
+    // FEES (fees parity batch — updated to the canonical provider-aware
+    // contract: grouped schedule, provider rows, live-rule mirroring,
+    // NOT_CONFIGURED states, config as the single source of values)
     // =====================================================================
 
     // 1
@@ -59,28 +71,41 @@ final class AccountServicesPagesTest extends TestCase
         $this->assertStringContainsString('data-pp-fee="cash_balance_transfer"', $content);
         $this->assertStringContainsString('data-pp-fee="withdrawal"', $content);
         $this->assertStringContainsString('data-pp-fee="cash_in"', $content);
+        // Provider-specific rows are separate rows, never collapsed into one.
+        foreach (['withdrawal_bank', 'withdrawal_skrill', 'withdrawal_neteller', 'withdrawal_paypal', 'withdrawal_perfect_money',
+            'cash_in_bank', 'cash_in_skrill', 'cash_in_neteller', 'cash_in_paypal', 'cash_in_perfect_money', ] as $key) {
+            $this->assertStringContainsString('data-pp-fee="'.$key.'"', $content);
+        }
     }
 
     // 3
     public function test_disabled_fee_is_hidden(): void
     {
-        // account_renewal is enabled=false in config/fees.php
+        // agent_commission is enabled=false by default (AGENT_COMMISSION_ENABLED)
+        // and account_renewal/maintenance are enabled in the canonical schedule,
+        // so the disabled-row proof uses the default-off row plus a runtime one.
         $content = (string) $this->get('/fees')->assertOk()->getContent();
-        $this->assertStringNotContainsString('data-pp-fee="account_renewal"', $content);
-        $this->assertStringNotContainsString('data-pp-fee="maintenance"', $content);
+        $this->assertStringNotContainsString('data-pp-fee="agent_commission"', $content);
+        $this->assertStringNotContainsString('data-pp-fee="internal_provider_margin"', $content);
+
+        config(['fees.categories.cash_to_win.enabled' => false]);
+        $content = (string) $this->get('/fees')->assertOk()->getContent();
+        $this->assertStringNotContainsString('data-pp-fee="cash_to_win"', $content);
     }
 
     // 4
     public function test_not_configured_state_shows_for_unpriced_enabled_rows(): void
     {
-        // agent_commission is enabled only when agent.commission_enabled;
-        // with max rate missing/not configured path — use referral disabled.
-        // Force an enabled row with null rate via config override:
-        config(['fees.categories.referral.enabled' => true]);
-        config(['fees.categories.referral.calculation' => 'percentage']);
-        config(['fees.categories.referral.rate' => null]);
-        config(['fees.categories.referral.public_visible' => true]);
+        // The canonical schedule ships PayPal rows as visible-but-unspecified:
+        // an unspecified percentage is a STATE, never an invented number.
+        $content = (string) $this->get('/fees')->assertOk()->getContent();
+        $this->assertStringContainsString('data-pp-fee="withdrawal_paypal"', $content);
+        $this->assertStringContainsString('data-pp-fee="cash_in_paypal"', $content);
+        $this->assertStringContainsString('NOT_CONFIGURED', $content);
 
+        // And a runtime-configured null rate on any enabled percentage row
+        // degrades to the same NOT_CONFIGURED display instead of a zero.
+        config(['fees.categories.withdrawal_skrill.rate' => null]);
         $content = (string) $this->get('/fees')->assertOk()->getContent();
         $this->assertStringContainsString('NOT_CONFIGURED', $content);
     }
@@ -89,15 +114,42 @@ final class AccountServicesPagesTest extends TestCase
     public function test_no_competitor_fee_values_hardcoded(): void
     {
         $content = (string) $this->get('/fees')->assertOk()->getContent();
-        // Competitor public rates ($3 / 3% / 2% / 1% / 8% patterns as raw displays).
+
+        // Values are the PLATFORM's own configured settings, in the platform
+        // currency: no USD figures, no dollar amounts, no naked raw numbers
+        // between tags (every rendered amount carries its currency or %).
         $this->assertStringNotContainsString('$3', $content);
         $this->assertStringNotContainsString('3.00 USD', $content);
-        // Our own rates use THB/% from config — exact competitor table absent.
+        $this->assertStringNotContainsString('USD', $content);
         $this->assertDoesNotMatchRegularExpression('/>\s*3\.00\s*</', $content);
-        $this->assertDoesNotMatchRegularExpression('/>\s*8\.00\s*%</', $content);
-        // Production service must not embed competitor literals.
-        $src = (string) file_get_contents(base_path('app/Services/PublicPages/FeesPageService.php'));
-        $this->assertStringNotContainsString('thailotto', strtolower($src));
+        $this->assertDoesNotMatchRegularExpression('/>\s*8\.00\s*</', $content);
+
+        // The page renders exactly what config declares — the rendered value
+        // must be the formatted configuration, never a hardcoded literal.
+        $rate = (string) config('fees.categories.cash_balance_transfer.rate');
+        $percent = bcmul($rate, '100', 2).'%';
+        $this->assertStringContainsString($percent, $content);
+        $amount = (string) config('fees.categories.account_renewal.amount');
+        $this->assertStringContainsString($amount.' '.(string) config('fees.currency'), $content);
+
+        // Production sources embed no competitor identity and no literal fee
+        // table: the service, controller, views and config carry no domain
+        // reference, and no fee value is written into a Blade template.
+        foreach ([
+            'app/Services/PublicPages/FeesPageService.php',
+            'app/Http/Controllers/PublicServicePagesController.php',
+            'config/fees.php',
+            'resources/views/fees/index.blade.php',
+            'resources/views/components/public/fee-table.blade.php',
+        ] as $path) {
+            $src = (string) file_get_contents(base_path($path));
+            $this->assertStringNotContainsStringIgnoringCase('thailotto', $src, $path);
+            $this->assertStringNotContainsStringIgnoringCase('thailotto.club', $src, $path);
+        }
+        $blade = (string) file_get_contents(base_path('resources/views/components/public/fee-table.blade.php'));
+        $this->assertStringNotContainsString('0.0300', $blade);
+        $this->assertStringNotContainsString('0.0900', $blade);
+        $this->assertStringNotContainsString('3.00', $blade);
     }
 
     // 6
@@ -136,6 +188,12 @@ final class AccountServicesPagesTest extends TestCase
         $this->assertStringContainsString('caption', $content);
         $this->assertStringContainsString('fee-table-wrap', $content);
         $this->assertStringContainsString('prefers-reduced-motion', (string) file_get_contents(base_path('resources/css/account-services.css')));
+        // Grouped sections + provider column + configured states exist.
+        $this->assertStringContainsString('data-pp-section="fee-table"', $content);
+        $this->assertStringContainsString('fee-table__provider', $content);
+        $this->assertStringContainsString('data-pp-provider="bank"', $content);
+        $this->assertStringContainsString('data-pp-state="CONFIGURED"', $content);
+        $this->assertStringContainsString('data-pp-state="NOT_CONFIGURED"', $content);
     }
 
     // Fee calculator unit-style checks
@@ -164,11 +222,48 @@ final class AccountServicesPagesTest extends TestCase
         $this->assertSame('10.00', $fees->calculate('cash_balance_transfer', '10.00'));
     }
 
+    public function test_fee_calculator_mirrors_the_live_engine_rule(): void
+    {
+        $fees = app(FeesPageService::class);
+
+        // The generic + bank withdrawal rows resolve their rate at runtime
+        // from the canonical live rule, so display and execution can never
+        // disagree: same whole-percent value in, same fee out as
+        // WithdrawalService::resolveFee would charge.
+        config(['finance.withdrawal.fee_percentage' => '8.00']);
+        $this->assertSame('8.00', $fees->calculate('withdrawal', '100.00'));
+        $this->assertSame('8.00', $fees->calculate('withdrawal_bank', '100.00'));
+        $this->assertSame('80.00', $fees->calculate('withdrawal', '1000.00'));
+
+        // Half-percent live rule stays exact (2.50% of 100.00 = 2.50).
+        config(['finance.withdrawal.fee_percentage' => '2.50']);
+        $this->assertSame('2.50', $fees->calculate('withdrawal', '100.00'));
+
+        // The engine's own resolver must agree to the cent.
+        $engineFee = app(WithdrawalService::class)
+            ->resolveFee(Money::of('100.00', Currency::THB));
+        $this->assertSame('2.50', $engineFee->toString());
+
+        // Cash-in mirror, same contract.
+        config(['finance.deposit.fee_percentage' => '1.50']);
+        $this->assertSame('1.50', $fees->calculate('cash_in', '100.00'));
+        $this->assertSame('1.50', $fees->calculate('cash_in_bank', '100.00'));
+    }
+
     public function test_fees_api_public_json(): void
     {
         $response = $this->getJson('/api/v1/fees');
         $response->assertOk()->assertJsonPath('success', true);
         $this->assertNotEmpty($response->json('data.categories'));
+        $this->assertNotEmpty($response->json('data.groups'));
+
+        // The JSON projection carries the provider-aware rows and the same
+        // configured states as the HTML page.
+        $categories = collect($response->json('data.categories'));
+        $this->assertTrue($categories->contains(fn ($row) => $row['key'] === 'withdrawal_skrill' && $row['provider'] === 'skrill'));
+        $this->assertTrue($categories->contains(fn ($row) => $row['key'] === 'withdrawal_paypal' && $row['state'] === 'NOT_CONFIGURED'));
+        $this->assertTrue($categories->contains(fn ($row) => $row['key'] === 'cash_in_paypal' && $row['state'] === 'NOT_CONFIGURED'));
+        $this->assertFalse($categories->contains(fn ($row) => $row['key'] === 'internal_provider_margin'));
     }
 
     // =====================================================================
@@ -217,7 +312,7 @@ final class AccountServicesPagesTest extends TestCase
     // 12
     public function test_valid_submission_creates_pending_document(): void
     {
-        $file = UploadedFile::fake()->create('passport.jpg', 100, 'image/jpeg');
+        $file = UploadedFile::fake()->image('passport.jpg', 640, 480);
 
         $this->actingAs($this->player)
             ->post('/account/verification', [
@@ -242,7 +337,7 @@ final class AccountServicesPagesTest extends TestCase
     // 13
     public function test_duplicate_open_submission_rejected(): void
     {
-        $file1 = UploadedFile::fake()->create('id.jpg', 100, 'image/jpeg');
+        $file1 = UploadedFile::fake()->image('id.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'national_id',
@@ -250,7 +345,7 @@ final class AccountServicesPagesTest extends TestCase
             ])
             ->assertSessionHasNoErrors();
 
-        $file2 = UploadedFile::fake()->create('id2.jpg', 100, 'image/jpeg');
+        $file2 = UploadedFile::fake()->image('id2.jpg', 640, 480);
         $this->actingAs($this->player)
             ->from('/account/verification')
             ->post('/account/verification', [
@@ -269,7 +364,7 @@ final class AccountServicesPagesTest extends TestCase
     // 14
     public function test_invalid_mobile_rejected(): void
     {
-        $file = UploadedFile::fake()->create('ok.jpg', 50, 'image/jpeg');
+        $file = UploadedFile::fake()->image('ok.jpg', 640, 480);
         $this->actingAs($this->player)
             ->from('/account/verification')
             ->post('/account/verification', [
@@ -286,7 +381,7 @@ final class AccountServicesPagesTest extends TestCase
     // 15
     public function test_invalid_document_type_rejected(): void
     {
-        $file = UploadedFile::fake()->create('ok.jpg', 50, 'image/jpeg');
+        $file = UploadedFile::fake()->image('ok.jpg', 640, 480);
         $this->actingAs($this->player)
             ->from('/account/verification')
             ->post('/account/verification', [
@@ -344,7 +439,7 @@ final class AccountServicesPagesTest extends TestCase
         $this->assertNotFalse($tmp);
         file_put_contents($tmp, 'jpeg-bytes-not-really');
 
-        $file = new \Illuminate\Http\UploadedFile(
+        $file = new UploadedFile(
             $tmp,
             '../../etc/passwd.jpg',
             'image/jpeg',
@@ -367,7 +462,7 @@ final class AccountServicesPagesTest extends TestCase
     // 20
     public function test_original_filename_not_used_as_storage_path(): void
     {
-        $file = UploadedFile::fake()->create('my-passport-name.jpg', 20, 'image/jpeg');
+        $file = UploadedFile::fake()->image('my-passport-name.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'passport',
@@ -386,7 +481,7 @@ final class AccountServicesPagesTest extends TestCase
     // 21
     public function test_private_document_not_publicly_accessible(): void
     {
-        $file = UploadedFile::fake()->create('pass.jpg', 20, 'image/jpeg');
+        $file = UploadedFile::fake()->image('pass.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'passport',
@@ -409,7 +504,7 @@ final class AccountServicesPagesTest extends TestCase
     // 22
     public function test_client_cannot_submit_approved(): void
     {
-        $file = UploadedFile::fake()->create('x.jpg', 10, 'image/jpeg');
+        $file = UploadedFile::fake()->image('x.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'passport',
@@ -430,7 +525,7 @@ final class AccountServicesPagesTest extends TestCase
     // 23
     public function test_reviewer_authorization_four_eyes(): void
     {
-        $file = UploadedFile::fake()->create('y.jpg', 10, 'image/jpeg');
+        $file = UploadedFile::fake()->image('y.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'passport',
@@ -440,21 +535,21 @@ final class AccountServicesPagesTest extends TestCase
 
         // Self-review forbidden by canonical service.
         $this->expectException(\InvalidArgumentException::class);
-        app(\App\Services\Security\KycVerificationService::class)
+        app(KycVerificationService::class)
             ->reviewDocument($doc, $this->player, true, null);
     }
 
     // 24
     public function test_audit_exists_for_submission(): void
     {
-        $file = UploadedFile::fake()->create('z.jpg', 10, 'image/jpeg');
+        $file = UploadedFile::fake()->image('z.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'passport',
                 'document' => $file,
             ]);
 
-        $audit = \App\Models\AuditLog::query()
+        $audit = AuditLog::query()
             ->where('user_id', $this->player->id)
             ->get()
             ->contains(fn ($row) => str_contains(json_encode($row->metadata ?? []), 'account_verification_submitted')
@@ -466,7 +561,7 @@ final class AccountServicesPagesTest extends TestCase
     // 25
     public function test_rejected_flow(): void
     {
-        $file = UploadedFile::fake()->create('r.jpg', 10, 'image/jpeg');
+        $file = UploadedFile::fake()->image('r.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'passport',
@@ -475,13 +570,13 @@ final class AccountServicesPagesTest extends TestCase
         $doc = KycDocument::query()->where('user_id', $this->player->id)->firstOrFail();
 
         $reviewer = User::factory()->create(['status' => UserStatus::Active]);
-        app(\App\Services\Security\KycVerificationService::class)
+        app(KycVerificationService::class)
             ->reviewDocument($doc, $reviewer, false, 'blurred');
 
         $doc->refresh();
         $this->assertSame(KycStatus::Rejected, $doc->status);
 
-        $status = app(\App\Services\Account\AccountVerificationService::class)
+        $status = app(AccountVerificationService::class)
             ->publicStatus($this->player->fresh());
         $this->assertSame('REJECTED', $status);
     }
@@ -489,7 +584,7 @@ final class AccountServicesPagesTest extends TestCase
     // 26
     public function test_approved_flow(): void
     {
-        $file = UploadedFile::fake()->create('a.jpg', 10, 'image/jpeg');
+        $file = UploadedFile::fake()->image('a.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'national_id',
@@ -498,13 +593,13 @@ final class AccountServicesPagesTest extends TestCase
         $doc = KycDocument::query()->where('user_id', $this->player->id)->firstOrFail();
 
         $reviewer = User::factory()->create(['status' => UserStatus::Active]);
-        app(\App\Services\Security\KycVerificationService::class)
+        app(KycVerificationService::class)
             ->reviewDocument($doc, $reviewer, true, null);
 
         $doc->refresh();
         $this->assertSame(KycStatus::Verified, $doc->status);
 
-        $status = app(\App\Services\Account\AccountVerificationService::class)
+        $status = app(AccountVerificationService::class)
             ->publicStatus($this->player->fresh());
         $this->assertSame('APPROVED', $status);
     }
@@ -512,7 +607,7 @@ final class AccountServicesPagesTest extends TestCase
     // 27
     public function test_expired_flow(): void
     {
-        $file = UploadedFile::fake()->create('e.jpg', 10, 'image/jpeg');
+        $file = UploadedFile::fake()->image('e.jpg', 640, 480);
         $this->actingAs($this->player)
             ->post('/account/verification', [
                 'document_type' => 'passport',
@@ -521,7 +616,7 @@ final class AccountServicesPagesTest extends TestCase
         $doc = KycDocument::query()->where('user_id', $this->player->id)->firstOrFail();
 
         $reviewer = User::factory()->create(['status' => UserStatus::Active]);
-        app(\App\Services\Security\KycVerificationService::class)
+        app(KycVerificationService::class)
             ->reviewDocument($doc, $reviewer, true, null);
 
         // Force evidence lapse then derive expired public status via KycStatus path.
@@ -534,7 +629,7 @@ final class AccountServicesPagesTest extends TestCase
         // and public mapping handles Expired.
         $this->assertSame(
             'EXPIRED',
-            \App\Models\AccountVerification::publicStatusFromKycStatus(KycStatus::Expired),
+            AccountVerification::publicStatusFromKycStatus(KycStatus::Expired),
         );
         // Past-expiry document is no longer countsAsVerified for gates that re-check expiry.
         $this->assertTrue($doc->expires_at->isPast());
@@ -568,8 +663,8 @@ final class AccountServicesPagesTest extends TestCase
 
     public function test_null_byte_filename_rejected_by_document_service(): void
     {
-        $base = UploadedFile::fake()->create('ok.jpg', 10, 'image/jpeg');
-        $file = new \Illuminate\Http\UploadedFile(
+        $base = UploadedFile::fake()->image('ok.jpg', 640, 480);
+        $file = new UploadedFile(
             $base->getPathname(),
             "evil\0.jpg",
             'image/jpeg',
@@ -578,7 +673,7 @@ final class AccountServicesPagesTest extends TestCase
         );
 
         try {
-            app(\App\Services\Account\AccountVerificationDocumentService::class)
+            app(AccountVerificationDocumentService::class)
                 ->storeDocument($this->player, KycDocumentType::Passport, $file, null, '127.0.0.1');
             $this->fail('null byte filename must be rejected');
         } catch (\InvalidArgumentException $e) {
@@ -662,12 +757,17 @@ final class AccountServicesPagesTest extends TestCase
     // 33
     public function test_highest_eligible_tier(): void
     {
+        // GRADE PARITY BATCH: the benchmark ladder - 200/300/400/500/600
+        // THB fraction thresholds, inclusive, highest wins, bronze base.
         $service = app(AccountGradeService::class);
         $this->assertSame('bronze', $service->resolveTier('0.00')['key']);
-        $this->assertSame('silver', $service->resolveTier('5000.00')['key']);
-        $this->assertSame('gold', $service->resolveTier('25000.00')['key']);
-        $this->assertSame('platinum', $service->resolveTier('100000.00')['key']);
-        $this->assertSame('platinum', $service->resolveTier('999999.00')['key']);
+        $this->assertSame('bronze', $service->resolveTier('199.99')['key']);
+        $this->assertSame('gold_plus', $service->resolveTier('200.00')['key']);
+        $this->assertSame('platinum', $service->resolveTier('300.00')['key']);
+        $this->assertSame('platinum_plus', $service->resolveTier('400.00')['key']);
+        $this->assertSame('diamond', $service->resolveTier('500.00')['key']);
+        $this->assertSame('diamond_plus', $service->resolveTier('600.00')['key']);
+        $this->assertSame('diamond_plus', $service->resolveTier('999999.00')['key']);
     }
 
     // 34
@@ -694,21 +794,24 @@ final class AccountServicesPagesTest extends TestCase
             ->post('/account/grade/refresh')
             ->assertRedirect(route('account.grade'));
 
+        // 6000.00 >= 600.00 -> diamond_plus under the benchmark ladder.
         $this->assertDatabaseHas('account_grade_snapshots', [
             'user_id' => $this->player->id,
-            'grade_key' => 'silver',
+            'grade_key' => 'diamond_plus',
         ]);
     }
 
     // 36
     public function test_grade_history_immutable_across_recalculations(): void
     {
-        $this->seedSpend($this->player, '6000.00');
+        // Window spends that cross exactly one programme boundary:
+        // 250.00 -> gold_plus, then 350.00 -> platinum.
+        $this->seedSpend($this->player, '250.00');
         $this->actingAs($this->player)->post('/account/grade/refresh');
         $firstCount = AccountGradeSnapshot::query()->where('user_id', $this->player->id)->count();
         $firstId = AccountGradeSnapshot::query()->where('user_id', $this->player->id)->firstOrFail()->id;
 
-        $this->seedSpend($this->player, '30000.00');
+        $this->seedSpend($this->player, '350.00');
         $this->actingAs($this->player)->post('/account/grade/refresh');
 
         $snapshots = AccountGradeSnapshot::query()->where('user_id', $this->player->id)->get();
@@ -716,7 +819,7 @@ final class AccountServicesPagesTest extends TestCase
         // First snapshot row untouched (append-only).
         $still = AccountGradeSnapshot::query()->find($firstId);
         $this->assertNotNull($still);
-        $this->assertSame('silver', $still->grade_key);
+        $this->assertSame('gold_plus', $still->grade_key);
     }
 
     // 37
@@ -725,10 +828,12 @@ final class AccountServicesPagesTest extends TestCase
         $this->seedSpend($this->player, '6000.00');
         app(AccountGradeService::class)->recalculate($this->player);
 
+        // 6000.00 >= 600.00 -> diamond_plus at 0.0600 on the live product
+        // lane; the engine caps at max_discount_rate 0.2500, untouched.
         $pricing = app(AccountDiscountService::class)->priceFor($this->player, '3d', '100.00');
-        $this->assertSame('0.0050', $pricing['rate']);
-        $this->assertSame('0.50', $pricing['discount']);
-        $this->assertSame('99.50', $pricing['final']);
+        $this->assertSame('0.0600', $pricing['rate']);
+        $this->assertSame('6.00', $pricing['discount']);
+        $this->assertSame('94.00', $pricing['final']);
     }
 
     // 38
@@ -779,20 +884,51 @@ final class AccountServicesPagesTest extends TestCase
     public function test_no_second_kyc_table_created(): void
     {
         $this->assertTrue(
-            \Illuminate\Support\Facades\Schema::hasTable('kyc_documents'),
+            Schema::hasTable('kyc_documents'),
             'canonical kyc_documents must exist',
         );
         $this->assertTrue(
-            \Illuminate\Support\Facades\Schema::hasTable('kyc_verifications'),
+            Schema::hasTable('kyc_verifications'),
             'canonical kyc_verifications must exist',
         );
-        $this->assertFalse(
-            \Illuminate\Support\Facades\Schema::hasTable('account_verifications'),
-            'AccountVerification must reuse kyc_verifications — no parallel schema',
+
+        // PROMPT 3: account_verifications now EXISTS — but strictly as the
+        // immutable submission-event aggregate (one row per submission:
+        // reference, country/mobile pair, document pair, review outcome).
+        // The guard is STRONGER than before: the table must carry no
+        // identity-state vocabulary of its own beyond the mirrored enum,
+        // and the model must keep delegating public status to the
+        // canonical KYC machine (no parallel identity schema).
+        $this->assertTrue(
+            Schema::hasTable('account_verifications'),
+            'the PROMPT 3 submission-event aggregate must exist',
         );
         $this->assertFalse(
-            \Illuminate\Support\Facades\Schema::hasTable('account_verification_documents'),
+            Schema::hasTable('account_verification_documents'),
             'documents must reuse kyc_documents',
+        );
+
+        $mirrored = array_map(
+            static fn (\App\Enums\KycVerificationStatus $case): string => $case->value,
+            \App\Enums\KycVerificationStatus::cases(),
+        );
+        $aggregate = array_map(
+            static fn (\App\Enums\AccountVerificationStatus $case): string => $case->value,
+            array_values(array_filter(
+                \App\Enums\AccountVerificationStatus::cases(),
+                static fn (\App\Enums\AccountVerificationStatus $case): bool =>
+                    $case !== \App\Enums\AccountVerificationStatus::NotSubmitted,
+            )),
+        );
+        $this->assertSame(
+            $mirrored,
+            $aggregate,
+            'the aggregate status vocabulary must MIRROR the canonical KYC machine — no invented states',
+        );
+        $this->assertSame(
+            'NOT_SUBMITTED',
+            \App\Models\AccountVerification::publicStatusFromKycStatus(\App\Enums\KycStatus::Unverified),
+            'public status words still flow through the canonical KYC status',
         );
     }
 
@@ -872,7 +1008,7 @@ final class AccountServicesPagesTest extends TestCase
     private function seedSpend(
         User $user,
         string $amount,
-        ?\Illuminate\Support\Carbon $at = null,
+        ?Carbon $at = null,
         TransactionStatus $status = TransactionStatus::Completed,
     ): void {
         $at = $at ?? now();
@@ -881,7 +1017,7 @@ final class AccountServicesPagesTest extends TestCase
             'user_id' => $user->id,
             'wallet_id' => null,
             'type' => TransactionType::BetPlacement,
-            'currency' => \App\Enums\Currency::THB,
+            'currency' => Currency::THB,
             'amount' => $amount,
             'fee' => '0.00',
             'description' => 'qualifying spend seed',

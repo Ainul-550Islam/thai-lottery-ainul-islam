@@ -39,6 +39,26 @@ class BankTransferGateway extends AbstractPaymentGateway
         return false;
     }
 
+    /**
+     * FINAL AUDIT #4/#5: deposit collection is only advertised as supported
+     * when the operator has supplied the REAL settlement account. Without
+     * it the capability guard refuses the deposit before anything is
+     * persisted - no fake account, no orphan deposit. (Withdrawals do not
+     * depend on this: payout details come from the player.)
+     */
+    public function supportsDeposit(): bool
+    {
+        if (! parent::supportsDeposit()) {
+            return false;
+        }
+
+        $bankName = trim((string) $this->config->get('payment.gateways.bank_transfer.settlement.bank_name', ''));
+        $accountNumber = trim((string) $this->config->get('payment.gateways.bank_transfer.settlement.account_number', ''));
+        $accountName = trim((string) $this->config->get('payment.gateways.bank_transfer.settlement.account_name', ''));
+
+        return $bankName !== '' && $accountNumber !== '' && $accountName !== '';
+    }
+
     public function supportsCurrency(Currency $currency): bool
     {
         return true;
@@ -46,12 +66,31 @@ class BankTransferGateway extends AbstractPaymentGateway
 
     public function initiateDeposit(Deposit $deposit, array $options = []): GatewayDepositResponse
     {
+        // FINAL AUDIT #4: settlement instructions are OPERATOR-PROVIDED or
+        // absent. Nothing here may hardcode a bank, an account number or an
+        // account holder - a plausible-looking fake account is worse than
+        // no account, and an "official" account holder label this platform
+        // is not entitled to claim would be worse still.
+        $bankName = trim((string) $this->config->get('payment.gateways.bank_transfer.settlement.bank_name', ''));
+        $accountNumber = trim((string) $this->config->get('payment.gateways.bank_transfer.settlement.account_number', ''));
+        $accountName = trim((string) $this->config->get('payment.gateways.bank_transfer.settlement.account_name', ''));
+        $instructions = trim((string) $this->config->get('payment.gateways.bank_transfer.settlement.instructions', ''));
+
+        if ($bankName === '' || $accountNumber === '' || $accountName === '') {
+            return GatewayDepositResponse::failed(
+                'Bank transfer settlement instructions are not configured.',
+                [],
+                ['gateway' => $this->name(), 'reason' => 'bank_transfer_not_configured'],
+            );
+        }
+
         return GatewayDepositResponse::manual(
             providerReference: 'BANK-SLIP-'.$deposit->reference_number,
             instructions: [
-                'bank_name' => 'Bangkok Bank',
-                'account_number' => '123-4-56789-0',
-                'account_name' => 'Thai Lottery Official Co.',
+                'bank_name' => $bankName,
+                'account_number' => $accountNumber,
+                'account_name' => $accountName,
+                'instructions' => $instructions !== '' ? $instructions : null,
                 'reference' => $deposit->reference_number,
             ],
         );

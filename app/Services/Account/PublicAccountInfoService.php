@@ -18,14 +18,16 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  * reference surface found exactly that gap.
  *
  * IT CANNOT LEAK A PERSON. This class takes no user, touches no model and
- * runs no query. It reads config/account_grades.php and returns the same
+ * runs no query. It reads the canonical authorities and returns the same
  * answer to everybody, so there is no request in which it could return
  * somebody's spend, grade or documents.
  *
- * IT IS NOT A SECOND SOURCE OF TRUTH. The tiers come from the same
- * config/account_grades.php that AccountGradeService resolves a real user
- * against, so the advertised ladder and the applied ladder cannot drift.
- * Rates are formatted here for display only; no percentage is recomputed.
+ * IT IS NOT A SECOND SOURCE OF TRUTH. GRADE PARITY BATCH: the ladder is
+ * projected through GradeTierCatalog + GradeDiscountEntitlementService -
+ * the same authorities the evaluator resolves real users against - so the
+ * advertised ladder, its per-tier game entitlements and the applied ladder
+ * cannot drift. Rates are formatted here for display only; no percentage is
+ * recomputed.
  *
  * MONEY AND RATES STAY STRINGS. min_spend and discount_rate are decimal
  * strings in config and are formatted with BCMath-free string operations.
@@ -35,67 +37,70 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  */
 class PublicAccountInfoService
 {
-    public function __construct(private readonly ConfigRepository $config) {}
+    public function __construct(
+        private readonly ConfigRepository $config,
+        private readonly GradeTierCatalog $tiers,
+        private readonly GradeDiscountEntitlementService $entitlements,
+    ) {}
 
     /**
-     * The public grade ladder, lowest threshold first.
+     * The public grade ladder, SL 1..5 first.
+     *
+     * GRADE PARITY BATCH: the ladder is now projected through
+     * GradeTierCatalog + GradeDiscountEntitlementService — the same
+     * authorities the evaluator resolves real users against — so the
+     * advertised ladder, its per-tier game entitlements and the applied
+     * ladder can never drift. The row shape keeps the original fields
+     * (key/name/min_spend/discount_display/scope) and adds the canonical
+     * columns (sl/icon/eligible_games/rule_version/effective dates).
      *
      * @return array{
      *     status: string,
      *     currency: string,
+     *     period_days: int,
      *     rule_version: string,
      *     max_discount_display: string|null,
-     *     tiers: list<array{key: string, name: string, min_spend: string, discount_display: string, scope: string}>
+     *     tiers: list<array<string, mixed>>
      * }
      */
     public function gradeLadder(): array
     {
-        $tiers = $this->config->get('account_grades.tiers');
-        $tiers = is_array($tiers) ? $tiers : [];
+        $tiers = $this->tiers->publicTiers();
 
         $rows = [];
 
         foreach ($tiers as $tier) {
-            if (! is_array($tier)) {
-                continue;
-            }
-
-            // A disabled tier is not offered, so it is not advertised.
-            if (($tier['enabled'] ?? true) !== true) {
-                continue;
-            }
-
-            $key = $tier['key'] ?? null;
-            $name = $tier['name'] ?? null;
-
-            if (! is_string($key) || ! is_string($name)) {
-                continue;
-            }
+            $games = $this->entitlements->eligibleGames($tier);
 
             $rows[] = [
-                'key' => $key,
-                'name' => $name,
-                'min_spend' => (string) ($tier['min_spend'] ?? '0.00'),
-                'discount_display' => $this->asPercent((string) ($tier['discount_rate'] ?? '0.0000')),
-                'scope' => (string) ($tier['discount_scope'] ?? 'operator_markets'),
+                'key' => $tier->key,
+                'name' => $tier->name,
+                'sl' => $tier->sl,
+                'min_spend' => $tier->minSpend,
+                'discount_display' => $this->asPercent($tier->discountRate),
+                'scope' => $tier->discountScope,
+                'icon' => $tier->icon,
+                'eligible_games' => array_map(
+                    static fn (\App\Enums\DiscountGame $game): array => [
+                        'key' => $game->value,
+                        'label' => self::gameLabel($game),
+                        'lottery' => $game->lottery()->value,
+                    ],
+                    $games,
+                ),
+                'eligible_game_count' => count($games),
+                'effective_from' => $tier->effectiveFrom,
+                'effective_to' => $tier->effectiveTo,
+                'rule_version' => $tier->ruleVersion,
             ];
         }
-
-        // Sorted by threshold as a STRING comparison would be wrong for
-        // '5000.00' vs '25000.00', so compare by length first then value -
-        // both are non-negative decimals with two places.
-        usort($rows, function (array $a, array $b): int {
-            $left = $a['min_spend'];
-            $right = $b['min_spend'];
-
-            return [strlen($left), $left] <=> [strlen($right), $right];
-        });
 
         $max = $this->config->get('account_grades.max_discount_rate');
 
         return [
             'status' => $rows === [] ? 'NOT_CONFIGURED' : 'CONFIGURED',
             'currency' => (string) $this->config->get('account_grades.currency', 'THB'),
+            'period_days' => max(1, (int) $this->config->get('account_grades.grade_period_days', 30)),
             'rule_version' => (string) $this->config->get('account_grades.rule_version', '1'),
             'max_discount_display' => is_string($max) && $max !== '' ? $this->asPercent($max) : null,
             'tiers' => $rows,
@@ -125,6 +130,19 @@ class PublicAccountInfoService
         }
 
         return ['status' => 'CONFIGURED', 'steps' => $steps];
+    }
+
+    /**
+     * Human-readable label for a matrix game, resolved from the
+     * translation layer with a stable non-translated fallback.
+     */
+    private static function gameLabel(\App\Enums\DiscountGame $game): string
+    {
+        $label = trans($game->labelKey());
+
+        return is_string($label) && $label !== $game->labelKey()
+            ? $label
+            : ucfirst(str_replace('_', ' ', $game->value));
     }
 
     /**

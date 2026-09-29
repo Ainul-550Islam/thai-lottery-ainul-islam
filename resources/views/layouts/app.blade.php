@@ -96,7 +96,7 @@
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span class="text-slate-400">Balance:</span>
                         <span id="player-balance-display" class="font-bold text-amber-400">
-                            {{ Auth::user()->wallet ? number_format((float) Auth::user()->wallet->balance, 2) : '0.00' }} THB
+                            {{ \App\Services\Finance\Money::of((string) (Auth::user()->wallet?->balance ?? '0'), \App\Enums\Currency::THB)->format() }}
                         </span>
                     </div>
 
@@ -158,6 +158,31 @@
                         {{-- PROMPT 10: Contact. Appended after the four result
                              lanes, so no existing link moves. --}}
                         <a href="{{ route('contact') }}" class="px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('contact*') ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">Contact Us</a>
+                        {{-- AUDIT FIX 8: information pages. The replaced site
+                             exposed About, Vision & Mission, Terms, Fees,
+                             Account Verify, Account Grade, Prize Verification
+                             and Lotto Discount as first-class navigation
+                             destinations. They are grouped in a CSS-only
+                             dropdown (group-hover + focus-within, no
+                             JavaScript) so the guest nav stays one row. --}}
+                        <div class="relative group">
+                            <button type="button" aria-haspopup="true" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition flex items-center">
+                                <span>Information</span>
+                                <svg class="w-3.5 h-3.5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div class="invisible opacity-0 group-hover:visible group-hover:opacity-100 focus-within:visible focus-within:opacity-100 transition-all duration-150 absolute right-0 top-full pt-2 w-52 z-30">
+                                <div class="rounded-xl border border-slate-700/80 bg-slate-900 shadow-xl py-1.5">
+                                    <a href="{{ route('about') }}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition">About</a>
+                                    <a href="{{ route('vision') }}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition">Vision &amp; Mission</a>
+                                    <a href="{{ route('terms') }}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition">Terms</a>
+                                    <a href="{{ route('fees') }}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition">Fees</a>
+                                    <a href="{{ route('account-verification-guide') }}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition">Account Verify</a>
+                                    <a href="{{ route('account-grades') }}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition">Account Grade</a>
+                                    <a href="{{ route('prize-verification') }}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition">Prize Verification</a>
+                                    <a href="{{ route('discounts') }}" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition">Lotto Discount</a>
+                                </div>
+                            </div>
+                        </div>
                     </nav>
                     <a href="{{ route('register') }}" class="px-3 py-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition">Register</a>
                     <a href="{{ route('login') }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition">

@@ -43,14 +43,20 @@ final class PublicAccountInfoTest extends TestCase
         $response->assertSee(trans('account_info.step_review_title'), false);
     }
 
-    public function test_the_ladder_shows_every_enabled_tier_with_its_configured_numbers(): void
+    public function test_the_ladder_shows_every_public_programme_tier_with_its_configured_numbers(): void
     {
         $response = $this->get(route('account-grades'));
 
         $response->assertOk();
 
         foreach ((array) config('account_grades.tiers') as $tier) {
-            if (($tier['enabled'] ?? true) !== true) {
+            // GRADE PARITY BATCH: the advertised ladder is the PUBLIC
+            // PROGRAMME - enabled, publicly visible and not the base
+            // state. The base (below the first threshold) is a real
+            // state, but it is not a programme tier and is not sold.
+            if (($tier['enabled'] ?? true) !== true
+                || ($tier['public_visible'] ?? true) !== true
+                || ($tier['key'] ?? '') === 'bronze') {
                 continue;
             }
 
@@ -67,10 +73,13 @@ final class PublicAccountInfoTest extends TestCase
 
         $rates = array_column($ladder['tiers'], 'discount_display');
 
-        // 0.0150 -> '1.50%'. Multiplying by 100 as a float yields values like
-        // 1.4999999999999999, which is what this formatting exists to avoid.
-        $this->assertContains('1.50%', $rates);
-        $this->assertContains('0.00%', $rates);
+        // 0.0200 -> '2.00%'. Multiplying by 100 as a float yields values
+        // like 1.9999999999999998, which is what this formatting exists
+        // to avoid. The base state carries 0.00% but is not advertised:
+        // the public ladder sells the programme, not the floor.
+        $this->assertContains('2.00%', $rates);
+        $this->assertContains('6.00%', $rates);
+        $this->assertNotContains('0.00%', $rates);
 
         foreach ($rates as $rate) {
             $this->assertMatchesRegularExpression('/^-?[0-9]+\.[0-9]{2}%$/', $rate);

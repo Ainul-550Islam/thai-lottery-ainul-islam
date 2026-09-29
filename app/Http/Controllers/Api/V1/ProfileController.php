@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Responses\ApiResponse;
+use App\Rules\StrongPasswordRule;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -105,7 +106,9 @@ final class ProfileController
 
         $validated = $request->validate([
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            // Audit S2: the SAME centralised rule registration and reset
+            // use — the API profile surface must not drift weaker.
+            'password' => ['required', 'string', new StrongPasswordRule(), 'confirmed'],
         ]);
 
         if (! Hash::check($validated['current_password'], (string) $user->password)) {

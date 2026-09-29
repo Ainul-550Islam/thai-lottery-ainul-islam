@@ -34,6 +34,16 @@ return [
     'scope_operator_markets' => 'Operator markets',
     'scope_all' => 'All products',
 
+    'col_sl' => 'SL',
+    'col_discount_of_game' => 'Discount Of Game',
+    'sl_label' => 'Programme level :sl',
+    'min_spend_a11y' => 'minimum qualifying spend over :days days',
+    'discount_of_game' => 'Discount Of Game',
+    'discount_of_game_title' => 'Games discounted for :grade',
+    'discount_of_game_lead' => 'The :percent grade discount applies to these games.',
+    'discount_of_game_empty' => 'No games are discounted at this grade.',
+    'discount_of_game_close' => 'Close',
+
     // Stated on the page where the discount is advertised, so nobody infers a
     // reduction on a government-priced ticket.
     'discount_scope_note' => 'Grade discounts apply to operator markets only. GLO ticket prices are fixed and are never discounted.',

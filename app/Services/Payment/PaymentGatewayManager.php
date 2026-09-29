@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Payment;
 
+use App\Enums\GatewayIntegrationStatus;
 use App\Enums\PaymentMethod;
 use App\Exceptions\FinancialException;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
@@ -79,5 +80,116 @@ class PaymentGatewayManager
         $key = strtolower(trim($name));
 
         return in_array($key, ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'manual'], true);
+    }
+
+    /**
+     * Whether the gateway is switched on AND has its credentials present.
+     *
+     * Enabled means the operator turned it on; configured means the driver
+     * reports it can actually be used (credentials, required settings).
+     * A driver that merely EXISTS in the container must never be
+     * invocable just because its class resolves.
+     */
+    public function isEnabled(string|PaymentMethod $name): bool
+    {
+        try {
+            $driver = $this->driver($name);
+        } catch (FinancialException) {
+            return false;
+        }
+
+        // Integration maturity must back the flag: a simulated, partial or
+        // unsupported driver is not invocable no matter what the flag says.
+        $usableMaturity = in_array(
+            $driver->status(),
+            [GatewayIntegrationStatus::FullyImplemented, GatewayIntegrationStatus::ConfiguredOnly],
+            true,
+        );
+
+        return $driver->isEnabled() && $usableMaturity;
+    }
+
+    public function isDepositCapable(string|PaymentMethod $name): bool
+    {
+        try {
+            $driver = $this->driver($name);
+        } catch (FinancialException) {
+            return false;
+        }
+
+        return $driver->supportsDeposit() && $this->isEnabled($name);
+    }
+
+    public function isWithdrawalCapable(string|PaymentMethod $name): bool
+    {
+        try {
+            $driver = $this->driver($name);
+        } catch (FinancialException) {
+            return false;
+        }
+
+        return $driver->supportsWithdrawal() && $this->isEnabled($name);
+    }
+
+    /**
+     * Resolve a driver for a DEPOSIT and refuse anything not enabled,
+     * not configured or not deposit-capable BEFORE a single record is
+     * created. Web and API initiation paths must use this, never the bare
+     * driver() resolver.
+     *
+     * @throws FinancialException with a stable code per refusal reason
+     */
+    public function depositDriver(PaymentMethod $method): PaymentGatewayInterface
+    {
+        $driver = $this->driver($method);
+
+        if (! $driver->isEnabled()) {
+            throw FinancialException::withCode(
+                'payment_gateway_disabled',
+                sprintf('Payment gateway [%s] is not enabled.', $driver->name()),
+                ['gateway' => $driver->name()],
+            );
+        }
+
+        if (! $driver->supportsDeposit()) {
+            throw FinancialException::withCode(
+                'payment_gateway_not_deposit_capable',
+                sprintf('Payment gateway [%s] does not support deposits.', $driver->name()),
+                ['gateway' => $driver->name()],
+            );
+        }
+
+        return $driver;
+    }
+
+    /**
+     * Resolve a driver for a WITHDRAWAL payout with the same fail-closed
+     * contract, additionally honouring the manual-approval design: the
+     * guard only resolves the driver; approval state transitions remain
+     * owned by WithdrawalApprovalService.
+     *
+     * @throws FinancialException with a stable code per refusal reason
+     */
+    public function withdrawalDriver(PaymentMethod $method): PaymentGatewayInterface
+    {
+        $driver = $this->driver($method);
+
+        if (! $driver->isEnabled()) {
+            throw FinancialException::withCode(
+                'payment_gateway_disabled',
+                sprintf('Payment gateway [%s] is not enabled.', $driver->name()),
+                ['gateway' => $driver->name()],
+            );
+        }
+
+        if (! $driver->supportsWithdrawal()) {
+            throw FinancialException::withCode(
+                'payment_gateway_not_withdrawal_capable',
+                sprintf('Payment gateway [%s] does not support withdrawals.', $driver->name()),
+                ['gateway' => $driver->name()],
+            );
+        }
+
+        return $driver;
     }
 }

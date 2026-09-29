@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\Finance;
 
 use App\DTOs\Payment\WebhookPayload;
+use App\Enums\AgentStatus;
 use App\Enums\AuditAction;
-use App\Enums\BetMarket;
 use App\Enums\BetStatus;
 use App\Enums\BetType;
 use App\Enums\CommissionStatus;
@@ -15,7 +15,6 @@ use App\Enums\DepositStatus;
 use App\Enums\DiscrepancyCategory;
 use App\Enums\DiscrepancySeverity;
 use App\Enums\FinancialTransactionType;
-use App\Enums\LedgerEntryType;
 use App\Enums\PaymentMethod;
 use App\Enums\PayoutStatus;
 use App\Enums\ReconciliationStatus;
@@ -36,18 +35,16 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Finance\DepositCompletionService;
+use App\Services\Finance\DepositService;
 use App\Services\Finance\FinancialReconciliationService;
 use App\Services\Finance\FinancialReversalService;
 use App\Services\Finance\FinancialTransactionService;
 use App\Services\Finance\LedgerPostingService;
 use App\Services\Finance\Money;
-use App\Services\Finance\WalletHoldService;
 use App\Services\Finance\WalletService;
 use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalCompletionService;
 use App\Services\Finance\WithdrawalService;
-use Database\Seeders\LedgerAccountSeeder;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
@@ -72,13 +69,21 @@ use Tests\Feature\Payment\PaymentTestCase;
 final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
 {
     private FinancialReconciliationService $reconciliationService;
+
     private WalletService $walletService;
+
     private FinancialTransactionService $transactionService;
+
     private LedgerPostingService $ledgerService;
+
     private DepositCompletionService $depositCompletionService;
+
     private WithdrawalService $withdrawalService;
+
     private WithdrawalApprovalService $withdrawalApprovalService;
+
     private WithdrawalCompletionService $withdrawalCompletionService;
+
     private FinancialReversalService $reversalService;
 
     protected function setUp(): void
@@ -280,7 +285,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $player = $this->createReconciledPlayer('0.00', Currency::THB);
         $draw = Draw::factory()->create();
 
-        $bet = new Bet();
+        $bet = new Bet;
         $bet->fill([
             'bet_number' => 'BET-DUP-PO-08',
             'user_id' => $player['user']->id,
@@ -295,7 +300,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $bet->actual_payout = '900.00';
         $bet->save();
 
-        $p1 = new Payout();
+        $p1 = new Payout;
         $p1->fill([
             'reference_number' => 'PO-08-1',
             'draw_id' => $draw->id,
@@ -307,7 +312,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $p1->status = PayoutStatus::Completed;
         $p1->save();
 
-        $p2 = new Payout();
+        $p2 = new Payout;
         $p2->fill([
             'reference_number' => 'PO-08-2',
             'draw_id' => $draw->id,
@@ -331,7 +336,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $player = $this->createReconciledPlayer('0.00', Currency::THB);
         $draw = Draw::factory()->create();
 
-        $bet = new Bet();
+        $bet = new Bet;
         $bet->fill([
             'bet_number' => 'BET-WON-NO-PO',
             'user_id' => $player['user']->id,
@@ -375,7 +380,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $liabilityAccount = LedgerAccount::where('code', WalletService::ACCOUNT_PLAYER_LIABILITY)->firstOrFail();
 
         // Create transaction, create entry, then delete transaction with foreign keys disabled
-        $tx = new FinancialTransaction();
+        $tx = new FinancialTransaction;
         $tx->fill([
             'reference_number' => 'TX-TEMP-ORPHAN-11',
             'user_id' => $player['user']->id,
@@ -388,7 +393,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $tx->status = TransactionStatus::Completed;
         $tx->save();
 
-        $entry = new LedgerEntry();
+        $entry = new LedgerEntry;
         $entry->fill([
             'ledger_account_id' => $liabilityAccount->id,
             'financial_transaction_id' => $tx->id,
@@ -415,7 +420,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $player = $this->createReconciledPlayer('0.00', Currency::THB);
 
         // Insert completed transaction without ledger entries
-        $tx = new FinancialTransaction();
+        $tx = new FinancialTransaction;
         $tx->fill([
             'reference_number' => 'TX-NO-LEDGER-12',
             'user_id' => $player['user']->id,
@@ -440,7 +445,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $player = $this->createReconciledPlayer('0.00', Currency::THB);
         $account = LedgerAccount::where('code', WalletService::ACCOUNT_PLAYER_LIABILITY)->firstOrFail();
 
-        $tx = new FinancialTransaction();
+        $tx = new FinancialTransaction;
         $tx->fill([
             'reference_number' => 'TX-TEMP-13',
             'user_id' => $player['user']->id,
@@ -453,7 +458,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $tx->status = TransactionStatus::Completed;
         $tx->save();
 
-        $entry = new LedgerEntry();
+        $entry = new LedgerEntry;
         $entry->fill([
             'ledger_account_id' => $account->id,
             'financial_transaction_id' => $tx->id,
@@ -708,7 +713,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $player = $this->createReconciledPlayer('0.00', Currency::THB);
         $draw = Draw::factory()->create();
 
-        $bet = new Bet();
+        $bet = new Bet;
         $bet->fill([
             'bet_number' => 'BET-NO-TX-28',
             'user_id' => $player['user']->id,
@@ -735,7 +740,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $agent = Agent::create([
             'user_id' => $player['user']->id,
             'agent_code' => 'AG-COMM-29',
-            'status' => \App\Enums\AgentStatus::Active,
+            'status' => AgentStatus::Active,
             'commission_rate' => '0.0500',
         ]);
 
@@ -836,5 +841,139 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $this->assertSame(ReconciliationStatus::Critical, $report->status);
         $mismatch = collect($report->discrepancies)->firstWhere('category', DiscrepancyCategory::DepositAccountingMissing);
         $this->assertNotNull($mismatch);
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | FEES PARITY BATCH — fee-bearing flows stay balanced and single-charge
+    |----------------------------------------------------------------------
+    */
+
+    #[Test]
+    public function test_35_fee_bearing_deposit_completion_keeps_the_ledger_balanced_and_charges_the_fee_once(): void
+    {
+        Config::set('finance.deposit.fee_percentage', '2.00');
+
+        $player = $this->createReconciledPlayer('0.00', Currency::THB);
+
+        // The canonical cash-in fee is applied by the engine at request time.
+        $deposit = app(DepositService::class)->request(
+            wallet: $player['wallet'],
+            amount: Money::of('500.00', Currency::THB),
+            method: PaymentMethod::BankTransfer,
+        );
+
+        $this->assertStoredMoneySame('10.00', (string) $deposit->fee, 'The 2.00% cash-in fee must be 10.00 on 500.00');
+        $this->assertStoredMoneySame('490.00', (string) $deposit->net_amount);
+
+        $deposit->status = DepositStatus::Approved;
+        $deposit->save();
+
+        $result = $this->depositCompletionService->complete($deposit, null, [
+            'provider_reference' => 'FEEDEP-'.bin2hex(random_bytes(4)),
+        ]);
+
+        // The wallet is credited the NET amount — the fee is charged inside
+        // the single credit, never as a second posting.
+        $this->assertTrue($result['credited']);
+        $this->assertSame('490.00', (string) $result['amount']);
+
+        $player['wallet']->refresh();
+        $this->assertStoredMoneySame('490.00', $player['wallet']->balance);
+
+        // Exactly one financial transaction, exactly two balanced entries.
+        $completed = $result['deposit'];
+        $transaction = FinancialTransaction::query()->where('id', $completed->financial_transaction_id)->firstOrFail();
+        $entries = LedgerEntry::query()->where('financial_transaction_id', $transaction->id)->get();
+        $this->assertCount(2, $entries);
+
+        $debits = '0.00';
+        $credits = '0.00';
+        foreach ($entries as $entry) {
+            if ($entry->type->value === 'debit') {
+                $debits = bcadd($debits, (string) $entry->amount, 2);
+            } else {
+                $credits = bcadd($credits, (string) $entry->amount, 2);
+            }
+        }
+        $this->assertSame(0, bccomp($debits, $credits, 2), 'Fee-bearing deposit entries must balance exactly');
+
+        // A full reconciliation still passes with the fee in play.
+        $report = $this->reconciliationService->reconcile();
+        $this->assertSame(ReconciliationStatus::Pass, $report->status);
+        $this->assertSame('0.00', $report->ledgerDifference);
+    }
+
+    #[Test]
+    public function test_36_fee_bearing_withdrawal_completion_debits_once_and_reconciles_cleanly(): void
+    {
+        Config::set('finance.withdrawal.fee_percentage', '2.00');
+
+        $player = $this->createReconciledPlayer('1000.00', Currency::THB);
+
+        $withdrawal = $this->withdrawalService->request(
+            wallet: $player['wallet'],
+            amount: Money::of('200.00', Currency::THB),
+            method: PaymentMethod::BankTransfer,
+        );
+
+        // The canonical payout fee is fixed at request time: 2.00% = 4.00,
+        // beneficiary receives 196.00, wallet is debited the 200.00 gross.
+        $this->assertStoredMoneySame('4.00', (string) $withdrawal->fee);
+        $this->assertStoredMoneySame('196.00', (string) $withdrawal->net_amount);
+
+        $this->withdrawalApprovalService->approve($withdrawal);
+        $result = $this->withdrawalCompletionService->complete($withdrawal, null, [
+            'provider' => 'bank_transfer',
+            'provider_reference' => 'FEEWD-'.bin2hex(random_bytes(4)),
+            'description' => 'Fee-bearing withdrawal completion test',
+        ]);
+
+        $this->assertTrue($result['debited']);
+        $this->assertSame('200.00', (string) $result['amount']);
+
+        $player['wallet']->refresh();
+        $this->assertStoredMoneySame('800.00', $player['wallet']->balance);
+        $this->assertStoredMoneySame('0.00', $player['wallet']->locked_balance);
+
+        // The debit transaction carries the fee snapshot; the fee is a
+        // column on ONE transaction, never a second debit.
+        $completed = $result['withdrawal'];
+        $transaction = FinancialTransaction::query()->where('id', $completed->financial_transaction_id)->firstOrFail();
+        $this->assertStoredMoneySame('4.00', (string) $transaction->fee);
+        $this->assertStoredMoneySame('200.00', (string) $transaction->amount);
+
+        $this->assertSame(
+            1,
+            FinancialTransaction::query()->where('reference_type', Withdrawal::class)->where('reference_id', $withdrawal->id)->count(),
+            'A withdrawal must produce exactly one financial transaction'
+        );
+
+        // Balanced double entry for the fee-bearing debit.
+        $entries = LedgerEntry::query()->where('financial_transaction_id', $transaction->id)->get();
+        $this->assertCount(2, $entries);
+
+        $debits = '0.00';
+        $credits = '0.00';
+        foreach ($entries as $entry) {
+            if ($entry->type->value === 'debit') {
+                $debits = bcadd($debits, (string) $entry->amount, 2);
+            } else {
+                $credits = bcadd($credits, (string) $entry->amount, 2);
+            }
+        }
+        $this->assertSame(0, bccomp($debits, $credits, 2), 'Fee-bearing withdrawal entries must balance exactly');
+
+        // Replaying the completion debits nothing a second time.
+        $replay = $this->withdrawalCompletionService->complete($withdrawal->refresh(), null, []);
+        $this->assertFalse($replay['debited'], 'A completed withdrawal must never be debited again');
+
+        $player['wallet']->refresh();
+        $this->assertStoredMoneySame('800.00', $player['wallet']->balance);
+
+        // The book closes clean: wallet vs ledger, debits vs credits.
+        $report = $this->reconciliationService->reconcile();
+        $this->assertSame(ReconciliationStatus::Pass, $report->status);
+        $this->assertSame('0.00', $report->ledgerDifference);
     }
 }

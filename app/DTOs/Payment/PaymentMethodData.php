@@ -25,8 +25,7 @@ final readonly class PaymentMethodData
         public string $maxAmount,
         public int $feeBps,
         public PaymentMethodStatus $status,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws PaymentProviderException
@@ -96,6 +95,45 @@ final readonly class PaymentMethodData
     public function methodKey(): string
     {
         return hash('sha256', sprintf('pay-method:%s:%s:%s', $this->providerCode, $this->methodCode, $this->currency));
+    }
+
+    /**
+     * The method's fee as a whole-percent decimal string ('2.50' = 2.50%).
+     *
+     * Presentation-only conversion of the fee basis points this DTO already
+     * carries. Exact integer arithmetic — never a float — and never a fee
+     * SOURCE: the authoritative cash-in fee lives in
+     * config('finance.deposit.fee_percentage'); this merely formats a
+     * provider-method attribute that already exists.
+     */
+    public function feePercent(): string
+    {
+        $bps = $this->feeBps;
+
+        return sprintf('%d.%02d', intdiv($bps, 100), $bps % 100);
+    }
+
+    /**
+     * Safe public projection of the method: only non-secret fee metadata a
+     * public or service layer may see. Provider credentials, gateway
+     * secrets, internal identifiers and margins do not exist on this DTO,
+     * and this method guarantees they cannot be introduced by accident
+     * either — every field is listed by name.
+     *
+     * @return array<string, string|int>
+     */
+    public function toPublicArray(): array
+    {
+        return [
+            'provider' => $this->providerCode,
+            'method' => $this->methodCode,
+            'currency' => $this->currency,
+            'min_amount' => $this->minAmount,
+            'max_amount' => $this->maxAmount,
+            'fee_bps' => $this->feeBps,
+            'fee_percent' => $this->feePercent(),
+            'status' => $this->status->value,
+        ];
     }
 
     private static function moneyOf(string $amount): string

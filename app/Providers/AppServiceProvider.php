@@ -376,6 +376,25 @@ class AppServiceProvider extends ServiceProvider
         // Account verification submit/upload — user-keyed, moderate ceiling
         // so legitimate multi-file uploads work but scraping cannot.
         $verifyPerMinute = (int) config('account.rate_limits.verification_submit_per_minute', 5);
+        // PROMPT 3: password-recovery surfaces (request + reset POSTs).
+        // Keyed on the normalized identifier hash AND the IP: an
+        // attacker must not slow one victim's recovery, and one IP must
+        // not enumerate identifiers. Thresholds read at REQUEST time
+        // (config overridable) so policy can be tuned without a reboot.
+        RateLimiter::for('password-reset', function (Request $request): array {
+            $identifier = mb_strtolower(trim((string) $request->input('identifier', (string) $request->input('email', ''))));
+            $maxPerMinute = max(1, (int) config('auth_security.password_reset.max_requests_per_minute', 5));
+
+            return [
+                Limit::perMinute($maxPerMinute)
+                    ->by('password-reset:id:'.sha1($identifier))
+                    ->response($this->throttleResponse()),
+                Limit::perMinute(max(1, $maxPerMinute * 5))
+                    ->by('password-reset:ip:'.$request->ip())
+                    ->response($this->throttleResponse()),
+            ];
+        });
+
         RateLimiter::for('account-verification', function (Request $request) use ($verifyPerMinute): Limit {
             $identifier = $request->user()?->getAuthIdentifier();
 

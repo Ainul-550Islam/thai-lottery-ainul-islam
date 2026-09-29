@@ -207,4 +207,38 @@ return [
     'not_configured' => 'Not configured',
     'value_unavailable' => 'Not available',
     'percent_suffix' => '%',
+
+    // ------------------------------------------------------------
+    // GRADE PARITY BATCH — the canonical game/prize/discount matrix.
+    // Game names only: every multiplier, stake unit and percentage
+    // comes from config/lotto_discount_matrix.php, never from here.
+    // ------------------------------------------------------------
+    'matrix_lottery_national' => 'National lottery',
+    'matrix_lottery_bangkok_weekly' => 'Bangkok weekly lottery',
+
+    'matrix_game_national_six_digit' => '6-digit state lottery',
+    'matrix_game_national_3_up' => '3-up',
+    'matrix_game_national_2_up' => '2-up',
+    'matrix_game_national_2_down' => '2-down',
+    'matrix_game_national_1_of_3_up_single_digit' => '1 of 3-up single digit',
+    'matrix_game_national_1_of_2_up_single_digit' => '1 of 2-up single digit',
+    'matrix_game_national_1_of_2_down_single_digit' => '1 of 2-down single digit',
+    'matrix_game_national_3_up_game_total' => '3-up game total',
+    'matrix_game_national_2_up_game_total' => '2-up game total',
+    'matrix_game_national_2_down_game_total' => '2-down game total',
+    'matrix_game_weekly_6_ball' => '6-ball',
+    'matrix_game_weekly_3_ball' => '3-ball',
+    'matrix_game_weekly_2_ball' => '2-ball',
+    'matrix_game_weekly_1_of_3_ball_single_digit' => '1 of 3-ball single digit',
+    'matrix_game_weekly_1_of_2_ball_single_digit' => '1 of 2-ball single digit',
+    'matrix_game_weekly_6_ball_game_total' => '6-ball game total',
+    'matrix_game_weekly_3_ball_game_total' => '3-ball game total',
+    'matrix_game_weekly_2_ball_game_total' => '2-ball game total',
+    'matrix_caption' => 'Games, win multipliers and discounts',
+    'matrix_col_game' => 'Game',
+    'matrix_col_win' => 'Win (per base stake)',
+    'matrix_col_discount' => 'Discount',
+    'matrix_affiliate_commission' => 'Affiliate commission',
+    'matrix_none_published' => 'No game rules are published for this lottery at the moment.',
+
 ];

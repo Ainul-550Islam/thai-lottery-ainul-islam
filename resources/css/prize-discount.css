@@ -472,3 +472,40 @@
         animation: none !important;
     }
 }
+
+/* ============================================================
+   GRADE PARITY BATCH — canonical National + Bangkok Weekly
+   matrix sections. Presentation only.
+   ============================================================ */
+
+.pd-matrix-wrap {
+    overflow-x: auto;
+    border: 1px solid rgb(148 163 184 / 0.25);
+    border-radius: 0.5rem;
+}
+
+.pd-table--matrix .game-rule__mult {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    font-variant-numeric: tabular-nums;
+    margin-inline-end: 0.75rem;
+    white-space: nowrap;
+}
+
+.pd-table--matrix .game-rule__mode-label {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    border: 1px solid rgb(148 163 184 / 0.4);
+    border-radius: 0.25rem;
+    padding: 0 0.3rem;
+    color: rgb(148 163 184);
+}
+
+.pd-table--matrix .game-rule__nc {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8125rem;
+    letter-spacing: 0.03em;
+    color: rgb(148 163 184);
+    opacity: 0.85;
+}

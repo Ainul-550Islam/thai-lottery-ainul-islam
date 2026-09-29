@@ -74,6 +74,45 @@
                 @endif
             </section>
 
+            {{-- GRADE PARITY BATCH: the complete National + Bangkok Weekly
+                 game/prize/discount matrix. Every value arrives pre-resolved
+                 from DiscountParityProjectionService; the partials only
+                 escape and print. Rows whose percentage is deliberately
+                 unpublished render NOT_CONFIGURED — never zero, never
+                 guessed. --}}
+            @if (($matrix['status'] ?? 'NOT_CONFIGURED') === 'CONFIGURED')
+                @foreach ($matrix['lotteries'] as $family)
+                    <section class="pd-card pd-card--matrix" data-pd-section="matrix" data-pd-matrix-lottery="{{ $family['key'] }}">
+                        <h2>{{ $family['label'] }}</h2>
+                        <p class="pd-muted">
+                            {{ trans('prize_discount.matrix_affiliate_commission') }}:
+                            <span class="pd-mono">{{ $family['affiliate_commission_percent'] }}%</span>
+                        </p>
+                        @if ($family['games'] === [])
+                            <p class="pd-muted">{{ trans('prize_discount.matrix_none_published') }}</p>
+                        @else
+                            <div class="pd-matrix-wrap" tabindex="0" role="region" aria-label="{{ $family['label'] }}">
+                                <table class="pd-table pd-table--matrix">
+                                    <caption class="pd-sr-only">{{ $family['label'] }} — {{ trans('prize_discount.matrix_caption') }}</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">{{ trans('prize_discount.matrix_col_game') }}</th>
+                                            <th scope="col">{{ trans('prize_discount.matrix_col_win') }}</th>
+                                            <th scope="col">{{ trans('prize_discount.matrix_col_discount') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($family['games'] as $rule)
+                                            <x-discount.game-rule :rule="$rule" />
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </section>
+                @endforeach
+            @endif
+
             @if ($catalogue['immutable_products'] !== [])
                 <section class="pd-card pd-card--immutable" data-pd-section="immutable">
                     <h2>{{ trans('prize_discount.immutable_heading') }}</h2>

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Admin\OperationsController;
+use App\Http\Controllers\Api\V1\AccountGradeApiController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BetAmendmentController;
 use App\Http\Controllers\Api\V1\BetCancellationController;
@@ -116,7 +117,28 @@ Route::prefix('v1/auth')
             // with the same middleware the rest of the surface uses.
             Route::get('/me', [AuthController::class, 'me'])->middleware('active')->name('me');
             Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
         });
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Account grade (parity batch)
+|--------------------------------------------------------------------------
+|
+| The caller's OWN grade, spend window, next tier and per-game
+| entitlements. The subject is ALWAYS $request->user(): no user id is
+| accepted from the request, so cross-user access (IDOR) has no route
+| in, and any submitted grade / discount / spend / rule_version fields
+| are ignored wholesale — the request body is never read at all.
+|
+*/
+Route::prefix('v1/account')
+    ->name('api.v1.account.')
+    ->middleware(['auth:sanctum', 'throttle:api', 'active'])
+    ->group(function (): void {
+        Route::get('/grade', [AccountGradeApiController::class, 'show'])->name('grade.show');
+        Route::get('/grade/entitlements', [AccountGradeApiController::class, 'entitlements'])->name('grade.entitlements');
     });
 
 Route::middleware(['throttle:glo.public'])->group(function (): void {
@@ -305,6 +327,18 @@ Route::prefix('v1')
         Route::get('/fees', [PublicServicePagesController::class, 'feesApi'])
             ->middleware('throttle:api')
             ->name('fees.index');
+
+        // Fee-preview (fees parity batch): server-authoritative calculation of
+        // one public fee against a base amount. Anonymous by design — it
+        // discloses nothing beyond the already-public schedule — but carries
+        // the standard per-minute API limiter because it is a compute
+        // endpoint. The request accepts ONLY category, an optional provider
+        // and the base amount; any client-supplied fee amount is ignored
+        // before the service is ever reached, and the returned figure is
+        // exclusively the server's own bcmath result.
+        Route::post('/fees/preview', [PublicServicePagesController::class, 'feesPreview'])
+            ->middleware('throttle:api')
+            ->name('fees.preview');
 
         // PROMPT 4: public discount catalogue (published rules only, server
         // computed). Same projection the /discounts page renders, so the JSON

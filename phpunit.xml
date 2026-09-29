@@ -27,6 +27,12 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- PROMPT 3: the shared regression suite runs with the CAPTCHA
+             gate disabled (the pre-existing login/register tests predate
+             the challenge). The CAPTCHA contract itself is exercised by
+             MemberAuthParityTest, which re-enables it per-test at runtime
+             and verifies real challenges end to end. -->
+        <env name="AUTH_CAPTCHA_ENABLED" value="false"/>
         <env name="APP_KEY" value="base64:ZdZRVoeGZh2IQXa67+qdQzaPbjnFovX4CCE0YgWHJI8="/>
         <env name="APP_DEBUG" value="false"/>
         <!--

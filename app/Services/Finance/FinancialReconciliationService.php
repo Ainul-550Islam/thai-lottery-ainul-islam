@@ -434,7 +434,8 @@ class FinancialReconciliationService
         ?Carbon $to,
         array &$discrepancies,
     ): void {
-        // Deposits: Confirmed is the money-receiving terminal state.
+        // Deposits: Confirmed is the money-receiving terminal state. The
+        // journal records the NET (the fee never reaches the wallet).
         $this->collectAccountingBreaks(
             table: 'deposits',
             statusColumn: 'status',
@@ -445,9 +446,12 @@ class FinancialReconciliationService
             from: $from,
             to: $to,
             discrepancies: $discrepancies,
+            journalBasis: 'net',
         );
 
-        // Withdrawals: Completed is the money-releasing terminal state.
+        // Withdrawals: Completed is the money-releasing terminal state. The
+        // journal records the GROSS debit; the fee rides as a column on the
+        // single debit transaction, taken from the beneficiary's payout.
         $this->collectAccountingBreaks(
             table: 'withdrawals',
             statusColumn: 'status',
@@ -458,6 +462,7 @@ class FinancialReconciliationService
             from: $from,
             to: $to,
             discrepancies: $discrepancies,
+            journalBasis: 'gross',
         );
     }
 
@@ -474,6 +479,7 @@ class FinancialReconciliationService
         ?Carbon $from,
         ?Carbon $to,
         array &$discrepancies,
+        string $journalBasis = 'gross',
     ): void {
         $rows = DB::table($table . ' as d')
             ->leftJoin('financial_transactions as ft', 'ft.id', '=', 'd.financial_transaction_id')
@@ -485,6 +491,8 @@ class FinancialReconciliationService
                 'd.id',
                 'd.reference_number',
                 'd.amount',
+                'd.fee',
+                'd.net_amount',
                 'd.financial_transaction_id',
                 'ft.status as ft_status',
                 'ft.amount as ft_amount',
@@ -492,10 +500,21 @@ class FinancialReconciliationService
             ->get();
 
         foreach ($rows as $row) {
+            // The journal records what actually moved. Fee-bearing deposits
+            // journal the NET (amount - fee): the fee never reaches the
+            // wallet, so the platform record and the journal must agree on
+            // the net, never the gross. Withdrawals journal the GROSS debit
+            // with the fee as a column on that one transaction.
+            $expectedJournal = $journalBasis === 'net'
+                ? ($row->net_amount !== null && (string) $row->net_amount !== ''
+                    ? (string) $row->net_amount
+                    : bcsub((string) $row->amount, (string) ($row->fee ?? '0.00'), 2))
+                : (string) $row->amount;
+
             $linkMissing = $row->financial_transaction_id === null;
             $linkBroken = ! $linkMissing && $row->ft_status === null;
             $amountDrift = ! $linkMissing && ! $linkBroken
-                && bccomp((string) $row->amount, (string) $row->ft_amount, 2) !== 0;
+                && bccomp($expectedJournal, (string) $row->ft_amount, 2) !== 0;
 
             if (! ($linkMissing || $linkBroken || $amountDrift)) {
                 continue;
@@ -506,11 +525,11 @@ class FinancialReconciliationService
                 $linkBroken => [null, null, 'points at a financial transaction that no longer exists'],
                 default => [
                     (string) $row->ft_amount,
-                    bcsub((string) $row->ft_amount, (string) $row->amount, 2),
+                    bcsub((string) $row->ft_amount, $expectedJournal, 2),
                     sprintf(
-                        'carries amount %s but its financial transaction carries %s',
+                        'carries journalable amount %s but its financial transaction carries %s',
+                        $expectedJournal,
                         (string) $row->ft_amount,
-                        (string) $row->amount,
                     ),
                 ],
             };
@@ -521,7 +540,7 @@ class FinancialReconciliationService
                 referenceNumber: (string) $row->reference_number,
                 category: $category,
                 severity: DiscrepancySeverity::Critical,
-                expectedAmount: (string) $row->amount,
+                expectedAmount: $expectedJournal,
                 actualAmount: $actual,
                 difference: $difference,
                 currency: $currency->value,

@@ -197,4 +197,38 @@ return [
     'not_configured' => 'ยังไม่ได้ตั้งค่า',
     'value_unavailable' => 'ไม่มีข้อมูล',
     'percent_suffix' => '%',
+
+    // ------------------------------------------------------------
+    // GRADE PARITY BATCH — ตารางเกม/รางวัล/ส่วนลดหลัก
+    // มีเพียงชื่อเกม: อัตราคูณ หน่วยเงินเดิมพัน และเปอร์เซ็นต์
+    // ทั้งหมดมาจาก config/lotto_discount_matrix.php เท่านั้น
+    // ------------------------------------------------------------
+    'matrix_lottery_national' => 'ลอตเตอรี่สามัฐ (National)',
+    'matrix_lottery_bangkok_weekly' => 'ลอตเตอรี่รายสัปดาห์กรุงเทพฯ',
+
+    'matrix_game_national_six_digit' => 'ลอตเตอรี่รัฐ 6 หลัก',
+    'matrix_game_national_3_up' => '3 ตัวบน',
+    'matrix_game_national_2_up' => '2 ตัวบน',
+    'matrix_game_national_2_down' => '2 ตัวล่าง',
+    'matrix_game_national_1_of_3_up_single_digit' => 'เลขวิ่งบน 1 ตัว (3 ตัวบน)',
+    'matrix_game_national_1_of_2_up_single_digit' => 'เลขวิ่งบน 1 ตัว (2 ตัวบน)',
+    'matrix_game_national_1_of_2_down_single_digit' => 'เลขวิ่งล่าง 1 ตัว (2 ตัวล่าง)',
+    'matrix_game_national_3_up_game_total' => 'ผลรวม 3 ตัวบน',
+    'matrix_game_national_2_up_game_total' => 'ผลรวม 2 ตัวบน',
+    'matrix_game_national_2_down_game_total' => 'ผลรวม 2 ตัวล่าง',
+    'matrix_game_weekly_6_ball' => '6 ลูก',
+    'matrix_game_weekly_3_ball' => '3 ลูก',
+    'matrix_game_weekly_2_ball' => '2 ลูก',
+    'matrix_game_weekly_1_of_3_ball_single_digit' => 'เลขวิ่ง 1 ตัว (3 ลูก)',
+    'matrix_game_weekly_1_of_2_ball_single_digit' => 'เลขวิ่ง 1 ตัว (2 ลูก)',
+    'matrix_game_weekly_6_ball_game_total' => 'ผลรวม 6 ลูก',
+    'matrix_game_weekly_3_ball_game_total' => 'ผลรวม 3 ลูก',
+    'matrix_game_weekly_2_ball_game_total' => 'ผลรวม 2 ลูก',
+    'matrix_caption' => 'เกม อัตราคูณรางวัล และส่วนลด',
+    'matrix_col_game' => 'เกม',
+    'matrix_col_win' => 'รางวัล (ต่อยอดเดิมพันพื้นฐาน)',
+    'matrix_col_discount' => 'ส่วนลด',
+    'matrix_affiliate_commission' => 'ค่าคอมมิชชั่นผู้แนะนำ',
+    'matrix_none_published' => 'ขณะนี้ยังไม่มีกฎเกมที่ประกาศสำหรับลอตเตอรี่นี้',
+
 ];

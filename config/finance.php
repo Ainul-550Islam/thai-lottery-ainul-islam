@@ -181,7 +181,13 @@ return [
         'min' => (string) env('FINANCE_MIN_DEPOSIT', '50.00'),
         'max' => (string) env('FINANCE_MAX_DEPOSIT', '500000.00'),
         'auto_confirm' => (bool) env('FINANCE_DEPOSIT_AUTO_CONFIRM', false),
-        'fee_percentage' => '0.00',
+        // CANONICAL LIVE RULE (whole-percent decimal string: '2.50' = 2.50%).
+        // DepositService::resolveFee() consumes exactly this value, exactly
+        // once per request, and persists the result on the deposit row.
+        // The public Fees page mirrors it through config/fees.php's
+        // 'execution' mapping, so display and execution can never drift:
+        // the SAME env var drives both. Changing it changes live economics.
+        'fee_percentage' => (string) env('FINANCE_DEPOSIT_FEE_PERCENTAGE', '0.00'),
     ],
 
     /*
@@ -194,7 +200,14 @@ return [
         'min' => (string) env('FINANCE_MIN_WITHDRAWAL', '100.00'),
         'max' => (string) env('FINANCE_MAX_WITHDRAWAL', '500000.00'),
         'processing_hours' => (int) env('FINANCE_WITHDRAWAL_PROCESSING_HOURS', 24),
-        'fee_percentage' => '0.00',
+        // CANONICAL LIVE RULE (whole-percent decimal string: '8.00' = 8.00%).
+        // WithdrawalService::resolveFee() consumes exactly this value, exactly
+        // once per request, and persists the result on the withdrawal row.
+        // The public Fees page (generic + bank provider rows) mirrors it
+        // through config/fees.php's 'execution' mapping: one env var, one
+        // source of truth, no display/execution drift. Changing it changes
+        // live economics — it is never set merely to match a public schedule.
+        'fee_percentage' => (string) env('FINANCE_WITHDRAWAL_FEE_PERCENTAGE', '0.00'),
         'require_manual_approval' => true,
         'daily_request_limit' => 3,
 

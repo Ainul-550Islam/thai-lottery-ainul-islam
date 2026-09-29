@@ -5,8 +5,8 @@
 @section('content')
 <div class="space-y-6">
     <div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">My Lottery Bets</h1>
-        <p class="text-slate-400 text-sm mt-1">Audit log of all submitted lottery tickets, item selections, and settlement statuses.</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{{ __('player.bets_title') }}</h1>
+        <p class="text-slate-400 text-sm mt-1">{{ __('player.bets_lead') }}</p>
     </div>
 
     <!-- Bets Table Card -->
@@ -15,12 +15,12 @@
             <table class="w-full text-left text-sm">
                 <thead>
                     <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase font-semibold">
-                        <th class="py-3 px-4">Ticket Number</th>
-                        <th class="py-3 px-4">Draw</th>
-                        <th class="py-3 px-4">Markets & Numbers</th>
-                        <th class="py-3 px-4 text-right">Total Stake</th>
-                        <th class="py-3 px-4 text-right">Potential Payout</th>
-                        <th class="py-3 px-4 text-center">Status</th>
+                        <th class="py-3 px-4">{{ __('player.col_ticket_number') }}</th>
+                        <th class="py-3 px-4">{{ __('player.col_draw') }}</th>
+                        <th class="py-3 px-4">{{ __('player.col_markets_numbers') }}</th>
+                        <th class="py-3 px-4 text-right">{{ __('player.col_total_stake') }}</th>
+                        <th class="py-3 px-4 text-right">{{ __('player.col_potential_payout') }}</th>
+                        <th class="py-3 px-4 text-center">{{ __('player.col_status') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60">
@@ -42,23 +42,23 @@
                                 </div>
                             </td>
                             <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">
-                                ฿{{ number_format((float) ($bet->total_stake ?? 0), 2) }}
+                                {{ \App\Services\Finance\Money::of((string) ($bet->total_stake ?? '0'), \App\Enums\Currency::THB)->format() }}
                             </td>
                             <td class="py-3.5 px-4 text-right font-mono font-bold text-emerald-400">
-                                ฿{{ number_format((float) ($bet->potential_payout ?? 0), 2) }}
+                                {{ \App\Services\Finance\Money::of((string) ($bet->potential_payout ?? '0'), \App\Enums\Currency::THB)->format() }}
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 @php
                                     $statusVal = $bet->status->value ?? (string) $bet->status;
                                 @endphp
                                 @if($statusVal === 'won')
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">WON</span>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">{{ __('player.status_won') }}</span>
                                 @elseif($statusVal === 'lost')
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">LOST</span>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">{{ __('player.status_lost') }}</span>
                                 @elseif($statusVal === 'cancelled')
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/10 text-slate-400 border border-slate-500/30">CANCELLED</span>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/10 text-slate-400 border border-slate-500/30">{{ __('player.status_cancelled') }}</span>
                                 @else
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">PENDING</span>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">{{ __('player.status_pending') }}</span>
                                 @endif
                             </td>
                         </tr>

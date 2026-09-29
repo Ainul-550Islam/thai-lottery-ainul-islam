@@ -450,3 +450,144 @@
         scroll-behavior: auto !important;
     }
 }
+
+/* ============================================================
+   GRADE PARITY BATCH — public grade ladder additions.
+   SL / icon / Discount Of Game columns + entitlement panels.
+   Presentation only: every value is server-rendered.
+   ============================================================ */
+
+/* Scrollable ladder table (SL + icon columns widen it). */
+.pp-page .ai-table-wrap {
+    overflow-x: auto;
+    border: 1px solid rgb(148 163 184 / 0.25);
+    border-radius: 0.5rem;
+}
+
+.pp-page .ai-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.pp-page .ai-table__caption {
+    caption-side: top;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: rgb(148 163 184);
+}
+
+.pp-page .ai-table th,
+.pp-page .ai-table td {
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid rgb(148 163 184 / 0.2);
+    font-variant-numeric: tabular-nums;
+}
+
+.pp-page .ai-table thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgb(148 163 184);
+}
+
+.pp-page .ai-table tbody tr:last-child th,
+.pp-page .ai-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+/* SL column: programme position, not a rank badge. */
+.grade-ladder__sl {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: rgb(148 163 184);
+}
+
+/* Grade icon: text-free marker whose meaning is in the name column. */
+.grade-tier__icon {
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    margin-inline-end: 0.4rem;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.6;
+    vertical-align: baseline;
+}
+
+/* "Discount Of Game" trigger. */
+.grade-tier__toggle {
+    appearance: none;
+    background: transparent;
+    color: inherit;
+    border: 1px solid rgb(148 163 184 / 0.4);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.6rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.grade-tier__toggle:hover,
+.grade-tier__toggle:focus-visible {
+    border-color: rgb(148 163 184 / 0.9);
+}
+
+.grade-tier__toggle[aria-expanded='true'] {
+    border-color: rgb(148 163 184 / 0.9);
+    background: rgb(148 163 184 / 0.15);
+}
+
+/* Entitlement panel (server-rendered content, JS only toggles hidden). */
+.grade-games__panel {
+    border: 1px solid rgb(148 163 184 / 0.25);
+    border-radius: 0.5rem;
+    padding: 0.875rem 1rem;
+    margin: 0.5rem 0 1rem;
+}
+
+.grade-games__title {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+}
+
+.grade-games__lead {
+    margin: 0 0 0.5rem;
+    font-size: 0.875rem;
+    color: rgb(148 163 184);
+}
+
+.grade-games__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.grade-games__item {
+    border: 1px solid rgb(148 163 184 / 0.3);
+    border-radius: 0.375rem;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.8125rem;
+}
+
+.grade-games__empty {
+    margin: 0;
+    font-size: 0.875rem;
+    color: rgb(148 163 184);
+}
+
+.grade-games__close {
+    appearance: none;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    padding: 0.25rem 0;
+    margin-top: 0.5rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    text-decoration: underline;
+    cursor: pointer;
+}

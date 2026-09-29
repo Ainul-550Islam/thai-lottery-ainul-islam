@@ -79,6 +79,12 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $this->withdrawalApprovalService = app(WithdrawalApprovalService::class);
         $this->withdrawalCompletionService = app(WithdrawalCompletionService::class);
         $this->disbursementService = app(WithdrawalDisbursementService::class);
+
+        // FINAL AUDIT #5: the disbursement path resolves gateways through
+        // the fail-closed withdrawalDriver() guard. These jobs disburse
+        // approved bank-transfer payouts, so the operator's bank lane must
+        // be switched on — exactly as production would have it.
+        config(['payment.gateways.bank_transfer.enabled' => true]);
         $this->webhookService = app(PaymentWebhookService::class);
         $this->queueHealthService = app(QueueHealthService::class);
 
@@ -99,6 +105,9 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         $gatewayManager = $this->createMock(PaymentGatewayManager::class);
         $gatewayManager->method('forMethod')->willReturn($mockGateway);
+        // FINAL AUDIT #5: the disbursement path resolves through the
+        // fail-closed withdrawalDriver() guard, not the bare resolver.
+        $gatewayManager->method('withdrawalDriver')->willReturn($mockGateway);
 
         return new WithdrawalDisbursementService(
             gateways: $gatewayManager,

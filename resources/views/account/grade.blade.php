@@ -49,6 +49,55 @@
                 </section>
             </div>
 
+            {{-- GRADE PARITY BATCH: the caller's own explicit per-game
+                 entitlement answers for every public matrix game, in
+                 canonical order. Eligible and not-eligible are both
+                 rendered — silence is not a state the reader guesses.
+                 Figures arrive pre-resolved from the evaluator; this
+                 block only escapes and prints. --}}
+            @if (! empty($evaluation['eligible_games']))
+                <section class="acct-card" aria-labelledby="grade-entitlements-title" data-grade-entitlements>
+                    <h2 class="acct-card__title" id="grade-entitlements-title">
+                        {{ trans('account_services.grade_entitlements_title') }}
+                    </h2>
+                    <div class="fee-table-wrap" tabindex="0" role="region" aria-label="{{ trans('account_services.grade_entitlements_title') }}">
+                        <table class="fee-table">
+                            <caption class="sr-only">{{ trans('account_services.grade_entitlements_title') }}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">{{ trans('account_services.grade_entitlements_col_game') }}</th>
+                                    <th scope="col">{{ trans('account_services.grade_entitlements_col_lottery') }}</th>
+                                    <th scope="col">{{ trans('account_services.grade_entitlements_col_state') }}</th>
+                                    <th scope="col">{{ trans('account_services.grade_entitlements_col_rate') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($evaluation['eligible_games'] as $row)
+                                    <tr data-entitlement-game="{{ $row['game'] }}"
+                                        data-entitlement-state="{{ $row['state'] }}">
+                                        <th scope="row">{{ $row['label'] }}</th>
+                                        <td>{{ $row['lottery'] }}</td>
+                                        <td>
+                                            @if ($row['eligible'])
+                                                <span class="acct-tag acct-tag--ok">{{ trans('account_services.grade_entitlements_eligible') }}</span>
+                                            @else
+                                                <span class="acct-tag acct-tag--muted">{{ trans('account_services.grade_entitlements_not_eligible') }}</span>
+                                            @endif
+                                        </td>
+                                        <td>{{ $row['rate_percent'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @if ($evaluation['spend_remaining_to_next'] !== null && $evaluation['spend_remaining_to_next'] !== '0.00')
+                        <p class="acct-note">
+                            {{ trans('account_services.grade_spend_remaining_note', ['amount' => $evaluation['spend_remaining_to_next']]) }}
+                        </p>
+                    @endif
+                </section>
+            @endif
+
             <section class="acct-card" aria-labelledby="grade-history-title">
                 <div class="acct-card__head">
                     <h2 class="acct-card__title" id="grade-history-title">{{ trans('account_services.grade_history_title') }}</h2>

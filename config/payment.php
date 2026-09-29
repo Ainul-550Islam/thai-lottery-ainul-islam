@@ -8,8 +8,12 @@ use App\Enums\PaymentMethod;
 |--------------------------------------------------------------------------
 |
 | Configuration only. No gateway client, HTTP call or signing implementation
-| lives in this file, and no payment package is installed yet. Phase 9 binds
-| concrete gateway drivers against these settings.
+| lives in this file. The concrete gateway drivers (Stripe, bKash, Nagad,
+| Crypto, Bank Transfer) are bound in
+| App\Services\Payment\PaymentGatewayManager and live in
+| app/Services/Payment/Drivers — this file is the single place an operator
+| enables a provider, supplies its credentials and, for manual bank
+| settlement, supplies the REAL settlement account details.
 |
 | SECRETS
 | Every credential is read from the environment and defaults to null. Never
@@ -49,6 +53,54 @@ return [
     */
 
     'methods' => array_column(PaymentMethod::cases(), 'value'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public fee providers (public fee-schedule bridge)
+    |--------------------------------------------------------------------------
+    |
+    | Maps the STABLE PUBLIC provider keys used by config/fees.php's
+    | provider-specific rows onto the payment layer. 'method' names the live
+    | PaymentMethod backing value when this platform actually operates that
+    | provider's lane today; null means the provider exists only as a public
+    | schedule row (documented fee, no executable lane, therefore no fee is
+    | ever charged through it and no gateway is consulted for it).
+    |
+    | SECRETS: none. This map carries provider IDENTITY only — no gateway
+    | credential, webhook secret, merchant id or internal margin. Fee VALUES
+    | live in config/fees.php; gateway credentials live in 'gateways' below
+    | and are never read by the public fees surface.
+    |
+    | The public Fees page and the fee-preview endpoint whitelist provider
+    | input against exactly these keys, so a request can never name an
+    | arbitrary internal provider.
+    |
+    */
+
+    'public_fees' => [
+        'providers' => [
+            'bank' => [
+                'method' => PaymentMethod::BankTransfer->value,
+                'live' => true,
+            ],
+            'skrill' => [
+                'method' => null,
+                'live' => false,
+            ],
+            'neteller' => [
+                'method' => null,
+                'live' => false,
+            ],
+            'paypal' => [
+                'method' => null,
+                'live' => false,
+            ],
+            'perfect_money' => [
+                'method' => null,
+                'live' => false,
+            ],
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -102,8 +154,13 @@ return [
     | Callback / Redirect URLs
     |--------------------------------------------------------------------------
     |
-    | Relative paths are resolved against APP_URL when a gateway session is
-    | created. Routes for these paths are added in a later phase.
+    | Paths may be relative ("/payment/success") or absolute
+    | ("${APP_URL}/payment/success"). They are read in two places that can
+    | never drift apart: the gateway drivers build provider success/cancel
+    | URLs from them, and routes/web.php registers the browser-return
+    | routes (PaymentCallbackController) from the same values. Those pages
+    | are presentation only — payment state changes only via verified
+    | webhooks.
     |
     */
 
@@ -228,6 +285,14 @@ return [
         ],
 
         'promptpay' => [
+            // FINAL AUDIT #12 — EXPLICIT ORPHAN STATE: this block documents
+            // a FUTURE-ONLY Thai QR payment rail. There is NO driver bound
+            // to it (PaymentGatewayManager cannot resolve 'promptpay' and
+            // PaymentMethod has no PromptPay case), so it can never be
+            // selected by players, advertised as available, or invoked by
+            // any initiation/disbursement path. It exists so the operator
+            // contract (target id, QR window) is on file for the day a
+            // driver is actually implemented and bound.
             'enabled' => (bool) env('PROMPTPAY_ENABLED', false),
             'driver' => 'promptpay',
             // National ID (13 digits), phone (starts with 0, national) or
@@ -242,6 +307,26 @@ return [
             'qr_expiry_minutes' => (int) env('PROMPTPAY_QR_EXPIRY_MINUTES', 15),
             'supports_deposit' => true,
             'supports_withdrawal' => false,
+        ],
+
+        'bank_transfer' => [
+            // FINAL AUDIT #4 — manual settlement. The settlement details
+            // are OPERATOR-PROVIDED and default to empty: with any of them
+            // missing the BankTransferGateway refuses the deposit (fail
+            // closed) rather than displaying a fake bank account. Never
+            // hardcode a real account here in a commit — set it via the
+            // environment on the machine that runs the site.
+            'enabled' => (bool) env('BANK_TRANSFER_ENABLED', false),
+            'driver' => 'bank_transfer',
+            'supported_currencies' => ['THB'],
+            'supports_deposit' => true,
+            'supports_withdrawal' => true,
+            'settlement' => [
+                'bank_name' => env('BANK_TRANSFER_BANK_NAME'),
+                'account_number' => env('BANK_TRANSFER_ACCOUNT_NUMBER'),
+                'account_name' => env('BANK_TRANSFER_ACCOUNT_NAME'),
+                'instructions' => env('BANK_TRANSFER_INSTRUCTIONS'),
+            ],
         ],
 
     ],

@@ -116,4 +116,29 @@ abstract class AbstractPaymentGateway implements PaymentGatewayInterface
 
         return url($path);
     }
+
+    /**
+     * Build callback URL for a user-initiated cancel return.
+     *
+     * A cancel is NOT a failure: the user abandoned the checkout on
+     * purpose, and the browser-return page must say so instead of showing
+     * an error. Gateways that distinguish the two (Stripe Checkout) must
+     * send this URL as cancel_url, never failureUrl().
+     */
+    protected function cancelUrl(): string
+    {
+        $path = (string) $this->config->get('payment.callback.cancel_url', '/payment/cancel');
+
+        return url($path);
+    }
+
+    /**
+     * Build callback URL for an async/pending return.
+     */
+    protected function pendingUrl(): string
+    {
+        $path = (string) $this->config->get('payment.callback.pending_url', '/payment/pending');
+
+        return url($path);
+    }
 }

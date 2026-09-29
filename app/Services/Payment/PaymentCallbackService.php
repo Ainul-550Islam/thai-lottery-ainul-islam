@@ -47,6 +47,91 @@ final class PaymentCallbackService
     ) {
     }
 
+    /**
+     * READ-ONLY status projection for browser-return pages (FINAL AUDIT #2).
+     *
+     * The browser return is a VIEW, never a state transition: this method
+     * resolves the payments paper using only SAFE references (our own PAY-
+     * reference, our own DP-/WD- document reference, or the gateway session
+     * reference) and reports the state already recorded by verified
+     * webhook processing or manual operations. It must not and cannot
+     * credit, confirm, fail or cancel anything.
+     *
+     * A reference that belongs to somebody else is reported as not found:
+     * existence of another player's payment is not disclosed.
+     *
+     * @return array{
+     *     found: bool,
+     *     reason?: string,
+     *     payment?: \App\Models\Payment,
+     *     document_reference?: string,
+     *     state?: string,
+     *     paid?: bool
+     * }
+     */
+    public function browserReturnProjection(
+        ?string $paymentReference,
+        ?string $documentReference,
+        ?string $gatewayReference,
+        ?int $viewerId,
+    ): array {
+        $payment = null;
+
+        if (is_string($paymentReference) && preg_match('/^PAY-/i', trim($paymentReference)) === 1) {
+            $payment = \App\Models\Payment::query()->where('reference_number', trim($paymentReference))->first();
+        } elseif (is_string($documentReference) && trim($documentReference) !== '') {
+            $deposit = \App\Models\Deposit::query()->where('reference_number', trim($documentReference))->first();
+
+            if ($deposit instanceof \App\Models\Deposit) {
+                $payment = \App\Models\Payment::query()
+                    ->where('payable_type', \App\Models\Deposit::class)
+                    ->where('payable_id', $deposit->getKey())
+                    ->first();
+            } else {
+                $withdrawal = \App\Models\Withdrawal::query()->where('reference_number', trim($documentReference))->first();
+
+                if ($withdrawal instanceof \App\Models\Withdrawal) {
+                    $payment = \App\Models\Payment::query()
+                        ->where('payable_type', \App\Models\Withdrawal::class)
+                        ->where('payable_id', $withdrawal->getKey())
+                        ->first();
+                }
+            }
+        } elseif (is_string($gatewayReference) && trim($gatewayReference) !== '') {
+            $payment = \App\Models\Payment::query()->where('gateway_reference', trim($gatewayReference))->first();
+        }
+
+        if (! $payment instanceof \App\Models\Payment) {
+            return ['found' => false, 'reason' => 'reference_not_found'];
+        }
+
+        // Ownership: another player's payment is indistinguishable from a
+        // nonexistent one as far as this viewer is concerned.
+        if ($viewerId !== null && (int) $payment->user_id !== $viewerId) {
+            return ['found' => false, 'reason' => 'reference_not_found'];
+        }
+
+        $state = match ($payment->status) {
+            \App\Enums\PaymentStatus::Captured => 'confirmed',
+            \App\Enums\PaymentStatus::Failed => 'failed',
+            \App\Enums\PaymentStatus::Cancelled => 'cancelled',
+            \App\Enums\PaymentStatus::Refunded, \App\Enums\PaymentStatus::PartiallyRefunded, \App\Enums\PaymentStatus::Disputed => 'updated',
+            \App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::Authorized => 'pending',
+        };
+
+        return [
+            'found' => true,
+            'payment' => $payment,
+            'document_reference' => $payment->metadata['deposit_reference']
+                ?? $payment->metadata['withdrawal_reference']
+                ?? $payment->reference_number,
+            'state' => $state,
+            // "Paid" is proven ONLY by the internal captured status - never
+            // by the URL, a query flag, or the route the browser landed on.
+            'paid' => $payment->status === \App\Enums\PaymentStatus::Captured,
+        ];
+    }
+
     /* ------------------------------------------- normalization ------ */
 
     /**
