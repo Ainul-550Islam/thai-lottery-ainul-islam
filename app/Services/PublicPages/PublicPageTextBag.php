@@ -18,8 +18,14 @@ final class PublicPageTextBag
      */
     public function for(string $page, string $locale): array
     {
-        $titleKey = $page.'_meta_title';
-        $descriptionKey = $page.'_meta_description';
+        $prefix = match ($page) {
+            'grades' => 'grade',
+            'discounts' => 'discount',
+            'how-to-play' => 'how',
+            default => $page,
+        };
+        $titleKey = $prefix.'_meta_title';
+        $descriptionKey = $prefix.'_meta_description';
 
         return [
             'meta_title' => $this->line($titleKey, $locale),

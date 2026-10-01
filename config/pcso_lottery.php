@@ -111,7 +111,7 @@ return [
     | Result fields
     |--------------------------------------------------------------------------
     |
-    | Three values, each an exact width, each a STRING.
+    | Four categories, each an exact width, each a STRING: 6D, 4D, 3D and 2D.
     |
     | The patterns are anchored and length-exact on purpose. A six-character
     | field that accepts five characters would let '04615' be stored where
@@ -251,7 +251,7 @@ return [
         ],
 
         'fixture' => [
-            'enabled' => (bool) env('PCSO_LOTTERY_FIXTURE_ENABLED', true),
+            'enabled' => (bool) env('PCSO_LOTTERY_FIXTURE_ENABLED', false),
             'provider_label' => 'fixture',
             'schema_version' => 'PCSO_FIXTURE_V1',
         ],

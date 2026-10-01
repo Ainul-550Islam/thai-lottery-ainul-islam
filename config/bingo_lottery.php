@@ -216,7 +216,7 @@ return [
         ],
 
         'fixture' => [
-            'enabled' => (bool) env('BINGO_LOTTERY_FIXTURE_ENABLED', true),
+            'enabled' => (bool) env('BINGO_LOTTERY_FIXTURE_ENABLED', false),
             'provider_label' => 'fixture',
             'schema_version' => 'BINGO_FIXTURE_V1',
         ],

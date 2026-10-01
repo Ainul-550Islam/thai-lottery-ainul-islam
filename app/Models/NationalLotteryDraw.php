@@ -58,6 +58,7 @@ class NationalLotteryDraw extends Model
         'draw_reference',
         'draw_date',
         'draw_year',
+        'draw_status',
         'status',
         'publication_status',
         'published_at',
@@ -103,11 +104,33 @@ class NationalLotteryDraw extends Model
         );
     }
 
+    /**
+     * Compatibility alias for older import payloads; the database keeps one
+     * authoritative lifecycle column named status.
+     */
+    public function setDrawStatusAttribute(mixed $value): void
+    {
+        $this->attributes['status'] = $value instanceof \BackedEnum ? $value->value : $value;
+    }
+
+    public function getDrawStatusAttribute(): mixed
+    {
+        return $this->getAttribute('status');
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $model): void {
             if ((string) $model->uuid === '') {
                 $model->uuid = (string) Str::uuid();
+            }
+
+            if ($model->draw_year === null && $model->draw_date !== null) {
+                $model->draw_year = (int) CarbonImmutable::parse((string) $model->draw_date)->format('Y');
+            }
+
+            if ($model->status === null && $model->draw_status !== null) {
+                $model->status = $model->draw_status;
             }
         });
     }

@@ -23,6 +23,7 @@ use App\Policies\LedgerPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\TicketPolicy;
 use App\Policies\WalletPolicy;
+use App\Support\Admin\AdminAccess;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -58,7 +59,14 @@ class AuthServiceProvider extends ServiceProvider
 
         // /metrics operator gate: staff-or-higher only (super-admin short-circuits above).
         Gate::define('access-metrics', function ($user): bool {
-            return $user->hasAnyRole(\App\Support\Admin\AdminAccess::PANEL_ROLES);
+            return $user->hasAnyRole(AdminAccess::PANEL_ROLES);
+        });
+
+        // Web operations console boundary. The controller still applies the
+        // least-privilege permission for each panel; this gate prevents any
+        // unauthenticated or non-operator request from reaching that layer.
+        Gate::define('access-admin', function ($user): bool {
+            return AdminAccess::canAccessPanel($user);
         });
     }
 }

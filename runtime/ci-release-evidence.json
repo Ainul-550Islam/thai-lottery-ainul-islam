@@ -1,0 +1,22 @@
+{
+  "type": "ci_release_evidence",
+  "purpose": "Pages 451–550 CI/CD release-gate evidence.",
+  "observed_at_utc": "2026-09-30T14:23:37Z",
+  "status": "PARTIALLY VERIFIED",
+  "hosted_ci": {
+    "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+    "executed": false,
+    "run_identifier": null,
+    "reason": "No hosted CI execution was available from this workspace."
+  },
+  "local_frontend": {
+    "npm_ci": "VERIFIED",
+    "npm_audit": "VERIFIED",
+    "npm_build": "VERIFIED"
+  },
+  "local_php_composer": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "local_rust": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "workflow_source": ".github/workflows/ci.yml",
+  "release_interpretation": "Hosted CI, PHP, Composer, database, browser, provider, and Rust gates remain unresolved; release is blocked.",
+  "secrets_policy": "No credentials or CI tokens are included."
+}

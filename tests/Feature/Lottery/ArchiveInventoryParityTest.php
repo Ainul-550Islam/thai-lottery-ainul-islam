@@ -86,7 +86,7 @@ class ArchiveInventoryParityTest extends TestCase
             $yearUrl = $match[1];
             $yearPage = (string) $this->get($yearUrl)->assertOk()->getContent();
 
-            // ...resolves, and links to detail pages...
+            // Resolves, and links to detail pages
             preg_match_all('#href="((?:https?://[^/]+)?'.$index.'/([A-Za-z0-9\-]{1,40}))"#', $yearPage, $detailMatches, PREG_SET_ORDER);
 
             $detailLinks = [];
@@ -108,7 +108,7 @@ class ArchiveInventoryParityTest extends TestCase
 
             $seenYearWithRows = true;
 
-            // ...and every detail link resolves.
+            // And every detail link resolves.
             foreach (array_slice(array_unique($detailLinks), 0, 3) as $detailPath) {
                 $this->get((string) $detailPath)->assertOk();
             }

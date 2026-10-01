@@ -3,7 +3,9 @@
     <div class="home-card__head">
         <h2 id="stats-title">{{ $text['stats_title'] ?? 'Platform statistics' }}</h2>
         @if (!empty($stats['status']))
-            <span class="home-badge home-badge--{{ \Illuminate\Support\Str::slug($stats['status'], '-') }}">{{ $stats['status'] }}</span>
+            <span class="home-badge home-badge--{{ \Illuminate\Support\Str::slug($stats['status'], '-') }}">
+                {{ $stats['status'] === 'VERIFIED' ? ($text['stats_database'] ?? 'DATABASE') : $stats['status'] }}
+            </span>
         @endif
     </div>
 
@@ -19,7 +21,7 @@
             @endforeach
         </ul>
         @if (!empty($stats['generated_at']))
-            <p class="home-muted">Generated {{ $stats['generated_at'] }}</p>
+            <p class="home-muted">{{ $text['generated_label'] ?? 'Generated' }}: {{ $stats['generated_at'] }}</p>
         @endif
     @endif
 </section>

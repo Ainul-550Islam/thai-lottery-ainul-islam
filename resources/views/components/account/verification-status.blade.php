@@ -5,19 +5,19 @@
     <dl class="acct-dl">
         <div>
             <dt>{{ trans('account_services.verification_account_number') }}</dt>
-            <dd data-verification-account>{{ $account['account_number'] ?? '—' }}</dd>
+            <dd data-verification-account>{{ $account['account_number'] ?? trans('account_services.not_recorded') }}</dd>
         </div>
         <div>
             <dt>{{ trans('account_services.verification_name') }}</dt>
-            <dd data-verification-name>{{ $account['name'] ?? '—' }}</dd>
+            <dd data-verification-name>{{ $account['name'] ?? trans('account_services.not_recorded') }}</dd>
         </div>
         <div>
             <dt>{{ trans('account_services.verification_email') }}</dt>
-            <dd data-verification-email>{{ $account['email'] ?? '—' }}</dd>
+            <dd data-verification-email>{{ $account['email'] ?? trans('account_services.not_recorded') }}</dd>
         </div>
         <div>
             <dt>{{ trans('account_services.verification_join_date') }}</dt>
-            <dd data-verification-join>{{ $account['join_date'] ?? '—' }}</dd>
+            <dd data-verification-join>{{ $account['join_date'] ?? trans('account_services.not_recorded') }}</dd>
         </div>
         <div>
             <dt>{{ trans('account_services.verification_renew_date') }}</dt>

@@ -177,10 +177,18 @@ final class AccountVerificationDocumentService
             ],
         ]);
 
+        $extension = match ((string) $document->mime_type) {
+            'application/pdf' => 'pdf',
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'bin',
+        };
+
         return [
             'contents' => (string) $contents,
             'mime' => (string) $document->mime_type,
-            'name' => 'document_'.(int) $document->id,
+            'name' => 'verification-document.'.$extension,
         ];
     }
 }

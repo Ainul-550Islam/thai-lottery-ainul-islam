@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Public account-verification guide styling; private document workflows remain separate.
+ */
+@import './public-next-pages.css';
+.next-public-page--verification .next-panel { border-color: rgba(104, 184, 255, .3); }

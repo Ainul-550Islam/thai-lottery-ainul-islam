@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  *   Pending → Active | Cancelled. The desk's audit stamps every
  *   passage, by anchor, exactly once per act.
  */
-final class ResponsibleGamingLimitService
+class ResponsibleGamingLimitService
 {
     /** Increases cool off for 24 hours before they may bind. */
     private const COOLING_OFF_HOURS = 24;
@@ -125,6 +125,71 @@ final class ResponsibleGamingLimitService
 
             return ['version' => $version, 'replayed' => false];
         });
+    }
+
+    /**
+     * Convenience helper to set or pronounce daily deposit limit.
+     */
+    public function setDailyDepositLimit(int $userId, string $amount, string $currency = 'THB'): ResponsibleGamingLimitVersion
+    {
+        $dto = ResponsibleGamingLimitData::fromInput([
+            'user_id' => $userId,
+            'limit_type' => ResponsibleGamingLimitType::DailyDeposit->value,
+            'amount' => $amount,
+            'currency' => strtoupper($currency),
+        ]);
+
+        $res = $this->pronounce($dto);
+        return $res['version'];
+    }
+
+    public function updateDailyDepositLimit(int $userId, string $amount, string $currency = 'THB'): ResponsibleGamingLimitVersion
+    {
+        return $this->setDailyDepositLimit($userId, $amount, $currency);
+    }
+
+    public function getActiveDailyDepositLimit(int $userId, string $currency = 'THB'): ?string
+    {
+        $limit = $this->bindingLimitFor($userId, ResponsibleGamingLimitType::DailyDeposit, strtoupper($currency));
+        return $limit !== null ? (string) $limit->amount : null;
+    }
+
+    public function setSingleBetLimit(int $userId, string $amount, string $currency = 'THB'): ResponsibleGamingLimitVersion
+    {
+        $dto = ResponsibleGamingLimitData::fromInput([
+            'user_id' => $userId,
+            'limit_type' => ResponsibleGamingLimitType::SingleBet->value,
+            'amount' => $amount,
+            'currency' => strtoupper($currency),
+        ]);
+
+        $res = $this->pronounce($dto);
+        return $res['version'];
+    }
+
+    public function getActiveSingleBetLimit(int $userId, string $currency = 'THB'): ?string
+    {
+        $limit = $this->bindingLimitFor($userId, ResponsibleGamingLimitType::SingleBet, strtoupper($currency));
+        return $limit !== null ? (string) $limit->amount : null;
+    }
+
+    public function setDailyWageringLimit(int $userId, string $amount, string $currency = 'THB'): ResponsibleGamingLimitVersion
+    {
+        $dto = ResponsibleGamingLimitData::fromInput([
+            'user_id' => $userId,
+            'limit_type' => ResponsibleGamingLimitType::DailyWagering->value,
+            'amount' => $amount,
+            'currency' => strtoupper($currency),
+        ]);
+
+        $res = $this->pronounce($dto);
+        return $res['version'];
+    }
+
+    public function getActiveDailyWageringLimit(int $userId, string $currency = 'THB'): ?string
+    {
+        $limit = $this->bindingLimitFor($userId, ResponsibleGamingLimitType::DailyWagering, strtoupper($currency));
+        return $limit !== null ? (string) $limit->amount : null;
     }
 
     /**
@@ -227,14 +292,18 @@ final class ResponsibleGamingLimitService
      * Active versions on file (should never be two, but the safer
      * reads alone) — exact bcmath comparison, never float math.
      */
-    public function bindingLimitFor(int $userId, ResponsibleGamingLimitType $type): ?ResponsibleGamingLimitVersion
+    public function bindingLimitFor(int $userId, ResponsibleGamingLimitType $type, ?string $currency = null): ?ResponsibleGamingLimitVersion
     {
-        return ResponsibleGamingLimitVersion::query()
+        $query = ResponsibleGamingLimitVersion::query()
             ->where('user_id', $userId)
             ->where('limit_type', $type->value)
-            ->where('limit_status', ResponsibleGamingLimitStatus::Active->value)
-            ->orderBy('amount')
-            ->first();
+            ->where('limit_status', ResponsibleGamingLimitStatus::Active->value);
+
+        if ($currency !== null && $currency !== '') {
+            $query->where('currency', $currency);
+        }
+
+        return $query->orderBy('amount')->first();
     }
 
     /**

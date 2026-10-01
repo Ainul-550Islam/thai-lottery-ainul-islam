@@ -1,0 +1,3884 @@
+{
+  "canonical_architecture_map": {
+    "betting": [
+      "app/DTOs/Betting/BetAmendmentData.php",
+      "app/DTOs/Betting/BetAmendmentResult.php",
+      "app/DTOs/Betting/BetCancellationData.php",
+      "app/DTOs/Betting/BetCancellationResult.php",
+      "app/DTOs/Betting/BulkBetCalculationData.php",
+      "app/DTOs/Betting/BulkBetSelectionData.php",
+      "app/DTOs/Betting/PermutationRequestData.php",
+      "app/DTOs/Betting/PermutationResultData.php",
+      "app/DTOs/Betting/TicketShareData.php",
+      "app/DTOs/Betting/TicketShareResult.php",
+      "app/DTOs/Betting/TicketVerificationData.php",
+      "app/DTOs/Betting/TicketVerificationResult.php",
+      "app/Enums/BetAcceptance.php",
+      "app/Enums/BetAmendmentStatus.php",
+      "app/Enums/BetCancellationReason.php",
+      "app/Enums/BetMarket.php",
+      "app/Enums/BetPurchaseStatus.php",
+      "app/Enums/BetSelectionType.php",
+      "app/Enums/BetSide.php",
+      "app/Enums/BetStatus.php",
+      "app/Enums/BetType.php",
+      "app/Enums/BetValidationCode.php",
+      "app/Services/Betting/BetAmendmentService.php",
+      "app/Services/Betting/BetAmountService.php",
+      "app/Services/Betting/BetCalculationService.php",
+      "app/Services/Betting/BetCancellationService.php",
+      "app/Services/Betting/BetPermutationService.php",
+      "app/Services/Betting/BetPurchaseBetService.php",
+      "app/Services/Betting/BetPurchaseIdempotencyService.php",
+      "app/Services/Betting/BetPurchaseItemService.php",
+      "app/Services/Betting/BetPurchaseLedgerService.php",
+      "app/Services/Betting/BetPurchaseReferenceService.php",
+      "app/Services/Betting/BetPurchaseRiskService.php",
+      "app/Services/Betting/BetPurchaseService.php",
+      "app/Services/Betting/BetPurchaseTicketService.php",
+      "app/Services/Betting/BetPurchaseTransactionService.php",
+      "app/Services/Betting/BetPurchaseValidator.php",
+      "app/Services/Betting/BetPurchaseWalletService.php",
+      "app/Services/Betting/BetValidationService.php",
+      "app/Services/Betting/BulkBetService.php",
+      "app/Services/Betting/LotteryNumberService.php",
+      "app/Services/Betting/MarketPayoutService.php",
+      "app/Services/Betting/MarketResultResolver.php",
+      "app/Services/Betting/MarketRuleResolver.php",
+      "app/Services/Betting/PayoutMultiplierService.php",
+      "app/Services/Betting/RunMatchService.php",
+      "app/Services/Betting/ThreeDigitMatchService.php",
+      "app/Services/Betting/TicketShareService.php",
+      "app/Services/Betting/TicketVerificationService.php",
+      "app/Services/Betting/TodMatchService.php",
+      "app/Services/Betting/TodPermutationService.php",
+      "app/Services/Betting/TwoDigitMatchService.php"
+    ],
+    "compliance": [
+      "app/DTOs/Compliance/AmlRiskAssessmentData.php",
+      "app/DTOs/Compliance/ComplianceActionData.php",
+      "app/DTOs/Compliance/ComplianceCaseData.php",
+      "app/DTOs/Compliance/KycDocumentData.php",
+      "app/DTOs/Compliance/KycVerificationData.php",
+      "app/Services/Compliance/AmlRiskAssessmentService.php",
+      "app/Services/Compliance/AmlRiskService.php",
+      "app/Services/Compliance/ComplianceActionService.php",
+      "app/Services/Compliance/ComplianceCaseService.php",
+      "app/Services/Compliance/ComplianceService.php",
+      "app/Services/Compliance/KycDocumentService.php",
+      "app/Services/Compliance/KycVerificationService.php",
+      "app/Services/Compliance/SelfExclusionService.php",
+      "app/Services/Compliance/WithdrawalKycGateService.php",
+      "app/Services/Security/KycVerificationService.php"
+    ],
+    "draw": [
+      "app/DTOs/Draw/DrawCertificationData.php",
+      "app/DTOs/Draw/DrawPublicationData.php",
+      "app/DTOs/Draw/DrawReconciliationData.php",
+      "app/DTOs/Draw/DrawResultConfirmationData.php",
+      "app/DTOs/Draw/ResultVerificationData.php",
+      "app/Enums/DrawCertificationStatus.php",
+      "app/Enums/DrawConfirmationStatus.php",
+      "app/Enums/DrawLifecycleState.php",
+      "app/Enums/DrawPublicationStatus.php",
+      "app/Enums/DrawReconciliationStatus.php",
+      "app/Enums/DrawResultStatus.php",
+      "app/Enums/DrawStatus.php",
+      "app/Enums/DrawType.php",
+      "app/Services/Draw/DrawCertificationService.php",
+      "app/Services/Draw/DrawLifecycleService.php",
+      "app/Services/Draw/DrawPublicationService.php",
+      "app/Services/Draw/DrawReconciliationService.php",
+      "app/Services/Draw/DrawResultConfirmationService.php",
+      "app/Services/Draw/DrawResultIngestionService.php",
+      "app/Services/Draw/DrawResultPublicationService.php",
+      "app/Services/Draw/DrawResultValidator.php",
+      "app/Services/Draw/DrawScheduleService.php",
+      "app/Services/Draw/DrawSettlementSimulationService.php",
+      "app/Services/Draw/PublicResultVerificationService.php",
+      "app/Services/Draw/RealPrizeSettlementService.php",
+      "app/Services/Draw/SelectionSettlementResolver.php"
+    ],
+    "finance": [
+      "app/DTOs/Finance/FeeCalculationResult.php",
+      "app/DTOs/Finance/FinancialHoldData.php",
+      "app/DTOs/Finance/FinancialReconciliationReport.php",
+      "app/DTOs/Finance/LedgerAdjustmentData.php",
+      "app/DTOs/Finance/LedgerReconciliationData.php",
+      "app/DTOs/Finance/PayoutApprovalData.php",
+      "app/DTOs/Finance/PayoutBatchData.php",
+      "app/DTOs/Finance/PayoutRequestData.php",
+      "app/DTOs/Finance/ReconciliationDiscrepancy.php",
+      "app/DTOs/Finance/TaxCalculationData.php",
+      "app/DTOs/Finance/WalletReservationData.php",
+      "app/Services/Finance/DepositApprovalService.php",
+      "app/Services/Finance/DepositCompletionService.php",
+      "app/Services/Finance/DepositService.php",
+      "app/Services/Finance/FinancialHoldService.php",
+      "app/Services/Finance/FinancialReconciliationExportService.php",
+      "app/Services/Finance/FinancialReconciliationService.php",
+      "app/Services/Finance/FinancialReversalService.php",
+      "app/Services/Finance/FinancialStateTransitionService.php",
+      "app/Services/Finance/FinancialTransactionService.php",
+      "app/Services/Finance/IdempotencyService.php",
+      "app/Services/Finance/LedgerAdjustmentService.php",
+      "app/Services/Finance/LedgerBalanceValidator.php",
+      "app/Services/Finance/LedgerPostingService.php",
+      "app/Services/Finance/LedgerReconciliationService.php",
+      "app/Services/Finance/Money.php",
+      "app/Services/Finance/PayoutApprovalService.php",
+      "app/Services/Finance/PayoutBatchService.php",
+      "app/Services/Finance/PayoutReconciliationService.php",
+      "app/Services/Finance/RefundService.php",
+      "app/Services/Finance/TaxCalculationService.php",
+      "app/Services/Finance/WalletHoldService.php",
+      "app/Services/Finance/WalletLockService.php",
+      "app/Services/Finance/WalletReservationService.php",
+      "app/Services/Finance/WalletService.php",
+      "app/Services/Finance/WithdrawalApprovalService.php",
+      "app/Services/Finance/WithdrawalCompletionService.php",
+      "app/Services/Finance/WithdrawalService.php"
+    ],
+    "lottery": [
+      "app/Models/BingoLotteryDraw.php",
+      "app/Models/BingoLotteryResult.php",
+      "app/Models/BingoLotteryResultVersion.php",
+      "app/Models/LotteryTicketVerification.php",
+      "app/Models/NationalLotteryDraw.php",
+      "app/Models/NationalLotteryResult.php",
+      "app/Models/NationalLotteryResultVersion.php",
+      "app/Models/PcsoLotteryDraw.php",
+      "app/Models/PcsoLotteryResult.php",
+      "app/Models/PcsoLotteryResultVersion.php",
+      "app/Models/WeeklyLotteryDraw.php",
+      "app/Models/WeeklyLotteryResult.php",
+      "app/Models/WeeklyLotteryResultVersion.php",
+      "app/Services/Lottery/AbstractLotterySourceService.php",
+      "app/Services/Lottery/BingoLotteryDateService.php",
+      "app/Services/Lottery/BingoLotteryHistoryService.php",
+      "app/Services/Lottery/BingoLotteryImportService.php",
+      "app/Services/Lottery/BingoLotteryResultService.php",
+      "app/Services/Lottery/BingoLotterySearchService.php",
+      "app/Services/Lottery/BingoLotteryService.php",
+      "app/Services/Lottery/BingoLotterySourceService.php",
+      "app/Services/Lottery/CanonicalDiscountMatrixService.php",
+      "app/Services/Lottery/DiscountParityProjectionService.php",
+      "app/Services/Lottery/GloDataMatrixParser.php",
+      "app/Services/Lottery/GloDataMatrixParserInterface.php",
+      "app/Services/Lottery/GloDealerChangeRequestService.php",
+      "app/Services/Lottery/GloDealerService.php",
+      "app/Services/Lottery/GloFixtureResultProvider.php",
+      "app/Services/Lottery/GloFrozenWinnerService.php",
+      "app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php",
+      "app/Services/Lottery/GloL6HomeService.php",
+      "app/Services/Lottery/GloL6ProportionalPrizeCalculator.php",
+      "app/Services/Lottery/GloL6PurchaseCapabilityService.php",
+      "app/Services/Lottery/GloL6SalesService.php",
+      "app/Services/Lottery/GloLiveDrawService.php",
+      "app/Services/Lottery/GloN3PrizeCalculator.php",
+      "app/Services/Lottery/GloN3PrizePoolAllocator.php",
+      "app/Services/Lottery/GloN3SaleService.php",
+      "app/Services/Lottery/GloN3SettlementService.php",
+      "app/Services/Lottery/GloN3TicketChecker.php",
+      "app/Services/Lottery/GloNextDrawService.php",
+      "app/Services/Lottery/GloOfficialResultProvider.php",
+      "app/Services/Lottery/GloPrizeCatalogue.php",
+      "app/Services/Lottery/GloPrizeClaimService.php",
+      "app/Services/Lottery/GloPublicHomeService.php",
+      "app/Services/Lottery/GloPublicPrizeSummaryService.php",
+      "app/Services/Lottery/GloPublicResultService.php",
+      "app/Services/Lottery/GloPublicStatsService.php",
+      "app/Services/Lottery/GloPublicTicketVerificationService.php",
+      "app/Services/Lottery/GloResultImportService.php",
+      "app/Services/Lottery/GloResultNotificationService.php",
+      "app/Services/Lottery/GloResultProvider.php",
+      "app/Services/Lottery/GloResultPublicationService.php",
+      "app/Services/Lottery/GloResultService.php",
+      "app/Services/Lottery/GloSalesPointService.php",
+      "app/Services/Lottery/GloSalesReconciliationService.php",
+      "app/Services/Lottery/GloSavedTicketService.php",
+      "app/Services/Lottery/GloStampDutyCalculator.php",
+      "app/Services/Lottery/GloTicketChecker.php",
+      "app/Services/Lottery/GloTicketFreezeService.php",
+      "app/Services/Lottery/LottoDiscountCalculator.php",
+      "app/Services/Lottery/NationalLotteryDateService.php",
+      "app/Services/Lottery/NationalLotteryHistoryService.php",
+      "app/Services/Lottery/NationalLotteryImportService.php",
+      "app/Services/Lottery/NationalLotteryResultService.php",
+      "app/Services/Lottery/NationalLotterySearchService.php",
+      "app/Services/Lottery/NationalLotteryService.php",
+      "app/Services/Lottery/NationalLotterySourceService.php",
+      "app/Services/Lottery/PcsoLotteryDateService.php",
+      "app/Services/Lottery/PcsoLotteryHistoryService.php",
+      "app/Services/Lottery/PcsoLotteryImportService.php",
+      "app/Services/Lottery/PcsoLotteryPurchaseCapabilityService.php",
+      "app/Services/Lottery/PcsoLotteryResultService.php",
+      "app/Services/Lottery/PcsoLotterySearchService.php",
+      "app/Services/Lottery/PcsoLotteryService.php",
+      "app/Services/Lottery/PcsoLotterySourceService.php",
+      "app/Services/Lottery/PrizeVerificationService.php",
+      "app/Services/Lottery/PublicLotteryCatalogService.php",
+      "app/Services/Lottery/ResultImportService.php",
+      "app/Services/Lottery/TicketAuthenticityService.php",
+      "app/Services/Lottery/TicketBarcodeService.php",
+      "app/Services/Lottery/TicketIdentityService.php",
+      "app/Services/Lottery/WeeklyLotteryDateService.php",
+      "app/Services/Lottery/WeeklyLotteryHistoryService.php",
+      "app/Services/Lottery/WeeklyLotteryImportService.php",
+      "app/Services/Lottery/WeeklyLotteryResultService.php",
+      "app/Services/Lottery/WeeklyLotterySearchService.php",
+      "app/Services/Lottery/WeeklyLotteryService.php",
+      "app/Services/Lottery/WeeklyLotterySourceService.php",
+      "app/Services/Lottery/WeeklyResultIntegrityService.php"
+    ],
+    "notification": [
+      "app/DTOs/Notification/NotificationDeliveryData.php",
+      "app/DTOs/Notification/NotificationMessageData.php",
+      "app/DTOs/Notification/NotificationPreferenceData.php",
+      "app/DTOs/Notification/NotificationReceiptData.php",
+      "app/DTOs/Notification/NotificationTemplateData.php",
+      "app/Services/Notification/NotificationDeliveryService.php",
+      "app/Services/Notification/NotificationDispatchService.php",
+      "app/Services/Notification/NotificationPreferenceService.php",
+      "app/Services/Notification/NotificationReceiptService.php",
+      "app/Services/Notification/NotificationSuppressionService.php",
+      "app/Services/Notification/NotificationTemplateService.php"
+    ],
+    "payment": [
+      "app/DTOs/Payment/GatewayDepositResponse.php",
+      "app/DTOs/Payment/GatewayWithdrawalResponse.php",
+      "app/DTOs/Payment/PaymentCallbackData.php",
+      "app/DTOs/Payment/PaymentIntentData.php",
+      "app/DTOs/Payment/PaymentMethodData.php",
+      "app/DTOs/Payment/PaymentProcessingResult.php",
+      "app/DTOs/Payment/PaymentProviderData.php",
+      "app/DTOs/Payment/PaymentReconciliationData.php",
+      "app/DTOs/Payment/PaymentWebhookData.php",
+      "app/DTOs/Payment/PayoutTransferData.php",
+      "app/DTOs/Payment/WebhookPayload.php",
+      "app/Enums/PaymentDirection.php",
+      "app/Enums/PaymentFailureReason.php",
+      "app/Enums/PaymentMethod.php",
+      "app/Enums/PaymentMethodStatus.php",
+      "app/Enums/PaymentProviderStatus.php",
+      "app/Enums/PaymentStatus.php",
+      "app/Enums/PaymentTransactionStatus.php",
+      "app/Enums/PaymentWebhookStatus.php",
+      "app/Services/Payment/Contracts/PaymentGatewayInterface.php",
+      "app/Services/Payment/Drivers/AbstractPaymentGateway.php",
+      "app/Services/Payment/Drivers/BankTransferGateway.php",
+      "app/Services/Payment/Drivers/BkashGateway.php",
+      "app/Services/Payment/Drivers/CryptoGateway.php",
+      "app/Services/Payment/Drivers/NagadGateway.php",
+      "app/Services/Payment/Drivers/StripeGateway.php",
+      "app/Services/Payment/PaymentCallbackService.php",
+      "app/Services/Payment/PaymentGatewayManager.php",
+      "app/Services/Payment/PaymentInitiationService.php",
+      "app/Services/Payment/PaymentIntentService.php",
+      "app/Services/Payment/PaymentProviderRegistry.php",
+      "app/Services/Payment/PaymentReconciliationService.php",
+      "app/Services/Payment/PaymentVerificationService.php",
+      "app/Services/Payment/PaymentWebhookService.php",
+      "app/Services/Payment/PaymentWebhookVerificationService.php",
+      "app/Services/Payment/PayoutTransferService.php",
+      "app/Services/Payment/ProductionPaymentExecutionHubService.php",
+      "app/Services/Payment/PromptPayPaymentService.php",
+      "app/Services/Payment/WithdrawalDisbursementService.php"
+    ],
+    "rust": [
+      "security/weekly-result-integrity/Cargo.lock",
+      "security/weekly-result-integrity/Cargo.toml",
+      "security/weekly-result-integrity/src/canonical.rs",
+      "security/weekly-result-integrity/src/error.rs",
+      "security/weekly-result-integrity/src/lib.rs",
+      "security/weekly-result-integrity/src/main.rs",
+      "security/weekly-result-integrity/tests/integrity.rs"
+    ],
+    "security": [
+      "app/DTOs/Security/AuthenticationAttemptData.php",
+      "app/DTOs/Security/DeviceTrustData.php",
+      "app/DTOs/Security/MfaChallengeData.php",
+      "app/DTOs/Security/SecurityEventData.php",
+      "app/DTOs/Security/UserSessionData.php",
+      "app/Enums/SecurityEventType.php",
+      "app/Enums/SecurityRiskLevel.php",
+      "app/Services/Security/AuthenticationSecurityService.php",
+      "app/Services/Security/DeviceTrustService.php",
+      "app/Services/Security/KycVerificationService.php",
+      "app/Services/Security/MfaChallengeService.php",
+      "app/Services/Security/ResponsibleGamingService.php",
+      "app/Services/Security/SecurityEventService.php",
+      "app/Services/Security/SecurityRiskAssessmentService.php",
+      "app/Services/Security/UserSessionSecurityService.php"
+    ],
+    "support": [
+      "app/Http/Controllers/Support/SupportPortalController.php",
+      "app/Services/Support/ContactDeliveryService.php",
+      "app/Services/Support/ContactMessageService.php",
+      "app/Services/Support/ContactPrivacyService.php",
+      "app/Services/Support/ContactSpamProtectionService.php",
+      "app/Services/Support/PublicSupportService.php"
+    ]
+  },
+  "factories": [
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "KYC"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/AccountVerificationDocumentFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "commission",
+        "draw",
+        "financial transaction"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/AgentCommissionFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "commission"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/AgentFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [],
+      "must_not_run_in_production": true,
+      "path": "database/factories/AuditLogFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/BetAmendmentFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "ticket"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/BetFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [],
+      "must_not_run_in_production": true,
+      "path": "database/factories/BetItemFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/BingoLotteryDrawFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/BingoLotteryResultFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/BingoLotteryResultVersionFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "support/contact"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/ContactMessageDeliveryFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "support/contact"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/ContactMessageFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "deposit",
+        "financial transaction",
+        "payment",
+        "wallet"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/DepositFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/DrawFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/DrawResultFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "deposit",
+        "financial transaction",
+        "wallet"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/FinancialTransactionFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "KYC"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/KycDocumentFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "ledger"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/LedgerAccountFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "financial transaction",
+        "ledger",
+        "wallet"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/LedgerEntryFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "ticket"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/LotteryTicketVerificationFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/NationalLotteryDrawFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/NationalLotteryResultFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/NationalLotteryResultVersionFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/NumberLimitFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "payment"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/PaymentFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [],
+      "must_not_run_in_production": true,
+      "path": "database/factories/PayoutBatchFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [],
+      "must_not_run_in_production": true,
+      "path": "database/factories/PayoutDocumentFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "financial transaction",
+        "ledger",
+        "ticket",
+        "wallet"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/PayoutFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/PcsoLotteryDrawFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/PcsoLotteryResultFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/PcsoLotteryResultVersionFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "deposit"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/ResponsibleGamingLimitFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "ticket"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/TicketFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "ticket"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/TicketProductFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "ticket"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/TicketShareFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [],
+      "must_not_run_in_production": true,
+      "path": "database/factories/UserFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "deposit",
+        "draw",
+        "wallet",
+        "withdrawal"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/WalletFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/WeeklyLotteryDrawFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/WeeklyLotteryResultFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw",
+        "result"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/WeeklyLotteryResultVersionFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "draw"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/WinningNumberFactory.php",
+      "uses_factory_definition": true
+    },
+    {
+      "classification": "fixture-only",
+      "domains": [
+        "KYC",
+        "draw",
+        "financial transaction",
+        "payment",
+        "wallet",
+        "withdrawal"
+      ],
+      "must_not_run_in_production": true,
+      "path": "database/factories/WithdrawalFactory.php",
+      "uses_factory_definition": true
+    }
+  ],
+  "migration_summary": {
+    "count": 95,
+    "files": [
+      {
+        "cascade_tokens": 1,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/0001_01_01_000000_create_users_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 0,
+        "money_columns": 0,
+        "path": "database/migrations/0001_01_01_000001_create_cache_table.php",
+        "timestamps": false,
+        "unique_constraints": 0
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 1,
+        "money_columns": 0,
+        "path": "database/migrations/0001_01_01_000002_create_jobs_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 4,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_01_01_000100_create_permission_tables.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 0,
+        "money_columns": 0,
+        "path": "database/migrations/2024_01_01_000200_create_personal_access_tokens_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 3,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 6,
+        "path": "database/migrations/2024_01_02_000100_create_wallets_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 3,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 2,
+        "path": "database/migrations/2024_01_02_000200_create_ledger_accounts_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 8,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 6,
+        "money_columns": 2,
+        "path": "database/migrations/2024_01_02_000300_create_financial_transactions_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 10,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 6,
+        "money_columns": 2,
+        "path": "database/migrations/2024_01_02_000400_create_ledger_entries_table.php",
+        "timestamps": true,
+        "unique_constraints": 0
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 6,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_03_000100_create_draws_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 1,
+        "money_columns": 2,
+        "path": "database/migrations/2024_01_03_000200_create_draw_results_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 4,
+        "money_columns": 1,
+        "path": "database/migrations/2024_01_03_000300_create_winning_numbers_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 4,
+        "path": "database/migrations/2024_01_03_000400_create_number_limits_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 4,
+        "money_columns": 1,
+        "path": "database/migrations/2024_01_03_000500_create_tickets_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 8,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 7,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_03_000600_create_bets_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 5,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_03_000700_create_bet_items_table.php",
+        "timestamps": true,
+        "unique_constraints": 0
+      },
+      {
+        "cascade_tokens": 14,
+        "enum_columns": 0,
+        "foreign_key_references": 7,
+        "indexes": 4,
+        "money_columns": 2,
+        "path": "database/migrations/2024_01_03_000800_create_payouts_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 6,
+        "money_columns": 4,
+        "path": "database/migrations/2024_01_03_000900_create_bet_amendments_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2024_01_03_001000_create_ticket_shares_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 3,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 4,
+        "money_columns": 2,
+        "path": "database/migrations/2024_01_04_000100_create_payments_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 8,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 7,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_04_000200_create_deposits_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 10,
+        "enum_columns": 0,
+        "foreign_key_references": 4,
+        "indexes": 7,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_04_000300_create_withdrawals_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 1,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_05_000100_create_agents_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 12,
+        "enum_columns": 0,
+        "foreign_key_references": 5,
+        "indexes": 2,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_05_000200_create_agent_commissions_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 6,
+        "money_columns": 0,
+        "path": "database/migrations/2024_01_06_000100_create_audit_logs_table.php",
+        "timestamps": false,
+        "unique_constraints": 0
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_01_07_000100_create_kyc_documents_table.php",
+        "timestamps": true,
+        "unique_constraints": 0
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 0,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_07_000200_create_responsible_gaming_limits_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 2,
+        "money_columns": 2,
+        "path": "database/migrations/2024_01_08_000100_create_payout_batches_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 4,
+        "money_columns": 1,
+        "path": "database/migrations/2024_01_08_000200_create_ticket_products_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 4,
+        "money_columns": 3,
+        "path": "database/migrations/2024_01_08_000300_create_payout_documents_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 1,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_000100_create_retail_vendors_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_000200_create_ticket_allocations_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 8,
+        "enum_columns": 0,
+        "foreign_key_references": 4,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_000300_create_ticket_inventory_items_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 3,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_000400_create_draw_certifications_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_000500_create_draw_publications_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_000600_create_draw_reconciliations_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 3,
+        "money_columns": 1,
+        "path": "database/migrations/2024_02_01_000700_create_prize_matches_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_000800_create_prize_eligibility_decisions_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_000900_create_winner_notifications_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 3,
+        "money_columns": 1,
+        "path": "database/migrations/2024_02_01_001000_create_prize_disbursements_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 1,
+        "path": "database/migrations/2024_02_01_001100_create_wallet_reservations_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 1,
+        "path": "database/migrations/2024_02_01_001200_create_financial_holds_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 3,
+        "path": "database/migrations/2024_02_01_001300_create_ledger_reconciliations_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_001400_create_payment_providers_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 2,
+        "money_columns": 2,
+        "path": "database/migrations/2024_02_01_001500_create_payment_method_configs_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 5,
+        "money_columns": 1,
+        "path": "database/migrations/2024_02_01_001600_create_payment_intents_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_001700_create_payment_webhooks_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 4,
+        "money_columns": 2,
+        "path": "database/migrations/2024_02_01_001800_create_payment_reconciliations_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_001900_extend_kyc_documents_for_verification_lane.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002000_create_kyc_verifications_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002100_create_aml_risk_assessments_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 5,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002200_create_compliance_cases_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002300_create_compliance_actions_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002400_create_self_exclusions_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 1,
+        "path": "database/migrations/2024_02_01_002500_create_responsible_gaming_limit_versions_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002600_create_reality_checks_table.php",
+        "timestamps": false,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002700_create_player_protection_cases_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002800_create_player_protection_actions_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 5,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_002900_create_authentication_attempts_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003000_create_mfa_challenges_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003100_create_security_sessions_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003200_create_trusted_devices_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 5,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003300_create_security_events_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003400_create_notification_templates_table.php",
+        "timestamps": false,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 0,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003500_create_notification_preferences_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 4,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 5,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003600_create_notifications_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003700_create_notification_delivery_attempts_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003800_create_notification_receipts_table.php",
+        "timestamps": false,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 2,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_003900_create_admin_operations_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 1,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 1,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_004000_create_provider_operations_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 1,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_004100_create_operational_report_jobs_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2024_02_01_004200_create_report_exports_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 37,
+        "enum_columns": 0,
+        "foreign_key_references": 18,
+        "indexes": 22,
+        "money_columns": 5,
+        "path": "database/migrations/2026_09_22_000100_create_glo_freeze_claim_tables.php",
+        "timestamps": true,
+        "unique_constraints": 12
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 0,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_22_000200_add_date_of_birth_to_users.php",
+        "timestamps": false,
+        "unique_constraints": 0
+      },
+      {
+        "cascade_tokens": 12,
+        "enum_columns": 0,
+        "foreign_key_references": 6,
+        "indexes": 10,
+        "money_columns": 8,
+        "path": "database/migrations/2026_09_23_000100_create_glo_sales_and_result_tables.php",
+        "timestamps": true,
+        "unique_constraints": 7
+      },
+      {
+        "cascade_tokens": 32,
+        "enum_columns": 0,
+        "foreign_key_references": 16,
+        "indexes": 25,
+        "money_columns": 4,
+        "path": "database/migrations/2026_09_23_000200_create_glo_dealer_public_tables.php",
+        "timestamps": true,
+        "unique_constraints": 6
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 3,
+        "money_columns": 1,
+        "path": "database/migrations/2026_09_24_000210_create_account_grade_snapshots_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 7,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_25_000300_create_lottery_ticket_verifications_table.php",
+        "timestamps": false,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 7,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_26_000400_create_national_lottery_draws_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 7,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_26_000410_create_national_lottery_results_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 6,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_26_000420_create_national_lottery_result_versions_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 7,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_26_000500_create_weekly_lottery_draws_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 7,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_26_000510_create_weekly_lottery_results_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 6,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_26_000520_create_weekly_lottery_result_versions_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 7,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_27_000600_create_bingo_lottery_draws_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 7,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_27_000610_create_bingo_lottery_results_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 6,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_27_000620_create_bingo_lottery_result_versions_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 1,
+        "money_columns": 2,
+        "path": "database/migrations/2026_09_27_220001_extend_account_grade_snapshots_table.php",
+        "timestamps": false,
+        "unique_constraints": 0
+      },
+      {
+        "cascade_tokens": 3,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 4,
+        "money_columns": 5,
+        "path": "database/migrations/2026_09_27_220002_create_grade_discount_snapshots_table.php",
+        "timestamps": true,
+        "unique_constraints": 0
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 8,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_28_000700_create_pcso_lottery_draws_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 9,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_28_000710_create_pcso_lottery_results_table.php",
+        "timestamps": true,
+        "unique_constraints": 1
+      },
+      {
+        "cascade_tokens": 6,
+        "enum_columns": 0,
+        "foreign_key_references": 3,
+        "indexes": 6,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_28_000720_create_pcso_lottery_result_versions_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 8,
+        "enum_columns": 0,
+        "foreign_key_references": 5,
+        "indexes": 5,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_28_230001_create_account_verifications_table.php",
+        "timestamps": true,
+        "unique_constraints": 2
+      },
+      {
+        "cascade_tokens": 0,
+        "enum_columns": 0,
+        "foreign_key_references": 0,
+        "indexes": 4,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_29_000800_create_contact_messages_table.php",
+        "timestamps": true,
+        "unique_constraints": 3
+      },
+      {
+        "cascade_tokens": 2,
+        "enum_columns": 0,
+        "foreign_key_references": 1,
+        "indexes": 2,
+        "money_columns": 0,
+        "path": "database/migrations/2026_09_29_000810_create_contact_message_deliveries_table.php",
+        "timestamps": true,
+        "unique_constraints": 0
+      }
+    ]
+  },
+  "purpose": "Static evidence only; no runtime conclusion is inferred.",
+  "runtime_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "secrets_policy": "No secret values are read or emitted.",
+  "seeders": [
+    {
+      "classification": "fixture-only or reference-data review required",
+      "contains_factory_reference": false,
+      "contains_result_data_reference": true,
+      "path": "database/seeders/DatabaseSeeder.php"
+    },
+    {
+      "classification": "reference data or production-safe review required",
+      "contains_factory_reference": false,
+      "contains_result_data_reference": false,
+      "path": "database/seeders/LedgerAccountSeeder.php"
+    },
+    {
+      "classification": "fixture-only or reference-data review required",
+      "contains_factory_reference": false,
+      "contains_result_data_reference": true,
+      "path": "database/seeders/ResultArchiveSeeder.php"
+    },
+    {
+      "classification": "fixture-only or reference-data review required",
+      "contains_factory_reference": false,
+      "contains_result_data_reference": true,
+      "path": "database/seeders/RolePermissionSeeder.php"
+    }
+  ],
+  "transaction_targets": [
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/DepositApprovalService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/DepositCompletionService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/DepositService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 6,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/FinancialHoldService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/FinancialReconciliationExportService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/FinancialReconciliationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/FinancialReversalService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/FinancialStateTransitionService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/FinancialTransactionService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Finance/IdempotencyService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/LedgerAdjustmentService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/LedgerBalanceValidator.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/LedgerPostingService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/LedgerReconciliationService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/Money.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 5,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/PayoutApprovalService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 9,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Finance/PayoutBatchService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/PayoutReconciliationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 4,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/RefundService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 5,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Finance/TaxCalculationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/WalletHoldService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 1,
+      "explicit_commit": 1,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Finance/WalletLockService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 5,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/WalletReservationService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/WalletService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/WithdrawalApprovalService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/WithdrawalCompletionService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Finance/WithdrawalService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Payment/PaymentCallbackService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Payment/PaymentGatewayManager.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Payment/PaymentInitiationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 4,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Payment/PaymentIntentService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 4,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Payment/PaymentProviderRegistry.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Payment/PaymentReconciliationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Payment/PaymentVerificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Payment/PaymentWebhookService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Payment/PaymentWebhookVerificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 5,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Payment/PayoutTransferService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Payment/ProductionPaymentExecutionHubService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Payment/PromptPayPaymentService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Payment/WithdrawalDisbursementService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetAmendmentService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetAmountService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetCalculationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetCancellationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/BetPermutationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetPurchaseBetService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetPurchaseIdempotencyService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/BetPurchaseItemService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetPurchaseLedgerService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/BetPurchaseReferenceService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/BetPurchaseRiskService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetPurchaseService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetPurchaseTicketService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetPurchaseTransactionService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetPurchaseValidator.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetPurchaseWalletService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BetValidationService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/BulkBetService.php",
+      "reservation_reference": true,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/LotteryNumberService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/MarketPayoutService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/MarketResultResolver.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/MarketRuleResolver.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/PayoutMultiplierService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/RunMatchService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/ThreeDigitMatchService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/TicketShareService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/TicketVerificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/TodMatchService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Betting/TodPermutationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Betting/TwoDigitMatchService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Draw/DrawCertificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/DrawLifecycleService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/DrawPublicationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/DrawReconciliationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Draw/DrawResultConfirmationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Draw/DrawResultIngestionService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/DrawResultPublicationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/DrawResultValidator.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/DrawScheduleService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/DrawSettlementSimulationService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/PublicResultVerificationService.php",
+      "reservation_reference": true,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 4,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/RealPrizeSettlementService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Draw/SelectionSettlementResolver.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/AbstractLotterySourceService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/BingoLotteryDateService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/BingoLotteryHistoryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/BingoLotteryImportService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/BingoLotteryResultService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/BingoLotterySearchService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/BingoLotteryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/BingoLotterySourceService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/CanonicalDiscountMatrixService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/DiscountParityProjectionService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloDataMatrixParser.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloDataMatrixParserInterface.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloDealerChangeRequestService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloDealerService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloFixtureResultProvider.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloFrozenWinnerService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloL6HomeService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloL6ProportionalPrizeCalculator.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Lottery/GloL6PurchaseCapabilityService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloL6SalesService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloLiveDrawService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloN3PrizeCalculator.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloN3PrizePoolAllocator.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloN3SaleService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloN3SettlementService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloN3TicketChecker.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloNextDrawService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloOfficialResultProvider.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloPrizeCatalogue.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 5,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloPrizeClaimService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloPublicHomeService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloPublicPrizeSummaryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloPublicResultService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloPublicStatsService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloPublicTicketVerificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloResultImportService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloResultNotificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloResultProvider.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloResultPublicationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloResultService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloSalesPointService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloSalesReconciliationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloSavedTicketService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloStampDutyCalculator.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloTicketChecker.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/GloTicketFreezeService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/LottoDiscountCalculator.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/NationalLotteryDateService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/NationalLotteryHistoryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/NationalLotteryImportService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/NationalLotteryResultService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/NationalLotterySearchService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/NationalLotteryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/NationalLotterySourceService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PcsoLotteryDateService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PcsoLotteryHistoryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PcsoLotteryImportService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": true,
+      "path": "app/Services/Lottery/PcsoLotteryPurchaseCapabilityService.php",
+      "reservation_reference": true,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PcsoLotteryResultService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PcsoLotterySearchService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PcsoLotteryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PcsoLotterySourceService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PrizeVerificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/PublicLotteryCatalogService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/ResultImportService.php",
+      "reservation_reference": true,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/TicketAuthenticityService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/TicketBarcodeService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/TicketIdentityService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/WeeklyLotteryDateService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/WeeklyLotteryHistoryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/WeeklyLotteryImportService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/WeeklyLotteryResultService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/WeeklyLotterySearchService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/WeeklyLotteryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/WeeklyLotterySourceService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Lottery/WeeklyResultIntegrityService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/AgentCommissionAccrualService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/AgentCommissionReversalService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/AgentCommissionService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/AgentCommissionSettlementService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 5,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/AgentOnboardingService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/AgentReferralService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/AgentReportingService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/AgentSettlementService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Agent/CommissionCalculationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/AmlRiskAssessmentService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/AmlRiskService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/ComplianceActionService.php",
+      "reservation_reference": false,
+      "wallet_reference": true
+    },
+    {
+      "db_transaction": 4,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/ComplianceCaseService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/ComplianceService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 4,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/KycDocumentService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/KycVerificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/SelfExclusionService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Compliance/WithdrawalKycGateService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 4,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Notification/NotificationDeliveryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Notification/NotificationDispatchService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Notification/NotificationPreferenceService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Notification/NotificationReceiptService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Notification/NotificationSuppressionService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Notification/NotificationTemplateService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Security/AuthenticationSecurityService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 3,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": true,
+      "ledger_reference": false,
+      "path": "app/Services/Security/DeviceTrustService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Security/KycVerificationService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 2,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Security/MfaChallengeService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Security/ResponsibleGamingService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Security/SecurityEventService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": true,
+      "path": "app/Services/Security/SecurityRiskAssessmentService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 5,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Security/UserSessionSecurityService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Support/ContactDeliveryService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 1,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Support/ContactMessageService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Support/ContactPrivacyService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Support/ContactSpamProtectionService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    },
+    {
+      "db_transaction": 0,
+      "explicit_begin": 0,
+      "explicit_commit": 0,
+      "explicit_rollback": 0,
+      "idempotency_reference": false,
+      "ledger_reference": false,
+      "path": "app/Services/Support/PublicSupportService.php",
+      "reservation_reference": false,
+      "wallet_reference": false
+    }
+  ],
+  "type": "pages_251_350_static_backend_audit"
+}

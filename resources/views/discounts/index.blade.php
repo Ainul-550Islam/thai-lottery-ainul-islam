@@ -1,228 +1,48 @@
 @extends('layouts.app')
 
-@section('title', $meta['title'])
+@php
+    $catalogue = is_array($discounts['catalogue'] ?? null) ? $discounts['catalogue'] : (is_array($catalogue ?? null) ? $catalogue : []);
+    $products = is_array($catalogue['products'] ?? null) ? $catalogue['products'] : [];
+    $immutable = is_array($catalogue['immutable_products'] ?? null) ? $catalogue['immutable_products'] : [];
+    $matrix = is_array($matrix ?? null) ? $matrix : [];
+    $matrixLotteries = is_array($matrix['lotteries'] ?? null) ? $matrix['lotteries'] : [];
+@endphp
 
-@section('meta_description', $meta['description'])
-@section('meta_canonical', $meta['canonical'])
-@section('meta_og_title', $meta['og_title'])
-@section('meta_og_description', $meta['og_description'])
-@section('meta_og_type', $meta['og_type'])
-@section('meta_og_url', $meta['og_url'])
+@section('title', (string) ($meta['title'] ?? $discounts['meta_title'] ?? 'Discounts'))
+@section('meta_description', (string) ($meta['description'] ?? $discounts['meta_description'] ?? 'Configured discount catalogue.'))
+@section('meta_canonical', (string) ($meta['canonical'] ?? url('/discounts')))
+@section('meta_og_title', (string) ($meta['og_title'] ?? $discounts['meta_title'] ?? 'Discounts'))
+@section('meta_og_description', (string) ($meta['og_description'] ?? $discounts['meta_description'] ?? ''))
+@section('meta_og_type', (string) ($meta['og_type'] ?? 'website'))
+@section('meta_og_url', (string) ($meta['og_url'] ?? url('/discounts')))
 
 @push('styles')
-    @vite(['resources/css/prize-discount.css'])
+    @vite('resources/css/pages/discounts.css')
 @endpush
 
 @section('content')
-    {{--
-        Public Lotto Discount catalogue (PROMPT 4).
-
-        Anonymous, read-only, server-computed. Nothing on this page is a
-        personalised price: the account-grade layer is described but never
-        quantified, and GLO products are rendered as fixed-price with an
-        explicit notice instead of a rule table.
-    --}}
-    <div
-        class="pd-page pd-page--discounts"
-        data-pd-page="discounts"
-        data-pd-catalogue-version="{{ $catalogue['catalogue_version'] }}"
-    >
-        <a class="pp-skip-link" href="#pd-main">{{ trans('public_pages.skip_to_content') }}</a>
-
-        <main id="pd-main" class="pd-main" tabindex="-1">
-            <header class="pd-header">
-                <p class="pd-eyebrow">{{ $catalogue['currency'] }}</p>
-                <h1 class="pd-title">{{ trans('prize_discount.discount_heading') }}</h1>
-                <p class="pd-lead">{{ trans('prize_discount.discount_intro') }}</p>
-                <p class="pd-muted">
-                    {{ trans('prize_discount.discount_catalogue_version') }}:
-                    <span class="pd-mono">{{ $catalogue['catalogue_version'] }}</span>
-                    &middot;
-                    {{ trans('prize_discount.discount_generated_at') }}:
-                    <span class="pd-mono">{{ $catalogue['generated_at'] }}</span>
-                </p>
-            </header>
-
-            @if (count($available_filters) > 1)
-                <nav class="pd-filters" aria-label="{{ trans('prize_discount.discount_filter_label') }}">
-                    <a
-                        class="pd-filter {{ $filter === null ? 'is-active' : '' }}"
-                        href="{{ route('discounts') }}"
-                    >{{ trans('prize_discount.discount_filter_all') }}</a>
-
-                    @foreach ($available_filters as $filterKey)
-                        <a
-                            class="pd-filter {{ $filter === $filterKey ? 'is-active' : '' }}"
-                            href="{{ route('discounts', ['product' => $filterKey]) }}"
-                            data-pd-filter="{{ $filterKey }}"
-                        >{{ $filterKey }}</a>
-                    @endforeach
-                </nav>
-            @endif
-
-            <section class="pd-card pd-card--rules">
-                @if ($catalogue['products'] === [])
-                    <p class="pd-muted">{{ trans('prize_discount.discount_none_published') }}</p>
-                @else
-                    @foreach ($catalogue['products'] as $product)
-                        <x-public.discount-table
-                            :product="$product"
-                            :currency="$catalogue['currency']"
-                            :show-period="$show_effective_period"
-                        />
-                    @endforeach
-                @endif
-            </section>
-
-            {{-- GRADE PARITY BATCH: the complete National + Bangkok Weekly
-                 game/prize/discount matrix. Every value arrives pre-resolved
-                 from DiscountParityProjectionService; the partials only
-                 escape and print. Rows whose percentage is deliberately
-                 unpublished render NOT_CONFIGURED — never zero, never
-                 guessed. --}}
-            @if (($matrix['status'] ?? 'NOT_CONFIGURED') === 'CONFIGURED')
-                @foreach ($matrix['lotteries'] as $family)
-                    <section class="pd-card pd-card--matrix" data-pd-section="matrix" data-pd-matrix-lottery="{{ $family['key'] }}">
-                        <h2>{{ $family['label'] }}</h2>
-                        <p class="pd-muted">
-                            {{ trans('prize_discount.matrix_affiliate_commission') }}:
-                            <span class="pd-mono">{{ $family['affiliate_commission_percent'] }}%</span>
-                        </p>
-                        @if ($family['games'] === [])
-                            <p class="pd-muted">{{ trans('prize_discount.matrix_none_published') }}</p>
-                        @else
-                            <div class="pd-matrix-wrap" tabindex="0" role="region" aria-label="{{ $family['label'] }}">
-                                <table class="pd-table pd-table--matrix">
-                                    <caption class="pd-sr-only">{{ $family['label'] }} — {{ trans('prize_discount.matrix_caption') }}</caption>
-                                    <thead>
-                                        <tr>
-                                            <th scope="col">{{ trans('prize_discount.matrix_col_game') }}</th>
-                                            <th scope="col">{{ trans('prize_discount.matrix_col_win') }}</th>
-                                            <th scope="col">{{ trans('prize_discount.matrix_col_discount') }}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($family['games'] as $rule)
-                                            <x-discount.game-rule :rule="$rule" />
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
-                    </section>
-                @endforeach
-            @endif
-
-            @if ($catalogue['immutable_products'] !== [])
-                <section class="pd-card pd-card--immutable" data-pd-section="immutable">
-                    <h2>{{ trans('prize_discount.immutable_heading') }}</h2>
-                    <p class="pd-disclaimer pd-disclaimer--strong">{{ trans('prize_discount.immutable_notice') }}</p>
-                    <ul class="pd-immutable">
-                        @foreach ($catalogue['immutable_products'] as $immutable)
-                            <li data-pd-immutable-product="{{ $immutable['product'] }}">
-                                <span>{{ $immutable['product'] }}</span>
-                                <span class="pd-mono">
-                                    {{ trans('prize_discount.immutable_price') }}:
-                                    {{ $immutable['price'] }} {{ $immutable['currency'] }}
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
-                </section>
-            @endif
-
-            <section class="pd-card pd-card--layers" data-pd-section="layers">
-                <h2>{{ trans('prize_discount.layer_heading') }}</h2>
-                <ul class="pd-notes">
-                    <li>{{ trans('prize_discount.layer_server_computed') }}</li>
-                    <li>{{ trans('prize_discount.layer_order') }}</li>
-                    @if (($catalogue['account_grade_layer']['published'] ?? false) === true)
-                        <li data-pd-layer="account_grade">
-                            {{ trans($catalogue['account_grade_layer']['description_key']) }}
-                        </li>
-                    @endif
-                </ul>
-            </section>
-
-            <section class="pd-card pd-card--payout" data-pd-section="payout">
-                <h2>{{ trans('prize_discount.payout_heading') }}</h2>
-                <p class="pd-muted">{{ trans('prize_discount.payout_note') }}</p>
-
-                @if ($payout_pairs === [])
-                    <p class="pd-muted">{{ trans('prize_discount.payout_none_published') }}</p>
-                @else
-                    <table class="pd-table">
-                        <caption class="pd-sr-only">{{ trans('prize_discount.payout_heading') }}</caption>
-                        <thead>
-                            <tr>
-                                <th scope="col">{{ trans('prize_discount.result_product') }}</th>
-                                <th scope="col">{{ trans('prize_discount.payout_direct') }}</th>
-                                <th scope="col">{{ trans('prize_discount.payout_reverse') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($payout_pairs as $pair)
-                                <tr data-pd-payout-product="{{ $pair['product'] }}">
-                                    <th scope="row">{{ $pair['product'] }}</th>
-                                    @foreach (['direct', 'reverse'] as $role)
-                                        <td data-pd-payout-role="{{ $role }}">
-                                            @if ($pair[$role] === null)
-                                                <span class="pd-muted">{{ trans('prize_discount.payout_unavailable') }}</span>
-                                            @else
-                                                <span class="pd-payout__market">{{ $pair[$role]['label'] }}</span>
-                                                <span class="pd-mono" data-pd-multiplier>
-                                                    {{ trans('prize_discount.payout_multiplier_unit', ['value' => $pair[$role]['multiplier']]) }}
-                                                </span>
-                                                <span class="pd-muted">
-                                                    {{ trans('prize_discount.payout_digits') }}: {{ $pair[$role]['digits'] }}
-                                                    &middot;
-                                                    {{ trans('prize_discount.payout_permutation') }}:
-                                                    {{ $pair[$role]['permutation']
-                                                        ? trans('prize_discount.payout_permutation_yes')
-                                                        : trans('prize_discount.payout_permutation_no') }}
-                                                </span>
-                                            @endif
-                                        </td>
-                                    @endforeach
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
-            </section>
-
-            <section class="pd-card pd-card--affiliate" data-pd-section="affiliate">
-                <h2>{{ trans('prize_discount.affiliate_heading') }}</h2>
-
-                @if ($affiliate['published'] === false || $affiliate['bands'] === [])
-                    <p class="pd-muted">{{ trans('prize_discount.affiliate_not_published') }}</p>
-                @else
-                    <p class="pd-muted">{{ trans($affiliate['note_key']) }}</p>
-                    <table class="pd-table">
-                        <caption class="pd-sr-only">{{ trans('prize_discount.affiliate_heading') }}</caption>
-                        <thead>
-                            <tr>
-                                <th scope="col">{{ trans('prize_discount.affiliate_band') }}</th>
-                                <th scope="col">{{ trans('prize_discount.affiliate_rate') }}</th>
-                                <th scope="col">{{ trans('prize_discount.affiliate_eligibility') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($affiliate['bands'] as $band)
-                                <tr data-pd-affiliate-band="{{ $band['band'] }}">
-                                    <th scope="row">{{ trans($band['label_key']) }}</th>
-                                    <td class="pd-mono">{{ $band['rate_percentage'] }}{{ trans('prize_discount.percent_suffix') }}</td>
-                                    <td>{{ trans($band['eligibility_key']) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
-            </section>
-
-            <p class="pd-disclaimer">{{ trans('prize_discount.privacy_notice') }}</p>
-        </main>
-
-        <x-public-page.footer />
-    </div>
+<div class="next-public-page next-public-page--discount" data-next-public-page="discounts" data-pd-page="discounts">
+    <a class="pp-skip-link" href="#discount-main">{{ trans('public_pages.skip_to_content') }}</a>
+    <header class="next-page-header"><div class="next-shell next-page-header__inner"><a class="next-brand" href="{{ route('home') }}" aria-label="Home"><span class="next-brand__mark">TL</span><span>THAILOTTO<small>DISCOUNT CATALOGUE</small></span></a><nav class="next-nav" aria-label="Primary navigation"><a href="{{ route('home') }}">HOME</a><a href="{{ route('results.index') }}">RESULTS</a><a class="is-active" href="{{ route('discounts') }}" aria-current="page">DISCOUNTS</a><a href="{{ route('fees') }}">FEES</a><a href="{{ route('contact') }}">CONTACT</a></nav>@guest<a class="next-button next-button--gold" href="{{ route('login') }}">LOGIN</a>@else<a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">DASHBOARD</a>@endguest</div></header>
+    <main id="discount-main" class="next-shell next-content" tabindex="-1">
+        <section class="next-hero" aria-labelledby="discount-title"><div><p class="next-eyebrow">10 · SERVER-AUTHORITATIVE PRICING</p><h1 id="discount-title">{{ trans('prize_discount.discount_heading') }}</h1><p>{{ $discounts['meta_description'] ?? 'Configured product, market and discount rules.' }}</p><p class="next-note">The displayed catalogue is descriptive. Quotes are calculated server-side from the same rule source; the browser cannot supply a discount rate or final amount.</p></div><div class="next-hero-object next-hero-object--discount" aria-hidden="true"><span>%</span></div></section>
+        <section class="next-meta-strip" aria-label="Discount catalogue metadata"><div><span>CATALOGUE VERSION</span><strong>{{ $catalogue['catalogue_version'] ?? 'NOT_CONFIGURED' }}</strong></div><div><span>CURRENCY</span><strong>{{ $catalogue['currency'] ?? 'NOT_CONFIGURED' }}</strong></div><div><span>PRODUCTS</span><strong>{{ count($products) }}</strong></div><div><span>GENERATED</span><strong>{{ $catalogue['generated_at'] ?? 'NOT_CONFIGURED' }}</strong></div></section>
+        <div class="next-layout"><aside class="next-sidebar" aria-label="Discount contents"><p class="next-eyebrow">CATALOGUE MAP</p>@foreach ($products as $product)<a href="#discount-{{ $product['product'] ?? $loop->iteration }}" data-content-link="discount-{{ $product['product'] ?? $loop->iteration }}">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }} · {{ $product['product'] ?? 'Product' }}</a>@endforeach<a href="#discount-immutable" data-content-link="discount-immutable">Fixed-price items</a></aside><div>
+            <div class="next-search" role="search"><label for="discount-search">Search the catalogue</label><div class="next-search__row"><input id="discount-search" type="search" data-local-search placeholder="Search product, market or rule" autocomplete="off"><button class="next-button" type="button" data-clear-search>CLEAR</button></div><p class="next-search__status" data-search-status aria-live="polite">Showing all catalogue items.</p></div>
+            @forelse ($products as $product)
+                @php $productId = 'discount-'.($product['product'] ?? $loop->iteration); $productLabel = (string) trans($product['label_key'] ?? ''); $productLabel = $productLabel !== (string) ($product['label_key'] ?? '') ? $productLabel : ucfirst(str_replace('_', ' ', (string) ($product['product'] ?? 'Product'))); @endphp
+                <section class="next-section" id="{{ $productId }}" data-content-section data-search-item data-search-text="{{ ($productLabel).' '.implode(' ', (array) ($product['markets'] ?? [])).' '.json_encode($product['rules'] ?? []) }}" aria-labelledby="{{ $productId }}-title"><div class="next-section__heading"><span class="next-section__number">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span><div><p class="next-eyebrow">CONFIGURED PRODUCT</p><h2 id="{{ $productId }}-title">{{ $productLabel }}</h2></div></div><p class="next-muted">Markets: {{ $product['markets'] === [] ? 'NOT_CONFIGURED' : implode(', ', (array) $product['markets']) }}</p><div class="next-table-wrap"><table class="next-table"><caption class="sr-only">Discount rules for {{ $productLabel }}</caption><thead><tr><th scope="col">Market</th><th scope="col">Type</th><th scope="col">Value</th><th scope="col">Minimum</th><th scope="col">Maximum</th><th scope="col">Stackable</th></tr></thead><tbody>@forelse ((array) ($product['rules'] ?? []) as $rule)<tr><td>{{ $rule['market'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $rule['discount_type'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $rule['discount_value'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $rule['minimum_amount'] ?? '—' }}</td><td>{{ $rule['maximum_discount'] ?? '—' }}</td><td>{{ !empty($rule['stackable']) ? 'YES' : 'NO' }}</td></tr>@empty<tr><td colspan="6">No public rules configured for this product.</td></tr>@endforelse</tbody></table></div></section>
+            @empty
+                <section class="next-panel" role="status"><h2>Discount catalogue unavailable</h2><p>No public products are currently configured.</p></section>
+            @endforelse
+            <section class="next-section" id="discount-matrix" data-content-section aria-labelledby="discount-matrix-title"><div class="next-section__heading"><span class="next-section__number">Σ</span><div><p class="next-eyebrow">PUBLIC GAME MATRIX</p><h2 id="discount-matrix-title">{{ trans('prize_discount.matrix_col_discount') }}</h2></div></div>@if ($matrixLotteries === [])<p class="next-empty">NOT_CONFIGURED</p>@else<div class="next-table-wrap"><table class="next-table"><thead><tr><th>Lottery</th><th>{{ trans('prize_discount.matrix_col_game') }}</th><th>{{ trans('prize_discount.matrix_col_discount') }}</th><th>{{ trans('prize_discount.matrix_col_win') }}</th></tr></thead><tbody>@foreach ($matrixLotteries as $lottery)<tr data-pd-matrix-lottery="{{ $lottery['key'] ?? '' }}"><th colspan="4" scope="rowgroup">{{ $lottery['label'] ?? 'NOT_CONFIGURED' }}</th></tr>@foreach ((array) ($lottery['games'] ?? []) as $game)<tr><td>{{ $lottery['label'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $game['label'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $game['discount_display'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $game['d_multiplier'] ?? $game['multiplier'] ?? 'NOT_CONFIGURED' }} × {{ $game['base_stake'] ?? 'NOT_CONFIGURED' }} {{ $game['currency'] ?? '' }}</td></tr>@endforeach @endforeach</tbody></table></div>@endif</section>
+            <section class="next-section" id="discount-immutable" data-content-section aria-labelledby="discount-immutable-title"><div class="next-section__heading"><span class="next-section__number">FIX</span><div><p class="next-eyebrow">PROTECTED PRICES</p><h2 id="discount-immutable-title">Immutable product prices</h2></div></div><div class="next-section__body">@if ($immutable === [])<p class="next-empty">NOT_CONFIGURED</p>@else<p>These prices are displayed from the configured protected-price audit and are not rewritten by public discount rules.</p><ul>@foreach ($immutable as $item)<li>{{ $item['product'] ?? 'Product' }}: {{ $item['price'] ?? 'NOT_CONFIGURED' }} {{ $item['currency'] ?? '' }}</li>@endforeach</ul>@endif<p class="next-muted">Personal account-grade pricing is resolved inside the authenticated quote context and is not disclosed here.</p></div></section>
+        </div></div>
+        <section class="next-bottom"><div><p class="next-eyebrow">CALCULATE SAFELY</p><h2>Use the server quote</h2><p>Only published product and amount inputs are accepted. Client-provided rates are ignored.</p></div><div class="next-bottom__links"><button class="next-button next-button--gold" type="button" data-print-page>PRINT / SAVE</button><a class="next-button" href="{{ route('contact') }}">CONTACT SUPPORT</a></div></section>
+    </main>
+</div>
 @endsection
+
+@push('scripts')
+    @vite('resources/js/pages/discounts.js')
+@endpush

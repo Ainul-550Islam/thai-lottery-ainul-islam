@@ -1,0 +1,375 @@
+{
+  "acceptance_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "commands": [
+    {
+      "command": [
+        "php",
+        "-v"
+      ],
+      "domain": "runtime",
+      "exit_code": null,
+      "label": "php version",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 351,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "-m"
+      ],
+      "domain": "runtime",
+      "exit_code": null,
+      "label": "php modules",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 352,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "--ini"
+      ],
+      "domain": "runtime",
+      "exit_code": null,
+      "label": "php ini",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 352,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "composer",
+        "validate",
+        "--no-check-publish"
+      ],
+      "domain": "composer",
+      "exit_code": null,
+      "label": "composer validate",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 353,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "composer",
+        "install",
+        "--no-interaction"
+      ],
+      "domain": "composer",
+      "exit_code": null,
+      "label": "composer install",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 353,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "composer",
+        "check-platform-reqs"
+      ],
+      "domain": "composer",
+      "exit_code": null,
+      "label": "composer platform requirements",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 353,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "about"
+      ],
+      "domain": "laravel",
+      "exit_code": null,
+      "label": "laravel about",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 354,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "route:list"
+      ],
+      "domain": "laravel",
+      "exit_code": null,
+      "label": "laravel route list",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 355,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "config:show"
+      ],
+      "domain": "laravel",
+      "exit_code": null,
+      "label": "laravel config show",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 356,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "optimize:clear"
+      ],
+      "domain": "cache",
+      "exit_code": null,
+      "label": "optimize clear",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 357,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "config:cache"
+      ],
+      "domain": "cache",
+      "exit_code": null,
+      "label": "config cache",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 357,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "route:cache"
+      ],
+      "domain": "cache",
+      "exit_code": null,
+      "label": "route cache",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 357,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "view:cache"
+      ],
+      "domain": "cache",
+      "exit_code": null,
+      "label": "view cache",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 357,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "about"
+      ],
+      "domain": "database",
+      "exit_code": null,
+      "label": "database probe through Laravel",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 358,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "migrate:status"
+      ],
+      "domain": "database",
+      "exit_code": null,
+      "label": "migration status",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 359,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "redis-cli",
+        "--version"
+      ],
+      "domain": "redis",
+      "exit_code": null,
+      "label": "redis version",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 367,
+      "reason": "redis-cli executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "queue:failed"
+      ],
+      "domain": "queue",
+      "exit_code": null,
+      "label": "queue failed listing",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 370,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "schedule:list"
+      ],
+      "domain": "scheduler",
+      "exit_code": null,
+      "label": "schedule list",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 375,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "list"
+      ],
+      "domain": "lottery",
+      "exit_code": null,
+      "label": "controlled result import command inventory",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 382,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "finance:reconcile",
+        "--dry-run",
+        "--json"
+      ],
+      "domain": "finance",
+      "exit_code": null,
+      "label": "financial reconciliation dry run",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 420,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "glo:process-frozen-winners"
+      ],
+      "domain": "glo",
+      "exit_code": null,
+      "label": "GLO frozen winner processor",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 447,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "php",
+        "artisan",
+        "test"
+      ],
+      "domain": "tests",
+      "exit_code": null,
+      "label": "Laravel test suite",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "page": 450,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "domain": "frontend",
+      "exit_code": 0,
+      "label": "frontend production build",
+      "observed_at_utc": "2026-09-30T14:07:50+00:00",
+      "output_bytes": 9320,
+      "page": 450,
+      "status": "VERIFIED"
+    },
+    {
+      "command": [
+        "cargo",
+        "check"
+      ],
+      "domain": "rust",
+      "exit_code": null,
+      "label": "cargo check",
+      "observed_at_utc": "2026-09-30T14:07:52+00:00",
+      "page": 450,
+      "reason": "cargo executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "cargo",
+        "test"
+      ],
+      "domain": "rust",
+      "exit_code": null,
+      "label": "cargo test",
+      "observed_at_utc": "2026-09-30T14:07:52+00:00",
+      "page": 450,
+      "reason": "cargo executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release"
+      ],
+      "domain": "rust",
+      "exit_code": null,
+      "label": "cargo build release",
+      "observed_at_utc": "2026-09-30T14:07:52+00:00",
+      "page": 450,
+      "reason": "cargo executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    }
+  ],
+  "finished_at_utc": "2026-09-30T14:07:52+00:00",
+  "purpose": "Command status evidence without command output or secret values.",
+  "secrets_policy": "Command output is not stored; no secret values are intentionally read or emitted.",
+  "started_at_utc": "2026-09-30T14:07:50+00:00",
+  "summary": {
+    "blocked": 25,
+    "command_count": 26,
+    "executed": 1,
+    "failed": 0
+  },
+  "type": "pages_351_450_command_gate"
+}

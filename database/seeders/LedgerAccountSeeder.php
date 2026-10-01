@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Enums\Currency;
 use App\Models\LedgerAccount;
 use App\Services\Finance\WalletService;
 use Illuminate\Database\Seeder;
@@ -115,8 +116,27 @@ class LedgerAccountSeeder extends Seeder
                     'type' => $type,
                     'description' => $description,
                     'is_active' => true,
+                    'currency' => Currency::THB,
                 ],
             );
+        }
+
+        // Each currency has its own chart rows. The code suffix prevents a
+        // cross-currency account from ever being selected by accident while
+        // LedgerPostingService keeps the stable base code at the service API.
+        foreach (array_filter(Currency::cases(), static fn (Currency $currency): bool => $currency !== Currency::THB) as $currency) {
+            foreach ($this->accounts() as $code => [$name, $type, $description]) {
+                LedgerAccount::query()->updateOrCreate(
+                    ['code' => $code.':'.$currency->value],
+                    [
+                        'name' => $name.' ('.$currency->value.')',
+                        'type' => $type,
+                        'description' => $description,
+                        'is_active' => true,
+                        'currency' => $currency,
+                    ],
+                );
+            }
         }
     }
 }

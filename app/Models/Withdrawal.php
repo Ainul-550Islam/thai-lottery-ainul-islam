@@ -84,7 +84,21 @@ class Withdrawal extends Model
         'net_amount',
         'payout_details',
         'metadata',
+        // Legacy request aliases are normalized by the mutators below.
+        'channel',
+        'status',
+        'destination_details',
     ];
+
+    public function setChannelAttribute(mixed $value): void
+    {
+        $this->attributes['method'] = $value instanceof \BackedEnum ? $value->value : (string) $value;
+    }
+
+    public function setDestinationDetailsAttribute(mixed $value): void
+    {
+        $this->payout_details = is_array($value) ? $value : ['raw' => $value];
+    }
 
     /**
      * @var list<string>

@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Configured account-grade ladder and comparison presentation.
+ */
+@import './public-next-pages.css';
+.next-public-page--grade .next-panel { border-color: rgba(177, 133, 255, .3); }

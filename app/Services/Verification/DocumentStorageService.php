@@ -166,7 +166,7 @@ final class DocumentStorageService
         return [
             'contents' => $contents,
             'mime' => (string) $document->mime_type,
-            'name' => 'document-'.(string) $document->id.'.'.$extension,
+            'name' => 'verification-document.'.$extension,
         ];
     }
 

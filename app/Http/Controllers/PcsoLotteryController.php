@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Lottery\PcsoLotteryDateService;
 use App\Services\Lottery\PcsoLotteryHistoryService;
+use App\Services\Lottery\PcsoLotteryPurchaseCapabilityService;
 use App\Services\Lottery\PcsoLotteryResultService;
 use App\Services\Lottery\PcsoLotterySearchService;
 use App\Services\Lottery\PcsoLotterySourceService;
@@ -13,27 +14,16 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 /**
- * Public PCSO Lottery result pages (PROMPT 9).
+ * Public PCSO Lottery result pages.
  *
- * THIN. Every method validates the shape and the BOUNDS of its input, then
- * hands off to a service. There is no query, no date arithmetic, no source
- * reasoning and no caching decision in this file, so none of those exists in
- * two places.
+ * This controller is deliberately thin. The PCSO lane has its own draw,
+ * result, history, search, date and source services. It does not read GLO,
+ * Mega, Weekly, National or operator-market data, and it never fabricates a
+ * number, date, source, price or ticket.
  *
- * ANONYMOUS. All four routes are public GETs. /pcso-lottery/search carries
- * the 'pcso-result-search' limiter, because a public lookup over a
- * 1,000,000-value six-digit space is an enumeration oracle without one.
- *
- * WHAT THE CLIENT MAY SAY
- * ---------------------------------------------------------------------------
- * A year, a page, a draw reference, a search TYPE from a closed list, and a
- * term. Nothing else is read from the request. The client cannot ask for a
- * sort order, a column, a per-page beyond the configured ceiling, or a source
- * state - those are answers, not questions.
- *
- * ROUTE ORDER MATTERS AND IS FIXED IN routes/web.php: /search and
- * /year/{year} are declared BEFORE /{draw}, so a literal path can never be
- * swallowed by the wildcard and read as a draw reference.
+ * Route order is load-bearing in routes/web.php: search, buy, latest, history,
+ * year, archive, draw and result are declared before the compatibility
+ * wildcard. The wildcard remains available for the original /{draw} route.
  */
 final class PcsoLotteryController
 {
@@ -43,30 +33,18 @@ final class PcsoLotteryController
         private readonly PcsoLotterySearchService $search,
         private readonly PcsoLotterySourceService $sources,
         private readonly PcsoLotteryDateService $dates,
+        private readonly PcsoLotteryPurchaseCapabilityService $purchaseCapability,
     ) {}
 
     /**
-     * GET /pcso-lottery — current result plus recent draws.
+     * Page 37: PCSO public result landing page.
      */
     public function index(Request $request): View
     {
         unset($request);
 
         $current = $this->results->currentResult();
-
-        $reference = is_array($current['draw'] ?? null) && isset($current['draw']['reference'])
-            ? (string) $current['draw']['reference']
-            : null;
-
-        // THE LANDING PAGE SHOWS THE MOST RECENT YEAR'S RESULTS.
-        //
-        // It previously passed history => null, so the table only ever
-        // appeared on /year/{year}. A visitor arriving at the lane saw the
-        // latest draw and a list of year links, and had to guess that the
-        // results themselves were one click further in. The year list is
-        // already a query over stored draws, so this costs one paginated
-        // read of a year that certainly has data - and nothing at all when
-        // the lane is empty.
+        $reference = $this->referenceFrom($current);
         $latestYear = $this->history->latestYear();
 
         return view('pcso-lottery.index', $this->pageData([
@@ -74,10 +52,9 @@ final class PcsoLotteryController
             'recent' => $this->history->recentDraws($reference),
             'years' => $this->history->availableYears(),
             'active_year' => $latestYear,
-            'history' => $latestYear === null
-                ? null
-                : $this->history->historyForYear($latestYear, 1),
+            'history' => $latestYear === null ? null : $this->history->historyForYear($latestYear, 1),
             'search' => null,
+            'page_variant' => 'home',
             'meta' => $this->meta(
                 (string) trans('pcso_lottery.meta_title'),
                 (string) trans('pcso_lottery.meta_description'),
@@ -88,59 +65,89 @@ final class PcsoLotteryController
     }
 
     /**
-     * GET /pcso-lottery/{draw} — one draw in detail.
+     * Page 38: PCSO buy / ticket selection entry point.
      *
-     * The route parameter is constrained to [A-Za-z0-9\-]{1,40} in
-     * routes/web.php and re-checked inside the service, so a crafted
-     * reference never reaches a query as anything but a bound string.
+     * No purchase form is rendered until a complete product, draw, selection,
+     * validation, price, responsible-gaming, wallet, reservation, issuance,
+     * ledger and idempotency contract is verified.
      */
-    public function show(Request $request, string $draw): View
+    public function buy(Request $request): View
     {
         unset($request);
 
-        $projection = $this->results->resultForReference($draw);
+        return view('pcso-lottery.buy', [
+            'capability' => $this->purchaseCapability->capability(),
+            'canonical' => rtrim((string) config('app.url'), '/').route('pcso-lottery.buy', [], false),
+            'back_url' => route('pcso-lottery.index'),
+            'meta' => $this->meta(
+                (string) trans('pcso_lottery.meta_title').' — '.trans('pcso_lottery.buy_title'),
+                (string) trans('pcso_lottery.meta_description'),
+                '/pcso-lottery/buy',
+                false,
+            ),
+        ]);
+    }
 
-        $title = (string) trans('pcso_lottery.meta_title');
+    /**
+     * Page 40: latest PCSO result.
+     */
+    public function latestResult(Request $request): View
+    {
+        unset($request);
 
-        if (($projection['available'] ?? false) === true && is_array($projection['draw'] ?? null)) {
-            $date = $projection['draw']['date'] ?? [];
-            $label = is_array($date)
-                ? (string) ($this->isThai() ? ($date['display_th'] ?? '') : ($date['display_en'] ?? ''))
-                : '';
+        $current = $this->results->currentResult();
+        $reference = $this->referenceFrom($current);
 
-            if ($label !== '') {
-                $title .= ' — '.$label;
-            }
-        }
-
-        return view('pcso-lottery.show', $this->pageData([
-            'current' => $projection,
-            'recent' => [],
+        return view('pcso-lottery.latest-result', $this->pageData([
+            'current' => $current,
+            'recent' => $this->history->recentDraws($reference),
             'years' => $this->history->availableYears(),
             'active_year' => null,
             'history' => null,
             'search' => null,
+            'page_variant' => 'latest',
             'meta' => $this->meta(
-                $title,
+                (string) trans('pcso_lottery.meta_title').' — '.trans('pcso_lottery.current_result_heading'),
                 (string) trans('pcso_lottery.meta_description'),
-                '/pcso-lottery/'.$draw,
-                ($projection['available'] ?? false) === true,
+                '/pcso-lottery/latest',
+                (bool) ($current['available'] ?? false),
             ),
         ]));
     }
 
     /**
-     * GET /pcso-lottery/year/{year} — one year of history.
-     *
-     * The year may arrive as Buddhist Era or Gregorian; the shared calendar
-     * service decides which and bounds-checks the result. An unacceptable year
-     * renders the NO_PUBLIC_DATA state, not a 500 and not an empty success
-     * page.
+     * Page 41: historical PCSO results, starting with the latest available
+     * year and preserving the service's pagination and source projection.
+     */
+    public function historicalResults(Request $request): View
+    {
+        $latestYear = $this->history->latestYear();
+        $history = $latestYear === null
+            ? null
+            : $this->history->historyForYear($latestYear, $this->boundedPage($request));
+
+        return view('pcso-lottery.history', $this->pageData([
+            'current' => null,
+            'recent' => [],
+            'years' => $this->history->availableYears(),
+            'active_year' => $latestYear,
+            'history' => $history,
+            'search' => null,
+            'page_variant' => 'history',
+            'meta' => $this->meta(
+                (string) trans('pcso_lottery.meta_title').' — '.trans('pcso_lottery.history_heading'),
+                (string) trans('pcso_lottery.meta_description'),
+                '/pcso-lottery/history',
+                $history !== null && ($history['status'] ?? '') === 'RESULT_FOUND',
+            ),
+        ]));
+    }
+
+    /**
+     * Page 42: canonical PCSO year archive.
      */
     public function year(Request $request, string $year): View
     {
-        // Digits only, at most four. Checked before any cast, so a 900-digit
-        // "year" is refused by a regex rather than by the database.
         if (preg_match('/^[0-9]{1,4}$/', $year) !== 1) {
             return $this->renderEmptyYear($year, 'INVALID_QUERY');
         }
@@ -154,13 +161,14 @@ final class PcsoLotteryController
         $history = $this->history->historyForYear($gregorian, $this->boundedPage($request));
         $label = $this->dates->yearLabel($gregorian, $this->locale());
 
-        return view('pcso-lottery.index', $this->pageData([
+        return view('pcso-lottery.year', $this->pageData([
             'current' => null,
             'recent' => [],
             'years' => $this->history->availableYears(),
             'active_year' => $gregorian,
             'history' => $history,
             'search' => null,
+            'page_variant' => 'year',
             'meta' => $this->meta(
                 trans('pcso_lottery.meta_title').' — '.$label,
                 (string) trans('pcso_lottery.meta_description_year', ['year' => $label]),
@@ -172,15 +180,43 @@ final class PcsoLotteryController
     }
 
     /**
+     * Compatibility alias for the canonical /pcso-lottery/year/{year} route.
+     */
+    public function yearArchive(Request $request, string $year): View
+    {
+        return $this->year($request, $year);
+    }
+
+    /**
+     * Page 39 and the original /pcso-lottery/{draw} detail route.
+     */
+    public function show(Request $request, string $draw): View
+    {
+        return $this->detail($request, $draw, '/pcso-lottery/'.$draw);
+    }
+
+    /**
+     * Page 39 canonical draw-detail route.
+     */
+    public function drawDetail(Request $request, string $draw): View
+    {
+        return $this->detail($request, $draw, '/pcso-lottery/draw/'.$draw);
+    }
+
+    /**
+     * Page 43 canonical result-detail route.
+     */
+    public function resultDetail(Request $request, string $draw): View
+    {
+        return $this->detail($request, $draw, '/pcso-lottery/result/'.$draw);
+    }
+
+    /**
      * GET /pcso-lottery/search — typed number or date lookup.
-     *
-     * Rate limited. Never indexed. Never cached.
      */
     public function search(Request $request): View
     {
         $validated = $request->validate([
-            // The type is REQUIRED when a term is given and is checked against
-            // a closed whitelist. Length is never used to guess it.
             'type' => ['nullable', 'string', 'in:'.implode(',', $this->search->searchTypes())],
             'term' => ['nullable', 'string', 'max:'.$this->search->maxTermLength()],
             'page' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -189,12 +225,9 @@ final class PcsoLotteryController
         $type = isset($validated['type']) && $validated['type'] !== '' ? (string) $validated['type'] : null;
         $term = isset($validated['term']) ? trim((string) $validated['term']) : '';
         $page = isset($validated['page']) ? (int) $validated['page'] : 1;
-
         $outcome = null;
 
         if ($term !== '') {
-            // No type with a term is an incomplete request, not a licence to
-            // guess which field the visitor meant.
             $outcome = $type === null
                 ? $this->search->search('', $term, $page)
                 : $this->search->search($type, $term, $page);
@@ -207,20 +240,17 @@ final class PcsoLotteryController
             'active_year' => null,
             'history' => null,
             'search' => $outcome,
+            'page_variant' => 'search',
             'meta' => $this->meta(
                 (string) trans('pcso_lottery.meta_title_search'),
                 (string) trans('pcso_lottery.meta_description'),
                 '/pcso-lottery/search',
-                // Search pages are never indexed: they are query dependent and
-                // indexing them would invite crawlers to walk the number space.
                 false,
             ),
         ]));
     }
 
     /**
-     * Shared view payload.
-     *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -236,15 +266,50 @@ final class PcsoLotteryController
             'routes' => [
                 'index' => route('pcso-lottery.index'),
                 'search' => route('pcso-lottery.search'),
+                'buy' => route('pcso-lottery.buy'),
+                'latest' => route('pcso-lottery.latest'),
+                'history' => route('pcso-lottery.history'),
             ],
         ]);
+    }
+
+    private function detail(Request $request, string $draw, string $canonicalPath): View
+    {
+        unset($request);
+
+        $projection = $this->results->resultForReference($draw);
+        $title = (string) trans('pcso_lottery.detail_heading').' — '.trans('pcso_lottery.meta_title');
+
+        if (($projection['available'] ?? false) === true && is_array($projection['draw'] ?? null)) {
+            $date = is_array($projection['draw']['date'] ?? null) ? $projection['draw']['date'] : [];
+            $label = $this->isThai() ? (string) ($date['display_th'] ?? '') : (string) ($date['display_en'] ?? '');
+            if ($label !== '') {
+                $title .= ' — '.$label;
+            }
+        }
+
+        return view('pcso-lottery.show', $this->pageData([
+            'current' => $projection,
+            'recent' => [],
+            'years' => $this->history->availableYears(),
+            'active_year' => null,
+            'history' => null,
+            'search' => null,
+            'page_variant' => 'detail',
+            'meta' => $this->meta(
+                $title,
+                (string) trans('pcso_lottery.meta_description'),
+                $canonicalPath,
+                (bool) ($projection['available'] ?? false),
+            ),
+        ]));
     }
 
     private function renderEmptyYear(string $requested, string $status): View
     {
         $safeLabel = preg_match('/^[0-9]{1,4}$/', $requested) === 1 ? $requested : '';
 
-        return view('pcso-lottery.index', $this->pageData([
+        return view('pcso-lottery.year', $this->pageData([
             'current' => null,
             'recent' => [],
             'years' => $this->history->availableYears(),
@@ -263,10 +328,11 @@ final class PcsoLotteryController
                 ],
             ],
             'search' => null,
+            'page_variant' => 'year',
             'meta' => $this->meta(
                 trim(trans('pcso_lottery.meta_title').($safeLabel !== '' ? ' — '.$safeLabel : '')),
                 (string) trans('pcso_lottery.meta_description'),
-                '/pcso-lottery',
+                '/pcso-lottery/year'.($safeLabel !== '' ? '/'.$safeLabel : ''),
                 false,
             ),
         ]));
@@ -277,8 +343,6 @@ final class PcsoLotteryController
      */
     private function meta(string $title, string $description, string $path, bool $indexable): array
     {
-        // Absolute canonical, built from the application URL. Never from the
-        // request host, which a proxy or an attacker can set.
         $canonical = rtrim((string) config('app.url'), '/').$path;
 
         return [
@@ -303,12 +367,21 @@ final class PcsoLotteryController
         }
 
         $page = (string) $page;
-
         if (preg_match('/^[0-9]{1,5}$/', $page) !== 1) {
             return 1;
         }
 
         return max(1, min((int) $page, 10000));
+    }
+
+    /**
+     * @param  array<string, mixed>  $projection
+     */
+    private function referenceFrom(array $projection): ?string
+    {
+        return is_array($projection['draw'] ?? null) && isset($projection['draw']['reference'])
+            ? (string) $projection['draw']['reference']
+            : null;
     }
 
     private function locale(): string

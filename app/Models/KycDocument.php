@@ -53,7 +53,16 @@ class KycDocument extends Model
         'document_fingerprint',
         'verification_reference',
         'expires_at',
+        'submitted_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model): void {
+            $model->original_filename ??= basename((string) $model->file_path);
+            $model->submitted_at ??= now();
+        });
+    }
 
     /**
      * @return array<string, string>
@@ -66,6 +75,7 @@ class KycDocument extends Model
             'file_size' => 'integer',
             'verified_at' => 'datetime',
             'expires_at' => 'datetime',
+            'submitted_at' => 'datetime',
             'metadata' => 'array',
         ];
     }

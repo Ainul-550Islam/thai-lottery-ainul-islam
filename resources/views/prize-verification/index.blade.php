@@ -1,179 +1,40 @@
 @extends('layouts.app')
 
-@section('title', $meta['title'])
+@php
+    $prizes = is_array($prizes ?? null) ? $prizes : [];
+    $claimRules = is_array($claim_rules ?? null) ? $claim_rules : [];
+@endphp
 
-@section('meta_description', $meta['description'])
-@section('meta_canonical', $meta['canonical'])
-@section('meta_og_title', $meta['og_title'])
-@section('meta_og_description', $meta['og_description'])
-@section('meta_og_type', $meta['og_type'])
-@section('meta_og_url', $meta['og_url'])
+@section('title', (string) ($meta['title'] ?? 'Prize Verification'))
+@section('meta_description', (string) ($meta['description'] ?? 'Source-driven public prize verification.'))
+@section('meta_canonical', (string) ($meta['canonical'] ?? url('/prize-verification')))
+@section('meta_og_title', (string) ($meta['og_title'] ?? 'Prize Verification'))
+@section('meta_og_description', (string) ($meta['og_description'] ?? ''))
+@section('meta_og_type', (string) ($meta['og_type'] ?? 'website'))
+@section('meta_og_url', (string) ($meta['og_url'] ?? url('/prize-verification')))
 
 @push('styles')
-    @vite(['resources/css/prize-discount.css'])
+    @vite('resources/css/pages/prize-verification.css')
 @endpush
 
 @section('content')
-    {{--
-        Public Prize Verification page (PROMPT 4).
-
-        Anonymous. The form POSTs to the same URL behind
-        throttle:ticket-verification. Every rendered value is escaped by Blade;
-        the only values that reach this template are the allow-listed keys the
-        verification service publishes.
-    --}}
-    <div class="pd-page pd-page--verify" data-pd-page="prize-verification" data-pd-policy="{{ $policy_version }}">
-        <a class="pp-skip-link" href="#pd-main">{{ trans('public_pages.skip_to_content') }}</a>
-
-        <main id="pd-main" class="pd-main" tabindex="-1">
-            <header class="pd-header">
-                <p class="pd-eyebrow">GLO-compatible</p>
-                <h1 class="pd-title">{{ trans('prize_discount.verify_heading') }}</h1>
-                <p class="pd-lead">{{ trans('prize_discount.verify_intro') }}</p>
-                <p class="pd-disclaimer pd-disclaimer--strong">{{ trans('prize_discount.not_official_notice') }}</p>
-            </header>
-
-            <section class="pd-card pd-card--form">
-                <form
-                    method="POST"
-                    action="{{ route('prize-verification.submit') }}"
-                    class="pd-form"
-                    data-pd-form="verification"
-                    data-pd-number-max="{{ $limits['number_max'] }}"
-                    data-pd-reference-max="{{ $limits['reference_max'] }}"
-                    data-pd-barcode-max="{{ $limits['barcode_max'] }}"
-                >
-                    @csrf
-
-                    <fieldset class="pd-fieldset">
-                        <legend>{{ trans('prize_discount.verify_mode_label') }}</legend>
-
-                        <div class="pd-modes">
-                            @foreach ($modes as $availableMode)
-                                <label class="pd-mode">
-                                    <input
-                                        type="radio"
-                                        name="mode"
-                                        value="{{ $availableMode }}"
-                                        data-pd-mode-option
-                                        @checked($availableMode === $mode)
-                                    >
-                                    <span>{{ trans('prize_discount.mode_'.$availableMode) }}</span>
-                                </label>
-                            @endforeach
-                        </div>
-
-                        @foreach ($modes as $availableMode)
-                            <p class="pd-hint" data-pd-hint="{{ $availableMode }}" @if ($availableMode !== $mode) hidden @endif>
-                                {{ trans('prize_discount.mode_'.$availableMode.'_hint') }}
-                            </p>
-                        @endforeach
-                    </fieldset>
-
-                    <div class="pd-field">
-                        <label for="pd-value">{{ trans('prize_discount.verify_value_label') }}</label>
-                        <input
-                            id="pd-value"
-                            name="value"
-                            type="text"
-                            inputmode="text"
-                            autocomplete="off"
-                            spellcheck="false"
-                            required
-                            maxlength="{{ max($limits['number_max'], $limits['reference_max'], $limits['barcode_max']) }}"
-                            value="{{ old('value') }}"
-                            data-pd-value
-                        >
-                        @error('value')
-                            <p class="pd-error">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div class="pd-field">
-                        <label for="pd-draw">{{ trans('prize_discount.verify_draw_label') }}</label>
-                        <input
-                            id="pd-draw"
-                            name="draw"
-                            type="text"
-                            autocomplete="off"
-                            spellcheck="false"
-                            maxlength="64"
-                            value="{{ old('draw') }}"
-                        >
-                        <p class="pd-hint">{{ trans('prize_discount.verify_draw_hint') }}</p>
-                        @error('draw')
-                            <p class="pd-error">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    @error('mode')
-                        <p class="pd-error">{{ $message }}</p>
-                    @enderror
-
-                    <div class="pd-actions">
-                        <button type="submit" class="pd-button pd-button--primary">
-                            {{ trans('prize_discount.verify_submit') }}
-                        </button>
-                        <button type="reset" class="pd-button">
-                            {{ trans('prize_discount.verify_reset') }}
-                        </button>
-                    </div>
-
-                    <p class="pd-muted">{{ trans('prize_discount.verify_rate_note') }}</p>
-                </form>
-            </section>
-
-            @if ($result !== null)
-                <x-public.verification-result :result="$result" />
-            @else
-                <section class="pd-card pd-card--empty">
-                    <p class="pd-muted">{{ trans('prize_discount.result_none') }}</p>
-                </section>
-            @endif
-
-            <section class="pd-card pd-card--providers">
-                <h2>{{ trans('prize_discount.barcode_heading') }}</h2>
-                @php
-                    $providerLabelMap = [
-                        'SUPPORTED' => 'prize_discount.barcode_supported',
-                        'NOT_CONFIGURED' => 'prize_discount.barcode_not_configured',
-                        'UNSUPPORTED_FORMAT' => 'prize_discount.barcode_unsupported_format',
-                        'INVALID' => 'prize_discount.barcode_invalid',
-                    ];
-                @endphp
-                <ul class="pd-providers">
-                    <li data-pd-provider="glo_data_matrix" data-pd-provider-state="{{ $providers['glo_data_matrix'] }}">
-                        <span>{{ trans('prize_discount.barcode_provider_glo_data_matrix') }}</span>
-                        <span class="pd-badge">{{ trans($providerLabelMap[$providers['glo_data_matrix']] ?? 'prize_discount.not_configured') }}</span>
-                    </li>
-                    <li data-pd-provider="operator_qr" data-pd-provider-state="{{ $providers['operator_qr'] }}">
-                        <span>{{ trans('prize_discount.barcode_provider_operator_qr') }}</span>
-                        <span class="pd-badge">{{ trans($providerLabelMap[$providers['operator_qr']] ?? 'prize_discount.not_configured') }}</span>
-                    </li>
-                </ul>
-                <p class="pd-muted">
-                    {{ trans('prize_discount.barcode_fixture_schema') }}:
-                    <span class="pd-mono">{{ $providers['fixture_schema'] }}</span>
-                </p>
-                <p class="pd-disclaimer">{{ trans('prize_discount.barcode_fixture_notice') }}</p>
-            </section>
-
-            <section class="pd-card pd-card--physical" data-pd-informational="{{ $guidance['informational_only'] ? 'true' : 'false' }}">
-                <h2>{{ trans('prize_discount.physical_note_heading') }}</h2>
-                <ul class="pd-notes">
-                    @foreach ($guidance['keys'] as $noteKey)
-                        <li>{{ trans($noteKey) }}</li>
-                    @endforeach
-                </ul>
-            </section>
-
-            <p class="pd-disclaimer">{{ trans('prize_discount.privacy_notice') }}</p>
-        </main>
-
-        <x-public-page.footer />
-    </div>
+<div class="next-public-page next-public-page--prize" data-next-public-page="prize" data-pd-page="prize-verification" data-prize-verifier>
+    <a class="pp-skip-link" href="#prize-main">{{ trans('public_pages.skip_to_content') }}</a>
+    <header class="next-page-header"><div class="next-shell next-page-header__inner"><a class="next-brand" href="{{ route('home') }}" aria-label="Home"><span class="next-brand__mark">TL</span><span>THAILOTTO<small>PUBLIC RESULT CHECKER</small></span></a><nav class="next-nav" aria-label="Primary navigation"><a href="{{ route('home') }}">HOME</a><a href="{{ route('results.index') }}">RESULTS</a><a class="is-active" href="{{ route('prize-verification') }}" aria-current="page">VERIFY PRIZE</a><a href="{{ route('fees') }}">FEES</a><a href="{{ route('contact') }}">CONTACT</a></nav>@guest<a class="next-button next-button--gold" href="{{ route('login') }}">LOGIN</a>@else<a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">DASHBOARD</a>@endguest</div></header>
+    <main id="prize-main" class="next-shell next-content" tabindex="-1">
+        <section class="next-hero" aria-labelledby="prize-title"><div><p class="next-eyebrow">09 · PRIZE VERIFICATION</p><h1 id="prize-title">{{ trans('prize_discount.verify_heading') }}</h1><p>{{ trans('prize_discount.verify_intro') }}</p><p class="next-note">{{ trans('prize_discount.not_official_notice') }} GLO-compatible. A lookup is not certification of physical paper, ownership, identity, eligibility, payment, or official affiliation. Never enter private account data here.</p></div><div class="next-hero-object next-hero-object--prize" aria-hidden="true"><span>§</span></div></section>
+        <section class="next-meta-strip" aria-label="Verification metadata"><div><span>INPUTS</span><strong>NUMBER / REF / CODE</strong></div><div><span>RESULT SOURCE</span><strong>CONFIGURED DATA</strong></div><div><span>OWNER DATA</span><strong>NEVER PUBLIC</strong></div><div><span>PHYSICAL PAPER</span><strong>NOT CERTIFIED</strong></div></section>
+        <div class="next-layout"><aside class="next-sidebar" aria-label="Prize verification contents"><p class="next-eyebrow">CHECKER MAP</p><a href="#prize-check" data-content-link="prize-check">01 · Check a value</a><a href="#prize-schedule" data-content-link="prize-schedule">02 · Prize schedule</a><a href="#prize-claim" data-content-link="prize-claim">03 · Claim boundaries</a></aside><div>
+            <section class="next-section" id="prize-check" data-content-section aria-labelledby="prize-check-title"><div class="next-section__heading"><span class="next-section__number">01</span><div><p class="next-eyebrow">SOURCE LOOKUP</p><h2 id="prize-check-title">Check a supported value</h2></div></div><form class="next-form" method="post" action="{{ route('prize-verification.submit') }}" data-prize-form><input type="hidden" name="_token" value="{{ csrf_token() }}"><div class="next-form__grid"><div><label for="prize-mode">{{ trans('prize_discount.verify_mode_label') }}</label><select id="prize-mode" name="mode" required><option value="number">{{ trans('prize_discount.mode_number') }}</option><option value="reference">{{ trans('prize_discount.mode_reference') }}</option><option value="barcode">{{ trans('prize_discount.mode_barcode') }}</option></select></div><div><label for="prize-product">Product hint <span class="next-muted">(optional)</span></label><input id="prize-product" name="product" maxlength="30" autocomplete="off" placeholder="Leave blank if unknown"></div></div><div><label for="prize-value">{{ trans('prize_discount.verify_value_label') }}</label><input id="prize-value" name="value" required maxlength="512" autocomplete="off" spellcheck="false" placeholder="Enter the value to verify"></div><div><label for="prize-draw">Published draw reference <span class="next-muted">(optional)</span></label><input id="prize-draw" name="draw_ref" maxlength="80" autocomplete="off" placeholder="Use only a configured reference"></div><button class="next-button next-button--gold" type="submit">{{ trans('prize_discount.verify_submit') }}</button><p class="next-muted">The server validates and resolves the value. The browser does not decide whether it wins.</p></form><div class="next-alert" data-prize-result role="status" aria-live="polite" hidden></div></section>
+            <section class="next-section" id="prize-schedule" data-content-section aria-labelledby="prize-schedule-title"><div class="next-section__heading"><span class="next-section__number">02</span><div><p class="next-eyebrow">CONFIGURED CATALOGUE</p><h2 id="prize-schedule-title">Prize schedule</h2></div></div><div class="next-table-wrap"><table class="next-table"><caption class="sr-only">Configured prize schedule</caption><thead><tr><th scope="col">Tier</th><th scope="col">Digits</th><th scope="col">Match mode</th><th scope="col">Amount</th><th scope="col">Configured winners</th></tr></thead><tbody>@forelse ($prizes as $prize)<tr data-search-item data-search-text="{{ ($prize['label'] ?? '').' '.($prize['tier'] ?? '') }}"><td>{{ $prize['label'] ?? $prize['tier'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $prize['digits'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $prize['match_mode'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $prize['amount'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $prize['winners'] ?? 'NOT_CONFIGURED' }}</td></tr>@empty<tr><td colspan="5">NOT_CONFIGURED</td></tr>@endforelse</tbody></table></div><p class="next-muted">Values above are the configured reference catalogue. They do not establish that a submitted value is authentic or payable.</p></section>
+            <section class="next-section" id="prize-physical" data-content-section aria-labelledby="prize-physical-title"><div class="next-section__heading"><span class="next-section__number">P</span><div><p class="next-eyebrow">INFORMATION ONLY</p><h2 id="prize-physical-title">{{ trans('prize_discount.physical_note_heading') }}</h2></div></div><div class="next-section__body"><p>{{ trans('prize_discount.physical_note_intro') }}</p><p>{{ trans('prize_discount.physical_note_markings') }}</p><p>{{ trans('prize_discount.physical_note_barcode') }}</p><p>{{ trans('prize_discount.physical_note_limits') }}</p></div></section>
+            <section class="next-section" id="prize-claim" data-content-section aria-labelledby="prize-claim-title"><div class="next-section__heading"><span class="next-section__number">03</span><div><p class="next-eyebrow">CLAIM BOUNDARIES</p><h2 id="prize-claim-title">Verification is not payment</h2></div></div><div class="next-section__body"><p>A public result may be subject to ticket authenticity, eligibility, claim window, tax, identity verification, holds, and approved payout handling. This page does not promise any of those outcomes.</p>@if ($claimRules !== [])<p class="next-muted">Claim policy is available from the configured prize source; ask support for the appropriate authenticated route rather than relying on a public answer.</p>@else<p class="next-empty">Claim rules: NOT_CONFIGURED</p>@endif</div></section>
+        </div></div>
+        <section class="next-bottom"><div><p class="next-eyebrow">NEED HELP?</p><h2>Use the configured support route</h2><p>Never send a full identity document or payment credential through this checker.</p></div><div class="next-bottom__links"><button class="next-button next-button--gold" type="button" data-print-page>PRINT / SAVE</button><a class="next-button" href="{{ route('contact') }}">CONTACT SUPPORT</a></div></section>
+    </main>
+</div>
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/prize-verification.js'])
+    @vite('resources/js/pages/prize-verification.js')
 @endpush

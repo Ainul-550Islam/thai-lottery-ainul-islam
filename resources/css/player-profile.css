@@ -1,0 +1,468 @@
+/**
+ * ThaiLotto Club Member Profile & Account Management Stylesheet
+ * Reference: https://thailotto.club/ & Modern Luxury iGaming Design
+ */
+
+:root {
+    --pf-bg-page: #0b0f17;
+    --pf-bg-header: #0f1522;
+    --pf-bg-card: #131b29;
+    --pf-bg-card-sub: #172233;
+    --pf-bg-input: #0c121d;
+    --pf-border-main: #1f2b3e;
+    --pf-gold-main: #f59e0b;
+    --pf-gold-glow: rgba(245, 158, 11, 0.4);
+    --pf-green-main: #10b981;
+    --pf-green-glow: rgba(16, 185, 129, 0.4);
+    --pf-cyan-main: #38bdf8;
+    --pf-cyan-glow: rgba(56, 189, 248, 0.4);
+    --pf-text-main: #f1f5f9;
+    --pf-text-muted: #8e9bb0;
+}
+
+body.pf-body {
+    background-color: var(--pf-bg-page);
+    color: var(--pf-text-main);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* TOP HEADER */
+.pf-header {
+    background-color: var(--pf-bg-header);
+    border-bottom: 1px solid var(--pf-border-main);
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.pf-brand-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+}
+
+.pf-brand-logo-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+}
+
+.pf-brand-title {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    line-height: 1;
+}
+
+.pf-brand-sub {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #f59e0b;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* MAIN LAYOUT */
+.pf-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .pf-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* LEFT SIDEBAR PROFILE CARD */
+.pf-sidebar-card {
+    background: var(--pf-bg-card);
+    border: 1px solid var(--pf-border-main);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    height: fit-content;
+}
+
+.pf-avatar-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+}
+
+.pf-avatar-img-wrap {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3px solid #f59e0b;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    position: relative;
+}
+
+.pf-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-cover: cover;
+}
+
+.pf-vip-badge {
+    position: absolute;
+    bottom: -6px;
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+    color: #0b0f17;
+    font-size: 0.6875rem;
+    font-weight: 900;
+    padding: 0.15rem 0.65rem;
+    border-radius: 9999px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.pf-user-name {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #ffffff;
+    margin: 0.75rem 0 0.15rem 0;
+}
+
+.pf-member-id {
+    font-size: 0.75rem;
+    font-family: ui-monospace, monospace;
+    color: #f59e0b;
+    font-weight: 700;
+}
+
+.pf-sidebar-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--pf-border-main);
+    border-bottom: 1px solid var(--pf-border-main);
+}
+
+.pf-stat-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.pf-stat-label {
+    font-size: 0.6875rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.pf-stat-val {
+    font-size: 0.9375rem;
+    font-weight: 900;
+    color: #ffffff;
+    font-family: ui-monospace, monospace;
+}
+
+.pf-stat-val.green {
+    color: #34d399;
+}
+
+/* SIDEBAR NAV TABS */
+.pf-nav-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pf-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #cbd5e1;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.pf-tab-btn:hover {
+    background: var(--pf-bg-card-sub);
+    color: #ffffff;
+}
+
+.pf-tab-btn.active {
+    background: #1b263b;
+    border-color: #f59e0b;
+    color: #f59e0b;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+.pf-tab-icon {
+    font-size: 1.125rem;
+}
+
+/* RIGHT CONTENT PANEL */
+.pf-main-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.pf-content-card {
+    background: var(--pf-bg-card);
+    border: 1px solid var(--pf-border-main);
+    border-radius: 1.25rem;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.pf-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--pf-border-main);
+}
+
+.pf-card-title {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #ffffff;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pf-card-subtitle {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+}
+
+/* FORM FIELDS GRID */
+.pf-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+    .pf-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pf-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.pf-form-group.full {
+    grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+    .pf-form-group.full {
+        grid-column: span 1;
+    }
+}
+
+.pf-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pf-label-badge {
+    font-size: 0.625rem;
+    font-weight: 800;
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.15);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.35rem;
+}
+
+.pf-input-box {
+    background: var(--pf-bg-input);
+    border: 1px solid var(--pf-border-main);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pf-input-box:focus-within {
+    border-color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.pf-input-box.disabled {
+    background: #090d14;
+    opacity: 0.75;
+    cursor: not-allowed;
+}
+
+.pf-input {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    width: 100%;
+    outline: none;
+}
+
+/* PASSWORD STRENGTH METER */
+.pf-strength-meter {
+    height: 4px;
+    background: #1e293b;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-top: 0.25rem;
+}
+
+.pf-strength-bar {
+    height: 100%;
+    width: 75%;
+    background: #10b981;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* BANK ACCOUNT BINDING CARDS */
+.pf-bank-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 640px) {
+    .pf-bank-card-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pf-saved-bank-box {
+    background: var(--pf-bg-card-sub);
+    border: 1.5px solid #10b981;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+}
+
+.pf-saved-bank-box.gold {
+    border-color: #f59e0b;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+/* BALANCE TRANSFER INTERFACE (Cash to Win / Win to Cash) */
+.pf-transfer-box {
+    background: #0c121d;
+    border: 1px solid var(--pf-border-main);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    align-items: center;
+}
+
+@media (max-width: 640px) {
+    .pf-transfer-box {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pf-wallet-node {
+    background: var(--pf-bg-card-sub);
+    border: 1px solid var(--pf-border-main);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.pf-swap-arrow-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #1f2b3e;
+    border: 1px solid #334155;
+    color: #f59e0b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pf-swap-arrow-btn:hover {
+    background: #f59e0b;
+    color: #0b0f17;
+    transform: rotate(180deg);
+}
+
+/* SUBMIT CTA BUTTON */
+.pf-submit-btn {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+    border: none;
+    border-radius: 0.75rem;
+    padding: 0.85rem 1.75rem;
+    font-size: 0.875rem;
+    font-weight: 900;
+    color: #0b0f17;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+.pf-submit-btn:hover {
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.55);
+    transform: translateY(-1px);
+}

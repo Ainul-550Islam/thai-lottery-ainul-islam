@@ -1,0 +1,581 @@
+/**
+ * Thai Lottery Betting Interface Stylesheet
+ * Reference: user_betting_page.png (LOTTO THAI)
+ */
+
+:root {
+    --tlb-bg-page: #0f141d;
+    --tlb-bg-header: #141a26;
+    --tlb-bg-card: #18202f;
+    --tlb-bg-card-hover: #1f293d;
+    --tlb-bg-subcard: #121824;
+    --tlb-bg-keypad: #222c3f;
+    --tlb-bg-keypad-hover: #2d3a52;
+    --tlb-bg-keypad-active: #384866;
+    --tlb-border-dark: #232e42;
+    --tlb-border-glow: #8b5cf6;
+    --tlb-border-glow-rgb: 139, 92, 246;
+    --tlb-text-main: #f1f5f9;
+    --tlb-text-muted: #8e9bb0;
+    --tlb-purple-accent: #a855f7;
+    --tlb-purple-glow: rgba(168, 85, 247, 0.4);
+    --tlb-green-cta: #10b981;
+    --tlb-green-glow: #059669;
+}
+
+body.tlb-body {
+    background-color: var(--tlb-bg-page);
+    color: var(--tlb-text-main);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* TOP NAVBAR */
+.tlb-header {
+    background-color: var(--tlb-bg-header);
+    border-bottom: 1px solid var(--tlb-border-dark);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.tlb-logo-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 1.25rem;
+    letter-spacing: 0.05em;
+}
+
+.tlb-logo-lotto {
+    color: #38bdf8;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tlb-logo-ball {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ec4899, #8b5cf6 60%, #4c1d95 100%);
+    box-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
+    display: inline-block;
+    margin: 0 1px;
+}
+
+.tlb-logo-thai {
+    color: #a855f7;
+}
+
+.tlb-user-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(18, 24, 36, 0.7);
+    border: 1px solid var(--tlb-border-dark);
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+}
+
+.tlb-clock-display {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+}
+
+.tlb-header-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.tlb-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    color: var(--tlb-text-muted);
+    text-decoration: none;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    transition: color 0.15s ease;
+}
+
+.tlb-nav-item:hover, .tlb-nav-item.active {
+    color: #ffffff;
+}
+
+.tlb-nav-item svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+/* MAIN LAYOUT */
+.tlb-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .tlb-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* LEFT BETTING PANEL */
+.tlb-betting-card {
+    background-color: var(--tlb-bg-card);
+    border: 1px solid var(--tlb-border-dark);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.tlb-card-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+}
+
+.tlb-section-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* GAME TYPE TABS */
+.tlb-game-types-row {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.tlb-game-btn {
+    background-color: var(--tlb-bg-subcard);
+    border: 1px solid var(--tlb-border-dark);
+    border-radius: 0.875rem;
+    padding: 0.85rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #94a3b8;
+    user-select: none;
+}
+
+.tlb-game-btn:hover {
+    background-color: var(--tlb-bg-card-hover);
+    color: #ffffff;
+    border-color: #3b4d6b;
+}
+
+.tlb-game-btn.active {
+    background-color: #191c2b;
+    border: 2px solid var(--tlb-purple-accent);
+    color: #ffffff;
+    box-shadow: 0 0 18px var(--tlb-purple-glow), inset 0 0 12px rgba(168, 85, 247, 0.15);
+}
+
+.tlb-game-btn-icon {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #cbd5e1;
+}
+
+.tlb-game-btn.active .tlb-game-btn-icon {
+    color: #c084fc;
+}
+
+.tlb-game-btn-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* SELECT NUMBER & DISPLAY */
+.tlb-number-toprow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.tlb-lcd-display {
+    background-color: #0b0f17;
+    border: 1px solid var(--tlb-border-dark);
+    border-radius: 0.625rem;
+    padding: 0.4rem 1.25rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.15em;
+    min-width: 130px;
+    text-align: right;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.tlb-lcd-display.placeholder {
+    color: #475569;
+}
+
+/* KEYPAD GRID */
+.tlb-keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+    .tlb-keypad-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.tlb-key-btn {
+    background-color: var(--tlb-bg-keypad);
+    border: 1px solid #2e3b52;
+    border-radius: 0.75rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    user-select: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.tlb-key-btn:hover {
+    background-color: var(--tlb-bg-keypad-hover);
+    border-color: #475a7c;
+    transform: translateY(-1px);
+}
+
+.tlb-key-btn:active {
+    background-color: var(--tlb-bg-keypad-active);
+    transform: translateY(1px);
+}
+
+.tlb-key-btn.highlighted {
+    border: 2px solid var(--tlb-purple-accent);
+    color: #ffffff;
+    box-shadow: 0 0 14px var(--tlb-purple-glow), inset 0 0 8px rgba(168, 85, 247, 0.2);
+}
+
+.tlb-key-btn.del-btn {
+    background-color: #263145;
+    color: #cbd5e1;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    gap: 0.25rem;
+    grid-column: span 2;
+}
+
+.tlb-key-btn.del-btn:hover {
+    background-color: #33415c;
+    color: #f87171;
+}
+
+/* STAKE PRESETS */
+.tlb-stakes-row {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.tlb-stake-btn {
+    background-color: var(--tlb-bg-subcard);
+    border: 1px solid var(--tlb-border-dark);
+    border-radius: 0.75rem;
+    padding: 0.65rem 0.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 800;
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.tlb-stake-btn:hover {
+    background-color: var(--tlb-bg-card-hover);
+    color: #ffffff;
+}
+
+.tlb-stake-btn.active {
+    background-color: #191c2b;
+    border: 2px solid var(--tlb-purple-accent);
+    color: #ffffff;
+    box-shadow: 0 0 14px var(--tlb-purple-glow);
+}
+
+/* BET SLIP PANEL */
+.tlb-slip-card {
+    background-color: var(--tlb-bg-card);
+    border: 1px solid var(--tlb-border-dark);
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.tlb-slip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--tlb-border-dark);
+}
+
+.tlb-slip-title {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.tlb-slip-close-btn {
+    color: #64748b;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tlb-slip-close-btn:hover {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tlb-slip-count {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin: 0.75rem 0 0.5rem 0;
+}
+
+/* BET ITEMS LIST */
+.tlb-slip-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.tlb-bet-item-card {
+    background-color: #131924;
+    border: 1px solid #232d3d;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    position: relative;
+}
+
+.tlb-bet-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tlb-bet-type-name {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.tlb-bet-remove-btn {
+    color: #64748b;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.tlb-bet-remove-btn:hover {
+    color: #ef4444;
+}
+
+.tlb-bet-item-details {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
+    font-size: 0.6875rem;
+}
+
+.tlb-bet-detail-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.tlb-bet-label {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.tlb-bet-val {
+    color: #cbd5e1;
+    font-weight: 700;
+}
+
+.tlb-bet-val.highlight {
+    color: #38bdf8;
+    font-family: ui-monospace, monospace;
+}
+
+.tlb-bet-val.win {
+    color: #34d399;
+}
+
+/* SLIP SUMMARY */
+.tlb-slip-summary {
+    border-top: 1px solid var(--tlb-border-dark);
+    padding-top: 0.85rem;
+    margin-top: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+}
+
+.tlb-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #94a3b8;
+}
+
+.tlb-summary-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+}
+
+.tlb-total-title {
+    font-size: 1rem;
+    font-weight: 900;
+    color: #ffffff;
+}
+
+.tlb-total-amount {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #ffffff;
+    font-family: ui-monospace, monospace;
+}
+
+.tlb-est-win-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+}
+
+/* NEON CTA CONFIRM BUTTON */
+.tlb-confirm-btn-container {
+    margin-top: 1rem;
+    position: relative;
+}
+
+.tlb-confirm-btn {
+    width: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #10b981 100%);
+    border: none;
+    border-radius: 0.875rem;
+    padding: 0.85rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: #064e3b;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.tlb-confirm-btn:hover {
+    background: linear-gradient(90deg, #34d399 0%, #6ee7b7 50%, #34d399 100%);
+    box-shadow: 0 0 35px rgba(52, 211, 153, 0.6), 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+}
+
+.tlb-confirm-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+/* Heartbeat / Soundwave effect at the flanks of button */
+.tlb-confirm-btn-pulse-left, .tlb-confirm-btn-pulse-right {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.tlb-confirm-btn-pulse-left {
+    left: 8px;
+}
+
+.tlb-confirm-btn-pulse-right {
+    right: 8px;
+}
+
+.tlb-confirm-check-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #064e3b;
+    color: #34d399;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+}

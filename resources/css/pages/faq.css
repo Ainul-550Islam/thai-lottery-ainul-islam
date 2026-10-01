@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Searchable, categorized, keyboard-accessible FAQ presentation.
+ */
+@import './public-next-pages.css';
+.next-public-page--faq .faq-question { width: 100%; text-align: left; }

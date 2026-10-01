@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Configured support channels and validated contact form styling.
+ */
+@import './public-next-pages.css';
+.next-public-page--contact .next-panel { border-color: rgba(85, 213, 154, .28); }

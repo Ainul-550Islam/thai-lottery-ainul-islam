@@ -1,97 +1,64 @@
 @extends('layouts.app')
 
-@section('title', $meta['title'])
+@php
+    $groups = is_array($fees['groups'] ?? null) ? $fees['groups'] : [];
+    $rows = is_array($fees['rows'] ?? null) ? $fees['rows'] : [];
+    if ($rows === []) {
+        foreach ($groups as $feeGroup) {
+            foreach ((array) ($feeGroup['rows'] ?? []) as $feeRow) {
+                $rows[] = $feeRow;
+            }
+        }
+    }
+    $previewCategories = [];
+    $previewProviders = [];
+    foreach ($rows as $feeRow) {
+        $feeKey = (string) ($feeRow['key'] ?? '');
+        if ($feeKey !== '') {
+            $previewCategories[$feeKey] = (string) ($feeRow['label'] ?? $feeKey);
+        }
+        $providerKey = (string) ($feeRow['provider'] ?? '');
+        if ($providerKey !== '') {
+            $previewProviders[$providerKey] = (string) ($feeRow['provider_label'] ?? $providerKey);
+        }
+    }
+@endphp
 
-@section('meta_description', $meta['description'])
-@section('meta_canonical', $meta['canonical'])
-@section('meta_og_title', $meta['og_title'])
-@section('meta_og_description', $meta['og_description'])
-@section('meta_og_type', $meta['og_type'])
-@section('meta_og_url', $meta['og_url'])
+@section('title', (string) ($meta['title'] ?? $fees['meta_title'] ?? $fees['title'] ?? 'Fees'))
+@section('meta_description', (string) ($meta['description'] ?? $fees['meta_description'] ?? 'Published fee schedule.'))
+@section('meta_canonical', (string) ($meta['canonical'] ?? url('/fees')))
+@section('meta_og_title', (string) ($meta['og_title'] ?? $fees['meta_title'] ?? 'Fees'))
+@section('meta_og_description', (string) ($meta['og_description'] ?? $fees['meta_description'] ?? ''))
+@section('meta_og_type', (string) ($meta['og_type'] ?? 'website'))
+@section('meta_og_url', (string) ($meta['og_url'] ?? url('/fees')))
+
+@push('styles')
+    @vite('resources/css/pages/fees.css')
+@endpush
 
 @section('content')
-    <div class="pp-page account-services" data-pp-page="fees" data-pp-status="{{ $fees['status'] ?? 'UNAVAILABLE' }}">
-        <a class="pp-skip-link" href="#pp-main">{{ trans('public_pages.skip_to_content') }}</a>
-
-        <main id="pp-main" class="pp-main" tabindex="-1">
-            <x-public-page.header
-                :title="$fees['title'] ?? ''"
-                :lead="$fees['lead'] ?? null"
-                eyebrow="Fees"
-            />
-
-            @foreach (($fees['groups'] ?? []) as $group)
-                <x-public.fee-table
-                    :title="$group['label']"
-                    :caption="$group['label'].' — '.trans('account_services.fees_table_caption')"
-                    :rows="$group['rows']"
-                    :show-provider="($group['has_providers'] ?? false)"
-                    :footer-note="null"
-                    :not-configured="$fees['not_configured'] ?? 'NOT_CONFIGURED'"
-                    :empty-label="trans('account_services.fees_empty')"
-                    :provider-none-label="trans('account_services.fees_provider_none')"
-                    col-category="{{ trans('account_services.fees_col_category') }}"
-                    col-type="{{ trans('account_services.fees_col_type') }}"
-                    col-amount="{{ trans('account_services.fees_col_amount') }}"
-                    col-provider="{{ trans('account_services.fees_col_provider') }}"
-                    col-description="{{ trans('account_services.fees_col_description') }}"
-                    col-effective="{{ trans('account_services.fees_col_effective') }}"
-                />
-            @endforeach
-
-            <section class="pp-section fee-preview" aria-labelledby="pp-fees-preview-title" data-pp-section="fee-preview">
-                <div class="pp-section__inner">
-                    <h2 class="pp-section__title" id="pp-fees-preview-title">{{ trans('account_services.fees_preview_title') }}</h2>
-                    <p class="pp-section__text">{{ trans('account_services.fees_preview_lead') }}</p>
-
-                    <p class="fee-preview__nojs">{{ trans('account_services.fees_preview_nojs') }}</p>
-
-                    <form class="acct-form fee-preview__form" data-pp-fee-preview method="post" action="/api/v1/fees/preview" novalidate
-                          data-pp-preview-loading="{{ trans('account_services.fees_preview_loading') }}"
-                          data-pp-preview-error="{{ trans('account_services.fees_preview_error') }}"
-                          data-pp-preview-network-error="{{ trans('account_services.fees_preview_network_error') }}"
-                          data-pp-preview-fee-label="{{ trans('account_services.fees_preview_fee_label') }}"
-                          data-pp-preview-state-label="{{ trans('account_services.fees_preview_state_label') }}"
-                          data-pp-preview-not-configured="{{ trans('account_services.fees_not_configured') }}">
-                        @csrf
-                        <div class="acct-form__row">
-                            <div class="acct-field">
-                                <label for="fee-preview-category">{{ trans('account_services.fees_preview_category_label') }}</label>
-                                <select class="acct-input" id="fee-preview-category" name="category" required>
-                                    @foreach (($preview['categories'] ?? []) as $option)
-                                        <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="acct-field">
-                                <label for="fee-preview-provider">{{ trans('account_services.fees_preview_provider_label') }}</label>
-                                <select class="acct-input" id="fee-preview-provider" name="provider">
-                                    <option value="">{{ trans('account_services.fees_preview_provider_none') }}</option>
-                                    @foreach (($preview['providers'] ?? []) as $option)
-                                        <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="acct-field">
-                            <label for="fee-preview-amount">{{ trans('account_services.fees_preview_amount_label') }}</label>
-                            <input class="acct-input" id="fee-preview-amount" name="base_amount" type="text"
-                                   inputmode="decimal" autocomplete="off" maxlength="16"
-                                   placeholder="100.00" required>
-                        </div>
-
-                        <button class="acct-btn" type="submit">{{ trans('account_services.fees_preview_submit') }}</button>
-                    </form>
-
-                    <p class="acct-note fee-preview__status" role="status" aria-live="polite" data-pp-fee-preview-status></p>
-                </div>
-            </section>
-
-            <p class="pp-section__text fee-table__note">{{ $fees['footer_note'] ?? '' }}</p>
-        </main>
-
-        <x-public-page.footer />
-    </div>
+<div class="next-public-page next-public-page--fees" data-next-public-page="fees">
+    <a class="pp-skip-link" href="#fees-main">{{ trans('public_pages.skip_to_content') }}</a>
+    <header class="next-page-header"><div class="next-shell next-page-header__inner"><a class="next-brand" href="{{ route('home') }}" aria-label="Home"><span class="next-brand__mark">TL</span><span>THAILOTTO<small>PUBLISHED FEE MATRIX</small></span></a><nav class="next-nav" aria-label="Primary navigation"><a href="{{ route('home') }}">HOME</a><a href="{{ route('about') }}">ABOUT US</a><a href="{{ route('results.index') }}">RESULTS</a><a class="is-active" href="{{ route('fees') }}" aria-current="page">FEES</a><a href="{{ route('contact') }}">CONTACT</a></nav>@guest<a class="next-button next-button--gold" href="{{ route('login') }}">LOGIN</a>@else<a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">DASHBOARD</a>@endguest</div></header>
+    <main id="fees-main" class="next-shell next-content" tabindex="-1">
+        <section class="next-hero" aria-labelledby="fees-title"><div><p class="next-eyebrow">06 · PUBLIC FEE MATRIX</p><h1 id="fees-title">{{ $fees['title'] ?? 'Fees' }}</h1><p>{{ $fees['meta_description'] ?? 'Published charges and calculation rules from the configured fee authority.' }}</p><p class="next-note">Rates, currency and effective rows are rendered from the canonical fee configuration. An unspecified rate remains NOT_CONFIGURED; it is never guessed.</p></div><div class="next-hero-object next-hero-object--fees" aria-hidden="true"><span>฿</span></div></section>
+        <section class="next-meta-strip" aria-label="Fee schedule metadata"><div><span>{{ trans('account_services.fees_rule_version_label') }}</span><strong>{{ $fees['version'] ?? $fees['rule_version'] ?? 'NOT_CONFIGURED' }}</strong></div><div><span>CURRENCY</span><strong>{{ $fees['currency'] ?? 'NOT_CONFIGURED' }}</strong></div><div><span>PUBLIC ROWS</span><strong>{{ count($rows) }}</strong></div><div><span>CALCULATION</span><strong>SERVER-SIDE</strong></div></section>
+        <div class="next-layout"><aside class="next-sidebar" aria-label="Fee sections"><p class="next-eyebrow">FEE SECTIONS</p>@foreach ($groups as $group)<a href="#fee-{{ $group['key'] ?? $loop->iteration }}" data-content-link="fee-{{ $group['key'] ?? $loop->iteration }}">{{ $group['label'] ?? 'Fee group' }}</a>@endforeach<a href="#fee-methodology" data-content-link="fee-methodology">Methodology</a></aside><div>
+            <div class="next-search" role="search"><label for="fees-search">Search the fee schedule</label><div class="next-search__row"><input id="fees-search" type="search" data-local-search placeholder="Search a category or provider" autocomplete="off"><button class="next-button" type="button" data-clear-search>CLEAR</button></div><p class="next-search__status" data-search-status aria-live="polite">Showing all {{ count($rows) }} rows.</p></div>
+            <section class="next-section" id="fee-preview" data-content-section aria-labelledby="fee-preview-title"><div class="next-section__heading"><span class="next-section__number">ƒ</span><div><p class="next-eyebrow">SERVER CALCULATION</p><h2 id="fee-preview-title">{{ trans('account_services.fees_preview_title') }}</h2></div></div><div class="next-section__body"><p>{{ trans('account_services.fees_preview_lead') }}</p><form class="next-form" method="post" action="{{ route('api.v1.fees.preview') }}" data-fee-preview-form><div class="next-form__grid"><div><label for="fee-preview-category">{{ trans('account_services.fees_preview_category_label') }}</label><select id="fee-preview-category" name="category" required>@forelse ($previewCategories as $categoryKey => $categoryLabel)<option value="{{ $categoryKey }}">{{ $categoryLabel }}</option>@empty<option value="">{{ trans('account_services.fees_not_configured') }}</option>@endforelse</select></div><div><label for="fee-preview-provider">{{ trans('account_services.fees_preview_provider_label') }}</label><select id="fee-preview-provider" name="provider"><option value="">{{ trans('account_services.fees_preview_provider_none') }}</option>@foreach ($previewProviders as $providerKey => $providerLabel)<option value="{{ $providerKey }}">{{ $providerLabel }}</option>@endforeach</select></div></div><div><label for="fee-preview-amount">{{ trans('account_services.fees_preview_amount_label') }}</label><input id="fee-preview-amount" name="base_amount" type="text" inputmode="decimal" pattern="[0-9]{1,13}([.][0-9]{1,2})?" maxlength="16" required placeholder="100.00"></div><button class="next-button next-button--gold" type="submit">{{ trans('account_services.fees_preview_submit') }}</button></form><noscript><p class="next-muted">{{ trans('account_services.fees_preview_nojs') }}</p></noscript><div class="next-alert" data-fee-preview-result role="status" aria-live="polite" hidden></div></div></section>
+            @forelse ($groups as $group)
+                @php $groupId = 'fee-'.($group['key'] ?? $loop->iteration); @endphp
+                <section class="next-section" id="{{ $groupId }}" data-content-section aria-labelledby="{{ $groupId }}-title"><div class="next-section__heading"><span class="next-section__number">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span><div><p class="next-eyebrow">PUBLISHED CATEGORY</p><h2 id="{{ $groupId }}-title">{{ $group['label'] ?? 'Fee group' }}</h2></div></div><div class="next-table-wrap"><table class="next-table"><caption class="sr-only">{{ $group['label'] ?? 'Fee group' }}</caption><thead><tr><th scope="col">Category</th><th scope="col">Calculation</th><th scope="col">Provider</th><th scope="col">Published charge</th><th scope="col">Effective</th><th scope="col">Description</th></tr></thead><tbody>@foreach ((array) ($group['rows'] ?? []) as $row)<tr data-search-item data-search-text="{{ ($row['label'] ?? '').' '.($row['calculation_label'] ?? '').' '.($row['provider_label'] ?? '').' '.($row['amount_display'] ?? '').' '.($row['description'] ?? '') }}"><td>{{ $row['label'] ?? 'Fee category' }}</td><td>{{ $row['calculation_label'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $row['provider_label'] ?? trans('account_services.fees_provider_none') }}</td><td><span class="next-badge">{{ $row['amount_display'] ?? 'NOT_CONFIGURED' }}</span></td><td>{{ $row['effective_from'] ?? '—' }}{{ !empty($row['effective_to']) ? ' → '.$row['effective_to'] : '' }}</td><td>{{ $row['description'] ?? '' }}</td></tr>@endforeach</tbody></table></div></section>
+            @empty
+                <section class="next-panel" role="status"><h2>Fee schedule unavailable</h2><p>No public fee rows are currently configured.</p></section>
+            @endforelse
+            <section class="next-section" id="fee-methodology" data-content-section aria-labelledby="fee-methodology-title"><div class="next-section__heading"><span class="next-section__number">Σ</span><div><p class="next-eyebrow">TRANSPARENT CALCULATION</p><h2 id="fee-methodology-title">How to read this schedule</h2></div></div><div class="next-section__body"><p>Published rows are filtered by enabled, public-visible, non-internal and effective-date rules. Preview calculations are performed by the server against the same source; client-supplied rates are not accepted.</p><p class="next-muted">Use browser print or save to retain the visible schedule. A verified PDF export is not claimed unless configured.</p></div></section>
+        </div></div>
+        <section class="next-bottom"><div><p class="next-eyebrow">NEED A SPECIFIC ANSWER?</p><h2>Ask through the configured support route</h2><p>Include the fee category and relevant transaction context. Do not send payment credentials.</p></div><div class="next-bottom__links"><button class="next-button next-button--gold" type="button" data-print-page>PRINT / SAVE</button><a class="next-button" href="{{ route('contact') }}">CONTACT SUPPORT</a></div></section>
+    </main>
+</div>
 @endsection
+
+@push('scripts')
+    @vite('resources/js/pages/fees.js')
+@endpush

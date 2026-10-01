@@ -3,80 +3,30 @@
     'compact' => false,
 ])
 
-{{--
-    Source and provenance badge (PROMPT 5, file 24).
-
-    THE BADGE IS THE HONESTY OF THE PAGE. It is what separates "a number this
-    platform received from a verified official feed" from "a number a
-    developer seeded on a laptop". Both render the same digits; only this
-    component tells them apart, so it is never omitted from a surface that
-    shows numbers.
-
-    THE STATE IS NOT DECIDED HERE. NationalLotterySourceService clamped it to
-    the closed public vocabulary before it reached this file. This template
-    only maps a state string to a translation key and a CSS modifier - it
-    contains no branch that could promote FIXTURE_ONLY to anything else.
-
-    NOTHING SENSITIVE IS RENDERED. The array arrives already whitelisted: a
-    host, never a URL; a fingerprint, never a payload; no token, no user id,
-    no internal database id. Everything below goes through Blade's escaping;
-    no unescaped raw-echo tag exists anywhere in this lane.
---}}
-
 @php
-    $available = (bool) ($provenance['available'] ?? false);
+    $provenance = is_array($provenance) ? $provenance : [];
     $state = (string) ($provenance['source_state'] ?? 'UNAVAILABLE');
     $stateKey = strtolower($state);
-    $isFixture = (bool) ($provenance['is_fixture'] ?? false);
-    $isOfficial = (bool) ($provenance['is_official'] ?? false);
-
-    $modifier = match (true) {
-        $isOfficial => 'official',
-        $isFixture => 'fixture',
-        $state === 'INTERNAL_RECONCILED' => 'internal',
-        default => 'unknown',
-    };
-
-    $rows = [
-        'provider' => $provenance['provider'] ?? null,
-        'source_identifier' => $provenance['source_identifier'] ?? null,
-        'source_host' => $provenance['source_host'] ?? null,
-        'result_version' => $provenance['result_version'] ?? null,
-        'supersedes' => $provenance['supersedes_version'] ?? null,
-        'parser_version' => $provenance['parser_version'] ?? null,
-        'retrieved_at' => $provenance['retrieved_at'] ?? null,
-        'imported_at' => $provenance['imported_at'] ?? null,
-        'payload_fingerprint' => $provenance['payload_fingerprint'] ?? null,
-        'normalized_fingerprint' => $provenance['normalized_fingerprint'] ?? null,
-    ];
+    $labelKey = 'national_lottery.source_state.'.$stateKey;
 @endphp
 
-<div class="nl-source nl-source--{{ $modifier }}" data-nl-source-state="{{ $state }}">
-    <span class="nl-source__badge" role="status">
-        <span class="nl-source__dot" aria-hidden="true"></span>
-        <span class="nl-source__label">{{ trans('national_lottery.source_state.'.$stateKey) }}</span>
+@if ($compact)
+    <span class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300" data-nl-source-state="{{ $state }}">
+        <span class="h-2 w-2 rounded-full {{ ($provenance['available'] ?? false) ? 'bg-emerald-400' : 'bg-amber-400' }}" aria-hidden="true"></span>
+        <span>{{ trans($labelKey) }}</span>
     </span>
-
-    @unless ($compact)
-        <p class="nl-source__hint">{{ trans('national_lottery.source_state_hint.'.$stateKey) }}</p>
-
-        @if ($available)
-            <dl class="nl-source__facts">
-                @foreach ($rows as $key => $value)
-                    <div class="nl-source__fact">
-                        <dt class="nl-source__term">{{ trans('national_lottery.provenance.'.$key) }}</dt>
-                        <dd class="nl-source__value">
-                            @if ($value === null || $value === '')
-                                {{ trans('national_lottery.provenance.none') }}
-                            @else
-                                <span @class(['nl-source__hash' => str_ends_with($key, 'fingerprint')])>{{ $value }}</span>
-                            @endif
-                        </dd>
-                    </div>
+@else
+    <section class="rounded-2xl border border-white/10 bg-[#100D06] p-5" data-nl-source-state="{{ $state }}">
+        <h2 class="text-lg font-bold text-[#F5E6B8]">{{ trans('national_lottery.provenance_heading') }}</h2>
+        <p class="mt-2 text-sm text-gray-400">{{ trans('national_lottery.source_state_hint.'.$stateKey) }}</p>
+        @if (($provenance['available'] ?? false) === true)
+            <dl class="mt-5 grid gap-3 sm:grid-cols-2">
+                @foreach (['provider', 'source_state', 'source_identifier', 'source_host', 'parser_version', 'retrieved_at', 'imported_at', 'result_version', 'supersedes_version', 'payload_fingerprint', 'normalized_fingerprint'] as $key)
+                    @php $value = $provenance[$key] ?? null; @endphp
+                    <div class="rounded-xl border border-white/5 bg-white/[0.03] p-3"><dt class="text-xs text-gray-500">{{ trans('national_lottery.provenance.'.($key === 'supersedes_version' ? 'supersedes' : $key)) }}</dt><dd class="mt-1 break-all font-mono text-xs text-gray-200">{{ $value === null || $value === '' ? trans('national_lottery.provenance.none') : $value }}</dd></div>
                 @endforeach
             </dl>
-
-            <p class="nl-source__explainer">{{ trans('national_lottery.provenance.explainer') }}</p>
+            <p class="mt-4 text-xs leading-6 text-gray-500">{{ trans('national_lottery.provenance.explainer') }}</p>
         @endif
-    @endunless
-</div>
+    </section>
+@endif

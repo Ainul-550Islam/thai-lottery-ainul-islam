@@ -15,7 +15,7 @@
 return [
 
     // Cache buster for public-page composed data (independent of legal version).
-    'content_version' => (string) env('PUBLIC_PAGES_CONTENT_VERSION', '1'),
+    'content_version' => (string) env('PUBLIC_PAGES_CONTENT_VERSION', '3'),
 
     // Seconds public page data may be cached. Key always includes
     // language + legal version + content version.

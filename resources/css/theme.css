@@ -1,0 +1,79 @@
+/**
+ * THAILOTTO ENTERPRISE DESIGN SYSTEM — THEME TOKENS
+ *
+ * Centralizes brand theme variables: background layers, glass layers,
+ * border opacity, typography, accents, semantic feedback, and lottery highlights.
+ */
+
+:root {
+    /* Color Palette - Neutrals & Slate Bases */
+    --tl-bg-main: #020617;
+    --tl-bg-surface-1: #0f172a;
+    --tl-bg-surface-2: #1e293b;
+    --tl-bg-surface-3: #334155;
+
+    /* Text Colors */
+    --tl-text-primary: #f8fafc;
+    --tl-text-secondary: #94a3b8;
+    --tl-text-muted: #64748b;
+    --tl-text-inverted: #020617;
+
+    /* Brand & Accent */
+    --tl-brand-primary: #059669;
+    --tl-brand-primary-hover: #10b981;
+    --tl-brand-primary-light: rgba(16, 185, 129, 0.15);
+    --tl-brand-accent: #f59e0b;
+    --tl-brand-accent-hover: #d97706;
+    --tl-brand-accent-light: rgba(245, 158, 11, 0.15);
+
+    /* Semantic States */
+    --tl-success: #10b981;
+    --tl-success-bg: rgba(16, 185, 129, 0.12);
+    --tl-success-border: rgba(16, 185, 129, 0.3);
+
+    --tl-warning: #f59e0b;
+    --tl-warning-bg: rgba(245, 158, 11, 0.12);
+    --tl-warning-border: rgba(245, 158, 11, 0.3);
+
+    --tl-danger: #f43f5e;
+    --tl-danger-bg: rgba(244, 63, 94, 0.12);
+    --tl-danger-border: rgba(244, 63, 94, 0.3);
+
+    --tl-info: #0ea5e9;
+    --tl-info-bg: rgba(14, 165, 233, 0.12);
+    --tl-info-border: rgba(14, 165, 233, 0.3);
+
+    /* Glass Tokens */
+    --tl-glass-bg-subtle: rgba(15, 23, 42, 0.65);
+    --tl-glass-bg-elevated: rgba(30, 41, 59, 0.75);
+    --tl-glass-bg-high: rgba(30, 41, 59, 0.9);
+    --tl-glass-border: rgba(255, 255, 255, 0.08);
+    --tl-glass-border-focus: rgba(16, 185, 129, 0.5);
+    --tl-glass-blur: 16px;
+    --tl-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+    /* Radii */
+    --tl-radius-sm: 0.375rem;
+    --tl-radius-md: 0.5rem;
+    --tl-radius-lg: 0.75rem;
+    --tl-radius-xl: 1rem;
+    --tl-radius-2xl: 1.5rem;
+    --tl-radius-full: 9999px;
+
+    /* Depth & Shadows */
+    --tl-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --tl-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --tl-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+    --tl-shadow-3d: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+
+    /* Transitions */
+    --tl-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --tl-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --tl-transition-fast: 0ms;
+        --tl-transition-normal: 0ms;
+    }
+}

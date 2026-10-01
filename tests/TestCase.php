@@ -95,13 +95,36 @@ abstract class TestCase extends BaseTestCase
             }
         }
 
-        if (! $connection->getSchemaBuilder()->hasTable('users')
-            || ! $connection->getSchemaBuilder()->hasTable('ledger_accounts')
-            || ! $connection->getSchemaBuilder()->hasTable('glo_ticket_freezes')) {
-            $app->make(Kernel::class)->call('migrate', ['--force' => true, '--no-interaction' => true]);
-        }
+        // The database is allow-listed and disposable; run pending migrations
+        // on every application boot so additive schema corrections are never
+        // hidden by a stale SQLite file.
+        $app->make(Kernel::class)->call('migrate', ['--force' => true, '--no-interaction' => true]);
+
+        // Financial tests use the same isolated disposable database, so the
+        // chart of accounts is an explicit test prerequisite rather than an
+        // implicit production fallback. This never runs outside the guarded
+        // test database allow-list above.
+        (new \Database\Seeders\LedgerAccountSeeder())->run();
 
         self::$schemaPrepared = true;
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        (new \Database\Seeders\LedgerAccountSeeder())->run();
+    }
+
+    /**
+     * RefreshDatabase drops and rebuilds the disposable schema after the
+     * application is created; reseed only the deterministic chart prerequisite
+     * after that refresh. The allow-list remains the guard against production
+     * writes.
+     */
+    protected function afterRefreshingDatabase()
+    {
+        (new \Database\Seeders\LedgerAccountSeeder())->run();
     }
 
     /**

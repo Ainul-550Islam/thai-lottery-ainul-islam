@@ -14,6 +14,9 @@ class DrawResult extends Model
 
     protected $fillable = [
         'draw_id',
+        'winning_number',
+        'source_state',
+        'created_at',
         'first_prize',
         'second_prize',
         'third_prize',
@@ -26,10 +29,16 @@ class DrawResult extends Model
         'metadata',
     ];
 
+    public function setWinningNumberAttribute(mixed $value): void
+    {
+        $this->attributes['first_prize'] = (string) $value;
+    }
+
     protected function casts(): array
     {
         return [
             'first_prize' => 'string',
+            'source_state' => \App\Enums\GloSourceState::class,
             'second_prize' => 'array',
             'third_prize' => 'array',
             'consolation_prizes' => 'array',

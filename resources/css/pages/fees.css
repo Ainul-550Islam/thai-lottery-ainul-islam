@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Source-driven public fee schedule with readable glass tables and print support.
+ */
+@import './public-next-pages.css';
+.next-public-page--fees .next-panel { border-color: rgba(212, 175, 55, .38); }

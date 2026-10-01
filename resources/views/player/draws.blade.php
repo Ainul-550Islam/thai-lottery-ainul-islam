@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Lottery Draw Schedule & Results — Thai Lottery')
+@section('title', __('player.draws_title'))
+@section('meta_description', __('player.draws_lead'))
+@section('meta_robots', 'noindex,nofollow')
 
 @section('content')
 <div class="space-y-6">
@@ -12,7 +14,7 @@
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('player.bet') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow transition text-sm">
-                Place Bet Now
+                {{ __('player.enter_bet_slip') }}
             </a>
         </div>
     </div>
@@ -39,11 +41,11 @@
                     <div class="text-xs text-slate-400 space-y-1.5 mb-6">
                         <div class="flex justify-between">
                             <span>{{ __('player.scheduled_label') }}</span>
-                            <span class="text-slate-200 font-mono">{{ $draw->scheduled_at ? $draw->scheduled_at->format('M d, Y H:i') : 'N/A' }}</span>
+                            <span class="text-slate-200 font-mono">{{ $draw->scheduled_at?->format('M d, Y H:i') ?? __('player.not_recorded') }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span>{{ __('player.closes_label') }}</span>
-                            <span class="text-slate-200 font-mono">{{ $draw->betting_closes_at ? $draw->betting_closes_at->format('M d, Y H:i') : 'N/A' }}</span>
+                            <span class="text-slate-200 font-mono">{{ $draw->betting_close_at?->format('M d, Y H:i') ?? __('player.not_recorded') }}</span>
                         </div>
                     </div>
 
@@ -69,12 +71,12 @@
                 </div>
 
                 <a href="{{ route('player.draws.detail', $draw->id) }}" class="block w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl text-center transition">
-                    View Draw Breakdown &rarr;
+                    {{ __('player.view_draw_breakdown') }} &rarr;
                 </a>
             </div>
         @empty
             <div class="col-span-full py-12 text-center text-slate-500">
-                No lottery draws available.
+                {{ __('player.no_draws_available') }}
             </div>
         @endforelse
     </div>

@@ -22,21 +22,34 @@ use std::io::{self, Read, Write};
 
 use weekly_result_integrity::{parse_request, render_report, verify, VerificationReport};
 
+const MAX_INPUT_BYTES: usize = 64 * 1024; // 64 KB
+
 fn main() {
-    let mut input = String::new();
-
-    if io::stdin().read_to_string(&mut input).is_err() {
-        emit(r#"{"status":"REJECTED","acceptable":false,"error_code":"MALFORMED_REQUEST"}"#);
-        std::process::exit(1);
-    }
-
     // A hard ceiling on the document size. A verifier that will read an
     // unbounded stream is a memory-exhaustion target, and no legitimate
-    // Weekly payload is anywhere near this large.
-    if input.len() > 64 * 1024 {
+    // Weekly payload is anywhere near this large. Read at most 64KB + 1 byte.
+    let mut buffer = Vec::new();
+    if io::stdin()
+        .take((MAX_INPUT_BYTES + 1) as u64)
+        .read_to_end(&mut buffer)
+        .is_err()
+    {
         emit(r#"{"status":"REJECTED","acceptable":false,"error_code":"MALFORMED_REQUEST"}"#);
         std::process::exit(1);
     }
+
+    if buffer.len() > MAX_INPUT_BYTES {
+        emit(r#"{"status":"REJECTED","acceptable":false,"error_code":"DOCUMENT_TOO_LARGE"}"#);
+        std::process::exit(1);
+    }
+
+    let input = match String::from_utf8(buffer) {
+        Ok(s) => s,
+        Err(_) => {
+            emit(r#"{"status":"REJECTED","acceptable":false,"error_code":"INVALID_UTF8"}"#);
+            std::process::exit(1);
+        }
+    };
 
     let request = match parse_request(&input) {
         Ok(request) => request,

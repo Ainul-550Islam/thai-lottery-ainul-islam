@@ -78,6 +78,33 @@ final class WalletService
     }
 
     /**
+     * Resolve or create the canonical primary wallet for a user and currency.
+     */
+    public function getOrCreateWallet(int|User $user, string|Currency $currency = 'THB'): Wallet
+    {
+        $userId = $user instanceof User ? (int) $user->getKey() : (int) $user;
+        $currencyEnum = is_string($currency) ? Currency::from(strtoupper($currency)) : $currency;
+
+        return Wallet::query()->firstOrCreate(
+            [
+                'user_id' => $userId,
+                'currency' => $currencyEnum,
+                'type' => \App\Enums\WalletType::Primary,
+            ],
+            [
+                'status' => \App\Enums\WalletStatus::Active,
+                'balance' => '0.00',
+                'locked_balance' => '0.00',
+                'total_deposited' => '0.00',
+                'total_withdrawn' => '0.00',
+                'total_wagered' => '0.00',
+                'total_won' => '0.00',
+                'version' => 1,
+            ]
+        );
+    }
+
+    /**
      * Move money into a wallet, atomically and with a ledger posting.
      *
      * @param  array<string, mixed>  $options  description, metadata, reference_type,

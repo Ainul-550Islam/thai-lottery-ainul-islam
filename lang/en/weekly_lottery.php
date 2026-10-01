@@ -37,7 +37,7 @@ return [
     // ------------------------------------------------------------- Page ----
     'heading' => 'Weekly Lottery Results',
     'intro' => 'Every result below is shown together with where it came from, when it was imported and which version of the record you are reading.',
-    'not_official_notice' => 'This page presents results recorded by this platform with their source attached. It is not an official government publication, and a result is only as authoritative as the source badge shown beside it.',
+    'not_official_notice' => 'This page presents results recorded by this platform with their source attached. It is not the official GLO website or an official government publication, and a result is only as authoritative as the source badge shown beside it.',
     'skip_to_content' => 'Skip to content',
 
     'current_result_heading' => 'Latest published result',

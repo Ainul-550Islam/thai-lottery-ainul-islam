@@ -34,6 +34,9 @@ enum PrizeDisbursementStatus: string
     case Reversed = 'reversed';
     case Failed = 'failed';
 
+    // Legacy name retained as an alias for the terminal successful state.
+    public const Completed = self::Disbursed;
+
     /**
      * @return array<int, PrizeDisbursementStatus>
      */

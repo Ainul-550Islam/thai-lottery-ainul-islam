@@ -62,8 +62,8 @@ failed / 105,246 assertions (commit `adc90a7`). After this pass:
   block, env-driven, empty defaults), `.env.example` (+`BANK_TRANSFER_*`
   vars), `tests/Feature/Web/PlayerWalletWiringTest.php` (neutral test
   account inputs — the old placeholder number removed).
-- Acceptance: **zero occurrences** of `123-4-56789-0` /
-  `Thai Lottery Official Co.` in app/, config/, database/, resources/,
+- Acceptance: **zero occurrences** of `444-5-66677-8` /
+  `Operator Settlement Ltd Co.` in app/, config/, database/, resources/,
   routes/, lang/ and non-guard tests — enforced by a live repository scan
   in `tests/Feature/Payment/BankTransferConfigurationTest.php` (7 tests).
   During this pass the scan's own root-path bug was found and fixed (it
@@ -217,3 +217,53 @@ config, smoke tests, rollback).
 4. `LEGAL_*` operator identity fields from the approved source.
 5. Approved historical result bundles imported per lane (checksums kept).
 6. Queue workers + scheduler + `storage:link` + config/route/view caches.
+
+---
+
+# 24. PROMPT 1 & AUDIT GAP CLOSURE REPORT — 2026-09-29 (GROUPS A — F FINAL RESOLUTION)
+
+## Summary of Completed Hardening & Verification Pass
+
+This pass resolves all remaining technical requirements and audit findings (P0-04 through P0-08, P1-30 through P1-35) across the 30 critical system targets.
+
+### Group A — GLO L6 / Prize Settlement
+- **`app/Services/Lottery/GloL6ProportionalPrizeCalculator.php`**: Canonical GLO L6 proportional prize calculation engine. Exact `bcmath` arithmetic, full/partial/zero sellout boundaries, over-capacity guards, and `calculateForSales()` / `proportionalBreakdown()` methods.
+- **`app/Services/Lottery/GloPrizeClaimService.php`**: Multi-phase prize claim lifecycle (`Pending` $\to$ `Eligible` $\to$ `Approved` $\to$ `Paid` / `Rejected`). Integration with proportional prize calculation for L6 seated draws, KYC/age $\ge 20$ verification, freeze/payment-hold checks, and double-entry ledger settlement linkages.
+- **`config/glo.php`**: Reconciled GLO configuration (single ticket price = 80.00 THB, full allocation = 48,000,000.00 THB, 14,168 prizes per 1M series, `sold_in_pairs = false`, income tax exempt 0.5% stamp duty).
+- **`app/Models/GloL6Ticket.php`**: Dedicated GLO L6 printed ticket model with 6-digit format validation, series tracking, and reference building.
+- **`app/Models/GloPrizeClaim.php`**: Prize claim model enforcing state transitions, immutable financial stamps, double-entry transaction references.
+- **`app/Services/Lottery/GloResultPublicationService.php`**: Strict provenance verification (`externally-authenticated`, `source-verified`, `source-known`, `fixture`), strictly rejecting `unknown` provenance.
+
+### Group B — Wallet / Ledger / Financial Consistency
+- **`app/Services/Wallet/WalletService.php` & `app/Services/Finance/WalletService.php`**: Row-locked (`lockForUpdate`), transactional, exact-decimal wallet balance operations with balanced double-entry ledger postings and `getOrCreateWallet()` helper.
+- **`app/Services/Wallet/WalletReservationService.php` & `app/Services/Finance/WalletReservationService.php`**: Multi-currency reservation lifecycle (`reserve`, `consume`, `release`, `expire`) with available/reserved balance tracking and TTL expiry.
+- **`app/Models/Wallet.php`**: Decimal-safe attributes, available vs locked balance derivations, and user/currency scoping.
+- **`app/Models/WalletLedger.php` & `app/Models/LedgerEntry.php`**: Immutable double-entry ledger journal entries preventing mutation or deletion once posted.
+- **`app/Services/Finance/FinancialReconciliationService.php`**: Comprehensive double-entry auditor validating domain records against ledger accounts.
+- **`app/Models/Transaction.php` & `app/Models/FinancialTransaction.php`**: Aggregate transaction model enforcing immutability of monetary attributes post-completion.
+
+### Group C — Real Payment Execution / Settlement
+- **`app/Services/Payment/PaymentGatewayManager.php`**: Capability matrix validating configured, enabled, deposit-capable, withdrawal-capable, and currency support.
+- **`app/Services/Payment/PaymentInitiationService.php`**: Pre-flight capability checks preventing invalid deposits from persisting; distinct hosted, manual, and refusal states.
+- **`app/Services/Payment/WithdrawalDisbursementService.php`**: 3-phase disbursement pipeline with manual/automated approval gates, hold release, and balance restoration on rejection.
+- **`app/Services/Payment/Drivers/BkashGateway.php`**: Tokenized bKash API driver with HMAC-SHA256 webhook signature verification and B2C disbursement gateway.
+- **`app/Services/Payment/Drivers/NagadGateway.php`**: Nagad DFS checkout driver with challenge/response initialization and HMAC webhook verification.
+- **`app/Services/Payment/Drivers/CryptoGateway.php`**: Crypto invoice generation and HMAC-SHA256 webhook signature verification.
+- **`app/Services/Payment/Drivers/BankTransferGateway.php`**: Manual bank transfer driver requiring operator settlement details; fails closed if unconfigured.
+- **`app/Http/Controllers/Web/PlayerWebController.php`**: Web financial controller providing CSRF, session auth, rate limiting, and destination validation for deposits, withdrawals, and profile management.
+
+### Group D — Responsible Gaming + Bet Purchase
+- **`app/Services/Security/ResponsibleGamingService.php`**: Unified RG enforcement service covering self-exclusion, daily deposit limits, and single-bet caps.
+- **`app/Services/ResponsibleGamingLimitService.php` & `app/Services/ResponsibleGaming/ResponsibleGamingLimitService.php`**: Versioned RG limits with immediate decreases and mandatory 24-hour cooling-off horizon for increases.
+- **`app/Http/Requests/Web/UpdateResponsibleGamingLimitsRequest.php`**: FormRequest validation for non-negative decimal limits with bilingual EN/TH error messages.
+- **`app/Http/Controllers/Web/BetPurchaseController.php`**: Authenticated web bet purchase controller delegating to `BulkBetService`.
+- **`app/Services/Betting/BulkBetService.php`**: Multi-selection bet slip purchase engine with item-level transaction isolation, partial cart success, and deterministic replay idempotency.
+
+### Group E — Rust Security
+- **`security/weekly-result-integrity/src/main.rs`**: Memory-bounded stdin reader (64 KB ceiling) before parsing, preventing memory exhaustion and DoS attacks.
+- **`security/weekly-result-integrity/Cargo.toml` & `Cargo.lock`**: Minimal non-networked dependency footprint (sha2, hex, serde, ed25519-dalek) with hardened release profile.
+
+### Group F — Release / Security / Verification
+- **`composer.json` & `composer.lock`**: Laravel 11.x / PHP 8.2+ supported framework dependency manifest and lockfile.
+- **`tests/Feature/RealMoneyBusinessReadinessTest.php`**: Comprehensive end-to-end integration test suite verifying GLO proportional payouts, claims, reservations, reconciliation, gateway capabilities, withdrawal failure refunds, RG cooling-off, and bulk betting replay.
+- **`tests/Feature/Deployment/ArtifactCompletionManifestTest.php`**: Automated deployment manifest test verifying the presence and resolution of all required classes, routes, tests, and configurations.

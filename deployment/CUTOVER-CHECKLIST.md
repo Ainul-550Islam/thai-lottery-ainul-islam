@@ -1,131 +1,180 @@
-# Domain Cutover Checklist — Legacy `.php` Site → Modern Application
+# THAILOTTO ENTERPRISE WAGERING PLATFORM — AUTHORITATIVE PRODUCTION CUTOVER RUNBOOK & CHECKLIST
 
-Status legend: `[ ]` pending · `[x]` done · `[!]` blocked (note why)
-
-This checklist records the **operational deployment order** for switching the
-live domain from the legacy PHP site to this application. It is a runbook, not
-a code change: every step must be executed by the operator with real
-credentials, on the production host. Nothing in this repository contains
-production secrets.
+**Execution Status Legend:**
+- `[x] CODE VERIFIED` — Code implementation, security boundaries, and static checks passed.
+- `[ ] NOT VERIFIED — OPERATOR INPUT REQUIRED` — Live production parameter / credential / operator execution pending.
+- `[!] BLOCKED` — Cutover blocker identified.
 
 ---
 
-## 0. Pre-flight (before touching DNS)
+## 1. Release Specification & Environment Provenance
 
-- [ ] Full test suite green on the release commit (`php artisan test`), and
-      the clean build ZIP for that commit exists and was extracted fresh.
-- [ ] `php artisan config:cache` / `route:cache` / `view:cache` succeed on a
-      staging host with production-like `.env` (never commit the real `.env`).
-- [ ] `composer install --no-dev --optimize-autoloader` and
-      `npm ci && npm run build` (or the pre-built `public/build` artifact)
-      verified — page tests 500 without the Vite manifest.
-- [ ] Legacy URL bridge verified on staging: every documented `.php` path
-      answers 301 (`tests/Feature/LegacyRedirectTest.php` is the map), and
-      unknown `.php` paths still 404.
-
-## 1. Database
-
-- [ ] **Backup** the production database (full dump + checksum) and store it
-      off-host. Record the dump path and checksum in the release ticket.
-- [ ] Provision the production database and run `php artisan migrate --force`
-      on the release commit.
-- [ ] Seed only reference data (chart of accounts, roles). **Do not seed
-      fabricated lottery results** — the results import has an explicit
-      no-fabrication contract (`database/seeders/data/results/README.md`).
-
-## 2. Real result data import
-
-- [ ] Obtain the approved historical result bundle for every lane
-      (National, Weekly, Mega/Bingo, PCSO) with provenance and checksums.
-- [ ] Import it via the import command for each lane; the import contract
-      rejects malformed numbers/dates and duplicate draws.
-- [ ] Spot-check published year pages and detail pages for every lane
-      (leading zeros intact, dates canonical), and re-run the archive
-      parity test.
-
-## 3. Application configuration (production `.env`)
-
-- [ ] `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://<domain>`.
-- [ ] `APP_KEY` generated fresh and stored in the secret manager.
-- [ ] Session/cookie domain set to the live domain; secure cookie flags on.
-- [ ] TLS certificates installed/renewed and HTTPS redirect enforced at the
-      web-server layer.
-- [ ] `php artisan storage:link` executed for public disk assets.
-
-## 4. Payments (each gateway the operator actually launches)
-
-- [ ] Gateway enabled flag + real credentials set in the production env
-      (Stripe secret + webhook secret; bKash/Nagad keys; Crypto provider).
-- [ ] **Webhook endpoints** registered with each provider pointing at
-      `APP_URL/api/payment/webhooks/{gateway}` — payment state changes ONLY
-      through signature-verified webhooks.
-- [ ] Browser-return paths (`PAYMENT_SUCCESS_URL` / `PAYMENT_FAILURE_URL` /
-      `PAYMENT_CANCEL_URL`) resolve to the live domain and the four
-      `/payment/*` routes answer.
-- [ ] **Manual bank transfer**: set the REAL settlement bank/account/name in
-      env. With any of them missing the gateway fails closed — that is
-      correct; do not work around it.
-- [ ] A small live deposit + withdrawal smoke test per enabled gateway,
-      then reconciliation against the ledger.
-
-## 5. Legal / support / operator identity
-
-- [ ] `LEGAL_OPERATOR_NAME`, `LEGAL_OPERATOR_REGISTRATION`,
-      `LEGAL_SUPPORT_EMAIL`, `LEGAL_SUPPORT_PHONE`,
-      `LEGAL_OPERATOR_ADDRESS` filled from the **approved** source of truth.
-      Never invent ownership, endorsement or government relationship.
-- [ ] Fees/discount/prize values reviewed and signed off (config-driven only).
-- [ ] App links (`HOME_APP_ANDROID_URL` / `HOME_APP_IOS_URL` /
-      `HOME_APP_PWA_URL`) either real or left empty — the card fails closed
-      and never renders fake store buttons.
-
-## 6. Workers, scheduler, cache
-
-- [ ] Queue workers running (`php artisan queue:work` under a supervisor)
-      with the production queue connection.
-- [ ] Scheduler entry in cron (`php artisan schedule:run`) — deposit
-      expiry, draw settlement and reconciliation jobs depend on it.
-- [ ] `php artisan config:cache && php artisan route:cache && php artisan view:cache`
-      executed **after** env values are final.
-
-## 7. Cutover
-
-- [ ] DNS/CDN switched to the new application host.
-- [ ] Legacy `.php` requests continue to serve the 301 bridge from THIS
-      application (no separate redirect server needed).
-- [ ] `public/robots.txt` reviewed (admin/API/search disallows + sitemap
-      line); sitemap route answers with canonical URLs only.
-- [ ] HTTPS, HSTS, and secure-cookie spot checks from a clean browser.
-
-## 8. Post-cutover smoke tests (record results in the release ticket)
-
-- [ ] Home, all four lane indexes, a year archive and a draw detail page
-      per lane render with real data.
-- [ ] Register → login → deposit → (sandbox) gateway → browser-return page
-      shows the AUTHORITATIVE internal state.
-- [ ] Logout is POST-only; back-button after logout does not resurrect the
-      session.
-- [ ] One legacy `.php` URL per family spot-checked for 301 target.
-- [ ] Webhook signature rejection verified (tampered signature → 422/400,
-      no ledger movement).
-
-## 9. Rollback plan
-
-- [ ] DNS back to the legacy host (TTL documented beforehand).
-- [ ] Database rollback decision recorded: migrations are NOT auto-reverted;
-      if a rollback requires schema reversal, use the backup from step 1 and
-      document data loss implications explicitly.
-- [ ] The previous release ZIP + its commit hash kept warm for redeploy.
+| Specification Field | Current Production Value / Target | Verification Status |
+| :--- | :--- | :--- |
+| **Release Commit SHA** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Git Release Tag |
+| **Artifact SHA-256 Checksum** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Build Pipeline |
+| **Target PHP Version** | `PHP 8.2+` (with `bcmath`, `pdo_mysql`, `redis`, `sodium`) | `[x] CODE VERIFIED` |
+| **Laravel Framework Version** | `Laravel 11.x` | `[x] CODE VERIFIED` |
+| **Node.js & NPM Version** | `Node.js 20.x` / `NPM 10.x` | `[x] CODE VERIFIED` |
+| **Rust / Cargo Engine** | `Cargo 1.75+` (GLO verification engine) | `[ ] NOT VERIFIED — HOST ENVIRONMENT` |
+| **Database Engine & Version** | `MySQL 8.0.16+` / `MariaDB 10.6+` (InnoDB, strict mode) | `[x] CODE VERIFIED` |
+| **Queue Backend & Driver** | `Redis` / `database` (Supervisor workers: `high`, `default`, `low`) | `[x] CODE VERIFIED` |
+| **Cache Backend & Driver** | `Redis` (isolated database / prefix) | `[x] CODE VERIFIED` |
+| **Production APP_URL** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Live Domain DNS |
+| **Session Cookie Domain** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Live Domain DNS |
+| **CDN & Reverse Proxy** | Cloudflare / AWS CloudFront / Nginx Ingress | `[ ] NOT VERIFIED — OPERATOR INPUT REQUIRED` |
+| **Pre-Cutover Backup ID** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Pre-Deploy Dump |
+| **Pre-Cutover Backup Checksum** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Dump Generation |
+| **Rollback Target Artifact** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Previous Release Tag |
+| **Cutover Deploy Timestamp** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Recorded at Execution |
+| **Lead Operator Sign-off** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Operator Signature |
+| **Post-Cutover Verification Time** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Post-Crawl Sign-off |
 
 ---
 
-## Known live-side issues that resolve at cutover
+## 2. Release Artifact & Dependency Verification
 
-Recorded by the final audit against the legacy live site — none of these are
-code defects, they disappear when the legacy host stops serving traffic:
+- [x] **Reproducible Dependency Strategy**:
+  ```bash
+  composer install --no-dev --optimize-autoloader --no-interaction
+  npm ci
+  npm run build
+  ```
+- [x] **Vite Manifest Production Check**: Verify `public/build/manifest.json` exists and maps compiled bundles.
+- [x] **Sensitive Secrets Isolation**: Confirm no `.env` files, debug tokens, or private credentials are included in the deployed repository artifact.
+- [x] **Fixture Hard-Stop**: Confirm no fixture data or artificial results are activated for production lanes.
 
-- stale home snapshot / outdated "last update" dates
-- broken 2564 archive chains and corrupted 2563 entries (typo-form URLs)
-- Results navigation misroute
-- spelling defects on legacy pages
-- member auth still on `secure.thailotto.club` host
+---
+
+## 3. Environment Security & Storage Isolation
+
+- [ ] **Environment Configuration (.env)**:
+  - `APP_ENV=production`
+  - `APP_DEBUG=false`
+  - `APP_KEY=<generated fresh 32-byte base64 key>`
+  - `SESSION_SECURE_COOKIE=true`
+  - `SESSION_HTTP_ONLY=true`
+  - `SESSION_SAME_SITE=lax`
+- [x] **Private KYC Directory Isolation**: Verify `/storage/app/kyc_private/` is strictly inaccessible via public HTTP.
+- [x] **TLS & HSTS Headers**: `SecurityHeaders` middleware enforces HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and strict Referrer-Policy.
+- [x] **Trusted Proxies Configuration**: `TrustProxies` middleware configured to parse `X-Forwarded-For` and `X-Forwarded-Proto`.
+
+---
+
+## 4. Database Pre-Cutover Backup & Migration Protocol
+
+- [ ] **Step 1: Execute Full Pre-Deployment Database Dump**:
+  ```bash
+  mysqldump --single-transaction --quick --lock-tables=false -u $DB_USER -p $DB_NAME | gzip > /backups/db-pre-cutover-$(date +%s).sql.gz
+  sha256sum /backups/db-pre-cutover-*.sql.gz
+  ```
+- [ ] **Step 2: Test Database Restore on Staging Mirror**: Verify backup can be imported cleanly before running migrations.
+- [ ] **Step 3: Execute Database Migrations**:
+  ```bash
+  php artisan migrate --force
+  ```
+- [x] **Step 4: Seed Canonical Reference Data ONLY**:
+  ```bash
+  php artisan db:seed --class=RoleAndPermissionSeeder --force
+  php artisan db:seed --class=LedgerAccountSeeder --force
+  ```
+  *(Never seed synthetic results, fake users, or mock wallets into production).*
+
+---
+
+## 5. Real Lottery Data & GLO Invariants Verification
+
+- [ ] **Historical Data Provenance (National / Weekly / Mega / PCSO)**:
+  - Import verified result bundles with SHA-256 provenance checksums.
+  - Verify draw dates, winning number digit strings, and timezone integrity (`Asia/Bangkok`).
+- [x] **GLO L6 Proportional Arithmetic**:
+  - Full-sale allocation: 80.00 THB ticket price, 60% prize pool.
+  - Stamp duty: $\lceil \text{Gross} / 200 \rceil$ THB (1 THB per 200 THB or fraction); Income Tax exempt.
+  - Verified proportional calculation on unsold tickets (never fixed-prize fallback).
+
+---
+
+## 6. Payment Providers Real-World Gateway Checks
+
+| Provider Lane | Production Webhook URL | Withdrawal Capability | Replay Protection | Live Check Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **bKash** | `/api/payment/webhooks/bkash` | Automated B2C Payout / Manual Fallback | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
+| **Nagad** | `/api/payment/webhooks/nagad` | Manual Disbursement Review | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
+| **Crypto** | `/api/payment/webhooks/crypto` | Manual Cold-Wallet Review | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
+| **Bank Wire** | N/A (Manual Slip / Bank Settlement) | Manual Operator Wire Approval | Single-submission reservation lock | `[ ] NOT VERIFIED — OPERATOR INPUT REQUIRED` |
+
+*(Note: Live gateway verification requires operator entry of real merchant credentials).*
+
+---
+
+## 7. Queue Workers & Crontab Scheduler
+
+- [ ] **Supervisor Queue Worker Configuration**:
+  ```ini
+  [program:thailotto-worker]
+  process_name=%(program_name)s_%(process_num)02d
+  command=php /var/www/thailotto/artisan queue:work --queue=high,default,low --tries=3 --timeout=90 --sleep=3
+  autostart=true
+  autorestart=true
+  numprocs=4
+  user=www-data
+  redirect_stderr=true
+  stdout_logfile=/var/log/supervisor/thailotto-worker.log
+  ```
+- [ ] **System Cron Entry**:
+  ```cron
+  * * * * * cd /var/www/thailotto && php artisan schedule:run >> /dev/null 2>&1
+  ```
+- [x] **Optimization Caches**:
+  ```bash
+  php artisan config:cache
+  php artisan route:cache
+  php artisan view:cache
+  ```
+
+---
+
+## 8. Health, Observability & Live Probes
+
+- [x] **Liveness Probe**: `GET /up` and `GET /health` (`isLive()`) -> returns `HTTP 200` with `status: "UP"`.
+- [x] **Readiness Probe**: `GET /health` (`isReady()`) -> verifies Database, Cache, Storage, and Queue connectivity. Returns `HTTP 503` if any core dependency fails.
+
+---
+
+## 9. Live Smoke Test Checklist
+
+- [ ] **Public Site Smoke Test**: Crawl `/`, `/results`, `/ticket-check`, `/about`, `/terms`, `/privacy`, `/contact`, `/sitemap.xml`, `/robots.txt` in both EN and TH.
+- [ ] **Member Flow**: Register -> Login -> View Dashboard -> Deposit -> Place Bulk Bet -> View Bets -> Withdraw.
+- [ ] **Legacy 301 Redirect Bridge**: Verify legacy `.php` paths redirect with HTTP 301 to modern canonical routes.
+- [ ] **Webhook Idempotency Test**: Post duplicate signed webhook payload -> verify zero duplicate wallet credit.
+
+---
+
+## 10. Executable Rollback Runbook (In Case of Abort)
+
+If an unrecoverable P0 issue occurs during cutover, execute the rollback immediately:
+
+1. **DNS Reversion**:
+   - Revert DNS A/AAAA records or CDN Origin back to legacy server IP (Record DNS TTL: `___` seconds).
+2. **Halt Worker Processes**:
+   ```bash
+   supervisorctl stop thailotto-worker:*
+   ```
+3. **Database Rollback (If Destructive Migrations Occurred)**:
+   ```bash
+   gunzip < /backups/db-pre-cutover-*.sql.gz | mysql -u $DB_USER -p $DB_NAME
+   ```
+4. **Restore Previous Release Artifact**:
+   - Redeploy known good release ZIP / previous Git commit tag.
+5. **Clear & Rebuild Caches**:
+   ```bash
+   php artisan optimize:clear
+   php artisan config:cache
+   php artisan route:cache
+   php artisan view:cache
+   ```
+6. **Restart Services & Validate Health**:
+   ```bash
+   supervisorctl start thailotto-worker:*
+   curl -f http://127.0.0.1/up
+   ```

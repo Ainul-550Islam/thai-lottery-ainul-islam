@@ -102,7 +102,7 @@ return new class extends Migration
             // are the orderings the public surface uses. Both carry the time,
             // because within a date the time is what orders the draws.
             $table->index(['draw_year', 'draw_date', 'draw_time_local']);
-            $table->index(['publication_status', 'draw_date', 'draw_time_local']);
+            $table->index(['publication_status', 'draw_date', 'draw_time_local'], 'pcso_draws_status_date_time_index');
         });
     }
 

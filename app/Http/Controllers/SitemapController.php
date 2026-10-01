@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\DrawPublicationStatus;
 use App\Models\BingoLotteryDraw;
 use App\Models\NationalLotteryDraw;
 use App\Models\PcsoLotteryDraw;
@@ -12,15 +13,15 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 
 /**
- * XML SITEMAP (FINAL AUDIT #15).
+ * XML SITEMAP (FINAL AUDIT #15 & P1-29).
  *
  * Canonical public URLs only:
  *  - the static public pages and the four lane indexes;
- *  - the year archives the lane navigation itself publishes;
- *  - the draw detail pages that exist in the database.
+ *  - the year archives the lane navigation itself publishes (only years with published draws);
+ *  - the publicly live draw detail pages that exist in the database.
  *
  * Deliberately EXCLUDED: authentication, dashboard/wallet/player pages,
- * admin, API, the public search FORM endpoints (query-dependent), the
+ * admin, API, unpublished/hidden draw rows, the public search FORM endpoints (query-dependent), the
  * browser payment-return pages (per-user, no standalone content), and every
  * legacy `.php` URL — the bridge answers them with 301s, and sitemaps must
  * not canonise duplicates.
@@ -51,6 +52,12 @@ final class SitemapController
             ];
         }
 
+        $now = now()->toDateString();
+        $liveStates = [
+            DrawPublicationStatus::Published->value,
+            DrawPublicationStatus::RePublished->value,
+        ];
+
         foreach (self::LANE_DRAW_MODELS as [$model, $prefix]) {
             // Lane index.
             $entries[] = [
@@ -59,8 +66,10 @@ final class SitemapController
                 'priority' => '0.9',
             ];
 
-            // Year archives: only years that actually have draws.
+            // Year archives: only years that actually have publicly published draws.
             $years = $model::query()
+                ->whereIn('publication_status', $liveStates)
+                ->where('draw_date', '<=', $now)
                 ->distinct()
                 ->orderBy('draw_year')
                 ->pluck('draw_year');
@@ -73,8 +82,10 @@ final class SitemapController
                 ];
             }
 
-            // Draw detail pages.
+            // Draw detail pages: only publicly live draws.
             $model::query()
+                ->whereIn('publication_status', $liveStates)
+                ->where('draw_date', '<=', $now)
                 ->orderBy('draw_date')
                 ->chunk(500, function ($draws) use (&$entries, $prefix): void {
                     foreach ($draws as $draw) {
@@ -103,6 +114,7 @@ final class SitemapController
     {
         return [
             'home',
+            'lotteries.index',
             'results.index',
             'ticket-check',
             'sales-points',

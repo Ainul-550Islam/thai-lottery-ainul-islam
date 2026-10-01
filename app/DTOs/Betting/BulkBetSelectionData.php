@@ -16,11 +16,25 @@ namespace App\DTOs\Betting;
  */
 final readonly class BulkBetSelectionData
 {
+    public readonly string $marketKey;
+
+    public readonly string $number;
+
+    public readonly string $stake;
+
     public function __construct(
-        public string $marketKey,
-        public string $number,
-        public string $stake,
+        string $marketKey = '',
+        string $number = '',
+        string $stake = '',
+        ?string $market = null,
+        ?string $potentialPayout = null,
     ) {
+        // `potentialPayout` is deliberately accepted only as a discarded
+        // legacy input: payout authority remains server-side in the purchase
+        // pipeline and is never taken from the client/test payload.
+        $this->marketKey = $marketKey !== '' ? $marketKey : (string) ($market ?? '');
+        $this->number = $number;
+        $this->stake = $stake;
     }
 
     /**

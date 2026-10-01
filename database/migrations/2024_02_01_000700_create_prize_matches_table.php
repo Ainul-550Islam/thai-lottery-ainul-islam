@@ -24,7 +24,7 @@ return new class () extends Migration
 
             $table->foreignId('draw_id')->constrained()->restrictOnDelete();
             $table->foreignId('bet_id')->constrained()->restrictOnDelete();
-            $table->foreignId('ticket_id')->nullable()->constrained()->nullOnDelete()->index();
+            $table->foreignId('ticket_id')->nullable()->constrained()->nullOnDelete();
 
             $table->string('prize_tier', 32);
             $table->decimal('matched_amount', 20, 2);

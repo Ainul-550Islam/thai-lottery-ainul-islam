@@ -23,6 +23,9 @@ enum KycDocumentType: string
     case Selfie = 'selfie';
     case Other = 'other';
 
+    public const NATIONAL_ID = self::NationalId;
+    public const PASSPORT = self::Passport;
+
     public function label(): string
     {
         return match ($this) {

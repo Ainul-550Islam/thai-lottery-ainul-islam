@@ -1,0 +1,36 @@
+{
+  "commands": [
+    {
+      "command": [
+        "redis-cli",
+        "--version"
+      ],
+      "domain": "redis",
+      "exit_code": null,
+      "label": "redis version",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 472,
+      "reason": "redis-cli executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "redis-cli",
+        "ping"
+      ],
+      "domain": "redis",
+      "exit_code": null,
+      "label": "redis ping",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 472,
+      "reason": "redis-cli executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    }
+  ],
+  "observed_at_utc": "2026-09-30T14:37:11+00:00",
+  "page": 472,
+  "runtime_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "source": "runtime/pages-451-550-command-results.json",
+  "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "type": "page_472_redis_evidence"
+}

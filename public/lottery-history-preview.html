@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery Wager History &amp; Bet Slips | ThaiLotto Club</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --lh-bg-page: #0b0f17;
+            --lh-bg-header: #0f1522;
+            --lh-bg-card: #131b29;
+            --lh-bg-card-sub: #172233;
+            --lh-border-main: #1f2b3e;
+            --lh-gold-main: #f59e0b;
+            --lh-green-main: #10b981;
+            --lh-red-main: #ef4444;
+        }
+        body {
+            background-color: var(--lh-bg-page);
+            color: #f1f5f9;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .lh-header {
+            background-color: var(--lh-bg-header);
+            border-bottom: 1px solid var(--lh-border-main);
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+        .lh-container {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+        .lh-filter-pill {
+            background-color: var(--lh-bg-card-sub);
+            border: 1px solid var(--lh-border-main);
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .lh-filter-pill.active {
+            background-color: rgba(245, 158, 11, 0.15);
+            border-color: var(--lh-gold-main);
+            color: var(--lh-gold-main);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+        }
+        .lh-num-badge {
+            background: #080c14;
+            border: 1px solid var(--lh-border-main);
+            color: var(--lh-gold-main);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875rem;
+            font-weight: 900;
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header class="lh-header">
+        <a href="#history" class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+                🪷
+            </div>
+            <div>
+                <div class="text-base font-black text-white tracking-wide">THAILOTTO.CLUB</div>
+                <div class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Wager History &amp; Slips</div>
+            </div>
+        </a>
+
+        <div class="flex items-center gap-6">
+            <div class="bg-[#08121a] border border-amber-500/40 rounded-full px-4 py-1.5 text-xs font-bold text-amber-400">
+                Member: <span class="font-black text-white">Alex Thompson</span>
+                <span class="text-slate-500 font-normal">(TL-894120)</span>
+            </div>
+            <a href="/dashboard" class="text-slate-400 hover:text-white text-xs font-bold transition">
+                Back to Dashboard →
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="lh-container">
+        <!-- STATS OVERVIEW -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-5 shadow-xl">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Wagers</span>
+                <span class="text-2xl font-black font-mono text-white">148 <span class="text-xs font-normal text-slate-400">Slips</span></span>
+                <span class="text-[11px] text-slate-500 block mt-1">Across 6 lottery markets</span>
+            </div>
+            <div class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-5 shadow-xl">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Turnover</span>
+                <span class="text-2xl font-black font-mono text-amber-400">45,200.00 THB</span>
+                <span class="text-[11px] text-slate-500 block mt-1">Lifetime bet stakes</span>
+            </div>
+            <div class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-5 shadow-xl">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Prize Wins</span>
+                <span class="text-2xl font-black font-mono text-emerald-400">94,800.00 THB</span>
+                <span class="text-[11px] text-emerald-500/80 block mt-1">Win Rate 32.4%</span>
+            </div>
+            <div class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-5 shadow-xl">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1">Pending Slips</span>
+                <span class="text-2xl font-black font-mono text-amber-300">3 Slips</span>
+                <span class="text-[11px] text-amber-500/80 block mt-1">Next draw today 15:30</span>
+            </div>
+        </section>
+
+        <!-- FILTER PANEL -->
+        <section class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+            <div class="flex items-center gap-2 flex-wrap border-b border-[#1f2b3e] pb-4">
+                <button type="button" class="lh-filter-pill active" onclick="filterSlips('all', this)">All Slips (ทั้งหมด)</button>
+                <button type="button" class="lh-filter-pill" onclick="filterSlips('pending', this)">Pending Draw (รอผลสลาก)</button>
+                <button type="button" class="lh-filter-pill" onclick="filterSlips('won', this)">Won Prize (ถูกรางวัล)</button>
+                <button type="button" class="lh-filter-pill" onclick="filterSlips('lost', this)">Not Won (ไม่ถูกรางวัล)</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                <input
+                    type="text"
+                    placeholder="Search Slip ID (TL-BET...) or Number..."
+                    class="bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-2.5 text-xs text-white outline-none"
+                >
+                <select class="bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-2.5 text-xs text-white outline-none">
+                    <option>All Lottery Markets</option>
+                    <option>Thai Government Lottery</option>
+                    <option>Lao Star Lottery</option>
+                    <option>Hanoi VIP Lottery</option>
+                </select>
+                <select class="bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-2.5 text-xs text-white outline-none">
+                    <option>All Draw Dates</option>
+                    <option>1 October 2026</option>
+                    <option>16 September 2026</option>
+                </select>
+                <button type="button" class="bg-[#172233] hover:bg-[#1e2c42] border border-amber-500 text-amber-400 font-bold text-xs py-2.5 px-4 rounded-xl transition">
+                    🔄 Refresh
+                </button>
+            </div>
+        </section>
+
+        <!-- SLIPS LIST -->
+        <section class="flex flex-col gap-4">
+            <!-- SLIP 1: PENDING -->
+            <div class="slip-item bg-[#131b29] border border-[#1f2b3e] border-l-4 border-l-amber-500 rounded-2xl p-6 shadow-xl flex flex-col gap-4" data-status="pending">
+                <div class="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-[#1f2b3e]">
+                    <div class="flex items-center gap-3">
+                        <span class="font-mono text-sm font-black text-white">TL-BET-20261001-90412</span>
+                        <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border bg-amber-500/15 border-amber-500 text-amber-400">
+                            Pending Draw (รอผลสลาก)
+                        </span>
+                    </div>
+                    <div class="text-xs text-slate-400 font-mono">
+                        Draw Date: <span class="font-bold text-white">2026-10-01 (15:30:00)</span>
+                    </div>
+                </div>
+
+                <div class="text-xs font-bold text-amber-400">Thai Government Lottery (สลากกินแบ่งรัฐบาล)</div>
+
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-[#1f2b3e] text-slate-400 text-[10px] uppercase">
+                            <th class="py-2">Play Type</th>
+                            <th class="py-2">Number</th>
+                            <th class="py-2">Stake</th>
+                            <th class="py-2">Odds</th>
+                            <th class="py-2">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-[#1f2b3e]/40">
+                            <td class="py-2.5 font-bold text-white">3 Digits Top (3 ตัวบน)</td>
+                            <td class="py-2.5"><span class="lh-num-badge">729</span></td>
+                            <td class="py-2.5 font-mono">50.00 ฿</td>
+                            <td class="py-2.5 font-mono text-amber-400">x900.0</td>
+                            <td class="py-2.5 font-mono text-amber-400 font-bold">Pending</td>
+                        </tr>
+                        <tr class="border-b border-[#1f2b3e]/40">
+                            <td class="py-2.5 font-bold text-white">2 Digits Top (2 ตัวบน)</td>
+                            <td class="py-2.5"><span class="lh-num-badge">29</span></td>
+                            <td class="py-2.5 font-mono">250.00 ฿</td>
+                            <td class="py-2.5 font-mono text-amber-400">x95.0</td>
+                            <td class="py-2.5 font-mono text-amber-400 font-bold">Pending</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="flex items-center justify-between flex-wrap gap-4 pt-2">
+                    <div class="flex items-center gap-6 text-xs font-mono">
+                        <div>Total Stake: <span class="font-bold text-white">600.00 THB</span></div>
+                        <div>Total Payout: <span class="font-bold text-slate-400">0.00 THB</span></div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="alert('Slip cancelled.');" class="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/40 text-rose-400 text-xs font-bold px-3 py-1.5 rounded-xl transition">
+                            Cancel Slip
+                        </button>
+                        <button type="button" onclick="alert('Items added to bet slip.');" class="bg-[#172233] hover:bg-[#1e2c42] border border-[#1f2b3e] text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
+                            🔁 Re-Bet
+                        </button>
+                        <button type="button" onclick="document.getElementById('modal').style.display='flex';" class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-xs font-black px-4 py-1.5 rounded-xl shadow-[0_0_12px_rgba(245,158,11,0.3)] transition">
+                            View Official Slip
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIP 2: WON -->
+            <div class="slip-item bg-[#131b29] border border-[#1f2b3e] border-l-4 border-l-emerald-500 rounded-2xl p-6 shadow-xl flex flex-col gap-4" data-status="won">
+                <div class="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-[#1f2b3e]">
+                    <div class="flex items-center gap-3">
+                        <span class="font-mono text-sm font-black text-white">TL-BET-20260916-88192</span>
+                        <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border bg-emerald-500/15 border-emerald-500 text-emerald-400">
+                            Won Prize (ถูกรางวัล)
+                        </span>
+                    </div>
+                    <div class="text-xs text-slate-400 font-mono">
+                        Draw Date: <span class="font-bold text-white">2026-09-16 (15:30:00)</span>
+                    </div>
+                </div>
+
+                <div class="text-xs font-bold text-amber-400">Thai Government Lottery (สลากกินแบ่งรัฐบาล)</div>
+
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-[#1f2b3e] text-slate-400 text-[10px] uppercase">
+                            <th class="py-2">Play Type</th>
+                            <th class="py-2">Number</th>
+                            <th class="py-2">Stake</th>
+                            <th class="py-2">Odds</th>
+                            <th class="py-2">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-[#1f2b3e]/40">
+                            <td class="py-2.5 font-bold text-white">3 Digits Top (3 ตัวบน)</td>
+                            <td class="py-2.5"><span class="lh-num-badge">948</span></td>
+                            <td class="py-2.5 font-mono">100.00 ฿</td>
+                            <td class="py-2.5 font-mono text-amber-400">x900.0</td>
+                            <td class="py-2.5 font-mono text-emerald-400 font-bold">+90,000.00 ฿</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="flex items-center justify-between flex-wrap gap-4 pt-2">
+                    <div class="flex items-center gap-6 text-xs font-mono">
+                        <div>Total Stake: <span class="font-bold text-white">800.00 THB</span></div>
+                        <div>Total Payout: <span class="font-bold text-emerald-400">94,800.00 THB</span></div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="alert('Items added to bet slip.');" class="bg-[#172233] hover:bg-[#1e2c42] border border-[#1f2b3e] text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
+                            🔁 Re-Bet
+                        </button>
+                        <button type="button" onclick="document.getElementById('modal').style.display='flex';" class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-xs font-black px-4 py-1.5 rounded-xl shadow-[0_0_12px_rgba(245,158,11,0.3)] transition">
+                            View Official Slip
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL -->
+    <div id="modal" style="display: none;" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-[#1f2b3e] pb-3">
+                <h3 class="font-black text-white text-base">Official Lottery Slip</h3>
+                <button type="button" onclick="document.getElementById('modal').style.display='none';" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+            </div>
+            <div class="bg-[#0c121d] p-4 rounded-xl border border-[#1f2b3e] text-xs space-y-2">
+                <div class="flex justify-between"><span class="text-slate-400">Security Signature</span><span class="font-mono text-emerald-400 font-bold">VERIFIED</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Timestamp</span><span class="font-mono text-white">2026-09-30 11:24:08 UTC</span></div>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="window.print()" class="bg-[#172233] border border-[#1f2b3e] text-white text-xs font-bold px-4 py-2 rounded-xl">🖨 Print</button>
+                <button type="button" onclick="document.getElementById('modal').style.display='none';" class="bg-amber-500 text-slate-950 text-xs font-black px-4 py-2 rounded-xl">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function filterSlips(status, btn) {
+            document.querySelectorAll('.lh-filter-pill').forEach(function(p){ p.classList.remove('active'); });
+            btn.classList.add('active');
+            document.querySelectorAll('.slip-item').forEach(function(item) {
+                if (status === 'all' || item.getAttribute('data-status') === status) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

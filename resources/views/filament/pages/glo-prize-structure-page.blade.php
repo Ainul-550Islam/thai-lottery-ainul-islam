@@ -65,7 +65,7 @@
                 <dl class="mt-3 space-y-2 text-sm">
                     <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Claim window</dt><dd class="font-mono">{{ $claim['window_years'] ?? 2 }} years</dd></div>
                     <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Bank cash limit</dt><dd class="font-mono">{{ $claim['bank_cash_limit'] ?? '20000.00' }} THB</dd></div>
-                    <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Withholding tax</dt><dd class="font-mono">{{ ($claim['withholding_tax_rate'] ?? 0.005) * 100 }}%</dd></div>
+                    <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Stamp duty</dt><dd class="font-mono">1 THB / 200 THB</dd></div>
                     <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Requires original ticket</dt><dd>{{ !empty($claim['require_original_ticket']) ? 'Yes' : 'No' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Requires ID</dt><dd>{{ !empty($claim['require_id']) ? 'Yes' : 'No' }}</dd></div>
                 </dl>
@@ -75,8 +75,8 @@
                 <h3 class="text-base font-semibold text-gray-950 dark:text-white">Physical Ticket Rules</h3>
                 <dl class="mt-3 space-y-2 text-sm">
                     <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Digits</dt><dd class="font-mono">{{ $ticket['digits'] ?? 6 }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Sold in pairs</dt><dd>{{ !empty($ticket['sold_in_pairs']) ? 'Yes' : 'No' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Pair/set value</dt><dd class="font-mono">{{ $ticket['pair_set_value'] ?? '120.00' }} THB</dd></div>
+                    <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Format</dt><dd>Single Ticket (L6)</dd></div>
+                    <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Ticket Price</dt><dd class="font-mono">{{ $ticket['ticket_price'] ?? $ticket['price'] ?? config('glo.l6.ticket_price', '80.00') }} THB</dd></div>
                     <div class="flex justify-between"><dt class="text-gray-500 dark:text-gray-400">Venue</dt><dd>{{ $calendar['venue'] ?? 'GLO Headquarters, Bangkok' }}</dd></div>
                 </dl>
             </div>

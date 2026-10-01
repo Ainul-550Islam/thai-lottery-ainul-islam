@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Prize verification guide and safe checker result states.
+ */
+@import './public-next-pages.css';
+.next-public-page--prize .next-panel { border-color: rgba(85, 213, 154, .3); }

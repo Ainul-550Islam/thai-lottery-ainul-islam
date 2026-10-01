@@ -62,7 +62,9 @@ final class AccountVerificationService
             : null;
 
         return [
-            'account_number' => (string) $user->id,
+            // The internal numeric user key is never an account number and is
+            // not exposed on an owner-facing page.
+            'account_number' => null,
             'name' => (string) $user->name,
             'email' => (string) $user->email,
             'join_date' => $joined,
@@ -206,8 +208,62 @@ final class AccountVerificationService
             ->latest('id')
             ->limit(20)
             ->get()
-            ->map(fn (AccountVerificationDocument $doc): array => $doc->toPublicArray())
+            ->map(fn (AccountVerificationDocument $doc): array => [
+                ...$doc->toPublicArray(),
+                'download_token' => $this->documentDownloadToken($user, $doc),
+            ])
             ->all();
+    }
+
+    /**
+     * Resolve an owner-scoped document from its opaque download token.
+     * The token contains no database key; ownership is still checked by
+     * the query before the private storage service is called.
+     */
+    public function documentForDownload(User $user, string $token): ?AccountVerificationDocument
+    {
+        if (! preg_match('/^[a-f0-9]{64}$/', $token)) {
+            return null;
+        }
+
+        foreach (AccountVerificationDocument::query()
+            ->where('user_id', $user->id)
+            ->get() as $document) {
+            if (hash_equals($this->documentDownloadToken($user, $document), $token)) {
+                return $document;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Opaque reviewer token for an admin document action. The token contains
+     * no database key and is resolved through a bounded canonical KYC query.
+     */
+    public function reviewerDocumentToken(KycDocument $document, User $reviewer): string
+    {
+        return hash_hmac(
+            'sha256',
+            'reviewer:'.(string) $reviewer->getKey().':'.(string) $document->getKey(),
+            (string) config('app.key'),
+        );
+    }
+
+    public function documentForReviewer(User $reviewer, string $token): ?KycDocument
+    {
+        if (! preg_match('/^[a-f0-9]{64}$/', $token)) {
+            return null;
+        }
+
+        $limit = max(1, min(10000, (int) config('account.verification.admin_document_lookup_limit', 1000)));
+        foreach (KycDocument::query()->limit($limit)->get() as $document) {
+            if (hash_equals($this->reviewerDocumentToken($document, $reviewer), $token)) {
+                return $document;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -232,6 +288,15 @@ final class AccountVerificationService
                 'target_user_id' => $document->user_id,
             ],
         ]);
+    }
+
+    private function documentDownloadToken(User $user, AccountVerificationDocument $document): string
+    {
+        return hash_hmac(
+            'sha256',
+            (string) $user->getKey().':'.(string) $document->getKey(),
+            (string) config('app.key'),
+        );
     }
 
     private function normalizeMobile(string $countryCode, string $mobile): ?string

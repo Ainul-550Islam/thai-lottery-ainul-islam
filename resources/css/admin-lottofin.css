@@ -1,0 +1,603 @@
+/**
+ * LOTTOFIN ADMIN — Executive Analytics & Reconciliation Dashboard
+ * Exact Design System matching the uploaded screenshot.
+ */
+
+:root {
+    --lf-bg-canvas: #0b1118;
+    --lf-bg-sidebar: #0d1520;
+    --lf-bg-card: #131c28;
+    --lf-bg-card-hover: #172332;
+    --lf-bg-input: #0b1118;
+    --lf-border-main: #1f2d3d;
+    --lf-border-subtle: #192534;
+    --lf-text-primary: #f8fafc;
+    --lf-text-muted: #8492a6;
+    --lf-text-dim: #5c6b7d;
+    --lf-accent-green: #10b981;
+    --lf-accent-green-glow: rgba(16, 185, 129, 0.25);
+    --lf-accent-green-dark: #064e3b;
+    --lf-accent-cyan: #06b6d4;
+    --lf-font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body.lf-admin-body {
+    background-color: var(--lf-bg-canvas);
+    color: var(--lf-text-primary);
+    font-family: var(--lf-font-family);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* Master App Layout Shell */
+.lf-admin-shell {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--lf-bg-canvas);
+}
+
+/* Left Sidebar */
+.lf-sidebar {
+    width: 260px;
+    background-color: var(--lf-bg-sidebar);
+    border-right: 1px solid var(--lf-border-main);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    z-index: 40;
+}
+
+.lf-brand-header {
+    height: 70px;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--lf-border-subtle);
+}
+
+.lf-brand-logo-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--lf-accent-green);
+}
+
+.lf-brand-title {
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: #ffffff;
+    text-transform: uppercase;
+}
+
+.lf-nav-section {
+    padding: 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.lf-nav-header-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    color: var(--lf-text-dim);
+    padding: 0.75rem 0.75rem 0.35rem 0.75rem;
+    letter-spacing: 0.03em;
+}
+
+.lf-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.75rem;
+    color: var(--lf-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.lf-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+}
+
+.lf-nav-item.active {
+    background-color: #059669;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+}
+
+.lf-nav-item-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.lf-nav-item-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.lf-active-badge {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.5rem;
+}
+
+/* Main Content Area */
+.lf-main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-y: auto;
+}
+
+/* Top Navbar Header */
+.lf-top-header {
+    height: 70px;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--lf-border-subtle);
+    background-color: var(--lf-bg-canvas);
+}
+
+.lf-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.lf-menu-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--lf-text-muted);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lf-menu-toggle-btn:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.lf-header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.lf-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.lf-user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--lf-border-main);
+}
+
+.lf-user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.lf-user-role {
+    font-size: 0.6875rem;
+    color: var(--lf-text-dim);
+    line-height: 1;
+}
+
+.lf-user-name {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+}
+
+.lf-notification-btn {
+    position: relative;
+    background: transparent;
+    border: none;
+    color: var(--lf-text-muted);
+    cursor: pointer;
+    padding: 0.4rem;
+}
+
+.lf-notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    background-color: #ef4444;
+    color: #ffffff;
+    font-size: 0.625rem;
+    font-weight: 800;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lf-logout-btn {
+    background: transparent;
+    border: none;
+    color: var(--lf-text-muted);
+    cursor: pointer;
+    padding: 0.4rem;
+}
+
+.lf-logout-btn:hover {
+    color: #ef4444;
+}
+
+/* Page Body Container */
+.lf-page-body {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+.lf-page-title {
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* 4-Column KPI Cards Grid */
+.lf-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+    .lf-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .lf-kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.lf-kpi-card {
+    background-color: var(--lf-bg-card);
+    border: 1px solid var(--lf-border-main);
+    border-radius: 1rem;
+    padding: 1.35rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.lf-kpi-card:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.lf-kpi-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--lf-text-muted);
+}
+
+.lf-kpi-value {
+    font-size: 1.75rem;
+    font-weight: 900;
+    line-height: 1.1;
+    color: #ffffff;
+}
+
+.lf-kpi-value--green {
+    color: var(--lf-accent-green);
+    text-shadow: 0 0 20px var(--lf-accent-green-glow);
+}
+
+.lf-kpi-trend {
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.lf-kpi-trend--up {
+    color: #10b981;
+}
+
+.lf-kpi-trend--down {
+    color: #f43f5e;
+}
+
+.lf-kpi-trend--neutral {
+    color: var(--lf-text-dim);
+}
+
+/* Reconciliation Monitor Container Card */
+.lf-panel-card {
+    background-color: var(--lf-bg-card);
+    border: 1px solid var(--lf-border-main);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.lf-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.lf-panel-title {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+}
+
+.lf-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.lf-btn-outline {
+    background-color: var(--lf-bg-canvas);
+    border: 1px solid var(--lf-border-main);
+    color: var(--lf-text-primary);
+    padding: 0.5rem 0.95rem;
+    border-radius: 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lf-btn-outline:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: #38bdf8;
+}
+
+.lf-btn-solid-green {
+    background-color: #10b981;
+    border: 1px solid #10b981;
+    color: #020617;
+    padding: 0.5rem 1.1rem;
+    border-radius: 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s ease;
+}
+
+.lf-btn-solid-green:hover {
+    background-color: #059669;
+    filter: brightness(1.05);
+}
+
+/* Toolbar Controls */
+.lf-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.lf-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex: 1;
+    max-width: 450px;
+}
+
+.lf-search-box {
+    position: relative;
+    flex: 1;
+}
+
+.lf-search-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--lf-text-dim);
+    width: 15px;
+    height: 15px;
+}
+
+.lf-search-input {
+    width: 100%;
+    background-color: var(--lf-bg-input);
+    border: 1px solid var(--lf-border-main);
+    border-radius: 0.625rem;
+    padding: 0.5rem 0.85rem 0.5rem 2.25rem;
+    color: #ffffff;
+    font-size: 0.8125rem;
+    outline: none;
+}
+
+.lf-search-input:focus {
+    border-color: var(--lf-accent-green);
+}
+
+.lf-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lf-icon-btn {
+    background-color: var(--lf-bg-canvas);
+    border: 1px solid var(--lf-border-main);
+    color: var(--lf-text-muted);
+    width: 34px;
+    height: 34px;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lf-icon-btn:hover {
+    color: #ffffff;
+    border-color: #475569;
+}
+
+/* Financial Ledger Table */
+.lf-table-container {
+    overflow-x: auto;
+    border: 1px solid var(--lf-border-main);
+    border-radius: 0.75rem;
+    background-color: var(--lf-bg-canvas);
+}
+
+.lf-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.8125rem;
+}
+
+.lf-table th {
+    padding: 0.85rem 1rem;
+    font-weight: 700;
+    color: var(--lf-text-muted);
+    border-bottom: 1px solid var(--lf-border-main);
+    background-color: #0d1520;
+    white-space: nowrap;
+}
+
+.lf-table td {
+    padding: 0.85rem 1rem;
+    color: #e2e8f0;
+    border-bottom: 1px solid var(--lf-border-subtle);
+    white-space: nowrap;
+}
+
+.lf-table tr:hover td {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.lf-tx-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 700;
+    color: var(--lf-text-primary);
+}
+
+.lf-badge-balanced {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background-color: var(--lf-accent-green-dark);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Pagination Footer */
+.lf-pagination-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.5rem;
+}
+
+.lf-page-links {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.lf-page-btn {
+    background-color: var(--lf-bg-canvas);
+    border: 1px solid var(--lf-border-main);
+    color: var(--lf-text-muted);
+    min-width: 32px;
+    height: 32px;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.lf-page-btn.active {
+    background-color: #059669;
+    border-color: #059669;
+    color: #ffffff;
+}
+
+/* Floating Help Button */
+.lf-floating-help {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    z-index: 50;
+    transition: all 0.2s ease;
+}
+
+.lf-floating-help:hover {
+    background-color: #334155;
+    transform: scale(1.05);
+}

@@ -1,7 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $meta['title'])
-
+@section('title', $meta['title'].'')
 @section('meta_description', $meta['description'])
 @section('meta_canonical', $meta['canonical'])
 @section('meta_robots', $meta['robots'])
@@ -11,173 +10,50 @@
 @section('meta_og_url', $meta['og_url'])
 
 @push('styles')
-    @vite(['resources/css/national-lottery.css'])
+
+    <link rel="stylesheet" href="{{ asset('css/national-lottery.css') }}">
 @endpush
 
 @section('content')
-    {{--
-        National Lottery results — landing, year and search surface
-        (PROMPT 5, file 18).
+@php
+    $projection = is_array($current ?? null) ? $current : [];
+    $historyRows = is_array($history['rows'] ?? null) ? $history['rows'] : [];
+    $searchMatches = is_array($search['matches'] ?? null) ? $search['matches'] : [];
+@endphp
+<main class="min-h-screen bg-[#0B0904] px-4 pb-20 pt-24 text-white sm:px-6 lg:px-8" data-national-lottery-portal>
+    <div class="mx-auto max-w-7xl space-y-10">
+        <a class="sr-only focus:not-sr-only" href="#national-main">{{ trans('national_lottery.skip_to_content') }}</a>
+        <header id="national-main" class="max-w-4xl space-y-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#D4AF37]">{{ trans('national_lottery.heading') }}</p>
+            <h1 class="text-4xl font-black tracking-tight text-[#F5E6B8] sm:text-6xl">{{ trans('national_lottery.heading') }}</h1>
+            <p class="text-base leading-8 text-gray-300 sm:text-lg">{{ trans('national_lottery.intro') }}</p>
+            <p class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-gray-400">{{ trans('national_lottery.not_official_notice') }}</p>
+            <div class="flex flex-wrap gap-3"><a class="rounded-xl border border-[#D4AF37]/40 bg-[#221B0E] px-4 py-3 text-sm font-bold text-[#F5E6B8]" href="{{ route('national-lottery.latest') }}">{{ trans('national_lottery.current_result_heading') }}</a><a class="rounded-xl border border-[#D4AF37]/40 bg-[#221B0E] px-4 py-3 text-sm font-bold text-[#F5E6B8]" href="{{ route('national-lottery.history') }}">{{ trans('national_lottery.history_heading') }}</a><a class="rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] px-4 py-3 text-sm font-bold text-[#0B0904]" href="{{ route('national-lottery.buy') }}">{{ trans('lottery_hub.buy_title') }}</a></div>
+        </header>
 
-        ONE TEMPLATE, THREE STATES. The controller decides which of
-        'current', 'history' and 'search' is populated; this file renders
-        whichever it receives. Three near-identical templates would be three
-        places for the source badge or the zero padding to drift.
+        @if ($projection !== [])
+            <section aria-labelledby="national-current-heading"><h2 id="national-current-heading" class="sr-only">{{ trans('national_lottery.current_result_heading') }}</h2><x-national-lottery.result-card :result="$projection" :is-thai="$is_thai" /></section>
+        @else
+            <section class="rounded-3xl border border-amber-400/30 bg-[#141007] p-8" role="status"><h2 class="text-xl font-bold text-[#F5E6B8]">{{ trans('national_lottery.empty_current') }}</h2></section>
+        @endif
 
-        NO BUSINESS LOGIC LIVES HERE. No date arithmetic (the projection
-        carries both calendars), no source reasoning (the badge component
-        renders a state the service already clamped), no query, no prize
-        calculation. The inline PHP blocks below only unpack arrays; the
-        word is spelled out rather than written as a Blade directive,
-        because a directive name inside a Blade comment is still seen by the
-        raw-block scanner and swallows the real block that follows it.
+        @if ($recent !== [])
+            <section class="space-y-4" aria-labelledby="national-recent-heading"><div class="flex items-end justify-between gap-4"><h2 id="national-recent-heading" class="text-2xl font-black text-[#F5E6B8]">{{ trans('national_lottery.recent_draws_heading') }}</h2><a class="text-sm font-semibold text-[#D4AF37]" href="{{ route('national-lottery.history') }}">{{ trans('national_lottery.history_heading') }} →</a></div><div class="grid gap-4 md:grid-cols-2">@foreach ($recent as $row)<x-national-lottery.result-card :result="$row" :is-thai="$is_thai" :show-link="true" />@endforeach</div></section>
+        @endif
 
-        EVERY VALUE IS ESCAPED. This lane uses no unescaped raw-echo tag
-        anywhere, and the JavaScript module reads data-* attributes instead
-        of writing markup.
-    --}}
+        <x-national-lottery.search-form :action="$routes['search']" :max-length="$max_search_length" :number="$search['query']['term'] ?? ''" :date="($search['query']['type'] ?? '') === 'date' ? ($search['query']['term'] ?? '') : ''" :field="$search['query']['field'] ?? null" />
 
-    @php
-        $current = is_array($current ?? null) ? $current : null;
-        $history = is_array($history ?? null) ? $history : null;
-        $search = is_array($search ?? null) ? $search : null;
-        $recent = is_array($recent ?? null) ? $recent : [];
-        $years = is_array($years ?? null) ? $years : [];
+        @if ($search !== null)
+            <section class="space-y-4" aria-labelledby="national-search-results"><h2 id="national-search-results" class="text-2xl font-black text-[#F5E6B8]">{{ trans('national_lottery.search_results_heading') }}</h2><p class="text-sm text-gray-400">{{ trans('national_lottery.status.'.strtolower((string) ($search['status'] ?? 'unavailable'))) }}</p><x-national-lottery.result-table :rows="$searchMatches" :is-thai="$is_thai" /></section>
+        @endif
 
-        // Repopulate the form from the query the SERVER parsed, not from raw
-        // input. A term that failed validation comes back empty rather than
-        // being echoed into the field.
-        $searchType = (string) ($search['query']['type'] ?? '');
-        $searchTerm = (string) ($search['query']['term'] ?? '');
-        $searchNumber = $searchType === 'number' ? $searchTerm : '';
-        $searchDate = $searchType === 'date' ? $searchTerm : '';
-        $searchField = $search['query']['field'] ?? null;
-    @endphp
-
-    <div class="nl-page" data-nl-page="national-lottery" data-nl-locale="{{ $meta['lang'] }}">
-        <a class="nl-skip-link" href="#nl-main">{{ trans('national_lottery.skip_to_content') }}</a>
-
-        <main id="nl-main" class="nl-main" tabindex="-1">
-            <header class="nl-header">
-                <h1 class="nl-title">{{ trans('national_lottery.heading') }}</h1>
-                <p class="nl-lead">{{ trans('national_lottery.intro') }}</p>
-                {{-- Stated once, prominently, on every state of this page.
-                     The lane presents provenance; it does not claim official
-                     government status. --}}
-                <p class="nl-disclaimer">{{ trans('national_lottery.not_official_notice') }}</p>
-            </header>
-
-            <x-national-lottery.search-form
-                :action="$routes['search']"
-                :fields="$searchable_fields"
-                :max-length="$max_search_length"
-                :number="$searchNumber"
-                :date="$searchDate"
-                :field="$searchField"
-            />
-
-            @if ($search !== null)
-                <section class="nl-section nl-section--search" aria-labelledby="nl-search-results-heading">
-                    <h2 class="nl-section__heading" id="nl-search-results-heading">
-                        {{ trans('national_lottery.search_results_heading') }}
-                    </h2>
-
-                    @if (($search['status'] ?? '') !== 'RESULT_FOUND')
-                        <p class="nl-empty" role="status">
-                            {{ trans('national_lottery.status.'.strtolower((string) ($search['status'] ?? 'unavailable'))) }}
-                        </p>
-                    @else
-                        @if (($search['matched_fields'] ?? []) !== [])
-                            <p class="nl-search__matched">
-                                {{ trans('national_lottery.search_matched_in') }}:
-                                @foreach ($search['matched_fields'] as $matchedField)
-                                    <span class="nl-chip">{{ trans('national_lottery.field_'.$matchedField) }}</span>
-                                @endforeach
-                            </p>
-                        @endif
-
-                        <x-national-lottery.result-table
-                            :rows="$search['matches']"
-                            :is-thai="$is_thai"
-                            :pagination="$search['pagination']"
-                        />
-                    @endif
-                </section>
-            @endif
-
-            @if ($current !== null)
-                <section class="nl-section nl-section--current" aria-labelledby="nl-current-heading">
-                    <h2 class="nl-section__heading" id="nl-current-heading">
-                        {{ trans('national_lottery.current_result_heading') }}
-                    </h2>
-
-                    @if (($current['available'] ?? false) !== true)
-                        {{-- Honest empty state. No invented draw, no fixture
-                             standing in for a missing official result. --}}
-                        <p class="nl-empty" role="status">{{ trans('national_lottery.empty_current') }}</p>
-                    @else
-                        <x-national-lottery.result-card
-                            :result="$current"
-                            :is-thai="$is_thai"
-                            :show-link="true"
-                        />
-
-                        <x-national-lottery.source-status :provenance="$current['provenance']" />
-                    @endif
-                </section>
-            @endif
-
-            @if ($recent !== [])
-                <section class="nl-section nl-section--recent" aria-labelledby="nl-recent-heading">
-                    <h2 class="nl-section__heading" id="nl-recent-heading">
-                        {{ trans('national_lottery.recent_draws_heading') }}
-                    </h2>
-
-                    <x-national-lottery.result-table
-                        :rows="$recent"
-                        :is-thai="$is_thai"
-                    />
-                </section>
-            @endif
-
-            @if ($history !== null)
-                <section class="nl-section nl-section--history" aria-labelledby="nl-history-heading">
-                    <h2 class="nl-section__heading" id="nl-history-heading">
-                        {{ trans('national_lottery.history_heading') }}
-                    </h2>
-
-                    @if (($history['status'] ?? '') !== 'RESULT_FOUND')
-                        <p class="nl-empty" role="status">
-                            {{ ($history['status'] ?? '') === 'NO_PUBLIC_DATA'
-                                ? trans('national_lottery.empty_year')
-                                : trans('national_lottery.status.'.strtolower((string) ($history['status'] ?? 'unavailable'))) }}
-                        </p>
-                    @else
-                        <x-national-lottery.result-table
-                            :rows="$history['rows']"
-                            :is-thai="$is_thai"
-                            :pagination="$history['pagination']"
-                            pagination-route="national-lottery.year"
-                            :pagination-params="['year' => $history['year']['gregorian'] ?? $active_year]"
-                        />
-                    @endif
-                </section>
-            @endif
-
-            <x-national-lottery.year-nav
-                :years="$years"
-                :active-year="$active_year"
-                :is-thai="$is_thai"
-            />
-        </main>
+        @if ($history !== null)
+            <section class="space-y-4" aria-labelledby="national-history-heading"><h2 id="national-history-heading" class="text-2xl font-black text-[#F5E6B8]">{{ trans('national_lottery.history_heading') }}@if ($active_year !== null) <span class="text-[#D4AF37]">— {{ $active_year }}</span>@endif</h2><x-national-lottery.result-table :rows="$historyRows" :is-thai="$is_thai" /><x-national-lottery.year-nav :years="$years" :active-year="$active_year" /></section>
+        @else
+            <x-national-lottery.year-nav :years="$years" :active-year="$active_year ?? null" />
+        @endif
     </div>
-
-        {{-- The shared public footer, the same one About, Vision, Terms, Fees,
-             Prize Verification and Discounts already carry. Without it a
-             visitor who arrived on a lane page from a search engine had no
-             way out of it except the browser's back button. --}}
-        <x-public-page.footer />
-
+</main>
 @endsection
 
 @push('scripts')

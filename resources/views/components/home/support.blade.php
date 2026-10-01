@@ -15,18 +15,18 @@
         <ul class="home-support" role="list">
             @if (!empty($support['email']))
                 <li>
-                    <span>Email:</span>
+                    <span>{{ $text['email_label'] ?? 'Email' }}:</span>
                     <a href="mailto:{{ $support['email'] }}">{{ $support['email'] }}</a>
                 </li>
             @endif
             @if (!empty($support['phone']))
                 <li>
-                    <span>Phone:</span>
+                    <span>{{ $text['phone_label'] ?? 'Phone' }}:</span>
                     <a href="tel:{{ preg_replace('/[^0-9+]/', '', $support['phone']) }}">{{ $support['phone'] }}</a>
                 </li>
             @endif
             @if (!empty($support['hours']))
-                <li><span>Hours:</span> {{ $support['hours'] }}</li>
+                <li><span>{{ $text['hours_label'] ?? 'Hours' }}:</span> {{ $support['hours'] }}</li>
             @endif
             @if (!empty($support['route_url']))
                 <li><a class="home-btn home-btn--secondary" href="{{ $support['route_url'] }}">{{ $text['support_contact'] ?? 'Contact support' }}</a></li>

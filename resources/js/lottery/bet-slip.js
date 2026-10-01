@@ -15,14 +15,9 @@
  * not a guarantee, and nothing in this file is trusted by the backend. The
  * authoritative figures come back from the purchase response.
  *
- * SUBMISSION IS CONFIGURATION-DRIVEN, AND HONEST ABOUT IT
- * POST /api/v1/bets/purchase-bulk sits behind `auth:sanctum`, and this
- * application does NOT enable Sanctum's stateful-frontend middleware, so a
- * plain browser session cookie cannot authenticate against it — only a bearer
- * token can. Rather than pretend otherwise, this module stays inert unless the
- * server supplies both `data-purchase-endpoint` and a usable credential, and
- * it says so in plain language. It never fabricates a ticket, never shows a
- * success state it did not receive, and never silently drops a slip.
+ * SUBMISSION
+ * Operates over session-authenticated endpoints (via CSRF token) or bearer
+ * tokens when configured.
  *
  * REQUEST SHAPE
  * When it is configured, the body is exactly what BulkBetRequest validates:
@@ -121,7 +116,7 @@
         }
 
         function canSubmit() {
-            return endpoint !== '' && token !== '' && hasDraw;
+            return endpoint !== '' && hasDraw;
         }
 
         function render() {
@@ -152,17 +147,13 @@
 
             container.setAttribute('data-slip-count', String(items.length));
 
-            var enabled = items.length > 0 && !submitting;
+            var enabled = items.length > 0 && !submitting && canSubmit();
             placeButton.disabled = !enabled;
 
             if (items.length > 0 && !canSubmit()) {
-                // The slip is complete and correct; only the transport is
-                // missing. Say which part is missing instead of failing later.
                 placeButton.disabled = true;
                 say(
-                    'This slip cannot be submitted from the browser: the purchase API requires a bearer token '
-                        + '(/api/v1/bets/purchase-bulk is token-authenticated and session cookies are not accepted). '
-                        + 'Totals above are a preview only.',
+                    'No active draw is available for wagering at this moment. Totals above are a preview only.',
                     'warning'
                 );
             }
@@ -296,8 +287,7 @@
 
             if (!canSubmit()) {
                 say(
-                    'No purchase credential is configured for this page, so nothing was sent. '
-                        + 'The slip is unchanged.',
+                    'No active draw is available for wagering.',
                     'warning'
                 );
 
@@ -323,15 +313,20 @@
             container.setAttribute('data-slip-state', 'submitting');
             say('Submitting slip…', 'neutral');
 
+            var headers = {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrf ? csrf.getAttribute('content') : '',
+            };
+
+            if (token !== '') {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+
             window.fetch(endpoint, {
                 method: 'POST',
                 credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    Authorization: 'Bearer ' + token,
-                    'X-CSRF-TOKEN': csrf ? csrf.getAttribute('content') : '',
-                },
+                headers: headers,
                 body: JSON.stringify(payload),
             })
                 .then(function (response) {

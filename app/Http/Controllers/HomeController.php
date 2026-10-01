@@ -10,7 +10,6 @@ use App\Services\Lottery\GloSalesPointService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\View\View as ViewAlias;
 
 /**
  * Public Home composition + public ticket check / sales-point UI.
@@ -28,8 +27,20 @@ class HomeController
 
     public function index(): View
     {
+        $locale = (string) app()->getLocale();
+        $seo = [
+            'title' => (string) (trans('home.meta_title', [], $locale) ?: config('app.name', 'Thai Lottery')),
+            'description' => (string) (trans('home.meta_description', [], $locale) ?: 'Government Lottery results, ticket checking tools, and wagering platform.'),
+            'canonical' => rtrim((string) config('app.url'), '/'),
+            'og_title' => (string) (trans('home.meta_title', [], $locale) ?: config('app.name', 'Thai Lottery')),
+            'og_description' => (string) (trans('home.meta_description', [], $locale) ?: 'Government Lottery results, ticket checking tools, and wagering platform.'),
+            'og_type' => 'website',
+            'og_url' => rtrim((string) config('app.url'), '/'),
+        ];
+
         return view('home', [
             'home' => $this->homeData->pageData(),
+            'seo' => $seo,
         ]);
     }
 

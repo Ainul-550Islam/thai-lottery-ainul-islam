@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Fail-closed app destination cards and browser-native download guidance.
+ */
+@import './public-next-pages.css';
+.next-public-page--download .next-panel { border-color: rgba(104, 184, 255, .28); }

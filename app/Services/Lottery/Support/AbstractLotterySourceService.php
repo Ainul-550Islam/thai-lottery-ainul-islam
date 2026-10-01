@@ -121,6 +121,10 @@ abstract class AbstractLotterySourceService
 
     public function fixturesEnabled(): bool
     {
+        if (app()->environment('production')) {
+            return false;
+        }
+
         return (bool) $this->config->get($this->configKey('sources.fixture.enabled'), false);
     }
 

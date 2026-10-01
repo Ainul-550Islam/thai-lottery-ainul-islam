@@ -5,103 +5,33 @@
     'showLink' => true,
 ])
 
-{{--
-    One draw's numbers, in full (PROMPT 6, file 21).
-
-    LEADING ZEROS REACH THE SCREEN INTACT. Every value printed below arrives as
-    a STRING that the model padded to its documented width. This template does
-    not call number_format, does not cast, and does not concatenate a value
-    into arithmetic. '049' prints as 049 and '09' prints as 09.
-
-    A MISSING RESULT IS RENDERED AS MISSING. When the draw published nothing,
-    each field shows the translated "not published" wording and the card
-    carries an explicit badge saying so. There is no branch in this file that
-    can substitute a zero for an absent value - the value is null and null
-    renders as words, not digits.
-
-    NO BUSINESS LOGIC. No date maths (the projection carries both calendars
-    already), no source reasoning (the badge component owns that), no prize
-    calculation of any kind - this product has no prize model. This file
-    arranges values.
---}}
-
 @php
+    $result = is_array($result) ? $result : [];
     $available = (bool) ($result['available'] ?? false);
-    $hasNumbers = (bool) ($result['has_numbers'] ?? false);
-    $status = (string) ($result['status'] ?? 'UNAVAILABLE');
-    $draw = (array) ($result['draw'] ?? []);
-    $date = (array) ($draw['date'] ?? []);
-    $numbers = (array) ($result['numbers'] ?? []);
-    $provenance = (array) ($result['provenance'] ?? []);
-    $integrity = $result['integrity'] ?? null;
-
-    $displayDate = $isThai
-        ? (string) ($date['display_th'] ?? '')
-        : (string) ($date['display_en'] ?? '');
-
-    $reference = (string) ($draw['reference'] ?? '');
-
-    $fields = [
-        'first_6' => $numbers['first_6'] ?? null,
-        'three_ball' => $numbers['three_ball'] ?? null,
-        'two_ball' => $numbers['two_ball'] ?? null,
-    ];
+    $hasNumbers = (bool) ($result['has_numbers'] ?? $available);
+    $status = strtolower((string) ($result['status'] ?? 'unavailable'));
+    $draw = is_array($result['draw'] ?? null) ? $result['draw'] : [];
+    $date = is_array($draw['date'] ?? null) ? $draw['date'] : [];
+    $numbers = is_array($result['numbers'] ?? null) ? $result['numbers'] : [];
+    $provenance = is_array($result['provenance'] ?? null) ? $result['provenance'] : [];
+    $integrity = is_array($result['integrity'] ?? null) ? $result['integrity'] : null;
+    $reference = isset($draw['reference']) ? (string) $draw['reference'] : '';
+    $dateLabel = $isThai ? (string) ($date['display_th'] ?? '') : (string) ($date['display_en'] ?? '');
 @endphp
 
-<article class="wl-card" data-wl-card="result" data-wl-status="{{ $status }}">
-    @if ($heading !== null)
-        <h2 class="wl-card__heading">{{ $heading }}</h2>
-    @endif
-
-    @unless ($available)
-        <p class="wl-card__empty" role="status">{{ trans('weekly_lottery.status.'.strtolower($status)) }}</p>
+<article class="rounded-3xl border border-[#D4AF37]/30 bg-gradient-to-br from-[#1C170E] via-[#141007] to-[#0D0B05] p-6 shadow-2xl sm:p-10" data-wl-card="result" data-wl-status="{{ $status }}">
+    <header class="mb-8 flex flex-col justify-between gap-4 border-b border-[#D4AF37]/20 pb-6 sm:flex-row sm:items-start">
+        <div><p class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[#D4AF37]">{{ trans('weekly_lottery.current_result_heading') }}</p><h2 class="text-2xl font-black text-[#F5E6B8]">{{ $heading ?? trans('weekly_lottery.heading') }}</h2>@if ($dateLabel !== '')<p class="mt-2 text-sm text-gray-300"><time datetime="{{ $date['iso'] ?? '' }}">{{ $dateLabel }}</time></p>@endif @if ($reference !== '')<p class="mt-1 font-mono text-xs text-gray-500">{{ $reference }}</p>@endif</div>
+        <x-weekly-lottery.source-status :provenance="$provenance" :integrity="$integrity" compact />
+    </header>
+    @if (! $available || ! $hasNumbers || $numbers === [])
+        <div class="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6" role="status"><p class="font-semibold text-amber-200">{{ trans('weekly_lottery.status.'.$status) }}</p><p class="mt-2 text-sm leading-7 text-gray-400">{{ trans('weekly_lottery.result_unavailable_explainer') }}</p></div>
     @else
-        <header class="wl-card__header">
-            <p class="wl-card__date">
-                <span class="wl-card__date-main">{{ $displayDate }}</span>
-                {{-- Both calendars are always available. The Gregorian/ISO
-                     value is machine readable and is what a reader can match
-                     against an internal record. --}}
-                <time class="wl-card__date-iso" datetime="{{ $date['iso'] ?? '' }}">
-                    {{ trans('weekly_lottery.date_gregorian_label') }}: {{ $date['iso'] ?? '' }}
-                </time>
-                <span class="wl-card__date-be">
-                    {{ trans('weekly_lottery.date_buddhist_label') }}: {{ $date['buddhist_year'] ?? '' }}
-                </span>
-            </p>
-
-            <x-weekly-lottery.source-status :provenance="$provenance" :compact="true" />
-        </header>
-
-        @unless ($hasNumbers)
-            <p class="wl-card__unavailable" role="status">
-                <span class="wl-card__unavailable-badge">{{ trans('weekly_lottery.result_unavailable_badge') }}</span>
-                <span class="wl-card__unavailable-text">{{ trans('weekly_lottery.result_unavailable_explainer') }}</span>
-            </p>
-        @endunless
-
-        <dl class="wl-card__numbers">
-            @foreach ($fields as $field => $value)
-                <div class="wl-card__number wl-card__number--{{ str_replace('_', '-', $field) }}">
-                    <dt class="wl-card__number-label">{{ trans('weekly_lottery.field_'.$field) }}</dt>
-                    <dd class="wl-card__number-value">
-                        @if ($value === null || $value === '')
-                            <span class="wl-card__number-missing">{{ trans('weekly_lottery.no_value') }}</span>
-                        @else
-                            {{-- String in, string out. --}}
-                            <span class="wl-digits" data-wl-field="{{ $field }}">{{ $value }}</span>
-                        @endif
-                    </dd>
-                </div>
+        <div class="grid gap-4 sm:grid-cols-3">
+            @foreach (['first_6', 'three_ball', 'two_ball'] as $field)
+                @if (is_string($numbers[$field] ?? null) && $numbers[$field] !== '')<div class="rounded-2xl border border-[#D4AF37]/20 bg-[#120F08] p-5" data-wl-field="{{ $field }}"><p class="text-xs font-bold uppercase tracking-wider text-[#D4AF37]">{{ trans('weekly_lottery.field_'.$field) }}</p><p class="mt-3 font-mono text-3xl font-black tracking-[0.16em] text-[#F5E6B8]">{{ $numbers[$field] }}</p><p class="mt-2 text-xs text-gray-500">{{ trans('weekly_lottery.field_'.$field.'_hint') }}</p></div>@endif
             @endforeach
-        </dl>
-
-        @if ($showLink && $reference !== '')
-            <p class="wl-card__actions">
-                <a class="wl-card__link" href="{{ route('weekly-lottery.show', ['draw' => $reference]) }}">
-                    {{ trans('weekly_lottery.view_detail') }}
-                </a>
-            </p>
-        @endif
-    @endunless
+        </div>
+        @if ($showLink && $reference !== '')<div class="mt-8 border-t border-[#D4AF37]/15 pt-6"><a class="inline-flex items-center gap-2 rounded-xl border border-[#D4AF37]/40 bg-[#221B0E] px-5 py-3 text-sm font-bold text-[#F5E6B8]" href="{{ route('weekly-lottery.show', ['draw' => $reference]) }}">{{ trans('weekly_lottery.view_detail') }} <span aria-hidden="true">→</span></a></div>@endif
+    @endif
 </article>

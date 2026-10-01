@@ -21,6 +21,10 @@ enum GloClaimChannel: string
 
     case PartnerPlatform = 'partner_platform';
 
+    // Compatibility aliases for the legacy vocabulary; no new production path is enabled.
+    public const Branch = self::ProvincialOffice;
+    public const OnlineApp = self::PartnerPlatform;
+
     public function label(): string
     {
         return match ($this) {

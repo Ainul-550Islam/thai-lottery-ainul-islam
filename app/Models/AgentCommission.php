@@ -23,6 +23,7 @@ class AgentCommission extends Model
         'status',
         'currency',
         'base_amount',
+        'stake_amount',
         'commission_rate',
         'commission_amount',
         'accrued_at',
@@ -30,6 +31,23 @@ class AgentCommission extends Model
         'reversed_at',
         'metadata',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model): void {
+            if ($model->base_amount === null && $model->stake_amount !== null) {
+                $model->base_amount = $model->stake_amount;
+            }
+
+            if ($model->commission_rate === null && $model->agent_id !== null) {
+                $model->commission_rate = Agent::query()->whereKey($model->agent_id)->value('commission_rate') ?? '0.0000';
+            }
+
+            if ($model->bet_id !== null && ! Bet::query()->whereKey($model->bet_id)->exists()) {
+                $model->bet_id = null;
+            }
+        });
+    }
 
     protected function casts(): array
     {

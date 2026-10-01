@@ -6,6 +6,7 @@ namespace App\Services\Finance;
 
 use App\DTOs\Finance\WalletReservationData;
 use App\Enums\AuditAction;
+use App\Enums\Currency;
 use App\Enums\FinancialTransactionType;
 use App\Enums\LedgerEntryPurpose;
 use App\Enums\RiskLevel;
@@ -15,6 +16,7 @@ use App\Exceptions\WalletReservationException;
 use App\Models\AuditLog;
 use App\Models\Wallet;
 use App\Models\WalletReservation;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -47,17 +49,44 @@ final class WalletReservationService
     /* ---------------------------------------------------- reserve --- */
 
     /**
-     * @return array{reservation: WalletReservation, replayed: bool}
+     * Reserve funds in a wallet. Supports WalletReservationData DTO or positional arguments.
+     *
+     * @return array{reservation: WalletReservation, replayed: bool}|WalletReservation
      *
      * @throws WalletReservationException
      */
-    public function reserve(WalletReservationData $data): array
-    {
-        if (DB::transactionLevel() > 0) {
-            return $this->reserveWithin($data);
+    public function reserve(
+        WalletReservationData|int $userIdOrData,
+        ?string $amount = null,
+        ?string $currency = null,
+        ?string $reason = null,
+        int $ttlSeconds = 300
+    ): array|WalletReservation {
+        if ($userIdOrData instanceof WalletReservationData) {
+            $data = $userIdOrData;
+            $returnArray = true;
+        } else {
+            $userId = $userIdOrData;
+            $currencyCode = $currency !== null ? strtoupper($currency) : 'THB';
+            $wallet = $this->wallets->getOrCreateWallet($userId, $currencyCode);
+            $ref = 'resv_' . bin2hex(random_bytes(8));
+            $data = new WalletReservationData(
+                walletId: (int) $wallet->id,
+                amount: (string) $amount,
+                currency: $currencyCode,
+                reference: $ref,
+                purpose: LedgerEntryPurpose::Reservation,
+                expiresAt: Carbon::now()->addSeconds($ttlSeconds),
+                description: $reason ?? 'Wallet reservation',
+            );
+            $returnArray = false;
         }
 
-        return DB::transaction(fn (): array => $this->reserveWithin($data));
+        $res = DB::transactionLevel() > 0
+            ? $this->reserveWithin($data)
+            : DB::transaction(fn (): array => $this->reserveWithin($data));
+
+        return $returnArray ? $res : $res['reservation'];
     }
 
     /**
@@ -104,7 +133,7 @@ final class WalletReservationService
 
         // INSUFFICIENT: ask the wallet's own available reading. Never
         // compute the answer twice here — the lock lane owns arithmetic.
-        $amount = \App\Services\Finance\Money::of($data->amount, \App\Enums\Currency::from($data->currency));
+        $amount = Money::of($data->amount, Currency::from($data->currency));
 
         try {
             $this->holds->hold($wallet, $amount, WalletHoldType::OtherFinancialHold);
@@ -150,14 +179,16 @@ final class WalletReservationService
      *
      * @throws WalletReservationException
      */
-    public function consume(WalletReservation $reservation): WalletReservation
+    public function consume(int|string|WalletReservation $reservation, ?string $reason = null): bool|WalletReservation
     {
-        return DB::transaction(function () use ($reservation): WalletReservation {
+        $resModel = $this->resolveReservationModel($reservation);
+
+        $result = DB::transaction(function () use ($resModel, $reason): WalletReservation {
             /** @var WalletReservation|null $locked */
-            $locked = WalletReservation::query()->lockForUpdate()->find((int) $reservation->getKey());
+            $locked = WalletReservation::query()->lockForUpdate()->find((int) $resModel->getKey());
 
             if (! $locked instanceof WalletReservation) {
-                throw WalletReservationException::notFound((string) $reservation->reservation_key);
+                throw WalletReservationException::notFound((string) $resModel->reservation_key);
             }
 
             if ($locked->status === WalletReservationStatus::Consumed) {
@@ -184,7 +215,11 @@ final class WalletReservationService
                 ? $locked->purpose
                 : LedgerEntryPurpose::Reservation;
 
-            $money = \App\Services\Finance\Money::of((string) $locked->amount, \App\Enums\Currency::from(strtoupper((string) ($walletCurrency ?? $locked->currency))));
+            $currency = $wallet->currency instanceof Currency
+                ? $wallet->currency
+                : Currency::from(strtoupper((string) $locked->currency));
+
+            $money = Money::of((string) $locked->amount, $currency);
 
             // Unlock (mechanics) then post the spend (truth) — one
             // transaction, idempotent key per reservation.
@@ -195,7 +230,7 @@ final class WalletReservationService
                 $money,
                 self::transactionTypeFor($purpose),
                 idempotencyKey: sprintf('wallet-resv-cons:%s', substr((string) $locked->reservation_key, 0, 48)),
-                options: ['description' => sprintf('Consumed reservation %s', $locked->reference)],
+                options: ['description' => $reason ?? sprintf('Consumed reservation %s', $locked->reference)],
             );
 
             $locked->status = WalletReservationStatus::Consumed;
@@ -206,6 +241,8 @@ final class WalletReservationService
 
             return $locked;
         });
+
+        return is_int($reservation) || is_string($reservation) ? true : $result;
     }
 
     /* ---------------------------------------------------- release --- */
@@ -215,14 +252,16 @@ final class WalletReservationService
      *
      * @throws WalletReservationException
      */
-    public function release(WalletReservation $reservation): WalletReservation
+    public function release(int|string|WalletReservation $reservation, ?string $reason = null): bool|WalletReservation
     {
-        return DB::transaction(function () use ($reservation): WalletReservation {
+        $resModel = $this->resolveReservationModel($reservation);
+
+        $result = DB::transaction(function () use ($resModel): WalletReservation {
             /** @var WalletReservation|null $locked */
-            $locked = WalletReservation::query()->lockForUpdate()->find((int) $reservation->getKey());
+            $locked = WalletReservation::query()->lockForUpdate()->find((int) $resModel->getKey());
 
             if (! $locked instanceof WalletReservation) {
-                throw WalletReservationException::notFound((string) $reservation->reservation_key);
+                throw WalletReservationException::notFound((string) $resModel->reservation_key);
             }
 
             if ($locked->status === WalletReservationStatus::Released) {
@@ -243,9 +282,13 @@ final class WalletReservationService
                 throw WalletReservationException::notFound('wallet:'.$locked->wallet_id);
             }
 
+            $currency = $wallet->currency instanceof Currency
+                ? $wallet->currency
+                : Currency::from(strtoupper((string) $locked->currency));
+
             $this->holds->release(
                 $wallet,
-                \App\Services\Finance\Money::of((string) $locked->amount, \App\Enums\Currency::from(strtoupper((string) ($walletCurrency ?? $locked->currency)))),
+                Money::of((string) $locked->amount, $currency),
             );
 
             $locked->status = WalletReservationStatus::Released;
@@ -256,6 +299,8 @@ final class WalletReservationService
 
             return $locked;
         });
+
+        return is_int($reservation) || is_string($reservation) ? true : $result;
     }
 
     /* ----------------------------------------------------- expire --- */
@@ -267,14 +312,16 @@ final class WalletReservationService
      *
      * @throws WalletReservationException
      */
-    public function expire(WalletReservation $reservation): WalletReservation
+    public function expire(int|string|WalletReservation $reservation): bool|WalletReservation
     {
-        return DB::transaction(function () use ($reservation): WalletReservation {
+        $resModel = $this->resolveReservationModel($reservation);
+
+        $result = DB::transaction(function () use ($resModel): WalletReservation {
             /** @var WalletReservation|null $locked */
-            $locked = WalletReservation::query()->lockForUpdate()->find((int) $reservation->getKey());
+            $locked = WalletReservation::query()->lockForUpdate()->find((int) $resModel->getKey());
 
             if (! $locked instanceof WalletReservation) {
-                throw WalletReservationException::notFound((string) $reservation->reservation_key);
+                throw WalletReservationException::notFound((string) $resModel->reservation_key);
             }
 
             if ($locked->status === WalletReservationStatus::Expired) {
@@ -298,9 +345,13 @@ final class WalletReservationService
                     throw WalletReservationException::notFound('wallet:'.$locked->wallet_id);
                 }
 
+                $currency = $wallet->currency instanceof Currency
+                    ? $wallet->currency
+                    : Currency::from(strtoupper((string) $locked->currency));
+
                 $this->holds->release(
                     $wallet,
-                    \App\Services\Finance\Money::of((string) $locked->amount, \App\Enums\Currency::from(strtoupper((string) ($walletCurrency ?? $locked->currency)))),
+                    Money::of((string) $locked->amount, $currency),
                 );
             }
 
@@ -312,9 +363,27 @@ final class WalletReservationService
 
             return $locked;
         });
+
+        return is_int($reservation) || is_string($reservation) ? true : $result;
     }
 
     /* --------------------------------------------------- internals --- */
+
+    private function resolveReservationModel(int|string|WalletReservation $res): WalletReservation
+    {
+        if ($res instanceof WalletReservation) {
+            return $res;
+        }
+
+        if (is_int($res)) {
+            return WalletReservation::query()->findOrFail($res);
+        }
+
+        return WalletReservation::query()
+            ->where('reservation_key', $res)
+            ->orWhere('id', (int) $res)
+            ->firstOrFail();
+    }
 
     /**
      * The spend the reservation was staged for, mapped to the wallet

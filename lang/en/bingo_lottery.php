@@ -36,9 +36,17 @@ return [
 
     // ------------------------------------------------------------- Page ----
     'heading' => 'Mega Lottery Results',
+    'public_name' => 'Mega Lottery',
     'intro' => 'Every result below is shown together with where it came from, when it was imported and which version of the record you are reading.',
     'not_official_notice' => 'This page presents results recorded by this platform with their source attached. It is not an official government publication, and a result is only as authoritative as the source badge shown beside it.',
     'skip_to_content' => 'Skip to content',
+    'latest_link' => 'Latest result',
+    'history_link' => 'Historical results',
+    'buy_title' => 'Buy / Ticket selection',
+    'purchase_status_heading' => 'Purchase availability',
+    'purchase_not_configured' => 'NOT_CONFIGURED',
+    'purchase_not_configured_explainer' => 'Mega ticket selection and purchase are unavailable because no verified product-specific purchase contract is configured. No price, ticket, balance, reservation or purchase action is shown.',
+    'back_to_results' => 'Back to Mega Lottery results',
 
     'current_result_heading' => 'Latest published result',
     'recent_draws_heading' => 'Recent draws',

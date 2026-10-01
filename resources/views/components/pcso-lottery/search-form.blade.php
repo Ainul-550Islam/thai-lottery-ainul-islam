@@ -13,8 +13,7 @@
     result page can be linked and bookmarked, and it keeps the form out of
     CSRF territory for an operation that changes nothing.
 
-    THE TYPE IS AN EXPLICIT CHOICE, NOT AN INFERENCE. The visitor picks 6D,
-    3D, 2D or Draw date. The server re-checks the value against a closed
+    THE TYPE IS AN EXPLICIT CHOICE, NOT AN INFERENCE. The visitor picks 6D, 4D, 3D, 2D or Draw date. The server re-checks the value against a closed
     whitelist. Nothing guesses from the length of the term, because with three
     numeric fields a guess means answering a question the visitor did not ask.
 

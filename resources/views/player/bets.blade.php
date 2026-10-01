@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'My Wagers & Bet History — Thai Lottery')
+@section('title', __('player.bets_title'))
+@section('meta_description', __('player.bets_lead'))
+@section('meta_robots', 'noindex,nofollow')
 
 @section('content')
 <div class="space-y-6">
@@ -25,12 +27,21 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800/60">
                     @forelse($bets as $bet)
+                        @php
+                            $betCurrency = $bet->currency instanceof \App\Enums\Currency ? $bet->currency : null;
+                            $stakeLabel = $betCurrency instanceof \App\Enums\Currency
+                                ? \App\Services\Finance\Money::of((string) $bet->stake_amount, $betCurrency)->format()
+                                : __('player.not_configured');
+                            $potentialPayoutLabel = $betCurrency instanceof \App\Enums\Currency
+                                ? \App\Services\Finance\Money::of((string) $bet->potential_payout, $betCurrency)->format()
+                                : __('player.not_configured');
+                        @endphp
                         <tr class="hover:bg-slate-800/30 transition">
                             <td class="py-3.5 px-4 font-mono font-bold text-slate-200">
-                                {{ $bet->ticket->ticket_number ?? 'TKT-'.$bet->id }}
+                                {{ $bet->ticket?->ticket_number ?? __('player.not_recorded') }}
                             </td>
                             <td class="py-3.5 px-4 font-mono text-xs text-slate-400">
-                                {{ $bet->draw->draw_number ?? 'DRAW-'.$bet->draw_id }}
+                                {{ $bet->draw?->draw_number ?? __('player.not_recorded') }}
                             </td>
                             <td class="py-3.5 px-4">
                                 <div class="flex flex-wrap gap-1.5">
@@ -42,10 +53,10 @@
                                 </div>
                             </td>
                             <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">
-                                {{ \App\Services\Finance\Money::of((string) ($bet->total_stake ?? '0'), \App\Enums\Currency::THB)->format() }}
+                                {{ $stakeLabel }}
                             </td>
                             <td class="py-3.5 px-4 text-right font-mono font-bold text-emerald-400">
-                                {{ \App\Services\Finance\Money::of((string) ($bet->potential_payout ?? '0'), \App\Enums\Currency::THB)->format() }}
+                                {{ $potentialPayoutLabel }}
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 @php
@@ -65,7 +76,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="py-12 text-center text-slate-500 text-xs">
-                                No wagers placed yet.
+                                {{ __('player.no_bets_recorded') }}
                             </td>
                         </tr>
                     @endforelse

@@ -1,0 +1,23 @@
+{
+  "commands": [
+    {
+      "command": [
+        "playwright",
+        "--version"
+      ],
+      "domain": "browser",
+      "exit_code": null,
+      "label": "browser runtime",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 545,
+      "reason": "playwright executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    }
+  ],
+  "observed_at_utc": "2026-09-30T14:37:11+00:00",
+  "page": 545,
+  "runtime_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "source": "runtime/pages-451-550-command-results.json",
+  "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "type": "page_545_browser_evidence"
+}

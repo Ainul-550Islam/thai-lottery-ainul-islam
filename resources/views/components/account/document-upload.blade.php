@@ -54,7 +54,7 @@
             <div class="acct-field">
                 <label for="document_type">{{ trans('account_services.verification_document_type') }}</label>
                 <select id="document_type" name="document_type" required class="acct-input" aria-describedby="document_type-error">
-                    <option value="">{{ '—' }}</option>
+                    <option value="">{{ trans('account_services.not_recorded') }}</option>
                     @foreach (($documentTypes ?? []) as $type)
                         <option value="{{ $type }}" @selected(old('document_type') === $type)>
                             {{ trans('account_services.verification_document_type_'.$type) }}

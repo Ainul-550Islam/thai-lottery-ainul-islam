@@ -44,6 +44,15 @@ enum DrawStatus: string
     case Completed = 'completed';
     case Cancelled = 'cancelled';
 
+    // Backward-compatible aliases for older callers; the canonical cases remain above.
+    public const SCHEDULED = self::Scheduled;
+    public const OPEN = self::Open;
+    public const CLOSED = self::Closed;
+    public const DRAWING = self::Drawing;
+    public const RESULT_PUBLISHED = self::ResultPublished;
+    public const COMPLETED = self::Completed;
+    public const CANCELLED = self::Cancelled;
+
     public function label(): string
     {
         return match ($this) {

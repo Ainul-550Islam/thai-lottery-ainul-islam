@@ -218,7 +218,7 @@ return [
         ],
 
         'fixture' => [
-            'enabled' => (bool) env('WEEKLY_LOTTERY_FIXTURE_ENABLED', true),
+            'enabled' => (bool) env('WEEKLY_LOTTERY_FIXTURE_ENABLED', false),
             'provider_label' => 'fixture',
             'schema_version' => 'WEEKLY_FIXTURE_V1',
         ],

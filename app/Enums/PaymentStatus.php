@@ -13,6 +13,12 @@ enum PaymentStatus: string
     case Cancelled = 'cancelled';
     case Disputed = 'disputed';
 
+    // Compatibility aliases for the payment execution lane. Captured is the
+    // canonical internal state for a successfully settled inbound payment.
+    public const PENDING = self::Pending;
+    public const COMPLETED = self::Captured;
+    public const FAILED = self::Failed;
+
     public function label(): string
     {
         return match ($this) {

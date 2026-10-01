@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamp('attempted_at');
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('created_at')->useCurrent();
-            $table->index(['notification_id', 'attempt_number']);
+            $table->index(['notification_id', 'attempt_number'], 'notification_delivery_attempts_attempt_index');
         });
     }
 

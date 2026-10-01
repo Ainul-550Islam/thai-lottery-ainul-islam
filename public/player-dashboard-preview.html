@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Dashboard | THAI LOTTERY</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --pd-bg-page: #0b1017;
+            --pd-bg-header: #0e141e;
+            --pd-bg-card: #121926;
+            --pd-bg-card-sub: #172133;
+            --pd-border-main: #1f2b3e;
+            --pd-border-gold: #eab308;
+            --pd-gold-glow: rgba(234, 179, 8, 0.35);
+            --pd-green-accent: #10b981;
+            --pd-green-glow: rgba(16, 185, 129, 0.4);
+            --pd-gold-text: #facc15;
+            --pd-text-main: #f1f5f9;
+            --pd-text-muted: #8e9bb0;
+        }
+        body {
+            background-color: var(--pd-bg-page);
+            color: var(--pd-text-main);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .pd-header {
+            background-color: var(--pd-bg-header);
+            border-bottom: 1px solid var(--pd-border-main);
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .pd-brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+        .pd-logo-icon {
+            width: 38px;
+            height: 38px;
+            background: radial-gradient(circle, #2d2305 0%, #151102 100%);
+            border: 1.5px solid #eab308;
+            clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #facc15;
+            font-size: 1.1rem;
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+        }
+        .pd-nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 1.75rem;
+        }
+        .pd-nav-link {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            padding: 0.5rem 0.25rem;
+            position: relative;
+        }
+        .pd-nav-link:hover {
+            color: #ffffff;
+        }
+        .pd-nav-link.active {
+            color: #34d399;
+            font-weight: 700;
+        }
+        .pd-nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -16px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #10b981;
+            border-radius: 9999px;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+        }
+        .pd-user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            color: #f8fafc;
+            position: relative;
+        }
+        .pd-user-status-dot {
+            position: absolute;
+            top: -1px;
+            right: -1px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 2px solid var(--pd-bg-header);
+        }
+        .pd-top-wallet-chip {
+            background: #08120e;
+            border: 1px solid #10b981;
+            border-radius: 9999px;
+            padding: 0.35rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 800;
+            color: #facc15;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .pd-main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .pd-hero-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 1024px) {
+            .pd-hero-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .pd-countdown-card {
+            background: var(--pd-bg-card);
+            border: 1px solid var(--pd-border-main);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .pd-timer-display {
+            font-size: 2.75rem;
+            font-weight: 900;
+            color: #facc15;
+            letter-spacing: 0.05em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            line-height: 1;
+            margin: 1rem 0 0.25rem 0;
+            text-shadow: 0 0 20px rgba(250, 204, 21, 0.4);
+        }
+        .pd-winning-card {
+            background: radial-gradient(ellipse at center, #0f1c19 0%, #0d151c 100%);
+            border: 1.5px solid #eab308;
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 0 25px rgba(234, 179, 8, 0.2), 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+        .pd-hex-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin: 1.25rem 0;
+        }
+        .pd-hex-ball {
+            width: 62px;
+            height: 68px;
+            background: radial-gradient(circle at 40% 35%, #2a220a 0%, #161204 100%);
+            border: 2px solid #eab308;
+            clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.25rem;
+            font-weight: 900;
+            color: #facc15;
+            text-shadow: 0 0 15px rgba(250, 204, 21, 0.8);
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.4);
+            transition: transform 0.2s ease;
+        }
+        .pd-table-card {
+            background: var(--pd-bg-card);
+            border: 1px solid var(--pd-border-main);
+            border-radius: 1.25rem;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .pd-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .pd-table th {
+            background: #0f1622;
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--pd-border-main);
+        }
+        .pd-table td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #162030;
+            color: #cbd5e1;
+        }
+        .pd-badge-won {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid #10b981;
+            color: #34d399;
+            font-size: 0.6875rem;
+            font-weight: 900;
+            padding: 0.25rem 0.65rem;
+            border-radius: 0.5rem;
+        }
+        .pd-badge-pending {
+            background: rgba(234, 179, 8, 0.15);
+            border: 1px solid #eab308;
+            color: #facc15;
+            font-size: 0.6875rem;
+            font-weight: 900;
+            padding: 0.25rem 0.65rem;
+            border-radius: 0.5rem;
+        }
+        .pd-badge-lost {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid #ef4444;
+            color: #f87171;
+            font-size: 0.6875rem;
+            font-weight: 900;
+            padding: 0.25rem 0.65rem;
+            border-radius: 0.5rem;
+        }
+        .pd-floating-help {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.125rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header class="pd-header">
+        <div class="flex items-center gap-10">
+            <a href="#dashboard" class="pd-brand-logo">
+                <div class="pd-logo-icon">🐘</div>
+                <div class="flex flex-col">
+                    <span class="text-sm font-black text-amber-400 tracking-widest uppercase leading-none">THAI</span>
+                    <span class="text-xs font-bold text-slate-200 tracking-wider uppercase leading-tight">LOTTERY</span>
+                </div>
+            </a>
+
+            <nav class="pd-nav-menu">
+                <a href="#dashboard" class="pd-nav-link active">Dashboard</a>
+                <a href="/betting" class="pd-nav-link">Bet Slip</a>
+                <a href="/results" class="pd-nav-link">Results</a>
+                <a href="#history" class="pd-nav-link">History</a>
+                <a href="#payments" class="pd-nav-link">Payments</a>
+                <a href="/player/security" class="pd-nav-link">Account</a>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="pd-user-avatar">
+                SK
+                <span class="pd-user-status-dot"></span>
+            </div>
+
+            <button type="button" class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white" onclick="alert('No unread notifications');">
+                🔔
+            </button>
+
+            <div class="pd-top-wallet-chip">
+                <span>**5,450.00 THB</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN WRAPPER -->
+    <main class="pd-main">
+        <!-- WELCOME BANNER -->
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-black text-white">
+                Welcome back, <span class="text-amber-400">Sorn!</span>
+            </h1>
+
+            <button type="button" onclick="alert('Deposit modal opened. PromptPay QR ready.');" class="bg-[#061f16] hover:bg-[#0a2d21] border border-emerald-500 rounded-full px-5 py-2 text-xs font-extrabold text-white shadow-[0_0_15px_rgba(16,185,129,0.35)] flex items-center gap-2">
+                <span>Wallet Balance</span>
+                <span class="text-amber-400">🪙</span>
+                <span class="text-emerald-400 font-bold">+ Deposit</span>
+            </button>
+        </div>
+
+        <!-- HERO SECTION: 2 CARDS -->
+        <div class="pd-hero-grid">
+            <!-- LEFT CARD: Countdown -->
+            <section class="pd-countdown-card">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-base font-black text-white">Draw #128</span>
+                        <span class="bg-emerald-500/15 border border-emerald-500 text-emerald-400 text-[10px] font-black px-2.5 py-0.5 rounded-lg tracking-wider">
+                            OPEN
+                        </span>
+                    </div>
+
+                    <div id="countdownTimerDisplay" class="pd-timer-display">
+                        14:48:02
+                    </div>
+
+                    <div class="flex gap-7 text-xs text-slate-400 font-semibold mb-3">
+                        <span>Hours</span>
+                        <span>Mins</span>
+                        <span>Secs</span>
+                    </div>
+
+                    <div class="text-xs text-slate-300">
+                        Next Draw: July 16, 2024, 4:00 PM ICT
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <a href="/betting" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-xs py-3 rounded-xl text-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                        Wager Now
+                    </a>
+                    <a href="#history" class="flex-1 bg-[#172133] hover:bg-[#1e2c45] text-slate-200 border border-[#1f2b3e] font-bold text-xs py-3 rounded-xl text-center">
+                        View Tickets
+                    </a>
+                </div>
+            </section>
+
+            <!-- RIGHT CARD: Latest Winning Numbers -->
+            <section class="pd-winning-card">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-black text-amber-400 tracking-wider uppercase">
+                        LATEST WINNING NUMBERS
+                    </span>
+                    <span class="text-xs font-bold text-slate-400">
+                        Draw #127, July 1
+                    </span>
+                </div>
+
+                <!-- 6 3D Golden Hexagon Balls -->
+                <div class="pd-hex-row">
+                    <div class="pd-hex-ball">7</div>
+                    <div class="pd-hex-ball">2</div>
+                    <div class="pd-hex-ball">4</div>
+                    <div class="pd-hex-ball">6</div>
+                    <div class="pd-hex-ball">0</div>
+                    <div class="pd-hex-ball">5</div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-300">
+                        1st Prize: <span class="font-black text-amber-400">6,000,000 THB</span>
+                    </span>
+                    <span class="text-slate-400 font-semibold">
+                        Next Draw: Draw #128
+                    </span>
+                </div>
+            </section>
+        </div>
+
+        <!-- RECENT WAGERS SECTION -->
+        <section class="flex flex-col gap-3">
+            <h2 class="text-sm font-black text-white tracking-wider uppercase">
+                RECENT WAGERS
+            </h2>
+
+            <div class="pd-table-card">
+                <table class="pd-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket ID</th>
+                            <th>Date</th>
+                            <th>Numbers</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-2 font-mono font-bold text-slate-200">
+                                    📄 <span>TKT-B98103</span>
+                                </div>
+                            </td>
+                            <td>Jul 15, 14:12</td>
+                            <td>
+                                <span class="font-mono font-black text-sm text-amber-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]">
+                                    724605
+                                </span>
+                            </td>
+                            <td>Straight x5</td>
+                            <td class="font-mono">500.00 THB</td>
+                            <td><span class="pd-badge-won">WON</span></td>
+                            <td style="text-align: right;">
+                                <a href="#view" class="text-slate-400 hover:text-sky-400 text-xs font-semibold" onclick="alert('Viewing ticket TKT-B98103');">View / History</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-2 font-mono font-bold text-slate-200">
+                                    📄 <span>TKT-A72460</span>
+                                </div>
+                            </td>
+                            <td>Jul 15, 14:12</td>
+                            <td>
+                                <span class="font-mono font-bold text-sm text-white">
+                                    183922
+                                </span>
+                            </td>
+                            <td>3D Direct</td>
+                            <td class="font-mono">100.00 THB</td>
+                            <td><span class="pd-badge-pending">PENDING</span></td>
+                            <td style="text-align: right;">
+                                <a href="#modify" class="text-slate-400 hover:text-white text-xs font-semibold" onclick="alert('Modify wager modal');">Modify</a>
+                                <span style="color: #475569; margin: 0 4px;">/</span>
+                                <a href="#cancel" class="text-rose-400 hover:text-rose-300 text-xs font-semibold" onclick="alert('Cancel ticket TKT-A72460');">Cancel</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-2 font-mono font-bold text-slate-200">
+                                    📄 <span>TKT-E05122</span>
+                                </div>
+                            </td>
+                            <td>Jul 15, 14:12</td>
+                            <td>
+                                <span class="font-mono font-bold text-sm text-white">
+                                    052187
+                                </span>
+                            </td>
+                            <td>2D Rear</td>
+                            <td class="font-mono">250.00 THB</td>
+                            <td><span class="pd-badge-lost">LOST</span></td>
+                            <td style="text-align: right;">
+                                <a href="#details" class="text-slate-400 hover:text-sky-400 text-xs font-semibold" onclick="alert('Details for ticket TKT-E05122');">Details ⓘ</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-2 font-mono font-bold text-slate-200">
+                                    📄 <span>TKT-C34991</span>
+                                </div>
+                            </td>
+                            <td>Jul 15, 14:12</td>
+                            <td>
+                                <span class="font-mono font-bold text-sm text-white">
+                                    440911
+                                </span>
+                            </td>
+                            <td>Straight x2</td>
+                            <td class="font-mono">200.00 THB</td>
+                            <td><span class="pd-badge-won">WON</span></td>
+                            <td style="text-align: right;">
+                                <a href="#view" class="text-slate-400 hover:text-sky-400 text-xs font-semibold" onclick="alert('Viewing ticket TKT-C34991');">View ✎</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Help Button -->
+    <button type="button" class="pd-floating-help" onclick="alert('Thai Lottery 24/7 Live Support');">
+        ?
+    </button>
+
+    <script>
+        (function () {
+            var remainingSeconds = 14 * 3600 + 48 * 60 + 2;
+            var timerEl = document.getElementById('countdownTimerDisplay');
+            if (timerEl) {
+                setInterval(function () {
+                    if (remainingSeconds <= 0) return;
+                    remainingSeconds--;
+                    var h = Math.floor(remainingSeconds / 3600);
+                    var m = Math.floor((remainingSeconds % 3600) / 60);
+                    var s = remainingSeconds % 60;
+                    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                    timerEl.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+                }, 1000);
+            }
+        })();
+    </script>
+</body>
+</html>

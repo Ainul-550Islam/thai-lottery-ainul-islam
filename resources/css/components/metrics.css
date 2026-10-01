@@ -1,0 +1,98 @@
+/**
+ * THAILOTTO DESIGN SYSTEM — METRIC CARDS
+ *
+ * Fintech-grade KPI and metric display components.
+ */
+
+.tl-metric-card {
+    background: var(--tl-glass-bg-subtle);
+    border: 1px solid var(--tl-glass-border);
+    border-radius: var(--tl-radius-xl);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+    .tl-metric-card {
+        backdrop-filter: blur(var(--tl-glass-blur));
+    }
+}
+
+.tl-metric-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.tl-metric-card__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--tl-text-secondary);
+}
+
+.tl-metric-card__value {
+    font-size: 1.875rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--tl-text-primary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.tl-metric-card__value--highlight {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.tl-metric-card__value--accent {
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.tl-metric-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.75rem;
+    color: var(--tl-text-muted);
+}
+
+.tl-metric-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--tl-radius-full);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.tl-metric-badge--verified {
+    background: var(--tl-success-bg);
+    color: var(--tl-success);
+    border: 1px solid var(--tl-success-border);
+}
+
+.tl-metric-badge--warning {
+    background: var(--tl-warning-bg);
+    color: var(--tl-warning);
+    border: 1px solid var(--tl-warning-border);
+}
+
+.tl-metric-badge--danger {
+    background: var(--tl-danger-bg);
+    color: var(--tl-danger);
+    border: 1px solid var(--tl-danger-border);
+}

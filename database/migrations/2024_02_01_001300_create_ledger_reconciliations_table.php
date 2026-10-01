@@ -18,7 +18,7 @@ return new class () extends Migration
             $table->id();
 
             $table->string('reconciliation_key', 64)->unique();
-            $table->foreignId('wallet_id')->constrained('wallets')->restrictOnDelete()->index();
+            $table->foreignId('wallet_id')->constrained('wallets')->restrictOnDelete();
 
             $table->string('currency', 3);
             $table->string('scope', 32)->default('wallet-liability');

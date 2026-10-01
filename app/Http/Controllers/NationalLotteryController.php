@@ -158,7 +158,7 @@ final class NationalLotteryController
 
         $label = $this->dates->yearLabel($gregorian, $this->locale());
 
-        return view('national-lottery.index', $this->pageData([
+        return view('national-lottery.year', $this->pageData([
             'current' => null,
             'recent' => [],
             'years' => $this->history->availableYears(),
@@ -223,6 +223,108 @@ final class NationalLotteryController
     }
 
     /**
+     * Page 19: latest result as an independently addressable surface.
+     */
+    public function latestResult(Request $request): View
+    {
+        unset($request);
+
+        $current = $this->results->currentResult();
+        $reference = is_array($current['draw'] ?? null) && isset($current['draw']['reference'])
+            ? (string) $current['draw']['reference']
+            : null;
+
+        return view('national-lottery.latest-result', $this->pageData([
+            'current' => $current,
+            'recent' => $this->history->recentDraws($reference),
+            'years' => $this->history->availableYears(),
+            'meta' => $this->meta(
+                (string) trans('national_lottery.meta_title').' — '.trans('national_lottery.current_result_heading'),
+                (string) trans('national_lottery.meta_description'),
+                '/national-lottery/latest',
+                (bool) ($current['available'] ?? false),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 20: the server-backed historical result surface.
+     */
+    public function historicalResults(Request $request): View
+    {
+        $latestYear = $this->history->latestYear();
+        $history = $latestYear === null ? null : $this->history->historyForYear($latestYear, 1);
+
+        return view('national-lottery.history', $this->pageData([
+            'current' => null,
+            'recent' => [],
+            'years' => $this->history->availableYears(),
+            'active_year' => $latestYear,
+            'history' => $history,
+            'meta' => $this->meta(
+                (string) trans('national_lottery.meta_title').' — '.trans('national_lottery.history_heading'),
+                (string) trans('national_lottery.meta_description'),
+                '/national-lottery/history',
+                $history !== null && ($history['status'] ?? '') === 'RESULT_FOUND',
+            ),
+        ]));
+    }
+
+    /**
+     * Page 18: draw detail. It uses the same canonical reference lookup as
+     * the legacy /national-lottery/{draw} route.
+     */
+    public function drawDetail(Request $request, string $draw): View
+    {
+        unset($request);
+
+        $projection = $this->results->resultForReference($draw);
+
+        return view('national-lottery.draw-detail', $this->pageData([
+            'current' => $projection,
+            'years' => $this->history->availableYears(),
+            'meta' => $this->meta(
+                (string) trans('national_lottery.detail_heading').' — '.trans('national_lottery.meta_title'),
+                (string) trans('national_lottery.meta_description'),
+                '/national-lottery/draw/'.$draw,
+                (bool) ($projection['available'] ?? false),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 22: result detail. This is a separate URL/view for consumers that
+     * distinguish a result record from a draw page; the projection remains the
+     * same and no second result query or provenance contract is introduced.
+     */
+    public function resultDetail(Request $request, string $draw): View
+    {
+        unset($request);
+
+        $projection = $this->results->resultForReference($draw);
+
+        return view('national-lottery.result-detail', $this->pageData([
+            'current' => $projection,
+            'years' => $this->history->availableYears(),
+            'meta' => $this->meta(
+                (string) trans('national_lottery.detail_heading').' — '.trans('national_lottery.meta_title'),
+                (string) trans('national_lottery.meta_description'),
+                '/national-lottery/result/'.$draw,
+                (bool) ($projection['available'] ?? false),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 21: named year archive entry point. Existing /year/{year} remains
+     * canonical and continues to use the same controller method/service.
+     */
+    public function yearArchive(Request $request): View
+    {
+        return $this->year($request, (string) $request->query('year', ''));
+    }
+
+    /**
      * Shared view payload.
      *
      * @param  array<string, mixed>  $data
@@ -248,7 +350,7 @@ final class NationalLotteryController
     {
         $safeLabel = preg_match('/^[0-9]{1,4}$/', $requested) === 1 ? $requested : '';
 
-        return view('national-lottery.index', $this->pageData([
+        return view('national-lottery.year', $this->pageData([
             'current' => null,
             'recent' => [],
             'years' => $this->history->availableYears(),

@@ -113,7 +113,7 @@ final class BingoLotteryController
             }
         }
 
-        return view('bingo-lottery.show', $this->pageData([
+        return view('bingo-lottery.draw-detail', $this->pageData([
             'current' => $projection,
             'recent' => [],
             'years' => $this->history->availableYears(),
@@ -154,7 +154,7 @@ final class BingoLotteryController
         $history = $this->history->historyForYear($gregorian, $this->boundedPage($request));
         $label = $this->dates->yearLabel($gregorian, $this->locale());
 
-        return view('bingo-lottery.index', $this->pageData([
+        return view('bingo-lottery.year', $this->pageData([
             'current' => null,
             'recent' => [],
             'years' => $this->history->availableYears(),
@@ -219,6 +219,130 @@ final class BingoLotteryController
     }
 
     /**
+     * Page 32: independently addressable Mega draw detail.
+     */
+    public function drawDetail(Request $request, string $draw): View
+    {
+        unset($request);
+
+        $projection = $this->results->resultForReference($draw);
+
+        return view('bingo-lottery.draw-detail', $this->pageData([
+            'current' => $projection,
+            'years' => $this->history->availableYears(),
+            'active_year' => null,
+            'meta' => $this->meta(
+                (string) trans('bingo_lottery.detail_heading').' — '.trans('bingo_lottery.meta_title'),
+                (string) trans('bingo_lottery.meta_description'),
+                '/bingo-lottery/draw/'.$draw,
+                (bool) ($projection['available'] ?? false) && (bool) ($projection['has_numbers'] ?? true),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 33: latest Mega result from the canonical Bingo result service.
+     */
+    public function latestResult(Request $request): View
+    {
+        unset($request);
+
+        $current = $this->results->currentResult();
+        $reference = is_array($current['draw'] ?? null) && isset($current['draw']['reference'])
+            ? (string) $current['draw']['reference']
+            : null;
+
+        return view('bingo-lottery.latest-result', $this->pageData([
+            'current' => $current,
+            'recent' => $this->history->recentDraws($reference),
+            'years' => $this->history->availableYears(),
+            'active_year' => null,
+            'meta' => $this->meta(
+                (string) trans('bingo_lottery.meta_title').' — '.trans('bingo_lottery.current_result_heading'),
+                (string) trans('bingo_lottery.meta_description'),
+                '/bingo-lottery/latest',
+                (bool) ($current['available'] ?? false) && (bool) ($current['has_numbers'] ?? true),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 34: server-backed Mega historical results.
+     */
+    public function historicalResults(Request $request): View
+    {
+        $latestYear = $this->history->latestYear();
+        $history = $latestYear === null
+            ? null
+            : $this->history->historyForYear($latestYear, $this->boundedPage($request));
+
+        return view('bingo-lottery.history', $this->pageData([
+            'current' => null,
+            'recent' => [],
+            'years' => $this->history->availableYears(),
+            'active_year' => $latestYear,
+            'history' => $history,
+            'search' => null,
+            'meta' => $this->meta(
+                (string) trans('bingo_lottery.meta_title').' — '.trans('bingo_lottery.history_heading'),
+                (string) trans('bingo_lottery.meta_description'),
+                '/bingo-lottery/history',
+                $history !== null && ($history['status'] ?? '') === 'RESULT_FOUND',
+            ),
+        ]));
+    }
+
+    /**
+     * Page 29-equivalent Mega result detail; the existing show route remains
+     * the compatibility surface.
+     */
+    public function resultDetail(Request $request, string $draw): View
+    {
+        unset($request);
+
+        $projection = $this->results->resultForReference($draw);
+
+        return view('bingo-lottery.result-detail', $this->pageData([
+            'current' => $projection,
+            'years' => $this->history->availableYears(),
+            'active_year' => null,
+            'meta' => $this->meta(
+                (string) trans('bingo_lottery.detail_heading').' — '.trans('bingo_lottery.meta_title'),
+                (string) trans('bingo_lottery.meta_description'),
+                '/bingo-lottery/result/'.$draw,
+                (bool) ($projection['available'] ?? false) && (bool) ($projection['has_numbers'] ?? true),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 31 purchase entry. No product-specific Mega purchase contract was
+     * found, so the view is intentionally fail-closed.
+     */
+    public function buy(Request $request): View
+    {
+        unset($request);
+
+        return view('bingo-lottery.buy', [
+            'product_key' => 'bingo_lottery',
+            'product_title' => (string) trans('bingo_lottery.public_name'),
+            'product_description' => (string) trans('bingo_lottery.intro'),
+            'purchase_state' => 'NOT_CONFIGURED',
+            'back_url' => route('bingo-lottery.index'),
+            'canonical' => rtrim((string) config('app.url'), '/').route('bingo-lottery.buy', [], false),
+        ]);
+    }
+
+    /**
+     * Page 28-equivalent compatibility entry point. The existing
+     * /bingo-lottery/year/{year} route remains canonical.
+     */
+    public function yearArchive(Request $request, string $year): View
+    {
+        return $this->year($request, $year);
+    }
+
+    /**
      * Shared view payload.
      *
      * @param  array<string, mixed>  $data
@@ -244,7 +368,7 @@ final class BingoLotteryController
     {
         $safeLabel = preg_match('/^[0-9]{1,4}$/', $requested) === 1 ? $requested : '';
 
-        return view('bingo-lottery.index', $this->pageData([
+        return view('bingo-lottery.year', $this->pageData([
             'current' => null,
             'recent' => [],
             'years' => $this->history->availableYears(),

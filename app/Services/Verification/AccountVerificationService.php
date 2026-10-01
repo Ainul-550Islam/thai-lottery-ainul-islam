@@ -9,6 +9,7 @@ use App\Enums\AuditAction;
 use App\Enums\KycDocumentType;
 use App\Enums\VerificationDocumentType;
 use App\Models\AccountVerification;
+use App\Models\AccountVerificationDocument;
 use App\Models\AuditLog;
 use App\Models\KycDocument;
 use App\Models\User;
@@ -85,6 +86,11 @@ final class AccountVerificationService
     public function documentsFor(User $user): array
     {
         return $this->facade->documentsFor($user);
+    }
+
+    public function documentForDownload(User $user, string $token): ?AccountVerificationDocument
+    {
+        return $this->facade->documentForDownload($user, $token);
     }
 
     /**

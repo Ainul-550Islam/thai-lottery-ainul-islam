@@ -76,11 +76,14 @@ final class PaymentCallbackService
         ?int $viewerId,
     ): array {
         $payment = null;
+        $paymentReference = self::safeReference($paymentReference);
+        $documentReference = self::safeReference($documentReference);
+        $gatewayReference = self::safeReference($gatewayReference);
 
-        if (is_string($paymentReference) && preg_match('/^PAY-/i', trim($paymentReference)) === 1) {
-            $payment = \App\Models\Payment::query()->where('reference_number', trim($paymentReference))->first();
-        } elseif (is_string($documentReference) && trim($documentReference) !== '') {
-            $deposit = \App\Models\Deposit::query()->where('reference_number', trim($documentReference))->first();
+        if ($paymentReference !== null && preg_match('/^PAY-[A-Za-z0-9_-]{1,100}$/i', $paymentReference) === 1) {
+            $payment = \App\Models\Payment::query()->where('reference_number', $paymentReference)->first();
+        } elseif ($documentReference !== null && preg_match('/^(?:DP|WD)-[A-Za-z0-9_-]{1,100}$/i', $documentReference) === 1) {
+            $deposit = \App\Models\Deposit::query()->where('reference_number', $documentReference)->first();
 
             if ($deposit instanceof \App\Models\Deposit) {
                 $payment = \App\Models\Payment::query()
@@ -88,7 +91,7 @@ final class PaymentCallbackService
                     ->where('payable_id', $deposit->getKey())
                     ->first();
             } else {
-                $withdrawal = \App\Models\Withdrawal::query()->where('reference_number', trim($documentReference))->first();
+                $withdrawal = \App\Models\Withdrawal::query()->where('reference_number', $documentReference)->first();
 
                 if ($withdrawal instanceof \App\Models\Withdrawal) {
                     $payment = \App\Models\Payment::query()
@@ -97,8 +100,8 @@ final class PaymentCallbackService
                         ->first();
                 }
             }
-        } elseif (is_string($gatewayReference) && trim($gatewayReference) !== '') {
-            $payment = \App\Models\Payment::query()->where('gateway_reference', trim($gatewayReference))->first();
+        } elseif ($gatewayReference !== null && preg_match('/^[A-Za-z0-9._:-]{1,120}$/', $gatewayReference) === 1) {
+            $payment = \App\Models\Payment::query()->where('gateway_reference', $gatewayReference)->first();
         }
 
         if (! $payment instanceof \App\Models\Payment) {
@@ -122,14 +125,24 @@ final class PaymentCallbackService
         return [
             'found' => true,
             'payment' => $payment,
-            'document_reference' => $payment->metadata['deposit_reference']
-                ?? $payment->metadata['withdrawal_reference']
+            'document_reference' => (is_array($payment->metadata) ? ($payment->metadata['deposit_reference'] ?? $payment->metadata['withdrawal_reference'] ?? null) : null)
                 ?? $payment->reference_number,
             'state' => $state,
             // "Paid" is proven ONLY by the internal captured status - never
             // by the URL, a query flag, or the route the browser landed on.
             'paid' => $payment->status === \App\Enums\PaymentStatus::Captured,
         ];
+    }
+
+    private static function safeReference(?string $reference): ?string
+    {
+        if (! is_string($reference)) {
+            return null;
+        }
+
+        $reference = trim($reference);
+
+        return $reference !== '' && strlen($reference) <= 120 ? $reference : null;
     }
 
     /* ------------------------------------------- normalization ------ */

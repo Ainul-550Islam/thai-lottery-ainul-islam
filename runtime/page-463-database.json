@@ -1,0 +1,36 @@
+{
+  "commands": [
+    {
+      "command": [
+        "mysql",
+        "--version"
+      ],
+      "domain": "database",
+      "exit_code": null,
+      "label": "mysql client version",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 463,
+      "reason": "mysql executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "mariadb",
+        "--version"
+      ],
+      "domain": "database",
+      "exit_code": null,
+      "label": "mariadb client version",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 463,
+      "reason": "mariadb executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    }
+  ],
+  "observed_at_utc": "2026-09-30T14:37:11+00:00",
+  "page": 463,
+  "runtime_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "source": "runtime/pages-451-550-command-results.json",
+  "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "type": "page_463_database_evidence"
+}

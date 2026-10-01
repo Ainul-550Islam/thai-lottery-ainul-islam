@@ -36,7 +36,6 @@ class AccountVerificationDocument extends KycDocument
             : (string) $this->status;
 
         return [
-            'id' => (int) $this->id,
             'document_type' => $type,
             'status' => $status,
             'mime_type' => (string) $this->mime_type,

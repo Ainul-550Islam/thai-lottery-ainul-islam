@@ -1,0 +1,159 @@
+{
+  "acceptance_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "commands": {
+    "Cargo version": {
+      "command": [
+        "cargo",
+        "--version"
+      ],
+      "domain": "rust",
+      "exit_code": null,
+      "reason": "cargo executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Cargo workspace tests": {
+      "command": [
+        "cargo",
+        "test",
+        "--workspace"
+      ],
+      "domain": "rust",
+      "exit_code": null,
+      "reason": "cargo executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Composer version": {
+      "command": [
+        "composer",
+        "--version"
+      ],
+      "domain": "runtime",
+      "exit_code": null,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Financial reconciliation command": {
+      "command": [
+        "php",
+        "artisan",
+        "finance:reconcile",
+        "--dry-run",
+        "--json"
+      ],
+      "domain": "finance",
+      "exit_code": null,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Frontend dependency installation": {
+      "command": [
+        "npm",
+        "ci"
+      ],
+      "domain": "frontend",
+      "exit_code": 0,
+      "output_preview": "added 139 packages, and audited 140 packages in 3s\n\n33 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities",
+      "output_truncated": false,
+      "status": "VERIFIED"
+    },
+    "Frontend production build": {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "domain": "frontend",
+      "exit_code": 0,
+      "output_preview": "> build\n> vite build\n\nvite v8.3.1 building client environment for production[three-dot command output]\ntransforming[three-dot command output]\n✓ 167 modules transformed.\nrendering chunks[three-dot command output]\ncomputing gzip size[three-dot command output]\npublic/build/manifest.json                                   24.20 kB │ gzip:  2.88 kB\npublic/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB\npublic/build/assets/weekly-lottery-D4pcZSlO.css               1.51 kB │ gzip:  0.68 kB\npublic/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB\npublic/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB",
+      "output_truncated": true,
+      "status": "VERIFIED"
+    },
+    "GLO frozen winner command": {
+      "command": [
+        "php",
+        "artisan",
+        "glo:process-frozen-winners"
+      ],
+      "domain": "lottery",
+      "exit_code": null,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Laravel about": {
+      "command": [
+        "php",
+        "artisan",
+        "about"
+      ],
+      "domain": "runtime",
+      "exit_code": null,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Laravel failed queue listing": {
+      "command": [
+        "php",
+        "artisan",
+        "queue:failed"
+      ],
+      "domain": "queue",
+      "exit_code": null,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Laravel migration status": {
+      "command": [
+        "php",
+        "artisan",
+        "migrate:status"
+      ],
+      "domain": "database",
+      "exit_code": null,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Laravel route list": {
+      "command": [
+        "php",
+        "artisan",
+        "route:list"
+      ],
+      "domain": "runtime",
+      "exit_code": null,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "Laravel test suite": {
+      "command": [
+        "php",
+        "artisan",
+        "test"
+      ],
+      "domain": "tests",
+      "exit_code": null,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    "PHP version": {
+      "command": [
+        "php",
+        "-v"
+      ],
+      "domain": "runtime",
+      "exit_code": null,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    }
+  },
+  "finished_at_utc": "2026-09-30T14:07:50+00:00",
+  "purpose": "Run available independent commands and preserve exact blocked/failed boundaries.",
+  "secrets_policy": "Command output is truncated and no secret values are intentionally read or emitted.",
+  "started_at_utc": "2026-09-30T14:07:45+00:00",
+  "summary": {
+    "blocked": 11,
+    "command_count": 13,
+    "executed": 2,
+    "failed": 0
+  },
+  "type": "pages_251_350_runtime_acceptance_gate"
+}

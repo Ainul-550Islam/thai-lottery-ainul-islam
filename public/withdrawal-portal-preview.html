@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Withdrawal Portal | Thai Lotto</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --wp-bg-page: #0b0f17;
+            --wp-bg-header: #0f1522;
+            --wp-bg-card: #131b29;
+            --wp-bg-card-sub: #172233;
+            --wp-border-main: #1f2b3e;
+            --wp-blue-accent: #38bdf8;
+            --wp-blue-glow: rgba(56, 189, 248, 0.4);
+            --wp-green-accent: #10b981;
+            --wp-text-main: #f1f5f9;
+        }
+        body {
+            background-color: var(--wp-bg-page);
+            color: #f1f5f9;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .wp-header {
+            background-color: var(--wp-bg-header);
+            border-bottom: 1px solid var(--wp-border-main);
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .wp-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+        }
+        @media (max-width: 1024px) {
+            .wp-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        .wp-category-card {
+            background: var(--wp-bg-card);
+            border: 1.5px solid var(--wp-border-main);
+            border-radius: 1rem;
+            padding: 1rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .wp-category-card.active {
+            border-color: #38bdf8;
+            background: #081a28;
+            box-shadow: 0 0 18px var(--wp-blue-glow);
+        }
+        .wp-amount-btn {
+            background: var(--wp-bg-card-sub);
+            border: 1px solid var(--wp-border-main);
+            border-radius: 0.75rem;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            font-size: 0.9375rem;
+            font-weight: 800;
+            color: #cbd5e1;
+            cursor: pointer;
+        }
+        .wp-amount-btn.active {
+            background: #081a28;
+            border-color: #38bdf8;
+            color: #38bdf8;
+            box-shadow: 0 0 14px var(--wp-blue-glow);
+        }
+        .wp-confirm-btn {
+            width: 100%;
+            background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #0284c7 100%);
+            border: none;
+            border-radius: 0.875rem;
+            padding: 0.95rem;
+            font-size: 0.9375rem;
+            font-weight: 900;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.45);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header class="wp-header">
+        <a href="#withdrawal" class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white font-black text-xl shadow-[0_0_15px_rgba(56,189,248,0.4)]">
+                💸
+            </div>
+            <div>
+                <div class="text-base font-black text-white tracking-wide">THAI LOTTO</div>
+                <div class="text-[10px] font-bold text-sky-400 uppercase tracking-widest">Withdrawal Portal</div>
+            </div>
+        </a>
+
+        <div class="flex items-center gap-4">
+            <div class="bg-[#08121a] border border-emerald-500 rounded-full px-4 py-1.5 text-xs font-black text-emerald-400">
+                Withdrawable: 5,200.00 THB
+            </div>
+            <a href="/wallet" class="text-slate-400 hover:text-white text-xs font-bold transition">
+                Wallet Overview →
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="wp-container">
+        <!-- LEFT WORKFLOW PANEL -->
+        <div class="space-y-6">
+            <!-- SECURITY BANNER -->
+            <div class="bg-gradient-to-r from-[#081a28] via-[#0d1e2e] to-[#091a1e] border border-sky-500 rounded-2xl p-6 shadow-[0_0_25px_rgba(56,189,248,0.2)]">
+                <h1 class="text-xl font-black text-white">
+                    Automated Instant Payouts <span>&lt; 60 Seconds</span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">
+                    Funds are transferred directly to your verified bank account, PromptPay, or crypto wallet with 0% withdrawal fee.
+                </p>
+                <div class="flex items-center gap-3 mt-4 text-xs font-bold">
+                    <span class="bg-sky-500/15 border border-sky-500 text-sky-400 px-3 py-1 rounded-lg">🔒 2FA Protected</span>
+                    <span class="bg-emerald-500/15 border border-emerald-500 text-emerald-400 px-3 py-1 rounded-lg">0% Payout Fee</span>
+                    <span class="bg-amber-500/15 border border-amber-500 text-amber-400 px-3 py-1 rounded-lg">Daily Limit: 50,000 THB</span>
+                </div>
+            </div>
+
+            <!-- STEP 1: CATEGORY SELECTOR -->
+            <div>
+                <span class="text-xs font-extrabold text-slate-300 block mb-3 uppercase tracking-wider">
+                    1. Select Payout Method
+                </span>
+                <div class="grid grid-cols-5 gap-3">
+                    <button type="button" class="wp-category-card active" data-withdraw-cat="banking">
+                        <span class="text-2xl">🏛</span>
+                        <span class="text-xs font-bold text-white text-center leading-tight">Thai Banking</span>
+                        <span class="text-[10px] font-bold text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded">Direct Wire</span>
+                    </button>
+                    <button type="button" class="wp-category-card" data-withdraw-cat="promptpay">
+                        <span class="text-2xl">📱</span>
+                        <span class="text-xs font-bold text-white text-center leading-tight">PromptPay</span>
+                        <span class="text-[10px] font-bold text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded">Fastest</span>
+                    </button>
+                    <button type="button" class="wp-category-card" data-withdraw-cat="crypto">
+                        <span class="text-2xl">₮</span>
+                        <span class="text-xs font-bold text-white text-center leading-tight">Crypto / USDT</span>
+                        <span class="text-[10px] font-bold text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded">TRC-20</span>
+                    </button>
+                    <button type="button" class="wp-category-card" data-withdraw-cat="mfs">
+                        <span class="text-2xl">👛</span>
+                        <span class="text-xs font-bold text-white text-center leading-tight">TrueMoney</span>
+                        <span class="text-[10px] font-bold text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded">e-Wallet</span>
+                    </button>
+                    <button type="button" class="wp-category-card" data-withdraw-cat="vip">
+                        <span class="text-2xl">👑</span>
+                        <span class="text-xs font-bold text-white text-center leading-tight">VIP Cashout</span>
+                        <span class="text-[10px] font-bold text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded">&gt; 100K</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: AMOUNT SELECTION -->
+            <div class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-6 space-y-4">
+                <span class="text-xs font-extrabold text-slate-300 block uppercase tracking-wider">
+                    2. Choose Withdrawal Amount
+                </span>
+
+                <div class="grid grid-cols-4 gap-3">
+                    <button type="button" class="wp-amount-btn" data-withdraw-amount="300">300 THB</button>
+                    <button type="button" class="wp-amount-btn" data-withdraw-amount="500">500 THB</button>
+                    <button type="button" class="wp-amount-btn active" data-withdraw-amount="1000">1,000 THB</button>
+                    <button type="button" class="wp-amount-btn" data-withdraw-amount="2000">2,000 THB</button>
+                    <button type="button" class="wp-amount-btn" data-withdraw-amount="3000">3,000 THB</button>
+                    <button type="button" class="wp-amount-btn" data-withdraw-amount="5000">5,000 THB</button>
+                    <button type="button" class="wp-amount-btn col-span-2" data-withdraw-amount="all">
+                        All Withdrawable (5,200.00 THB)
+                    </button>
+                </div>
+
+                <div class="flex items-center bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-3 gap-3">
+                    <span class="text-sky-400 font-black text-base">THB</span>
+                    <input type="text" id="customWithdrawAmountInput" class="w-full bg-transparent border-none text-white font-mono font-bold text-lg outline-none" value="1000">
+                </div>
+            </div>
+
+            <!-- STEP 3: DESTINATION ACCOUNT -->
+            <div class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-6 space-y-4">
+                <span class="text-xs font-extrabold text-slate-300 block uppercase tracking-wider">
+                    3. Destination Account Details
+                </span>
+
+                <div id="withdrawBankingSection" class="bg-[#172233] border border-emerald-500 rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-700 text-white font-black flex items-center justify-center text-xs">SCB</div>
+                        <div>
+                            <div class="text-xs font-bold text-white">Siam Commercial Bank (Primary)</div>
+                            <div class="font-mono text-xs text-slate-300">Acc: •••• •••• 4210 (Alex Thompson)</div>
+                        </div>
+                    </div>
+                    <span class="bg-emerald-500/15 border border-emerald-500 text-emerald-400 text-[10px] font-black px-2.5 py-0.5 rounded">
+                        KYC Verified
+                    </span>
+                </div>
+
+                <div id="withdrawPromptpaySection" class="bg-[#172233] border border-sky-500 rounded-xl p-4 flex items-center justify-between" style="display: none;">
+                    <div>
+                        <div class="text-xs font-bold text-white">PromptPay ID (Registered Phone)</div>
+                        <div class="font-mono text-xs text-sky-400">081-•••-5678 (Alex Thompson)</div>
+                    </div>
+                    <span class="bg-sky-500/15 border border-sky-500 text-sky-400 text-[10px] font-black px-2.5 py-0.5 rounded">
+                        Instant Payout
+                    </span>
+                </div>
+
+                <div id="withdrawCryptoSection" class="space-y-2" style="display: none;">
+                    <label class="text-[11px] text-slate-400 block font-semibold">Recipient USDT Address (TRC-20)</label>
+                    <input type="text" value="TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE" class="w-full bg-[#0c121d] border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono text-emerald-400 outline-none">
+                </div>
+
+                <div id="withdrawMfsSection" class="space-y-3" style="display: none;">
+                    <div class="bg-[#172233] border border-amber-500 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                            <div class="text-xs font-bold text-white">TrueMoney Wallet Phone Number</div>
+                            <div class="font-mono text-xs text-amber-400">081-•••-5678</div>
+                        </div>
+                        <span class="bg-amber-500/15 border border-amber-500 text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded">
+                            TrueMoney Ready
+                        </span>
+                    </div>
+                </div>
+
+                <div id="withdrawVipSection" class="space-y-3" style="display: none;">
+                    <div class="bg-[#172233] border border-amber-500 rounded-xl p-4 text-xs space-y-1">
+                        <div class="font-bold text-amber-400">👑 Dedicated VIP Concierge Cashout</div>
+                        <p class="text-slate-300">For withdrawals exceeding 100,000 THB, a personal account manager facilitates bank-branch OTC cashier check or private secure transfer.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: SUMMARY -->
+        <aside class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-6 flex flex-col justify-between shadow-2xl h-fit space-y-6">
+            <div>
+                <h2 class="text-base font-black text-white pb-3 border-b border-[#1f2b3e]">Payout Summary</h2>
+                <div class="space-y-3 mt-4 text-xs text-slate-400">
+                    <div class="flex items-center justify-between">
+                        <span>Requested Payout:</span>
+                        <span id="summaryRequestedAmount" class="font-mono font-bold text-white">1,000 THB</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Processing Fee:</span>
+                        <span class="font-mono font-bold text-emerald-400">0.00 THB (Free)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Estimated Arrival:</span>
+                        <span class="font-bold text-sky-400">Instant (&lt; 60s)</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-800 text-sm font-black text-white">
+                        <span>Net Received:</span>
+                        <span id="summaryNetPayout" class="font-mono text-sky-400 text-base">1,000 THB</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                        <span>Remaining Balance:</span>
+                        <span id="summaryRemainingBalance" class="font-mono font-bold text-slate-400">4,200 THB</span>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" id="confirmWithdrawalBtn" class="wp-confirm-btn">
+                Confirm &amp; Withdraw Funds
+            </button>
+        </aside>
+    </main>
+
+    <script>
+        (function () {
+            var currentAmount = 1000;
+            var withdrawableBalance = 5200;
+
+            function recalculate() {
+                var remaining = Math.max(0, withdrawableBalance - currentAmount);
+                document.getElementById('summaryRequestedAmount').textContent = currentAmount.toLocaleString() + ' THB';
+                document.getElementById('summaryNetPayout').textContent = currentAmount.toLocaleString() + ' THB';
+                document.getElementById('summaryRemainingBalance').textContent = remaining.toLocaleString() + ' THB';
+            }
+
+            document.querySelectorAll('[data-withdraw-cat]').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    var cat = card.getAttribute('data-withdraw-cat');
+                    document.querySelectorAll('[data-withdraw-cat]').forEach(function (c) { c.classList.remove('active'); });
+                    card.classList.add('active');
+
+                    ['withdrawBankingSection', 'withdrawPromptpaySection', 'withdrawCryptoSection', 'withdrawMfsSection', 'withdrawVipSection'].forEach(function (id) {
+                        document.getElementById(id).style.display = 'none';
+                    });
+
+                    var map = { 'banking': 'withdrawBankingSection', 'promptpay': 'withdrawPromptpaySection', 'crypto': 'withdrawCryptoSection', 'mfs': 'withdrawMfsSection', 'vip': 'withdrawVipSection' };
+                    if (map[cat]) document.getElementById(map[cat]).style.display = 'block';
+                });
+            });
+
+            document.querySelectorAll('[data-withdraw-amount]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var rawVal = btn.getAttribute('data-withdraw-amount');
+                    if (rawVal === 'all') currentAmount = withdrawableBalance;
+                    else if (rawVal) currentAmount = parseInt(rawVal, 10);
+
+                    document.querySelectorAll('[data-withdraw-amount]').forEach(function (b) { b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    document.getElementById('customWithdrawAmountInput').value = currentAmount;
+                    recalculate();
+                });
+            });
+
+            document.getElementById('customWithdrawAmountInput').addEventListener('input', function (e) {
+                currentAmount = parseFloat(e.target.value) || 0;
+                recalculate();
+            });
+
+            document.getElementById('confirmWithdrawalBtn').addEventListener('click', function () {
+                var pin = prompt('Enter 4-digit PIN to authorize withdrawal:');
+                if (pin && pin.length >= 4) {
+                    alert('Withdrawal request of ' + currentAmount.toLocaleString() + ' THB submitted successfully.');
+                }
+            });
+
+            recalculate();
+        })();
+    </script>
+</body>
+</html>

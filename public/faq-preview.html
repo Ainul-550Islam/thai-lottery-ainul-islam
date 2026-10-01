@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frequently Asked Questions & Help Center — ThaiLotto Official</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #050b14;
+            color: #cbd5e1;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 10% 80%, rgba(217, 119, 6, 0.04) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .tl-gold-gradient {
+            background: linear-gradient(135deg, #FFF6D6 0%, #F59E0B 50%, #B45309 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tl-gold-bg {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #92400E 100%);
+        }
+        .tl-card {
+            background: linear-gradient(180deg, rgba(16, 27, 45, 0.85) 0%, rgba(10, 18, 30, 0.95) 100%);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            border-radius: 1rem;
+            backdrop-filter: blur(12px);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tl-card:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px 0 rgba(217, 119, 6, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-[#070e1b]/90 backdrop-blur-md border-b border-amber-500/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-xl tl-gold-bg flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-gem text-slate-950 text-xl font-black"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel'] block leading-none">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                        <span class="text-[10px] text-amber-400/80 font-mono tracking-widest uppercase">Knowledge & Help Hub</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Home</a>
+                <a href="/about" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">About Us</a>
+                <a href="/how-to-play" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">How to Play</a>
+                <a href="/our-fees" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Fees</a>
+                <a href="/faq" class="text-sm font-semibold text-amber-400 border-b-2 border-amber-400 pb-1">FAQ</a>
+                <a href="/contact" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Contact</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <a href="/login" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-all">Sign In</a>
+                <a href="/register" class="px-5 py-2.5 rounded-lg text-sm font-black text-slate-950 tl-gold-bg hover:brightness-110 shadow-lg shadow-amber-500/20 transition-all">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <!-- Page Title & Hero Header -->
+        <div class="text-center max-w-3xl mx-auto mb-10">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono mb-4">
+                <i class="fa-solid fa-circle-question"></i> 24/7 Official Knowledge Base & Support
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white font-['Cinzel'] tracking-tight mb-4">
+                Frequently Asked <span class="tl-gold-gradient">Questions</span>
+            </h1>
+            <p class="text-slate-400 text-sm sm:text-base leading-relaxed mb-8">
+                Search our verified player guides for instant answers on PromptPay payments, 900x payout odds, KYC authentication, and 24/7 withdrawals.
+            </p>
+
+            <!-- Search Bar -->
+            <div class="relative max-w-2xl mx-auto">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-400 text-base"></i>
+                <input type="text" id="faqSearchInput" oninput="searchFaqStandalone(this.value)" placeholder="Search questions (e.g. 'PromptPay', '900x', 'KYC', '1st prize', 'limit')..." class="w-full bg-[#0a1424] border border-amber-500/30 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-2xl">
+            </div>
+        </div>
+
+        <!-- Category Filter Tabs -->
+        <div class="flex items-center justify-center gap-2 overflow-x-auto pb-4 mb-10 text-xs font-bold scrollbar-thin">
+            <button type="button" onclick="filterFaqCategory('all', this)" class="faq-pill px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black transition-all">All Questions</button>
+            <button type="button" onclick="filterFaqCategory('account_kyc', this)" class="faq-pill px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Account & KYC</button>
+            <button type="button" onclick="filterFaqCategory('deposits_withdrawals', this)" class="faq-pill px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Deposits & Banking</button>
+            <button type="button" onclick="filterFaqCategory('rules_betting', this)" class="faq-pill px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Lottery Rules (900x)</button>
+            <button type="button" onclick="filterFaqCategory('prizes_claims', this)" class="faq-pill px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Prizes & Claims</button>
+            <button type="button" onclick="filterFaqCategory('vip_loyalty', this)" class="faq-pill px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">VIP Rebates</button>
+        </div>
+
+        <!-- FAQ Accordion Container Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
+            <!-- Left: FAQ Items List -->
+            <div class="lg:col-span-8">
+                <div id="faqAccordionContainer" class="space-y-8">
+                    <!-- Category 1 -->
+                    <div class="faq-category-block" id="account_kyc">
+                        <div class="flex items-center gap-3 mb-4 pb-2 border-b border-[#1c2b44]">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-sm">
+                                <i class="fa-solid fa-id-card"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black text-white font-['Cinzel']">Account & Identity Verification</h3>
+                                <p class="text-xs text-slate-400">Registration, mobile phone OTP, Thai National ID, and KYC requirements.</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="faq-accordion-item tl-card p-4">
+                                <button type="button" onclick="toggleStandaloneFaq('ak_1')" class="w-full flex items-center justify-between text-left group">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-2">
+                                        <i class="fa-solid fa-circle-question text-amber-400 text-xs shrink-0"></i> How do I register an account on ThaiLotto?
+                                    </span>
+                                    <i id="faqIcon_ak_1" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                                </button>
+                                <div id="faqAns_ak_1" class="hidden pt-3 mt-3 border-t border-[#1c2b44] text-xs text-slate-400 leading-relaxed">
+                                    Click the "Register" button at the top right of the page. Enter your mobile number, verify via 6-digit SMS OTP, choose a secure password, and your account will be active immediately.
+                                </div>
+                            </div>
+
+                            <div class="faq-accordion-item tl-card p-4">
+                                <button type="button" onclick="toggleStandaloneFaq('ak_2')" class="w-full flex items-center justify-between text-left group">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-2">
+                                        <i class="fa-solid fa-circle-question text-amber-400 text-xs shrink-0"></i> Is identity verification (KYC) required to buy lottery tickets?
+                                    </span>
+                                    <i id="faqIcon_ak_2" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                                </button>
+                                <div id="faqAns_ak_2" class="hidden pt-3 mt-3 border-t border-[#1c2b44] text-xs text-slate-400 leading-relaxed">
+                                    You can purchase standard tickets immediately upon SMS verification (Tier 1). However, completing Tier 2 KYC verification (National ID or Passport) is required for withdrawals above 10,000 THB and ensures automated prize payouts.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category 2 -->
+                    <div class="faq-category-block" id="deposits_withdrawals">
+                        <div class="flex items-center gap-3 mb-4 pb-2 border-b border-[#1c2b44]">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-sm">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black text-white font-['Cinzel']">Deposits, Withdrawals & Banking</h3>
+                                <p class="text-xs text-slate-400">PromptPay QR, bank wire transfers, processing speeds, and zero-fee policies.</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="faq-accordion-item tl-card p-4">
+                                <button type="button" onclick="toggleStandaloneFaq('dw_1')" class="w-full flex items-center justify-between text-left group">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-2">
+                                        <i class="fa-solid fa-circle-question text-amber-400 text-xs shrink-0"></i> What deposit methods are supported and what are the fees?
+                                    </span>
+                                    <i id="faqIcon_dw_1" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                                </button>
+                                <div id="faqAns_dw_1" class="hidden pt-3 mt-3 border-t border-[#1c2b44] text-xs text-slate-400 leading-relaxed">
+                                    ThaiLotto supports instant PromptPay QR, all major Thai commercial banks (KBANK, SCB, BBL, KTB, TTB), and USDT TRC-20 crypto stablecoins. Deposits are 100% free with 0.00% platform charge.
+                                </div>
+                            </div>
+
+                            <div class="faq-accordion-item tl-card p-4">
+                                <button type="button" onclick="toggleStandaloneFaq('dw_2')" class="w-full flex items-center justify-between text-left group">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-2">
+                                        <i class="fa-solid fa-circle-question text-amber-400 text-xs shrink-0"></i> How fast are withdrawal requests processed?
+                                    </span>
+                                    <i id="faqIcon_dw_2" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                                </button>
+                                <div id="faqAns_dw_2" class="hidden pt-3 mt-3 border-t border-[#1c2b44] text-xs text-slate-400 leading-relaxed">
+                                    PromptPay automated API withdrawals are processed in under 30 seconds, 24/7/365. Standard domestic bank wires clear in under 15 minutes directly to your verified bank account.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category 3 -->
+                    <div class="faq-category-block" id="rules_betting">
+                        <div class="flex items-center gap-3 mb-4 pb-2 border-b border-[#1c2b44]">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-sm">
+                                <i class="fa-solid fa-gamepad"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black text-white font-['Cinzel']">Lottery Rules & Betting Mechanics</h3>
+                                <p class="text-xs text-slate-400">3D Top (900x), 19 Doors, 3D Tod permutations, and running numbers.</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="faq-accordion-item tl-card p-4">
+                                <button type="button" onclick="toggleStandaloneFaq('rb_1')" class="w-full flex items-center justify-between text-left group">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-2">
+                                        <i class="fa-solid fa-circle-question text-amber-400 text-xs shrink-0"></i> What is the payout multiplier for 3-Digit Top (3 ตัวบน)?
+                                    </span>
+                                    <i id="faqIcon_rb_1" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                                </button>
+                                <div id="faqAns_rb_1" class="hidden pt-3 mt-3 border-t border-[#1c2b44] text-xs text-slate-400 leading-relaxed">
+                                    Thai 3-Digit Top pays an industry-leading 900 THB per 1 THB bet (900x odds). For example, a 100 THB straight bet pays exactly 90,000 THB.
+                                </div>
+                            </div>
+
+                            <div class="faq-accordion-item tl-card p-4">
+                                <button type="button" onclick="toggleStandaloneFaq('rb_2')" class="w-full flex items-center justify-between text-left group">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-2">
+                                        <i class="fa-solid fa-circle-question text-amber-400 text-xs shrink-0"></i> How does the "19 Doors" (19 ประตู) betting technique work?
+                                    </span>
+                                    <i id="faqIcon_rb_2" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                                </button>
+                                <div id="faqAns_rb_2" class="hidden pt-3 mt-3 border-t border-[#1c2b44] text-xs text-slate-400 leading-relaxed">
+                                    19 Doors allows you to select one key digit (0–9), and our system automatically places bets on all 19 two-digit combinations containing that digit (e.g., key 7 generates 07, 17... 70, 71... 79).
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Direct Support Helpdesk Sidebar -->
+            <div class="lg:col-span-4">
+                <div class="tl-card p-6 sm:p-7 space-y-6 sticky top-28">
+                    <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-4">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-headset"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-black text-white font-['Cinzel']">Need Direct Help?</h3>
+                            <p class="text-xs text-slate-400">Our customer support is online 24/7/365.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <a href="#" class="p-3 bg-slate-900/80 hover:bg-slate-800 border border-[#1c2b44] hover:border-amber-400 rounded-xl flex items-center gap-3 text-xs text-slate-300 transition-all group">
+                            <div class="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-sm">
+                                <i class="fa-brands fa-telegram"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-white block group-hover:text-amber-400">Telegram VIP Support</span>
+                                <span class="text-[10px] text-slate-400">Response time: &lt; 2 minutes</span>
+                            </div>
+                        </a>
+
+                        <a href="#" class="p-3 bg-slate-900/80 hover:bg-slate-800 border border-[#1c2b44] hover:border-amber-400 rounded-xl flex items-center gap-3 text-xs text-slate-300 transition-all group">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">
+                                <i class="fa-brands fa-line"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-white block group-hover:text-amber-400">LINE Official (@thailotto)</span>
+                                <span class="text-[10px] text-slate-400">Instant Chat 24/7</span>
+                            </div>
+                        </a>
+
+                        <a href="mailto:support@thailotto.club" class="p-3 bg-slate-900/80 hover:bg-slate-800 border border-[#1c2b44] hover:border-amber-400 rounded-xl flex items-center gap-3 text-xs text-slate-300 transition-all group">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm">
+                                <i class="fa-solid fa-envelope"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-white block group-hover:text-amber-400">Email Helpdesk</span>
+                                <span class="text-[10px] text-slate-400">support@thailotto.club</span>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="pt-2">
+                        <a href="/contact" class="w-full py-3 rounded-xl text-xs font-black text-slate-950 tl-gold-bg hover:brightness-110 shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> Submit Support Ticket
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer matching visual mockup -->
+    <footer class="bg-[#050b14] border-t border-amber-500/20 pt-16 pb-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#1c2b44]">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl tl-gold-bg flex items-center justify-center">
+                            <i class="fa-solid fa-gem text-slate-950 font-black"></i>
+                        </div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel']">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed max-w-sm mb-6">
+                        Thailand's premier digital lottery platform. Officially licensed and regulated digital gateway providing transparent, instant, and high-security draw access for global players.
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-telegram"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-line"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Quick Navigation</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/" class="hover:text-amber-400 transition-colors">Home Page</a></li>
+                        <li><a href="/about" class="hover:text-amber-400 transition-colors">About ThaiLotto</a></li>
+                        <li><a href="/vision-mission" class="hover:text-amber-400 transition-colors">Vision & Mission</a></li>
+                        <li><a href="/how-to-play" class="hover:text-amber-400 transition-colors">How to Play</a></li>
+                        <li><a href="/faq" class="text-amber-400 font-bold transition-colors">Frequently Asked Questions</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Legal & Compliance</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/terms-conditions" class="hover:text-amber-400 transition-colors">Terms & Conditions</a></li>
+                        <li><a href="/privacy-policy" class="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="/our-fees" class="hover:text-amber-400 transition-colors">Fee Schedules</a></li>
+                        <li><a href="/prize-verification" class="hover:text-amber-400 transition-colors">Prize Verification</a></li>
+                        <li><a href="/discounts" class="hover:text-amber-400 transition-colors">Discount Rules</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Security & Trust</h5>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-lock text-emerald-400"></i>
+                            <span>256-Bit SSL Encryption</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                            <span>GLO Certified Results</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-server text-blue-400"></i>
+                            <span>99.99% Server Uptime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+                <div>&copy; 2026 ThaiLotto Platform. All Rights Reserved. Regulated lottery entertainment service.</div>
+                <div class="flex gap-6">
+                    <a href="/terms-conditions" class="hover:text-slate-400">Terms</a>
+                    <a href="/privacy-policy" class="hover:text-slate-400">Privacy</a>
+                    <a href="/our-fees" class="hover:text-slate-400">Fees</a>
+                    <a href="/faq" class="text-amber-400">FAQ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Standalone Simulation Logic -->
+    <script>
+        function toggleStandaloneFaq(uid) {
+            var ans = document.getElementById('faqAns_' + uid);
+            var icon = document.getElementById('faqIcon_' + uid);
+            if (ans) {
+                if (ans.classList.contains('hidden')) {
+                    ans.classList.remove('hidden');
+                    if (icon) icon.classList.add('rotate-180', 'text-amber-400');
+                } else {
+                    ans.classList.add('hidden');
+                    if (icon) icon.classList.remove('rotate-180', 'text-amber-400');
+                }
+            }
+        }
+
+        function filterFaqCategory(catId, btn) {
+            var pills = document.querySelectorAll('.faq-pill');
+            pills.forEach(function(p) {
+                p.className = 'faq-pill px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all';
+            });
+            btn.className = 'faq-pill px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black transition-all';
+
+            var blocks = document.querySelectorAll('.faq-category-block');
+            blocks.forEach(function(b) {
+                if (catId === 'all' || b.id === catId) {
+                    b.style.display = 'block';
+                } else {
+                    b.style.display = 'none';
+                }
+            });
+        }
+
+        function searchFaqStandalone(query) {
+            query = query.toLowerCase().trim();
+            var items = document.querySelectorAll('.faq-accordion-item');
+            items.forEach(function(item) {
+                if (!query || item.textContent.toLowerCase().includes(query)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

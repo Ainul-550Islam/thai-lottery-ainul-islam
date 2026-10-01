@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Privacy Policy page styling through the shared public-page glass system.
+ */
+@import './public-next-pages.css';
+.next-public-page--privacy .next-panel { border-color: rgba(85, 213, 154, .28); }

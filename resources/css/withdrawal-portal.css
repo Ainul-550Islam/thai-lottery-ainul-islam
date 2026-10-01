@@ -1,0 +1,423 @@
+/**
+ * Universal Withdrawal Portal & Payout Interface Stylesheet
+ * Covers Thai Banking, PromptPay, Crypto/USDT, TrueMoney, and VIP Cashouts
+ */
+
+:root {
+    --wp-bg-page: #0b0f17;
+    --wp-bg-header: #0f1522;
+    --wp-bg-card: #131b29;
+    --wp-bg-card-sub: #172233;
+    --wp-bg-input: #0c121d;
+    --wp-border-main: #1f2b3e;
+    --wp-border-glow: #38bdf8;
+    --wp-blue-accent: #38bdf8;
+    --wp-blue-glow: rgba(56, 189, 248, 0.4);
+    --wp-green-accent: #10b981;
+    --wp-green-glow: rgba(16, 185, 129, 0.4);
+    --wp-gold-accent: #f59e0b;
+    --wp-gold-glow: rgba(245, 158, 11, 0.4);
+    --wp-text-main: #f1f5f9;
+    --wp-text-muted: #8e9bb0;
+}
+
+body.wp-body {
+    background-color: var(--wp-bg-page);
+    color: var(--wp-text-main);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* TOP HEADER */
+.wp-header {
+    background-color: var(--wp-bg-header);
+    border-bottom: 1px solid var(--wp-border-main);
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.wp-brand-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+}
+
+.wp-brand-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+.wp-brand-title {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    line-height: 1;
+}
+
+.wp-brand-sub {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #38bdf8;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* USER STATS BAR */
+.wp-user-stats {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.wp-stat-chip {
+    background: #08121a;
+    border: 1px solid #1f2b3e;
+    border-radius: 9999px;
+    padding: 0.35rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+}
+
+.wp-stat-chip-green {
+    border-color: #10b981;
+    color: #34d399;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+/* MAIN CONTAINER */
+.wp-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .wp-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* LEFT WORKFLOW PANEL */
+.wp-workflow-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* SECURITY GUARANTEE BANNER */
+.wp-security-banner {
+    background: linear-gradient(135deg, #081a28 0%, #0d1e2e 50%, #091a1e 100%);
+    border: 1px solid #38bdf8;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.2);
+}
+
+.wp-security-title {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #ffffff;
+    margin: 0 0 0.35rem 0;
+}
+
+.wp-security-title span {
+    color: #38bdf8;
+}
+
+.wp-security-desc {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.wp-security-tags {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.wp-security-pill {
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #38bdf8;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    padding: 0.25rem 0.65rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* CATEGORY SELECTOR CARDS */
+.wp-categories-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .wp-categories-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.wp-category-card {
+    background: var(--wp-bg-card);
+    border: 1.5px solid var(--wp-border-main);
+    border-radius: 1rem;
+    padding: 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    text-align: center;
+}
+
+.wp-category-card:hover {
+    border-color: #3b4d6b;
+    background: var(--wp-bg-card-sub);
+    transform: translateY(-2px);
+}
+
+.wp-category-card.active {
+    border-color: #38bdf8;
+    background: #081a28;
+    box-shadow: 0 0 18px var(--wp-blue-glow);
+}
+
+.wp-category-icon {
+    font-size: 1.5rem;
+}
+
+.wp-category-name {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.2;
+}
+
+.wp-category-tag {
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.375rem;
+}
+
+/* AMOUNT SELECTOR SECTION */
+.wp-amount-section {
+    background: var(--wp-bg-card);
+    border: 1px solid var(--wp-border-main);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.wp-quick-amounts-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+    .wp-quick-amounts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.wp-amount-btn {
+    background: var(--wp-bg-card-sub);
+    border: 1px solid var(--wp-border-main);
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.wp-amount-btn:hover {
+    border-color: #3b4d6b;
+    color: #ffffff;
+}
+
+.wp-amount-btn.active {
+    background: #081a28;
+    border-color: #38bdf8;
+    color: #38bdf8;
+    box-shadow: 0 0 14px var(--wp-blue-glow);
+}
+
+.wp-custom-amount-box {
+    display: flex;
+    align-items: center;
+    background: var(--wp-bg-input);
+    border: 1.5px solid var(--wp-border-main);
+    border-radius: 0.875rem;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+}
+
+.wp-custom-amount-box:focus-within {
+    border-color: #38bdf8;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+.wp-currency-prefix {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #38bdf8;
+}
+
+.wp-amount-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: ui-monospace, monospace;
+    outline: none;
+}
+
+/* ACCOUNT DETAILS CARD */
+.wp-channel-card {
+    background: var(--wp-bg-card);
+    border: 1px solid var(--wp-border-main);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.wp-saved-account-box {
+    background: var(--wp-bg-card-sub);
+    border: 1.5px solid #10b981;
+    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+}
+
+.wp-bank-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 0.875rem;
+    color: #ffffff;
+}
+.wp-bank-scb { background: #4e2e7f; }
+.wp-bank-kbank { background: #138f2d; }
+.wp-bank-ktb { background: #1ba5e1; }
+.wp-bank-bbl { background: #1e3f8a; }
+
+/* RIGHT ORDER SUMMARY PANEL */
+.wp-summary-card {
+    background: var(--wp-bg-card);
+    border: 1px solid var(--wp-border-main);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    height: fit-content;
+}
+
+.wp-summary-title {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #ffffff;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--wp-border-main);
+}
+
+.wp-summary-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1.25rem 0;
+    font-size: 0.8125rem;
+}
+
+.wp-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #94a3b8;
+}
+
+.wp-summary-row.total {
+    border-top: 1px solid var(--wp-border-main);
+    padding-top: 0.75rem;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.wp-confirm-btn {
+    width: 100%;
+    background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #0284c7 100%);
+    border: none;
+    border-radius: 0.875rem;
+    padding: 0.95rem;
+    font-size: 0.9375rem;
+    font-weight: 900;
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.45);
+    transition: all 0.2s ease;
+    user-select: none;
+    text-align: center;
+}
+
+.wp-confirm-btn:hover {
+    box-shadow: 0 0 35px rgba(56, 189, 248, 0.6);
+    transform: translateY(-1px);
+}

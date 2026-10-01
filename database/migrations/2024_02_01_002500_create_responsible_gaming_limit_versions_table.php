@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamp('cancelled_at')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
-            $table->index(['user_id', 'limit_type', 'limit_status']);
+            $table->index(['user_id', 'limit_type', 'limit_status'], 'rgl_versions_user_type_status_index');
         });
     }
 

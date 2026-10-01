@@ -1,174 +1,233 @@
 @extends('layouts.app')
 
-@section('title', 'Place Lottery Bet — Thai Lottery')
+@section('title', __('player.place_wager_title'))
+@section('meta_description', __('player.place_wager_lead'))
 
 @section('content')
 @php
-    // The sellable markets, their digit counts and their payout multipliers are
-    // read from config('lottery.markets') - the same table MarketRuleResolver and
-    // the settlement engine use. They are rendered onto each option as data
-    // attributes so resources/js/lottery/ticket-selector.js enforces the real
-    // rules instead of a second copy of them that could drift.
-    //
-    // The keys below (3d_direct, 3d_tod, 2d_top, 2d_bottom, run_top, run_bottom)
-    // are the vocabulary App\Enums\BetMarket::allMarketKeys() declares and
-    // App\Http\Requests\Api\V1\BulkBetRequest validates against.
-    $marketNames = [
-        '3d_direct' => '3-Digit Top (3 ตัวบน)',
-        '3d_tod' => '3-Digit Tod (3 ตัวโต๊ด)',
-        '2d_top' => '2-Digit Top (2 ตัวบน)',
-        '2d_bottom' => '2-Digit Bottom (2 ตัวล่าง)',
-        'run_top' => 'Run Top (วิ่งบน)',
-        'run_bottom' => 'Run Bottom (วิ่งล่าง)',
-    ];
-
-    $sellableMarkets = collect(config('lottery.markets', []))
-        ->filter(fn (array $market): bool => (bool) ($market['enabled'] ?? false));
+    $currency = \App\Enums\Currency::from((string) config('payment.currency.default'));
+    $walletBalance = $wallet instanceof \App\Models\Wallet && $wallet->currency instanceof \App\Enums\Currency && $wallet->currency === $currency
+        ? \App\Services\Finance\Money::of((string) $wallet->balance, $currency)->format()
+        : null;
 @endphp
-<div class="max-w-6xl mx-auto space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+<div class="space-y-8" data-bet-slip>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Place Lottery Wager</h1>
-            <p class="text-slate-400 text-sm mt-1">Select market, enter lottery digits, and build your multi-item bet slip.</p>
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-amber-400">{{ __('player.active_draw_label') }}</p>
+            <h1 class="text-3xl font-black tracking-tight text-white">{{ __('player.place_wager_title') }}</h1>
+            <p class="mt-1 text-sm text-slate-400">{{ __('player.place_wager_lead') }}</p>
         </div>
-        <div class="flex items-center gap-3">
-            <span class="text-xs text-slate-400">Active Draw:</span>
-            <span class="font-mono text-xs font-bold px-3 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-full">
-                {{ $openDraw->draw_number ?? 'DRAW-20260916' }}
-            </span>
-            <input type="hidden" id="active-draw-id" value="{{ $openDraw->id ?? 1 }}">
+        <div class="rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-right">
+            <span class="block text-[11px] uppercase tracking-wider text-slate-500">{{ __('player.available_balance') }}</span>
+            <strong class="font-mono text-amber-400">{{ $walletBalance ?? __('player.not_configured') }}</strong>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Keypad / Market Selection Column (2 Cols) -->
-        <div class="lg:col-span-2 space-y-6">
-            <div data-ticket-selector class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-                <!-- Market Type Selector -->
-                <div class="mb-6">
-                    <label for="market-select" class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Select Market</label>
-                    <select id="market-select" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white font-semibold text-sm focus:outline-none focus:border-emerald-500">
-                        @foreach($sellableMarkets as $marketKey => $market)
-                            @php
-                                $displayName = $marketNames[$marketKey] ?? ($market['label'] ?? $marketKey);
-                                $multiplier = (float) ($market['payout_multiplier'] ?? 0);
-                            @endphp
-                            <option value="{{ $marketKey }}"
-                                    data-digits="{{ (int) ($market['digits'] ?? 0) }}"
-                                    data-multiplier="{{ $multiplier }}"
-                                    data-label="{{ $displayName }}">
-                                {{ $displayName }} — Multiplier: {{ rtrim(rtrim(number_format($multiplier, 2, '.', ''), '0'), '.') }}x
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+    @if (! $openDraw)
+        <section class="rounded-3xl border border-amber-500/30 bg-amber-950/20 p-6" role="status">
+            <h2 class="text-lg font-bold text-amber-200">{{ __('player.no_open_draw') }}</h2>
+            <p class="mt-2 text-sm leading-6 text-amber-100/70">{{ __('player.no_open_draw_lead') }}</p>
+            <a class="mt-4 inline-flex rounded-xl border border-amber-500/40 px-4 py-2 text-sm font-bold text-amber-300 hover:bg-amber-500/10" href="{{ route('player.draws') }}">{{ __('player.view_all') }}</a>
+        </section>
+    @else
+        <form method="POST" action="{{ route('player.bets.purchase') }}" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]" data-bet-form data-draw-reference="{{ $openDraw->draw_number }}">
+            @csrf
+            <input type="hidden" name="draw_reference" value="{{ $openDraw->draw_number }}">
+            <input type="hidden" name="client_key" value="" data-client-key>
 
-                <!-- Number Input Field -->
-                <div class="mb-6">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Enter Digits</label>
-                    <input type="text" id="selected-number-input" maxlength="3" placeholder="---"
-                           class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-4 text-center font-mono font-black text-3xl text-amber-400 tracking-widest focus:outline-none focus:border-emerald-500">
-                </div>
-
-                <!-- Interactive Keypad -->
-                <div id="number-keypad" class="grid grid-cols-3 gap-3 mb-6">
-                    @for($i = 1; $i <= 9; $i++)
-                        <button type="button" data-key="{{ $i }}" class="py-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-mono font-bold text-xl rounded-2xl transition active:scale-95">
-                            {{ $i }}
-                        </button>
-                    @endfor
-                    <button type="button" data-key="clear" class="py-4 bg-slate-950 hover:bg-rose-950/40 border border-slate-800 text-rose-400 font-bold text-sm rounded-2xl transition">
-                        CLR
-                    </button>
-                    <button type="button" data-key="0" class="py-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-mono font-bold text-xl rounded-2xl transition active:scale-95">
-                        0
-                    </button>
-                    <button type="button" data-key="backspace" class="py-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 font-bold text-sm rounded-2xl transition">
-                        DEL
-                    </button>
-                </div>
-
-                <!-- Stake & Add Button -->
-                <div class="flex items-center gap-3">
-                    <div class="w-1/3">
-                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Stake (THB)</label>
-                        <input type="number" id="stake-amount-input" value="10" min="1" step="1"
-                               class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-center font-mono font-bold text-white text-sm focus:outline-none focus:border-emerald-500">
+            <section class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl sm:p-8" aria-labelledby="bet-builder-heading">
+                <div class="flex flex-col gap-3 border-b border-slate-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-wider text-emerald-400">{{ __('player.active_draw_label') }} {{ $openDraw->draw_number }}</p>
+                        <h2 id="bet-builder-heading" class="mt-1 text-xl font-black text-white">{{ __('player.select_market') }}</h2>
                     </div>
-                    <div class="w-2/3">
-                        <label class="text-[11px] font-bold text-transparent block mb-1">Action</label>
-                        <button type="button" id="btn-add-to-slip" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 font-bold text-sm rounded-xl transition">
-                            + Add to Bet Slip
+                    <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase text-emerald-300">{{ __('player.status_open') }}</span>
+                </div>
+
+                <div class="mt-6 grid gap-5 sm:grid-cols-2">
+                    <div>
+                        <label for="market" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">{{ __('player.select_market') }}</label>
+                        <select id="market" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 focus:border-amber-400 focus:outline-none" data-market>
+                            @forelse ($marketOptions as $key => $market)
+                                <option value="{{ $key }}" data-digits="{{ $market['digits'] }}">{{ $market['label'] }} · {{ $market['digits'] }} {{ __('player.digits_suffix') }}</option>
+                            @empty
+                                <option value="">{{ __('player.not_configured') }}</option>
+                            @endforelse
+                        </select>
+                    </div>
+                    <div>
+                        <label for="number" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">{{ __('player.enter_digits') }}</label>
+                        <input id="number" type="text" inputmode="numeric" autocomplete="off" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-lg tracking-[0.2em] text-white focus:border-amber-400 focus:outline-none" data-number maxlength="6" pattern="[0-9]+">
+                    </div>
+                    <div>
+                        <label for="stake" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">{{ __('player.stake_thb') }}</label>
+                        <input id="stake" type="text" inputmode="decimal" autocomplete="off" value="" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-lg text-white focus:border-amber-400 focus:outline-none" data-stake>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="button" class="w-full rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 px-4 py-3 text-sm font-black text-slate-950 shadow-lg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50" data-add-item @disabled(empty($marketOptions))>
+                            {{ __('player.add_to_slip') }}
                         </button>
                     </div>
                 </div>
 
-                <!-- Selection feedback. Written only by ticket-selector.js. -->
-                <p data-selection-status
-                   role="status"
-                   aria-live="polite"
-                   class="mt-4 text-xs min-h-[1rem] text-slate-400 data-[tone=error]:text-rose-400 data-[tone=success]:text-emerald-400"></p>
-            </div>
-        </div>
+                <p class="mt-4 text-xs leading-5 text-slate-500">{{ __('player.purchase_server_authoritative_note') }}</p>
+                <div class="mt-5 hidden rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-200" role="alert" data-bet-error></div>
+            </section>
 
-        <!-- Dynamic Bet Slip Column (1 Col) -->
-        <div class="space-y-6">
-            {{--
-                data-max-items mirrors the 50-selection ceiling in BulkBetRequest.
-                data-purchase-endpoint / data-api-token are intentionally absent:
-                POST /api/v1/bets/purchase-bulk is token-authenticated and this
-                application does not enable Sanctum's stateful-frontend
-                middleware, so a session cookie cannot buy. bet-slip.js therefore
-                builds and prices the slip but refuses to submit, and says why,
-                instead of failing silently against a 401.
-            --}}
-            <div id="bet-slip-container"
-                 data-draw-id="{{ $openDraw->id ?? '' }}"
-                 data-max-items="50"
-                 class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between h-full min-h-[420px]">
-                <div>
-                    <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-                        <h2 class="text-base font-bold text-white">Bet Slip Basket</h2>
-                        <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono font-semibold">Atomic Batch</span>
-                    </div>
-
-                    <!-- Items Container -->
-                    <div id="bet-items-list" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                        <!-- Populated by bet-slip.js -->
-                    </div>
+            <aside class="rounded-3xl border border-amber-500/25 bg-slate-900/95 p-6 shadow-2xl" aria-labelledby="slip-heading">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <h2 id="slip-heading" class="text-lg font-black text-white">{{ __('player.bet_slip_basket') }}</h2>
+                    <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-300" data-slip-count>0</span>
                 </div>
-
-                <div class="pt-6 border-t border-slate-800 space-y-4">
-                    <div class="space-y-2 text-xs">
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">Total Stake:</span>
-                            <span class="font-mono font-bold text-white text-sm">฿<span id="total-stake-amount">0.00</span></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">Max Potential Payout:</span>
-                            <span class="font-mono font-bold text-emerald-400 text-sm">฿<span id="total-payout-amount">0.00</span></span>
-                        </div>
-                    </div>
-
-                    <button type="button" id="btn-place-bet" disabled
-                            class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold rounded-xl shadow-lg transition duration-150 text-sm">
-                        Confirm & Place Bets
-                    </button>
-
-                    <!-- Slip feedback. Written only by bet-slip.js. -->
-                    <p data-slip-status
-                       role="status"
-                       aria-live="polite"
-                       class="text-[11px] leading-relaxed min-h-[1rem] text-slate-400 data-[tone=error]:text-rose-400 data-[tone=warning]:text-amber-400 data-[tone=success]:text-emerald-400"></p>
+                <div class="mt-4 max-h-80 space-y-3 overflow-y-auto" data-slip-items>
+                    <p class="rounded-xl border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500" data-empty-slip>{{ __('player.empty_bet_slip') }}</p>
                 </div>
-            </div>
-        </div>
-    </div>
+                <div class="mt-5 space-y-2 border-t border-slate-800 pt-4 text-sm">
+                    <div class="flex justify-between gap-3 text-slate-400"><span>{{ __('player.total_stake_label') }}</span><strong class="font-mono text-white" data-total-stake>{{ __('player.not_recorded') }}</strong></div>
+                </div>
+                <button type="submit" class="mt-5 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50" data-submit-slip disabled>
+                    {{ __('player.confirm_place_bets') }}
+                </button>
+                <p class="mt-3 text-center text-[11px] leading-5 text-slate-500">{{ __('player.purchase_fail_closed_note') }}</p>
+            </aside>
+        </form>
+    @endif
 </div>
 @endsection
 
 @push('scripts')
-    <script type="module" src="{{ Vite::asset('resources/js/lottery/ticket-selector.js') }}"></script>
-    <script type="module" src="{{ Vite::asset('resources/js/lottery/bet-slip.js') }}"></script>
+<script>
+(function () {
+    const form = document.querySelector('[data-bet-form]');
+    if (!form) return;
+
+    const market = form.querySelector('[data-market]');
+    const number = form.querySelector('[data-number]');
+    const stake = form.querySelector('[data-stake]');
+    const add = form.querySelector('[data-add-item]');
+    const itemsNode = form.querySelector('[data-slip-items]');
+    const countNode = form.querySelector('[data-slip-count]');
+    const totalNode = form.querySelector('[data-total-stake]');
+    const submit = form.querySelector('[data-submit-slip]');
+    const errorNode = form.querySelector('[data-bet-error]');
+    const keyNode = form.querySelector('[data-client-key]');
+    const items = [];
+
+    function clientKey() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        return Array.from(bytes).map(function (byte) { return byte.toString(16).padStart(2, '0'); }).join('');
+    }
+
+    keyNode.value = clientKey();
+
+    function selectedDigits() {
+        const selected = market.options[market.selectedIndex];
+        return Number(selected ? selected.dataset.digits : 0);
+    }
+
+    function decimalToCents(value) {
+        const parts = value.split('.');
+        const whole = parts[0] || '0';
+        const fraction = (parts[1] || '').padEnd(2, '0').slice(0, 2);
+        return BigInt(whole) * 100n + BigInt(fraction || '0');
+    }
+
+    function centsToDecimal(cents) {
+        const whole = cents / 100n;
+        const fraction = String(cents % 100n).padStart(2, '0');
+        return String(whole) + '.' + fraction;
+    }
+
+    function render() {
+        itemsNode.innerHTML = '';
+        if (items.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'rounded-xl border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500';
+            empty.textContent = @json(__('player.empty_bet_slip'));
+            itemsNode.appendChild(empty);
+        }
+
+        items.forEach(function (item, index) {
+            const row = document.createElement('div');
+            row.className = 'rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs';
+            row.innerHTML = '<div class="flex items-start justify-between gap-3"><div><strong class="font-mono text-amber-300">' + item.number + '</strong><span class="ml-2 text-slate-400">' + item.label + '</span></div><button type="button" class="text-rose-300 hover:text-rose-200" data-remove="' + index + '">' + @json(__('player.remove_item')) + '</button></div><div class="mt-2 font-mono text-slate-300">' + item.stake + ' THB</div>';
+            itemsNode.appendChild(row);
+        });
+
+        const total = items.reduce(function (sum, item) { return sum + decimalToCents(item.stake); }, 0n);
+        totalNode.textContent = items.length === 0 ? @json(__('player.not_recorded')) : centsToDecimal(total) + ' THB';
+        countNode.textContent = String(items.length);
+        submit.disabled = items.length === 0;
+        itemsNode.querySelectorAll('[data-remove]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                items.splice(Number(button.dataset.remove), 1);
+                render();
+            });
+        });
+    }
+
+    add.addEventListener('click', function () {
+        const digits = selectedDigits();
+        const selected = market.options[market.selectedIndex];
+        const rawNumber = number.value.trim();
+        const rawStake = stake.value.trim();
+        errorNode.classList.add('hidden');
+        if (!selected || !digits || !new RegExp('^\d{' + digits + '}$').test(rawNumber)) {
+            errorNode.textContent = @json(__('player.invalid_number_selection'));
+            errorNode.classList.remove('hidden');
+            return;
+        }
+        let stakeCents = 0n;
+        try {
+            stakeCents = decimalToCents(rawStake);
+        } catch (exception) {
+            stakeCents = 0n;
+        }
+        if (!/^\d+(?:\.\d{1,2})?$/.test(rawStake) || stakeCents <= 0n) {
+            errorNode.textContent = @json(__('player.invalid_stake_selection'));
+            errorNode.classList.remove('hidden');
+            return;
+        }
+        items.push({ market: market.value, label: selected.textContent, number: rawNumber, stake: rawStake });
+        number.value = '';
+        stake.value = '';
+        render();
+    });
+
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        errorNode.classList.add('hidden');
+        if (items.length === 0) return;
+
+        const body = new URLSearchParams();
+        body.append('_token', form.querySelector('input[name="_token"]').value);
+        body.append('draw_reference', form.querySelector('input[name="draw_reference"]').value);
+        body.append('client_key', keyNode.value);
+        items.forEach(function (item, index) {
+            body.append('items[' + index + '][market]', item.market);
+            body.append('items[' + index + '][number]', item.number);
+            body.append('items[' + index + '][stake]', item.stake);
+        });
+
+        submit.disabled = true;
+        try {
+            const response = await fetch(form.action, { method: 'POST', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: body });
+            const payload = await response.json();
+            if (!response.ok || payload.success !== true) {
+                throw new Error(payload.message || @json(__('player.purchase_refused')));
+            }
+            window.location.href = @json(route('player.bets'));
+        } catch (exception) {
+            errorNode.textContent = exception.message || @json(__('player.purchase_refused'));
+            errorNode.classList.remove('hidden');
+            submit.disabled = false;
+        }
+    });
+
+    render();
+}());
+</script>
 @endpush

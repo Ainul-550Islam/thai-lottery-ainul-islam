@@ -1,0 +1,66 @@
+/**
+ * THAILOTTO DESIGN SYSTEM — GLASS SURFACES
+ *
+ * Provides reusable layered glassmorphism cards and panels with
+ * graceful fallback for environments lacking backdrop-filter support.
+ */
+
+.tl-glass-panel {
+    background: var(--tl-bg-surface-1);
+    border: 1px solid var(--tl-glass-border);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-glass-shadow);
+    color: var(--tl-text-primary);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .tl-glass-panel {
+        background: var(--tl-glass-bg-subtle);
+        backdrop-filter: blur(var(--tl-glass-blur));
+        -webkit-backdrop-filter: blur(var(--tl-glass-blur));
+    }
+
+    .tl-glass-panel--elevated {
+        background: var(--tl-glass-bg-elevated);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        box-shadow: var(--tl-shadow-3d);
+    }
+
+    .tl-glass-panel--high {
+        background: var(--tl-glass-bg-high);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+    }
+}
+
+.tl-glass-panel--hover {
+    transition: transform var(--tl-transition-fast), border-color var(--tl-transition-fast), box-shadow var(--tl-transition-fast);
+}
+
+.tl-glass-panel--hover:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+}
+
+.tl-glass-input {
+    background: rgba(2, 6, 23, 0.8);
+    border: 1px solid var(--tl-glass-border);
+    border-radius: var(--tl-radius-lg);
+    color: var(--tl-text-primary);
+    padding: 0.75rem 1rem;
+    transition: border-color var(--tl-transition-fast), box-shadow var(--tl-transition-fast);
+}
+
+.tl-glass-input:focus {
+    outline: none;
+    border-color: var(--tl-brand-primary-hover);
+    box-shadow: 0 0 0 3px var(--tl-brand-primary-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tl-glass-panel--hover:hover {
+        transform: none;
+    }
+}

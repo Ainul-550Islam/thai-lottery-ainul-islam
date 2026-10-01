@@ -205,7 +205,7 @@ return [
             // Fixture imports are for local development and the test suite.
             // Enabling this in production still cannot produce an official
             // label; it only allows the FIXTURE_ONLY lane to exist.
-            'enabled' => (bool) env('NATIONAL_LOTTERY_FIXTURE_ENABLED', true),
+            'enabled' => (bool) env('NATIONAL_LOTTERY_FIXTURE_ENABLED', false),
             'provider_label' => 'fixture',
             'schema_version' => 'NATIONAL_FIXTURE_V1',
         ],

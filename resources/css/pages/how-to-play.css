@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Educational five-step journey with reduced-motion and print support.
+ */
+@import './public-next-pages.css';
+.next-public-page--how .next-section__number { border-radius: 50%; }

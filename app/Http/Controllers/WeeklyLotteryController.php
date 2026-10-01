@@ -113,7 +113,7 @@ final class WeeklyLotteryController
             }
         }
 
-        return view('weekly-lottery.show', $this->pageData([
+        return view('weekly-lottery.draw-detail', $this->pageData([
             'current' => $projection,
             'recent' => [],
             'years' => $this->history->availableYears(),
@@ -154,7 +154,7 @@ final class WeeklyLotteryController
         $history = $this->history->historyForYear($gregorian, $this->boundedPage($request));
         $label = $this->dates->yearLabel($gregorian, $this->locale());
 
-        return view('weekly-lottery.index', $this->pageData([
+        return view('weekly-lottery.year', $this->pageData([
             'current' => null,
             'recent' => [],
             'years' => $this->history->availableYears(),
@@ -219,6 +219,112 @@ final class WeeklyLotteryController
     }
 
     /**
+     * Page 25: independently addressable Weekly draw detail surface.
+     */
+    public function drawDetail(Request $request, string $draw): View
+    {
+        unset($request);
+
+        $projection = $this->results->resultForReference($draw);
+
+        return view('weekly-lottery.draw-detail', $this->pageData([
+            'current' => $projection,
+            'years' => $this->history->availableYears(),
+            'active_year' => null,
+            'meta' => $this->meta(
+                (string) trans('weekly_lottery.detail_heading').' — '.trans('weekly_lottery.meta_title'),
+                (string) trans('weekly_lottery.meta_description'),
+                '/weekly-lottery/draw/'.$draw,
+                (bool) ($projection['available'] ?? false) && (bool) ($projection['has_numbers'] ?? true),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 26: latest result selected by the canonical result service.
+     */
+    public function latestResult(Request $request): View
+    {
+        unset($request);
+
+        $current = $this->results->currentResult();
+        $reference = is_array($current['draw'] ?? null) && isset($current['draw']['reference'])
+            ? (string) $current['draw']['reference']
+            : null;
+
+        return view('weekly-lottery.latest-result', $this->pageData([
+            'current' => $current,
+            'recent' => $this->history->recentDraws($reference),
+            'years' => $this->history->availableYears(),
+            'active_year' => null,
+            'meta' => $this->meta(
+                (string) trans('weekly_lottery.meta_title').' — '.trans('weekly_lottery.current_result_heading'),
+                (string) trans('weekly_lottery.meta_description'),
+                '/weekly-lottery/latest',
+                (bool) ($current['available'] ?? false) && (bool) ($current['has_numbers'] ?? true),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 27: server-backed Weekly historical results.
+     */
+    public function historicalResults(Request $request): View
+    {
+        $latestYear = $this->history->latestYear();
+        $history = $latestYear === null
+            ? null
+            : $this->history->historyForYear($latestYear, $this->boundedPage($request));
+
+        return view('weekly-lottery.history', $this->pageData([
+            'current' => null,
+            'recent' => [],
+            'years' => $this->history->availableYears(),
+            'active_year' => $latestYear,
+            'history' => $history,
+            'search' => null,
+            'meta' => $this->meta(
+                (string) trans('weekly_lottery.meta_title').' — '.trans('weekly_lottery.history_heading'),
+                (string) trans('weekly_lottery.meta_description'),
+                '/weekly-lottery/history',
+                $history !== null && ($history['status'] ?? '') === 'RESULT_FOUND',
+            ),
+        ]));
+    }
+
+    /**
+     * Page 29: separate result-detail route using the same projection as the
+     * existing canonical /weekly-lottery/{draw} surface.
+     */
+    public function resultDetail(Request $request, string $draw): View
+    {
+        unset($request);
+
+        $projection = $this->results->resultForReference($draw);
+
+        return view('weekly-lottery.result-detail', $this->pageData([
+            'current' => $projection,
+            'years' => $this->history->availableYears(),
+            'active_year' => null,
+            'meta' => $this->meta(
+                (string) trans('weekly_lottery.detail_heading').' — '.trans('weekly_lottery.meta_title'),
+                (string) trans('weekly_lottery.meta_description'),
+                '/weekly-lottery/result/'.$draw,
+                (bool) ($projection['available'] ?? false) && (bool) ($projection['has_numbers'] ?? true),
+            ),
+        ]));
+    }
+
+    /**
+     * Page 28 compatibility entry point. The existing /year/{year} route
+     * remains the canonical route family and is not renamed.
+     */
+    public function yearArchive(Request $request, string $year): View
+    {
+        return $this->year($request, $year);
+    }
+
+    /**
      * Shared view payload.
      *
      * @param  array<string, mixed>  $data
@@ -244,7 +350,7 @@ final class WeeklyLotteryController
     {
         $safeLabel = preg_match('/^[0-9]{1,4}$/', $requested) === 1 ? $requested : '';
 
-        return view('weekly-lottery.index', $this->pageData([
+        return view('weekly-lottery.year', $this->pageData([
             'current' => null,
             'recent' => [],
             'years' => $this->history->availableYears(),

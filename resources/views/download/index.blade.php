@@ -1,0 +1,39 @@
+@extends('layouts.app')
+
+@php
+    $links = is_array($download['links'] ?? null) ? $download['links'] : [];
+    $status = (string) ($links['status'] ?? 'NOT_CONFIGURED');
+@endphp
+
+@section('title', (string) ($meta['title'] ?? $download['meta_title'] ?? trans('public_pages.download_meta_title')))
+@section('meta_description', (string) ($meta['description'] ?? $download['meta_description'] ?? trans('public_pages.download_meta_description')))
+@section('meta_canonical', (string) ($meta['canonical'] ?? url('/download')))
+@section('meta_og_title', (string) ($meta['og_title'] ?? $download['meta_title'] ?? trans('public_pages.download_meta_title')))
+@section('meta_og_description', (string) ($meta['og_description'] ?? $download['meta_description'] ?? trans('public_pages.download_meta_description')))
+@section('meta_og_type', (string) ($meta['og_type'] ?? 'website'))
+@section('meta_og_url', (string) ($meta['og_url'] ?? url('/download')))
+
+@push('styles')
+    @vite('resources/css/pages/download.css')
+@endpush
+
+@section('content')
+<div class="next-public-page next-public-page--download" data-next-public-page="download">
+    <a class="pp-skip-link" href="#download-main">{{ trans('public_pages.skip_to_content') }}</a>
+    <header class="next-page-header"><div class="next-shell next-page-header__inner"><a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('public_pages.download_home_aria') }}"><span class="next-brand__mark">TL</span><span>THAILOTTO<small>{{ trans('public_pages.download_brand_subtitle') }}</small></span></a><nav class="next-nav" aria-label="{{ trans('public_pages.download_primary_nav') }}"><a href="{{ route('home') }}">{{ trans('public_pages.download_nav_home') }}</a><a class="is-active" href="{{ route('download') }}" aria-current="page">{{ trans('public_pages.download_nav_download') }}</a><a href="{{ route('how-to-play') }}">{{ trans('public_pages.download_nav_how_to_play') }}</a><a href="{{ route('faq') }}">{{ trans('public_pages.download_nav_faq') }}</a><a href="{{ route('contact') }}">{{ trans('public_pages.download_nav_contact') }}</a></nav>@guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('public_pages.download_login') }}</a>@else<a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">{{ trans('public_pages.download_dashboard') }}</a>@endguest</div></header>
+    <main id="download-main" class="next-shell next-content" tabindex="-1">
+        <section class="next-hero" aria-labelledby="download-title"><div><p class="next-eyebrow">{{ trans('public_pages.download_eyebrow') }}</p><h1 id="download-title">{{ $download['title'] ?? trans('public_pages.download_title') }}</h1><p>{{ $download['meta_description'] ?? trans('public_pages.download_meta_description') }}</p><p class="next-note">{{ trans('public_pages.download_public_note') }}</p></div><div class="next-hero-object next-hero-object--download" aria-hidden="true"><span>↓</span></div></section>
+        <section class="next-meta-strip" aria-label="{{ trans('public_pages.download_metadata_aria') }}"><div><span>{{ trans('public_pages.download_link_status') }}</span><strong>{{ $status }}</strong></div><div><span>{{ trans('public_pages.download_android') }}</span><strong>{{ !empty($links['android']) ? trans('public_pages.download_ready') : trans('public_pages.download_not_configured') }}</strong></div><div><span>{{ trans('public_pages.download_ios') }}</span><strong>{{ !empty($links['ios']) ? trans('public_pages.download_ready') : trans('public_pages.download_not_configured') }}</strong></div><div><span>{{ trans('public_pages.download_pwa') }}</span><strong>{{ !empty($links['pwa']) ? trans('public_pages.download_ready') : trans('public_pages.download_not_configured') }}</strong></div></section>
+        <div class="next-layout"><aside class="next-sidebar" aria-label="{{ trans('public_pages.download_destination_map') }}"><p class="next-eyebrow">{{ trans('public_pages.download_destination_map') }}</p><a href="#download-destinations" data-content-link="download-destinations">01 · {{ trans('public_pages.download_destinations') }}</a><a href="#download-safety" data-content-link="download-safety">02 · {{ trans('public_pages.download_safety_check') }}</a><a href="#download-integrity" data-content-link="download-integrity">03 · {{ trans('public_pages.download_integrity_status') }}</a></aside><div>
+            <section class="next-section" id="download-destinations" data-content-section aria-labelledby="download-destinations-title"><div class="next-section__heading"><span class="next-section__number">01</span><div><p class="next-eyebrow">{{ trans('public_pages.download_validated_links') }}</p><h2 id="download-destinations-title">{{ trans('public_pages.download_available_destinations') }}</h2></div></div><div class="next-card-grid"><div class="next-card"><h3>{{ trans('public_pages.download_android') }}</h3>@if (!empty($links['android']))<p><a class="next-button next-button--gold" href="{{ $links['android'] }}" rel="noopener noreferrer" target="_blank">{{ trans('public_pages.download_open_store') }}</a></p>@else<p>{{ trans('public_pages.download_not_configured') }}</p>@endif</div><div class="next-card"><h3>{{ trans('public_pages.download_ios') }}</h3>@if (!empty($links['ios']))<p><a class="next-button next-button--gold" href="{{ $links['ios'] }}" rel="noopener noreferrer" target="_blank">{{ trans('public_pages.download_open_store') }}</a></p>@else<p>{{ trans('public_pages.download_not_configured') }}</p>@endif</div><div class="next-card"><h3>{{ trans('public_pages.download_pwa') }}</h3>@if (!empty($links['pwa']))<p><a class="next-button next-button--gold" href="{{ $links['pwa'] }}" rel="noopener noreferrer">{{ trans('public_pages.download_open_web_app') }}</a></p>@else<p>{{ trans('public_pages.download_not_configured') }}</p>@endif</div></div>@if ($status === 'NOT_CONFIGURED')<p class="next-empty" role="status">{{ trans('public_pages.download_empty_body') }}</p>@endif</section>
+            <section class="next-section" id="download-safety" data-content-section aria-labelledby="download-safety-title"><div class="next-section__heading"><span class="next-section__number">02</span><div><p class="next-eyebrow">{{ trans('public_pages.download_browser_safety') }}</p><h2 id="download-safety-title">{{ trans('public_pages.download_check_before_install') }}</h2></div></div><div class="next-section__body"><p>{{ trans('public_pages.download_safety_body') }}</p><ul><li>{{ trans('public_pages.download_safety_unknown_domain') }}</li><li>{{ trans('public_pages.download_safety_credentials') }}</li><li>{{ trans('public_pages.download_safety_account_route') }}</li></ul></div></section>
+            <section class="next-section" id="download-integrity" data-content-section aria-labelledby="download-integrity-title"><div class="next-section__heading"><span class="next-section__number">03</span><div><p class="next-eyebrow">{{ trans('public_pages.download_integrity_eyebrow') }}</p><h2 id="download-integrity-title">{{ trans('public_pages.download_build_verification') }}</h2></div></div><div class="next-section__body"><p>{{ trans('public_pages.download_integrity_body') }}</p><p class="next-empty">{{ trans('public_pages.download_checksum') }}</p></div></section>
+        </div></div>
+        <section class="next-bottom"><div><p class="next-eyebrow">{{ trans('public_pages.download_no_link_eyebrow') }}</p><h2>{{ trans('public_pages.download_support_heading') }}</h2><p>{{ trans('public_pages.download_support_body') }}</p></div><div class="next-bottom__links"><button class="next-button next-button--gold" type="button" data-print-page>{{ trans('public_pages.download_print_save') }}</button><a class="next-button" href="{{ route('contact') }}">{{ trans('public_pages.download_contact_support') }}</a></div></section>
+    </main>
+</div>
+@endsection
+
+@push('scripts')
+    @vite('resources/js/pages/download.js')
+@endpush

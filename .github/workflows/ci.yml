@@ -378,3 +378,213 @@ jobs:
           set -e
           test "$code" -eq 2
           echo "Malformed payload refused with exit code 2."
+
+  runtime-and-rust-contracts:
+    name: Runtime and Rust contract gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Validate Composer platform and dependencies
+        run: |
+          set -euo pipefail
+          composer validate --no-check-publish
+          composer install --prefer-dist --no-interaction --no-progress
+          composer check-platform-reqs
+          composer audit --no-interaction
+
+      - name: Install and audit frontend dependencies
+        run: |
+          set -euo pipefail
+          npm ci
+          npm audit --audit-level=high
+          npm run build
+
+      - name: Verify Rust integrity crate
+        working-directory: security/weekly-result-integrity
+        run: |
+          set -euo pipefail
+          cargo check --locked
+          cargo test --locked
+          cargo build --release --locked
+
+  full-runtime-release:
+    name: Full runtime release candidate
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: thailotto_test
+          MYSQL_USER: thailotto_ci
+          MYSQL_PASSWORD: ci_database_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci_root_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      APP_ENV: testing
+      APP_DEBUG: false
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: thailotto_test
+      DB_USERNAME: thailotto_ci
+      DB_PASSWORD: ci_database_password
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: array
+      MAIL_MAILER: log
+      PAGES_451_550_DESTRUCTIVE_TESTS: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, fileinfo, mysqlnd, pdo_mysql, bcmath, sodium, zip, intl, redis
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install database client
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes mysql-client
+
+      - name: Prepare controlled Laravel environment
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          php artisan key:generate --force
+
+      - name: Install and verify Composer dependencies
+        run: |
+          set -euo pipefail
+          composer validate --no-check-publish
+          composer install --prefer-dist --no-interaction --no-progress
+          composer check-platform-reqs
+          composer audit --no-interaction
+          composer dump-autoload --optimize
+
+      - name: Install, audit, and build frontend
+        run: |
+          set -euo pipefail
+          npm ci
+          npm audit --audit-level=high
+          npm run build
+
+      - name: Boot, cache, route, and view gates
+        run: |
+          set -euo pipefail
+          php artisan about
+          php artisan optimize:clear
+          php artisan config:cache
+          php artisan route:list
+          php artisan route:cache
+          php artisan view:cache
+
+      - name: Controlled schema, seed, and migration gates
+        run: |
+          set -euo pipefail
+          php artisan migrate:status
+          php artisan migrate:fresh --force
+          php artisan db:seed --force
+          php artisan migrate:status
+
+      - name: Controlled queue and scheduler gates
+        run: |
+          set -euo pipefail
+          redis-cli ping
+          php artisan queue:failed
+          php artisan schedule:list
+
+      - name: Full PHP test suite
+        run: |
+          set -euo pipefail
+          php artisan config:clear
+          php artisan test
+
+      - name: Start application and run public browser smoke tests
+        run: |
+          set -euo pipefail
+          nohup php artisan serve --host=0.0.0.0 --port=8000 >/tmp/laravel-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          curl --fail --retry 20 --retry-delay 1 --retry-connrefused http://127.0.0.1:8000/up/live
+          npx playwright install --with-deps chromium
+          npm run e2e:public
+
+      - name: Backup, restore, and compare controlled database
+        env:
+          MYSQL_PWD: ci_database_password
+        run: |
+          set -euo pipefail
+          mysqldump --host=127.0.0.1 --port=3306 --user=thailotto_ci thailotto_test > /tmp/thailotto-test.sql
+          sha256sum /tmp/thailotto-test.sql | tee /tmp/thailotto-test.sql.sha256
+          mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci -e "CREATE DATABASE thailotto_restore"
+          mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci thailotto_restore < /tmp/thailotto-test.sql
+          DB_DATABASE=thailotto_restore php artisan migrate:status
+          test -s /tmp/thailotto-test.sql
+
+      - name: Rust integrity gates
+        working-directory: security/weekly-result-integrity
+        run: |
+          set -euo pipefail
+          cargo fmt --check
+          cargo check --locked --all-targets
+          cargo test --locked
+          cargo build --release --locked
+
+      - name: Final source hygiene gate
+        run: |
+          set -euo pipefail
+          git diff --check

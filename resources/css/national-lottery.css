@@ -1,702 +1,110 @@
 /*
- * National Lottery result surface (PROMPT 5, file 25).
- *
- * ORIGINAL STYLESHEET. Nothing here was copied from any competitor site: no
- * class names, no colour tokens, no layout, no markup structure. The naming
- * follows this repository's own BEM-ish convention (nl-block__element--
- * modifier), matching the pd-/pp-/glo- prefixes already in use.
- *
- * RESPONSIVE WITHOUT HIDING DATA. Below the breakpoint the table becomes a
- * stack of labelled rows using each cell's data-label attribute. No column is
- * display:none - a 2 Down that vanishes on a phone is a missing result, not a
- * tidier layout.
- *
- * ACCESSIBILITY. Focus rings are never removed, the skip link becomes visible
- * on focus, contrast is kept high against the dark application shell, and
- * prefers-reduced-motion disables the only transition in the file.
- *
- * DIGITS. .nl-digits uses a tabular monospace stack with letter-spacing so a
- * leading zero is visually unmistakable and columns of six-digit numbers line
- * up. font-variant-numeric: tabular-nums is presentation only; the value is
- * already an exact string from the server.
+ * ThaiLotto - National Lottery (GLO L6) Luxury Dark Gold Stylesheet
+ * Custom styles for live results board, pedestals, ball animations, keypad, and prize tables.
  */
 
-.nl-page {
-    --nl-bg: #0b1220;
-    --nl-surface: #111c30;
-    --nl-surface-2: #16243c;
-    --nl-border: #24354f;
-    --nl-text: #e8eef8;
-    --nl-muted: #9fb0c9;
-    --nl-accent: #f4b740;
-    --nl-official: #34d399;
-    --nl-internal: #60a5fa;
-    --nl-fixture: #fbbf24;
-    --nl-unknown: #94a3b8;
-
-    color: var(--nl-text);
-    padding: 1.5rem 1rem 4rem;
-    max-width: 78rem;
-    margin: 0 auto;
+:root {
+    --nl-gold-primary: #D4AF37;
+    --nl-gold-light: #FFF6D6;
+    --nl-gold-dark: #8C6D1F;
+    --nl-gold-glow: rgba(212, 175, 55, 0.25);
+    --nl-bg-dark: #0B0904;
+    --nl-card-bg: #141007;
+    --nl-card-border: rgba(212, 175, 55, 0.25);
+    --nl-text-main: #FFFFFF;
+    --nl-text-muted: #9CA3AF;
 }
 
-.nl-skip-link {
-    position: absolute;
-    left: -9999px;
-    top: 0;
-    background: var(--nl-accent);
-    color: #0b1220;
-    padding: 0.6rem 1rem;
-    border-radius: 0 0 0.5rem 0;
-    font-weight: 700;
-    z-index: 100;
+.nl-gold-text {
+    background: linear-gradient(135deg, #FFF6D6 0%, #D4AF37 50%, #AA7C11 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.nl-skip-link:focus {
-    left: 0;
+.nl-gold-border {
+    border-color: rgba(212, 175, 55, 0.3);
 }
 
-.nl-main:focus {
-    outline: none;
+.nl-glow-box {
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.15);
 }
 
-/* ---------------------------------------------------------------- header */
-
-.nl-header {
-    margin-bottom: 2rem;
-}
-
-.nl-title {
-    font-size: clamp(1.6rem, 3.4vw, 2.4rem);
-    font-weight: 800;
-    line-height: 1.2;
-    margin: 0 0 0.6rem;
-}
-
-.nl-lead {
-    color: var(--nl-muted);
-    max-width: 62ch;
-    margin: 0 0 0.9rem;
-    line-height: 1.6;
-}
-
-.nl-disclaimer {
-    border-left: 3px solid var(--nl-accent);
-    background: rgba(244, 183, 64, 0.08);
-    padding: 0.75rem 1rem;
-    border-radius: 0 0.5rem 0.5rem 0;
-    color: var(--nl-text);
-    max-width: 78ch;
-    line-height: 1.6;
-    margin: 0;
-}
-
-.nl-breadcrumb {
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-}
-
-.nl-breadcrumb__link,
-.nl-link {
-    color: var(--nl-accent);
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-}
-
-/* --------------------------------------------------------------- sections */
-
-.nl-section {
-    margin-top: 2.25rem;
-}
-
-.nl-section__heading {
-    font-size: 1.15rem;
-    font-weight: 700;
-    margin: 0 0 0.9rem;
-    padding-bottom: 0.4rem;
-    border-bottom: 1px solid var(--nl-border);
-}
-
-.nl-empty {
-    background: var(--nl-surface);
-    border: 1px dashed var(--nl-border);
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    color: var(--nl-muted);
-    line-height: 1.6;
-    margin: 0;
-}
-
-.nl-empty__action {
-    margin-top: 0.75rem;
-}
-
-.nl-notice {
-    border-radius: 0.6rem;
-    padding: 0.85rem 1rem;
-    line-height: 1.6;
-    margin: 0 0 1.25rem;
-}
-
-.nl-notice--correction {
-    background: rgba(96, 165, 250, 0.12);
-    border: 1px solid rgba(96, 165, 250, 0.4);
-}
-
-.nl-chip {
-    display: inline-block;
-    background: var(--nl-surface-2);
-    border: 1px solid var(--nl-border);
-    border-radius: 999px;
-    padding: 0.15rem 0.6rem;
-    margin: 0 0.25rem 0.25rem 0;
-    font-size: 0.8rem;
-}
-
-/* ------------------------------------------------------------------ digits */
-
-.nl-digits {
-    font-family: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.08em;
-    font-size: 1.05em;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-/* ------------------------------------------------------------------- card */
-
-.nl-card {
-    background: var(--nl-surface);
-    border: 1px solid var(--nl-border);
-    border-radius: 0.9rem;
-    padding: 1.25rem;
-}
-
-.nl-card__heading {
-    font-size: 1.05rem;
-    margin: 0 0 0.75rem;
-}
-
-.nl-card__header {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-}
-
-.nl-card__date {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.nl-card__date-main {
-    font-size: 1.2rem;
-    font-weight: 700;
-}
-
-.nl-card__date-iso,
-.nl-card__date-be {
-    font-size: 0.82rem;
-    color: var(--nl-muted);
-}
-
-.nl-card__numbers {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-    gap: 0.75rem;
-    margin: 0;
-}
-
-.nl-card__number {
-    background: var(--nl-surface-2);
-    border: 1px solid var(--nl-border);
-    border-radius: 0.7rem;
-    padding: 0.75rem;
-}
-
-.nl-card__number--first-prize {
-    grid-column: 1 / -1;
-    border-color: var(--nl-accent);
-}
-
-.nl-card__number--first-prize .nl-digits {
-    font-size: 1.8rem;
-    color: var(--nl-accent);
-}
-
-.nl-card__number-label {
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--nl-muted);
-    margin-bottom: 0.35rem;
-}
-
-.nl-card__number-value {
-    margin: 0;
-}
-
-.nl-card__number-missing,
-.nl-table__missing {
-    color: var(--nl-muted);
-    font-style: italic;
-    font-size: 0.85rem;
-}
-
-.nl-card__list,
-.nl-table__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-
-.nl-card__list-item,
-.nl-table__list-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 0.4rem;
-    padding: 0.1rem 0.45rem;
-}
-
-.nl-card__actions {
-    margin: 1rem 0 0;
-}
-
-.nl-card__link,
-.nl-table__link {
-    color: var(--nl-accent);
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-}
-
-/* ----------------------------------------------------------------- source */
-
-.nl-source {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.nl-source__badge {
+.nl-ball {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    background: var(--nl-surface-2);
-    border: 1px solid var(--nl-border);
-    border-radius: 999px;
-    padding: 0.2rem 0.7rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    width: fit-content;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle at 35% 30%, #FFF8E7 0%, #E5C365 30%, #B8860B 70%, #5E4300 100%);
+    color: #0B0904;
+    font-weight: 900;
+    font-size: 1.5rem;
+    font-family: 'Outfit', sans-serif;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.6), inset 0 -3px 6px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 246, 214, 0.4);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.nl-source__dot {
-    width: 0.55rem;
-    height: 0.55rem;
-    border-radius: 50%;
-    background: var(--nl-unknown);
-    flex: none;
+.nl-ball:hover {
+    transform: scale(1.08) translateY(-2px);
 }
 
-.nl-source--official .nl-source__dot { background: var(--nl-official); }
-.nl-source--internal .nl-source__dot { background: var(--nl-internal); }
-.nl-source--fixture .nl-source__dot { background: var(--nl-fixture); }
-
-.nl-source--official .nl-source__badge { border-color: var(--nl-official); }
-.nl-source--internal .nl-source__badge { border-color: var(--nl-internal); }
-.nl-source--fixture .nl-source__badge { border-color: var(--nl-fixture); }
-
-.nl-source__hint,
-.nl-source__explainer {
-    color: var(--nl-muted);
-    font-size: 0.85rem;
-    line-height: 1.6;
-    margin: 0;
-    max-width: 70ch;
+.nl-ball--sm {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.1rem;
 }
 
-.nl-source__facts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-    gap: 0.5rem;
-    margin: 0;
+.nl-ball--lg {
+    width: 4rem;
+    height: 4rem;
+    font-size: 2rem;
 }
 
-.nl-source__fact {
-    background: var(--nl-surface);
-    border: 1px solid var(--nl-border);
-    border-radius: 0.5rem;
-    padding: 0.5rem 0.65rem;
+.nl-pedestal {
+    position: relative;
+    background: linear-gradient(180deg, #1F190B 0%, #120F07 100%);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 1.25rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.3);
 }
 
-.nl-source__term {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--nl-muted);
+.nl-pedestal::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 10%;
+    right: 10%;
+    height: 6px;
+    background: radial-gradient(ellipse at center, rgba(212, 175, 55, 0.4) 0%, transparent 80%);
 }
 
-.nl-source__value {
-    margin: 0.2rem 0 0;
-    font-size: 0.88rem;
-    word-break: break-all;
-}
-
-.nl-source__hash {
-    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    font-size: 0.75rem;
-}
-
-/* ------------------------------------------------------------------ table */
-
-.nl-table-wrap {
-    overflow-x: auto;
-    border: 1px solid var(--nl-border);
-    border-radius: 0.9rem;
-    background: var(--nl-surface);
-}
-
-.nl-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 54rem;
-}
-
-.nl-table__caption {
-    caption-side: top;
-    text-align: start;
-    padding: 0.85rem 1rem;
-    color: var(--nl-muted);
-    font-size: 0.85rem;
-}
-
-.nl-table__th {
-    text-align: start;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--nl-muted);
-    padding: 0.7rem 0.85rem;
-    border-block: 1px solid var(--nl-border);
-    background: var(--nl-surface-2);
-    white-space: nowrap;
-}
-
-.nl-table__cell {
-    padding: 0.75rem 0.85rem;
-    border-bottom: 1px solid var(--nl-border);
-    vertical-align: top;
-    text-align: start;
-    font-weight: 400;
-}
-
-.nl-table__cell--date {
-    white-space: nowrap;
-    font-weight: 600;
-}
-
-.nl-table__date-alt {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--nl-muted);
-    font-weight: 400;
-}
-
-.nl-table__cell--empty {
-    text-align: center;
-    color: var(--nl-muted);
-    padding: 1.5rem;
-}
-
-.nl-table__row:hover .nl-table__cell {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-/* -------------------------------------------------------------- pagination */
-
-.nl-pagination {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.nl-pagination__link {
-    background: var(--nl-surface-2);
-    border: 1px solid var(--nl-border);
-    border-radius: 0.5rem;
-    padding: 0.45rem 0.9rem;
-    color: var(--nl-text);
-    text-decoration: none;
-}
-
-.nl-pagination__link:hover {
-    border-color: var(--nl-accent);
-}
-
-.nl-pagination__status {
-    color: var(--nl-muted);
-    font-size: 0.85rem;
-}
-
-.nl-pagination__total {
-    margin-inline-start: 0.5rem;
-}
-
-/* ------------------------------------------------------------------ years */
-
-.nl-years {
-    margin-top: 2.5rem;
-}
-
-.nl-years__heading {
-    font-size: 1.05rem;
-    margin: 0 0 0.75rem;
-}
-
-.nl-years__empty {
-    color: var(--nl-muted);
-    margin: 0;
-}
-
-.nl-years__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.nl-years__link {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    background: var(--nl-surface);
-    border: 1px solid var(--nl-border);
-    border-radius: 0.6rem;
-    padding: 0.5rem 0.85rem;
-    color: var(--nl-text);
-    text-decoration: none;
-    min-width: 6.5rem;
-    transition: border-color 120ms ease;
-}
-
-.nl-years__link:hover,
-.nl-years__link--active {
-    border-color: var(--nl-accent);
-}
-
-.nl-years__label {
+.nl-keypad-btn {
+    background: linear-gradient(180deg, #1C170E 0%, #100D06 100%);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    color: #F5E6B8;
+    font-family: 'Outfit', sans-serif;
     font-weight: 700;
-    font-variant-numeric: tabular-nums;
+    transition: all 0.15s ease-in-out;
 }
 
-.nl-years__count,
-.nl-years__alt {
-    font-size: 0.72rem;
-    color: var(--nl-muted);
+.nl-keypad-btn:hover {
+    border-color: #D4AF37;
+    background: linear-gradient(180deg, #2A2213 0%, #17130A 100%);
+    color: #FFFFFF;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+    transform: translateY(-1px);
 }
 
-/* ----------------------------------------------------------------- search */
-
-.nl-search {
-    background: var(--nl-surface);
-    border: 1px solid var(--nl-border);
-    border-radius: 0.9rem;
-    padding: 1.25rem;
-    margin-top: 1.5rem;
+.nl-keypad-btn:active {
+    transform: translateY(1px);
+    box-shadow: none;
 }
 
-.nl-search__heading {
-    font-size: 1.05rem;
-    margin: 0 0 0.35rem;
-}
-
-.nl-search__intro {
-    color: var(--nl-muted);
-    margin: 0 0 1rem;
-    line-height: 1.6;
-    max-width: 70ch;
-}
-
-.nl-search__row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-    gap: 1rem;
-}
-
-.nl-search__label {
-    display: block;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--nl-muted);
-    margin-bottom: 0.35rem;
-}
-
-.nl-search__input,
-.nl-search__select {
-    width: 100%;
-    background: var(--nl-bg);
-    border: 1px solid var(--nl-border);
-    border-radius: 0.5rem;
-    color: var(--nl-text);
-    padding: 0.55rem 0.7rem;
-    font-size: 1rem;
-    font-variant-numeric: tabular-nums;
-}
-
-.nl-search__input:focus,
-.nl-search__select:focus,
-.nl-search__submit:focus,
-.nl-years__link:focus,
-.nl-pagination__link:focus,
-.nl-card__link:focus,
-.nl-table__link:focus {
-    outline: 2px solid var(--nl-accent);
-    outline-offset: 2px;
-}
-
-.nl-search__hint {
-    font-size: 0.78rem;
-    color: var(--nl-muted);
-    margin: 0.35rem 0 0;
-    line-height: 1.5;
-}
-
-.nl-search__actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.nl-search__submit {
-    background: var(--nl-accent);
-    color: #0b1220;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.55rem 1.4rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.nl-search__reset {
-    color: var(--nl-muted);
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-}
-
-.nl-search__matched {
-    color: var(--nl-muted);
-    font-size: 0.85rem;
-    margin: 0 0 0.75rem;
-}
-
-/* ----------------------------------------------------------------- detail */
-
-.nl-detail__dates {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    gap: 0.75rem;
-    margin: 1rem 0 0;
-}
-
-.nl-detail__date {
-    background: var(--nl-surface-2);
-    border: 1px solid var(--nl-border);
-    border-radius: 0.6rem;
-    padding: 0.6rem 0.75rem;
-}
-
-.nl-detail__date dt {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--nl-muted);
-}
-
-.nl-detail__date dd {
-    margin: 0.2rem 0 0;
-    font-variant-numeric: tabular-nums;
-}
-
-/* ------------------------------------------------------------ responsive */
-
-@media (max-width: 62rem) {
-    .nl-table {
-        min-width: 0;
-    }
-
-    .nl-table__head {
-        /* Visually hidden, still announced: the per-cell data-label below
-           carries the column name into the stacked layout. */
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        clip-path: inset(50%);
-        white-space: nowrap;
-    }
-
-    .nl-table,
-    .nl-table__body,
-    .nl-table__row,
-    .nl-table__cell {
-        display: block;
-        width: 100%;
-    }
-
-    .nl-table__row {
-        border-bottom: 2px solid var(--nl-border);
-        padding: 0.5rem 0;
-    }
-
-    .nl-table__cell {
-        border-bottom: none;
-        display: grid;
-        grid-template-columns: 9rem 1fr;
-        gap: 0.5rem;
-        align-items: baseline;
-        padding: 0.35rem 0.85rem;
-    }
-
-    .nl-table__cell::before {
-        content: attr(data-label);
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--nl-muted);
-    }
-
-    .nl-table__cell--empty {
-        grid-template-columns: 1fr;
-    }
-
-    .nl-table__cell--empty::before {
-        content: none;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .nl-years__link {
-        transition: none;
-    }
-}
-
-@media (prefers-contrast: more) {
-    .nl-page {
-        --nl-muted: #cbd5e1;
-        --nl-border: #475569;
-    }
+.nl-tab-active {
+    background: linear-gradient(180deg, #2A2312 0%, #17130A 100%) !important;
+    border-color: #D4AF37 !important;
+    color: #F5E6B8 !important;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
 }

@@ -1,0 +1,225 @@
+{
+  "inventory": {
+    "browser_runtime": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+    "database_reachability": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+    "env_configuration_presence": {
+      "APP_DEBUG": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "APP_ENV": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "APP_KEY": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "APP_URL": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "CACHE_STORE": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "DB_CONNECTION": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "DB_DATABASE": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "DB_HOST": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "DB_PASSWORD": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "DB_PORT": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "DB_USERNAME": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "GLO_OFFICIAL_SOURCE_MODE": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "PAYMENT_DEFAULT_GATEWAY": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "QUEUE_CONNECTION": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "REDIS_HOST": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "REDIS_PORT": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      },
+      "SESSION_DRIVER": {
+        "env_example_declared": true,
+        "env_file_declared": false,
+        "process_present": false
+      }
+    },
+    "env_example": {
+      "directory": false,
+      "exists": true,
+      "file": true,
+      "path": ".env.example"
+    },
+    "frontend_artifacts": {
+      "package_json": {
+        "directory": false,
+        "exists": true,
+        "file": true,
+        "path": "package.json"
+      },
+      "package_lock": {
+        "directory": false,
+        "exists": true,
+        "file": true,
+        "path": "package-lock.json"
+      },
+      "public_build": {
+        "directory": false,
+        "exists": false,
+        "file": false,
+        "path": "public/build"
+      },
+      "vite_manifest": {
+        "directory": false,
+        "exists": false,
+        "file": false,
+        "path": "public/build/manifest.json"
+      }
+    },
+    "git": {
+      "branch": "main",
+      "commit": "8f68f3e17fdaadc2ead44c58716096605959168e",
+      "dirty": true,
+      "status_short": "M .github/workflows/ci.yml\n M FINAL-AUDIT-COMPLETION-2026-09-29.md\n M app/Http/Controllers/AccountGradeController.php\n D app/Http/Controllers/AccountVerificationController.php\n M app/Http/Controllers/Api/V1/AuthController.php\n M app/Http/Controllers/Api/V1/ProfileController.php\n M app/Http/Controllers/BingoLotteryController.php\n M app/Http/Controllers/HomeController.php\n M app/Http/Controllers/NationalLotteryController.php\n M app/Http/Controllers/PcsoLotteryController.php\n M app/Http/Controllers/PublicPagesController.php\n M app/Http/Controllers/SitemapController.php\n M app/Http/Controllers/Verification/AccountVerificationController.php\n M app/Http/Controllers/Web/PlayerWebController.php\n M app/Http/Controllers/WeeklyLotteryController.php\n M app/Models/AccountVerificationDocument.php\n M app/Providers/AppServiceProvider.php\n M app/Providers/AuthServiceProvider.php\n M app/Services/Account/AccountVerificationDocumentService.php\n M app/Services/Account/AccountVerificationService.php\n M app/Services/Finance/WalletReservationService.php\n M app/Services/Finance/WalletService.php\n M app/Services/Home/HomePageDataService.php\n M app/Services/Lottery/GloL6ProportionalPrizeCalculator.php\n M app/Services/Lottery/GloPrizeClaimService.php\n M app/Services/Lottery/Support/AbstractLotterySourceService.php\n M app/Services/Media/PublicAppLinkService.php\n M app/Services/Payment/PaymentCallbackService.php\n M app/Services/Payments/PublicPaymentMethodsService.php\n M app/Services/PublicPages/AboutPageService.php\n M app/Services/PublicPages/PublicPageDataService.php\n M app/Services/PublicPages/PublicPageTextBag.php\n M app/Services/PublicPages/VisionMissionService.php\n M app/Services/ResponsibleGaming/ResponsibleGamingEnforcementService.php\n M app/Services/ResponsibleGaming/ResponsibleGamingLimitService.php\n M app/Services/Verification/AccountVerificationService.php\n M app/Services/Verification/DocumentStorageService.php\n M bootstrap/app.php\n M config/app.php\n M config/bingo_lottery.php\n M config/glo.php\n M config/national_lottery.php\n M config/payment.php\n M config/pcso_lottery.php\n M config/public_pages.php\n M config/weekly_lottery.php\n M deployment/CUTOVER-CHECKLIST.md\n M lang/en/account_info.php\n M lang/en/account_services.php\n M lang/en/bingo_lottery.php\n M lang/en/home.php\n M lang/en/national_lottery.php\n M lang/en/pcso_lottery.php\n M lang/en/player.php\n M lang/en/public_pages.php\n M lang/en/weekly_lottery.php\n M lang/th/account_info.php\n M lang/th/account_services.php\n M lang/th/bingo_lottery.php\n M lang/th/home.php\n M lang/th/pcso_lottery.php\n M lang/th/player.php\n M lang/th/public_pages.php\n M package-lock.json\n M package.json\n M resources/css/app.css\n M resources/css/bingo-lottery.css\n M resources/css/home.css\n M resources/css/lottery.css\n M resources/css/national-lottery.css\n M resources/css/pcso-lottery.css\n M resources/css/weekly-lottery.css\n M resources/js/app.js\n M resources/js/bingo-lottery.js\n M resources/js/lottery/bet-slip.js\n M resources/js/national-lottery.js\n M resources/js/pcso-lottery.js\n M resources/js/weekly-lottery.js\n M resources/views/about/index.blade.php\n M resources/views/account-verification/index.blade.php\n M resources/views/account/grade.blade.php\n D resources/views/account/verification.blade.php\n M resources/views/auth/login.blade.php\n M resources/views/auth/register.blade.php\n M resources/views/bingo-lottery/index.blade.php\n M resources/views/components/account/document-upload.blade.php\n M resources/views/components/account/grade-card.blade.php\n M resources/views/components/account/verification-status.blade.php\n M resources/views/components/home/current-result.blade.php\n M resources/views/components/home/hero.blade.php\n M resources/views/components/home/next-draw.blade.php\n M resources/views/components/home/payment-methods.blade.php\n M resources/views/components/home/stats.blade.php\n M resources/views/components/home/support.blade.php\n M resources/views/components/national-lottery/result-card.blade.php\n M resources/views/components/national-lottery/result-table.blade.php\n M resources/views/components/national-lottery/search-form.blade.php\n M resources/views/components/national-lottery/source-status.blade.php\n M resources/views/components/national-lottery/year-nav.blade.php\n M resources/views/components/pcso-lottery/search-form.blade.php\n M resources/views/components/public-page/footer.blade.php\n M resources/views/components/weekly-lottery/result-card.blade.php\n M resources/views/components/weekly-lottery/result-table.blade.php\n M resources/views/components/weekly-lottery/search-form.blade.php\n M resources/views/components/weekly-lottery/source-status.blade.php\n M resources/views/components/weekly-lottery/year-nav.blade.php\n M resources/views/contact/index.blade.php\n M resources/views/discounts/index.blade.php\n M resources/views/fees/index.blade.php\n M resources/views/filament/pages/glo-prize-structure-page.blade.php\n M resources/views/home.blade.php\n M resources/views/home/check.blade.php\n M resources/views/home/sales-points.blade.php\n M resources/views/layouts/app.blade.php\n M resources/views/national-lottery/index.blade.php\n M resources/views/national-lottery/show.blade.php\n M resources/views/pcso-lottery/index.blade.php\n M resources/views/player/bet.blade.php\n M resources/views/player/bets.blade.php\n M resources/views/player/dashboard.blade.php\n M resources/views/player/deposit.blade.php\n M resources/views/player/draw-detail.blade.php\n M resources/views/player/draws.blade.php\n M resources/views/player/profile.blade.php\n M resources/views/player/wallet.blade.php\n M resources/views/player/withdraw.blade.php\n M resources/views/prize-verification/index.blade.php\n M resources/views/results/index.blade.php\n M resources/views/static/privacy.blade.php\n M resources/views/static/terms.blade.php\n M resources/views/terms/index.blade.php\n M resources/views/vision/index.blade.php\n M resources/views/weekly-lottery/index.blade.php\n M resources/views/weekly-lottery/show.blade.php\n M routes/api.php\n M routes/web.php\n M security/weekly-result-integrity/src/main.rs\n M tests/Feature/Filament/FinanceResourcesTest.php\n M tests/Feature/Glo/GloPrizeClaimTest.php\n M tests/Feature/Lottery/ArchiveInventoryParityTest.php\n M vite.config.js\n?? .github/workflows/security.yml\n?? CI-CD-VERIFICATION-REPORT.md\n?? DATABASE-RUNTIME-REPORT.md\n?? FINANCIAL-INTEGRITY-REPORT.md\n?? LOTTERY-INTEGRITY-REPORT.md\n?? PAGES-100-150-IMPLEMENTATION-REPORT-PART-1.md\n?? PAGES-100-150-IMPLEMENTATION-REPORT-PART-2.md\n?? PAGES-15-24-IMPLEMENTATION-REPORT.md\n?? PAGES-150-250-ARCHITECTURE-INVENTORY.md\n?? PAGES-150-250-IMPLEMENTATION-REPORT-PART-1.md\n?? PAGES-150-250-MATRICES.md\n?? PAGES-25-34-IMPLEMENTATION-REPORT.md\n?? PAGES-251-350-IMPLEMENTATION-REPORT-PART-1.md\n?? PAGES-251-350-MATRICES.md\n?? PAGES-35-44-IMPLEMENTATION-REPORT.md\n?? PAGES-351-450-IMPLEMENTATION-REPORT-PART-1.md\n?? PAGES-351-450-MATRICES.md\n?? PAGES-77-100-IMPLEMENTATION-REPORT.md\n?? RUNTIME-VERIFICATION-REPORT.md\n?? RUST-RUNTIME-REPORT.md\n?? SECURITY-RUNTIME-REPORT.md\n?? THAILOTTO-FINAL-INDEPENDENT-PRODUCTION-VERIFICATION-REPORT.md\n?? app/Console/Commands/ImportLotteryResults.php\n?? app/Exceptions/Handler.php\n?? app/Http/Controllers/Admin/\n?? app/Http/Controllers/Agent/\n?? app/Http/Controllers/Api/V1/HomeController.php\n?? app/Http/Controllers/Api/V1/MeController.php\n?? app/Http/Controllers/Api/V1/ResultController.php\n?? app/Http/Controllers/Betting/\n?? app/Http/Controllers/GloL6Controller.php\n?? app/Http/Controllers/GloResultsPageController.php\n?? app/Http/Controllers/LotteryHubController.php\n?? app/Http/Controllers/LotteryPurchasePageController.php\n?? app/Http/Controllers/NotificationCenterController.php\n?? app/Http/Controllers/Payment/\n?? app/Http/Controllers/Player/\n?? app/Http/Controllers/PublicContactController.php\n?? app/Http/Controllers/PublicDownloadAppController.php\n?? app/Http/Controllers/PublicFaqController.php\n?? app/Http/Controllers/PublicGradeController.php\n?? app/Http/Controllers/PublicHowToPlayController.php\n?? app/Http/Controllers/PublicLegalFeesController.php\n?? app/Http/Controllers/PublicLegalPrivacyController.php\n?? app/Http/Controllers/PublicLegalTermsController.php\n?? app/Http/Controllers/PublicLottoDiscountController.php\n?? app/Http/Controllers/PublicPrizeVerificationController.php\n?? app/Http/Controllers/PublicVerificationController.php\n?? app/Http/Controllers/ResultsController.php\n?? app/Http/Controllers/Support/\n?? app/Http/Controllers/Wallet/\n?? app/Http/Controllers/Web/BetPurchaseController.php\n?? app/Http/Controllers/Web/MemberAuthController.php\n?? app/Http/Middleware/Authenticate.php\n?? app/Http/Middleware/SetLocale.php\n?? app/Http/Middleware/ThrottleRequests.php\n?? app/Http/Middleware/TrustProxies.php\n?? app/Http/Middleware/VerifyCsrfToken.php\n?? app/Http/Requests/Support/\n?? app/Http/Requests/Web/\n?? app/Http/Resources/PaymentResource.php\n?? app/Http/Resources/ResultResource.php\n?? app/Http/Resources/UserResource.php\n?? app/Models/GloL6Ticket.php\n?? app/Models/SupportCase.php\n?? app/Models/SupportMessage.php\n?? app/Models/Transaction.php\n?? app/Models/WalletLedger.php\n?? app/Notifications/KycStatusNotification.php\n?? app/Notifications/PaymentStatusNotification.php\n?? app/Notifications/PrizeWonNotification.php\n?? app/Notifications/WithdrawalStatusNotification.php\n?? app/Services/Admin/\n?? app/Services/Agent/AgentCommissionService.php\n?? app/Services/Agent/AgentSettlementService.php\n?? app/Services/Audit/\n?? app/Services/Compliance/AmlRiskService.php\n?? app/Services/Compliance/ComplianceService.php\n?? app/Services/Compliance/SelfExclusionService.php\n?? app/Services/Home/HomeCountdownService.php\n?? app/Services/Home/HomeLotteryFeedService.php\n?? app/Services/Home/HomeResultFeedService.php\n?? app/Services/Lottery/AbstractLotterySourceService.php\n?? app/Services/Lottery/BingoLotteryService.php\n?? app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php\n?? app/Services/Lottery/GloL6HomeService.php\n?? app/Services/Lottery/GloL6PurchaseCapabilityService.php\n?? app/Services/Lottery/GloResultPublicationService.php\n?? app/Services/Lottery/NationalLotteryService.php\n?? app/Services/Lottery/PcsoLotteryPurchaseCapabilityService.php\n?? app/Services/Lottery/PcsoLotteryService.php\n?? app/Services/Lottery/PublicLotteryCatalogService.php\n?? app/Services/Lottery/ResultImportService.php\n?? app/Services/Lottery/WeeklyLotteryService.php\n?? app/Services/Monitoring/\n?? app/Services/Payment/ProductionPaymentExecutionHubService.php\n?? app/Services/Privacy/\n?? app/Services/PublicPages/AboutTimelineService.php\n?? app/Services/PublicPages/PrivacyPageService.php\n?? app/Services/PublicPages/ResultsPageService.php\n?? app/Services/ResponsibleGamingLimitService.php\n?? app/Services/Support/SupportCaseService.php\n?? app/Services/Wallet/\n?? audit.md\n?? database/factories/SupportCaseFactory.php\n?? database/migrations/2026_09_30_000900_create_support_case_tables.php\n?? images/about_us_page_preview.png\n?? images/deposit_methods_preview.png\n?? images/home_landing_page_preview.png\n?? images/lottery_history_portal_preview.png\n?? images/member_profile_portal_preview.png\n?? images/player_dashboard_preview.png\n?? images/player_security_preview.png\n?? images/player_settings_portal_preview.png\n?? images/privacy_policy_page_preview.png\n?? images/terms_conditions_page_preview.png\n?? images/thai_lottery_betting_preview.png\n?? images/vision_mission_page_preview.png\n?? images/wallet_transactions_preview.png\n?? images/withdrawal_methods_preview.png\n?? lang/en/admin.php\n?? lang/en/admin_release.php\n?? lang/en/agent.php\n?? lang/en/glo_l6.php\n?? lang/en/lottery_hub.php\n?? lang/en/notifications.php\n?? lang/en/results.php\n?? lang/en/support.php\n?? lang/en/vision.php\n?? lang/th/admin.php\n?? lang/th/admin_release.php\n?? lang/th/agent.php\n?? lang/th/glo_l6.php\n?? lang/th/lottery_hub.php\n?? lang/th/notifications.php\n?? lang/th/results.php\n?? lang/th/support.php\n?? lang/th/vision.php\n?? public/about-preview.html\n?? public/account-grade-preview.html\n?? public/account-verification-preview.html\n?? public/bingo-lottery-preview.html\n?? public/contact-preview.html\n?? public/deposit-portal-preview.html\n?? public/download-preview.html\n?? public/faq-preview.html\n?? public/fees-preview.html\n?? public/home-preview.html\n?? public/how-to-play-preview.html\n?? public/lottery-history-preview.html\n?? public/lotto-discount-preview.html\n?? public/manifest.webmanifest\n?? public/national-lottery-preview.html\n?? public/pcso-lottery-preview.html\n?? public/player-dashboard-preview.html\n?? public/player-profile-preview.html\n?? public/player-security-settings-preview.html\n?? public/player-settings-preview.html\n?? public/privacy-preview.html\n?? public/prize-verification-preview.html\n?? public/results-preview.html\n?? public/sw.js\n?? public/thai-lottery-betting-preview.html\n?? public/vision-preview.html\n?? public/wallet-management-preview.html\n?? public/weekly-lottery-preview.html\n?? public/withdrawal-portal-preview.html\n?? resources/css/accessibility.css\n?? resources/css/admin-lottofin.css\n?? resources/css/auth-portal.css\n?? resources/css/components/\n?? resources/css/deposit-portal.css\n?? resources/css/glo-l6.css\n?? resources/css/glo-results-checker.css\n?? resources/css/lottery-history.css\n?? resources/css/pages/\n?? resources/css/player-dashboard.css\n?? resources/css/player-profile.css\n?? resources/css/player-security-settings.css\n?? resources/css/player-settings.css\n?? resources/css/thai-lottery-betting.css\n?? resources/css/thailotto-theme.css\n?? resources/css/theme.css\n?? resources/css/wallet-management.css\n?? resources/css/withdrawal-portal.css\n?? resources/js/accessibility.js\n?? resources/js/account-grade-portal.js\n?? resources/js/account-verification-portal.js\n?? resources/js/admin-lottofin.js\n?? resources/js/admin-lottofin.ts\n?? resources/js/auth-portal.js\n?? resources/js/auth-portal.ts\n?? resources/js/bet-slip.js\n?? resources/js/components/\n?? resources/js/contact-portal.js\n?? resources/js/deposit-portal.js\n?? resources/js/deposit-portal.ts\n?? resources/js/deposit.js\n?? resources/js/download-app-portal.js\n?? resources/js/faq-portal.js\n?? resources/js/fees-portal.js\n?? resources/js/glo-results-checker.js\n?? resources/js/glo-results-checker.ts\n?? resources/js/home-keypad.js\n?? resources/js/how-to-play-portal.js\n?? resources/js/lottery-history.js\n?? resources/js/lottery-history.ts\n?? resources/js/lotto-discount-portal.js\n?? resources/js/pages/\n?? resources/js/player-dashboard.js\n?? resources/js/player-dashboard.ts\n?? resources/js/player-profile.js\n?? resources/js/player-profile.ts\n?? resources/js/player-security-settings.js\n?? resources/js/player-security-settings.ts\n?? resources/js/player-settings.js\n?? resources/js/player-settings.ts\n?? resources/js/privacy-portal.js\n?? resources/js/prize-verification-portal.js\n?? resources/js/svgbet-slip.js\n?? resources/js/svgdeposit.js\n?? resources/js/svgwithdraw.js\n?? resources/js/terms-portal.js\n?? resources/js/thai-lottery-betting.js\n?? resources/js/thai-lottery-betting.ts\n?? resources/js/wallet-management.js\n?? resources/js/wallet-management.ts\n?? resources/js/withdraw.js\n?? resources/js/withdrawal-portal.js\n?? resources/js/withdrawal-portal.ts\n?? resources/views/account-grade/\n?? resources/views/account/grade-history.blade.php\n?? resources/views/admin/\n?? resources/views/agent/\n?? resources/views/betting/\n?? resources/views/bingo-lottery/buy.blade.php\n?? resources/views/bingo-lottery/draw-detail.blade.php\n?? resources/views/bingo-lottery/history.blade.php\n?? resources/views/bingo-lottery/latest-result.blade.php\n?? resources/views/bingo-lottery/result-detail.blade.php\n?? resources/views/bingo-lottery/year.blade.php\n?? resources/views/components/home/app-download.blade.php\n?? resources/views/components/home/bonus-section.blade.php\n?? resources/views/components/home/latest-results.blade.php\n?? resources/views/components/home/lottery-cards.blade.php\n?? resources/views/components/home/lottery-grid.blade.php\n?? resources/views/components/home/trust-security.blade.php\n?? resources/views/components/lottery-hub/\n?? resources/views/components/lottery-purchase/\n?? resources/views/components/navigation/\n?? resources/views/components/results/\n?? resources/views/components/ui/\n?? resources/views/contact-us/\n?? resources/views/dashboard/\n?? resources/views/deposit/\n?? resources/views/download-app/\n?? resources/views/download/\n?? resources/views/faq/\n?? resources/views/glo-l6/\n?? resources/views/how-to-play/\n?? resources/views/layouts/admin.blade.php\n?? resources/views/lotteries/\n?? resources/views/lotto-discount/\n?? resources/views/national-lottery/buy.blade.php\n?? resources/views/national-lottery/draw-detail.blade.php\n?? resources/views/national-lottery/history.blade.php\n?? resources/views/national-lottery/latest-result.blade.php\n?? resources/views/national-lottery/partials/\n?? resources/views/national-lottery/result-detail.blade.php\n?? resources/views/national-lottery/year.blade.php\n?? resources/views/notifications/\n?? resources/views/pcso-lottery/buy.blade.php\n?? resources/views/pcso-lottery/history.blade.php\n?? resources/views/pcso-lottery/latest-result.blade.php\n?? resources/views/pcso-lottery/year.blade.php\n?? resources/views/player/deposit-status.blade.php\n?? resources/views/player/responsible-gaming.blade.php\n?? resources/views/player/security.blade.php\n?? resources/views/player/withdrawal-status.blade.php\n?? resources/views/privacy/\n?? resources/views/results/search.blade.php\n?? resources/views/support/\n?? resources/views/wallet/\n?? resources/views/weekly-lottery/buy.blade.php\n?? resources/views/weekly-lottery/draw-detail.blade.php\n?? resources/views/weekly-lottery/history.blade.php\n?? resources/views/weekly-lottery/latest-result.blade.php\n?? resources/views/weekly-lottery/result-detail.blade.php\n?? resources/views/weekly-lottery/year.blade.php\n?? resources/views/withdrawal/\n?? runtime/\n?? scripts/\n?? tests/Feature/About/\n?? tests/Feature/BusinessCriticalInvariantTest.php\n?? tests/Feature/Deployment/\n?? tests/Feature/FinalProductionReadinessTest.php\n?? tests/Feature/FinalWholeSystemNoSkipTest.php\n?? tests/Feature/Home/HomeApiTest.php\n?? tests/Feature/Home/HomeDataIntegrityTest.php\n?? tests/Feature/Home/HomeLocalizationTest.php\n?? tests/Feature/Home/HomePageTest.php\n?? tests/Feature/Lottery/Pages15To24Test.php\n?? tests/Feature/Lottery/Pages25To34Test.php\n?? tests/Feature/Observability/HealthEndpointTest.php\n?? tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php\n?? tests/Feature/Pages150To250StaticContractTest.php\n?? tests/Feature/Pages251To350StaticContractTest.php\n?? tests/Feature/Pages35To44/\n?? tests/Feature/Pages77To100StaticContractTest.php\n?? tests/Feature/Payment/FixturePublicationSafetyTest.php\n?? tests/Feature/Payment/PublicPaymentCapabilityParityTest.php\n?? tests/Feature/Payment/WithdrawalDestinationValidationTest.php\n?? tests/Feature/Player/BetPurchaseWebTest.php\n?? tests/Feature/Player/ResponsibleGamingWebTest.php\n?? tests/Feature/PublicPages/PublicPrivacyAndResultsTest.php\n?? tests/Feature/PublicPages/PublicTermsUiTest.php\n?? tests/Feature/RealMoneyBusinessReadinessTest.php\n?? tests/Feature/SEO/SitemapPublicationFilterTest.php\n?? tests/Feature/Support/\n?? tests/Feature/UI/\n?? tests/Feature/Vision/\n?? tests/Unit/Services/Home/\n?? tests/Unit/Services/PublicPages/\n?? uploads/"
+    },
+    "laravel_vendor": {
+      "directory": false,
+      "exists": false,
+      "file": false,
+      "path": "vendor"
+    },
+    "observed_at_utc": "2026-09-30T14:19:52+00:00",
+    "php_extensions": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+    "queue_runtime": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+    "redis_reachability": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+    "repository_root": "/home/user",
+    "runtime": {
+      "cargo": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "chromium": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "composer": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "curl": {
+        "executable": "/usr/bin/curl",
+        "exit_code": 0,
+        "status": "VERIFIED",
+        "version": "curl 8.14.1 (x86_64-pc-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.6 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.64.0 nghttp3/1.8.0 librtmp/2.3 OpenLDAP/2.6.10"
+      },
+      "google_chrome": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "mariadb": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "mysql": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "node": {
+        "executable": "/usr/bin/node",
+        "exit_code": 0,
+        "status": "VERIFIED",
+        "version": "v20.20.2"
+      },
+      "npm": {
+        "executable": "/usr/bin/npm",
+        "exit_code": 0,
+        "status": "VERIFIED",
+        "version": "10.8.2"
+      },
+      "php": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "playwright": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "redis_cli": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "rustc": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      },
+      "supervisor": {
+        "executable": null,
+        "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+        "version": null
+      }
+    },
+    "security_policy": "Executable paths, versions, exit codes, and configuration presence only; no secret values are emitted.",
+    "type": "pages_451_550_repository_inventory"
+  },
+  "observed_at_utc": "2026-09-30T14:19:52+00:00",
+  "page": 451,
+  "runtime_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "source": "runtime/pages-451-550-inventory.json",
+  "status": "PARTIALLY VERIFIED",
+  "type": "page_451_environment_evidence"
+}

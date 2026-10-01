@@ -1,0 +1,97 @@
+name: Security & Vulnerability Gate
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 1' # Run weekly Monday at 03:00 UTC
+
+jobs:
+  composer-audit:
+    name: PHP Composer Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Audit PHP Dependencies
+        run: |
+          set -euo pipefail
+          composer audit --no-interaction
+
+  npm-audit:
+    name: Node NPM Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Audit NPM Packages
+        run: |
+          set -euo pipefail
+          npm audit --audit-level=high
+
+  secret-scan:
+    name: Secrets & Credentials Leak Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan Repository for Secrets
+        run: |
+          set -euo pipefail
+          echo "Scanning for accidental secret leaks, private keys, and hardcoded tokens..."
+          # Reject committed private keys
+          if grep -rn "BEGIN RSA PRIVATE KEY" --exclude-dir={.git,node_modules,vendor,storage} .; then
+            echo "::error::Private key found in repository source!"
+            exit 1
+          fi
+          # Reject committed active AWS/Stripe live secrets
+          if grep -rEn "(AKIA[0-9A-Z]{16}|sk_live_[0-9a-zA-Z]{24})" --exclude-dir={.git,node_modules,vendor,storage} .; then
+            echo "::error::Live API keys detected in workspace!"
+            exit 1
+          fi
+          echo "Secret scanning checks passed."
+
+  static-security-analysis:
+    name: Static Code Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip
+          coverage: none
+
+      - name: Install Dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Check for Unsafe PHP Calls (eval, exec, system)
+        run: |
+          set -euo pipefail
+          echo "Verifying absence of unescaped raw shell injection vectors..."
+          # Exclude vendor and tests from dangerous runtime function checks
+          if grep -rnE "\b(eval|passthru|shell_exec)\(" app/ config/ routes/; then
+            echo "::error::Dangerous execution functions detected in production app source."
+            exit 1
+          fi
+          echo "SAST checks passed."

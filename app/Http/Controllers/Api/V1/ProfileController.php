@@ -28,7 +28,6 @@ final class ProfileController
         return ApiResponse::success(
             data: [
                 'user' => [
-                    'id' => (int) $user->id,
                     'name' => (string) $user->name,
                     'username' => (string) $user->username,
                     'email' => (string) $user->email,
@@ -42,7 +41,7 @@ final class ProfileController
                     'created_at' => $user->created_at?->toIso8601String(),
                 ],
             ],
-            message: 'Profile retrieved successfully.',
+            message: (string) trans('player.profile_retrieved'),
         );
     }
 
@@ -82,7 +81,6 @@ final class ProfileController
         return ApiResponse::success(
             data: [
                 'user' => [
-                    'id' => (int) $user->id,
                     'name' => (string) $user->name,
                     'username' => (string) $user->username,
                     'email' => (string) $user->email,
@@ -92,7 +90,7 @@ final class ProfileController
                     'preferences' => $user->preferences ?? [],
                 ],
             ],
-            message: 'Profile updated successfully.',
+            message: (string) trans('player.profile_updated'),
         );
     }
 
@@ -114,7 +112,7 @@ final class ProfileController
         if (! Hash::check($validated['current_password'], (string) $user->password)) {
             return ApiResponse::error(
                 code: 'invalid_current_password',
-                message: 'The current password provided is incorrect.',
+                message: (string) trans('player.current_password_invalid'),
                 status: 422,
             );
         }
@@ -124,7 +122,7 @@ final class ProfileController
 
         return ApiResponse::success(
             data: [],
-            message: 'Password updated successfully.',
+            message: (string) trans('player.password_updated'),
         );
     }
 }

@@ -112,7 +112,7 @@ return new class () extends Migration
             $table->timestamp('reconciled_at');
             $table->timestamps();
 
-            $table->unique(['draw_id', 'product', 'reconciliation_reference']);
+            $table->unique(['draw_id', 'product', 'reconciliation_reference'], 'glo_sales_recon_draw_product_ref_unique');
             $table->index(['draw_id', 'product', 'status']);
         });
     }

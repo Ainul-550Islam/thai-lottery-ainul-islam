@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'meta_title' => 'Public Results Hub',
+    'meta_description' => 'Published lottery results from the application public results projection.',
+    'title' => 'Public Results Hub',
+    'lead' => 'Review published results supplied by the verified public results projection.',
+    'published_results' => 'Published results',
+    'no_public_data' => 'No public result data is available.',
+    'unavailable' => 'Result data is temporarily unavailable.',
+    'draw' => 'Draw',
+    'date' => 'Date',
+    'first_prize' => 'First prize',
+    'second_prize' => 'Second prize',
+    'third_prize' => 'Third prize',
+    'other_prizes' => 'Other published prizes',
+    'source' => 'Source state',
+    'official_source_verified' => 'Official source verified',
+    'internal_reconciled' => 'Internal reconciled',
+    'fixture_only' => 'Fixture only',
+    'unavailable_source' => 'Unavailable',
+    'not_configured' => 'Not configured',
+    'check_link' => 'Check a six-digit ticket',
+    'search_link' => 'Search published results',
+    'not_published' => 'Not published',
+    'no_prize_data' => 'No prize data published',
+];

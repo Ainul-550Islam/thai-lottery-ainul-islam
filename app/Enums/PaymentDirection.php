@@ -16,6 +16,9 @@ enum PaymentDirection: string
     case Deposit = 'deposit';
     case Withdrawal = 'withdrawal';
 
+    public const INBOUND = self::Deposit;
+    public const OUTBOUND = self::Withdrawal;
+
     public function label(): string
     {
         return match ($this) {

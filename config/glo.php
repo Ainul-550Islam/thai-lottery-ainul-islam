@@ -25,7 +25,7 @@ use App\Enums\GloPrizeTier;
 | …) is data, not code. Operators update it here when the GLO amends the
 | schedule. No service hard codes a baht amount.
 |
-| Official schedule (per ticket), unchanged for the standard draw:
+| Official schedule (per ticket), standard draw:
 |   first           6,000,000 THB, 1 number
 |   adjacent_first    100,000 THB, 2 numbers (first prize +/- 1)
 |   second            200,000 THB, 5 numbers
@@ -41,9 +41,9 @@ use App\Enums\GloPrizeTier;
 |   - Banks can pay prizes under 20,000 THB; larger prizes are paid by GLO
 |     cheque, which requires the original signed ticket and an ID (Thai ID
 |     card or passport).
-|   - Income tax on GLO prizes is exempt; a stamp duty of ceil(gross/200) × 1
+|   - Income tax on standard GLO prizes is exempt; a stamp duty of ceil(gross/200) × 1
 |     THB applies (GloStampDutyCalculator). Do not reintroduce withholding.
-|   - Tickets are sold in pairs; a pair winning the first prize pays double.
+|   - Standard official printed L6 ticket format is 80.00 THB per single ticket.
 |   - Prize payment is restricted to claimants aged 20 or older.
 |
 | OFFICIAL REFERENCES (public GLO pages — rules only, no private systems):
@@ -74,7 +74,7 @@ return [
             'amount' => '100000.00',
             'winners' => 2,
             'digits' => 6,
-            'tax_withheld' => true,
+            'tax_withheld' => false,
             'min_claim_venue' => 'glo_office',
         ],
 
@@ -82,7 +82,7 @@ return [
             'amount' => '200000.00',
             'winners' => 5,
             'digits' => 6,
-            'tax_withheld' => true,
+            'tax_withheld' => false,
             'min_claim_venue' => 'glo_office',
         ],
 
@@ -90,7 +90,7 @@ return [
             'amount' => '80000.00',
             'winners' => 10,
             'digits' => 6,
-            'tax_withheld' => true,
+            'tax_withheld' => false,
             'min_claim_venue' => 'glo_office',
         ],
 
@@ -98,7 +98,7 @@ return [
             'amount' => '40000.00',
             'winners' => 50,
             'digits' => 6,
-            'tax_withheld' => true,
+            'tax_withheld' => false,
             'min_claim_venue' => 'glo_office',
         ],
 
@@ -106,7 +106,7 @@ return [
             'amount' => '20000.00',
             'winners' => 100,
             'digits' => 6,
-            'tax_withheld' => true,
+            'tax_withheld' => false,
             'min_claim_venue' => 'any_bank',
         ],
 
@@ -179,8 +179,9 @@ return [
 
     'ticket' => [
         'digits' => 6,
-        'sold_in_pairs' => true,
-        'pair_set_value' => '120.00',
+        'sold_in_pairs' => false,
+        'price' => '80.00',
+        'ticket_price' => '80.00',
         'valid_series' => true,
     ],
 

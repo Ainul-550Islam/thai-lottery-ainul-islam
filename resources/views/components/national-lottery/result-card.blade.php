@@ -3,124 +3,73 @@
     'isThai' => false,
     'heading' => null,
     'showLink' => true,
+    'provenance' => [],
 ])
 
-{{--
-    One draw's numbers, in full (PROMPT 5, file 21).
-
-    LEADING ZEROS REACH THE SCREEN INTACT. Every value printed below arrives
-    as a STRING that the model padded to its documented width. This template
-    does not call number_format, does not cast, and does not concatenate a
-    value into arithmetic. '004615' prints as 004615.
-
-    3FRONT AND 3AFTER ARE LISTS, NOT A STRING. Each value is rendered as its
-    own element with its own position, in the order the source delivered. The
-    template never joins them with a separator into an opaque blob, because a
-    blob cannot be read back as individual numbers and invites a reader to
-    treat a display separator as part of the data.
-
-    NO BUSINESS LOGIC. No date maths (the projection carries both calendars
-    already), no source reasoning (the badge component owns that), no prize
-    calculation of any kind. This file arranges values.
---}}
-
 @php
+    $result = is_array($result) ? $result : [];
     $available = (bool) ($result['available'] ?? false);
-    $status = (string) ($result['status'] ?? 'UNAVAILABLE');
-    $draw = (array) ($result['draw'] ?? []);
-    $date = (array) ($draw['date'] ?? []);
-    $numbers = (array) ($result['numbers'] ?? []);
-    $provenance = (array) ($result['provenance'] ?? []);
-
-    $displayDate = $isThai
-        ? (string) ($date['display_th'] ?? '')
-        : (string) ($date['display_en'] ?? '');
-
-    $reference = (string) ($draw['reference'] ?? '');
-
-    $scalars = [
-        'first_prize' => $numbers['first_prize'] ?? null,
-        'three_up' => $numbers['three_up'] ?? null,
-        'two_up' => $numbers['two_up'] ?? null,
-        'two_down' => $numbers['two_down'] ?? null,
-    ];
-
-    $lists = [
-        'three_front' => (array) ($numbers['three_front'] ?? []),
-        'three_after' => (array) ($numbers['three_after'] ?? []),
-    ];
+    $status = strtolower((string) ($result['status'] ?? 'unavailable'));
+    $draw = is_array($result['draw'] ?? null) ? $result['draw'] : [];
+    $date = is_array($draw['date'] ?? null) ? $draw['date'] : [];
+    $numbers = is_array($result['numbers'] ?? null) ? $result['numbers'] : [];
+    $reference = isset($draw['reference']) ? (string) $draw['reference'] : '';
+    $displayDate = $isThai ? (string) ($date['display_th'] ?? '') : (string) ($date['display_en'] ?? '');
+    $front = array_values(array_filter((array) ($numbers['three_front'] ?? []), static fn ($value): bool => is_string($value) && $value !== ''));
+    $after = array_values(array_filter((array) ($numbers['three_after'] ?? []), static fn ($value): bool => is_string($value) && $value !== ''));
 @endphp
 
-<article class="nl-card" data-nl-card="result" data-nl-status="{{ $status }}">
-    @if ($heading !== null)
-        <h2 class="nl-card__heading">{{ $heading }}</h2>
-    @endif
+<article class="rounded-3xl border border-[#D4AF37]/30 bg-gradient-to-br from-[#1C170E] via-[#141007] to-[#0D0B05] p-6 shadow-2xl sm:p-10" data-nl-card="result" data-nl-status="{{ $status }}">
+    <header class="mb-8 flex flex-col justify-between gap-4 border-b border-[#D4AF37]/20 pb-6 sm:flex-row sm:items-start">
+        <div>
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[#D4AF37]">{{ trans('national_lottery.current_result_heading') }}</p>
+            <h2 class="text-2xl font-black tracking-tight text-[#F5E6B8]">{{ $heading ?? trans('national_lottery.heading') }}</h2>
+            @if ($displayDate !== '')
+                <p class="mt-2 text-sm text-gray-300"><time datetime="{{ $date['iso'] ?? '' }}">{{ $displayDate }}</time></p>
+            @endif
+            @if ($reference !== '')
+                <p class="mt-1 font-mono text-xs text-gray-500">{{ $reference }}</p>
+            @endif
+        </div>
+        <x-national-lottery.source-status :provenance="$provenance" compact />
+    </header>
 
-    @unless ($available)
-        <p class="nl-card__empty" role="status">{{ trans('national_lottery.status.'.strtolower($status)) }}</p>
+    @if (! $available || $numbers === [])
+        <div class="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6" role="status">
+            <p class="font-semibold text-amber-200">{{ trans('national_lottery.status.'.$status) }}</p>
+            <p class="mt-2 text-sm leading-7 text-gray-400">{{ trans('national_lottery.empty_current') }}</p>
+        </div>
     @else
-        <header class="nl-card__header">
-            <p class="nl-card__date">
-                <span class="nl-card__date-main">{{ $displayDate }}</span>
-                {{-- Both calendars are always available. The Gregorian/ISO
-                     value is machine readable and is what a reader can match
-                     against an internal record. --}}
-                <time class="nl-card__date-iso" datetime="{{ $date['iso'] ?? '' }}">
-                    {{ trans('national_lottery.date_gregorian_label') }}: {{ $date['iso'] ?? '' }}
-                </time>
-                <span class="nl-card__date-be">
-                    {{ trans('national_lottery.date_buddhist_label') }}: {{ $date['buddhist_year'] ?? '' }}
-                </span>
-            </p>
-
-            <x-national-lottery.source-status :provenance="$provenance" :compact="true" />
-        </header>
-
-        <dl class="nl-card__numbers">
-            @foreach ($scalars as $field => $value)
-                <div class="nl-card__number nl-card__number--{{ str_replace('_', '-', $field) }}">
-                    <dt class="nl-card__number-label">{{ trans('national_lottery.field_'.$field) }}</dt>
-                    <dd class="nl-card__number-value">
-                        @if ($value === null || $value === '')
-                            <span class="nl-card__number-missing">{{ trans('national_lottery.no_value') }}</span>
-                        @else
-                            {{-- String in, string out. --}}
-                            <span class="nl-digits" data-nl-field="{{ $field }}">{{ $value }}</span>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach (['first_prize', 'three_up', 'two_up', 'two_down'] as $field)
+                @if (isset($numbers[$field]) && is_string($numbers[$field]) && $numbers[$field] !== '')
+                    <div class="rounded-2xl border border-[#D4AF37]/20 bg-[#120F08] p-5" data-nl-field="{{ $field }}">
+                        <p class="text-xs font-bold uppercase tracking-wider text-[#D4AF37]">{{ trans('national_lottery.field_'.$field) }}</p>
+                        <p class="mt-3 break-all font-mono text-3xl font-black tracking-[0.16em] text-[#F5E6B8]">{{ $numbers[$field] }}</p>
+                        @if ($field === 'first_prize')
+                            <p class="mt-2 text-xs text-gray-500">{{ trans('national_lottery.field_first_prize_hint') }}</p>
                         @endif
-                    </dd>
-                </div>
+                    </div>
+                @endif
             @endforeach
-
-            @foreach ($lists as $field => $values)
-                <div class="nl-card__number nl-card__number--{{ str_replace('_', '-', $field) }}">
-                    <dt class="nl-card__number-label">{{ trans('national_lottery.field_'.$field) }}</dt>
-                    <dd class="nl-card__number-value">
-                        @if ($values === [])
-                            <span class="nl-card__number-missing">{{ trans('national_lottery.no_value') }}</span>
-                        @else
-                            <ul class="nl-card__list">
-                                @foreach ($values as $index => $value)
-                                    <li class="nl-card__list-item">
-                                        <span
-                                            class="nl-digits"
-                                            data-nl-field="{{ $field }}"
-                                            data-nl-position="{{ $index + 1 }}"
-                                        >{{ $value }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </dd>
+            @if ($front !== [])
+                <div class="rounded-2xl border border-[#D4AF37]/20 bg-[#120F08] p-5" data-nl-field="three_front">
+                    <p class="text-xs font-bold uppercase tracking-wider text-[#D4AF37]">{{ trans('national_lottery.field_three_front') }}</p>
+                    <div class="mt-3 flex flex-wrap gap-2">@foreach ($front as $value)<span class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-xl text-[#F5E6B8]">{{ $value }}</span>@endforeach</div>
                 </div>
-            @endforeach
-        </dl>
+            @endif
+            @if ($after !== [])
+                <div class="rounded-2xl border border-[#D4AF37]/20 bg-[#120F08] p-5" data-nl-field="three_after">
+                    <p class="text-xs font-bold uppercase tracking-wider text-[#D4AF37]">{{ trans('national_lottery.field_three_after') }}</p>
+                    <div class="mt-3 flex flex-wrap gap-2">@foreach ($after as $value)<span class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-xl text-[#F5E6B8]">{{ $value }}</span>@endforeach</div>
+                </div>
+            @endif
+        </div>
 
         @if ($showLink && $reference !== '')
-            <p class="nl-card__actions">
-                <a class="nl-card__link" href="{{ route('national-lottery.show', ['draw' => $reference]) }}">
-                    {{ trans('national_lottery.view_detail') }}
-                </a>
-            </p>
+            <div class="mt-8 border-t border-[#D4AF37]/15 pt-6">
+                <a class="inline-flex items-center gap-2 rounded-xl border border-[#D4AF37]/40 bg-[#221B0E] px-5 py-3 text-sm font-bold text-[#F5E6B8]" href="{{ route('national-lottery.show', ['draw' => $reference]) }}">{{ trans('national_lottery.view_detail') }} <span aria-hidden="true">→</span></a>
+            </div>
         @endif
-    @endunless
+    @endif
 </article>

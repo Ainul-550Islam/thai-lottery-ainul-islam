@@ -1,0 +1,21 @@
+{
+  "type": "backup_restore_evidence",
+  "purpose": "Pages 451–550 controlled backup and restore gate evidence.",
+  "observed_at_utc": "2026-09-30T14:23:37Z",
+  "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "backup": {
+    "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+    "executed": false,
+    "reason": "PHP/Laravel and the controlled database runtime are unavailable."
+  },
+  "restore": {
+    "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+    "executed": false,
+    "reason": "No controlled database backup was created or restored."
+  },
+  "financial_comparison": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "lottery_comparison": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "audit_comparison": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "production_safety": "No production database or destructive operation was touched.",
+  "secrets_policy": "No database credentials, dumps, or private data are included."
+}

@@ -1,0 +1,24 @@
+{
+  "commands": [
+    {
+      "command": [
+        "php",
+        "artisan",
+        "schedule:list"
+      ],
+      "domain": "scheduler",
+      "exit_code": null,
+      "label": "scheduler list",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 480,
+      "reason": "php executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    }
+  ],
+  "observed_at_utc": "2026-09-30T14:37:11+00:00",
+  "page": 480,
+  "runtime_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "source": "runtime/pages-451-550-command-results.json",
+  "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "type": "page_480_scheduler_evidence"
+}

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>05. Privacy Policy | ThaiLotto Club</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/thailotto-theme.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
+        body {
+            background-color: #070b12;
+            color: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .tl-btn-gold {
+            background: linear-gradient(135deg, #ffd269 0%, #f5a623 50%, #d48310 100%);
+            color: #070b12;
+            font-weight: 800;
+            border-radius: 9999px;
+            box-shadow: 0 0 20px rgba(245, 166, 35, 0.45);
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .tl-btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(245, 166, 35, 0.7);
+        }
+        .tl-btn-outline {
+            background: rgba(14, 22, 38, 0.7);
+            border: 1px solid #1c2b44;
+            color: #ffffff;
+            font-weight: 700;
+            border-radius: 9999px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .tl-btn-outline:hover {
+            border-color: #f5a623;
+            color: #f5a623;
+        }
+    </style>
+</head>
+<body class="bg-[#070b12] text-slate-100">
+
+    <!-- 01. TOP NAVBAR -->
+    <header class="bg-[#0b111c]/90 border-b border-[#1c2b44] h-20 sticky top-0 z-50 px-6 flex items-center justify-between backdrop-blur-md">
+        <a href="#privacy" class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-300 via-amber-500 to-amber-700 flex items-center justify-center text-slate-950 font-black text-2xl shadow-[0_0_20px_rgba(245,166,35,0.45)] border border-amber-200">
+                🪷
+            </div>
+            <div>
+                <div class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-200 to-amber-400 font-serif tracking-wider">
+                    ThaiLotto
+                </div>
+                <div class="text-[9px] font-black tracking-widest text-amber-400 uppercase">
+                    C L U B
+                </div>
+            </div>
+        </a>
+
+        <nav class="hidden lg:flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <a href="/" class="px-3 py-1.5 hover:text-white transition">HOME</a>
+            <a href="/betting" class="px-3 py-1.5 hover:text-white transition">BUY TICKETS</a>
+            <a href="/results" class="px-3 py-1.5 hover:text-white transition">RESULTS</a>
+            <a href="/about" class="px-3 py-1.5 hover:text-white transition">ABOUT US</a>
+            <a href="/vision" class="px-3 py-1.5 hover:text-white transition">VISION &amp; MISSION</a>
+            <a href="/terms" class="px-3 py-1.5 hover:text-white transition">TERMS &amp; CONDITIONS</a>
+            <a href="/privacy" class="px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,166,35,0.25)]">PRIVACY POLICY</a>
+        </nav>
+
+        <div class="flex items-center gap-3">
+            <a href="/login" class="tl-btn-outline px-4 py-2 text-xs">LOGIN</a>
+            <a href="/register" class="tl-btn-gold px-5 py-2 text-xs">JOIN NOW</a>
+        </div>
+    </header>
+
+    <!-- 02. HERO BANNER -->
+    <section class="py-16 border-b border-[#1c2b44] bg-gradient-to-b from-[#0b111c] to-[#070b12] relative overflow-hidden">
+        <div class="max-w-[1400px] mx-auto px-6 relative z-10 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-10 items-center">
+            <div>
+                <span class="text-xs font-black text-emerald-400 uppercase tracking-widest block mb-2">
+                    05. DATA PROTECTION &amp; PRIVACY
+                </span>
+                <h1 class="text-4xl sm:text-6xl font-black text-white leading-tight mb-2 tracking-tight">
+                    PRIVACY <br>
+                    <span class="bg-gradient-to-r from-emerald-300 via-teal-400 to-amber-400 bg-clip-text text-transparent">
+                        POLICY
+                    </span>
+                </h1>
+                <span class="text-xs font-mono font-bold text-amber-400/90 block mb-6">
+                    • VERSION v3.4.2 • PDPA &amp; GDPR COMPLIANT • LAST UPDATED 2026-09-30 •
+                </span>
+
+                <p class="text-sm sm:text-base text-slate-300 leading-relaxed mb-8 max-w-xl">
+                    Your privacy is protected by design. ThaiLotto Club enforces military-grade encryption, zero data sales, and strict compliance with Thailand PDPA and EU GDPR regulations.
+                </p>
+
+                <div class="flex items-center gap-4 flex-wrap">
+                    <button onclick="document.getElementById('modal').style.display='flex'" class="tl-btn-gold text-xs py-3 px-6">
+                        🛡️ SUBMIT DATA REQUEST (DSAR)
+                    </button>
+                    <button onclick="alert('Downloading official signed Privacy PDF...')" class="tl-btn-outline text-xs py-3 px-6">
+                        📄 DOWNLOAD OFFICIAL PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right DPO Verification Card -->
+            <div class="bg-[#0e1626]/95 border-2 border-emerald-500/50 rounded-3xl p-8 shadow-2xl flex flex-col gap-4">
+                <div class="border-b border-[#1c2b44] pb-3">
+                    <span class="text-xs font-black text-emerald-400 uppercase tracking-widest block mb-1">
+                        DATA PROTECTION OFFICER (DPO)
+                    </span>
+                    <h3 class="text-lg font-black text-white">Privacy Office &amp; Custody</h3>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div class="flex justify-between py-1.5 border-b border-[#1c2b44]/60">
+                        <span class="text-slate-400">Data Controller:</span>
+                        <span class="font-bold text-white">ThaiLotto Club Enterprise Ltd.</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-[#1c2b44]/60">
+                        <span class="text-slate-400">Compliance Officer:</span>
+                        <span class="font-mono font-bold text-amber-400">ThaiLotto Data Protection Office</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-[#1c2b44]/60">
+                        <span class="text-slate-400">DPO Contact:</span>
+                        <span class="font-mono text-emerald-400 font-bold">dpo@thailotto.club</span>
+                    </div>
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-slate-400">Encryption Level:</span>
+                        <span class="font-mono text-slate-300">AES-256-GCM / TLS 1.3</span>
+                    </div>
+                </div>
+
+                <div class="bg-[#080d17] p-3 rounded-xl border border-[#1c2b44] flex items-center justify-between text-[11px] mt-2">
+                    <span class="text-slate-400">Compliance Audit:</span>
+                    <span class="text-emerald-400 font-black">PDPA &amp; GDPR CERTIFIED</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 03. PRIVACY SECTIONS -->
+    <section class="py-16 bg-[#0b111c] border-b border-[#1c2b44]">
+        <div class="max-w-[1400px] mx-auto px-6 space-y-6">
+
+            <!-- Section 1 -->
+            <div class="bg-[#0e1626] border border-[#1c2b44] rounded-2xl p-6 shadow-xl">
+                <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-3 mb-4">
+                    <span class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500 text-emerald-400 font-black text-xs flex items-center justify-center font-mono">01</span>
+                    <div>
+                        <h3 class="text-base font-black text-white">Information We Collect</h3>
+                        <span class="text-xs text-slate-400">Personal identification, financial details, and technical device telemetry.</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <div class="bg-[#080d17] p-4 rounded-xl border border-[#1c2b44]">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="font-mono text-emerald-400 font-bold">1.1</span>
+                            <span class="font-bold text-white">Account Registration Data</span>
+                        </div>
+                        <p class="text-slate-300 leading-relaxed text-[11px]">
+                            When you register for an account, we collect your verified mobile phone number, full legal name, email address, and optional LINE ID for prize notification delivery.
+                        </p>
+                    </div>
+
+                    <div class="bg-[#080d17] p-4 rounded-xl border border-[#1c2b44]">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="font-mono text-emerald-400 font-bold">1.2</span>
+                            <span class="font-bold text-white">Banking &amp; Payment Metadata</span>
+                        </div>
+                        <p class="text-slate-300 leading-relaxed text-[11px]">
+                            To process automated deposits and withdrawals, we store masked bank account numbers, PromptPay IDs, and transaction reference codes. We never store raw debit/credit card CVV codes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2 -->
+            <div class="bg-[#0e1626] border border-[#1c2b44] rounded-2xl p-6 shadow-xl">
+                <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-3 mb-4">
+                    <span class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500 text-emerald-400 font-black text-xs flex items-center justify-center font-mono">02</span>
+                    <div>
+                        <h3 class="text-base font-black text-white">How We Use &amp; Process Your Information</h3>
+                        <span class="text-xs text-slate-400">Wager execution, automated payouts, and statutory regulatory compliance.</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <div class="bg-[#080d17] p-4 rounded-xl border border-[#1c2b44]">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="font-mono text-emerald-400 font-bold">2.1</span>
+                            <span class="font-bold text-white">Wager Settlement &amp; Instant Payouts</span>
+                        </div>
+                        <p class="text-slate-300 leading-relaxed text-[11px]">
+                            Your financial data is processed strictly to credit lottery prize winnings and execute automated bank transfers within our 30-second execution guarantee.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-[#0b111c] pt-12 pb-8 text-xs text-slate-400 border-t border-[#1c2b44]">
+        <div class="max-w-[1400px] mx-auto px-6 text-center text-slate-500">
+            © 2025 ThaiLotto Club. All rights reserved. 05. Privacy Policy.
+        </div>
+    </footer>
+
+    <!-- MODAL -->
+    <div id="modal" style="display: none;" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-[#0e1626] border-2 border-emerald-500/60 rounded-3xl max-w-lg w-full p-8 shadow-2xl flex flex-col gap-4">
+            <h3 class="text-lg font-black text-white">Data Subject Access Request (DSAR)</h3>
+            <p class="text-xs text-slate-300">Submit an official request to our Data Protection Officer for a portable export of your personal data or to request account erasure.</p>
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="document.getElementById('modal').style.display='none'" class="tl-btn-outline text-xs py-2 px-4">Cancel</button>
+                <button onclick="alert('✅ DSAR Request Ticket Submitted! Ticket ID: DSAR-9042A'); document.getElementById('modal').style.display='none'" class="tl-btn-gold text-xs py-2 px-6">Submit DSAR</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -22,19 +22,44 @@ final class SelfExclusionData
     /** Longest legal exclusion (5 years) — server-side ceiling. */
     private const MAX_DURATION_DAYS = 1825;
 
+    public readonly int $userId;
+
     public readonly CarbonInterface $effectiveAt;
 
     public readonly CarbonInterface $endsAt;
 
+    public readonly string $scope;
+
+    public readonly string $reasonCode;
+
+    /**
+     * Both the canonical input names and the earlier acceptance names are
+     * accepted at this DTO boundary. The resulting immutable facts are always
+     * normalized into the same effective/ends/scope/reason representation.
+     */
     public function __construct(
-        public readonly int $userId,
-        public readonly \DateTimeInterface|string $effectiveAtInput,
-        public readonly \DateTimeInterface|string $endsAtInput,
-        public readonly string $scope,
-        public readonly string $reasonCode,
+        int $userId,
+        \DateTimeInterface|string|null $effectiveAtInput = null,
+        \DateTimeInterface|string|null $endsAtInput = null,
+        string $scope = 'account',
+        string $reasonCode = '',
+        \DateTimeInterface|string|null $effectiveAt = null,
+        \DateTimeInterface|string|null $endsAt = null,
+        ?int $durationDays = null,
+        ?string $reason = null,
     ) {
-        $this->effectiveAt = Carbon::parse($effectiveAtInput);
-        $this->endsAt = Carbon::parse($endsAtInput);
+        $effective = $effectiveAt ?? $effectiveAtInput ?? now();
+        $end = $endsAt ?? $endsAtInput;
+
+        if ($end === null && $durationDays !== null) {
+            $end = Carbon::parse($effective)->addDays($durationDays);
+        }
+
+        $this->userId = $userId;
+        $this->effectiveAt = Carbon::parse($effective);
+        $this->endsAt = Carbon::parse($end ?? Carbon::parse($effective)->addDay());
+        $this->scope = $scope;
+        $this->reasonCode = $reasonCode !== '' ? $reasonCode : (string) ($reason ?? 'PLAYER_REQUEST');
     }
 
     /**

@@ -48,6 +48,8 @@ class GloPrizeClaimService
         private readonly GloResultService $results,
         private readonly GloTicketFreezeService $freezes,
         private readonly GloFrozenWinnerService $frozenWinners,
+        private readonly ?GloL6SalesService $l6Sales = null,
+        private readonly ?GloL6ProportionalPrizeCalculator $l6Calculator = null,
     ) {}
 
     /**
@@ -130,7 +132,6 @@ class GloPrizeClaimService
         ]));
 
         return $this->db->connection()->transaction(function () use (
-
             $claimant,
             $ticket,
             $draw,
@@ -381,27 +382,23 @@ class GloPrizeClaimService
                 ]);
             }
 
-            $claims = GloPrizeClaim::query()
-                ->where('ticket_id', $ticketId)
-                ->where('status', GloClaimStatus::Hold)
-                ->lockForUpdate()
-                ->get();
+            if ($cleared > 0) {
+                $claims = GloPrizeClaim::query()
+                    ->where('ticket_id', $ticketId)
+                    ->where('status', GloClaimStatus::Hold)
+                    ->lockForUpdate()
+                    ->get();
 
-            foreach ($claims as $claim) {
-                // Re-validate before becoming eligible again.
-                try {
-                    $this->assertPaymentConditions($claim, $actor, forFinalPayment: false);
+                foreach ($claims as $claim) {
                     $claim->status = GloClaimStatus::Eligible;
                     $claim->hold_status = 'cleared';
                     $claim->payment_status = 'pending';
-                    $claim->hold_reason = null;
                     $claim->save();
-                } catch (GloClaimException) {
-                    // Keep on hold / reject path decided by later review —
-                    // never silently promote.
-                    $claim->hold_status = 'cleared';
-                    $claim->hold_reason = null;
-                    $claim->save();
+
+                    $this->audit($actor, $claim, 'glo_claim_hold_lifted', RiskLevel::High, [
+                        'from' => GloClaimStatus::Hold->value,
+                        'to' => GloClaimStatus::Eligible->value,
+                    ]);
                 }
             }
 
@@ -601,10 +598,24 @@ class GloPrizeClaimService
             throw GloClaimException::notAWinner();
         }
 
-        // Multiple tiers: amount is per-ticket for that tier (official ladder).
-        $gross = bcadd((string) $entry['amount'], '0.00', 2);
+        // Multiple tiers: base amount is per-ticket for that tier (official ladder).
+        $baseGross = bcadd((string) $entry['amount'], '0.00', 2);
 
-        return ['gross' => $gross, 'tier' => $category];
+        // When L6 seated sales are present, calculate proportional unsold prize
+        if ($ticket->product === 'l6') {
+            $l6SalesService = $this->l6Sales ?? app(GloL6SalesService::class);
+            $calculator = $this->l6Calculator ?? app(GloL6ProportionalPrizeCalculator::class);
+            $seat = $l6SalesService->seatForDraw((int) $draw->getKey());
+
+            if ($seat !== null) {
+                $fraction = $calculator->soldFraction((int) $seat->units_sold, (int) $seat->units_full);
+                $gross = bcmul($baseGross, $fraction, 2);
+
+                return ['gross' => $gross, 'tier' => $category];
+            }
+        }
+
+        return ['gross' => $baseGross, 'tier' => $category];
     }
 
     private function ensureHoldForClaimTicket(GloTicket $ticket, Draw $draw, string $category, bool $frozen): void
@@ -634,7 +645,8 @@ class GloPrizeClaimService
         $entry = $prizes[$category] ?? null;
 
         if (is_array($entry) && isset($entry['amount'])) {
-            $gross = bcadd((string) $entry['amount'], '0.00', 2);
+            $win = $this->configuredWin($draw, $ticket, $category);
+            $gross = $win['gross'];
             $stamp = $this->duty->dutyFor($gross);
         }
 

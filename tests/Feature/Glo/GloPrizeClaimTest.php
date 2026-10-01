@@ -542,6 +542,29 @@ class GloPrizeClaimTest extends TestCase
         $this->assertNull($claim->fresh()->payment_transaction_reference);
     }
 
+    public function test_l6_claim_respects_proportional_unsold_sales_seat(): void
+    {
+        $l6Sales = app(\App\Services\Lottery\GloL6SalesService::class);
+        $l6Sales->seatSales($this->draw, [
+            'units_sold' => 500000,
+            'source_reference' => 'SEAT-TEST-50',
+            'provenance' => 'operator_seat',
+        ], $this->admin);
+
+        $claim = $this->claims->submit([
+            'ticket_id' => $this->ticket->id,
+            'prize_category' => 'first',
+            'claim_channel' => 'glo_office',
+            'original_ticket_evidenced' => true,
+        ], $this->claimant);
+
+        // 50% sellout of 6,000,000 = 3,000,000.00 THB gross
+        $this->assertSame('3000000.00', $claim->gross_prize);
+        // Stamp duty: ceil(3,000,000 / 200) * 1 = 15,000.00 THB
+        $this->assertSame('15000.00', $claim->stamp_duty);
+        $this->assertSame('2985000.00', $claim->net_prize);
+    }
+
     /* --------------------------------------------------------- helpers */
 
     private function happyApprovedClaim(): GloPrizeClaim

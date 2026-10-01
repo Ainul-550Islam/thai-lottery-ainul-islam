@@ -20,7 +20,7 @@ return new class () extends Migration
 
             $table->string('reconciliation_key', 64)->unique();
 
-            $table->foreignId('draw_id')->constrained()->restrictOnDelete()->index();
+            $table->foreignId('draw_id')->constrained()->restrictOnDelete();
             $table->string('status', 32)->default('pending')->index();
 
             // Asserted vs actual, by lane — json so drift vocabulary can

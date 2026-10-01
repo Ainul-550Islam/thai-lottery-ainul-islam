@@ -42,7 +42,51 @@ class GloTicket extends Model
         'owner_user_id',
         'ticket_reference',
         'metadata',
+        'price',
+        'currency',
+        'status',
+        'purchased_at',
     ];
+
+    public function setPriceAttribute(mixed $value): void
+    {
+        $this->legacyMetadata['price'] = $value;
+    }
+
+    public function setCurrencyAttribute(mixed $value): void
+    {
+        $this->legacyMetadata['currency'] = $value instanceof \BackedEnum ? $value->value : $value;
+    }
+
+    public function setStatusAttribute(mixed $value): void
+    {
+        $this->legacyMetadata['status'] = $value instanceof \BackedEnum ? $value->value : $value;
+    }
+
+    public function setPurchasedAtAttribute(mixed $value): void
+    {
+        $this->created_at = $value;
+    }
+
+    protected array $legacyMetadata = [];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model): void {
+            if ($model->ticket_reference === null || $model->ticket_reference === '') {
+                $model->ticket_reference = self::buildReference(
+                    (int) $model->draw_id,
+                    (string) $model->product,
+                    (string) $model->ticket_number,
+                    $model->set_series === null ? null : (string) $model->set_series,
+                );
+            }
+
+            if ($model->legacyMetadata !== []) {
+                $model->metadata = array_merge((array) $model->metadata, $model->legacyMetadata);
+            }
+        });
+    }
 
     protected function casts(): array
     {

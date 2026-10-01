@@ -110,10 +110,10 @@ return new class extends Migration
             $table->unique(['draw_id', 'version_number']);
 
             // THE idempotency constraint.
-            $table->unique(['draw_id', 'payload_fingerprint']);
+            $table->unique(['draw_id', 'payload_fingerprint'], 'nl_result_versions_draw_payload_unique');
 
             // Conflict detection reads by normalised value.
-            $table->index(['draw_id', 'normalized_fingerprint']);
+            $table->index(['draw_id', 'normalized_fingerprint'], 'nl_result_versions_draw_normalized_index');
 
             // "the verified version for this draw"
             $table->index(['draw_id', 'state']);

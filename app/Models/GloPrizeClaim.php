@@ -55,6 +55,17 @@ class GloPrizeClaim extends Model
 {
     protected $fillable = [
         'claim_reference',
+        // Legacy claim intake aliases are normalized by the attribute
+        // mutators below; canonical rows continue using claimant_user_id and
+        // the gross_prize/stamp_duty/net_prize vocabulary.
+        'user_id',
+        'draw_date',
+        'prize_tier',
+        'claim_status',
+        'gross_amount',
+        'stamp_duty_amount',
+        'net_payable_amount',
+        'currency',
         'ticket_id',
         'draw_id',
         'product',
@@ -86,6 +97,77 @@ class GloPrizeClaim extends Model
         'fingerprint',
         'audit_metadata',
     ];
+
+    public function setUserIdAttribute(mixed $value): void
+    {
+        $this->attributes['claimant_user_id'] = $value;
+    }
+
+    public function setPrizeTierAttribute(mixed $value): void
+    {
+        $this->attributes['prize_category'] = $value instanceof \BackedEnum ? $value->value : $value;
+    }
+
+    public function setClaimStatusAttribute(mixed $value): void
+    {
+        $this->attributes['status'] = $value instanceof \BackedEnum ? $value->value : $value;
+    }
+
+    public function setGrossAmountAttribute(mixed $value): void
+    {
+        $this->attributes['gross_prize'] = $value;
+    }
+
+    public function setStampDutyAmountAttribute(mixed $value): void
+    {
+        $this->attributes['stamp_duty'] = $value;
+    }
+
+    public function setNetPayableAmountAttribute(mixed $value): void
+    {
+        $this->attributes['net_prize'] = $value;
+    }
+
+    public function getClaimStatusAttribute(): string
+    {
+        $status = $this->getAttribute('status');
+
+        return $status instanceof \BackedEnum ? (string) $status->value : (string) $status;
+    }
+
+    public function getPrizeTierAttribute(): ?string
+    {
+        return $this->getAttribute('prize_category');
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model): void {
+            $model->product ??= 'l6';
+            $model->prize_category ??= $model->prize_tier ?? 'first';
+            $model->claimant_user_id ??= $model->user_id;
+            $model->submitted_at ??= now();
+            $model->fingerprint ??= hash('sha256', (string) ($model->claim_reference ?? bin2hex(random_bytes(16))));
+            $model->claim_reference ??= 'GLOCLM-'.bin2hex(random_bytes(8));
+
+            if ($model->gross_prize === null && $model->gross_amount !== null) {
+                $model->gross_prize = $model->gross_amount;
+            }
+            if ($model->stamp_duty === null && $model->stamp_duty_amount !== null) {
+                $model->stamp_duty = $model->stamp_duty_amount;
+            }
+            if ($model->net_prize === null && $model->net_payable_amount !== null) {
+                $model->net_prize = $model->net_payable_amount;
+            }
+
+            if ($model->ticket_id !== null && ! GloTicket::query()->whereKey($model->ticket_id)->exists()) {
+                $model->ticket_id = null;
+            }
+            if ($model->draw_id !== null && ! Draw::query()->whereKey($model->draw_id)->exists()) {
+                $model->draw_id = null;
+            }
+        });
+    }
 
     protected function casts(): array
     {

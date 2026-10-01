@@ -346,7 +346,7 @@ final class FinanceResourcesTest extends TestCase
         $page = Livewire::actingAs($this->operator())
             ->test(ViewDeposit::class, ['record' => $deposit->getKey()]);
 
-        // ...and another operator decides it in the meantime.
+        // Another operator decides it in the meantime.
         app(DepositApprovalService::class)->approve($deposit->fresh(), null, 'the other operator');
 
         $page->callAction('approve', data: ['note' => 'second approval attempt'])

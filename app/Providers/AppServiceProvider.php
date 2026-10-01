@@ -28,6 +28,13 @@ class AppServiceProvider extends ServiceProvider
         // service. GloDataMatrixParser is the only implementation today and
         // already reports 'not_configured' when no format is authorised.
         $this->app->bind(GloDataMatrixParserInterface::class, GloDataMatrixParser::class);
+
+        // Laravel 12 removed the old named-limiter probe; keep the adapter
+        // available for the existing security contract without changing the
+        // framework limiter semantics.
+        $this->app->extend(\Illuminate\Cache\RateLimiter::class, function ($limiter, $app): \Illuminate\Cache\RateLimiter {
+            return new \App\Support\RateLimiter($app['cache']->store());
+        });
     }
 
     public function boot(): void
@@ -410,6 +417,17 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(max(1, $gradePerMinute))
                 ->by($identifier === null ? 'account-grade:ip:'.$request->ip() : 'account-grade:user:'.$identifier)
+                ->response($this->throttleResponse());
+        });
+
+        // Admin analytics and reconciliation reads are bounded independently
+        // from player traffic. The authenticated operator id is part of the
+        // key so one operator cannot consume another operator's allowance.
+        RateLimiter::for('admin-analytics', function (Request $request): Limit {
+            $identifier = $request->user()?->getAuthIdentifier();
+
+            return Limit::perMinute(max(1, (int) config('admin.rate_limits.analytics_per_minute', 60)))
+                ->by($identifier === null ? 'admin-analytics:ip:'.$request->ip() : 'admin-analytics:user:'.$identifier)
                 ->response($this->throttleResponse());
         });
     }

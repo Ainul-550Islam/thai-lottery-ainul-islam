@@ -221,7 +221,6 @@ final class AuthController
     private function publicUser(User $user): array
     {
         return [
-            'id' => (int) $user->getKey(),
             'name' => (string) $user->name,
             'username' => (string) $user->username,
             'email' => (string) $user->email,

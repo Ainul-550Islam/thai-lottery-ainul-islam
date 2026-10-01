@@ -1,74 +1,61 @@
 @extends('layouts.app')
 
-@section('title', 'Draw Details #' . ($draw->draw_number ?? $draw->id) . ' — Thai Lottery')
+@section('title', __('player.draw_detail_title', ['draw' => $draw->draw_number ?? $draw->id]))
+@section('meta_description', __('player.draw_detail_lead'))
+@section('meta_robots', 'noindex,nofollow')
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6">
-    <!-- Back Link & Header -->
-    <div class="flex items-center justify-between">
-        <a href="{{ route('player.draws') }}" class="text-xs text-emerald-400 font-bold hover:underline flex items-center gap-1">
-            &larr; Back to Draws
-        </a>
-        <span class="font-mono text-xs px-3 py-1 bg-slate-800 text-slate-300 rounded-full">
-            Draw #{{ $draw->draw_number ?? $draw->id }}
-        </span>
+@php
+    $result = $draw->result;
+    $resultArrays = [
+        'second_prize' => __('player.second_prize'),
+        'third_prize' => __('player.third_prize'),
+        'consolation_prizes' => __('player.consolation_prizes'),
+    ];
+@endphp
+
+<div class="mx-auto max-w-4xl space-y-6">
+    <div class="flex items-center justify-between gap-3">
+        <a href="{{ route('player.draws') }}" class="text-xs font-bold text-emerald-400 hover:underline">&larr; {{ __('player.back_to_draws') }}</a>
+        <span class="rounded-full bg-slate-800 px-3 py-1 font-mono text-xs text-slate-300">{{ $draw->draw_number ?? $draw->id }}</span>
     </div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-6">
+    <section class="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl sm:p-8" aria-labelledby="draw-detail-heading">
+        <div class="flex flex-col gap-4 border-b border-slate-800 pb-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-white font-mono">{{ $draw->draw_number }}</h1>
-                <p class="text-xs text-slate-400 mt-1">
-                    Scheduled for: <span class="text-slate-200 font-mono">{{ $draw->scheduled_at ? $draw->scheduled_at->format('l, F j, Y — H:i T') : 'N/A' }}</span>
-                </p>
+                <p class="text-xs font-black uppercase tracking-wider text-emerald-400">{{ __('player.draw_detail_label') }}</p>
+                <h1 id="draw-detail-heading" class="mt-1 font-mono text-3xl font-black text-white">{{ $draw->draw_number ?? $draw->id }}</h1>
+                <p class="mt-2 text-xs text-slate-400">{{ __('player.scheduled_label') }} <span class="font-mono text-slate-200">{{ $draw->scheduled_at?->format('l, F j, Y H:i T') ?? __('player.not_recorded') }}</span></p>
             </div>
-            <div>
-                <span class="px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                    {{ $draw->status->value ?? (string) $draw->status }}
-                </span>
-            </div>
+            <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300">{{ $draw->status->value }}</span>
         </div>
 
-        <!-- Winning Numbers Display -->
-        @if($draw->result)
-            <div id="live-results-board" class="space-y-6">
-                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 text-center">
-                    <span class="text-xs text-slate-400 uppercase tracking-widest font-bold block mb-2">{{ __('player.first_prize_1') }}</span>
-                    <div class="text-4xl sm:text-5xl font-black font-mono text-amber-400 tracking-widest" data-prize="first">
-                        {{ $draw->result->first_prize }}
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-center">
-                        <span class="text-[11px] text-slate-400 uppercase font-semibold block mb-1">3-Digit Top</span>
-                        <span class="text-2xl font-bold font-mono text-emerald-400" data-prize="3d_top">{{ $draw->result->three_digits_top }}</span>
-                    </div>
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-center">
-                        <span class="text-[11px] text-slate-400 uppercase font-semibold block mb-1">{{ __('player.digit_3d_tod') }}</span>
-                        <span class="text-lg font-bold font-mono text-emerald-400" data-prize="3d_tod">{{ __('player.all_permutations') }}</span>
-                    </div>
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-center">
-                        <span class="text-[11px] text-slate-400 uppercase font-semibold block mb-1">{{ __('player.digit_2d_top') }}</span>
-                        <span class="text-2xl font-bold font-mono text-emerald-400" data-prize="2d_top">{{ substr($draw->result->three_digits_top ?? '00', -2) }}</span>
-                    </div>
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-center">
-                        <span class="text-[11px] text-slate-400 uppercase font-semibold block mb-1">2-Digit Bottom</span>
-                        <span class="text-2xl font-bold font-mono text-emerald-400" data-prize="2d_bottom">{{ $draw->result->two_digits_bottom }}</span>
-                    </div>
-                </div>
+        @if ($result)
+            <div class="mt-6 rounded-2xl border border-amber-500/20 bg-slate-950 p-6 text-center">
+                <span class="block text-xs font-bold uppercase tracking-widest text-slate-400">{{ __('player.first_prize_1') }}</span>
+                <strong class="mt-2 block font-mono text-4xl font-black tracking-widest text-amber-400">{{ $result->first_prize ?? __('player.not_published') }}</strong>
             </div>
+            <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                @foreach ($resultArrays as $field => $label)
+                    @php $values = is_array($result->{$field}) ? array_map('strval', $result->{$field}) : []; @endphp
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                        <span class="block text-xs uppercase tracking-wider text-slate-500">{{ $label }}</span>
+                        <strong class="mt-2 block break-words font-mono text-sm text-emerald-300">{{ $values === [] ? __('player.not_published') : implode(', ', $values) }}</strong>
+                    </div>
+                @endforeach
+            </div>
+            @if (is_array($result->all_numbers) && $result->all_numbers !== [])
+                <div class="mt-5 rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                    <span class="block text-xs uppercase tracking-wider text-slate-500">{{ __('player.all_recorded_numbers') }}</span>
+                    <p class="mt-2 break-words font-mono text-sm text-slate-300">{{ implode(', ', array_map('strval', $result->all_numbers)) }}</p>
+                </div>
+            @endif
         @else
-            <div class="py-12 text-center text-slate-500">
-                <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <p class="text-sm font-semibold text-slate-400">{{ __('player.results_pending') }}</p>
-                <p class="text-xs text-slate-500 mt-1">{{ __('player.results_pending_lead') }}</p>
+            <div class="mt-6 rounded-2xl border border-amber-500/30 bg-amber-950/20 p-6 text-center" role="status">
+                <p class="font-bold text-amber-200">{{ __('player.results_pending') }}</p>
+                <p class="mt-2 text-sm text-amber-100/70">{{ __('player.results_pending_lead') }}</p>
             </div>
         @endif
-    </div>
+    </section>
 </div>
 @endsection
-
-@push('scripts')
-    <script type="module" src="{{ Vite::asset('resources/js/lottery/live-results.js') }}"></script>
-@endpush

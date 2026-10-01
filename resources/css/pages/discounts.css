@@ -1,0 +1,6 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Server-authoritative lotto discount catalogue and responsive table design.
+ */
+@import './public-next-pages.css';
+.next-public-page--discount .next-panel { border-color: rgba(212, 175, 55, .4); }

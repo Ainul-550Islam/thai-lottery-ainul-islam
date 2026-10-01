@@ -86,6 +86,54 @@ class GloL6ProportionalPrizeCalculator
     }
 
     /**
+     * Calculate per-tier prizes and allocation for a given sales amount and sold count.
+     *
+     * @return array<string, array{
+     *     tier: string,
+     *     amount: string,
+     *     full_amount: string,
+     *     proportional_pot: string,
+     *     full_pot: string,
+     *     winners: int,
+     *     digits: int
+     * }>
+     */
+    public function calculateForSales(string $salesThb, int $soldTickets, ?int $unitsFull = null): array
+    {
+        $full = $unitsFull ?? (int) ($this->config->get('glo.l6.full_sale_units', 1000000));
+        $fraction = $this->soldFraction($soldTickets, $full);
+        $prizes = (array) $this->config->get('glo.prizes', []);
+
+        $tierResults = [];
+
+        foreach ($prizes as $tierKey => $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $fullAmount = bcadd((string) ($entry['amount'] ?? '0.00'), '0.00', 2);
+            $winners = (int) ($entry['winners'] ?? 0);
+            $digits = (int) ($entry['digits'] ?? 6);
+
+            $fullPot = bcmul($fullAmount, (string) $winners, 2);
+            $proportionalPot = bcmul($fullPot, $fraction, 2);
+            $proportionalUnitAmount = bcmul($fullAmount, $fraction, 2);
+
+            $tierResults[(string) $tierKey] = [
+                'tier' => (string) $tierKey,
+                'amount' => $proportionalUnitAmount,
+                'full_amount' => $fullAmount,
+                'proportional_pot' => $proportionalPot,
+                'full_pot' => $fullPot,
+                'winners' => $winners,
+                'digits' => $digits,
+            ];
+        }
+
+        return $tierResults;
+    }
+
+    /**
      * Per-tier proportional amount at a given sold level.
      *
      * The official ladder's tier amounts are declared in config('glo.prizes')

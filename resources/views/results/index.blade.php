@@ -1,132 +1,87 @@
 @extends('layouts.app')
 
-@section('title', 'Results')
-
-@php
-    use App\Enums\GloSourceState;
-    use App\Models\Draw;
-    use App\Models\DrawResult;
-    use Illuminate\Support\Facades\Cache;
-
-    // Public projection only: latest ResultPublished/Completed draw with a result row.
-    $latestQuery = Draw::query()
-        ->whereIn('status', ['result_published', 'completed'])
-        ->orderByDesc('scheduled_at')
-        ->limit(12);
-
-    $rows = [];
-    foreach ($latestQuery->get() as $draw) {
-        $result = DrawResult::query()->where('draw_id', $draw->getKey())->first();
-        if ($result === null) {
-            continue;
-        }
-        $meta = is_array($result->metadata) ? $result->metadata : [];
-        $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
-        $provider = (string) ($lane['import_provider'] ?? 'unknown');
-        $sourceState = $provider === 'fixture'
-            ? GloSourceState::FixtureOnly
-            : GloSourceState::OfficialSourceVerified;
-
-        $rows[] = [
-            'draw_number' => $draw->draw_number,
-            'draw_date' => $draw->scheduled_at?->toDateString(),
-            'first_prize' => $result->first_prize,
-            'second_prize' => $result->second_prize ?? [],
-            'third_prize' => $result->third_prize ?? [],
-            'consolation_prizes' => $result->consolation_prizes ?? [],
-            'source_state' => $sourceState->value,
-            'fixture_sample' => $sourceState === GloSourceState::FixtureOnly,
-            'result_version' => (string) ($lane['import_fingerprint'] ?? ('pub-'.$result->getKey())),
-        ];
-    }
-
-    $currentStatus = Draw::query()->orderByDesc('scheduled_at')->first();
-@endphp
+@section('title', __('results.meta_title'))
+@section('meta_description', __('results.meta_description'))
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-    <div class="flex items-center justify-between flex-wrap gap-3">
-        <h1 class="text-2xl font-bold text-white">Government Lottery results</h1>
-        <a href="{{ route('home') }}" class="text-sm text-emerald-400 underline">← Home</a>
-    </div>
-
-    <section class="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-        <h2 class="font-semibold text-slate-200 mb-1">Current draw status</h2>
-        @if ($currentStatus !== null)
-            <p class="text-sm text-slate-400">
-                Latest scheduled draw:
-                <span class="font-mono text-emerald-300">{{ $currentStatus->draw_number }}</span>
-                · status <span class="uppercase tracking-wide text-amber-300">{{ $currentStatus->status->value }}</span>
-                · {{ $currentStatus->scheduled_at?->toDateString() }}
+<main class="min-h-screen bg-[#0B0904] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8" data-results-hub>
+    <div class="max-w-6xl mx-auto space-y-10">
+        <section class="space-y-4 text-center" aria-labelledby="results-title">
+            <p class="text-xs uppercase tracking-[0.22em] text-[#D4AF37]">{{ __('results.published_results') }}</p>
+            <h1 id="results-title" class="text-4xl sm:text-5xl font-black tracking-tight text-[#F5E6B8]">
+                {{ __('results.title') }}
+            </h1>
+            <p class="max-w-3xl mx-auto text-base text-gray-300 leading-relaxed">
+                {{ __('results.lead') }}
             </p>
+        </section>
+
+        <section class="flex flex-col sm:flex-row justify-center gap-3" aria-label="{{ __('results.title') }} actions">
+            <a href="{{ route('ticket-check') }}" class="rounded-xl bg-[#D4AF37] px-5 py-3 text-center text-sm font-bold text-[#0B0904] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                {{ __('results.check_link') }}
+            </a>
+            <a href="{{ route('results.search') }}" class="rounded-xl border border-[#D4AF37]/40 px-5 py-3 text-center text-sm font-semibold text-[#F5E6B8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]">
+                {{ __('results.search_link') }}
+            </a>
+        </section>
+
+        @if (empty($rows))
+            <section class="rounded-3xl border border-white/10 bg-[#141007] p-8 text-center" aria-live="polite">
+                <h2 class="text-xl font-bold text-[#F5E6B8]">{{ __('results.no_public_data') }}</h2>
+                <p class="mt-2 text-sm text-gray-400">{{ __('results.unavailable') }}</p>
+            </section>
         @else
-            <p class="text-sm text-slate-400">No draw scheduled yet.</p>
+            <section aria-labelledby="results-list-title">
+                <h2 id="results-list-title" class="mb-5 text-2xl font-black text-[#F5E6B8]">{{ __('results.published_results') }}</h2>
+                <div class="overflow-x-auto rounded-3xl border border-[#D4AF37]/20 bg-[#141007] shadow-2xl">
+                    <table class="min-w-[860px] w-full text-left text-sm">
+                        <caption class="sr-only">{{ __('results.published_results') }}</caption>
+                        <thead class="border-b border-white/10 text-xs uppercase tracking-wider text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-5 py-4">{{ __('results.draw') }}</th>
+                                <th scope="col" class="px-5 py-4">{{ __('results.date') }}</th>
+                                <th scope="col" class="px-5 py-4">{{ __('results.first_prize') }}</th>
+                                <th scope="col" class="px-5 py-4">{{ __('results.second_prize') }}</th>
+                                <th scope="col" class="px-5 py-4">{{ __('results.third_prize') }}</th>
+                                <th scope="col" class="px-5 py-4">{{ __('results.source') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/10">
+                            @foreach ($rows as $row)
+                                @php
+                                    $source = (string) ($row['source_state'] ?? 'unavailable');
+                                    $sourceLabel = match ($source) {
+                                        'OFFICIAL_SOURCE_VERIFIED' => __('results.official_source_verified'),
+                                        'INTERNAL_RECONCILED' => __('results.internal_reconciled'),
+                                        'FIXTURE_ONLY' => __('results.fixture_only'),
+                                        'NOT_CONFIGURED' => __('results.not_configured'),
+                                        default => __('results.unavailable_source'),
+                                    };
+                                    $list = static function (mixed $value): string {
+                                        if (is_array($value)) {
+                                            return implode(', ', array_map(static fn (mixed $item): string => is_scalar($item) ? (string) $item : '', $value));
+                                        }
+                                        return is_scalar($value) && $value !== null && $value !== '' ? (string) $value : __('results.no_prize_data');
+                                    };
+                                @endphp
+                                <tr class="align-top">
+                                    <td class="px-5 py-4 font-semibold text-white">{{ $row['draw_number'] ?: __('results.not_published') }}</td>
+                                    <td class="px-5 py-4 text-gray-300">{{ $row['draw_date'] ?: __('results.not_published') }}</td>
+                                    <td class="px-5 py-4 font-mono text-[#F5E6B8]">{{ $row['first_prize'] ?: __('results.no_prize_data') }}</td>
+                                    <td class="px-5 py-4 font-mono text-gray-200">{{ $list($row['second_prize'] ?? null) }}</td>
+                                    <td class="px-5 py-4 font-mono text-gray-200">{{ $list($row['third_prize'] ?? null) }}</td>
+                                    <td class="px-5 py-4">
+                                        <span class="inline-flex rounded-full border border-[#D4AF37]/30 px-3 py-1 text-xs font-semibold text-[#F5E6B8]" data-source-state="{{ $source }}" aria-label="{{ __('results.source') }}: {{ $sourceLabel }}">
+                                            {{ $sourceLabel }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         @endif
-    </section>
-
-    <section class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-x-auto">
-        <table class="w-full text-sm text-left">
-            <thead class="bg-slate-800/80 text-slate-300">
-                <tr>
-                    <th class="p-3">Draw</th>
-                    <th class="p-3">Date</th>
-                    <th class="p-3">1st</th>
-                    <th class="p-3">2nd</th>
-                    <th class="p-3">3rd</th>
-                    <th class="p-3">Source</th>
-                    <th class="p-3">Version</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($rows as $row)
-                    <tr class="border-t border-slate-800">
-                        <td class="p-3 font-mono text-slate-100">{{ $row['draw_number'] }}</td>
-                        <td class="p-3 text-slate-400">{{ $row['draw_date'] }}</td>
-                        <td class="p-3 font-mono text-emerald-300">{{ $row['first_prize'] }}</td>
-                        <td class="p-3 font-mono text-slate-300">
-                            @if (is_array($row['second_prize']))
-                                {{ implode(', ', $row['second_prize']) }}
-                            @else
-                                {{ $row['second_prize'] }}
-                            @endif
-                        </td>
-                        <td class="p-3 font-mono text-slate-300">
-                            @if (is_array($row['third_prize']))
-                                {{ implode(', ', array_slice($row['third_prize'], 0, 3)) }}…
-                            @else
-                                {{ $row['third_prize'] }}
-                            @endif
-                        </td>
-                        <td class="p-3">
-                            <span class="px-2 py-0.5 rounded text-xs font-semibold
-                                {{ $row['fixture_sample'] ? 'bg-amber-500/20 text-amber-300 border border-amber-600/40' : 'bg-emerald-600/20 text-emerald-300 border border-emerald-700/40' }}">
-                                {{ $row['source_state'] }}
-                            </span>
-                        </td>
-                        <td class="p-3 text-xs font-mono text-slate-500">{{ $row['result_version'] }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td class="p-4 text-slate-400" colspan="7">
-                            No verified results published yet. Unverified or fixture rows are labeled
-                            <code>FIXTURE_ONLY</code> and are never called official.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </section>
-
-    <section class="rounded-xl border border-slate-800 bg-slate-900/40 p-5 text-sm text-slate-400">
-        <p>
-            History API (2-year window, rate-limited):
-            <a class="underline text-emerald-300" href="/api/v1/glo/results/history">/api/v1/glo/results/history</a>
-            · Six-digit check:
-            <a class="underline text-emerald-300" href="/api/v1/glo/results/check/000001">/api/v1/glo/results/check/{number}</a>
-        </p>
-        <p class="mt-2 text-xs">
-            Result versions are immutable once published; corrections create a new versioned row with audit.
-        </p>
-    </section>
-</div>
+    </div>
+</main>
 @endsection

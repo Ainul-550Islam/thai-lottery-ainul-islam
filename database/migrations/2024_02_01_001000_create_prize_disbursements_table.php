@@ -22,7 +22,7 @@ return new class () extends Migration
             $table->string('disbursement_key', 64)->unique();
 
             $table->foreignId('payout_id')->constrained('payouts')->restrictOnDelete();
-            $table->foreignId('payout_batch_id')->nullable()->constrained('payout_batches')->nullOnDelete()->index();
+            $table->foreignId('payout_batch_id')->nullable()->constrained('payout_batches')->nullOnDelete();
 
             $table->decimal('amount', 20, 2);
             $table->string('currency', 3);

@@ -2,6 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
+use App\Http\Controllers\GloResultsPageController;
+use App\Http\Controllers\Player\PlayerSecuritySettingsController;
+use App\Http\Controllers\Player\PlayerDashboardController;
+use App\Http\Controllers\Player\PlayerProfilePortalController;
+use App\Http\Controllers\Player\PlayerSettingsPortalController;
+use App\Http\Controllers\Player\LotteryHistoryPortalController;
+use App\Http\Controllers\PublicLegalTermsController;
+use App\Http\Controllers\PublicLegalPrivacyController;
+use App\Http\Controllers\Wallet\WalletManagementPageController;
+use App\Http\Controllers\Payment\DepositMethodsPageController;
+use App\Http\Controllers\Payment\WithdrawalMethodsPageController;
+use App\Http\Controllers\Betting\ThaiLotteryBettingController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController;
 use App\Http\Controllers\Api\V1\AccountGradeApiController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -33,6 +46,7 @@ use App\Http\Controllers\Api\V1\TicketVerificationController;
 use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\WeeklyLotteryController;
 use App\Http\Controllers\Api\V1\WithdrawalController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\LottoDiscountController;
 use App\Http\Controllers\PrizeVerificationController;
 use App\Http\Controllers\PublicServicePagesController;
@@ -87,6 +101,18 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
+| Public Health & Observability Probes
+|--------------------------------------------------------------------------
+*/
+Route::get('/health', [HealthController::class, 'health'])->name('api.health');
+Route::get('/ready', [HealthController::class, 'ready'])->name('api.ready');
+Route::get('/live', [HealthController::class, 'live'])->name('api.live');
+Route::get('/v1/health', [HealthController::class, 'health'])->name('api.v1.health');
+Route::get('/v1/ready', [HealthController::class, 'ready'])->name('api.v1.ready');
+Route::get('/v1/live', [HealthController::class, 'live'])->name('api.v1.live');
+
+/*
+|--------------------------------------------------------------------------
 | Authentication (added after Phase 5.1)
 |--------------------------------------------------------------------------
 |
@@ -137,6 +163,7 @@ Route::prefix('v1/account')
     ->name('api.v1.account.')
     ->middleware(['auth:sanctum', 'throttle:api', 'active'])
     ->group(function (): void {
+        Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
         Route::get('/grade', [AccountGradeApiController::class, 'show'])->name('grade.show');
         Route::get('/grade/entitlements', [AccountGradeApiController::class, 'entitlements'])->name('grade.entitlements');
     });
@@ -150,6 +177,54 @@ Route::middleware(['throttle:glo.public'])->group(function (): void {
     // (same limiter — enumeration protection on public lookups).
     Route::get('/v1/glo/sales-points', [GloController::class, 'salesPoints'])
         ->name('api.v1.glo.sales-points.index');
+    Route::get('/v1/glo/latest-draw', [GloResultsPageController::class, 'latestDrawApi'])->name('api.v1.glo.latest-draw');
+    Route::post('/v1/glo/check-ticket', [GloResultsPageController::class, 'checkTicketApi'])->name('api.v1.glo.check-ticket');
+    Route::get('/v1/lotto/game-types', [ThaiLotteryBettingController::class, 'getGameTypesApi'])->name('api.v1.lotto.game-types');
+    Route::get('/v1/lotto/user/balance', [ThaiLotteryBettingController::class, 'getUserBalanceApi'])->name('api.v1.lotto.user.balance');
+    Route::post('/v1/lotto/bets/place', [ThaiLotteryBettingController::class, 'placeWagersApi'])->name('api.v1.lotto.bets.place');
+    Route::get('/v1/player/dashboard/summary', [PlayerDashboardController::class, 'getSummaryApi'])->name('api.v1.player.dashboard.summary');
+    Route::get('/v1/player/dashboard/wagers', [PlayerDashboardController::class, 'getRecentWagersApi'])->name('api.v1.player.dashboard.wagers');
+    Route::post('/v1/player/dashboard/wagers/{ticketId}/cancel', [PlayerDashboardController::class, 'cancelWagerApi'])->name('api.v1.player.dashboard.wagers.cancel');
+    Route::get('/v1/wallet/summary', [WalletManagementPageController::class, 'getSummaryApi'])->name('api.v1.wallet.summary');
+    Route::get('/v1/wallet/transactions', [WalletManagementPageController::class, 'getTransactionsApi'])->name('api.v1.wallet.transactions');
+    Route::post('/v1/wallet/deposit', [WalletManagementPageController::class, 'createDepositApi'])->name('api.v1.wallet.deposit');
+    Route::post('/v1/wallet/withdraw', [WalletManagementPageController::class, 'createWithdrawApi'])->name('api.v1.wallet.withdraw');
+    Route::get('/v1/deposit/methods', [DepositMethodsPageController::class, 'getDepositMethodsApi'])->name('api.v1.deposit.methods');
+    Route::post('/v1/deposit/promptpay/generate', [DepositMethodsPageController::class, 'generatePromptPayApi'])->name('api.v1.deposit.promptpay.generate');
+    Route::post('/v1/deposit/bank-transfer/intent', [DepositMethodsPageController::class, 'createBankTransferIntentApi'])->name('api.v1.deposit.bank-transfer.intent');
+    Route::post('/v1/deposit/crypto/address', [DepositMethodsPageController::class, 'generateCryptoDepositApi'])->name('api.v1.deposit.crypto.address');
+    Route::post('/v1/deposit/verify-slip', [DepositMethodsPageController::class, 'verifySlipApi'])->name('api.v1.deposit.verify-slip');
+    Route::get('/v1/deposit/status/{refId}', [DepositMethodsPageController::class, 'pollDepositStatusApi'])->name('api.v1.deposit.status');
+    Route::get('/v1/withdrawal/methods', [WithdrawalMethodsPageController::class, 'getWithdrawalMethodsApi'])->name('api.v1.withdrawal.methods');
+    Route::post('/v1/withdrawal/request', [WithdrawalMethodsPageController::class, 'requestWithdrawalApi'])->name('api.v1.withdrawal.request');
+    Route::get('/v1/withdrawal/recent', [WithdrawalMethodsPageController::class, 'getRecentWithdrawalsApi'])->name('api.v1.withdrawal.recent');
+    Route::get('/v1/withdrawal/status/{refId}', [WithdrawalMethodsPageController::class, 'getWithdrawalStatusApi'])->name('api.v1.withdrawal.status');
+    Route::get('/v1/player/security/limits', [PlayerSecuritySettingsController::class, 'getLimitsApi'])->name('api.v1.player.security.limits');
+    Route::post('/v1/player/security/limits', [PlayerSecuritySettingsController::class, 'updateLimitsApi'])->name('api.v1.player.security.limits.update');
+    Route::post('/v1/player/security/self-exclusion', [PlayerSecuritySettingsController::class, 'setSelfExclusionApi'])->name('api.v1.player.security.self-exclusion');
+    Route::get('/v1/player/profile', [PlayerProfilePortalController::class, 'getProfileApi'])->name('api.v1.player.profile');
+    Route::post('/v1/player/profile/update', [PlayerProfilePortalController::class, 'updateProfileApi'])->name('api.v1.player.profile.update');
+    Route::post('/v1/player/profile/password', [PlayerProfilePortalController::class, 'changePasswordApi'])->name('api.v1.player.profile.password');
+    Route::post('/v1/player/profile/pin', [PlayerProfilePortalController::class, 'setSecurityPinApi'])->name('api.v1.player.profile.pin');
+    Route::post('/v1/player/profile/transfer', [PlayerProfilePortalController::class, 'transferBalanceApi'])->name('api.v1.player.profile.transfer');
+    Route::post('/v1/player/profile/bank', [PlayerProfilePortalController::class, 'bindBankAccountApi'])->name('api.v1.player.profile.bank');
+    Route::get('/v1/player/history', [LotteryHistoryPortalController::class, 'getHistoryApi'])->name('api.v1.player.history');
+    Route::get('/v1/player/history/{slipId}', [LotteryHistoryPortalController::class, 'getSlipDetailApi'])->name('api.v1.player.history.detail');
+    Route::post('/v1/player/history/rebet/{slipId}', [LotteryHistoryPortalController::class, 'rebetSlipApi'])->name('api.v1.player.history.rebet');
+    Route::post('/v1/player/history/cancel/{slipId}', [LotteryHistoryPortalController::class, 'cancelSlipApi'])->name('api.v1.player.history.cancel');
+    Route::get('/v1/player/settings', [PlayerSettingsPortalController::class, 'getAllSettingsApi'])->name('api.v1.player.settings');
+    Route::post('/v1/player/settings/general', [PlayerSettingsPortalController::class, 'updateGeneralSettingsApi'])->name('api.v1.player.settings.general');
+    Route::post('/v1/player/settings/security', [PlayerSettingsPortalController::class, 'updateSecuritySettingsApi'])->name('api.v1.player.settings.security');
+    Route::post('/v1/player/settings/2fa', [PlayerSettingsPortalController::class, 'toggle2faApi'])->name('api.v1.player.settings.2fa');
+    Route::post('/v1/player/settings/betting', [PlayerSettingsPortalController::class, 'updateBettingPreferencesApi'])->name('api.v1.player.settings.betting');
+    Route::post('/v1/player/settings/notifications', [PlayerSettingsPortalController::class, 'updateNotificationPreferencesApi'])->name('api.v1.player.settings.notifications');
+    Route::post('/v1/player/settings/line-notify', [PlayerSettingsPortalController::class, 'bindLineNotifyApi'])->name('api.v1.player.settings.line-notify');
+    Route::post('/v1/player/settings/limits', [PlayerSettingsPortalController::class, 'updateResponsibleGamingLimitsApi'])->name('api.v1.player.settings.limits');
+    Route::post('/v1/player/settings/self-exclusion', [PlayerSettingsPortalController::class, 'applySelfExclusionApi'])->name('api.v1.player.settings.self-exclusion');
+    Route::get('/v1/public/privacy', [PublicLegalPrivacyController::class, 'getPrivacyApi'])->name('api.v1.public.privacy');
+    Route::get('/v1/public/privacy/search', [PublicLegalPrivacyController::class, 'searchPrivacyApi'])->name('api.v1.public.privacy.search');
+    Route::post('/v1/public/privacy/dsar-request', [PublicLegalPrivacyController::class, 'dsarRequestApi'])->name('api.v1.public.privacy.dsar');
+    Route::get('/v1/public/privacy/download', [PublicLegalPrivacyController::class, 'downloadPrivacyApi'])->name('api.v1.public.privacy.download');
     Route::get('/v1/glo/results', [GloController::class, 'publicResults'])
         ->name('api.v1.glo.results.current');
     Route::get('/v1/glo/results/history', [GloController::class, 'publicResultHistory'])
@@ -779,6 +854,8 @@ Route::prefix('v1/admin')
     ->name('api.v1.admin.')
     ->middleware(['auth:sanctum', 'active', 'throttle:api'])
     ->group(function (): void {
+        Route::get('/analytics/dashboard', [LottoFinExecutiveDashboardController::class, 'analyticsApi'])->name('analytics.dashboard');
+        Route::get('/reconciliation/live-stream', [LottoFinExecutiveDashboardController::class, 'reconciliationFeedApi'])->name('reconciliation.live-stream');
         Route::post('/operations', [OperationsController::class, 'proposeOperation'])->name('operations.propose');
         Route::get('/operations', [OperationsController::class, 'listOperations'])->name('operations.index');
         Route::get('/operations/{fingerprint}', [OperationsController::class, 'showOperation'])->name('operations.show');
@@ -788,4 +865,92 @@ Route::prefix('v1/admin')
         Route::post('/reports', [OperationsController::class, 'askReport'])->name('reports.ask');
         Route::get('/reports/{queryFingerprint}/export', [OperationsController::class, 'exportReport'])->name('reports.export');
         Route::get('/audit-logs', [OperationsController::class, 'auditQuery'])->name('audit.query');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Public Legal & Compliance JSON APIs (Terms, Privacy, Fees)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('v1/public/privacy')
+    ->name('api.v1.public.privacy.')
+    ->group(function (): void {
+        Route::get('/', [\App\Http\Controllers\PublicLegalPrivacyController::class, 'getPrivacyApi'])->name('index');
+        Route::get('/search', [\App\Http\Controllers\PublicLegalPrivacyController::class, 'searchPrivacyApi'])->name('search');
+        Route::post('/dsar-request', [\App\Http\Controllers\PublicLegalPrivacyController::class, 'submitDsarApi'])->name('dsar');
+        Route::get('/download', [\App\Http\Controllers\PublicLegalPrivacyController::class, 'downloadPrivacyApi'])->name('download');
+    });
+
+Route::prefix('v1/public/fees')
+    ->name('api.v1.public.fees.')
+    ->group(function (): void {
+        Route::get('/', [\App\Http\Controllers\PublicLegalFeesController::class, 'getFeesApi'])->name('index');
+        Route::post('/calculate', [\App\Http\Controllers\PublicLegalFeesController::class, 'calculateFeeApi'])->name('calculate');
+        Route::get('/search', [\App\Http\Controllers\PublicLegalFeesController::class, 'searchFeesApi'])->name('search');
+        Route::get('/download', [\App\Http\Controllers\PublicLegalFeesController::class, 'downloadFeesApi'])->name('download');
+    });
+
+Route::prefix('v1/public/verification')
+    ->name('api.v1.public.verification.')
+    ->group(function (): void {
+        Route::get('/guide', [\App\Http\Controllers\PublicVerificationController::class, 'getGuideApi'])->name('guide');
+        Route::post('/check-status', [\App\Http\Controllers\PublicVerificationController::class, 'checkStatusApi'])->name('status');
+        Route::post('/submit-kyc', [\App\Http\Controllers\PublicVerificationController::class, 'submitKycApi'])->name('submit');
+    });
+
+Route::prefix('v1/public/grades')
+    ->name('api.v1.public.grades.')
+    ->group(function (): void {
+        Route::get('/ladder', [\App\Http\Controllers\PublicGradeController::class, 'getLadderApi'])->name('ladder');
+        Route::post('/calculate', [\App\Http\Controllers\PublicGradeController::class, 'calculateGradeApi'])->name('calculate');
+    });
+
+Route::prefix('v1/public/prize-verification')
+    ->name('api.v1.public.prize-verification.')
+    ->group(function (): void {
+        Route::post('/verify', [\App\Http\Controllers\PublicPrizeVerificationController::class, 'verifyApi'])->name('verify');
+        Route::get('/prize-structure', [\App\Http\Controllers\PublicPrizeVerificationController::class, 'getPrizeStructureApi'])->name('structure');
+    });
+
+Route::prefix('v1/public/lotto-discount')
+    ->name('api.v1.public.lotto-discount.')
+    ->group(function (): void {
+        Route::get('/catalogue', [\App\Http\Controllers\PublicLottoDiscountController::class, 'getCatalogueApi'])->name('catalogue');
+        Route::post('/calculate', [\App\Http\Controllers\PublicLottoDiscountController::class, 'calculatePayoutApi'])->name('calculate');
+    });
+
+Route::prefix('v1/public/how-to-play')
+    ->name('api.v1.public.how-to-play.')
+    ->group(function (): void {
+        Route::get('/rules', [\App\Http\Controllers\PublicHowToPlayController::class, 'getRulesApi'])->name('rules');
+        Route::post('/simulate', [\App\Http\Controllers\PublicHowToPlayController::class, 'simulateBetTypeApi'])->name('simulate');
+    });
+
+Route::prefix('v1/public/faq')
+    ->name('api.v1.public.faq.')
+    ->group(function (): void {
+        Route::get('/list', [\App\Http\Controllers\PublicFaqController::class, 'getFaqsApi'])->name('list');
+        Route::get('/search', [\App\Http\Controllers\PublicFaqController::class, 'searchFaqsApi'])->name('search');
+    });
+
+Route::prefix('v1/public/contact')
+    ->name('api.v1.public.contact.')
+    ->group(function (): void {
+        Route::get('/channels', [\App\Http\Controllers\PublicContactController::class, 'getChannelsApi'])->name('channels');
+        Route::post('/submit', [\App\Http\Controllers\PublicContactController::class, 'submitTicketApi'])->name('submit');
+        Route::post('/status', [\App\Http\Controllers\PublicContactController::class, 'checkTicketStatusApi'])->name('status');
+    });
+
+Route::prefix('v1/public/home')
+    ->name('api.v1.public.home.')
+    ->group(function (): void {
+        Route::get('/', [\App\Http\Controllers\Api\V1\HomeController::class, 'index'])->name('index');
+    });
+
+Route::prefix('v1/public/download')
+    ->name('api.v1.public.download.')
+    ->group(function (): void {
+        Route::get('/builds', [\App\Http\Controllers\PublicDownloadAppController::class, 'getBuildsApi'])->name('builds');
+        Route::post('/verify-checksum', [\App\Http\Controllers\PublicDownloadAppController::class, 'verifyChecksumApi'])->name('verify-checksum');
+        Route::post('/track', [\App\Http\Controllers\PublicDownloadAppController::class, 'trackDownloadApi'])->name('track');
     });

@@ -13,6 +13,13 @@ enum KycStatus: string
     case Rejected = 'rejected';
     case Expired = 'expired';
 
+    // Backward-compatible aliases for older callers; the canonical cases remain above.
+    public const UNVERIFIED = self::Unverified;
+    public const PENDING = self::Pending;
+    public const VERIFIED = self::Verified;
+    public const REJECTED = self::Rejected;
+    public const EXPIRED = self::Expired;
+
     public function isVerified(): bool
     {
         return $this === self::Verified;

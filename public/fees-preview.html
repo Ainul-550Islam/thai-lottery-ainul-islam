@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Schedule & Transparency Policy — ThaiLotto Official</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #050b14;
+            color: #cbd5e1;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 10% 80%, rgba(217, 119, 6, 0.04) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .tl-gold-gradient {
+            background: linear-gradient(135deg, #FFF6D6 0%, #F59E0B 50%, #B45309 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tl-gold-bg {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #92400E 100%);
+        }
+        .tl-card {
+            background: linear-gradient(180deg, rgba(16, 27, 45, 0.85) 0%, rgba(10, 18, 30, 0.95) 100%);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            border-radius: 1rem;
+            backdrop-filter: blur(12px);
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tl-card:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(217, 119, 6, 0.1);
+        }
+        .calc-panel {
+            background: linear-gradient(135deg, rgba(20, 35, 58, 0.9) 0%, rgba(12, 22, 38, 0.95) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 1.25rem;
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-[#070e1b]/90 backdrop-blur-md border-b border-amber-500/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-xl tl-gold-bg flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-gem text-slate-950 text-xl font-black"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel'] block leading-none">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                        <span class="text-[10px] text-amber-400/80 font-mono tracking-widest uppercase">Official GLO Gateway</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Home</a>
+                <a href="/about" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">About Us</a>
+                <a href="/vision-mission" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Vision & Mission</a>
+                <a href="/terms-conditions" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Terms</a>
+                <a href="/privacy-policy" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Privacy</a>
+                <a href="/our-fees" class="text-sm font-semibold text-amber-400 border-b-2 border-amber-400 pb-1">Our Fees</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <a href="/login" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-all">Sign In</a>
+                <a href="/register" class="px-5 py-2.5 rounded-lg text-sm font-black text-slate-950 tl-gold-bg hover:brightness-110 shadow-lg shadow-amber-500/20 transition-all">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <!-- Page Title & Hero Header -->
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono mb-4">
+                <i class="fa-solid fa-coins"></i> Zero Hidden Charges & Guaranteed Transparency
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white font-['Cinzel'] tracking-tight mb-4">
+                Official <span class="tl-gold-gradient">Fee Schedule</span> & Rates
+            </h1>
+            <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
+                ThaiLotto operates with 100% financial transparency. Review our fee tiers for standard deposits, instant payouts, ticket purchases, cross-border settlements, and tier-based commission waivers.
+            </p>
+
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-slate-400">
+                <span class="inline-flex items-center gap-1.5"><i class="fa-regular fa-calendar-check text-amber-400"></i> Version: 2026.4.1</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-building-columns text-emerald-400"></i> Bank of Thailand Compliance Tier 1</span>
+                <span class="hidden sm:inline">•</span>
+                <button onclick="downloadFeesStandalone()" class="text-amber-400 hover:text-amber-300 underline font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-file-pdf"></i> Download Official Schedule
+                </button>
+            </div>
+        </div>
+
+        <!-- 3 Highlight Summary Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+            <div class="tl-card flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+                        <span>DEPOSIT FEES</span>
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                    </div>
+                    <div class="text-3xl font-black text-emerald-400 font-mono">0.00%</div>
+                </div>
+                <div class="text-xs text-slate-400 mt-2">All PromptPay & Bank Wire transfers free of platform charge.</div>
+            </div>
+
+            <div class="tl-card flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+                        <span>PRIZE PAYOUT FEE</span>
+                        <i class="fa-solid fa-trophy text-amber-400"></i>
+                    </div>
+                    <div class="text-3xl font-black text-amber-400 font-mono">0.00%</div>
+                </div>
+                <div class="text-xs text-slate-400 mt-2">100% of standard lottery winnings credited to your wallet directly.</div>
+            </div>
+
+            <div class="tl-card flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+                        <span>WITHDRAWAL SPEED</span>
+                        <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                    </div>
+                    <div class="text-3xl font-black text-cyan-400 font-mono">&lt; 30s</div>
+                </div>
+                <div class="text-xs text-slate-400 mt-2">Automated PromptPay API direct clearing 24/7/365.</div>
+            </div>
+
+            <div class="tl-card flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+                        <span>VIP REBATES</span>
+                        <i class="fa-solid fa-crown text-amber-400"></i>
+                    </div>
+                    <div class="text-3xl font-black text-amber-300 font-mono">UP TO 5%</div>
+                </div>
+                <div class="text-xs text-slate-400 mt-2">Volume cashback discounts automatically credited monthly.</div>
+            </div>
+        </div>
+
+        <!-- Real-Time Interactive Fee Calculator & Search Bar Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+            <!-- Fee Calculator Panel -->
+            <div class="lg:col-span-5 calc-panel p-6 sm:p-8 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center">
+                            <i class="fa-solid fa-calculator text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-black text-white font-['Cinzel']">Live Fee Estimator</h2>
+                            <p class="text-xs text-slate-400">Calculate exact fee and net credit before transacting.</p>
+                        </div>
+                    </div>
+
+                    <form id="feeCalculatorForm" onsubmit="event.preventDefault(); calculateLiveFee();" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5 font-mono">Transaction Category</label>
+                            <select id="calcCategory" onchange="calculateLiveFee()" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 font-sans">
+                                <option value="deposit_promptpay">Deposit: PromptPay QR (0.00%)</option>
+                                <option value="deposit_bank">Deposit: Domestic Bank Wire (0.00%)</option>
+                                <option value="deposit_crypto">Deposit: USDT TRC-20 (0.50%)</option>
+                                <option value="withdraw_promptpay">Withdrawal: PromptPay Real-Time (10 THB Flat)</option>
+                                <option value="withdraw_bank">Withdrawal: Domestic Bank Wire (15 THB Flat)</option>
+                                <option value="withdraw_crypto">Withdrawal: USDT TRC-20 (1.00 USDT Flat)</option>
+                                <option value="ticket_standard">Ticket Purchase: GLO Standard Ticket (0.00%)</option>
+                                <option value="prize_standard">Prize Claim: 1st - 5th Tier Standard (0.00%)</option>
+                                <option value="prize_jackpot_concierge">Prize Claim: First Prize VIP White-Glove (0.50%)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5 font-mono">Amount (THB / USDT)</label>
+                            <div class="relative">
+                                <input type="number" id="calcAmount" min="10" max="50000000" step="any" value="5000" oninput="calculateLiveFee()" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-amber-400">
+                                <span class="absolute right-3 top-2.5 text-xs font-bold text-amber-400/80 font-mono" id="currencyBadge">THB</span>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="mt-6 pt-5 border-t border-[#1e2f47] space-y-2.5 text-xs">
+                    <div class="flex justify-between items-center text-slate-400">
+                        <span>Gross Base Amount:</span>
+                        <span id="calcResultBase" class="font-mono text-white font-bold">5,000.00 THB</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-400">
+                        <span>Platform Processing Fee:</span>
+                        <span id="calcResultFee" class="font-mono text-amber-400 font-bold">0.00 THB (0.00%)</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-[#1e2f47]/60 text-sm">
+                        <span class="font-bold text-white">Net Total Value:</span>
+                        <span id="calcResultNet" class="font-mono font-black text-emerald-400 text-base">5,000.00 THB</span>
+                    </div>
+                    <div id="calcResultNote" class="text-[11px] text-slate-400 italic bg-amber-500/10 p-2 rounded border border-amber-500/20 mt-3">
+                        PromptPay deposits are 100% free of charge with instant auto-confirmation.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search, Category Quick Navigation & Fee Schedules Container -->
+            <div class="lg:col-span-7 flex flex-col justify-between">
+                <div>
+                    <!-- Search Input -->
+                    <div class="relative mb-6">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+                        <input type="text" id="feeSearchInput" oninput="filterFeeCards(this.value)" placeholder="Search fee schedules by method, currency, or rule (e.g., 'PromptPay', 'USDT', 'Wire')..." class="w-full bg-[#101b2d] border border-amber-500/30 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-inner">
+                    </div>
+
+                    <!-- Category Pills -->
+                    <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-thin text-xs font-semibold">
+                        <a href="#deposit-fees" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 whitespace-nowrap transition-colors">1. Deposits</a>
+                        <a href="#withdrawal-fees" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 whitespace-nowrap transition-colors">2. Withdrawals</a>
+                        <a href="#ticket-fees" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 whitespace-nowrap transition-colors">3. Tickets</a>
+                        <a href="#prize-fees" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 whitespace-nowrap transition-colors">4. Prizes</a>
+                        <a href="#tier-fees" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 whitespace-nowrap transition-colors">5. VIP Tiers</a>
+                        <a href="#maintenance-fees" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 whitespace-nowrap transition-colors">6. Maintenance</a>
+                    </div>
+
+                    <!-- Fee Groups List Container -->
+                    <div id="feesGroupsContainer" class="space-y-6">
+                        <!-- Group 1 -->
+                        <div class="tl-card fee-card" id="deposit-fees">
+                            <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-3 mb-4">
+                                <span class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-400 font-black text-xs flex items-center justify-center font-mono">01</span>
+                                <div>
+                                    <h3 class="text-base font-black text-white">Deposit & Funding Channels</h3>
+                                    <span class="text-xs text-slate-400">Zero deposit fees across standard Thai banking & PromptPay</span>
+                                </div>
+                            </div>
+                            <table class="w-full text-xs text-left">
+                                <thead>
+                                    <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                        <th class="py-2.5">Service / Channel</th>
+                                        <th class="py-2.5">Fee Rate</th>
+                                        <th class="py-2.5">Speed</th>
+                                        <th class="py-2.5">Min - Max Bounds</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#1c2b44]/60">
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">PromptPay Instant QR</span><span class="text-[10px] text-slate-400">Direct QR code scan with 0 seconds latency</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">0.00%</td>
+                                        <td class="py-3 font-mono text-slate-300">Instant</td>
+                                        <td class="py-3 font-mono text-slate-400">100 - 500,000 THB</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Domestic Thai Bank Transfer</span><span class="text-[10px] text-slate-400">Direct wire to verified corporate escrow</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">0.00%</td>
+                                        <td class="py-3 font-mono text-slate-300">&lt; 2 Mins</td>
+                                        <td class="py-3 font-mono text-slate-400">500 - 5,000,000 THB</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">USDT (TRC-20 / ERC-20)</span><span class="text-[10px] text-slate-400">Decentralized stablecoin gateway</span></td>
+                                        <td class="py-3 font-mono font-black text-amber-400">0.50%</td>
+                                        <td class="py-3 font-mono text-slate-300">1 - 3 Block Confirmations</td>
+                                        <td class="py-3 font-mono text-slate-400">20 - 100,000 USDT</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Group 2 -->
+                        <div class="tl-card fee-card" id="withdrawal-fees">
+                            <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-3 mb-4">
+                                <span class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-400 font-black text-xs flex items-center justify-center font-mono">02</span>
+                                <div>
+                                    <h3 class="text-base font-black text-white">Withdrawal & Settlement Fees</h3>
+                                    <span class="text-xs text-slate-400">Direct-to-bank payout network clearing</span>
+                                </div>
+                            </div>
+                            <table class="w-full text-xs text-left">
+                                <thead>
+                                    <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                        <th class="py-2.5">Service / Channel</th>
+                                        <th class="py-2.5">Fee Rate</th>
+                                        <th class="py-2.5">Speed</th>
+                                        <th class="py-2.5">Min - Max Bounds</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#1c2b44]/60">
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">PromptPay Automated Payout</span><span class="text-[10px] text-slate-400">24/7 Direct bank API dispatch</span></td>
+                                        <td class="py-3 font-mono font-black text-amber-400">10.00 THB flat</td>
+                                        <td class="py-3 font-mono text-slate-300">&lt; 30 Seconds</td>
+                                        <td class="py-3 font-mono text-slate-400">300 - 2,000,000 THB / Day</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Standard Thai Bank Wire</span><span class="text-[10px] text-slate-400">Direct batch settlement</span></td>
+                                        <td class="py-3 font-mono font-black text-amber-400">15.00 THB flat</td>
+                                        <td class="py-3 font-mono text-slate-300">&lt; 15 Mins</td>
+                                        <td class="py-3 font-mono text-slate-400">1,000 - 10,000,000 THB / Day</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">USDT TRC-20 Withdrawal</span><span class="text-[10px] text-slate-400">Blockchain gas subsidy</span></td>
+                                        <td class="py-3 font-mono font-black text-amber-400">1.00 USDT flat</td>
+                                        <td class="py-3 font-mono text-slate-300">&lt; 5 Mins</td>
+                                        <td class="py-3 font-mono text-slate-400">50 - 250,000 USDT / Day</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Group 3 -->
+                        <div class="tl-card fee-card" id="ticket-fees">
+                            <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-3 mb-4">
+                                <span class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-400 font-black text-xs flex items-center justify-center font-mono">03</span>
+                                <div>
+                                    <h3 class="text-base font-black text-white">Lottery Ticket Purchasing & Staking</h3>
+                                    <span class="text-xs text-slate-400">Official face-value ticketing without markups</span>
+                                </div>
+                            </div>
+                            <table class="w-full text-xs text-left">
+                                <thead>
+                                    <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                        <th class="py-2.5">Service / Channel</th>
+                                        <th class="py-2.5">Fee Rate</th>
+                                        <th class="py-2.5">Speed</th>
+                                        <th class="py-2.5">Min - Max Bounds</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#1c2b44]/60">
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">GLO Standard 6-Digit (L6)</span><span class="text-[10px] text-slate-400">Direct digital custody</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">0.00% (Face value 80 THB)</td>
+                                        <td class="py-3 font-mono text-slate-300">Instant Issuance</td>
+                                        <td class="py-3 font-mono text-slate-400">1 - 1,000 Tickets / Order</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Syndicate / Pool Order Management</span><span class="text-[10px] text-slate-400">Multi-share group tickets</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">Free</td>
+                                        <td class="py-3 font-mono text-slate-300">Instant</td>
+                                        <td class="py-3 font-mono text-slate-400">Up to 100 Members / Pool</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Group 4 -->
+                        <div class="tl-card fee-card" id="prize-fees">
+                            <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-3 mb-4">
+                                <span class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-400 font-black text-xs flex items-center justify-center font-mono">04</span>
+                                <div>
+                                    <h3 class="text-base font-black text-white">Prize Claiming & Payout Commission</h3>
+                                    <span class="text-xs text-slate-400">100% of standard winnings retained by player</span>
+                                </div>
+                            </div>
+                            <table class="w-full text-xs text-left">
+                                <thead>
+                                    <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                        <th class="py-2.5">Service / Channel</th>
+                                        <th class="py-2.5">Fee Rate</th>
+                                        <th class="py-2.5">Speed</th>
+                                        <th class="py-2.5">Min - Max Bounds</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#1c2b44]/60">
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Tiers 1–5 & 2/3-Digit Matching</span><span class="text-[10px] text-slate-400">Automated wallet redemption</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">0.00% Commission</td>
+                                        <td class="py-3 font-mono text-slate-300">Within 1 Hour</td>
+                                        <td class="py-3 font-mono text-slate-400">2,000 - 200,000 THB</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">1st Prize Jackpot (6,000,000 THB)</span><span class="text-[10px] text-slate-400">Physical GLO redemption & security escort</span></td>
+                                        <td class="py-3 font-mono font-black text-amber-400">0.50% Stamp Duty + Concierge</td>
+                                        <td class="py-3 font-mono text-slate-300">24 Hours Concierge</td>
+                                        <td class="py-3 font-mono text-slate-400">6M - 30M THB / Draw</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Group 5 -->
+                        <div class="tl-card fee-card" id="tier-fees">
+                            <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-3 mb-4">
+                                <span class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-400 font-black text-xs flex items-center justify-center font-mono">05</span>
+                                <div>
+                                    <h3 class="text-base font-black text-white">VIP Tier Privileges & Rebates</h3>
+                                    <span class="text-xs text-slate-400">Progressive discounts based on monthly wagering</span>
+                                </div>
+                            </div>
+                            <table class="w-full text-xs text-left">
+                                <thead>
+                                    <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                        <th class="py-2.5">Service / Channel</th>
+                                        <th class="py-2.5">Fee Rate</th>
+                                        <th class="py-2.5">Speed</th>
+                                        <th class="py-2.5">Min - Max Bounds</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#1c2b44]/60">
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Bronze / Silver Member</span><span class="text-[10px] text-slate-400">Standard user account</span></td>
+                                        <td class="py-3 font-mono font-black text-slate-300">Standard Schedule</td>
+                                        <td class="py-3 font-mono text-slate-300">Standard Queue</td>
+                                        <td class="py-3 font-mono text-slate-400">0 - 50,000 THB / Mo</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Gold VIP Member</span><span class="text-[10px] text-slate-400">5 Free withdrawals/mo + 2% rebate</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">2.00% Cash Rebate</td>
+                                        <td class="py-3 font-mono text-slate-300">Priority Queue</td>
+                                        <td class="py-3 font-mono text-slate-400">50,000 - 250,000 THB / Mo</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Platinum VIP Member</span><span class="text-[10px] text-slate-400">Unlimited free withdrawals + 5% rebate</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">5.00% Cash Rebate</td>
+                                        <td class="py-3 font-mono text-slate-300">Dedicated Account Exec</td>
+                                        <td class="py-3 font-mono text-slate-400">250,000+ THB / Mo</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Group 6 -->
+                        <div class="tl-card fee-card" id="maintenance-fees">
+                            <div class="flex items-center gap-3 border-b border-[#1c2b44] pb-3 mb-4">
+                                <span class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-400 font-black text-xs flex items-center justify-center font-mono">06</span>
+                                <div>
+                                    <h3 class="text-base font-black text-white">Inactivity & Account Maintenance</h3>
+                                    <span class="text-xs text-slate-400">Zero recurring charges or hidden dues</span>
+                                </div>
+                            </div>
+                            <table class="w-full text-xs text-left">
+                                <thead>
+                                    <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                        <th class="py-2.5">Service / Channel</th>
+                                        <th class="py-2.5">Fee Rate</th>
+                                        <th class="py-2.5">Speed</th>
+                                        <th class="py-2.5">Min - Max Bounds</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#1c2b44]/60">
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Monthly Account Maintenance</span><span class="text-[10px] text-slate-400">Continuous platform access</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">0.00 THB</td>
+                                        <td class="py-3 font-mono text-slate-300">Lifetime</td>
+                                        <td class="py-3 font-mono text-slate-400">All Accounts</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3"><span class="font-bold text-white block">Dormant Account Administration (&gt;365 Days)</span><span class="text-[10px] text-slate-400">Safety custody on unspent balance</span></td>
+                                        <td class="py-3 font-mono font-black text-emerald-400">0.00 THB</td>
+                                        <td class="py-3 font-mono text-slate-300">Protected</td>
+                                        <td class="py-3 font-mono text-slate-400">Safe Escrow</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Official Fee Guidelines & Transparency Guarantees -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="tl-card">
+                <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg mb-4">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <h4 class="text-base font-bold text-white mb-2 font-['Cinzel']">No Hidden Charges</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Every calculation is performed deterministically before ticket checkout or payout processing. What you see on screen is exactly what is settled into your balance.
+                </p>
+            </div>
+
+            <div class="tl-card">
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg mb-4">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+                <h4 class="text-base font-bold text-white mb-2 font-['Cinzel']">Automated Digital Invoices</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Download complete PDF and CSV breakdown statements for every deposit, ticket bundle purchase, and withdrawal for full tax and accounting compliance.
+                </p>
+            </div>
+
+            <div class="tl-card">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg mb-4">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h4 class="text-base font-bold text-white mb-2 font-['Cinzel']">Regulated Clearinghouse</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    All fiat payouts are executed via authorized tier-1 commercial banking gateways under Bank of Thailand payment system guidelines with zero third-party skimming.
+                </p>
+            </div>
+        </div>
+
+        <!-- Frequently Asked Fee Questions -->
+        <div class="tl-card p-8">
+            <h3 class="text-xl font-black text-white font-['Cinzel'] mb-6 text-center">Frequently Asked Questions Regarding Fees</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-300">
+                <div>
+                    <h4 class="font-bold text-amber-400 text-sm mb-1.5"><i class="fa-solid fa-circle-question mr-1"></i> Does ThaiLotto take a percentage cut from my lottery winnings?</h4>
+                    <p class="text-slate-400 leading-relaxed">
+                        No. ThaiLotto charges 0.00% commission on regular winning tickets. You receive 100% of the published Government Lottery Office prize prize structure in your wallet.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-amber-400 text-sm mb-1.5"><i class="fa-solid fa-circle-question mr-1"></i> Are there any monthly account maintenance fees?</h4>
+                    <p class="text-slate-400 leading-relaxed">
+                        Zero. Maintaining an active verified account at ThaiLotto is 100% free indefinitely. No monthly, quarterly, or annual subscription charges apply.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-amber-400 text-sm mb-1.5"><i class="fa-solid fa-circle-question mr-1"></i> Why is there a 10 THB flat fee on bank withdrawals?</h4>
+                    <p class="text-slate-400 leading-relaxed">
+                        The flat 10 THB fee covers the direct inter-bank clearing switch cost charged by the commercial banking network for real-time automated API transfers.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-amber-400 text-sm mb-1.5"><i class="fa-solid fa-circle-question mr-1"></i> How can I get 0 THB withdrawal fees?</h4>
+                    <p class="text-slate-400 leading-relaxed">
+                        Players who achieve Gold or Platinum VIP tier status enjoy unlimited complimentary zero-fee withdrawals every month as part of their loyalty privileges.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer matching visual mockup -->
+    <footer class="bg-[#050b14] border-t border-amber-500/20 pt-16 pb-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#1c2b44]">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl tl-gold-bg flex items-center justify-center">
+                            <i class="fa-solid fa-gem text-slate-950 font-black"></i>
+                        </div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel']">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed max-w-sm mb-6">
+                        Thailand's premier digital lottery platform. Officially licensed and regulated digital gateway providing transparent, instant, and high-security draw access for global players.
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-telegram"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-line"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Quick Navigation</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/" class="hover:text-amber-400 transition-colors">Home Page</a></li>
+                        <li><a href="/about" class="hover:text-amber-400 transition-colors">About ThaiLotto</a></li>
+                        <li><a href="/vision-mission" class="hover:text-amber-400 transition-colors">Vision & Mission</a></li>
+                        <li><a href="/how-to-play" class="hover:text-amber-400 transition-colors">How to Play</a></li>
+                        <li><a href="/faq" class="hover:text-amber-400 transition-colors">Frequently Asked Questions</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Legal & Compliance</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/terms-conditions" class="hover:text-amber-400 transition-colors">Terms & Conditions</a></li>
+                        <li><a href="/privacy-policy" class="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="/our-fees" class="text-amber-400 font-bold transition-colors">Fee Schedules</a></li>
+                        <li><a href="/account-verification" class="hover:text-amber-400 transition-colors">KYC Verification</a></li>
+                        <li><a href="/account-grade" class="hover:text-amber-400 transition-colors">Account Grade & Tiers</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Security & Trust</h5>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-lock text-emerald-400"></i>
+                            <span>256-Bit SSL Encryption</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                            <span>GLO Certified Results</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-server text-blue-400"></i>
+                            <span>99.99% Server Uptime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+                <div>&copy; 2026 ThaiLotto Platform. All Rights Reserved. Regulated lottery entertainment service.</div>
+                <div class="flex gap-6">
+                    <a href="/terms-conditions" class="hover:text-slate-400">Terms</a>
+                    <a href="/privacy-policy" class="hover:text-slate-400">Privacy</a>
+                    <a href="/our-fees" class="text-amber-400">Fees</a>
+                    <a href="/contact-us" class="hover:text-slate-400">Contact</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Standalone Calculator & Search Logic -->
+    <script>
+        var feeRules = {
+            'deposit_promptpay': { rate: '0.00%', flat: 0, pct: 0, currency: 'THB', note: 'PromptPay deposits are 100% free of charge with instant auto-confirmation.' },
+            'deposit_bank': { rate: '0.00%', flat: 0, pct: 0, currency: 'THB', note: 'Domestic bank transfers have zero platform fees.' },
+            'deposit_crypto': { rate: '0.50%', flat: 0, pct: 0.005, currency: 'USDT', note: 'Crypto gateway conversion fee is 0.50%.' },
+            'withdraw_promptpay': { rate: '10.00 THB flat', flat: 10, pct: 0, currency: 'THB', note: 'Real-time PromptPay direct clearing incurs a 10 THB bank switch fee.' },
+            'withdraw_bank': { rate: '15.00 THB flat', flat: 15, pct: 0, currency: 'THB', note: 'Domestic bank wire transfer clearing incurs a 15 THB flat inter-bank fee.' },
+            'withdraw_crypto': { rate: '1.00 USDT flat', flat: 1, pct: 0, currency: 'USDT', note: 'Network gas miner fee for TRC-20 USDT transfer is 1.00 USDT.' },
+            'ticket_standard': { rate: '0.00%', flat: 0, pct: 0, currency: 'THB', note: 'GLO standard 6-digit tickets sold at exact official face-value (80 THB) with zero surcharge.' },
+            'prize_standard': { rate: '0.00%', flat: 0, pct: 0, currency: 'THB', note: '100% of standard lottery winnings credited to your wallet directly.' },
+            'prize_jackpot_concierge': { rate: '0.50%', flat: 0, pct: 0.005, currency: 'THB', note: 'First prize 6M+ THB payout includes physical redemption and concierge escort.' }
+        };
+
+        function calculateLiveFee() {
+            var cat = document.getElementById('calcCategory').value;
+            var amt = parseFloat(document.getElementById('calcAmount').value);
+            if (isNaN(amt) || amt < 0) amt = 0;
+
+            var rule = feeRules[cat] || feeRules['deposit_promptpay'];
+            var fee = rule.flat + (amt * rule.pct);
+            var net = amt;
+
+            if (cat.startsWith('withdraw')) {
+                net = Math.max(0, amt - fee);
+            } else if (cat.startsWith('deposit_crypto') || cat.startsWith('prize_jackpot')) {
+                net = Math.max(0, amt - fee);
+            }
+
+            document.getElementById('currencyBadge').textContent = rule.currency;
+            document.getElementById('calcResultBase').textContent = amt.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + rule.currency;
+            document.getElementById('calcResultFee').textContent = fee.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + rule.currency + ' (' + rule.rate + ')';
+            document.getElementById('calcResultNet').textContent = net.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + rule.currency;
+            document.getElementById('calcResultNote').textContent = rule.note;
+        }
+
+        function filterFeeCards(query) {
+            query = query.toLowerCase().trim();
+            var cards = document.querySelectorAll('.fee-card');
+            cards.forEach(function(card) {
+                if (!query || card.textContent.toLowerCase().includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function downloadFeesStandalone() {
+            alert('Official Fee Schedule Download: ThaiLotto_Fee_Schedule_2026.pdf (1.2 MB)\nVerified Hash: 5f9e8a7b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f');
+        }
+
+        // Initialize on load
+        calculateLiveFee();
+    </script>
+</body>
+</html>

@@ -74,6 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'active' => \App\Http\Middleware\EnsureUserIsActive::class,
+            'admin.auth' => \App\Http\Middleware\Authenticate::class,
             'wallet.active' => \App\Http\Middleware\EnsureWalletIsActive::class,
             'draw.open' => \App\Http\Middleware\EnsureDrawIsOpen::class,
             'webhook.signature' => \App\Http\Middleware\VerifyWebhookSignature::class,
@@ -90,6 +91,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // kind of request that must still present security headers and a trace id.
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->append(\App\Http\Middleware\CorrelationIdMiddleware::class);
+        $middleware->append(\App\Http\Middleware\SetLocale::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // ---------------------------------------------------------------------

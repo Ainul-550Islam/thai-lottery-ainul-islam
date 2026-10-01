@@ -1,0 +1,67 @@
+{
+  "commands": [
+    {
+      "command": [
+        "composer",
+        "validate",
+        "--no-check-publish"
+      ],
+      "domain": "composer",
+      "exit_code": null,
+      "label": "composer validate",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 454,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "composer",
+        "install",
+        "--prefer-dist",
+        "--no-interaction",
+        "--no-progress"
+      ],
+      "domain": "composer",
+      "exit_code": null,
+      "label": "composer install",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 454,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "composer",
+        "check-platform-reqs"
+      ],
+      "domain": "composer",
+      "exit_code": null,
+      "label": "composer platform requirements",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 454,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    },
+    {
+      "command": [
+        "composer",
+        "audit",
+        "--no-interaction"
+      ],
+      "domain": "composer",
+      "exit_code": null,
+      "label": "composer audit",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 454,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    }
+  ],
+  "observed_at_utc": "2026-09-30T14:37:11+00:00",
+  "page": 454,
+  "runtime_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "source": "runtime/pages-451-550-command-results.json",
+  "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "type": "page_454_composer_evidence"
+}

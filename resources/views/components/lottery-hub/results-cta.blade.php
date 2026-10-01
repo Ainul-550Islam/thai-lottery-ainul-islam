@@ -1,0 +1,1 @@
+<section class="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-sm leading-7 text-gray-400"><h2 class="text-base font-bold text-[#F5E6B8]">{{ trans('lottery_hub.trust_heading') }}</h2><p class="mt-2">{{ trans('lottery_hub.trust_body') }}</p></section>

@@ -1,0 +1,2 @@
+@props(['products' => []])
+<div class="flex flex-wrap items-center gap-3" data-lottery-category-filter><span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ trans('lottery_hub.products_heading') }}</span><button type="button" class="rounded-full border border-[#D4AF37]/50 bg-[#D4AF37]/10 px-4 py-2 text-xs font-bold text-[#F5E6B8]" data-lottery-filter="all" aria-pressed="true">{{ trans('lottery_hub.all_products') }}</button><span class="text-xs text-gray-500">{{ count($products) }}</span></div>

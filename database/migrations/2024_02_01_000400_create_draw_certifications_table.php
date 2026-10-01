@@ -24,7 +24,7 @@ return new class () extends Migration
             $table->string('certification_key', 64)->unique();
 
             // The certified paper is history at the draw lane: restrict.
-            $table->foreignId('draw_id')->constrained()->restrictOnDelete()->index();
+            $table->foreignId('draw_id')->constrained()->restrictOnDelete();
 
             $table->string('status', 32)->default('draft')->index();
             $table->string('source_type', 32);

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Verification;
 
 use App\Models\AccountVerification;
-use App\Models\AccountVerificationDocument;
 use App\Models\User;
-use App\Services\Account\AccountVerificationDocumentService;
 use App\Services\Verification\AccountVerificationService;
 use App\Services\Verification\DocumentStorageService;
 use Illuminate\Contracts\View\View;
@@ -32,7 +30,6 @@ final class AccountVerificationController
 {
     public function __construct(
         private readonly AccountVerificationService $verification,
-        private readonly AccountVerificationDocumentService $documents,
         private readonly DocumentStorageService $storage,
     ) {
     }
@@ -85,10 +82,10 @@ final class AccountVerificationController
                 'document' => $request->file('document'),
                 'document_back' => $request->file('document_back'),
             ], $request->ip());
-        } catch (InvalidArgumentException $exception) {
+        } catch (InvalidArgumentException) {
             return back()
                 ->withInput()
-                ->withErrors(['document' => $exception->getMessage()]);
+                ->withErrors(['document' => (string) trans('account_services.verification_error_invalid_file')]);
         }
 
         return redirect()
@@ -100,15 +97,12 @@ final class AccountVerificationController
      * Owner-authorized document download — never a public /storage
      * path, always a streaming response through authorization.
      */
-    public function download(Request $request, int $documentId): BinaryFileResponse|Response
+    public function download(Request $request, string $documentToken): BinaryFileResponse|Response
     {
         /** @var User $user */
         $user = $request->user();
 
-        $document = AccountVerificationDocument::query()
-            ->where('user_id', $user->id)
-            ->whereKey($documentId)
-            ->first();
+        $document = $this->verification->documentForDownload($user, $documentToken);
 
         if ($document === null) {
             abort(404);
@@ -158,8 +152,8 @@ final class AccountVerificationController
                 'reject' => $this->verification->review($verification, $user, false, $validated['reason'] ?? null),
                 'under_review' => $this->verification->markUnderReview($verification, $user),
             };
-        } catch (InvalidArgumentException $exception) {
-            return back()->withErrors(['decision' => $exception->getMessage()]);
+        } catch (InvalidArgumentException) {
+            return back()->withErrors(['decision' => (string) trans('account_services.error_generic')]);
         }
 
         return back()->with('status', __('account_services.verification_decision_recorded'));

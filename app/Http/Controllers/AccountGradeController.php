@@ -56,16 +56,27 @@ final class AccountGradeController extends Controller
         ]);
     }
 
-    public function history(Request $request): \Illuminate\Http\JsonResponse
+    public function history(Request $request): View|\Illuminate\Http\JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
+        $history = $this->grades->history($user, 50);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'history' => $this->grades->history($user, 50),
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'history' => $history,
+                ],
+            ]);
+        }
+
+        return view('account.grade-history', [
+            'meta' => [
+                'title' => (string) trans('account_services.grade_meta_title'),
+                'description' => (string) trans('account_services.grade_meta_description'),
             ],
+            'history' => $history,
         ]);
     }
 

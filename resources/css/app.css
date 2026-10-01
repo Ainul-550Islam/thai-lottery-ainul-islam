@@ -1,10 +1,16 @@
+@import './theme.css';
+@import './components/glass.css';
+@import './components/metrics.css';
+@import './components/lottery-3d.css';
+@import './auth-portal.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Thai Lottery — global styles. Design system arrives in the frontend phase. */
+/* Base Reset & Design System Roots */
 :root {
-    color-scheme: light dark;
+    color-scheme: dark;
 }
 
 *,
@@ -13,8 +19,34 @@
     box-sizing: border-box;
 }
 
+html {
+    background-color: var(--tl-bg-main);
+    color: var(--tl-text-primary);
+}
+
 body {
     margin: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.5;
+    background-color: var(--tl-bg-main);
+    color: var(--tl-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Accessibility Focus Ring */
+:focus-visible {
+    outline: 2px solid var(--tl-brand-primary-hover);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

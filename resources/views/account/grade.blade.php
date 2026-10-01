@@ -3,6 +3,9 @@
 @section('title', $meta['title'])
 
 @section('content')
+    @php
+        $gradeCurrency = \App\Enums\Currency::from((string) config('account_grades.currency'));
+    @endphp
     <div class="account-services" data-page="account-grade">
         <a class="pp-skip-link" href="#pp-main">{{ trans('public_pages.skip_to_content') }}</a>
 
@@ -42,9 +45,7 @@
                     </ul>
                     <p class="acct-note">{{ trans('account_services.grade_discount_note') }}</p>
                     <p class="acct-note" data-glo-price-guard>
-                        L6 = {{ config('glo.l6.ticket_price', '80.00') }} THB ·
-                        N3 = {{ config('glo.n3.ticket_price', '20.00') }} THB
-                        ({{ trans('account_services.grade_discount_glo_excluded') }})
+                        {{ trans('account_services.grade_discount_glo_excluded') }}
                     </p>
                 </section>
             </div>
@@ -92,7 +93,7 @@
                     </div>
                     @if ($evaluation['spend_remaining_to_next'] !== null && $evaluation['spend_remaining_to_next'] !== '0.00')
                         <p class="acct-note">
-                            {{ trans('account_services.grade_spend_remaining_note', ['amount' => $evaluation['spend_remaining_to_next']]) }}
+                            {{ trans('account_services.grade_spend_remaining_note', ['amount' => \App\Services\Finance\Money::of((string) $evaluation['spend_remaining_to_next'], $gradeCurrency)->format()]) }}
                         </p>
                     @endif
                 </section>
@@ -101,6 +102,7 @@
             <section class="acct-card" aria-labelledby="grade-history-title">
                 <div class="acct-card__head">
                     <h2 class="acct-card__title" id="grade-history-title">{{ trans('account_services.grade_history_title') }}</h2>
+                    <a class="acct-button acct-button--quiet" href="{{ route('account.grade.history') }}">{{ trans('account_services.open_grade_history') }}</a>
                     <div class="acct-field acct-field--inline">
                         <label for="grade-filter">{{ trans('account_services.grade_filter_label') }}</label>
                         <select id="grade-filter" class="acct-input" data-grade-filter>
@@ -130,9 +132,9 @@
                                 @foreach ($history as $row)
                                     <tr data-history-grade="{{ $row['grade_key'] }}">
                                         <td>{{ $row['period_start'] }} → {{ $row['period_end'] }}</td>
-                                        <td>{{ $row['qualifying_spend'] }}</td>
+                                        <td>{{ \App\Services\Finance\Money::of((string) $row['qualifying_spend'], $gradeCurrency)->format() }}</td>
                                         <td>{{ $row['grade_key'] }}</td>
-                                        <td>{{ $row['previous_grade_key'] ?? '—' }}</td>
+                                        <td>{{ $row['previous_grade_key'] ?? trans('account_services.not_recorded') }}</td>
                                         <td>{{ $row['calculated_at'] }}</td>
                                     </tr>
                                 @endforeach

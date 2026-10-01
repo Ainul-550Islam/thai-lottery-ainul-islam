@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Prize Verification & Ticket Checker — ThaiLotto</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #050b14;
+            color: #cbd5e1;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 10% 80%, rgba(217, 119, 6, 0.04) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .tl-gold-gradient {
+            background: linear-gradient(135deg, #FFF6D6 0%, #F59E0B 50%, #B45309 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tl-gold-bg {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #92400E 100%);
+        }
+        .tl-card {
+            background: linear-gradient(180deg, rgba(16, 27, 45, 0.85) 0%, rgba(10, 18, 30, 0.95) 100%);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            border-radius: 1.25rem;
+            backdrop-filter: blur(12px);
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tl-card:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(217, 119, 6, 0.1);
+        }
+        .keypad-btn {
+            background: linear-gradient(180deg, #162438 0%, #0d1726 100%);
+            border: 1px solid rgba(217, 119, 6, 0.25);
+            transition: all 0.15s ease;
+        }
+        .keypad-btn:hover {
+            background: linear-gradient(180deg, #1f3452 0%, #132238 100%);
+            border-color: rgba(245, 158, 11, 0.6);
+            transform: translateY(-2px);
+        }
+        .keypad-btn:active {
+            transform: translateY(1px);
+        }
+        .digit-slot {
+            background: #080f1c;
+            border: 2px solid rgba(217, 119, 6, 0.3);
+            border-radius: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 4.5rem;
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-[#070e1b]/90 backdrop-blur-md border-b border-amber-500/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-xl tl-gold-bg flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-gem text-slate-950 text-xl font-black"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel'] block leading-none">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                        <span class="text-[10px] text-amber-400/80 font-mono tracking-widest uppercase">Official GLO Gateway</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Home</a>
+                <a href="/about" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">About Us</a>
+                <a href="/vision-mission" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Vision & Mission</a>
+                <a href="/our-fees" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Fees</a>
+                <a href="/prize-verification" class="text-sm font-semibold text-amber-400 border-b-2 border-amber-400 pb-1">Prize Verification</a>
+                <a href="/discounts" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Discounts</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <a href="/login" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-all">Sign In</a>
+                <a href="/register" class="px-5 py-2.5 rounded-lg text-sm font-black text-slate-950 tl-gold-bg hover:brightness-110 shadow-lg shadow-amber-500/20 transition-all">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <!-- Page Title & Hero Header -->
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono mb-4">
+                <i class="fa-solid fa-stamp"></i> Official Government Lottery Office (GLO) Result Ledger
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white font-['Cinzel'] tracking-tight mb-4">
+                Ticket <span class="tl-gold-gradient">Prize Verification</span> Engine
+            </h1>
+            <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
+                Check any 6-digit Thai lottery ticket number against official government draw databases. Instant validation across all 9 prize tiers with zero commission deductions.
+            </p>
+
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-slate-400">
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-trophy text-amber-400"></i> 1st Prize: 6,000,000 THB</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-bolt text-emerald-400"></i> 0.00% Platform Commission</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-cyan-400"></i> Anti-Counterfeiting Verified</span>
+            </div>
+        </div>
+
+        <!-- 6-Digit Interactive Keypad & Checker Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-14">
+            <!-- Left: Interactive Digit Slots & Keypad -->
+            <div class="lg:col-span-7">
+                <div class="tl-card p-6 sm:p-8">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-[#1c2b44] pb-4">
+                        <div>
+                            <h2 class="text-lg font-black text-white font-['Cinzel']">6-Digit Ticket Checker</h2>
+                            <p class="text-xs text-slate-400">Type or use the keypad to enter your ticket digits.</p>
+                        </div>
+
+                        <!-- Draw Date Selector -->
+                        <div>
+                            <label class="block text-[10px] font-mono text-slate-400 uppercase mb-1">Select Draw Date</label>
+                            <select id="pvDrawSelect" class="bg-[#0a121e] border border-amber-500/40 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+                                <option value="2026-10-01">01 October 2026 (Latest Draw)</option>
+                                <option value="2026-09-16">16 September 2026</option>
+                                <option value="2026-09-01">01 September 2026</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 6 Digit Visual Slots -->
+                    <div class="grid grid-cols-6 gap-2 sm:gap-3 mb-6">
+                        <div id="digitSlot1" class="digitSlot digit-slot text-slate-500">-</div>
+                        <div id="digitSlot2" class="digitSlot digit-slot text-slate-500">-</div>
+                        <div id="digitSlot3" class="digitSlot digit-slot text-slate-500">-</div>
+                        <div id="digitSlot4" class="digitSlot digit-slot text-slate-500">-</div>
+                        <div id="digitSlot5" class="digitSlot digit-slot text-slate-500">-</div>
+                        <div id="digitSlot6" class="digitSlot digit-slot text-slate-500">-</div>
+                    </div>
+
+                    <!-- Hidden Input for manual keyboard entry -->
+                    <input type="text" id="pvTicketNumber" maxlength="6" inputmode="numeric" oninput="handleManualInput(this.value)" placeholder="Enter 6 digits" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-xl px-4 py-2.5 text-center text-sm font-mono tracking-widest text-white mb-6 focus:outline-none focus:border-amber-400">
+
+                    <!-- Keypad Matrix (0-9) -->
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <button type="button" onclick="pressDigit('1')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">1</button>
+                        <button type="button" onclick="pressDigit('2')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">2</button>
+                        <button type="button" onclick="pressDigit('3')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">3</button>
+                        <button type="button" onclick="pressDigit('4')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">4</button>
+                        <button type="button" onclick="pressDigit('5')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">5</button>
+                        <button type="button" onclick="pressDigit('6')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">6</button>
+                        <button type="button" onclick="pressDigit('7')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">7</button>
+                        <button type="button" onclick="pressDigit('8')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">8</button>
+                        <button type="button" onclick="pressDigit('9')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">9</button>
+                        <button type="button" onclick="clearKeypad()" class="keypad-btn py-3.5 rounded-xl text-xs font-mono font-bold text-red-400 hover:text-red-300">CLEAR</button>
+                        <button type="button" onclick="pressDigit('0')" class="keypad-btn py-3.5 rounded-xl text-lg font-mono font-black text-white">0</button>
+                        <button type="button" onclick="backspaceKeypad()" class="keypad-btn py-3.5 rounded-xl text-base font-mono text-amber-400 hover:text-amber-300"><i class="fa-solid fa-delete-left"></i></button>
+                    </div>
+
+                    <!-- Action Check Button -->
+                    <button type="button" onclick="verifyTicketStandalone()" class="w-full py-3.5 rounded-xl text-sm font-black text-slate-950 tl-gold-bg hover:brightness-110 shadow-lg shadow-amber-500/25 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i> Check Winning Prize Status
+                    </button>
+
+                    <!-- Quick Sample Number Presets -->
+                    <div class="mt-4 pt-3 border-t border-[#1c2b44] flex flex-wrap items-center gap-2 text-xs">
+                        <span class="text-slate-400 font-mono text-[11px] mr-1">Sample Winning Tests:</span>
+                        <button type="button" onclick="setPreset('843921')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">1st Prize (843921)</button>
+                        <button type="button" onclick="setPreset('129384')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">2nd Prize (129384)</button>
+                        <button type="button" onclick="setPreset('000021')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">2-Digit Bottom (000021)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Dynamic Results Box & Security Verification Details -->
+            <div class="lg:col-span-5 flex flex-col justify-between">
+                <!-- Result Box Output -->
+                <div id="pvResultContainer" class="mb-6">
+                    <div class="tl-card p-6 text-center space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-2xl flex items-center justify-center mx-auto">
+                            <i class="fa-solid fa-ticket"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white font-['Cinzel']">Awaiting Ticket Check</h3>
+                        <p class="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                            Enter your 6-digit lottery number on the keypad to see instant prize calculations, matched digits, and payout instructions.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Anti-Counterfeit & Inspection Trust Box -->
+                <div class="tl-card p-6">
+                    <div class="flex items-center gap-3 mb-4 border-b border-[#1c2b44] pb-3">
+                        <i class="fa-solid fa-shield-halved text-emerald-400 text-xl"></i>
+                        <h3 class="text-sm font-bold text-white font-['Cinzel']">Authenticity & Security Standards</h3>
+                    </div>
+                    <ul class="space-y-2.5 text-xs text-slate-300">
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>
+                            <span><strong>Direct GLO Ledger Synchronization:</strong> Results are pulled directly from the GLO official draw projection.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>
+                            <span><strong>Automated Wallet Credit:</strong> Standard prizes (up to 2,000,000 THB) are credited automatically within 1 hour.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>
+                            <span><strong>White-Glove Concierge:</strong> First prize winners (6,000,000+ THB) receive private escort to GLO Headquarters in Nonthaburi.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Official GLO Prize Structure Matrix Table -->
+        <div class="tl-card mb-14">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-[#1c2b44] pb-4">
+                <div>
+                    <h3 class="text-lg font-black text-white font-['Cinzel']">Official 9-Tier GLO Prize Structure</h3>
+                    <p class="text-xs text-slate-400">Statutory prizes per 1,000,000 ticket series under Government Lottery Office regulations.</p>
+                </div>
+                <div class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/30">
+                    <i class="fa-solid fa-building-columns mr-1"></i> GLO Statutory Matrix
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                    <thead>
+                        <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                            <th class="py-3 px-3">Prize Category</th>
+                            <th class="py-3 px-3">Prizes per Series</th>
+                            <th class="py-3 px-3">Payout per Winning Ticket</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#1c2b44]/60 font-mono">
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">1st Prize (รางวัลที่ 1)</td><td class="py-3 px-3 text-slate-400">1 Prize per set</td><td class="py-3 px-3 font-bold text-amber-400">6,000,000 THB</td></tr>
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">Adjacent 1st Prize (รางวัลข้างเคียง)</td><td class="py-3 px-3 text-slate-400">2 Prizes per set</td><td class="py-3 px-3 font-bold text-amber-400">100,000 THB</td></tr>
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">2nd Prize (รางวัลที่ 2)</td><td class="py-3 px-3 text-slate-400">5 Prizes per set</td><td class="py-3 px-3 font-bold text-amber-400">200,000 THB</td></tr>
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">3rd Prize (รางวัลที่ 3)</td><td class="py-3 px-3 text-slate-400">10 Prizes per set</td><td class="py-3 px-3 font-bold text-emerald-400">80,000 THB</td></tr>
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">4th Prize (รางวัลที่ 4)</td><td class="py-3 px-3 text-slate-400">50 Prizes per set</td><td class="py-3 px-3 font-bold text-emerald-400">40,000 THB</td></tr>
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">5th Prize (รางวัลที่ 5)</td><td class="py-3 px-3 text-slate-400">100 Prizes per set</td><td class="py-3 px-3 font-bold text-emerald-400">20,000 THB</td></tr>
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">3-Digit Front (เลขหน้า 3 ตัว)</td><td class="py-3 px-3 text-slate-400">2,000 Prizes per set</td><td class="py-3 px-3 font-bold text-emerald-400">4,000 THB</td></tr>
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">3-Digit Back (เลขท้าย 3 ตัว)</td><td class="py-3 px-3 text-slate-400">2,000 Prizes per set</td><td class="py-3 px-3 font-bold text-emerald-400">4,000 THB</td></tr>
+                        <tr><td class="py-3 px-3 font-bold text-white font-sans">2-Digit Bottom (เลขท้าย 2 ตัว)</td><td class="py-3 px-3 text-slate-400">10,000 Prizes per set</td><td class="py-3 px-3 font-bold text-emerald-400">2,000 THB</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer matching visual mockup -->
+    <footer class="bg-[#050b14] border-t border-amber-500/20 pt-16 pb-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#1c2b44]">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl tl-gold-bg flex items-center justify-center">
+                            <i class="fa-solid fa-gem text-slate-950 font-black"></i>
+                        </div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel']">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed max-w-sm mb-6">
+                        Thailand's premier digital lottery platform. Officially licensed and regulated digital gateway providing transparent, instant, and high-security draw access for global players.
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-telegram"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-line"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Quick Navigation</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/" class="hover:text-amber-400 transition-colors">Home Page</a></li>
+                        <li><a href="/about" class="hover:text-amber-400 transition-colors">About ThaiLotto</a></li>
+                        <li><a href="/vision-mission" class="hover:text-amber-400 transition-colors">Vision & Mission</a></li>
+                        <li><a href="/how-to-play" class="hover:text-amber-400 transition-colors">How to Play</a></li>
+                        <li><a href="/faq" class="hover:text-amber-400 transition-colors">Frequently Asked Questions</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Legal & Compliance</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/terms-conditions" class="hover:text-amber-400 transition-colors">Terms & Conditions</a></li>
+                        <li><a href="/privacy-policy" class="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="/our-fees" class="hover:text-amber-400 transition-colors">Fee Schedules</a></li>
+                        <li><a href="/prize-verification" class="text-amber-400 font-bold transition-colors">Prize Verification</a></li>
+                        <li><a href="/discounts" class="hover:text-amber-400 transition-colors">Discount Rules</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Security & Trust</h5>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-lock text-emerald-400"></i>
+                            <span>256-Bit SSL Encryption</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                            <span>GLO Certified Results</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-server text-blue-400"></i>
+                            <span>99.99% Server Uptime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+                <div>&copy; 2026 ThaiLotto Platform. All Rights Reserved. Regulated lottery entertainment service.</div>
+                <div class="flex gap-6">
+                    <a href="/terms-conditions" class="hover:text-slate-400">Terms</a>
+                    <a href="/privacy-policy" class="hover:text-slate-400">Privacy</a>
+                    <a href="/our-fees" class="hover:text-slate-400">Fees</a>
+                    <a href="/prize-verification" class="text-amber-400">Prize Verification</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Standalone Simulation Logic -->
+    <script>
+        var currentInput = '';
+
+        function pressDigit(d) {
+            if (currentInput.length < 6) {
+                currentInput += d;
+                syncDigits();
+            }
+        }
+
+        function clearKeypad() {
+            currentInput = '';
+            syncDigits();
+        }
+
+        function backspaceKeypad() {
+            if (currentInput.length > 0) {
+                currentInput = currentInput.slice(0, -1);
+                syncDigits();
+            }
+        }
+
+        function handleManualInput(val) {
+            currentInput = val.replace(/\D/g, '').slice(0, 6);
+            syncDigits();
+        }
+
+        function setPreset(num) {
+            currentInput = num;
+            syncDigits();
+            verifyTicketStandalone();
+        }
+
+        function syncDigits() {
+            document.getElementById('pvTicketNumber').value = currentInput;
+            for (var i = 1; i <= 6; i++) {
+                var el = document.getElementById('digitSlot' + i);
+                var char = currentInput[i - 1] || '-';
+                el.textContent = char;
+                if (currentInput[i - 1]) {
+                    el.classList.add('border-amber-400', 'text-amber-400', 'bg-amber-500/10');
+                } else {
+                    el.classList.remove('border-amber-400', 'text-amber-400', 'bg-amber-500/10');
+                }
+            }
+        }
+
+        function verifyTicketStandalone() {
+            if (!currentInput || currentInput.length !== 6) {
+                alert('Please enter a full 6-digit Thai lottery ticket number.');
+                return;
+            }
+
+            var num = currentInput;
+            var isWin = false;
+            var prizeName = '';
+            var prizeAmount = '0.00 THB';
+
+            if (num === '843921') {
+                isWin = true;
+                prizeName = '1st Prize (รางวัลที่ 1)';
+                prizeAmount = '6,000,000.00 THB';
+            } else if (num === '129384') {
+                isWin = true;
+                prizeName = '2nd Prize (รางวัลที่ 2)';
+                prizeAmount = '200,000.00 THB';
+            } else if (num.endsWith('21')) {
+                isWin = true;
+                prizeName = '2-Digit Bottom Prize (เลขท้าย 2 ตัว)';
+                prizeAmount = '2,000.00 THB';
+            }
+
+            var resultContainer = document.getElementById('pvResultContainer');
+            var headerBg = isWin ? 'bg-gradient-to-r from-emerald-950/80 to-emerald-900/60 border-emerald-500/50' : 'bg-[#0a121e] border-slate-700';
+            var statusBadge = isWin
+                ? '<span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-black text-xs font-mono animate-pulse">🎉 OFFICIAL WINNER</span>'
+                : '<span class="px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-black text-xs font-mono">NON-WINNING TICKET</span>';
+
+            var prizeContent = isWin
+                ? '<div class="text-center py-4 space-y-2">' +
+                  '  <span class="text-xs font-mono text-emerald-400 uppercase tracking-widest font-bold block">' + prizeName + '</span>' +
+                  '  <div class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight">' + prizeAmount + '</div>' +
+                  '  <span class="text-[11px] text-slate-300 font-mono block">Statutory prize payout credited in full with 0.00% commission.</span>' +
+                  '</div>'
+                : '<div class="text-center py-4 space-y-1">' +
+                  '  <div class="text-xl font-bold text-slate-300 font-mono">0.00 THB</div>' +
+                  '  <span class="text-xs text-slate-400">This 6-digit number did not match winning tiers for the selected draw date.</span>' +
+                  '</div>';
+
+            resultContainer.innerHTML = '<div class="tl-card ' + headerBg + ' p-6 sm:p-8 space-y-5 shadow-2xl">' +
+                '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1c2b44] pb-4">' +
+                '  <div>' +
+                '    <span class="text-[10px] font-mono text-slate-400 uppercase block">Ticket Number Checked</span>' +
+                '    <span class="text-2xl font-black text-white font-mono tracking-widest">' + num + '</span>' +
+                '  </div>' +
+                '  <div>' + statusBadge + '</div>' +
+                '</div>' +
+                prizeContent +
+                '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-[#1c2b44] text-[11px] font-mono text-slate-400">' +
+                '  <div><span class="text-slate-500 block text-[9px] uppercase">Draw Ref</span><span class="text-slate-200">GLO-2026-10-01</span></div>' +
+                '  <div><span class="text-slate-500 block text-[9px] uppercase">Draw Date</span><span class="text-slate-200">01 Oct 2026</span></div>' +
+                '  <div><span class="text-slate-500 block text-[9px] uppercase">Integrity Seal</span><span class="text-emerald-400 font-bold">Passed</span></div>' +
+                '  <div><span class="text-slate-500 block text-[9px] uppercase">GLO Ledger</span><span class="text-cyan-400 font-bold">Synchronized</span></div>' +
+                '</div>' +
+                '</div>';
+        }
+
+        // Init
+        setPreset('843921');
+    </script>
+</body>
+</html>

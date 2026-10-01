@@ -1,0 +1,24 @@
+{
+  "commands": [
+    {
+      "command": [
+        "composer",
+        "dump-autoload",
+        "--optimize"
+      ],
+      "domain": "composer",
+      "exit_code": null,
+      "label": "composer optimized autoload",
+      "observed_at_utc": "2026-09-30T14:37:11+00:00",
+      "page": 455,
+      "reason": "composer executable is not installed",
+      "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE"
+    }
+  ],
+  "observed_at_utc": "2026-09-30T14:37:11+00:00",
+  "page": 455,
+  "runtime_boundary": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "source": "runtime/pages-451-550-command-results.json",
+  "status": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "type": "page_455_vendor_evidence"
+}

@@ -44,6 +44,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Supported Banks (for Thai bank wire and withdrawal settlement)
+    |--------------------------------------------------------------------------
+    */
+
+    'supported_banks' => [
+        'Bangkok Bank' => 'Bangkok Bank (BBL)',
+        'Kasikornbank' => 'Kasikornbank (KBANK)',
+        'Siam Commercial Bank' => 'Siam Commercial Bank (SCB)',
+        'Krungthai Bank' => 'Krungthai Bank (KTB)',
+        'Bank of Ayudhya' => 'Bank of Ayudhya (Krungsri)',
+        'TTB Bank' => 'TMBThanachart Bank (TTB)',
+        'Government Savings Bank' => 'Government Savings Bank (GSB)',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Payment Methods
     |--------------------------------------------------------------------------
     |
@@ -213,8 +229,10 @@ return [
     | Gateways
     |--------------------------------------------------------------------------
     |
-    | 'enabled' defaults to false everywhere because no driver is implemented.
-    | A gateway must not be switched on until Phase 9 provides its driver.
+    | Concrete gateway drivers live in app/Services/Payment/Drivers (Stripe,
+    | bKash, Nagad, Crypto, Bank Transfer). Each gateway is enabled via
+    | environment flags and requires valid credentials or operator settlement
+    | configuration before it can be used in deposit or withdrawal operations.
     |
     */
 
@@ -285,37 +303,25 @@ return [
         ],
 
         'promptpay' => [
-            // FINAL AUDIT #12 — EXPLICIT ORPHAN STATE: this block documents
-            // a FUTURE-ONLY Thai QR payment rail. There is NO driver bound
-            // to it (PaymentGatewayManager cannot resolve 'promptpay' and
-            // PaymentMethod has no PromptPay case), so it can never be
-            // selected by players, advertised as available, or invoked by
-            // any initiation/disbursement path. It exists so the operator
-            // contract (target id, QR window) is on file for the day a
-            // driver is actually implemented and bound.
+            // Thai QR payment rail configuration. Requires active driver binding
+            // in PaymentGatewayManager and valid target identity before it can be
+            // advertised or processed.
             'enabled' => (bool) env('PROMPTPAY_ENABLED', false),
             'driver' => 'promptpay',
-            // National ID (13 digits), phone (starts with 0, national) or
-            // tax id the merchant registered with a PromptPay bank.
             'target' => env('PROMPTPAY_TARGET'),
             'webhook_secret' => env('PROMPTPAY_WEBHOOK_SECRET'),
             'signature_header' => 'X-PromptPay-Signature',
             'currency' => 'THB',
             'supported_currencies' => ['THB'],
-            // A dynamic PromptPay QR cannot lock a chipper for longer than
-            // this; the payer must scan inside the window or get a fresh one.
             'qr_expiry_minutes' => (int) env('PROMPTPAY_QR_EXPIRY_MINUTES', 15),
             'supports_deposit' => true,
             'supports_withdrawal' => false,
         ],
 
         'bank_transfer' => [
-            // FINAL AUDIT #4 — manual settlement. The settlement details
-            // are OPERATOR-PROVIDED and default to empty: with any of them
-            // missing the BankTransferGateway refuses the deposit (fail
-            // closed) rather than displaying a fake bank account. Never
-            // hardcode a real account here in a commit — set it via the
-            // environment on the machine that runs the site.
+            // Bank transfer settlement configuration. Requires valid operator
+            // settlement details (bank_name, account_number, account_name) in
+            // the environment; otherwise BankTransferGateway fails closed.
             'enabled' => (bool) env('BANK_TRANSFER_ENABLED', false),
             'driver' => 'bank_transfer',
             'supported_currencies' => ['THB'],

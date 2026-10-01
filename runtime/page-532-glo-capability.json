@@ -1,0 +1,12 @@
+{
+  "capability": "NOT_CONFIGURED",
+  "enabled": false,
+  "no_checkout_invented": true,
+  "page": 532,
+  "purchase_test": "NOT_APPLICABLE",
+  "reason": "The canonical capability reports no verified public GLO L6 purchase endpoint; PHP/Laravel runtime was unavailable for execution.",
+  "runtime_execution": "BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE",
+  "source": "app/Services/Lottery/GloL6PurchaseCapabilityService.php",
+  "status": "NOT_CONFIGURED",
+  "type": "page_532_glo_capability_evidence"
+}

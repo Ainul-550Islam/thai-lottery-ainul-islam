@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Play Thai Lottery — Complete Rules & Bet Types Guide</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #050b14;
+            color: #cbd5e1;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 10% 80%, rgba(217, 119, 6, 0.04) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .tl-gold-gradient {
+            background: linear-gradient(135deg, #FFF6D6 0%, #F59E0B 50%, #B45309 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tl-gold-bg {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #92400E 100%);
+        }
+        .tl-card {
+            background: linear-gradient(180deg, rgba(16, 27, 45, 0.85) 0%, rgba(10, 18, 30, 0.95) 100%);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            border-radius: 1.25rem;
+            backdrop-filter: blur(12px);
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tl-card:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(217, 119, 6, 0.1);
+        }
+        .sim-panel {
+            background: linear-gradient(135deg, rgba(20, 35, 58, 0.9) 0%, rgba(12, 22, 38, 0.95) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-[#070e1b]/90 backdrop-blur-md border-b border-amber-500/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-xl tl-gold-bg flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-gem text-slate-950 text-xl font-black"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel'] block leading-none">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                        <span class="text-[10px] text-amber-400/80 font-mono tracking-widest uppercase">Player Academy</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Home</a>
+                <a href="/about" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">About Us</a>
+                <a href="/how-to-play" class="text-sm font-semibold text-amber-400 border-b-2 border-amber-400 pb-1">How to Play</a>
+                <a href="/our-fees" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Fees</a>
+                <a href="/prize-verification" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Prize Verification</a>
+                <a href="/discounts" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Discounts</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <a href="/login" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-all">Sign In</a>
+                <a href="/register" class="px-5 py-2.5 rounded-lg text-sm font-black text-slate-950 tl-gold-bg hover:brightness-110 shadow-lg shadow-amber-500/20 transition-all">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <!-- Page Title & Hero Header -->
+        <div class="text-center max-w-3xl mx-auto mb-14">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono mb-4">
+                <i class="fa-solid fa-graduation-cap"></i> Official Thai Lottery Rules & Betting Academy
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white font-['Cinzel'] tracking-tight mb-4">
+                How to Play <span class="tl-gold-gradient">Thai Lottery</span>
+            </h1>
+            <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
+                Master the official Thai Government Lottery rules, 3-Digit Top, 19 Doors technique, Tod permutations, and running numbers with our interactive betting simulator.
+            </p>
+
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-slate-400">
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-calendar-check text-amber-400"></i> Draws on 1st & 16th</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-tv text-cyan-400"></i> Live Broadcast 14:30 UTC+7</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-bolt text-emerald-400"></i> Automated Payouts</span>
+            </div>
+        </div>
+
+        <!-- 4-Step Player Onboarding Workflow -->
+        <div class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-black text-white font-['Cinzel']">4-Step Quick Start Guide</h2>
+                <p class="text-xs text-slate-400 mt-1">From wallet funding to instant automated prize settlement.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Step 1 -->
+                <div class="tl-card flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4 border-b border-[#1c2b44] pb-3">
+                            <span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/40">01</span>
+                            <i class="fa-solid fa-wallet text-amber-400 text-base"></i>
+                        </div>
+                        <h3 class="text-base font-black text-white mb-1.5">Register & Fund Wallet</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Sign up in 30 seconds and deposit funds using PromptPay QR or Bank Wire with 0.00% fees.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="tl-card flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4 border-b border-[#1c2b44] pb-3">
+                            <span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/40">02</span>
+                            <i class="fa-solid fa-gamepad text-amber-400 text-base"></i>
+                        </div>
+                        <h3 class="text-base font-black text-white mb-1.5">Select Game & Bet Type</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Choose between Thai National 3D/2D (900x), Bangkok Weekly 4D, or official 6-digit GLO L6 tickets.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="tl-card flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4 border-b border-[#1c2b44] pb-3">
+                            <span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/40">03</span>
+                            <i class="fa-solid fa-keyboard text-amber-400 text-base"></i>
+                        </div>
+                        <h3 class="text-base font-black text-white mb-1.5">Pick Lucky Numbers</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Enter numbers manually, generate automated 19 Doors sets, or choose 3D Tod permutations.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="tl-card flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4 border-b border-[#1c2b44] pb-3">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 font-mono font-bold text-xs flex items-center justify-center border border-emerald-500/40">04</span>
+                            <i class="fa-solid fa-trophy text-emerald-400 text-base"></i>
+                        </div>
+                        <h3 class="text-base font-black text-white mb-1.5">Automated Prize Settlement</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Draw results are verified live. Winning tickets are credited directly to your cash wallet with 0% fee.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Live Bet Type & Permutation Simulator -->
+        <div class="sim-panel p-6 sm:p-10 mb-16">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <!-- Left: Controls -->
+                <div class="lg:col-span-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-black text-white font-['Cinzel']">Interactive Bet Type Simulator</h2>
+                            <p class="text-xs text-slate-400">Test how 19 Doors, 3D Tod, and Running Numbers work in real time.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1 font-mono">Select Betting Technique</label>
+                            <select id="simBetType" onchange="runSimulationStandalone()" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
+                                <option value="19_doors">19 Doors (19 ประตู) — 19 Generated Numbers</option>
+                                <option value="3d_tod">3-Digit Tod (3 ตัวโต๊ด) — 6 Permutations (150x)</option>
+                                <option value="3d_top">3-Digit Top (3 ตัวบน) — Exact Straight (900x)</option>
+                                <option value="2d_top">2-Digit Top (2 ตัวบน) — Exact Match (90x)</option>
+                                <option value="running_top">Running Number (วิ่งบน) — Single Digit Match (3.2x)</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1 font-mono">Key Number / Digit</label>
+                                <input type="text" id="simDigitInput" value="7" maxlength="6" oninput="runSimulationStandalone()" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2 text-xs font-mono font-bold text-white text-center focus:outline-none focus:border-amber-400">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1 font-mono">Stake Per Line (THB)</label>
+                                <input type="number" id="simStakeInput" value="10" min="1" max="10000" oninput="runSimulationStandalone()" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2 text-xs font-mono font-bold text-white text-center focus:outline-none focus:border-amber-400">
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 pt-2 text-xs">
+                            <span class="text-slate-400 font-mono text-[11px] mr-1">Quick Select:</span>
+                            <button type="button" onclick="setSimPreset('19_doors', '7')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">19 Doors [7]</button>
+                            <button type="button" onclick="setSimPreset('3d_tod', '921')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">3D Tod [921]</button>
+                            <button type="button" onclick="setSimPreset('3d_top', '921')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">3D Straight (900x)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Visual Combinatorial Output Grid -->
+                <div class="lg:col-span-6 bg-[#0a1424] border border-amber-500/40 rounded-2xl p-6 sm:p-7 space-y-4">
+                    <div class="border-b border-[#1c2b44] pb-3">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase block">Technique Summary</span>
+                        <p id="simOutDesc" class="text-xs font-bold text-white mt-0.5">19 Doors covering all 2-digit combinations containing digit [7].</p>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 text-xs font-mono">
+                        <div class="p-2.5 bg-slate-900/80 rounded-xl border border-[#1c2b44]">
+                            <span class="text-[10px] text-slate-400 block uppercase">Total Lines</span>
+                            <span id="simOutTotalLines" class="text-base font-bold text-amber-400">19 Lines</span>
+                        </div>
+                        <div class="p-2.5 bg-slate-900/80 rounded-xl border border-[#1c2b44]">
+                            <span class="text-[10px] text-slate-400 block uppercase">Total Cost</span>
+                            <span id="simOutTotalStake" class="text-base font-bold text-cyan-400">190.00 THB</span>
+                        </div>
+                        <div class="p-2.5 bg-slate-900/80 rounded-xl border border-[#1c2b44]">
+                            <span class="text-[10px] text-slate-400 block uppercase">Win Payout</span>
+                            <span id="simOutWinPerLine" class="text-base font-bold text-emerald-400">900.00 THB</span>
+                        </div>
+                    </div>
+
+                    <!-- Generated Combinations Pill Grid -->
+                    <div>
+                        <span class="text-[10px] font-mono text-slate-400 uppercase block mb-2">Generated Number Combinations:</span>
+                        <div id="simOutLinesGrid" class="grid grid-cols-5 sm:grid-cols-7 gap-1.5 max-h-36 overflow-y-auto p-2 bg-[#070e1b] rounded-xl border border-[#1c2b44]">
+                            <!-- Generated Dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6 Main Bet Types Deep-Dive Grid -->
+        <div class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-black text-white font-['Cinzel']">Detailed Thai Lottery Bet Types</h2>
+                <p class="text-xs text-slate-400 mt-1">Understand the exact winning conditions and odds for each market.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 3D Top -->
+                <div class="tl-card">
+                    <div class="flex items-center justify-between mb-3 border-b border-[#1c2b44] pb-2.5">
+                        <h3 class="text-base font-bold text-white">3-Digit Top (3 ตัวบน)</h3>
+                        <span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono font-bold text-xs">900x Payout</span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Matches the last 3 digits of the official 1st Prize exactly in position.
+                    </p>
+                    <div class="p-2.5 bg-slate-900/80 rounded-lg border border-[#1c2b44] text-[11px] font-mono text-slate-300">
+                        <span class="text-slate-400 block text-[9px] uppercase">Example</span>
+                        1st Prize = 843921 &rarr; Winning # = <strong class="text-amber-400">921</strong>
+                    </div>
+                </div>
+
+                <!-- 3D Tod -->
+                <div class="tl-card">
+                    <div class="flex items-center justify-between mb-3 border-b border-[#1c2b44] pb-2.5">
+                        <h3 class="text-base font-bold text-white">3-Digit Tod (3 ตัวโต๊ด)</h3>
+                        <span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono font-bold text-xs">150x Payout</span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Matches the last 3 digits of the 1st Prize in ANY order / permutation.
+                    </p>
+                    <div class="p-2.5 bg-slate-900/80 rounded-lg border border-[#1c2b44] text-[11px] font-mono text-slate-300">
+                        <span class="text-slate-400 block text-[9px] uppercase">Example</span>
+                        1st Prize = 843921 &rarr; <strong class="text-amber-400">921, 912, 129...</strong> all win
+                    </div>
+                </div>
+
+                <!-- 2D Top / Bottom -->
+                <div class="tl-card">
+                    <div class="flex items-center justify-between mb-3 border-b border-[#1c2b44] pb-2.5">
+                        <h3 class="text-base font-bold text-white">2-Digit (2 ตัวบน / ล่าง)</h3>
+                        <span class="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold text-xs">90x Payout</span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Matches the last 2 digits of the 1st Prize (Top) or official 2-digit draw (Bottom).
+                    </p>
+                    <div class="p-2.5 bg-slate-900/80 rounded-lg border border-[#1c2b44] text-[11px] font-mono text-slate-300">
+                        <span class="text-slate-400 block text-[9px] uppercase">Example</span>
+                        1st Prize = 843921 &rarr; 2D Top = <strong class="text-emerald-400">21</strong> (90x)
+                    </div>
+                </div>
+
+                <!-- 19 Doors -->
+                <div class="tl-card">
+                    <div class="flex items-center justify-between mb-3 border-b border-[#1c2b44] pb-2.5">
+                        <h3 class="text-base font-bold text-white">19 Doors (19 ประตู)</h3>
+                        <span class="px-2.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono font-bold text-xs">19 Lines</span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Automatically places bets on all 19 two-digit numbers containing your key digit.
+                    </p>
+                    <div class="p-2.5 bg-slate-900/80 rounded-lg border border-[#1c2b44] text-[11px] font-mono text-slate-300">
+                        <span class="text-slate-400 block text-[9px] uppercase">Example</span>
+                        Key [7] &rarr; Bets <strong class="text-cyan-400">07, 17, 27... 70, 71... 79</strong>
+                    </div>
+                </div>
+
+                <!-- Running Numbers -->
+                <div class="tl-card">
+                    <div class="flex items-center justify-between mb-3 border-b border-[#1c2b44] pb-2.5">
+                        <h3 class="text-base font-bold text-white">Running (วิ่งบน / วิ่งล่าง)</h3>
+                        <span class="px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-bold text-xs">3.2x / 4.2x</span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Select a single digit (0-9). Wins if that digit appears anywhere in the target result.
+                    </p>
+                    <div class="p-2.5 bg-slate-900/80 rounded-lg border border-[#1c2b44] text-[11px] font-mono text-slate-300">
+                        <span class="text-slate-400 block text-[9px] uppercase">Example</span>
+                        Top 3 = 921 &rarr; Running <strong class="text-slate-200">[9], [2], [1]</strong> win
+                    </div>
+                </div>
+
+                <!-- GLO L6 -->
+                <div class="tl-card">
+                    <div class="flex items-center justify-between mb-3 border-b border-[#1c2b44] pb-2.5">
+                        <h3 class="text-base font-bold text-white">GLO Standard L6 Ticket</h3>
+                        <span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-xs">6,000,000 THB</span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Official 6-digit statutory Government Lottery ticket with 9 winning prize tiers.
+                    </p>
+                    <div class="p-2.5 bg-slate-900/80 rounded-lg border border-[#1c2b44] text-[11px] font-mono text-slate-300">
+                        <span class="text-slate-400 block text-[9px] uppercase">Face Value</span>
+                        Statutory price = <strong class="text-amber-400">80.00 THB</strong> per ticket
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Official Draw Schedule & Timing Card -->
+        <div class="tl-card p-6 sm:p-8 mb-14">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-[#1c2b44] pb-4">
+                <div>
+                    <h3 class="text-lg font-black text-white font-['Cinzel']">Official Draw Schedule & Timing</h3>
+                    <p class="text-xs text-slate-400">Timetable for ticket sales, broadcast, and settlement.</p>
+                </div>
+                <div class="text-xs font-mono text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/30">
+                    <i class="fa-solid fa-clock mr-1"></i> Bangkok Time (UTC+7)
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
+                <div class="p-4 bg-slate-900/80 rounded-xl border border-[#1c2b44]">
+                    <span class="text-[10px] text-slate-400 block uppercase mb-1">Draw Dates</span>
+                    <span class="text-white font-bold text-sm block">1st & 16th of Month</span>
+                    <span class="text-[10px] text-slate-500 mt-1 block">Twice monthly standard GLO draws</span>
+                </div>
+                <div class="p-4 bg-slate-900/80 rounded-xl border border-[#1c2b44]">
+                    <span class="text-[10px] text-slate-400 block uppercase mb-1">Betting Cutoff</span>
+                    <span class="text-amber-400 font-bold text-sm block">15:20 UTC+7</span>
+                    <span class="text-[10px] text-slate-500 mt-1 block">Tickets closed prior to final spin</span>
+                </div>
+                <div class="p-4 bg-slate-900/80 rounded-xl border border-[#1c2b44]">
+                    <span class="text-[10px] text-slate-400 block uppercase mb-1">Live Broadcast</span>
+                    <span class="text-cyan-400 font-bold text-sm block">14:30 – 16:00</span>
+                    <span class="text-[10px] text-slate-500 mt-1 block">Televised NBT & Thairath TV</span>
+                </div>
+                <div class="p-4 bg-slate-900/80 rounded-xl border border-[#1c2b44]">
+                    <span class="text-[10px] text-slate-400 block uppercase mb-1">Payout Clearance</span>
+                    <span class="text-emerald-400 font-bold text-sm block">16:15 UTC+7</span>
+                    <span class="text-[10px] text-slate-500 mt-1 block">Instant automated wallet credit</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer matching visual mockup -->
+    <footer class="bg-[#050b14] border-t border-amber-500/20 pt-16 pb-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#1c2b44]">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl tl-gold-bg flex items-center justify-center">
+                            <i class="fa-solid fa-gem text-slate-950 font-black"></i>
+                        </div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel']">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed max-w-sm mb-6">
+                        Thailand's premier digital lottery platform. Officially licensed and regulated digital gateway providing transparent, instant, and high-security draw access for global players.
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-telegram"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-line"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Quick Navigation</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/" class="hover:text-amber-400 transition-colors">Home Page</a></li>
+                        <li><a href="/about" class="hover:text-amber-400 transition-colors">About ThaiLotto</a></li>
+                        <li><a href="/vision-mission" class="hover:text-amber-400 transition-colors">Vision & Mission</a></li>
+                        <li><a href="/how-to-play" class="text-amber-400 font-bold transition-colors">How to Play</a></li>
+                        <li><a href="/faq" class="hover:text-amber-400 transition-colors">Frequently Asked Questions</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Legal & Compliance</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/terms-conditions" class="hover:text-amber-400 transition-colors">Terms & Conditions</a></li>
+                        <li><a href="/privacy-policy" class="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="/our-fees" class="hover:text-amber-400 transition-colors">Fee Schedules</a></li>
+                        <li><a href="/prize-verification" class="hover:text-amber-400 transition-colors">Prize Verification</a></li>
+                        <li><a href="/discounts" class="hover:text-amber-400 transition-colors">Discount Rules</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Security & Trust</h5>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-lock text-emerald-400"></i>
+                            <span>256-Bit SSL Encryption</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                            <span>GLO Certified Results</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-server text-blue-400"></i>
+                            <span>99.99% Server Uptime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+                <div>&copy; 2026 ThaiLotto Platform. All Rights Reserved. Regulated lottery entertainment service.</div>
+                <div class="flex gap-6">
+                    <a href="/terms-conditions" class="hover:text-slate-400">Terms</a>
+                    <a href="/privacy-policy" class="hover:text-slate-400">Privacy</a>
+                    <a href="/our-fees" class="hover:text-slate-400">Fees</a>
+                    <a href="/how-to-play" class="text-amber-400">How to Play</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Standalone Simulation Logic -->
+    <script>
+        function runSimulationStandalone() {
+            var bType = document.getElementById('simBetType').value;
+            var digitInput = document.getElementById('simDigitInput').value.trim();
+            var stake = parseFloat(document.getElementById('simStakeInput').value);
+            if (isNaN(stake) || stake <= 0) stake = 10;
+
+            var lines = [];
+            var mult = 90;
+            var desc = '';
+
+            if (bType === '19_doors') {
+                var d = digitInput.length > 0 ? digitInput[0] : '7';
+                for (var i = 0; i <= 9; i++) {
+                    lines.push(d + i);
+                    if (i != parseInt(d)) {
+                        lines.push(i + d);
+                    }
+                }
+                lines.sort();
+                mult = 90;
+                desc = '19 Doors covering all 2-digit combinations containing digit [' + d + '].';
+            } else if (bType === '3d_tod') {
+                var d3 = digitInput.length >= 3 ? digitInput.slice(0, 3) : '921';
+                var a = d3[0], b = d3[1], c = d3[2];
+                var rawPerms = [a+b+c, a+c+b, b+a+c, b+c+a, c+a+b, c+b+a];
+                lines = rawPerms.filter((item, index) => rawPerms.indexOf(item) === index);
+                mult = 150;
+                desc = '3-Digit Tod covers all ' + lines.length + ' permutations of [' + d3 + '].';
+            } else if (bType === '3d_top') {
+                lines = [digitInput.length >= 3 ? digitInput.slice(0, 3) : '921'];
+                mult = 900;
+                desc = 'Exact 3-digit match on the last 3 digits of 1st Prize.';
+            } else if (bType === '2d_top') {
+                lines = [digitInput.length >= 2 ? digitInput.slice(0, 2) : '21'];
+                mult = 90;
+                desc = 'Exact 2-digit match on top prize.';
+            } else if (bType === 'running_top') {
+                lines = [digitInput.length >= 1 ? digitInput[0] : '9'];
+                mult = 3.2;
+                desc = 'Single digit appears anywhere in 3-Digit Top.';
+            }
+
+            document.getElementById('simOutDesc').textContent = desc;
+            document.getElementById('simOutTotalLines').textContent = lines.length + ' Lines';
+            document.getElementById('simOutTotalStake').textContent = (lines.length * stake).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' THB';
+            document.getElementById('simOutWinPerLine').textContent = (stake * mult).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' THB (' + mult + 'x)';
+
+            var grid = document.getElementById('simOutLinesGrid');
+            var html = '';
+            lines.forEach(function(l) {
+                html += '<span class="px-2.5 py-1.5 rounded-lg bg-[#0a1424] border border-amber-500/30 text-amber-400 font-mono font-bold text-center text-xs">' + l + '</span>';
+            });
+            grid.innerHTML = html;
+        }
+
+        function setSimPreset(t, val) {
+            document.getElementById('simBetType').value = t;
+            document.getElementById('simDigitInput').value = val;
+            runSimulationStandalone();
+        }
+
+        // Init
+        runSimulationStandalone();
+    </script>
+</body>
+</html>

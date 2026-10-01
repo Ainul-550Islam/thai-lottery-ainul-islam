@@ -1,0 +1,249 @@
+/**
+ * Thai Lottery Auth Portal Styling (Login & Registration)
+ * Reference Design: https://thailotto.club/
+ * Premium Dark Glassmorphism, Gold & Emerald Accents, Smooth Transitions
+ */
+
+.tl-auth-page {
+    min-height: calc(100vh - 120px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.tl-auth-bg-ambient {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(245, 158, 11, 0.08) 40%, rgba(15, 23, 42, 0) 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(40px);
+}
+
+.tl-auth-card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 480px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 25px rgba(16, 185, 129, 0.1);
+    border-radius: 1.5rem;
+    padding: 2.25rem 2rem;
+    transition: all 0.3s ease-in-out;
+}
+
+.tl-auth-card:hover {
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(16, 185, 129, 0.15);
+}
+
+.tl-auth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #34d399;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.tl-auth-logo-badge {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #f59e0b 0%, #10b981 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.5rem;
+    color: #020617;
+    margin: 0 auto 1rem auto;
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+}
+
+.tl-auth-tabs {
+    display: flex;
+    background: rgba(2, 6, 23, 0.6);
+    border: 1px solid rgba(51, 65, 85, 0.6);
+    border-radius: 1rem;
+    padding: 0.375rem;
+    margin-bottom: 1.5rem;
+    gap: 0.25rem;
+}
+
+.tl-auth-tab {
+    flex: 1;
+    text-align: center;
+    padding: 0.625rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.tl-auth-tab:hover {
+    color: #f8fafc;
+}
+
+.tl-auth-tab.active {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+.tl-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.tl-form-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 0.375rem;
+}
+
+.tl-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.tl-input-icon {
+    position: absolute;
+    left: 1rem;
+    color: #64748b;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.tl-input-field {
+    width: 100%;
+    background: rgba(2, 6, 23, 0.75);
+    border: 1px solid #334155;
+    border-radius: 0.875rem;
+    padding: 0.8125rem 1rem 0.8125rem 2.75rem;
+    color: #f8fafc;
+    font-size: 0.9375rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.tl-input-field:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    background: rgba(2, 6, 23, 0.9);
+}
+
+.tl-input-field:focus + .tl-input-icon {
+    color: #10b981;
+}
+
+.tl-password-toggle {
+    position: absolute;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.tl-password-toggle:hover {
+    color: #e2e8f0;
+}
+
+.tl-submit-btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    border-radius: 0.875rem;
+    background: linear-gradient(135deg, #f59e0b 0%, #10b981 100%);
+    color: #020617;
+    font-weight: 800;
+    font-size: 0.9375rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.tl-submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    filter: brightness(1.05);
+}
+
+.tl-submit-btn:active {
+    transform: translateY(0);
+}
+
+/* Password Strength Meter */
+.tl-strength-meter {
+    height: 4px;
+    width: 100%;
+    background: #1e293b;
+    border-radius: 9999px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.tl-strength-bar {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.tl-strength-weak {
+    width: 25%;
+    background-color: #f43f5e;
+}
+
+.tl-strength-fair {
+    width: 50%;
+    background-color: #f59e0b;
+}
+
+.tl-strength-good {
+    width: 75%;
+    background-color: #38bdf8;
+}
+
+.tl-strength-strong {
+    width: 100%;
+    background-color: #10b981;
+}
+
+.tl-strength-text {
+    font-size: 0.6875rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+    display: flex;
+    justify-content: space-between;
+}

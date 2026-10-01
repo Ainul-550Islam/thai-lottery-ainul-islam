@@ -100,6 +100,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
         return [
             'password' => 'hashed',
             'status' => UserStatus::class,
+            'kyc_status' => KycStatus::class,
             'date_of_birth' => 'date',
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',

@@ -9,6 +9,12 @@ enum AgentStatus: string
     case Suspended = 'suspended';
     case Terminated = 'terminated';
 
+    // Backward-compatible aliases for older callers; the canonical cases remain above.
+    public const ACTIVE = self::Active;
+    public const INACTIVE = self::Inactive;
+    public const SUSPENDED = self::Suspended;
+    public const TERMINATED = self::Terminated;
+
     public function label(): string
     {
         return match ($this) {

@@ -39,12 +39,12 @@ final class ResponsibleGamingEnforcementService
      *
      * @throws SelfExclusionException|ResponsibleGamingLimitException
      */
-    public function assertBetAllowed(User $user, string $stakeAmount): void
+    public function assertBetAllowed(User $user, string $stakeAmount, ?string $currency = 'THB'): void
     {
         $this->refuseIfExcluded($user);
 
         foreach ([ResponsibleGamingLimitType::SingleBet, ResponsibleGamingLimitType::StakeLimit] as $cap) {
-            $binding = $this->limits->bindingLimitFor((int) $user->id, $cap);
+            $binding = $this->limits->bindingLimitFor((int) $user->id, $cap, $currency);
 
             if ($binding !== null && bccomp($stakeAmount, (string) $binding->amount, 2) > 0) {
                 throw ResponsibleGamingLimitException::invalidAmount(sprintf(
@@ -55,7 +55,7 @@ final class ResponsibleGamingEnforcementService
         }
 
         foreach ([ResponsibleGamingLimitType::DailyLoss, ResponsibleGamingLimitType::WeeklyLoss, ResponsibleGamingLimitType::MonthlyLoss] as $cap) {
-            $this->assertLossHeadroom($user, $cap, $stakeAmount);
+            $this->assertLossHeadroom($user, $cap, $stakeAmount, $currency);
         }
     }
 
@@ -65,7 +65,7 @@ final class ResponsibleGamingEnforcementService
      *
      * @throws SelfExclusionException|ResponsibleGamingLimitException
      */
-    public function assertDepositAllowed(User $user, string $amount): void
+    public function assertDepositAllowed(User $user, string $amount, ?string $currency = 'THB'): void
     {
         $this->refuseIfExcluded($user);
 
@@ -74,14 +74,14 @@ final class ResponsibleGamingEnforcementService
             ResponsibleGamingLimitType::WeeklyDeposit,
             ResponsibleGamingLimitType::MonthlyDeposit,
         ] as $cap) {
-            $binding = $this->limits->bindingLimitFor((int) $user->id, $cap);
+            $binding = $this->limits->bindingLimitFor((int) $user->id, $cap, $currency);
 
             if ($binding === null) {
                 continue;
             }
 
             $days = (int) ($cap->rollingPeriodDays() ?? 1);
-            $spent = $this->depositVolume((int) $user->id, $days);
+            $spent = $this->depositVolume((int) $user->id, $days, $currency);
             $projected = bcadd($spent, $amount, 2);
 
             if (bccomp($projected, (string) $binding->amount, 2) > 0) {
@@ -108,9 +108,9 @@ final class ResponsibleGamingEnforcementService
     /**
      * Post-hoc reconciliation read: the rolling loss of the window.
      */
-    public function rollingLoss(User $user, int $days): string
+    public function rollingLoss(User $user, int $days, ?string $currency = 'THB'): string
     {
-        return $this->netLoss((int) $user->id, $days);
+        return $this->netLoss((int) $user->id, $days, $currency);
     }
 
     private function refuseIfExcluded(User $user): void
@@ -122,16 +122,16 @@ final class ResponsibleGamingEnforcementService
         }
     }
 
-    private function assertLossHeadroom(User $user, ResponsibleGamingLimitType $cap, string $projectedStake): void
+    private function assertLossHeadroom(User $user, ResponsibleGamingLimitType $cap, string $projectedStake, ?string $currency = 'THB'): void
     {
-        $binding = $this->limits->bindingLimitFor((int) $user->id, $cap);
+        $binding = $this->limits->bindingLimitFor((int) $user->id, $cap, $currency);
 
         if ($binding === null) {
             return;
         }
 
         $days = (int) ($cap->rollingPeriodDays() ?? 1);
-        $loss = $this->netLoss((int) $user->id, $days);
+        $loss = $this->netLoss((int) $user->id, $days, $currency);
         $projected = bcadd($loss, $projectedStake, 2);
 
         if (bccomp($projected, (string) $binding->amount, 2) > 0) {
@@ -142,13 +142,18 @@ final class ResponsibleGamingEnforcementService
         }
     }
 
-    private function depositVolume(int $userId, int $days): string
+    private function depositVolume(int $userId, int $days, ?string $currency = null): string
     {
-        $sum = Deposit::query()
+        $query = Deposit::query()
             ->where('user_id', $userId)
             ->whereIn('status', [DepositStatus::completedCase(), DepositStatus::Pending])
-            ->where('created_at', '>=', now()->subDays($days))
-            ->sum('amount');
+            ->where('created_at', '>=', now()->subDays($days));
+
+        if ($currency !== null && $currency !== '') {
+            $query->where('currency', $currency);
+        }
+
+        $sum = $query->sum('amount');
 
         return bcadd(sprintf('%0.2f', 0), (string) $sum, 2);
     }
@@ -158,10 +163,14 @@ final class ResponsibleGamingEnforcementService
      * completed stakes OUT minus completed winnings/refunds IN.
      * Read-only evidence — never arithmetic that moves money.
      */
-    private function netLoss(int $userId, int $days): string
+    private function netLoss(int $userId, int $days, ?string $currency = null): string
     {
+        $walletQuery = Wallet::query()->where('user_id', $userId);
+        if ($currency !== null && $currency !== '') {
+            $walletQuery->where('currency', $currency);
+        }
         /** @var Wallet|null $wallet */
-        $wallet = Wallet::query()->where('user_id', $userId)->first();
+        $wallet = $walletQuery->first();
 
         if (! $wallet instanceof Wallet) {
             return '0.00';

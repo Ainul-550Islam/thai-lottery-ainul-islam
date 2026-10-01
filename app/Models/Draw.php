@@ -47,6 +47,15 @@ use Illuminate\Support\Carbon;
  */
 class Draw extends Model
 {
+    protected static function booted(): void
+    {
+        static::creating(function (self $model): void {
+            if ($model->type === null) {
+                $model->type = DrawType::TwoD;
+            }
+        });
+    }
+
     /** @use HasFactory<DrawFactory> */
     use HasFactory;
 
@@ -64,6 +73,11 @@ class Draw extends Model
     protected $fillable = [
         'draw_number',
         'type',
+        // The draw creation contract accepts the initial lifecycle state and
+        // currency; subsequent transitions remain explicit assignments by the
+        // draw engine.
+        'status',
+        'currency',
         'scheduled_at',
         'metadata',
     ];
@@ -76,6 +90,7 @@ class Draw extends Model
         return [
             'type' => DrawType::class,
             'status' => DrawStatus::class,
+            'currency' => \App\Enums\Currency::class,
             'scheduled_at' => 'datetime',
             'betting_open_at' => 'datetime',
             'betting_close_at' => 'datetime',

@@ -34,7 +34,7 @@ use Illuminate\View\View;
  *   GET  /reset-password    anonymous  — new-password form (token-gated)
  *   POST /reset-password    anonymous  — throttle:password-reset
  */
-final class MemberAuthController
+class MemberAuthController
 {
     public function __construct(
         private readonly LoginService $login,
