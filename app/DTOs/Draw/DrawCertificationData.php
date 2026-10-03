@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\DTOs\Draw;
 
 use App\Enums\ResultSourceType;
+use App\Exceptions\DrawCertificationException;
+use Illuminate\Support\Carbon;
 
 /**
  * The immutable payload of one certification conversation.
@@ -34,11 +36,10 @@ final readonly class DrawCertificationData
         public string $certifierReference,
         public string $certifiedAt,
         public ResultSourceType $source,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\DrawCertificationException
+     * @throws DrawCertificationException
      */
     public static function fromInput(
         int $drawId,
@@ -52,33 +53,33 @@ final readonly class DrawCertificationData
         $at = trim($certifiedAt);
 
         if ($drawId < 1) {
-            throw \App\Exceptions\DrawCertificationException::malformed(
+            throw DrawCertificationException::malformed(
                 'the draw handle must be a positive integer',
             );
         }
 
         if (! preg_match('/^[0-9a-f]{64}$/', $fp)) {
-            throw \App\Exceptions\DrawCertificationException::malformed(
+            throw DrawCertificationException::malformed(
                 'the result fingerprint must be exactly 64 lowercase hex characters',
             );
         }
 
         if ($certifier === '' || strlen($certifier) > 64) {
-            throw \App\Exceptions\DrawCertificationException::malformed(
+            throw DrawCertificationException::malformed(
                 'the certifier reference must be 1-64 characters',
             );
         }
 
         try {
-            $when = \Illuminate\Support\Carbon::parse($at)->utc();
+            $when = Carbon::parse($at)->utc();
         } catch (\Throwable) {
-            throw \App\Exceptions\DrawCertificationException::malformed(
+            throw DrawCertificationException::malformed(
                 'certified_at must be an ISO-8601 instant',
             );
         }
 
         if ($when->isFuture()) {
-            throw \App\Exceptions\DrawCertificationException::malformed(
+            throw DrawCertificationException::malformed(
                 'certified_at cannot lie in the future',
             );
         }

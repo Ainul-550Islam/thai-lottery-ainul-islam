@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Agent;
 
 use App\DTOs\Agent\CommissionSettlementResult;
-use App\Enums\AgentStatus;
 use App\Enums\AuditAction;
 use App\Enums\CommissionStatus;
 use App\Enums\Currency;
@@ -16,7 +15,6 @@ use App\Models\Agent;
 use App\Models\AgentCommission;
 use App\Models\AuditLog;
 use App\Models\Draw;
-use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Finance\Money;
 use App\Services\Finance\WalletLockService;
@@ -39,8 +37,7 @@ class AgentSettlementService
         private readonly WalletService $wallets,
         private readonly WalletLockService $walletLocks,
         private readonly AgentCommissionSettlementService $drawSettlement,
-    ) {
-    }
+    ) {}
 
     /**
      * Settle all accrued commissions for a completed draw.

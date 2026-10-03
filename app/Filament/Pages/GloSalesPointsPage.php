@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Exceptions\GloDealerException;
 use App\Models\GloSalesPoint;
 use App\Services\Lottery\GloSalesPointService;
 use App\Support\Admin\AdminAccess;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
-use Filament\Pages\Page;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 
 /**
  * Filament page — GLO-16 sales-point management / verification.
@@ -109,7 +110,7 @@ class GloSalesPointsPage extends Page
         try {
             app(GloSalesPointService::class)->verify($point, $user, 'verified');
             Notification::make()->title('Sales point verified')->success()->send();
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             Notification::make()->title($e->getMessage())->danger()->send();
         }
     }

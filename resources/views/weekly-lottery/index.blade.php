@@ -24,7 +24,18 @@
     <main id="wl-main" class="wl-main" tabindex="-1">
         <header class="wl-header"><p class="wl-eyebrow">{{ trans('weekly_lottery.current_result_heading') }}</p><h1 class="wl-title">{{ trans('weekly_lottery.heading') }}</h1><p class="wl-intro">{{ trans('weekly_lottery.intro') }}</p><p class="wl-disclaimer">{{ trans('weekly_lottery.not_official_notice') }}</p><nav class="wl-actions" aria-label="{{ trans('weekly_lottery.heading') }}"><a class="wl-link" href="{{ route('weekly-lottery.latest') }}">{{ trans('weekly_lottery.current_result_heading') }}</a><a class="wl-link" href="{{ route('weekly-lottery.history') }}">{{ trans('weekly_lottery.history_heading') }}</a><a class="wl-link" href="{{ route('weekly-lottery.buy') }}">{{ trans('lottery_hub.buy_title') }}</a></nav></header>
 
-        @if ($projection !== [])<section class="wl-section" aria-labelledby="wl-current-heading"><h2 id="wl-current-heading" class="wl-section__heading">{{ trans('weekly_lottery.current_result_heading') }}</h2><x-weekly-lottery.result-card :result="$projection" :is-thai="$is_thai" /></section>@else<section class="wl-section wl-section--empty" role="status"><p class="wl-empty">{{ trans('weekly_lottery.empty_current') }}</p></section>@endif
+        {{--
+            EMPTY STATE.
+
+            This read `@if ($projection !== [])`. WeeklyLotteryResultService::
+            currentResult() always returns a populated array - when nothing has
+            been published it returns status NO_PUBLIC_DATA with available
+            false - so the condition was true on every request, the else branch
+            was unreachable, and `weekly_lottery.empty_current` never rendered.
+            An empty lane showed a result card with blank fields instead of
+            saying that no result exists. Availability is the real question.
+        --}}
+        @if (($projection['available'] ?? false) === true)<section class="wl-section" aria-labelledby="wl-current-heading"><h2 id="wl-current-heading" class="wl-section__heading">{{ trans('weekly_lottery.current_result_heading') }}</h2><x-weekly-lottery.result-card :result="$projection" :is-thai="$is_thai" /></section>@else<section class="wl-section wl-section--empty" role="status"><p class="wl-empty">{{ trans('weekly_lottery.empty_current') }}</p></section>@endif
 
         @if ($recent !== [])<section class="wl-section" aria-labelledby="wl-recent-heading"><h2 id="wl-recent-heading" class="wl-section__heading">{{ trans('weekly_lottery.recent_draws_heading') }}</h2><div class="grid gap-4 md:grid-cols-2">@foreach ($recent as $row)<x-weekly-lottery.result-card :result="$row" :is-thai="$is_thai" />@endforeach</div></section>@endif
 

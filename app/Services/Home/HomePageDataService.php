@@ -55,21 +55,47 @@ class HomePageDataService
             'countdown' => $countdownData,
         ];
 
+        // Built once and shared by both the canonical key and its documented
+        // alias below, so a section is never composed twice per request.
+        $liveDraw = $this->section(fn (): array => $this->gloHome->liveCard());
+        $laneResults = $this->section(fn (): array => $this->laneResults->lanes());
+        $prizeHighlight = $this->section(fn (): array => $this->gloHome->prizeCard());
+        $paymentMethods = $this->section(fn (): array => $this->payments->publicMethods());
+
         return [
             'hero' => $hero,
             'current_result' => $this->section(fn (): array => $this->gloHome->currentResultCard()),
             'next_draw' => $nextDraw,
             'countdown' => $countdownData,
-            'live_draw' => $this->section(fn (): array => $this->gloHome->liveCard()),
+
+            /*
+             * SECTION KEYS CARRY BOTH NAMES.
+             *
+             * The published contract for this payload names four sections
+             * `live`, `lanes`, `prize` and `payments`; the implementation grew
+             * the longer `live_draw`, `lane_results`, `prize_highlight` and
+             * `payment_methods`. Nothing reconciled the two, so any consumer
+             * written against the contract read null from four of the twelve
+             * sections and silently rendered an empty block.
+             *
+             * Both names are published and point at the same composed array.
+             * The short names are the contract; the long names remain for the
+             * Blade templates and the v1 API projection that already use them.
+             */
+            'live' => $liveDraw,
+            'live_draw' => $liveDraw,
             // The four public result lanes. Wrapped like every other section,
             // so a lane outage degrades this block instead of the page.
-            'lane_results' => $this->section(fn (): array => $this->laneResults->lanes()),
+            'lanes' => $laneResults,
+            'lane_results' => $laneResults,
             'lottery_feed' => $lotteriesData,
             'result_feed' => $resultsFeedData,
             'stats' => $this->section(fn (): array => $this->stats->publicStats()),
-            'prize_highlight' => $this->section(fn (): array => $this->gloHome->prizeCard()),
+            'prize' => $prizeHighlight,
+            'prize_highlight' => $prizeHighlight,
             'bonuses' => $this->section(fn (): array => $this->bonuses->activeCampaigns()),
-            'payment_methods' => $this->section(fn (): array => $this->payments->publicMethods()),
+            'payments' => $paymentMethods,
+            'payment_methods' => $paymentMethods,
             'support' => $this->section(fn (): array => $this->support->contact()),
             'app_links' => $this->section(fn (): array => $this->appLinks->links()),
             'trust' => [

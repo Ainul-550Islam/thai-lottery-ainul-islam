@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -104,7 +105,7 @@ abstract class TestCase extends BaseTestCase
         // chart of accounts is an explicit test prerequisite rather than an
         // implicit production fallback. This never runs outside the guarded
         // test database allow-list above.
-        (new \Database\Seeders\LedgerAccountSeeder())->run();
+        (new LedgerAccountSeeder)->run();
 
         self::$schemaPrepared = true;
     }
@@ -113,7 +114,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        (new \Database\Seeders\LedgerAccountSeeder())->run();
+        (new LedgerAccountSeeder)->run();
     }
 
     /**
@@ -124,7 +125,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected function afterRefreshingDatabase()
     {
-        (new \Database\Seeders\LedgerAccountSeeder())->run();
+        (new LedgerAccountSeeder)->run();
     }
 
     /**

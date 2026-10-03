@@ -46,8 +46,7 @@ class StructuredLogger
 
     public function __construct(
         private readonly ?ConfigRepository $config = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Log an informational message with sanitized structured context.

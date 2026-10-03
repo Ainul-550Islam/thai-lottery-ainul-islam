@@ -8,7 +8,7 @@
 
     <!-- Tailwind CSS (CDN for standalone preview, plus project stylesheet) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('css/wallet-management.css') }}">
+    @vite(['resources/css/wallet-management.css'])
     <style>
         :root {
             --wm-bg-page: #0d121b;
@@ -279,6 +279,6 @@
     </main>
 
     <!-- Browser Runtime Script -->
-    <script src="{{ asset('js/wallet-management.js') }}"></script>
+    @vite(['resources/js/wallet-management.js'])
 </body>
 </html>

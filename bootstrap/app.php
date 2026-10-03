@@ -1,10 +1,24 @@
 <?php
 
+use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\CorrelationIdMiddleware;
+use App\Http\Middleware\EnsureDrawIsOpen;
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\EnsureWalletIsActive;
+use App\Http\Middleware\GloEnsurePermission;
+use App\Http\Middleware\PublicLegalHeaders;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\VerifyWebhookSignature;
+use App\Http\Responses\ApiResponse;
+use App\Http\Support\BetPurchaseErrorMapper;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -70,18 +84,36 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->appendOutputTo(storage_path('logs/lottery-tick.log'))
                 ->description('Advance every draw that is due to its next lifecycle state');
         }
+
+        // Capacity drift guard. Section 9b.17 proved a purchase is refused unless
+        // a number_limits row exists for (draw_id, bet_type, number). Provisioning
+        // in OpenDrawsCommand is best-effort by design, so a draw CAN open
+        // under-provisioned and the symptom is silent. --check reports drift and
+        // exits non-zero; it provisions nothing, because writing 2110 capacity rows
+        // per draw unattended on a real-money table is not a timer's job.
+        if ((bool) config('lottery.automation.enabled', false) === true) {
+            $schedule->command('risk:provision-number-limits --open --check')
+                ->hourly()
+                ->withoutOverlapping(10)
+                ->runInBackground()
+                ->onOneServer()
+                ->timezone(config('lottery.timezone', 'UTC'))
+                ->appendOutputTo(storage_path('logs/risk-number-limits-check.log'))
+                ->description('Report draws whose per-number capacity rows are missing or stale');
+        }
+
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'active' => \App\Http\Middleware\EnsureUserIsActive::class,
-            'admin.auth' => \App\Http\Middleware\Authenticate::class,
-            'wallet.active' => \App\Http\Middleware\EnsureWalletIsActive::class,
-            'draw.open' => \App\Http\Middleware\EnsureDrawIsOpen::class,
-            'webhook.signature' => \App\Http\Middleware\VerifyWebhookSignature::class,
-            'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
-            'glo.permission' => \App\Http\Middleware\GloEnsurePermission::class,
+            'active' => EnsureUserIsActive::class,
+            'admin.auth' => Authenticate::class,
+            'wallet.active' => EnsureWalletIsActive::class,
+            'draw.open' => EnsureDrawIsOpen::class,
+            'webhook.signature' => VerifyWebhookSignature::class,
+            'throttle' => ThrottleRequests::class,
+            'glo.permission' => GloEnsurePermission::class,
             // Safe public-cache headers for /about, /vision, /terms only (guest GETs).
-            'public.legal' => \App\Http\Middleware\PublicLegalHeaders::class,
+            'public.legal' => PublicLegalHeaders::class,
         ]);
 
         // Applied globally: security headers, and a correlation id pinned on the way in and
@@ -89,9 +121,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // (rather than web/api group append) is deliberate: the framework's /up health route
         // carries no middleware group at all, and an operator liveness probe is exactly the
         // kind of request that must still present security headers and a trace id.
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-        $middleware->append(\App\Http\Middleware\CorrelationIdMiddleware::class);
-        $middleware->append(\App\Http\Middleware\SetLocale::class);
+        $middleware->append(SecurityHeaders::class);
+        $middleware->append(CorrelationIdMiddleware::class);
+        $middleware->append(SetLocale::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // ---------------------------------------------------------------------
@@ -131,11 +163,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // registered in AppServiceProvider already emits in this project's envelope.
             // Re-mapping it here would discard that response and replace a correct 429
             // with a generic 500, so it is passed through untouched.
-            if ($e instanceof \Illuminate\Http\Exceptions\HttpResponseException) {
+            if ($e instanceof HttpResponseException) {
                 return null;
             }
 
-            $mapper = app(\App\Http\Support\BetPurchaseErrorMapper::class);
+            $mapper = app(BetPurchaseErrorMapper::class);
             $mapped = $mapper->map($e);
 
             if ($mapped['status'] >= 500) {
@@ -157,7 +189,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 unset($headers['Content-Type']);
             }
 
-            return \App\Http\Responses\ApiResponse::error(
+            return ApiResponse::error(
                 $mapped['code'],
                 $mapped['message'],
                 $mapped['status'],

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Lottery;
 
 use App\DTOs\Account\GradeDiscountEntitlement;
-use App\DTOs\Account\GradeTier;
 use App\DTOs\Lottery\DiscountRule;
-use App\Enums\AccountGradeLevel;
 use App\Enums\DiscountGame;
 use App\Enums\DiscountLottery;
 use App\Models\User;

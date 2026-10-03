@@ -53,6 +53,7 @@ class HomeCountdownService
                         'status' => 'NO_SCHEDULED_DRAW',
                         'has_next_draw' => false,
                         'draw_number' => null,
+                        'draw_name' => null,
                         'scheduled_at_iso' => null,
                         'scheduled_at_formatted' => null,
                         'remaining_seconds' => 0,
@@ -68,6 +69,11 @@ class HomeCountdownService
                     'status' => 'SCHEDULED',
                     'has_next_draw' => true,
                     'draw_number' => (string) ($draw->draw_number ?? 'GLO-'.ltrim($target->format('d/m/Y'), '0')),
+                    // draw_name is the HUMAN label for the draw and draw_number
+                    // is its canonical identifier. Only the identifier was ever
+                    // returned, so every consumer that wanted something to print
+                    // had to render the reference string itself.
+                    'draw_name' => (string) ($draw->name ?? $target->format('j F Y')),
                     'scheduled_at_iso' => $target->toIso8601String(),
                     'scheduled_at_formatted' => $target->format('d F Y, H:i').' GMT+7',
                     'remaining_seconds' => (int) $remaining,
@@ -82,6 +88,7 @@ class HomeCountdownService
                 'status' => 'UNAVAILABLE',
                 'has_next_draw' => false,
                 'draw_number' => null,
+                'draw_name' => null,
                 'scheduled_at_iso' => null,
                 'scheduled_at_formatted' => null,
                 'remaining_seconds' => 0,

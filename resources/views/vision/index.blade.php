@@ -20,7 +20,7 @@
         <div class="vision-shell vision-header__inner">
             <a class="vision-brand" href="{{ route('home') }}" aria-label="ThaiLotto home">
                 <span class="vision-brand__mark" aria-hidden="true"><span>TL</span></span>
-                <span class="vision-brand__name">THAILOTTO <small>STRATEGY &amp; TRUST</small></span>
+                <span class="vision-brand__name">{{ config('app.name') }} <small>STRATEGY &amp; TRUST</small></span>
             </a>
             <nav class="vision-nav" aria-label="Primary navigation">
                 <a href="{{ route('home') }}">HOME</a>

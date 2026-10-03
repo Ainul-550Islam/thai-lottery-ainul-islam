@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Monitoring;
 
-use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\PaymentMethod;
 use App\Services\Observability\SystemHealthService;
@@ -29,8 +28,7 @@ class HealthCheckService
         private readonly QueueHealthService $queueHealth,
         private readonly CacheRepository $cache,
         private readonly ConfigRepository $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Liveness check: confirms worker process is active.
@@ -117,7 +115,7 @@ class HealthCheckService
     private function pingCache(): bool
     {
         try {
-            $key = 'health_ping_' . bin2hex(random_bytes(4));
+            $key = 'health_ping_'.bin2hex(random_bytes(4));
             $this->cache->put($key, '1', 5);
             $val = $this->cache->get($key);
             $this->cache->forget($key);
@@ -141,7 +139,7 @@ class HealthCheckService
     {
         try {
             $disk = Storage::disk('local');
-            $testFile = 'health_probe_' . bin2hex(random_bytes(4)) . '.tmp';
+            $testFile = 'health_probe_'.bin2hex(random_bytes(4)).'.tmp';
             $disk->put($testFile, 'probe');
             $read = $disk->get($testFile);
             $disk->delete($testFile);

@@ -226,6 +226,13 @@ return [
     */
 
     'l6' => [
+        // Slice of draw revenue that funds the prize ladder. The official GLO
+        // split retains 28 percent for the state, charity and administration,
+        // which leaves 60 percent for prizes and 12 percent for seller margin.
+        // Declared here so an operator changes the split in configuration and
+        // never in GloL6ProportionalPrizeCalculator.
+        'prize_pool_allocation_percent' => env('GLO_PRIZE_POOL_ALLOCATION_PERCENT', '60.00'),
+
         'ticket_price' => '80.00',
         'digits' => 6,
         'full_sale_units' => '1000000',
@@ -379,7 +386,6 @@ return [
         'rate_limit_per_minute' => (int) env('GLO_PUBLIC_STATUS_PER_MINUTE', 30),
         'reference_pattern' => '/^\d{1,10}-(l6|n3)-[0-9A-Za-z]{1,16}$/',
     ],
-
 
     /*
     |------------------------------------------------------------------------

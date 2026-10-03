@@ -45,7 +45,7 @@ class PayoutBatchData
      *                                          list order must not affect the
      *                                          batch's identity.
      * @param  string  $aggregateAmount  The claimed 2-decimal total of the
-     *                                  member payouts, e.g. '12500.00'.
+     *                                   member payouts, e.g. '12500.00'.
      * @param  string|null  $note  Operator-visible creation rationale. Never
      *                             a credential, secret, or personal detail
      *                             beyond what the references already name.
@@ -58,8 +58,7 @@ class PayoutBatchData
         public readonly Currency $currency,
         public readonly ?string $note,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The deterministic batch key for a member set in a currency.

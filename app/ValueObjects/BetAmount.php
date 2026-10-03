@@ -38,8 +38,7 @@ final readonly class BetAmount implements Stringable
 {
     private function __construct(
         public Money $money,
-    ) {
-    }
+    ) {}
 
     /**
      * Build a stake from an exact decimal string.

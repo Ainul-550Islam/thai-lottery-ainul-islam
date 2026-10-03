@@ -22,8 +22,7 @@ class AgentCommissionAccrualService
         private readonly ConfigRepository $config,
         private readonly AgentReferralService $referrals,
         private readonly CommissionCalculationService $calculator,
-    ) {
-    }
+    ) {}
 
     /**
      * Accrue commissions for a newly placed bet across the agent hierarchy.
@@ -82,7 +81,7 @@ class AgentCommissionAccrualService
         string $commissionAmount,
         int $hierarchyLevel,
     ): AgentCommission {
-        $commission = new AgentCommission();
+        $commission = new AgentCommission;
         $commission->fill([
             'reference_number' => $this->generateCommissionReferenceNumber(),
             'agent_id' => $agent->id,

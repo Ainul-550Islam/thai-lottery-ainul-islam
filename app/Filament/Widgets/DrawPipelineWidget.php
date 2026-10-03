@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Widgets;
 
 use App\Enums\DrawStatus;
+use App\Filament\Resources\DrawResource;
 use App\Models\Draw;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
@@ -90,6 +91,6 @@ class DrawPipelineWidget extends TableWidget
                         default => '—',
                     }),
             ])
-            ->recordUrl(fn (Draw $record): string => \App\Filament\Resources\DrawResource::getUrl('view', ['record' => $record]));
+            ->recordUrl(fn (Draw $record): string => DrawResource::getUrl('view', ['record' => $record]));
     }
 }

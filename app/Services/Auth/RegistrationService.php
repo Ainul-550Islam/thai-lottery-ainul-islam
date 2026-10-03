@@ -47,8 +47,7 @@ final class RegistrationService
 {
     public function __construct(
         private readonly AgentReferralService $referrals,
-    ) {
-    }
+    ) {}
 
     /**
      * Register a member.
@@ -73,7 +72,7 @@ final class RegistrationService
             //    pre-checks are UX only.
             $this->assertAvailable($email, $mobile, $username);
 
-            $user = new User();
+            $user = new User;
             $user->fill([
                 'name' => trim($firstName.' '.$lastName),
                 'email' => $email,
@@ -97,7 +96,7 @@ final class RegistrationService
 
             // 2) Default wallet — the pre-existing explicit side effect,
             //    byte-for-byte the same provisioning as before.
-            $wallet = new Wallet();
+            $wallet = new Wallet;
             $wallet->user_id = $user->id;
             $wallet->currency = Currency::THB;
             $wallet->status = WalletStatus::Active;

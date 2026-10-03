@@ -7,10 +7,16 @@ namespace App\Services\Operations;
 use App\DTOs\Operations\AdminOperationData;
 use App\Enums\AdminOperationStatus;
 use App\Enums\AdminOperationType;
+use App\Enums\AuditAction;
+use App\Enums\UserStatus;
 use App\Events\AdminOperationCompleted;
 use App\Exceptions\AdminOperationException;
+use App\Listeners\RecordAdminOperationAudit;
 use App\Models\AdminOperation;
+use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Security\UserSessionSecurityService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,9 +42,8 @@ final class AdminOperationService
     ];
 
     public function __construct(
-        private readonly \App\Listeners\RecordAdminOperationAudit $audit,
-    ) {
-    }
+        private readonly RecordAdminOperationAudit $audit,
+    ) {}
 
     /**
      * The capability a seat asks.
@@ -126,7 +131,7 @@ final class AdminOperationService
      */
     public function cancel(int $operationId, User $canceller, string $reason): AdminOperation
     {
-        return DB::transaction(function () use ($operationId, $canceller, $reason): AdminOperation {
+        return DB::transaction(function () use ($operationId, $reason): AdminOperation {
             /** @var AdminOperation $locked */
             $locked = AdminOperation::query()->lockForUpdate()->findOrFail($operationId);
 
@@ -264,12 +269,12 @@ final class AdminOperationService
         $payload = $operation->payload;
         $reason = mb_substr((string) ($payload['reason'] ?? 'admin operation'), 0, 96);
 
-        /** @var \App\Models\User $target */
-        $target = \App\Models\User::query()->findOrFail((int) (self::requireInt($payload, 'user_id')));
-        $target->status = \App\Enums\UserStatus::Suspended;
+        /** @var User $target */
+        $target = User::query()->findOrFail((int) (self::requireInt($payload, 'user_id')));
+        $target->status = UserStatus::Suspended;
         $target->save();
 
-        $swept = app(\App\Services\Security\UserSessionSecurityService::class)
+        $swept = app(UserSessionSecurityService::class)
             ->revokeAllSessionsFor((int) $target->id, 'admin operation '.$operation->id, 'system-admin-op');
 
         return sprintf('user %d suspended, %d session(s) swept (%s)', $target->id, $swept, $reason);
@@ -283,14 +288,14 @@ final class AdminOperationService
     {
         $payload = $operation->payload;
 
-        /** @var \App\Models\User $target */
-        $target = \App\Models\User::query()->findOrFail((int) self::requireInt($payload, 'user_id'));
+        /** @var User $target */
+        $target = User::query()->findOrFail((int) self::requireInt($payload, 'user_id'));
 
-        if ($target->status === \App\Enums\UserStatus::Banned) {
+        if ($target->status === UserStatus::Banned) {
             throw AdminOperationException::malformed('a banned account may not be reactivated by operations');
         }
 
-        $target->status = \App\Enums\UserStatus::Active;
+        $target->status = UserStatus::Active;
         $target->save();
 
         return sprintf('user %d reactivated', $target->id);
@@ -304,9 +309,9 @@ final class AdminOperationService
     {
         $reason = mb_substr((string) ($operation->payload['reason'] ?? 'flag'), 0, 96);
 
-        \App\Models\AuditLog::create([
+        AuditLog::create([
             'user_id' => $operation->actor_user_id,
-            'action' => \App\Enums\AuditAction::Update,
+            'action' => AuditAction::Update,
             'auditable_type' => AdminOperation::class,
             'auditable_id' => $operation->id,
             'metadata' => [
@@ -334,9 +339,9 @@ final class AdminOperationService
     /**
      * Read-side listings for the console.
      *
-     * @return \Illuminate\Support\Collection<int, AdminOperation>
+     * @return Collection<int, AdminOperation>
      */
-    public function listFor(?string $status, int $limit = 50): \Illuminate\Support\Collection
+    public function listFor(?string $status, int $limit = 50): Collection
     {
         return AdminOperation::query()
             ->when($status !== null && $status !== '', fn ($q) => $q->where('status', $status))

@@ -100,7 +100,7 @@ final class KycVerificationService
     ): void {
         // Four-eyes: a reviewer may never decide their own identity evidence.
         if ((int) $document->user_id === (int) $reviewer->getKey()) {
-            throw new \InvalidArgumentException('Self-review of a KYC submission is forbidden.');
+            throw new InvalidArgumentException('Self-review of a KYC submission is forbidden.');
         }
 
         $newStatus = $approved ? KycStatus::Verified : KycStatus::Rejected;

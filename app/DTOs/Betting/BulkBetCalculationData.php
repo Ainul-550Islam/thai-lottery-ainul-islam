@@ -36,8 +36,7 @@ final readonly class BulkBetCalculationData
         public string $totalPotentialPayout,
         public string $currency,
         public array $refusals = [],
-    ) {
-    }
+    ) {}
 
     public function selectionCount(): int
     {

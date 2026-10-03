@@ -28,11 +28,11 @@ final class PrizeClaimResultData
 {
     /**
      * @param  list<string>  $failedRules  The stable rule keys that failed
-     *                                    (empty when eligible).
+     *                                     (empty when eligible).
      * @param  list<string>  $passedRules  The stable rule keys that passed
-     *                                    (full set when eligible).
-     * @param  string|null   $reason  The human explanation of the foremost
-     *                                failure, or null when eligible.
+     *                                     (full set when eligible).
+     * @param  string|null  $reason  The human explanation of the foremost
+     *                               failure, or null when eligible.
      */
     public function __construct(
         public readonly bool $eligible,
@@ -44,8 +44,7 @@ final class PrizeClaimResultData
         public readonly array $passedRules,
         public readonly ?string $reason,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Whether the result implies the claim may proceed (all gates passed).

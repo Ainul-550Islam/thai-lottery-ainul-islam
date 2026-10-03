@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Prize;
 
+use App\Enums\PrizePayoutMethod;
+
 /**
  * Player-side prize claim input with the claimant's verification context.
  *
@@ -37,20 +39,19 @@ final class PrizeClaimData
     public function __construct(
         public readonly int $betId,
         public readonly int $claimantUserId,
-        public readonly \App\Enums\PrizePayoutMethod $payoutMethod,
+        public readonly PrizePayoutMethod $payoutMethod,
         public readonly ?string $ticketNumber,
         public readonly ?string $verificationCode,
         public readonly ?string $claimKey,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The claim idempotency anchor: one claim per (bet, claimant, method)
      * forever. Submitted twice, the second submission routes onto the first
      * claim's recorded identity rather than minting a second review row.
      */
-    public static function deriveClaimKey(int $betId, int $claimantUserId, \App\Enums\PrizePayoutMethod $method): string
+    public static function deriveClaimKey(int $betId, int $claimantUserId, PrizePayoutMethod $method): string
     {
         return hash('sha256', sprintf('prize-claim:%d:%d:%s', $betId, $claimantUserId, $method->value));
     }

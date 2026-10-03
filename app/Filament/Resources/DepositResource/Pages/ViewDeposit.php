@@ -6,6 +6,7 @@ namespace App\Filament\Resources\DepositResource\Pages;
 
 use App\Filament\Resources\DepositResource;
 use App\Filament\Resources\DepositResource\DepositDecisionActions;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 
 /**
@@ -23,7 +24,7 @@ class ViewDeposit extends ViewRecord
     protected static string $resource = DepositResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

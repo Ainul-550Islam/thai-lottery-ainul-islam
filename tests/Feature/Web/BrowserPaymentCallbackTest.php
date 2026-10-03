@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Enums\Currency;
+use App\Enums\DepositStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Deposit;
@@ -10,6 +11,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -45,7 +47,7 @@ class BrowserPaymentCallbackTest extends TestCase
 
     private function makePayment(Wallet $wallet, PaymentStatus $status, ?string $gatewayReference = null): Payment
     {
-        $deposit = new Deposit();
+        $deposit = new Deposit;
         $deposit->fill([
             'reference_number' => 'DP-'.date('Ymd').'-'.strtoupper(bin2hex(random_bytes(4))),
             'user_id' => $wallet->user_id,
@@ -58,11 +60,11 @@ class BrowserPaymentCallbackTest extends TestCase
             'net_amount' => '500.00',
             'metadata' => [],
         ]);
-        $deposit->uuid = (string) \Illuminate\Support\Str::uuid();
-        $deposit->status = \App\Enums\DepositStatus::Pending;
+        $deposit->uuid = (string) Str::uuid();
+        $deposit->status = DepositStatus::Pending;
         $deposit->save();
 
-        $payment = new Payment();
+        $payment = new Payment;
         $payment->fill([
             'reference_number' => 'PAY-'.strtoupper(bin2hex(random_bytes(8))),
             'user_id' => $wallet->user_id,

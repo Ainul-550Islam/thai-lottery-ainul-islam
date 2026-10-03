@@ -20,8 +20,7 @@ final class AdminOperationCompleted
 
     public function __construct(
         public readonly AdminOperation $operation,
-    ) {
-    }
+    ) {}
 
     public function completionFingerprint(): string
     {

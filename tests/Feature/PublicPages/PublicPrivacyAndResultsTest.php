@@ -8,12 +8,9 @@ use App\Enums\DrawStatus;
 use App\Enums\GloSourceState;
 use App\Models\Draw;
 use App\Models\DrawResult;
-use App\Models\User;
-use App\Models\Wallet;
 use App\Services\PublicPages\ResultsPageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**

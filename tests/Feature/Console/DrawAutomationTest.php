@@ -8,8 +8,10 @@ use App\Enums\DrawLifecycleState;
 use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Models\Draw;
+use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultPublicationService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -230,7 +232,7 @@ final class DrawAutomationTest extends TestCase
         $this->artisan('lottery:mark-results-pending')->assertSuccessful();
 
         $draw->refresh();
-        $this->assertSame(DrawLifecycleState::ResultPending, app(\App\Services\Draw\DrawLifecycleService::class)->currentState($draw));
+        $this->assertSame(DrawLifecycleState::ResultPending, app(DrawLifecycleService::class)->currentState($draw));
     }
 
     #[Test]
@@ -255,7 +257,7 @@ final class DrawAutomationTest extends TestCase
         $this->artisan('lottery:settle-draws')->assertSuccessful();
 
         $this->assertTrue(
-            app(\App\Services\Draw\DrawLifecycleService::class)->currentState($draw->refresh())->isSettled(),
+            app(DrawLifecycleService::class)->currentState($draw->refresh())->isSettled(),
         );
     }
 
@@ -267,7 +269,7 @@ final class DrawAutomationTest extends TestCase
         $this->artisan('lottery:settle-draws')->assertSuccessful();
 
         $this->assertFalse(
-            app(\App\Services\Draw\DrawLifecycleService::class)->currentState($draw->refresh())->isSettled(),
+            app(DrawLifecycleService::class)->currentState($draw->refresh())->isSettled(),
         );
     }
 
@@ -279,7 +281,7 @@ final class DrawAutomationTest extends TestCase
         $this->artisan('lottery:settle-draws', ['--draw' => (string) $draw->draw_number])->assertSuccessful();
 
         $this->assertTrue(
-            app(\App\Services\Draw\DrawLifecycleService::class)->currentState($draw->refresh())->isSettled(),
+            app(DrawLifecycleService::class)->currentState($draw->refresh())->isSettled(),
         );
     }
 
@@ -307,10 +309,10 @@ final class DrawAutomationTest extends TestCase
         $draw = $this->publishedDraw(publishedMinutesAgo: 60);
 
         $this->artisan('lottery:settle-draws')->assertSuccessful();
-        $this->assertFalse(app(\App\Services\Draw\DrawLifecycleService::class)->currentState($draw->refresh())->isSettled());
+        $this->assertFalse(app(DrawLifecycleService::class)->currentState($draw->refresh())->isSettled());
 
         $this->artisan('lottery:settle-draws', ['--force' => true])->assertSuccessful();
-        $this->assertTrue(app(\App\Services\Draw\DrawLifecycleService::class)->currentState($draw->refresh())->isSettled());
+        $this->assertTrue(app(DrawLifecycleService::class)->currentState($draw->refresh())->isSettled());
     }
 
     // -------------------------------------------------------------------------
@@ -333,7 +335,7 @@ final class DrawAutomationTest extends TestCase
 
         $this->artisan('lottery:settle-draws')->assertFailed();
 
-        $lifecycle = app(\App\Services\Draw\DrawLifecycleService::class);
+        $lifecycle = app(DrawLifecycleService::class);
 
         $this->assertTrue($lifecycle->currentState($healthy->refresh())->isSettled(), 'The healthy draw must still settle.');
         $this->assertFalse($lifecycle->currentState($broken->refresh())->isSettled(), 'The broken draw must be refused, not forced.');
@@ -386,7 +388,7 @@ final class DrawAutomationTest extends TestCase
 
         $this->assertSame(
             DrawLifecycleState::ResultPending,
-            app(\App\Services\Draw\DrawLifecycleService::class)->currentState($draw->refresh()),
+            app(DrawLifecycleService::class)->currentState($draw->refresh()),
         );
     }
 
@@ -496,9 +498,9 @@ final class DrawAutomationTest extends TestCase
 
     private function draw(
         DrawStatus $status,
-        \Illuminate\Support\Carbon $scheduledAt,
-        ?\Illuminate\Support\Carbon $bettingOpenAt,
-        ?\Illuminate\Support\Carbon $bettingCloseAt,
+        Carbon $scheduledAt,
+        ?Carbon $bettingOpenAt,
+        ?Carbon $bettingCloseAt,
     ): Draw {
         static $sequence = 0;
         $sequence++;

@@ -8,6 +8,7 @@ use App\Enums\NotificationChannel;
 use App\Enums\NotificationEventType;
 use App\Enums\NotificationPriority;
 use App\Exceptions\NotificationException;
+use Illuminate\Support\Carbon;
 
 /**
  * Deterministic notification identity: recipient + event + channel +
@@ -29,11 +30,10 @@ final class NotificationMessageData
         public readonly string $body,
         public readonly ?int $templateId,
         public readonly \DateTimeInterface $expiresAt,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array{user_id:int, event_type:string|NotificationEventType, channel:string|NotificationChannel, priority?:string|NotificationPriority, locale?:string, subject:string, body:string, template_id?:int|null, expires_at?:\DateTimeInterface|null} $data
+     * @param  array{user_id:int, event_type:string|NotificationEventType, channel:string|NotificationChannel, priority?:string|NotificationPriority, locale?:string, subject:string, body:string, template_id?:int|null, expires_at?:\DateTimeInterface|null}  $data
      */
     public static function fromInput(array $data): self
     {
@@ -67,7 +67,7 @@ final class NotificationMessageData
         }
 
         $expiresAt = $data['expires_at']
-            ?? \Illuminate\Support\Carbon::now()->addHours(self::EXPIRY_HOURS);
+            ?? Carbon::now()->addHours(self::EXPIRY_HOURS);
 
         return new self(
             userId: (int) ($data['user_id'] ?? 0),

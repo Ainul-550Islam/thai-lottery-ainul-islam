@@ -28,8 +28,7 @@ final class WebhookPayload
         public readonly ?string $failureReason = null,
         public readonly array $rawData = [],
         public readonly array $metadata = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

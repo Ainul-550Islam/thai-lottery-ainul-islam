@@ -205,7 +205,17 @@ return [
             // Fixture imports are for local development and the test suite.
             // Enabling this in production still cannot produce an official
             // label; it only allows the FIXTURE_ONLY lane to exist.
-            'enabled' => (bool) env('NATIONAL_LOTTERY_FIXTURE_ENABLED', false),
+            // PRODUCTION FIXTURE CONTAMINATION GUARD.
+            //
+            // A fixture lane may never exist in production, whatever the
+            // environment file says. .env.example shipped this flag as `true`
+            // and `composer create-project` copies .env.example to .env, so a
+            // stock deployment could stand up a fake-result lane. The env var
+            // is still honoured everywhere else so local work and the test
+            // suite are unaffected.
+            'enabled' => env('APP_ENV') === 'production'
+                ? false
+                : (bool) env('NATIONAL_LOTTERY_FIXTURE_ENABLED', false),
             'provider_label' => 'fixture',
             'schema_version' => 'NATIONAL_FIXTURE_V1',
         ],

@@ -28,7 +28,7 @@
         <div class="terms-shell terms-header__inner">
             <a class="terms-brand" href="{{ route('home') }}" aria-label="ThaiLotto home">
                 <span class="terms-brand__mark" aria-hidden="true"><span>TL</span></span>
-                <span class="terms-brand__name">THAILOTTO <small>LEGAL INFORMATION</small></span>
+                <span class="terms-brand__name">{{ config('app.name') }} <small>LEGAL INFORMATION</small></span>
             </a>
             <nav class="terms-nav" aria-label="Primary navigation">
                 <a href="{{ route('home') }}">HOME</a>

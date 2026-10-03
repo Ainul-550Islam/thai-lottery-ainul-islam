@@ -25,8 +25,7 @@ final class AgentReportData
         public readonly string $commissionPaid,
         public readonly string $currency,
         public readonly array $metadata = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

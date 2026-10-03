@@ -3,20 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
-use App\Http\Controllers\GloResultsPageController;
-use App\Http\Controllers\Player\PlayerSecuritySettingsController;
-use App\Http\Controllers\Player\PlayerDashboardController;
-use App\Http\Controllers\Player\PlayerProfilePortalController;
-use App\Http\Controllers\Player\PlayerSettingsPortalController;
-use App\Http\Controllers\Player\LotteryHistoryPortalController;
-use App\Http\Controllers\PublicLegalTermsController;
-use App\Http\Controllers\PublicLegalPrivacyController;
-use App\Http\Controllers\Wallet\WalletManagementPageController;
-use App\Http\Controllers\Payment\DepositMethodsPageController;
-use App\Http\Controllers\Payment\WithdrawalMethodsPageController;
-use App\Http\Controllers\Betting\ThaiLotteryBettingController;
-use App\Http\Controllers\Api\V1\Admin\OperationsController;
 use App\Http\Controllers\Api\V1\AccountGradeApiController;
+use App\Http\Controllers\Api\V1\Admin\OperationsController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BetAmendmentController;
 use App\Http\Controllers\Api\V1\BetCancellationController;
@@ -28,6 +16,7 @@ use App\Http\Controllers\Api\V1\DepositController;
 use App\Http\Controllers\Api\V1\DrawController;
 use App\Http\Controllers\Api\V1\DrawResultController;
 use App\Http\Controllers\Api\V1\GloController;
+use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\KycController;
 use App\Http\Controllers\Api\V1\NationalLotteryController;
 use App\Http\Controllers\Api\V1\NotificationController;
@@ -46,10 +35,31 @@ use App\Http\Controllers\Api\V1\TicketVerificationController;
 use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\WeeklyLotteryController;
 use App\Http\Controllers\Api\V1\WithdrawalController;
+use App\Http\Controllers\Betting\ThaiLotteryBettingController;
+use App\Http\Controllers\GloResultsPageController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\LottoDiscountController;
+use App\Http\Controllers\Payment\DepositMethodsPageController;
+use App\Http\Controllers\Payment\WithdrawalMethodsPageController;
+use App\Http\Controllers\Player\LotteryHistoryPortalController;
+use App\Http\Controllers\Player\PlayerDashboardController;
+use App\Http\Controllers\Player\PlayerProfilePortalController;
+use App\Http\Controllers\Player\PlayerSecuritySettingsController;
+use App\Http\Controllers\Player\PlayerSettingsPortalController;
 use App\Http\Controllers\PrizeVerificationController;
+use App\Http\Controllers\PublicContactController;
+use App\Http\Controllers\PublicDownloadAppController;
+use App\Http\Controllers\PublicFaqController;
+use App\Http\Controllers\PublicGradeController;
+use App\Http\Controllers\PublicHowToPlayController;
+use App\Http\Controllers\PublicLegalFeesController;
+use App\Http\Controllers\PublicLegalPrivacyController;
+use App\Http\Controllers\PublicLegalTermsController;
+use App\Http\Controllers\PublicLottoDiscountController;
+use App\Http\Controllers\PublicPrizeVerificationController;
 use App\Http\Controllers\PublicServicePagesController;
+use App\Http\Controllers\PublicVerificationController;
+use App\Http\Controllers\Wallet\WalletManagementPageController;
 use App\Support\Admin\AdminAccess;
 use Illuminate\Support\Facades\Route;
 
@@ -169,6 +179,17 @@ Route::prefix('v1/account')
     });
 
 Route::middleware(['throttle:glo.public'])->group(function (): void {
+    /*
+     * PUBLIC HOME FEED.
+     *
+     * Api\V1\HomeController existed, was imported at the top of this file, and
+     * was never given a route — so `GET /api/v1/home` answered 404 while the
+     * controller sat in the tree as dead code. Registering it here, behind the
+     * same public limiter as the other anonymous GLO surfaces, is what makes
+     * the Home widgets consumable by a client that is not the Blade page.
+     */
+    Route::get('/v1/home', [HomeController::class, 'index'])->name('api.v1.home');
+
     Route::get('/v1/glo/public/tickets/{reference}/status', [GloController::class, 'publicTicketStatus'])
         ->where('reference', '[A-Za-z0-9_\-]{3,80}')
         ->name('api.v1.glo.public.status');
@@ -221,6 +242,13 @@ Route::middleware(['throttle:glo.public'])->group(function (): void {
     Route::post('/v1/player/settings/line-notify', [PlayerSettingsPortalController::class, 'bindLineNotifyApi'])->name('api.v1.player.settings.line-notify');
     Route::post('/v1/player/settings/limits', [PlayerSettingsPortalController::class, 'updateResponsibleGamingLimitsApi'])->name('api.v1.player.settings.limits');
     Route::post('/v1/player/settings/self-exclusion', [PlayerSettingsPortalController::class, 'applySelfExclusionApi'])->name('api.v1.player.settings.self-exclusion');
+    // The Terms controller mirrors the Privacy one method for method. Its
+    // routes were never registered, so every endpoint below returned 404
+    // while the controller sat unreachable in the codebase.
+    Route::get('/v1/public/terms', [PublicLegalTermsController::class, 'getTermsApi'])->name('api.v1.public.terms');
+    Route::get('/v1/public/terms/search', [PublicLegalTermsController::class, 'searchTermsApi'])->name('api.v1.public.terms.search');
+    Route::post('/v1/public/terms/accept', [PublicLegalTermsController::class, 'acceptTermsApi'])->name('api.v1.public.terms.accept');
+    Route::get('/v1/public/terms/download', [PublicLegalTermsController::class, 'downloadTermsApi'])->name('api.v1.public.terms.download');
     Route::get('/v1/public/privacy', [PublicLegalPrivacyController::class, 'getPrivacyApi'])->name('api.v1.public.privacy');
     Route::get('/v1/public/privacy/search', [PublicLegalPrivacyController::class, 'searchPrivacyApi'])->name('api.v1.public.privacy.search');
     Route::post('/v1/public/privacy/dsar-request', [PublicLegalPrivacyController::class, 'dsarRequestApi'])->name('api.v1.public.privacy.dsar');
@@ -875,82 +903,82 @@ Route::prefix('v1/admin')
 Route::prefix('v1/public/privacy')
     ->name('api.v1.public.privacy.')
     ->group(function (): void {
-        Route::get('/', [\App\Http\Controllers\PublicLegalPrivacyController::class, 'getPrivacyApi'])->name('index');
-        Route::get('/search', [\App\Http\Controllers\PublicLegalPrivacyController::class, 'searchPrivacyApi'])->name('search');
-        Route::post('/dsar-request', [\App\Http\Controllers\PublicLegalPrivacyController::class, 'submitDsarApi'])->name('dsar');
-        Route::get('/download', [\App\Http\Controllers\PublicLegalPrivacyController::class, 'downloadPrivacyApi'])->name('download');
+        Route::get('/', [PublicLegalPrivacyController::class, 'getPrivacyApi'])->name('index');
+        Route::get('/search', [PublicLegalPrivacyController::class, 'searchPrivacyApi'])->name('search');
+        Route::post('/dsar-request', [PublicLegalPrivacyController::class, 'submitDsarApi'])->name('dsar');
+        Route::get('/download', [PublicLegalPrivacyController::class, 'downloadPrivacyApi'])->name('download');
     });
 
 Route::prefix('v1/public/fees')
     ->name('api.v1.public.fees.')
     ->group(function (): void {
-        Route::get('/', [\App\Http\Controllers\PublicLegalFeesController::class, 'getFeesApi'])->name('index');
-        Route::post('/calculate', [\App\Http\Controllers\PublicLegalFeesController::class, 'calculateFeeApi'])->name('calculate');
-        Route::get('/search', [\App\Http\Controllers\PublicLegalFeesController::class, 'searchFeesApi'])->name('search');
-        Route::get('/download', [\App\Http\Controllers\PublicLegalFeesController::class, 'downloadFeesApi'])->name('download');
+        Route::get('/', [PublicLegalFeesController::class, 'getFeesApi'])->name('index');
+        Route::post('/calculate', [PublicLegalFeesController::class, 'calculateFeeApi'])->name('calculate');
+        Route::get('/search', [PublicLegalFeesController::class, 'searchFeesApi'])->name('search');
+        Route::get('/download', [PublicLegalFeesController::class, 'downloadFeesApi'])->name('download');
     });
 
 Route::prefix('v1/public/verification')
     ->name('api.v1.public.verification.')
     ->group(function (): void {
-        Route::get('/guide', [\App\Http\Controllers\PublicVerificationController::class, 'getGuideApi'])->name('guide');
-        Route::post('/check-status', [\App\Http\Controllers\PublicVerificationController::class, 'checkStatusApi'])->name('status');
-        Route::post('/submit-kyc', [\App\Http\Controllers\PublicVerificationController::class, 'submitKycApi'])->name('submit');
+        Route::get('/guide', [PublicVerificationController::class, 'getGuideApi'])->name('guide');
+        Route::post('/check-status', [PublicVerificationController::class, 'checkStatusApi'])->name('status');
+        Route::post('/submit-kyc', [PublicVerificationController::class, 'submitKycApi'])->name('submit');
     });
 
 Route::prefix('v1/public/grades')
     ->name('api.v1.public.grades.')
     ->group(function (): void {
-        Route::get('/ladder', [\App\Http\Controllers\PublicGradeController::class, 'getLadderApi'])->name('ladder');
-        Route::post('/calculate', [\App\Http\Controllers\PublicGradeController::class, 'calculateGradeApi'])->name('calculate');
+        Route::get('/ladder', [PublicGradeController::class, 'getLadderApi'])->name('ladder');
+        Route::post('/calculate', [PublicGradeController::class, 'calculateGradeApi'])->name('calculate');
     });
 
 Route::prefix('v1/public/prize-verification')
     ->name('api.v1.public.prize-verification.')
     ->group(function (): void {
-        Route::post('/verify', [\App\Http\Controllers\PublicPrizeVerificationController::class, 'verifyApi'])->name('verify');
-        Route::get('/prize-structure', [\App\Http\Controllers\PublicPrizeVerificationController::class, 'getPrizeStructureApi'])->name('structure');
+        Route::post('/verify', [PublicPrizeVerificationController::class, 'verifyApi'])->name('verify');
+        Route::get('/prize-structure', [PublicPrizeVerificationController::class, 'getPrizeStructureApi'])->name('structure');
     });
 
 Route::prefix('v1/public/lotto-discount')
     ->name('api.v1.public.lotto-discount.')
     ->group(function (): void {
-        Route::get('/catalogue', [\App\Http\Controllers\PublicLottoDiscountController::class, 'getCatalogueApi'])->name('catalogue');
-        Route::post('/calculate', [\App\Http\Controllers\PublicLottoDiscountController::class, 'calculatePayoutApi'])->name('calculate');
+        Route::get('/catalogue', [PublicLottoDiscountController::class, 'getCatalogueApi'])->name('catalogue');
+        Route::post('/calculate', [PublicLottoDiscountController::class, 'calculatePayoutApi'])->name('calculate');
     });
 
 Route::prefix('v1/public/how-to-play')
     ->name('api.v1.public.how-to-play.')
     ->group(function (): void {
-        Route::get('/rules', [\App\Http\Controllers\PublicHowToPlayController::class, 'getRulesApi'])->name('rules');
-        Route::post('/simulate', [\App\Http\Controllers\PublicHowToPlayController::class, 'simulateBetTypeApi'])->name('simulate');
+        Route::get('/rules', [PublicHowToPlayController::class, 'getRulesApi'])->name('rules');
+        Route::post('/simulate', [PublicHowToPlayController::class, 'simulateBetTypeApi'])->name('simulate');
     });
 
 Route::prefix('v1/public/faq')
     ->name('api.v1.public.faq.')
     ->group(function (): void {
-        Route::get('/list', [\App\Http\Controllers\PublicFaqController::class, 'getFaqsApi'])->name('list');
-        Route::get('/search', [\App\Http\Controllers\PublicFaqController::class, 'searchFaqsApi'])->name('search');
+        Route::get('/list', [PublicFaqController::class, 'getFaqsApi'])->name('list');
+        Route::get('/search', [PublicFaqController::class, 'searchFaqsApi'])->name('search');
     });
 
 Route::prefix('v1/public/contact')
     ->name('api.v1.public.contact.')
     ->group(function (): void {
-        Route::get('/channels', [\App\Http\Controllers\PublicContactController::class, 'getChannelsApi'])->name('channels');
-        Route::post('/submit', [\App\Http\Controllers\PublicContactController::class, 'submitTicketApi'])->name('submit');
-        Route::post('/status', [\App\Http\Controllers\PublicContactController::class, 'checkTicketStatusApi'])->name('status');
+        Route::get('/channels', [PublicContactController::class, 'getChannelsApi'])->name('channels');
+        Route::post('/submit', [PublicContactController::class, 'submitTicketApi'])->name('submit');
+        Route::post('/status', [PublicContactController::class, 'checkTicketStatusApi'])->name('status');
     });
 
 Route::prefix('v1/public/home')
     ->name('api.v1.public.home.')
     ->group(function (): void {
-        Route::get('/', [\App\Http\Controllers\Api\V1\HomeController::class, 'index'])->name('index');
+        Route::get('/', [HomeController::class, 'index'])->name('index');
     });
 
 Route::prefix('v1/public/download')
     ->name('api.v1.public.download.')
     ->group(function (): void {
-        Route::get('/builds', [\App\Http\Controllers\PublicDownloadAppController::class, 'getBuildsApi'])->name('builds');
-        Route::post('/verify-checksum', [\App\Http\Controllers\PublicDownloadAppController::class, 'verifyChecksumApi'])->name('verify-checksum');
-        Route::post('/track', [\App\Http\Controllers\PublicDownloadAppController::class, 'trackDownloadApi'])->name('track');
+        Route::get('/builds', [PublicDownloadAppController::class, 'getBuildsApi'])->name('builds');
+        Route::post('/verify-checksum', [PublicDownloadAppController::class, 'verifyChecksumApi'])->name('verify-checksum');
+        Route::post('/track', [PublicDownloadAppController::class, 'trackDownloadApi'])->name('track');
     });

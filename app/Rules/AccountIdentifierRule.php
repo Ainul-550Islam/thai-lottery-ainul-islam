@@ -28,8 +28,7 @@ final class AccountIdentifierRule implements ValidationRule
     public function __construct(
         private readonly bool $allowAccountId = true,
         private readonly bool $allowUsername = true,
-    ) {
-    }
+    ) {}
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {

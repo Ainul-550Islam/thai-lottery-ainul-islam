@@ -51,7 +51,7 @@ final class CancelPayoutRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                'not_regex:' . '/[<>]/', // no markup in an audit-bound string
+                'not_regex:'.'/[<>]/', // no markup in an audit-bound string
             ],
         ];
     }

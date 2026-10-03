@@ -1,9 +1,44 @@
 @extends('layouts.app')
 
 @php
-    $steps = is_array($verification['steps']['steps'] ?? null) ? $verification['steps']['steps'] : [];
-    $documents = is_array($verification['documents'] ?? null) ? $verification['documents'] : [];
-    $status = (string) ($verification['status'] ?? 'UNAVAILABLE');
+    /*
+     | THIS FILE SERVES TWO SURFACES. READ THIS BEFORE EDITING.
+     |
+     | $account is set  -> the authenticated member page, rendered by
+     |                     App\Http\Controllers\Verification\AccountVerificationController.
+     |                     It supplies $documents as a list of document ARRAYS
+     |                     (document_type, status, download_token, ...), plus
+     |                     $history, $countryCodes, $documentTypes, $requireBack.
+     |
+     | $verification is set -> the public, unauthenticated guide, rendered by
+     |                     App\Http\Controllers\PublicVerificationController.
+     |                     It supplies nothing else, and its $documents are
+     |                     plain STRINGS naming the configured document types.
+     |
+     | The two shapes are not interchangeable, and the @if (isset($account))
+     | further down is what picks between them.
+     |
+     | THE DEFECT THIS BLOCK USED TO CAUSE.
+     | These three variables were derived from $verification unconditionally.
+     | On a member request $verification does not exist, so $documents - the
+     | real list the controller had just built - was silently overwritten with
+     | an empty array. A member's own uploaded documents therefore never
+     | appeared on their verification page, and the page reported having none.
+     | Nothing failed loudly; the section simply rendered empty.
+     |
+     | Each variable is now derived only when it is actually absent, so the
+     | public guide keeps its defaults and the member surface keeps its data.
+     */
+    $verificationGuide = is_array($verification ?? null) ? $verification : [];
+
+    $steps = $steps
+        ?? (is_array($verificationGuide['steps']['steps'] ?? null) ? $verificationGuide['steps']['steps'] : []);
+
+    $documents = $documents
+        ?? (is_array($verificationGuide['documents'] ?? null) ? $verificationGuide['documents'] : []);
+
+    $status = $status
+        ?? (string) ($verificationGuide['status'] ?? 'UNAVAILABLE');
 @endphp
 
 @section('title', (string) ($meta['title'] ?? $verification['meta_title'] ?? 'Account Verification'))
@@ -83,7 +118,7 @@
                 </div>
                 <div class="flex justify-between sm:justify-start sm:gap-4">
                     <dt class="text-slate-400">{{ __('account_services.verification_account_status') }}</dt>
-                    <dd class="font-semibold {{ $account['verification_status'] === 'APPROVED' ? 'text-emerald-300' : 'text-amber-300' }}" data-av-status>{{ __('account_services.verification_status_'.($account['verification_status'] ?? 'NOT_SUBMITTED')) }}</dd>
+                    <dd class="font-semibold {{ $account['verification_status'] === 'APPROVED' ? 'text-emerald-300' : 'text-amber-300' }}" data-av-status="{{ $account['verification_status'] ?? 'NOT_SUBMITTED' }}">{{ __('account_services.verification_status_'.($account['verification_status'] ?? 'NOT_SUBMITTED')) }}</dd>
                 </div>
             </dl>
 
@@ -172,7 +207,7 @@
                 <h3 id="docs-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">{{ __('account_services.verification_documents') }}</h3>
                 <ul class="space-y-3 text-sm" role="list">
                     @foreach ($documents as $doc)
-                        <li class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-2"><span class="text-slate-300">{{ __('account_services.verification_document_type_'.$doc['document_type']) }}</span><span class="font-semibold {{ $doc['status'] === 'verified' ? 'text-emerald-300' : 'text-amber-300' }}">{{ __('account_services.verification_status_'.strtoupper((string) ($doc['status'] ?? 'NOT_SUBMITTED'))) }}</span><span class="text-slate-500">{{ $doc['created_at'] ?: __('account_services.not_recorded') }}</span><a href="{{ route('account.verification.document', ['documentToken' => $doc['download_token']]) }}" class="font-medium text-emerald-400 hover:text-emerald-300">{{ __('account_services.verification_download') }}</a></li>
+                        <li class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-2"><span class="text-slate-300">{{ __('account_services.verification_document_type_'.$doc['document_type']) }}</span><span class="font-semibold {{ $doc['status'] === 'verified' ? 'text-emerald-300' : 'text-amber-300' }}">{{ __('account_services.verification_status_'.strtoupper((string) ($doc['status'] ?? 'NOT_SUBMITTED'))) }}</span><span class="text-slate-500">{{ $doc['created_at'] ?: __('account_services.not_recorded') }}</span><a href="{{ route('account.verification.document', ['document' => $doc['id']]) }}" class="font-medium text-emerald-400 hover:text-emerald-300">{{ __('account_services.verification_download') }}</a></li>
                     @endforeach
                 </ul>
             </section>
@@ -182,7 +217,7 @@
 @else
 <div class="next-public-page next-public-page--verification" data-next-public-page="verification">
     <a class="pp-skip-link" href="#verification-main">{{ trans('public_pages.skip_to_content') }}</a>
-    <header class="next-page-header"><div class="next-shell next-page-header__inner"><a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('account_info.verification_home_aria') }}"><span class="next-brand__mark">TL</span><span>THAILOTTO<small>{{ trans('account_info.verification_brand_subtitle') }}</small></span></a><nav class="next-nav" aria-label="{{ trans('account_info.verification_primary_nav') }}"><a href="{{ route('home') }}">{{ trans('account_info.verification_nav_home') }}</a><a href="{{ route('about') }}">{{ trans('account_info.verification_nav_about') }}</a><a class="is-active" href="{{ route('account.verification') }}" aria-current="page">{{ trans('account_info.verification_nav_verification') }}</a><a href="{{ route('account.grade') }}">{{ trans('account_info.verification_nav_grades') }}</a><a href="{{ route('contact') }}">{{ trans('account_info.verification_nav_contact') }}</a></nav>@guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('account_info.verification_login') }}</a>@else<a class="next-button next-button--gold" href="{{ route('account.verification') }}">{{ trans('account_info.verification_my_verification') }}</a>@endguest</div></header>
+    <header class="next-page-header"><div class="next-shell next-page-header__inner"><a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('account_info.verification_home_aria') }}"><span class="next-brand__mark">TL</span><span>{{ config('app.name') }}<small>{{ trans('account_info.verification_brand_subtitle') }}</small></span></a><nav class="next-nav" aria-label="{{ trans('account_info.verification_primary_nav') }}"><a href="{{ route('home') }}">{{ trans('account_info.verification_nav_home') }}</a><a href="{{ route('about') }}">{{ trans('account_info.verification_nav_about') }}</a><a class="is-active" href="{{ route('account.verification') }}" aria-current="page">{{ trans('account_info.verification_nav_verification') }}</a><a href="{{ route('account.grade') }}">{{ trans('account_info.verification_nav_grades') }}</a><a href="{{ route('contact') }}">{{ trans('account_info.verification_nav_contact') }}</a></nav>@guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('account_info.verification_login') }}</a>@else<a class="next-button next-button--gold" href="{{ route('account.verification') }}">{{ trans('account_info.verification_my_verification') }}</a>@endguest</div></header>
     <main id="verification-main" class="next-shell next-content" tabindex="-1">
         <section class="next-hero" aria-labelledby="verification-title"><div><p class="next-eyebrow">{{ trans('account_info.verification_eyebrow') }}</p><h1 id="verification-title">{{ trans('account_info.verification_title') }}</h1><p>{{ $verification['meta_description'] ?? trans('account_info.verification_meta_description') }}</p><p class="next-note">{{ trans('account_info.verification_public_note') }}</p></div><div class="next-hero-object next-hero-object--verification" aria-hidden="true"><span>✓</span></div></section>
         <section class="next-meta-strip" aria-label="{{ trans('account_info.verification_title') }}"><div><span>{{ trans('account_info.verification_guide_status') }}</span><strong>{{ $status }}</strong></div><div><span>{{ trans('account_info.verification_document_types') }}</span><strong>{{ count($documents) ?: 'NOT_CONFIGURED' }}</strong></div><div><span>{{ trans('account_info.verification_max_upload') }}</span><strong>{{ ($verification['max_upload_mb'] ?? 0) > 0 ? $verification['max_upload_mb'].' MB' : 'NOT_CONFIGURED' }}</strong></div><div><span>{{ trans('account_info.verification_access') }}</span><strong>{{ trans('account_info.verification_authenticated') }}</strong></div></section>

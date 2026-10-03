@@ -11,7 +11,7 @@
         <div class="next-shell next-page-header__inner">
             <a class="next-brand" href="{{ route('agent.dashboard') }}" aria-label="{{ trans('agent.home_aria') }}">
                 <span class="next-brand__mark">TL</span>
-                <span>THAILOTTO<small>{{ trans('agent.brand_subtitle') }}</small></span>
+                <span>{{ config('app.name') }}<small>{{ trans('agent.brand_subtitle') }}</small></span>
             </a>
             <nav class="next-nav" aria-label="{{ trans('agent.primary_nav') }}">
                 <a href="{{ route('agent.dashboard') }}" @class(['is-active' => $surface === 'dashboard'])>{{ trans('agent.nav_dashboard') }}</a>

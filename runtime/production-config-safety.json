@@ -1,0 +1,34 @@
+{
+  "artifact": "production-config-safety",
+  "phase": 5,
+  "enforcement_point": "app/Providers/ProductionSafetyServiceProvider.php, registered in bootstrap/providers.php. Throws RuntimeException during boot when APP_ENV=production and any invariant is violated. Inert in every other environment.",
+  "rationale": "The repository previously relied on documentation and reviewer discipline. .env.example shipped all four fixture lanes ENABLED and composer.json copied .env.example to .env on install, so the unsafe state was the DEFAULT state. config/security.php declared session policies that no code ever read.",
+  "fixture_lane_contract": {
+    "lanes": ["national_lottery", "weekly_lottery", "bingo_lottery", "pcso_lottery"],
+    "layer_1_env_example": "All four *_LOTTERY_FIXTURE_ENABLED values flipped true -> false, with an inline comment stating they are development only.",
+    "layer_2_config": "Each config/*_lottery.php now resolves 'enabled' => env('APP_ENV') === 'production' ? false : (bool) env(...). A production .env that sets the flag true is overridden, not obeyed.",
+    "layer_3_boot": "ProductionSafetyServiceProvider refuses to boot if any lane still reports enabled.",
+    "layer_4_test": "tests/Feature/Production/ProductionConfigSafetyTest.php -- release-blocking, 6 tests, 21 assertions, PASSING.",
+    "fall_through": "All four lanes already set fall_through_to_fixture => false; now asserted by test and by the boot guard.",
+    "importer_default": "CRITICAL ADDITIONAL FINDING. All four lane importers declared {--provider=fixture} as the DEFAULT. A no-argument run would have written fabricated results into a real draw. Changed to {--provider=official} on all four."
+  },
+  "env_copy_contract": {
+    "requirement": "The stock deploy path must never create .env from .env.example.",
+    "removed": "composer.json scripts.post-root-package-install previously ran @php -r \"file_exists('.env') || copy('.env.example','.env');\". It now prints guidance and creates nothing. post-create-project-cmd no longer runs key:generate against a non-existent .env.",
+    "replacement": "A new, explicit, opt-in script: composer run env:local. It refuses to overwrite an existing .env, states that it is using the DEVELOPMENT template, and then runs key:generate.",
+    "still_open": ".github/workflows/ci.yml lines 157 and 506 still run cp .env.example .env. That is a CI-only path, not the stock deploy path, but it is the reason the shipped example was never noticed to be unsafe. Flagged, not yet changed, because ci.yml lines 219-244 already run a guard asserting every lane key is documented in .env.example with no value, and reconciling the two guards needs a hosted CI run to verify -- which is unavailable (see phase 13)."
+  },
+  "additional_invariants_enforced": [
+    "APP_DEBUG must be false in production.",
+    "SESSION_SECURE_COOKIE must be true (was only documented in config/security.php).",
+    "SESSION_ENCRYPT must be true (was only documented).",
+    "SESSION_DRIVER must not be file when the security policy expects database/redis -- file sessions cannot be shared across instances.",
+    "QUEUE_CONNECTION must not be sync -- otherwise financial and webhook jobs run inline in the HTTP request with no retries.",
+    "SANCTUM_TOKEN_EXPIRATION must not be blank -- otherwise API bearer tokens never expire.",
+    "lottery.payout.auto_process may not be enabled while PRIZE_PAYOUT_SAFETY_MODE is unset -- automated money movement stays explicitly gated."
+  ],
+  "test_evidence": {
+    "file": "tests/Feature/Production/ProductionConfigSafetyTest.php",
+    "result": "6 passed, 21 assertions, 1.02s"
+  }
+}

@@ -54,5 +54,33 @@
         <!-- `array` is not a configured disk in config/filesystems.php; using it made any
              Storage call in a test fail with "Disk [array] does not have a configured driver". -->
         <env name="FILESYSTEM_DISK" value="local"/>
+
+        <!-- LOTTERY FIXTURE LANES: REQUIRED BY THE PUBLIC-PAGE SUITES.
+             Every public-page and lane-parity test seeds its data by calling
+             the lane importer with the 'fixture' provider, e.g.
+             $this->importer()->import($payload, 'fixture').
+
+             config/{lane}_lottery.php defaults each fixture lane to false and
+             phpunit.xml never turned them on, so those imports returned
+             ['status' => 'rejected', 'source_state' => 'NOT_CONFIGURED'],
+             nothing was ever published, and every public page rendered its
+             empty state. That is the root cause of the public-page content
+             assertions, not a missing view.
+
+             Enabling them here is scoped to PHPUnit only. It cannot leak into
+             a deployment: each lane config force-disables the fixture source
+             whenever APP_ENV === 'production', .env.example / .env.ci /
+             .env.production.example all ship these flags off, and
+             ProductionConfigSafetyTest asserts all of that independently. -->
+        <!-- risk.exposure.max_stake_per_number has no default by design:
+             a silently invented real-money ceiling would look configured
+             while expressing nobody's risk appetite. The test environment
+             must therefore state one explicitly, exactly as a production
+             operator must. -->
+        <env name="RISK_MAX_STAKE_PER_NUMBER" value="100000.00"/>
+        <env name="WEEKLY_LOTTERY_FIXTURE_ENABLED" value="true"/>
+        <env name="NATIONAL_LOTTERY_FIXTURE_ENABLED" value="true"/>
+        <env name="PCSO_LOTTERY_FIXTURE_ENABLED" value="true"/>
+        <env name="BINGO_LOTTERY_FIXTURE_ENABLED" value="true"/>
     </php>
 </phpunit>

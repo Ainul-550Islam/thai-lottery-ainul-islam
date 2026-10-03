@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\UI;
 
 use App\Enums\Currency;
-use App\Models\Draw;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Finance\WalletService;

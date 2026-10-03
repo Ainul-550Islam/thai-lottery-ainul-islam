@@ -53,7 +53,7 @@ class TicketProductData
      *                               optional; draw close is always a hard
      *                               stop regardless.
      * @param  array<string, mixed>  $context  Safe manufacturing context
-     *                                        (series, print batch refs).
+     *                                         (series, print batch refs).
      */
     public function __construct(
         public readonly string $productCode,
@@ -64,8 +64,7 @@ class TicketProductData
         public readonly ?string $startsAt = null,
         public readonly ?string $endsAt = null,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The deterministic product identity: identical code + draw +

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Enums\GloSourceState;
+use App\Exceptions\GloDealerException;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Services\Lottery\GloPublicResultService;
@@ -47,7 +49,7 @@ class GloResultDashboardPage extends Page
     {
         try {
             $payload = app(GloPublicResultService::class)->cachedResult(null);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return [
                 'available' => false,
                 'message' => $e->getMessage(),
@@ -77,8 +79,8 @@ class GloResultDashboardPage extends Page
                 $draw = Draw::query()->find($result->draw_id);
                 $provider = (string) ($lane['import_provider'] ?? 'unknown');
                 $sourceState = $provider === 'fixture'
-                    ? \App\Enums\GloSourceState::FixtureOnly->value
-                    : (\App\Enums\GloSourceState::OfficialSourceVerified->value);
+                    ? GloSourceState::FixtureOnly->value
+                    : (GloSourceState::OfficialSourceVerified->value);
 
                 return [
                     'draw_number' => $draw?->draw_number ?? (string) $result->draw_id,
@@ -109,17 +111,17 @@ class GloResultDashboardPage extends Page
         return [
             'result_provider_mode' => $officialMode,
             'live_draw' => $live === 'not_configured'
-                ? \App\Enums\GloSourceState::NotConfigured->value
-                : \App\Enums\GloSourceState::OfficialSourceConfigured->value,
+                ? GloSourceState::NotConfigured->value
+                : GloSourceState::OfficialSourceConfigured->value,
             'data_matrix' => $matrix === 'not_configured'
-                ? \App\Enums\GloSourceState::NotConfigured->value
-                : \App\Enums\GloSourceState::OfficialSourceConfigured->value,
+                ? GloSourceState::NotConfigured->value
+                : GloSourceState::OfficialSourceConfigured->value,
             'push_provider' => $push === 'not_configured'
-                ? \App\Enums\GloSourceState::NotConfigured->value
-                : \App\Enums\GloSourceState::OfficialSourceConfigured->value,
+                ? GloSourceState::NotConfigured->value
+                : GloSourceState::OfficialSourceConfigured->value,
             'sales_point_sync' => $sync === 'not_configured'
-                ? \App\Enums\GloSourceState::NotConfigured->value
-                : \App\Enums\GloSourceState::OfficialSourceConfigured->value,
+                ? GloSourceState::NotConfigured->value
+                : GloSourceState::OfficialSourceConfigured->value,
         ];
     }
 }

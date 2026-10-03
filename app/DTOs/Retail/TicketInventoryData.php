@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Retail;
 
+use App\Exceptions\TicketInventoryException;
+
 /**
  * Immutable ticket inventory identity.
  *
@@ -32,20 +34,19 @@ final readonly class TicketInventoryData
         public int $drawId,
         public string $serial,
         public string $fingerprint,
-    ) {
-    }
+    ) {}
 
     /**
      * Build from raw input, canonicalizing the serial and deriving the
      * fingerprint.
      *
-     * @throws \App\Exceptions\TicketInventoryException when the serial is
-     *                                                    non-canonical; the
-     *                                                    service lanes
-     *                                                    throw the domain
-     *                                                    exception already,
-     *                                                    so the builder
-     *                                                    carries it through.
+     * @throws TicketInventoryException when the serial is
+     *                                  non-canonical; the
+     *                                  service lanes
+     *                                  throw the domain
+     *                                  exception already,
+     *                                  so the builder
+     *                                  carries it through.
      */
     public static function fromInput(
         int $ticketProductId,

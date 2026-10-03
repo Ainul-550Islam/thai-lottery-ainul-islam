@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Prize;
 
+use App\Exceptions\WinnerNotificationException;
+
 /**
  * Winner notification payload.
  *
@@ -34,11 +36,10 @@ final readonly class WinnerNotificationData
         public string $drawReference,
         public int $resultVersion,
         public string $dedupeKey,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\WinnerNotificationException
+     * @throws WinnerNotificationException
      */
     public static function fromInput(
         int $payoutId,
@@ -52,31 +53,31 @@ final readonly class WinnerNotificationData
         $dedupe = trim($dedupeKey);
 
         if ($payoutId < 1) {
-            throw \App\Exceptions\WinnerNotificationException::malformed(
+            throw WinnerNotificationException::malformed(
                 'the payout handle must be a positive integer',
             );
         }
 
         if (! in_array($ch, self::ALLOWED_CHANNELS, true)) {
-            throw \App\Exceptions\WinnerNotificationException::invalidChannel(
+            throw WinnerNotificationException::invalidChannel(
                 $ch,
             );
         }
 
         if (! preg_match('/^[A-Z0-9-]{1,64}$/', $ref)) {
-            throw \App\Exceptions\WinnerNotificationException::malformed(
+            throw WinnerNotificationException::malformed(
                 'the draw reference is not canonical (uppercase ASCII, digits, hyphens)',
             );
         }
 
         if ($resultVersion < 1) {
-            throw \App\Exceptions\WinnerNotificationException::malformed(
+            throw WinnerNotificationException::malformed(
                 'the result version must be a positive integer',
             );
         }
 
         if (mb_strlen($dedupe) < 16 || mb_strlen($dedupe) > 64) {
-            throw \App\Exceptions\WinnerNotificationException::malformed(
+            throw WinnerNotificationException::malformed(
                 'the dedupe key must be 16-64 characters',
             );
         }

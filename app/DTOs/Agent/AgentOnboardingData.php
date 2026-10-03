@@ -24,6 +24,5 @@ final class AgentOnboardingData
         public readonly bool $autoApprove = true,
         public readonly ?AgentStatus $status = null,
         public readonly array $metadata = [],
-    ) {
-    }
+    ) {}
 }

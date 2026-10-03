@@ -45,12 +45,12 @@ class WithdrawalRequestData
      * @param  string  $amount  2-decimal money string the user asked out.
      * @param  string  $method  Withdrawal method key (bank_transfer, bkash…).
      * @param  array<string, mixed>|null  $destination  Method-shaped routing
-     *                                                 details of where the
-     *                                                 money goes.
+     *                                                  details of where the
+     *                                                  money goes.
      * @param  array<string, mixed>  $context  Channel + operator context
-     *                                        (device/session refs); no PII
-     *                                        beyond what destination already
-     *                                        named.
+     *                                         (device/session refs); no PII
+     *                                         beyond what destination already
+     *                                         named.
      */
     public function __construct(
         public readonly int $userId,
@@ -61,8 +61,7 @@ class WithdrawalRequestData
         public readonly string $requestDate,
         public readonly ?string $note = null,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The deterministic anchor for one ask of one day.

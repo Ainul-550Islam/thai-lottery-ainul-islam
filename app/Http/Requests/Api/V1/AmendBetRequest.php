@@ -28,7 +28,9 @@ use Illuminate\Validation\Validator;
 final class AmendBetRequest extends FormRequest
 {
     private const NUMBER_PATTERN = '/^[0-9]{1,3}$/';
+
     private const STAKE_PATTERN = '/^[0-9]{1,12}(\.[0-9]{1,2})?$/';
+
     private const CLIENT_KEY_PATTERN = '/^[A-Za-z0-9._:-]+$/';
 
     public function authorize(): bool

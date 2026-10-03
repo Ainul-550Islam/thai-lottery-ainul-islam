@@ -20,11 +20,10 @@ final class ProviderOperationData
         public readonly ProviderOperationStatus $status,
         public readonly int $changedByUserId,
         public readonly ?string $note,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array{provider:string, status:string|ProviderOperationStatus, changed_by_user_id:int, note?:string|null} $data
+     * @param  array{provider:string, status:string|ProviderOperationStatus, changed_by_user_id:int, note?:string|null}  $data
      */
     public static function fromInput(array $data): self
     {

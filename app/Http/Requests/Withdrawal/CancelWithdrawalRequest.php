@@ -44,7 +44,7 @@ final class CancelWithdrawalRequest extends FormRequest
                 'max:64',
                 'regex:/^[A-Za-z0-9\-\_]+$/',
             ],
-            'reason' => ['nullable', 'string', 'max:255', 'not_regex:' . '/[<>]/'],
+            'reason' => ['nullable', 'string', 'max:255', 'not_regex:'.'/[<>]/'],
         ];
     }
 

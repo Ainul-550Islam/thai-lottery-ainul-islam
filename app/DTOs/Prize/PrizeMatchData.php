@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Prize;
 
+use App\Exceptions\PrizeMatchException;
+
 /**
  * Immutable prize-match identity.
  *
@@ -27,11 +29,10 @@ final readonly class PrizeMatchData
         public string $prizeTier,
         public string $matchedAmount,
         public string $resultFingerprint,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\PrizeMatchException
+     * @throws PrizeMatchException
      */
     public static function fromInput(
         int $drawId,
@@ -46,25 +47,25 @@ final readonly class PrizeMatchData
         $amount = trim($matchedAmount);
 
         if ($drawId < 1 || $betId < 1 || ($ticketId !== null && $ticketId < 1)) {
-            throw \App\Exceptions\PrizeMatchException::malformed(
+            throw PrizeMatchException::malformed(
                 'draw, bet and ticket handles must be positive integers',
             );
         }
 
         if ($tier === '' || strlen($tier) > 32 || ! preg_match('/^[a-z0-9_-]+$/', $tier)) {
-            throw \App\Exceptions\PrizeMatchException::malformed(
+            throw PrizeMatchException::malformed(
                 'the prize tier must be a canonical lower-case token',
             );
         }
 
         if (! preg_match('/^-?\d+(\.\d{1,2})?$/', $amount)) {
-            throw \App\Exceptions\PrizeMatchException::malformed(
+            throw PrizeMatchException::malformed(
                 'the matched amount must be a decimal string (money, never float)',
             );
         }
 
         if (! preg_match('/^[0-9a-f]{64}$/', $fp)) {
-            throw \App\Exceptions\PrizeMatchException::malformed(
+            throw PrizeMatchException::malformed(
                 'the result fingerprint must be exactly 64 lowercase hex characters',
             );
         }

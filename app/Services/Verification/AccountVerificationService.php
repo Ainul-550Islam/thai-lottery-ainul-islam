@@ -51,8 +51,7 @@ final class AccountVerificationService
         private readonly AccountVerificationFacade $facade,
         private readonly DocumentStorageService $storage,
         private readonly AccountVerificationDocumentService $documents,
-    ) {
-    }
+    ) {}
 
     /*
     |----------------------------------------------------------------------
@@ -141,12 +140,11 @@ final class AccountVerificationService
      *     document?: UploadedFile|null,
      *     document_back?: UploadedFile|null,
      * }  $payload
-     *
      * @return array{status: string, reference: string}
      *
      * @throws InvalidArgumentException on policy violations (the
-     *                                   controller maps these to the
-     *                                   'document' error key).
+     *                                  controller maps these to the
+     *                                  'document' error key).
      */
     public function submit(User $user, array $payload, ?string $ipAddress = null): array
     {

@@ -54,8 +54,7 @@ final readonly class BetAmendmentData
         public string $clientKey,
         public array $metadata = [],
         public array $ignoredClientFields = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Build from an untrusted associative payload.

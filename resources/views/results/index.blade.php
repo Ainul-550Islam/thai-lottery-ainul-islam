@@ -74,6 +74,12 @@
                                         <span class="inline-flex rounded-full border border-[#D4AF37]/30 px-3 py-1 text-xs font-semibold text-[#F5E6B8]" data-source-state="{{ $source }}" aria-label="{{ __('results.source') }}: {{ $sourceLabel }}">
                                             {{ $sourceLabel }}
                                         </span>
+                                        {{-- The import fingerprint. It ties this row to the
+                                             import that produced it, so a published result can
+                                             be traced rather than taken on trust. --}}
+                                        <span class="mt-1 block font-mono text-[10px] text-gray-400" data-result-version="{{ $row['result_version'] ?? '' }}">
+                                            {{ $row['result_version'] ?? '' }}
+                                        </span>
                                     </td>
                                 </tr>
                             @endforeach

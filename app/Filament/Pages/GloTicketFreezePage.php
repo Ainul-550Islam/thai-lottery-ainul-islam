@@ -9,11 +9,11 @@ use App\Models\GloTicketFreeze;
 use App\Services\Lottery\GloTicketFreezeService;
 use App\Support\Admin\AdminAccess;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
-use Filament\Pages\Page;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Illuminate\Support\Collection;
 
 /**
  * Filament page — GLO ticket freeze cases (GLO-11).
@@ -173,7 +173,7 @@ class GloTicketFreezePage extends Page
     /**
      * Freezes this page is allowed to display (same query as getFreezesProperty).
      *
-     * @return \Illuminate\Support\Collection<int, GloTicketFreeze>
+     * @return Collection<int, GloTicketFreeze>
      */
     public function getTimeline(GloTicketFreeze $freeze)
     {

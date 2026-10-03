@@ -23,8 +23,7 @@ class PrizeWonNotification extends Notification implements ShouldQueue
         public readonly PrizeDisbursement $disbursement,
         public readonly string $tierName,
         public readonly string $ticketNumber,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>

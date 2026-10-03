@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\Lottery;
 
+use App\Models\Draw;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -107,7 +108,7 @@ final class ScheduleDrawsCommand extends LotteryAutomationCommand
                 $moment->toDateTimeString(),
                 $drawNumber,
                 $this->schedule->bettingCloseAtFor($moment)->toDateTimeString(),
-                \App\Models\Draw::withTrashed()->where('draw_number', $drawNumber)->exists() ? 'exists' : 'would create',
+                Draw::withTrashed()->where('draw_number', $drawNumber)->exists() ? 'exists' : 'would create',
             ];
         }
 

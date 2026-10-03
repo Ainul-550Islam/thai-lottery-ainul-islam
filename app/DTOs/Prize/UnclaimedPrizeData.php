@@ -50,8 +50,7 @@ class UnclaimedPrizeData
         public readonly string $expiredAt,
         public readonly ?int $betId = null,
         public readonly array $sweepContext = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The deterministic disposal identity of one lapsed prize.

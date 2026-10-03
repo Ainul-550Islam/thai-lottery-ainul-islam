@@ -11,6 +11,4 @@ use App\Http\Controllers\Auth\MemberAuthController as BaseMemberAuthController;
  *
  * Provides web login, registration, password recovery, and session management.
  */
-class MemberAuthController extends BaseMemberAuthController
-{
-}
+class MemberAuthController extends BaseMemberAuthController {}

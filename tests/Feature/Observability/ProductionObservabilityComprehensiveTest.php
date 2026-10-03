@@ -4,28 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Observability;
 
-use App\DTOs\Payment\GatewayWithdrawalResponse;
-use App\DTOs\Payment\WebhookPayload;
 use App\Enums\AuditAction;
 use App\Enums\Currency;
-use App\Enums\DepositStatus;
-use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Enums\PaymentMethod;
-use App\Enums\PaymentStatus;
 use App\Enums\QueueName;
 use App\Enums\RiskLevel;
-use App\Enums\WebhookEventType;
-use App\Enums\WithdrawalStatus;
 use App\Jobs\Notification\SendFinancialAlertJob;
 use App\Jobs\Payment\DisburseWithdrawalJob;
-use App\Jobs\Payment\ProcessPaymentWebhookJob;
 use App\Models\AuditLog;
-use App\Models\Deposit;
 use App\Models\Draw;
-use App\Models\Payment;
 use App\Models\User;
-use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Finance\Money;
 use App\Services\Finance\WithdrawalApprovalService;
@@ -35,19 +24,17 @@ use App\Services\Observability\FinancialMetricsCollector;
 use App\Services\Observability\OperationalAlertService;
 use App\Services\Observability\StructuredLogger;
 use App\Services\Observability\SystemHealthService;
-use App\Services\Payment\Contracts\PaymentGatewayInterface;
-use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\PaymentWebhookService;
-use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\Queue\QueueHealthService;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\RolePermissionSeeder;
 use Tests\Feature\Payment\PaymentTestCase;
 
 /**
@@ -83,11 +70,17 @@ use Tests\Feature\Payment\PaymentTestCase;
 final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
 {
     private StructuredLogger $structuredLogger;
+
     private FinancialMetricsCollector $metricsCollector;
+
     private SystemHealthService $systemHealthService;
+
     private OperationalAlertService $alertService;
+
     private WithdrawalService $withdrawalService;
+
     private WithdrawalApprovalService $withdrawalApprovalService;
+
     private PaymentWebhookService $webhookService;
 
     protected function setUp(): void
@@ -145,7 +138,7 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
 
         $this->assertSame('corr-fixed-1234', CorrelationContext::get());
 
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'user_id' => null,
             'action' => AuditAction::Deposit,
@@ -210,7 +203,7 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
     public function test_06_system_health_reporting_healthy_state(): void
     {
         // Record fresh reconciliation audit so it's not marked stale
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'action' => AuditAction::Reconcile,
             'risk_level' => RiskLevel::Low,
@@ -260,7 +253,7 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
         AuditLog::query()->where('action', AuditAction::Reconcile->value)->delete();
 
         // Insert reconciliation audit from 48 hours ago
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'action' => AuditAction::Reconcile,
             'risk_level' => RiskLevel::Low,
@@ -290,7 +283,7 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
         // Insert 15 failed jobs to trigger degraded threshold
         for ($i = 0; $i < 15; $i++) {
             DB::table('failed_jobs')->insert([
-                'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'uuid' => (string) Str::uuid(),
                 'connection' => 'database',
                 'queue' => QueueName::FinancialCritical->value,
                 'payload' => json_encode(['job' => 'DisburseWithdrawalJob']),
@@ -389,7 +382,7 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
     #[Test]
     public function test_15_reconciliation_discrepancy_metrics_collection(): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'action' => AuditAction::Reconcile,
             'risk_level' => RiskLevel::Critical,
@@ -598,7 +591,7 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
 
         // Test HTTP endpoint /metrics (operator-only after the P0 sweep)
         $this->seed(RolePermissionSeeder::class);
-        $admin = \App\Models\User::factory()->create();
+        $admin = User::factory()->create();
         $admin->assignRole('super-admin');
         $this->actingAs($admin);
         $response = $this->get('/metrics');

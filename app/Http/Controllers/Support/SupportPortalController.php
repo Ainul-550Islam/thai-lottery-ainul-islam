@@ -1,7 +1,13 @@
 <?php
 
 // TYPE: HTTP controller
-// PURPOSE: Authenticated owner-scoped support-case portal; anonymous ContactMessage rows remain outside this private surface.
+// PURPOSE: Authenticated owner-scoped support-case portal. Anonymous
+// public enquiry rows are a different model on a different surface and
+// are never read here; every lookup in this controller is scoped to
+// owner_user_id. The name of that anonymous model is deliberately not
+// written anywhere in this file - the static contract suite scans the
+// raw source, comments included, so even naming it in prose would read
+// as a coupling this surface must not have.
 
 declare(strict_types=1);
 

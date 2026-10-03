@@ -22,11 +22,10 @@ final class AdminOperationData
         public readonly ?string $targetReference,
         public readonly array $payload,
         public readonly ?string $evidenceFingerprint,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array{actor_user_id:int, type:string|AdminOperationType, target_reference?:string|null, payload?:array, evidence?:string|null} $data
+     * @param  array{actor_user_id:int, type:string|AdminOperationType, target_reference?:string|null, payload?:array, evidence?:string|null}  $data
      */
     public static function fromInput(array $data): self
     {

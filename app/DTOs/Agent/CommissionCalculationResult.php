@@ -25,8 +25,7 @@ final class CommissionCalculationResult
         public readonly Currency $currency,
         public readonly int $hierarchyLevel = 1,
         public readonly array $metadata = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

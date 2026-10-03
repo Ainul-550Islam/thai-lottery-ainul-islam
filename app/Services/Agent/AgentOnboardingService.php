@@ -9,6 +9,7 @@ use App\Enums\AgentStatus;
 use App\Enums\AuditAction;
 use App\Enums\Currency;
 use App\Enums\RiskLevel;
+use App\Enums\WalletStatus;
 use App\Enums\WalletType;
 use App\Exceptions\FinancialException;
 use App\Models\Agent;
@@ -27,8 +28,7 @@ class AgentOnboardingService
 {
     public function __construct(
         private readonly ConfigRepository $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Onboard a user as a registered agent.
@@ -115,7 +115,7 @@ class AgentOnboardingService
 
             $status = $data->status ?? ($data->autoApprove ? AgentStatus::Active : AgentStatus::Inactive);
 
-            $agent = new Agent();
+            $agent = new Agent;
             $agent->fill([
                 'agent_code' => $agentCode,
                 'user_id' => $data->userId,
@@ -305,7 +305,7 @@ class AgentOnboardingService
             ->first();
 
         if (! $wallet instanceof Wallet) {
-            $wallet = new Wallet();
+            $wallet = new Wallet;
             $wallet->user_id = $user->id;
             $wallet->type = WalletType::Primary;
             $wallet->currency = $currency;
@@ -315,7 +315,7 @@ class AgentOnboardingService
             $wallet->total_withdrawn = '0.00';
             $wallet->total_wagered = '0.00';
             $wallet->total_won = '0.00';
-            $wallet->status = \App\Enums\WalletStatus::Active;
+            $wallet->status = WalletStatus::Active;
             $wallet->save();
         }
 
@@ -330,7 +330,7 @@ class AgentOnboardingService
         array $newValues = [],
         array $metadata = [],
     ): void {
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'user_id' => null,
             'action' => $action,

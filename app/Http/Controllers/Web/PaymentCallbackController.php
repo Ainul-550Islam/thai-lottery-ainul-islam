@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Models\Payment;
+use App\Services\Finance\Money;
 use App\Services\Payment\PaymentCallbackService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -32,8 +33,7 @@ final class PaymentCallbackController
 {
     public function __construct(
         private readonly PaymentCallbackService $callbacks,
-    ) {
-    }
+    ) {}
 
     public function success(Request $request): View
     {
@@ -83,7 +83,7 @@ final class PaymentCallbackController
             'reference' => (string) ($projection['document_reference'] ?? ''),
             'paymentReference' => $payment !== null ? (string) $payment->reference_number : '',
             'amount' => $payment !== null
-                ? \App\Services\Finance\Money::of((string) $payment->amount, $payment->currency)->format()
+                ? Money::of((string) $payment->amount, $payment->currency)->format()
                 : '',
         ]);
     }

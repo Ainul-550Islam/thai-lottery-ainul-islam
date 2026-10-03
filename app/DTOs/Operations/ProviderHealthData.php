@@ -18,8 +18,7 @@ final class ProviderHealthData
         public readonly ?int $failedAttempts24h,
         public readonly ?int $successfulAttempts24h,
         public readonly ?string $lastObservedAt,
-    ) {
-    }
+    ) {}
 
     /**
      * Whether the desk observed ANY lane traffic in the window.

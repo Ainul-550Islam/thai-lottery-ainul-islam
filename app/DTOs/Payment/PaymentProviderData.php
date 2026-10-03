@@ -25,8 +25,7 @@ final readonly class PaymentProviderData
         public PaymentProviderStatus $status,
         public array $supportedCurrencies,
         public array $nonSecrets,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws PaymentProviderException

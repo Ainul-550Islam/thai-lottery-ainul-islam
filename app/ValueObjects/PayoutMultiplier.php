@@ -54,8 +54,7 @@ final readonly class PayoutMultiplier implements Stringable
 
     private function __construct(
         public string $value,
-    ) {
-    }
+    ) {}
 
     /**
      * Build a multiplier from an exact decimal string or an integer.

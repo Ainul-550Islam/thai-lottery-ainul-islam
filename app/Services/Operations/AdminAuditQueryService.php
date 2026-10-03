@@ -8,6 +8,7 @@ use App\Enums\AuditAction;
 use App\Exceptions\AdminOperationException;
 use App\Models\AuditLog;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 
 /**
  * AdminAuditQueryService — READ-ONLY operational audit/search view.
@@ -58,7 +59,7 @@ final class AdminAuditQueryService
 
     private static function stamp(string $value): string
     {
-        $stamp = \Illuminate\Support\Carbon::parse($value, 'UTC');
+        $stamp = Carbon::parse($value, 'UTC');
 
         return $stamp->toDateTimeString();
     }

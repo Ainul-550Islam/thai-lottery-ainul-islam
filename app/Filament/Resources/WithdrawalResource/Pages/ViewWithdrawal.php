@@ -6,6 +6,7 @@ namespace App\Filament\Resources\WithdrawalResource\Pages;
 
 use App\Filament\Resources\WithdrawalResource;
 use App\Filament\Resources\WithdrawalResource\WithdrawalDecisionActions;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 
 /**
@@ -23,7 +24,7 @@ class ViewWithdrawal extends ViewRecord
     protected static string $resource = WithdrawalResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

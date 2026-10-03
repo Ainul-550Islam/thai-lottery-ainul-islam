@@ -21,8 +21,7 @@ final class ProviderOperationalStateChanged
     public function __construct(
         public readonly ProviderOperation $change,
         public readonly ?string $fromStatus,
-    ) {
-    }
+    ) {}
 
     public function changeFingerprint(): string
     {

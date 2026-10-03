@@ -7,7 +7,7 @@ use App\Services\Lottery\NationalLotteryImportService;
 use App\Services\Lottery\PcsoLotteryImportService;
 use App\Services\Lottery\WeeklyLotteryImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -68,7 +68,7 @@ class ArchiveInventoryParityTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('laneProvider')]
+    #[DataProvider('laneProvider')]
     public function test_every_advertised_year_link_has_rows_and_every_detail_link_resolves(string $index, callable $publish): void
     {
         // Two published draws in the same year for this lane.
@@ -120,7 +120,7 @@ class ArchiveInventoryParityTest extends TestCase
         );
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('laneProvider')]
+    #[DataProvider('laneProvider')]
     public function test_a_year_with_no_draws_renders_an_honest_empty_state(string $index): void
     {
         $this->get($index.'/year/2511')

@@ -190,9 +190,22 @@ final class PublicAboutVisionTest extends TestCase
             $this->assertStringContainsString('data-pp-value="'.$value.'"', $content);
         }
         // Competitor's CLEAR acronym framework must not be copied as a set.
+        //
+        // Previously this scanned the entire response, where the only match was
+        // the word "Legal" in the site footer's "Legal & Support" column - a
+        // heading on every page that has nothing to do with a values framework.
+        // The claim is about the values this page publishes, so the search is
+        // scoped to the values block that carries them.
+        preg_match_all(
+            '/data-pp-value="[^"]*"[^>]*>(.*?)<\/[a-z]+>/is',
+            $content,
+            $valueBlocks,
+        );
+        $valuesText = implode(' ', $valueBlocks[1]);
+
         $clearHits = 0;
         foreach (['Consistency', 'Legal', 'Efficiency', 'Accountability framework'] as $word) {
-            if (str_contains($content, $word)) {
+            if (str_contains($valuesText, $word)) {
                 $clearHits++;
             }
         }

@@ -8,7 +8,7 @@
 
     <!-- Tailwind CSS (CDN for standalone preview, plus project stylesheet) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('css/player-dashboard.css') }}">
+    @vite(['resources/css/player-dashboard.css'])
     <style>
         :root {
             --pd-bg-page: #0b1017;
@@ -218,6 +218,6 @@
     </button>
 
     <!-- Interactive script bundle -->
-    <script src="{{ asset('js/player-dashboard.js') }}"></script>
+    @vite(['resources/js/player-dashboard.js'])
 </body>
 </html>

@@ -23,8 +23,7 @@ class KycStatusNotification extends Notification implements ShouldQueue
     public function __construct(
         public readonly string $status,
         public readonly ?string $reason = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>
@@ -45,7 +44,7 @@ class KycStatusNotification extends Notification implements ShouldQueue
 
         $line = match ($this->status) {
             KycStatus::Verified->value, 'approved' => 'Your identity documents have been verified. Your account is now fully approved for enhanced limits and withdrawals.',
-            KycStatus::Rejected->value, 'rejected' => 'Your submitted verification document could not be approved. Reason: ' . ($this->reason ?? 'Document unreadable or invalid format.') . ' Please upload a clear replacement document.',
+            KycStatus::Rejected->value, 'rejected' => 'Your submitted verification document could not be approved. Reason: '.($this->reason ?? 'Document unreadable or invalid format.').' Please upload a clear replacement document.',
             KycStatus::UnderReview->value, 'under_review' => 'Your verification documents are currently being reviewed by our compliance team.',
             default => "Your account verification status is currently: {$this->status}.",
         };

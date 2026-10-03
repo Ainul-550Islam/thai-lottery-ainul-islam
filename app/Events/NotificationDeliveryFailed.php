@@ -22,8 +22,7 @@ final class NotificationDeliveryFailed
     public function __construct(
         public readonly Notification $notification,
         public readonly NotificationFailureReason $reason,
-    ) {
-    }
+    ) {}
 
     public function failureFingerprint(): string
     {

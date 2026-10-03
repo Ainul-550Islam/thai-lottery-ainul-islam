@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Lottery;
 
 use App\Models\Draw;
+use App\Services\Draw\DrawLifecycleService;
 
 /**
  * Moves a closed draw whose scheduled moment has passed to "awaiting result".
@@ -44,7 +45,7 @@ final class MarkResultsPendingCommand extends LotteryAutomationCommand
             return self::SUCCESS;
         }
 
-        $lifecycle = app(\App\Services\Draw\DrawLifecycleService::class);
+        $lifecycle = app(DrawLifecycleService::class);
 
         $this->eachDueDraw(
             $this->schedule->dueForResultPending(),

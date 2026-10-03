@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Models\Draw;
 use App\Models\GloNotificationDelivery;
+use App\Models\GloSavedTicket;
 use App\Support\Admin\AdminAccess;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
@@ -110,13 +112,13 @@ class GloSavedTicketNotificationsPage extends Page
 
         $rows = [];
         foreach ($byDraw as $drawId => $counts) {
-            $pending = (int) \App\Models\GloSavedTicket::query()
+            $pending = (int) GloSavedTicket::query()
                 ->where('draw_id', $drawId)
                 ->where('status', 'active')
                 ->where('notification_state', 'pending')
                 ->count();
 
-            $draw = \App\Models\Draw::query()->find($drawId);
+            $draw = Draw::query()->find($drawId);
             $rows[] = [
                 'draw_id' => $drawId,
                 'draw_number' => $draw?->draw_number ?? (string) $drawId,

@@ -68,8 +68,52 @@ final class HomePageTest extends TestCase
     {
         $content = (string) $this->get('/')->assertOk()->getContent();
 
-        $this->assertStringContainsString('pages/home.css', $content);
-        $this->assertStringContainsString('pages/home.js', $content);
-        $this->assertStringContainsString('home/countdown.js', $content);
+        // The assets the page actually loads, resolved through the build.
+        //
+        // This previously asserted pages/home.css and pages/home.js, which
+        // belonged to the static mockup this page replaced - the one that
+        // carried a fabricated government licence badge. Those two files were
+        // orphans: never loaded, duplicating components/glass.css, and in the
+        // script's case binding the same countdown element that
+        // home/countdown.js owns. They have been deleted.
+        //
+        // Asserting a source filename cannot work against a production build,
+        // because Vite emits content-hashed names: resources/css/home.css
+        // ships as assets/home-Caj98s6M.css. So each source entry is resolved
+        // through public/build/manifest.json and the emitted filename is what
+        // the response must contain. That is a stronger check than the old
+        // one - it proves the page ships the compiled artefact, not merely
+        // that a string appears in the markup.
+        $manifestPath = public_path('build/manifest.json');
+
+        $this->assertFileExists(
+            $manifestPath,
+            'The front-end build is missing: run npm run build before the suite.',
+        );
+
+        /** @var array<string, array{file?: string}> $manifest */
+        $manifest = (array) json_decode((string) file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
+
+        foreach ([
+            'resources/css/home.css',
+            'resources/js/home/countdown.js',
+            'resources/js/home/live-draw.js',
+        ] as $source) {
+            $this->assertArrayHasKey(
+                $source,
+                $manifest,
+                $source.' is not a build entry, so the home page cannot load it.',
+            );
+
+            $emitted = (string) ($manifest[$source]['file'] ?? '');
+
+            $this->assertNotSame('', $emitted, $source.' resolved to no built file.');
+
+            $this->assertStringContainsString(
+                $emitted,
+                $content,
+                'The home page does not load '.$source.' (built as '.$emitted.').',
+            );
+        }
     }
 }

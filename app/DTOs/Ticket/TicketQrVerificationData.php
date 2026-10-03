@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\DTOs\Ticket;
 
+use App\Exceptions\TicketQrVerificationException;
+use Illuminate\Support\Carbon;
+
 /**
  * QR verification payload.
  *
@@ -26,8 +29,8 @@ final readonly class TicketQrVerificationData
 {
     /**
      * @param  array<string, mixed>  $context  Safe diagnostic context
-     *                                        (reader id, origin tag);
-     *                                        never secrets.
+     *                                         (reader id, origin tag);
+     *                                         never secrets.
      * @param  ?string  $expiresAt  Optional ISO-8601 expiry carried INSIDE
      *                              the signed surface: an issuer may bake
      *                              the URL-at-door lifetime into the QR so
@@ -44,15 +47,14 @@ final readonly class TicketQrVerificationData
         public ?int $ticketProductId,
         public array $context = [],
         public ?string $expiresAt = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Build from raw input with validation by form, not by hope. Throws a
      * shaped invalid-document sentence the QR service translates into its
      * own pronounced refusals — the DTO layer stays vocabulary-neutral.
      *
-     * @throws \App\Exceptions\TicketQrVerificationException
+     * @throws TicketQrVerificationException
      */
     public static function fromPayload(
         string $ticketReference,
@@ -68,19 +70,19 @@ final readonly class TicketQrVerificationData
         $n = trim($nonce);
 
         if (! preg_match('/^[A-Z0-9-]{1,64}$/', $reference)) {
-            throw \App\Exceptions\TicketQrVerificationException::malformed(
+            throw TicketQrVerificationException::malformed(
                 'the ticket reference is not canonical (uppercase ASCII, digits, hyphens)',
             );
         }
 
         if (! preg_match('/^[0-9a-f]{64}$/', $fp)) {
-            throw \App\Exceptions\TicketQrVerificationException::malformed(
+            throw TicketQrVerificationException::malformed(
                 'the fingerprint must be exactly 64 lowercase hex characters',
             );
         }
 
         if (mb_strlen($n) < 16) {
-            throw \App\Exceptions\TicketQrVerificationException::malformed(
+            throw TicketQrVerificationException::malformed(
                 'the nonce must be at least 16 characters',
             );
         }
@@ -91,9 +93,9 @@ final readonly class TicketQrVerificationData
             $candidate = trim($expiresAt);
 
             try {
-                $expiry = \Illuminate\Support\Carbon::parse($candidate)->utc()->toIso8601String();
+                $expiry = Carbon::parse($candidate)->utc()->toIso8601String();
             } catch (\Throwable) {
-                throw \App\Exceptions\TicketQrVerificationException::malformed(
+                throw TicketQrVerificationException::malformed(
                     'the expiry, if carried at all, must be an ISO-8601 instant',
                 );
             }

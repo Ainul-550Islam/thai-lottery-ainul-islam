@@ -37,13 +37,13 @@ class AccountVerificationRequest extends FormRequest
                 'required',
                 'file',
                 'max:'.$maxKb,
-                new DocumentUploadRule(),
+                new DocumentUploadRule,
             ],
             'document_back' => [
                 $requireBack ? 'required' : 'nullable',
                 'file',
                 'max:'.$maxKb,
-                new DocumentUploadRule(),
+                new DocumentUploadRule,
             ],
         ];
     }

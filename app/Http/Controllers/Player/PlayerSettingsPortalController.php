@@ -12,7 +12,6 @@ use App\Services\Security\ResponsibleGamingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 /**
@@ -28,8 +27,7 @@ final class PlayerSettingsPortalController extends Controller
 {
     public function __construct(
         private readonly SelfExclusionService $selfExclusions,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): RedirectResponse
     {

@@ -38,8 +38,7 @@ class AuthPasswordResetNotification extends Notification implements ShouldQueue
      */
     public function __construct(
         public readonly string $token,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  User  $notifiable
@@ -62,7 +61,7 @@ class AuthPasswordResetNotification extends Notification implements ShouldQueue
             'email' => $notifiable->getEmailForPasswordReset(),
         ]);
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('public_pages.reset_mail_subject'))
             ->line(__('public_pages.reset_mail_line1'))
             ->action(__('public_pages.reset_mail_action'), $url)

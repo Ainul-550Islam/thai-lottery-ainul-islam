@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Finance;
 
+use App\Exceptions\LedgerAdjustmentException;
+
 /**
  * The controlled adjustment request.
  *
@@ -33,11 +35,10 @@ final readonly class LedgerAdjustmentData
         public string $reason,
         public string $sourceEvidence,
         public int $operatorUserId,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\LedgerAdjustmentException
+     * @throws LedgerAdjustmentException
      */
     public static function fromInput(
         int $walletId,
@@ -53,43 +54,43 @@ final readonly class LedgerAdjustmentData
         $evid = strtoupper(trim($sourceEvidence));
 
         if ($walletId < 1) {
-            throw \App\Exceptions\LedgerAdjustmentException::malformed(
+            throw LedgerAdjustmentException::malformed(
                 'the wallet handle must be a positive integer',
             );
         }
 
         if (! preg_match('/^[+-]?\d+(\.\d{1,2})?$/', $amt)) {
-            throw \App\Exceptions\LedgerAdjustmentException::malformed(
+            throw LedgerAdjustmentException::malformed(
                 'the amount must be a signed decimal string (money, never float)',
             );
         }
 
         if (extension_loaded('bcmath') ? bccomp($amt, '0', 2) === 0 : ((float) $amt === 0.0)) {
-            throw \App\Exceptions\LedgerAdjustmentException::malformed(
+            throw LedgerAdjustmentException::malformed(
                 'a zero adjustment is not an adjustment — no movement at all',
             );
         }
 
         if (! preg_match('/^[a-z]{3}$/', $cur)) {
-            throw \App\Exceptions\LedgerAdjustmentException::malformed(
+            throw LedgerAdjustmentException::malformed(
                 'the currency must be a 3-letter code',
             );
         }
 
         if (strlen($why) < 8 || strlen($why) > 255) {
-            throw \App\Exceptions\LedgerAdjustmentException::malformed(
+            throw LedgerAdjustmentException::malformed(
                 'the reason must be 8-255 characters (a real sentence, not shorthand)',
             );
         }
 
         if (strlen($evid) < 8 || strlen($evid) > 64 || ! preg_match('/^[A-Z0-9:\-\._]+$/', $evid)) {
-            throw \App\Exceptions\LedgerAdjustmentException::malformed(
+            throw LedgerAdjustmentException::malformed(
                 'the source evidence must be a canonical 8-64 character token',
             );
         }
 
         if ($operatorUserId < 1) {
-            throw \App\Exceptions\LedgerAdjustmentException::malformed(
+            throw LedgerAdjustmentException::malformed(
                 'the operator handle must be a positive integer',
             );
         }

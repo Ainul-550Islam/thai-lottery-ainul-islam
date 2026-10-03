@@ -5,7 +5,7 @@
 @section('meta_canonical', $meta['canonical'])
 @section('meta_robots', $meta['robots'])
 
-@push('styles')<link rel="stylesheet" href="{{ asset('css/national-lottery.css') }}">@endpush
+@push('styles')@vite(['resources/css/national-lottery.css'])@endpush
 
 @section('content')
 @php $rows = is_array($history['rows'] ?? null) ? $history['rows'] : []; @endphp

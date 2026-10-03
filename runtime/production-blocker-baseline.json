@@ -1,0 +1,54 @@
+{
+  "artifact": "production-blocker-baseline",
+  "phase": 0,
+  "captured_at_utc": "2026-10-01",
+  "captured_against": {
+    "git_commit": "1c21115b615dd37fb0ad17f3a4704445cdef4ce0",
+    "branch_measured": "main (fixes stashed to measure untouched HEAD)",
+    "note": "The remediation branch fix/production-blocker-closure was stashed via `git stash push -u` so the baseline reflects unmodified HEAD, then restored with `git stash pop`."
+  },
+  "toolchain": {
+    "php": "8.4.26",
+    "composer": "2.x",
+    "database_under_test": "sqlite (phpunit.xml DB_CONNECTION=sqlite, database/thai_lottery_test)",
+    "mariadb_available": "11.8.6-MariaDB (runtime/parity target)",
+    "redis": "responding to PING",
+    "node": "v20.20.2",
+    "npm": "10.8.2"
+  },
+  "test_baseline": {
+    "command": "php artisan test",
+    "failed": 466,
+    "passed": 1556,
+    "skipped": 5,
+    "total": 2027,
+    "assertions": 106389,
+    "duration_seconds": 307.74,
+    "exit_status": "FAILING"
+  },
+  "pint_baseline": {
+    "command": "vendor/bin/pint --test",
+    "status": "FAILING",
+    "note": "Style violations concentrated in tests/. Dominant rules: fully_qualified_strict_types, new_with_parentheses, no_unused_imports. No Pint exclusions were added to achieve green."
+  },
+  "dominant_baseline_failure_cause": {
+    "symptom": "Vite manifest not found at: public/build/manifest.json",
+    "explanation": "Front-end assets had never been compiled in this working tree. Every feature test that renders a Blade view extending the asset layout aborted during view render, not during assertion. This masks the true application-logic failure count.",
+    "remedy_applied": "npm ci && npm run build (142 packages, 0 vulnerabilities, 28 entrypoints emitted).",
+    "classification": "environment/build gap, not application logic"
+  },
+  "hosted_ci_baseline": {
+    "total_runs_observed": 11,
+    "green_runs": 0,
+    "latest_run_id": "36850419997",
+    "latest_run_conclusion": "failure",
+    "latest_run_commit": "1c21115",
+    "failing_steps": {
+      "PHP tests": "Install dependencies",
+      "Runtime and Rust contract gates": "Validate Composer platform and dependencies",
+      "Full runtime release candidate": "step 8 Prepare controlled Laravel environment",
+      "Rust integrity verifier": "PASSING"
+    },
+    "conclusion": "The pipeline has never been green on any commit in the repository's history."
+  }
+}

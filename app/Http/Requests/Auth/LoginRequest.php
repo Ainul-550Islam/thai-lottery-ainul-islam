@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Auth;
 
 use App\Rules\AccountIdentifierRule;
+use App\Services\Auth\CaptchaService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /*
@@ -27,11 +28,11 @@ final class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        $captchaEnabled = app(\App\Services\Auth\CaptchaService::class)->isEnabled()
+        $captchaEnabled = app(CaptchaService::class)->isEnabled()
             && (bool) config('auth_security.captcha.login', true);
 
         return [
-            'login' => ['required', 'string', 'max:255', new AccountIdentifierRule()],
+            'login' => ['required', 'string', 'max:255', new AccountIdentifierRule],
             'password' => ['required', 'string', 'max:255'],
             'remember' => ['nullable', 'boolean'],
             'captcha_token' => [$captchaEnabled ? 'required' : 'nullable', 'string', 'max:128'],

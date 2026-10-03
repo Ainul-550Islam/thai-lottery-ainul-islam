@@ -6,9 +6,7 @@ namespace App\Services\Observability;
 
 use App\Enums\DepositStatus;
 use App\Enums\DrawStatus;
-use App\Enums\PaymentStatus;
 use App\Enums\PayoutStatus;
-use App\Enums\QueueName;
 use App\Enums\WithdrawalStatus;
 use App\Models\AuditLog;
 use App\Models\Deposit;
@@ -34,8 +32,7 @@ class FinancialMetricsCollector
     public function __construct(
         private readonly QueueHealthService $queueHealth,
         private readonly ConfigRepository $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Collect all real-time operational and financial metrics.

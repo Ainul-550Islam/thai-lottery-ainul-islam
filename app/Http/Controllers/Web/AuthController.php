@@ -60,7 +60,7 @@ final class AuthController
             'terms' => ['required', 'accepted'],
         ]);
 
-        $user = new User();
+        $user = new User;
         $user->fill([
             'name' => $validated['name'],
             'username' => $validated['username'],
@@ -81,7 +81,7 @@ final class AuthController
         }
 
         // Ensure default wallet is provisioned
-        $wallet = new Wallet();
+        $wallet = new Wallet;
         $wallet->user_id = $user->id;
         $wallet->currency = Currency::THB;
         $wallet->status = WalletStatus::Active;

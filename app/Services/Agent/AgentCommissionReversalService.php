@@ -21,8 +21,7 @@ class AgentCommissionReversalService
 {
     public function __construct(
         private readonly FinancialReversalService $reversalService,
-    ) {
-    }
+    ) {}
 
     /**
      * Reverse all commissions associated with a refunded or cancelled bet.

@@ -27,7 +27,7 @@
     @if (! empty($query))
         <section class="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
             <h2 class="text-base font-semibold text-slate-200 mb-1">
-                Search Results for: <span class="font-mono text-emerald-300">{{ e($query) }}</span>
+                Search Results for: <span class="font-mono text-emerald-300">{{ $query }}</span>
             </h2>
             <p class="text-xs text-slate-400">
                 Found {{ count($results) }} matching published record(s).
@@ -63,7 +63,7 @@
                     @empty
                         <tr>
                             <td class="p-6 text-center text-slate-400" colspan="6">
-                                No matching published results found for &ldquo;{{ e($query) }}&rdquo;.
+                                No matching published results found for &ldquo;{{ $query }}&rdquo;.
                                 Please verify the number and try again.
                             </td>
                         </tr>

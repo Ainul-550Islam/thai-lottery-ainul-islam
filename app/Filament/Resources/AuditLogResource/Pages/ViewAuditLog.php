@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\AuditLogResource\Pages;
 
 use App\Filament\Resources\AuditLogResource;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 
 /**
@@ -21,7 +22,7 @@ class ViewAuditLog extends ViewRecord
     protected static string $resource = AuditLogResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

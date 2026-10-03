@@ -24,8 +24,7 @@ final class AgentPortalController extends Controller
 {
     public function __construct(
         private readonly AgentReportingService $reporting,
-    ) {
-    }
+    ) {}
 
     public function dashboard(Request $request): View
     {

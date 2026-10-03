@@ -84,7 +84,7 @@ class TicketProductService
                 ));
             }
 
-            $product = new TicketProduct();
+            $product = new TicketProduct;
             $product->fill([
                 'product_key' => $data->productKey(),
                 'product_code' => strtoupper(trim($data->productCode)),
@@ -280,7 +280,7 @@ class TicketProductService
 
     private function recordAudit(TicketProduct $product, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

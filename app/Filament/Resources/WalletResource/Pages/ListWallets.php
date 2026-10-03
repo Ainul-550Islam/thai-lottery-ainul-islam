@@ -7,6 +7,7 @@ namespace App\Filament\Resources\WalletResource\Pages;
 use App\Enums\WalletStatus;
 use App\Filament\Resources\WalletResource;
 use App\Models\Wallet;
+use Filament\Actions\Action;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,7 +29,7 @@ class ListWallets extends ListRecords
     protected static string $resource = WalletResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

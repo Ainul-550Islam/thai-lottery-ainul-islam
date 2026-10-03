@@ -11,6 +11,7 @@ use App\Services\Finance\DepositCompletionService;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
 use App\Support\Admin\OperatorActionFactory;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 
@@ -52,7 +53,7 @@ final class DepositDecisionActions
     }
 
     /**
-     * @return list<\Filament\Actions\Action>
+     * @return list<Action>
      */
     public static function forPage(): array
     {

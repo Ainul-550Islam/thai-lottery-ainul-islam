@@ -19,8 +19,7 @@ final class NotificationDelivered
     public function __construct(
         public readonly Notification $notification,
         public readonly string $deliveredAt,
-    ) {
-    }
+    ) {}
 
     public function deliveryFingerprint(): string
     {

@@ -1,0 +1,69 @@
+{
+  "artifact": "wallet-write-contract",
+  "phase": 2,
+  "status": "CLOSED AND VERIFIED",
+  "model": "App\\Models\\Wallet",
+  "table": "wallets",
+  "root_cause": "status, the six money columns and version were passed inside the attribute array of Wallet::query()->firstOrCreate(...) by both App\\Services\\Finance\\WalletService and App\\Services\\Wallet\\WalletService, but none of them appear in $fillable. Outside production Model::preventSilentlyDiscardingAttributes() turned that into a MassAssignmentException; in production the attributes were silently discarded, so version persisted at the migration default 0 while all seven optimistic-lock writers in Finance/WalletService.php increment from an assumed 1-based token. WalletFactory never set version either, so the test suite exercised a state production could not produce.",
+  "second_defect_found_during_closure": {
+    "file": "app/Services/Finance/WalletService.php",
+    "defect": "App\\Models\\User was never imported. getOrCreateWallet() declares int|User, so PHP resolved the bare `User` against the current namespace as App\\Services\\Finance\\User -- a class that does not exist. Passing a real User model always raised a TypeError and only the int branch was ever reachable.",
+    "fix": "use App\\Models\\User; added."
+  },
+  "third_defect_found_during_closure": {
+    "defect": "Two classes are named WalletService. The canonical App\\Services\\Finance\\WalletService accepted only Money and only FinancialTransactionType; the facade App\\Services\\Wallet\\WalletService accepted Money|string and string|FinancialTransactionType and delegated to the canonical one. The same call therefore succeeded through one class and raised a TypeError through the other, decided by which `use` statement happened to be at the top of the caller's file.",
+    "fix": "The canonical service was WIDENED to match the facade (normaliseAmount/normaliseType helpers). Widening rather than narrowing keeps every existing caller working and makes the two entry points interchangeable. An unrecognised type string falls back to the method default rather than silently mis-labelling a ledger entry."
+  },
+  "fix_strategy": "Invariants moved out of the caller's attribute array into Wallet::booted()'s creating hook. $fillable stays identity-only. $guarded = [] was explicitly rejected, and $fillable was explicitly NOT widened to cover money columns.",
+  "classification_legend": {
+    "safe_mass_assignable": "May appear in $fillable and be set from a validated request payload.",
+    "explicit_only": "Never mass-assigned. Written only by a named service method inside a transaction.",
+    "server_generated": "Produced by the database or by the model's creating hook; never accepted from any caller."
+  },
+  "fields": [
+    { "column": "id",               "class": "server_generated",     "writer": "database auto-increment",                                  "browser_settable": false },
+    { "column": "user_id",          "class": "safe_mass_assignable", "writer": "WalletService identity tuple",                             "browser_settable": false, "note": "Resolved from the authenticated session, never from request input." },
+    { "column": "type",             "class": "safe_mass_assignable", "writer": "WalletService identity tuple",                             "browser_settable": false },
+    { "column": "currency",         "class": "safe_mass_assignable", "writer": "WalletService identity tuple",                             "browser_settable": false },
+    { "column": "status",           "class": "explicit_only",        "writer": "Wallet::booted() defaults to Active; transitions via admin service only", "browser_settable": false },
+    { "column": "balance",          "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
+    { "column": "locked_balance",   "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
+    { "column": "total_deposited",  "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
+    { "column": "total_withdrawn",  "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
+    { "column": "total_wagered",    "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
+    { "column": "total_won",        "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
+    { "column": "version",          "class": "server_generated",     "writer": "Wallet::booted() seeds 1; incremented only by the optimistic-lock writers", "browser_settable": false, "note": "THE BLOCKER. Must start at 1, never 0." },
+    { "column": "locked_at",        "class": "explicit_only",        "writer": "compliance freeze service",                                "browser_settable": false },
+    { "column": "locked_reason",    "class": "explicit_only",        "writer": "compliance freeze service",                                "browser_settable": false },
+    { "column": "created_at",       "class": "server_generated",     "writer": "Eloquent timestamps",                                      "browser_settable": false },
+    { "column": "updated_at",       "class": "server_generated",     "writer": "Eloquent timestamps",                                      "browser_settable": false }
+  ],
+  "derived_not_stored": {
+    "available_balance": "Computed at read time as bcsub(balance, locked_balance, 2). There is no such column; it is an Eloquent accessor."
+  },
+  "browser_input_exclusion": "No field in this table is settable from browser input. Price, fee, payout, wallet and settlement amounts are all derived server-side; the only client-supplied values on the purchase path are draw_id, bet selections and an idempotency client_key.",
+  "files_changed": [
+    "app/Models/Wallet.php",
+    "app/Services/Finance/WalletService.php",
+    "app/Services/Wallet/WalletService.php",
+    "database/factories/WalletFactory.php",
+    "database/migrations/2026_10_01_000001_fix_wallet_version_initial_state.php"
+  ],
+  "schema_remediation": "The migration sets wallets.version default 0 -> 1 and backfills UPDATE wallets SET version = 1 WHERE version < 1. down() reverts the column default only; it deliberately does not roll back row values, because reverting a live optimistic-lock token would reintroduce the defect.",
+  "verification": {
+    "mariadb_column_default": "SHOW COLUMNS FROM wallets LIKE 'version' => Default = 1 on MariaDB 11.8.6",
+    "test_suite": "tests/Feature/Production/WalletWriteContractTest.php -- 9 passed, 30 assertions",
+    "covers": [
+      "Wallet::create() starts at version 1",
+      "Wallet::firstOrCreate() (the exact service call shape) starts at version 1",
+      "the factory matches production",
+      "status is Active and no money column is null",
+      "getAvailableBalance() is computable immediately after creation",
+      "no financial column is mass assignable",
+      "the model is not globally unguarded",
+      "a RAW DB insert bypassing Eloquent still lands on version 1 (proves the column default, not just the model hook)",
+      "no row can sit below the initial version"
+    ],
+    "mass_assignment_exceptions_in_full_suite": "26 before this pass, 4 after -- and the 4 remaining are on User.kyc_status and GloL6Sale.created_at, not on Wallet"
+  }
+}

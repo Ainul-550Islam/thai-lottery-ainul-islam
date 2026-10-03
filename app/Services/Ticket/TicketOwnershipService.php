@@ -62,7 +62,7 @@ class TicketOwnershipService
      * different from the row's is either an outsider attempting capture
      * or a bug; both are refused identically with identityMismatch.
      *
-     * @return array<string, mixed>  The binding stamp (fingerprint included).
+     * @return array<string, mixed> The binding stamp (fingerprint included).
      */
     public function bind(Ticket $ticket, int $assertedOwnerUserId): array
     {
@@ -370,7 +370,7 @@ class TicketOwnershipService
 
     private function recordAudit(Ticket $ticket, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

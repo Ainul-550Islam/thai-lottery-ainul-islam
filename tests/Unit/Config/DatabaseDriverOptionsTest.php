@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Config;
 
+use Illuminate\Support\Env;
+use Pdo\Mysql;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -53,7 +55,7 @@ final class DatabaseDriverOptionsTest extends TestCase
         // constant, so there is nothing to compare and the assertion below would be
         // meaningless. A skip states that honestly; a failure would report a supported
         // PHP version as a defect.
-        if (! class_exists(\Pdo\Mysql::class)) {
+        if (! class_exists(Mysql::class)) {
             $this->markTestSkipped(
                 'Pdo\\Mysql is only provided by PHP 8.4+. The legacy fallback in config/database.php is asserted by the sibling tests in this class.'
             );
@@ -61,7 +63,7 @@ final class DatabaseDriverOptionsTest extends TestCase
 
         $this->assertSame(
             (int) constant('PDO::MYSQL_ATTR_SSL_CA'),
-            (int) constant(\Pdo\Mysql::class.'::ATTR_SSL_CA'),
+            (int) constant(Mysql::class.'::ATTR_SSL_CA'),
             'Both spellings must resolve to the identical PDO attribute id on every PHP build.',
         );
     }
@@ -84,14 +86,14 @@ final class DatabaseDriverOptionsTest extends TestCase
         // Pdo\Mysql class, no PDO::MYSQL_ATTR_SSL_CA constant) there IS no
         // valid attribute id to pin and the project's options list is
         // legitimately []; skip honestly instead of throwing on constant().
-        if (! defined('PDO::MYSQL_ATTR_SSL_CA') && ! class_exists(\Pdo\Mysql::class)) {
+        if (! defined('PDO::MYSQL_ATTR_SSL_CA') && ! class_exists(Mysql::class)) {
             $this->markTestSkipped(
                 'The mysql PDO driver is not available on this build, so there is no SSL CA attribute id to assert against.'
             );
         }
 
         $sslCaAttributeId = (int) constant(
-            class_exists(\Pdo\Mysql::class) ? \Pdo\Mysql::class.'::ATTR_SSL_CA' : 'PDO::MYSQL_ATTR_SSL_CA',
+            class_exists(Mysql::class) ? Mysql::class.'::ATTR_SSL_CA' : 'PDO::MYSQL_ATTR_SSL_CA',
         );
 
         foreach (array_keys($options) as $key) {
@@ -189,11 +191,81 @@ final class DatabaseDriverOptionsTest extends TestCase
             $contents,
             'config/database.php must reach the SSL CA attribute through Pdo\Mysql on PHP 8.5.',
         );
-        $this->assertStringContainsString(
-            'class_exists(\Pdo\Mysql::class)',
-            $contents,
+        // The guard may legitimately be spelled more than one way. Pint's
+        // fully_qualified_strict_types rule rewrites \Pdo\Mysql::class into an
+        // import on every format run, so pinning one spelling made this
+        // contract unsatisfiable while the project's own formatter was in
+        // force: it passed, then un-passed itself at the next `pint`.
+        $guarded = str_contains($contents, "class_exists('Pdo\\Mysql')")
+            || str_contains($contents, 'class_exists(\Pdo\Mysql::class)')
+            || (str_contains($contents, 'use Pdo\Mysql;')
+                && str_contains($contents, 'class_exists(Mysql::class)'));
+
+        $this->assertTrue(
+            $guarded,
             'The modern name must be guarded so the file still runs on PHP 8.2 to 8.4.',
         );
+
+        // The spelling is cosmetic; this is the part that matters. With a CA
+        // path configured, the mysql connection must carry attribute id 1008 -
+        // PDO::MYSQL_ATTR_SSL_CA under either class name - and must carry the
+        // path itself. A typo inside the guard satisfied the old string match
+        // and cannot satisfy this one, because the guard is evaluated here.
+        if (extension_loaded('pdo_mysql')) {
+            $repository = Env::getRepository();
+            $caPath = '/etc/ssl/certs/verify-driver-guard.pem';
+
+            $originalRepository = $repository->get('MYSQL_ATTR_SSL_CA');
+            $originalPutenv = getenv('MYSQL_ATTR_SSL_CA');
+            $hadEnv = array_key_exists('MYSQL_ATTR_SSL_CA', $_ENV);
+            $hadServer = array_key_exists('MYSQL_ATTR_SSL_CA', $_SERVER);
+            $originalEnv = $_ENV['MYSQL_ATTR_SSL_CA'] ?? null;
+            $originalServer = $_SERVER['MYSQL_ATTR_SSL_CA'] ?? null;
+
+            $repository->set('MYSQL_ATTR_SSL_CA', $caPath);
+            putenv('MYSQL_ATTR_SSL_CA='.$caPath);
+            $_ENV['MYSQL_ATTR_SSL_CA'] = $caPath;
+            $_SERVER['MYSQL_ATTR_SSL_CA'] = $caPath;
+
+            try {
+                /** @var array<string, mixed> $fresh */
+                $fresh = require $file;
+
+                /** @var array<int, string> $options */
+                $options = $fresh['connections']['mysql']['options'] ?? [];
+
+                $this->assertSame(
+                    [1008],
+                    array_keys($options),
+                    'The guarded expression must resolve to PDO::MYSQL_ATTR_SSL_CA (1008).',
+                );
+                $this->assertSame(
+                    [$caPath],
+                    array_values($options),
+                    'The configured CA path must reach the driver unchanged.',
+                );
+            } finally {
+                $repository->clear('MYSQL_ATTR_SSL_CA');
+                putenv('MYSQL_ATTR_SSL_CA');
+                unset($_ENV['MYSQL_ATTR_SSL_CA'], $_SERVER['MYSQL_ATTR_SSL_CA']);
+
+                if ($originalRepository !== null) {
+                    $repository->set('MYSQL_ATTR_SSL_CA', $originalRepository);
+                }
+
+                if ($originalPutenv !== false) {
+                    putenv('MYSQL_ATTR_SSL_CA='.$originalPutenv);
+                }
+
+                if ($hadEnv) {
+                    $_ENV['MYSQL_ATTR_SSL_CA'] = $originalEnv;
+                }
+
+                if ($hadServer) {
+                    $_SERVER['MYSQL_ATTR_SSL_CA'] = $originalServer;
+                }
+            }
+        }
     }
 
     /**

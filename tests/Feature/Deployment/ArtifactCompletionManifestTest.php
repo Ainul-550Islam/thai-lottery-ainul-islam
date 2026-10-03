@@ -4,18 +4,41 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Deployment;
 
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\ResultsController;
 use App\Http\Controllers\Web\BetPurchaseController;
+use App\Http\Controllers\Web\MemberAuthController;
 use App\Http\Controllers\Web\PlayerWebController;
+use App\Http\Requests\Web\AccountVerificationRequest;
+use App\Http\Requests\Web\RegisterRequest;
 use App\Http\Requests\Web\UpdateResponsibleGamingLimitsRequest;
+use App\Models\GloL6Ticket;
+use App\Models\GloPrizeClaim;
+use App\Models\Transaction;
+use App\Models\WalletLedger;
+use App\Services\Admin\AdminOperationService;
+use App\Services\Agent\AgentCommissionService;
+use App\Services\Audit\AuditLogService;
+use App\Services\Betting\BulkBetService;
+use App\Services\Compliance\ComplianceService;
+use App\Services\Finance\FinancialReconciliationService;
+use App\Services\Lottery\BingoLotteryService;
 use App\Services\Lottery\GloL6ProportionalPrizeCalculator;
 use App\Services\Lottery\GloL6SalesService;
 use App\Services\Lottery\GloPrizeClaimService;
+use App\Services\Lottery\GloResultPublicationService;
 use App\Services\Lottery\GloStampDutyCalculator;
+use App\Services\Lottery\NationalLotteryService;
+use App\Services\Lottery\PcsoLotteryService;
+use App\Services\Lottery\ResultImportService;
+use App\Services\Lottery\WeeklyLotteryService;
 use App\Services\Payment\PaymentGatewayManager;
+use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\Payments\PublicPaymentMethodsService;
 use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use App\Services\Security\ResponsibleGamingService;
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -43,28 +66,28 @@ final class ArtifactCompletionManifestTest extends TestCase
             GloStampDutyCalculator::class,
             GloL6SalesService::class,
             GloL6ProportionalPrizeCalculator::class,
-            \App\Models\GloL6Ticket::class,
-            \App\Models\GloPrizeClaim::class,
-            \App\Services\Lottery\GloResultPublicationService::class,
-            \App\Models\WalletLedger::class,
-            \App\Models\Transaction::class,
-            \App\Services\Betting\BulkBetService::class,
-            \App\Services\Payment\WithdrawalDisbursementService::class,
-            \App\Services\Finance\FinancialReconciliationService::class,
-            \App\Services\Lottery\ResultImportService::class,
-            \App\Services\Lottery\NationalLotteryService::class,
-            \App\Services\Lottery\WeeklyLotteryService::class,
-            \App\Services\Lottery\BingoLotteryService::class,
-            \App\Services\Lottery\PcsoLotteryService::class,
-            \App\Http\Controllers\Admin\AdminController::class,
-            \App\Services\Admin\AdminOperationService::class,
-            \App\Services\Compliance\ComplianceService::class,
-            \App\Services\Audit\AuditLogService::class,
-            \App\Services\Agent\AgentCommissionService::class,
-            \App\Http\Requests\Web\RegisterRequest::class,
-            \App\Http\Requests\Web\AccountVerificationRequest::class,
-            \App\Http\Controllers\Web\MemberAuthController::class,
-            \App\Http\Controllers\ResultsController::class,
+            GloL6Ticket::class,
+            GloPrizeClaim::class,
+            GloResultPublicationService::class,
+            WalletLedger::class,
+            Transaction::class,
+            BulkBetService::class,
+            WithdrawalDisbursementService::class,
+            FinancialReconciliationService::class,
+            ResultImportService::class,
+            NationalLotteryService::class,
+            WeeklyLotteryService::class,
+            BingoLotteryService::class,
+            PcsoLotteryService::class,
+            AdminController::class,
+            AdminOperationService::class,
+            ComplianceService::class,
+            AuditLogService::class,
+            AgentCommissionService::class,
+            RegisterRequest::class,
+            AccountVerificationRequest::class,
+            MemberAuthController::class,
+            ResultsController::class,
         ];
 
         foreach ($classes as $class) {
@@ -127,9 +150,71 @@ final class ArtifactCompletionManifestTest extends TestCase
 
     public function test_fixture_configurations_default_to_false(): void
     {
-        $this->assertFalse((bool) config('national_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('weekly_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('bingo_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('pcso_lottery.sources.fixture.enabled', true));
+        foreach ([
+            ['NATIONAL_LOTTERY_FIXTURE_ENABLED', 'national_lottery.php'],
+            ['WEEKLY_LOTTERY_FIXTURE_ENABLED', 'weekly_lottery.php'],
+            ['BINGO_LOTTERY_FIXTURE_ENABLED', 'bingo_lottery.php'],
+            ['PCSO_LOTTERY_FIXTURE_ENABLED', 'pcso_lottery.php'],
+        ] as [$envName, $configFile]) {
+            $this->assertFalse(
+                (bool) $this->configuredDefault($envName, $configFile, 'sources.fixture.enabled'),
+                $configFile.' enables its fixture source by default, so a stock deployment could publish fabricated results.',
+            );
+        }
+    }
+
+    /**
+     * Resolve a config value with its environment variable removed.
+     *
+     * These assertions are about the configured DEFAULT - what a stock
+     * deployment gets when it copies .env.example and runs - not about
+     * whatever the current process exports. phpunit.xml enables the fixture
+     * lanes on purpose, because the four lane suites need a source to read,
+     * so asking config() directly only reports that override back.
+     *
+     * The variable has to be cleared from all three places a value can hide.
+     * PHPUnit writes its <env> entries through putenv() and into $_ENV, and
+     * Laravel's environment repository does not own either of those, so
+     * Env::getRepository()->clear() alone leaves getenv() still answering.
+     * All three are cleared, the config file is re-evaluated, and every
+     * original value is put back.
+     */
+    private function configuredDefault(string $envName, string $configFile, string $key): mixed
+    {
+        $repository = Env::getRepository();
+
+        $originalRepository = $repository->get($envName);
+        $originalPutenv = getenv($envName);
+        $hadEnv = array_key_exists($envName, $_ENV);
+        $hadServer = array_key_exists($envName, $_SERVER);
+        $originalEnv = $_ENV[$envName] ?? null;
+        $originalServer = $_SERVER[$envName] ?? null;
+
+        $repository->clear($envName);
+        putenv($envName);
+        unset($_ENV[$envName], $_SERVER[$envName]);
+
+        try {
+            /** @var array<string, mixed> $fresh */
+            $fresh = require config_path($configFile);
+
+            return data_get($fresh, $key);
+        } finally {
+            if ($originalPutenv !== false) {
+                putenv($envName.'='.$originalPutenv);
+            }
+
+            if ($hadEnv) {
+                $_ENV[$envName] = $originalEnv;
+            }
+
+            if ($hadServer) {
+                $_SERVER[$envName] = $originalServer;
+            }
+
+            if ($originalRepository !== null) {
+                $repository->set($envName, $originalRepository);
+            }
+        }
     }
 }

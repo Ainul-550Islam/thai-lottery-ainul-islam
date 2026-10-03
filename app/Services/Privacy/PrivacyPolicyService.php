@@ -17,8 +17,7 @@ class PrivacyPolicyService
 {
     public function __construct(
         private readonly PrivacyPageService $pageService,
-    ) {
-    }
+    ) {}
 
     /**
      * Get structured, versioned privacy policy document.

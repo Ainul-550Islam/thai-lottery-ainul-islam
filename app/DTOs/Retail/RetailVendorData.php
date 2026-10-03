@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DTOs\Retail;
 
 use App\Enums\RetailVendorStatus;
+use App\Exceptions\TicketAllocationException;
 
 /**
  * Immutable retail vendor identity + status data.
@@ -28,15 +29,14 @@ final readonly class RetailVendorData
         public string $vendorCode,
         public RetailVendorStatus $status,
         public int $quotaCapacity,
-    ) {
-    }
+    ) {}
 
     /**
      * Canonicalization mirrors the code grammar the codebase already uses
      * for canonical identifiers: uppercase ASCII, digits, hyphens.
      *
-     * @throws \App\Exceptions\TicketAllocationException on a non-canonical
-     *                                                    vendor reference.
+     * @throws TicketAllocationException on a non-canonical
+     *                                   vendor reference.
      */
     public static function fromInput(
         int $vendorId,
@@ -47,7 +47,7 @@ final readonly class RetailVendorData
         $canonical = strtoupper(trim($vendorCode));
 
         if (! preg_match('/^[A-Z0-9-]{3,64}$/', $canonical)) {
-            throw new \App\Exceptions\TicketAllocationException(
+            throw new TicketAllocationException(
                 sprintf(
                     'Vendor code [%s] is not canonical (uppercase ASCII, digits, hyphens).',
                     $canonical,

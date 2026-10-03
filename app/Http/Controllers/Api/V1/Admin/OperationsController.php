@@ -15,6 +15,9 @@ use App\Exceptions\ReportExportException;
 use App\Http\Responses\ApiResponse;
 use App\Jobs\ExecuteAdminOperationJob;
 use App\Jobs\GenerateOperationalReportJob;
+use App\Models\AdminOperation;
+use App\Models\OperationalReportJob;
+use App\Models\ReportExport;
 use App\Models\User;
 use App\Services\Operations\AdminAuditQueryService;
 use App\Services\Operations\AdminOperationService;
@@ -41,8 +44,7 @@ final class OperationsController
         private readonly OperationalReportService $reports,
         private readonly ReportExportService $exports,
         private readonly AdminAuditQueryService $audits,
-    ) {
-    }
+    ) {}
 
     /** POST /admin/operations — propose an operation (maker). */
     public function proposeOperation(Request $request): JsonResponse
@@ -107,7 +109,7 @@ final class OperationsController
         /** @var User $user */
         $user = $request->user();
 
-        $operation = \App\Models\AdminOperation::query()->where('operation_fingerprint', $fingerprint)->firstOrFail();
+        $operation = AdminOperation::query()->where('operation_fingerprint', $fingerprint)->firstOrFail();
 
         try {
             AdminOperationService::assertAuthorized($user, 'approve');
@@ -129,9 +131,9 @@ final class OperationsController
     {
         AdminOperationService::assertAuthorized($request->user(), 'view');
 
-        $operation = \App\Models\AdminOperation::query()->where('operation_fingerprint', $fingerprint)->first();
+        $operation = AdminOperation::query()->where('operation_fingerprint', $fingerprint)->first();
 
-        if (! $operation instanceof \App\Models\AdminOperation) {
+        if (! $operation instanceof AdminOperation) {
             return ApiResponse::error('adminop_not_found', 'No such operation.', 404);
         }
 
@@ -214,7 +216,7 @@ final class OperationsController
             } else {
                 $result['job'] = $this->reports->run($ask->queryFingerprint());
             }
-        } catch (OperationalReportException | AdminOperationException $e) {
+        } catch (OperationalReportException|AdminOperationException $e) {
             return ApiResponse::error(strtolower($e->errorCode()), $e->getMessage(), 422);
         }
 
@@ -233,7 +235,7 @@ final class OperationsController
 
         $validated = $request->validate(['format' => ['nullable', 'string', 'in:json,csv,xlsx,pdf']]);
 
-        $job = \App\Models\OperationalReportJob::query()->where('query_fingerprint', $queryFingerprint)->firstOrFail();
+        $job = OperationalReportJob::query()->where('query_fingerprint', $queryFingerprint)->firstOrFail();
 
         try {
             AdminOperationService::assertAuthorized($user, 'view');
@@ -241,10 +243,10 @@ final class OperationsController
                 'report_job_id' => (int) $job->id,
                 'format' => $validated['format'] ?? 'json',
             ]));
-            /** @var \App\Models\ReportExport $artifact */
+            /** @var ReportExport $artifact */
             $artifact = $result['export'];
             $retrieved = $this->exports->retrieve($artifact->artifact_fingerprint, (int) $user->id);
-        } catch (ReportExportException | AdminOperationException $e) {
+        } catch (ReportExportException|AdminOperationException $e) {
             return ApiResponse::error(strtolower($e->errorCode()), $e->getMessage(), 422);
         }
 

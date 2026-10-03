@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Lottery;
 
+use App\Enums\DrawPublicationStatus;
 use App\Models\NationalLotteryDraw;
 use App\Models\NationalLotteryResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -147,6 +148,6 @@ class LaneResultImportContractTest extends TestCase
         $draw = NationalLotteryDraw::query()->first();
 
         $this->assertNotNull($draw);
-        $this->assertTrue($draw->publication_status === \App\Enums\DrawPublicationStatus::Published);
+        $this->assertTrue($draw->publication_status === DrawPublicationStatus::Published);
     }
 }

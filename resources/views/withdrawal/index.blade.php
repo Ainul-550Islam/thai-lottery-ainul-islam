@@ -8,7 +8,7 @@
 
     <!-- Tailwind CSS (CDN for standalone preview, plus project stylesheet) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('css/withdrawal-portal.css') }}">
+    @vite(['resources/css/withdrawal-portal.css'])
     <style>
         :root {
             --wp-bg-page: #0b0f17;
@@ -288,6 +288,6 @@
     </main>
 
     <!-- Browser Runtime Script -->
-    <script src="{{ asset('js/withdrawal-portal.js') }}"></script>
+    @vite(['resources/js/withdrawal-portal.js'])
 </body>
 </html>

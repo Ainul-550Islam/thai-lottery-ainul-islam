@@ -1,7 +1,15 @@
 <?php
 
+use App\Jobs\Betting\ExpireBetCancellationRequestsJob;
 use App\Jobs\CalculatePrizeTaxJob;
 use App\Jobs\CloseExpiredClaimWindowsJob;
+use App\Jobs\DeliverDueRealityChecksJob;
+use App\Jobs\DispatchPendingNotificationsJob;
+use App\Jobs\EnforceResponsibleGamingLimitsJob;
+use App\Jobs\ExpireMfaChallengesJob;
+use App\Jobs\ExpireReportExportsJob;
+use App\Jobs\ExpireSelfExclusionsJob;
+use App\Jobs\ExpireStaleNotificationsJob;
 use App\Jobs\ExpireStalePaymentIntentsJob;
 use App\Jobs\ExpireUnclaimedPrizesJob;
 use App\Jobs\ExpireWalletReservationsJob;
@@ -11,8 +19,12 @@ use App\Jobs\ReassessAmlRiskJob;
 use App\Jobs\ReconcilePaymentProviderJob;
 use App\Jobs\ReconcileWalletLedgersJob;
 use App\Jobs\ReleaseExpiredTicketReservationsJob;
+use App\Jobs\RetryFailedNotificationsJob;
 use App\Jobs\ReviewFinancialHoldsJob;
+use App\Jobs\ReviewHighRiskSecurityEventsJob;
 use App\Jobs\ReviewOpenComplianceCasesJob;
+use App\Jobs\ReviewPlayerProtectionCasesJob;
+use App\Jobs\RevokeExpiredSessionsJob;
 use App\Jobs\SweepUnclaimedPrizesJob;
 use App\Jobs\VerifyPendingKycDocumentsJob;
 use App\Jobs\VerifyRetailTicketInventoryJob;
@@ -156,5 +168,115 @@ Schedule::job(new ReassessAmlRiskJob)
 Schedule::job(new ReviewOpenComplianceCasesJob)
     ->hourlyAt(55)
     ->name('compliance-desk-clock')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| Zero-dispatch closure: recurring operational lanes
+|--------------------------------------------------------------------------
+|
+| BLOCKER CLOSURE. Each job below existed, was fully implemented and was
+| covered by unit tests, but had no producer anywhere in the application --
+| nothing ever put it on a queue. In production that means notifications are
+| written and never sent, expired sessions are never revoked, self-exclusions
+| never lapse, and responsible-gaming limits are never enforced. The jobs
+| looked healthy in code review and in the test suite precisely because the
+| tests invoked handle() directly.
+|
+| These are all parameterless maintenance lanes, so the correct producer is
+| the scheduler. Cadences are set from the business meaning of each lane, not
+| from convenience. Every entry gets withoutOverlapping() because a slow run
+| must never be re-entered, and onOneServer() because the deployment target is
+| horizontally scaled.
+|
+*/
+
+// ── Player protection ────────────────────────────────────────────────────
+// A self-exclusion that does not lapse on time is a regulatory breach in both
+// directions: too early re-admits an excluded player, too late holds someone
+// out past their own chosen term.
+Schedule::job(new ExpireSelfExclusionsJob)
+    ->everyFiveMinutes()
+    ->name('player-protection-self-exclusion-expiry')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Deposit/loss/session limits are only a control if something checks them.
+Schedule::job(new EnforceResponsibleGamingLimitsJob)
+    ->everyFiveMinutes()
+    ->name('player-protection-limit-enforcement')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Reality checks are time-boxed prompts; late delivery defeats the purpose.
+Schedule::job(new DeliverDueRealityChecksJob)
+    ->everyMinute()
+    ->name('player-protection-reality-checks')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::job(new ReviewPlayerProtectionCasesJob)
+    ->hourlyAt(25)
+    ->name('player-protection-case-review')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// ── Notification delivery ────────────────────────────────────────────────
+// The outbox pattern only works when the drain runs. Without this the
+// notifications table grows forever and no player is ever told anything.
+Schedule::job(new DispatchPendingNotificationsJob)
+    ->everyMinute()
+    ->name('notification-outbox-drain')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::job(new RetryFailedNotificationsJob)
+    ->everyTenMinutes()
+    ->name('notification-retry-sweep')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::job(new ExpireStaleNotificationsJob)
+    ->dailyAt('03:20')
+    ->name('notification-retention-sweep')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// ── Session, MFA and credential hygiene ──────────────────────────────────
+// Sessions that outlive their expiry are an authentication defect, not a
+// cleanup nicety.
+Schedule::job(new RevokeExpiredSessionsJob)
+    ->everyFiveMinutes()
+    ->name('security-session-revocation')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// An MFA challenge that never expires is a replayable second factor.
+Schedule::job(new ExpireMfaChallengesJob)
+    ->everyMinute()
+    ->name('security-mfa-challenge-expiry')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::job(new ReviewHighRiskSecurityEventsJob)
+    ->everyFifteenMinutes()
+    ->name('security-high-risk-review')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// ── Betting and reporting lifecycle ──────────────────────────────────────
+// A cancellation request left open past its window silently keeps a player's
+// stake in limbo.
+Schedule::job(new ExpireBetCancellationRequestsJob)
+    ->everyFiveMinutes()
+    ->name('betting-cancellation-window-expiry')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Exports hold personal data; the retention clock has to actually tick.
+Schedule::job(new ExpireReportExportsJob)
+    ->hourlyAt(40)
+    ->name('reporting-export-retention')
     ->withoutOverlapping()
     ->onOneServer();

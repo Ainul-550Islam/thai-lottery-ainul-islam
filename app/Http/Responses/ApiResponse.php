@@ -92,7 +92,7 @@ final class ApiResponse
             'error' => [
                 'code' => $code,
                 'message' => $message,
-                'details' => $details === [] ? new \stdClass() : $details,
+                'details' => $details === [] ? new \stdClass : $details,
             ],
         ], $status, $headers);
     }

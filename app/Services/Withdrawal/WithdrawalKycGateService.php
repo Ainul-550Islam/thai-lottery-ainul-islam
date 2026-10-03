@@ -113,8 +113,8 @@ class WithdrawalKycGateService
      *
      * @return array{verdict: string, anchor: string|null, detention: bool}
      *
-     * @throws WithdrawalKycException  In every detention or misuse case,
-     *                                 except replays answered by shape.
+     * @throws WithdrawalKycException In every detention or misuse case,
+     *                                except replays answered by shape.
      */
     public function gate(Withdrawal $withdrawal): array
     {
@@ -399,7 +399,7 @@ class WithdrawalKycGateService
 
     private function recordAudit(Withdrawal $withdrawal, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

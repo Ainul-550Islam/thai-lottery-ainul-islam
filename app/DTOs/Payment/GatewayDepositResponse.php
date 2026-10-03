@@ -21,8 +21,7 @@ final class GatewayDepositResponse
         public readonly ?string $errorMessage = null,
         public readonly array $rawResponse = [],
         public readonly array $metadata = [],
-    ) {
-    }
+    ) {}
 
     public static function redirect(
         string $url,

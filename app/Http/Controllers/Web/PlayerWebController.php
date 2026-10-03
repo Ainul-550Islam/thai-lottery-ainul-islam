@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\DTOs\ResponsibleGaming\ResponsibleGamingLimitData;
 use App\DTOs\ResponsibleGaming\SelfExclusionData;
+use App\Enums\BetStatus;
 use App\Enums\Currency;
 use App\Enums\DrawStatus;
 use App\Enums\PaymentMethod;
@@ -23,11 +24,11 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Rules\StrongPasswordRule;
+use App\Services\Compliance\SelfExclusionService;
 use App\Services\Finance\Money;
 use App\Services\Finance\WithdrawalService;
 use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\PaymentInitiationService;
-use App\Services\Compliance\SelfExclusionService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use App\Services\Security\ResponsibleGamingService;
 use Illuminate\Http\RedirectResponse;
@@ -49,8 +50,7 @@ final class PlayerWebController
         private readonly SelfExclusionService $selfExclusions,
         private readonly ?ResponsibleGamingLimitService $limitVersions = null,
         private readonly ?PaymentGatewayManager $gatewayManager = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Closed label map over the canonical PaymentMethod vocabulary. Anything
@@ -96,6 +96,7 @@ final class PlayerWebController
             if ($enum === null) {
                 return false;
             }
+
             return $manager->isDepositCapable($enum);
         });
 
@@ -117,6 +118,7 @@ final class PlayerWebController
             if ($enum === null) {
                 return false;
             }
+
             return $manager->isWithdrawalCapable($enum);
         });
 
@@ -295,7 +297,7 @@ final class PlayerWebController
             ->latest('id');
 
         if ($status && $status !== 'all') {
-            $statusEnum = \App\Enums\BetStatus::tryFrom($status);
+            $statusEnum = BetStatus::tryFrom($status);
             if ($statusEnum) {
                 $query->where('status', $statusEnum);
             }
@@ -749,7 +751,7 @@ final class PlayerWebController
             'current_password' => ['required', 'current_password'],
             // Audit S2: the SAME centralised rule registration and reset
             // use — no weaker local policy on the profile surface.
-            'new_password' => ['required', 'string', new StrongPasswordRule()],
+            'new_password' => ['required', 'string', new StrongPasswordRule],
         ]);
 
         $user->update([
@@ -768,6 +770,7 @@ final class PlayerWebController
         /** @var User $user */
         $user = Auth::user();
         $limits = ResponsibleGamingLimit::query()->where('user_id', $user->id)->first();
+
         return view('player.responsible-gaming', [
             'user' => $user,
             'limits' => $limits,

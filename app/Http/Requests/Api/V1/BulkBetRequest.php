@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Enums\BetMarket;
 use App\DTOs\Betting\BulkBetSelectionData;
+use App\Enums\BetMarket;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -26,7 +26,9 @@ use Illuminate\Validation\Validator;
 final class BulkBetRequest extends FormRequest
 {
     private const NUMBER_PATTERN = '/^[0-9]{1,3}$/';
+
     private const STAKE_PATTERN = '/^[0-9]{1,12}(\.[0-9]{1,2})?$/';
+
     private const CLIENT_KEY_PATTERN = '/^[A-Za-z0-9._:-]+$/';
 
     /**

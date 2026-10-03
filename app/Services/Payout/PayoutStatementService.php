@@ -107,7 +107,7 @@ class PayoutStatementService
 
             $data = $this->compose($locked);
 
-            $document = new PayoutDocument();
+            $document = new PayoutDocument;
             $document->fill([
                 'document_key' => $data->documentKey(),
                 'statement_number' => $this->deriveStatementNumber($data->documentKey()),
@@ -349,7 +349,7 @@ class PayoutStatementService
 
     private function recordAudit(?Payout $payout, string $description, RiskLevel $riskLevel, ?PayoutDocument $document = null): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

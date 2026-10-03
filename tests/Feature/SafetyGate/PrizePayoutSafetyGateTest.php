@@ -15,6 +15,7 @@ use App\Jobs\Draw\ProcessPrizeSettlementJob;
 use App\Models\Draw;
 use App\Models\NumberLimit;
 use App\Models\Payout;
+use App\Models\Wallet;
 use App\Services\Betting\BetPurchaseService;
 use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultPublicationService;
@@ -46,7 +47,7 @@ final class PrizePayoutSafetyGateTest extends PaymentTestCase
      * Open 3D draw, place a winning 3d_direct '123' bet (prize 9000.00 at 10.00
      * stake), publish first_prize 456123 + bottom_two 45, close the draw.
      *
-     * @return array{draw: Draw, wallet: \App\Models\Wallet, player: array<string, mixed>}
+     * @return array{draw: Draw, wallet: Wallet, player: array<string, mixed>}
      */
     private function setupWinningDraw(string $idempotencySuffix): array
     {
@@ -58,7 +59,7 @@ final class PrizePayoutSafetyGateTest extends PaymentTestCase
         $draw->opened_at = now()->subHour();
         $draw->save();
 
-        $limit = new NumberLimit();
+        $limit = new NumberLimit;
         $limit->draw_id = $draw->getKey();
         $limit->bet_type = BetType::ThreeD;
         $limit->number = '123';

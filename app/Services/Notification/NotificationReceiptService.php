@@ -6,6 +6,8 @@ namespace App\Services\Notification;
 
 use App\DTOs\Notification\NotificationReceiptData;
 use App\Enums\NotificationStatus;
+use App\Exceptions\NotificationDeliveryException;
+use App\Listeners\RecordNotificationReceiptAudit;
 use App\Models\Notification;
 use App\Models\NotificationDeliveryAttempt;
 use App\Models\NotificationReceipt;
@@ -20,9 +22,8 @@ final class NotificationReceiptService
 {
     public function __construct(
         private readonly NotificationDeliveryService $delivery,
-        private readonly \App\Listeners\RecordNotificationReceiptAudit $audit,
-    ) {
-    }
+        private readonly RecordNotificationReceiptAudit $audit,
+    ) {}
 
     /**
      * RECORD the callback. Resolves by provider_reference against
@@ -60,7 +61,7 @@ final class NotificationReceiptService
                     ->first();
 
                 if (! $byOwner instanceof Notification) {
-                    throw \App\Exceptions\NotificationDeliveryException::invalidReceipt(
+                    throw NotificationDeliveryException::invalidReceipt(
                         'provider reference ['.substr($data->providerReference, 0, 24).'] has no airborne lineage here',
                     );
                 }

@@ -1,7 +1,7 @@
 //! Stdin/stdout shim so Laravel can invoke the verifier as a short-lived
 //! subprocess.
 //!
-//! THIS IS NOT A SERVER. It reads one JSON document from stdin, writes one
+//! THIS IS NOT A SERVER. It reads a single JSON document from stdin, writes one
 //! JSON document to stdout, and exits. No socket is opened, no port is bound,
 //! no address is resolved, and nothing is kept between invocations. That is
 //! deliberate: a long-lived listener inside the security component would add

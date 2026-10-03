@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Verification;
 
 use App\Enums\AccountVerificationStatus;
+use App\Enums\UserStatus;
 use App\Models\AccountVerification;
 use App\Models\KycDocument;
 use App\Models\User;
@@ -12,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /*
@@ -677,12 +679,12 @@ final class AccountVerificationFlowTest extends TestCase
 
     private function reviewer(): User
     {
-        $reviewer = User::factory()->create(['status' => \App\Enums\UserStatus::Active]);
+        $reviewer = User::factory()->create(['status' => UserStatus::Active]);
 
         try {
             $reviewer->assignRole('admin');
         } catch (\Throwable) {
-            \Spatie\Permission\Models\Role::findOrCreate('admin')->users()->attach($reviewer);
+            Role::findOrCreate('admin')->users()->attach($reviewer);
         }
 
         return $reviewer->fresh();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\FinancialTransactionResource\Pages;
 
 use App\Filament\Resources\FinancialTransactionResource;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 
 /**
@@ -26,7 +27,7 @@ class ListFinancialTransactions extends ListRecords
     protected static string $resource = FinancialTransactionResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

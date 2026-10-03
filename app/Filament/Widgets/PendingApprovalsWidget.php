@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Widgets;
 
 use App\Enums\WithdrawalStatus;
+use App\Filament\Resources\WithdrawalResource;
 use App\Models\Withdrawal;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
@@ -78,7 +79,7 @@ class PendingApprovalsWidget extends TableWidget
                     ->tooltip(fn ($state): string => AdminFormat::marketTime($state))
                     ->sortable(),
             ])
-            ->recordUrl(fn (Withdrawal $record): string => \App\Filament\Resources\WithdrawalResource::getUrl('view', ['record' => $record]))
+            ->recordUrl(fn (Withdrawal $record): string => WithdrawalResource::getUrl('view', ['record' => $record]))
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->limit(50));
     }
 }

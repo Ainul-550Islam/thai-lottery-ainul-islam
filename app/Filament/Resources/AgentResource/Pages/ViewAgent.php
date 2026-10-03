@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\AgentResource\Pages;
 
 use App\Filament\Resources\AgentResource;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 
 /**
@@ -20,7 +21,7 @@ class ViewAgent extends ViewRecord
     protected static string $resource = AgentResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

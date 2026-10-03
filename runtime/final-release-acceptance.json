@@ -1,0 +1,37 @@
+{
+  "artifact": "final-release-acceptance",
+  "phase": 17,
+  "decision": "RELEASE BLOCKED",
+  "branch": "fix/production-blocker-closure",
+  "base_commit": "1c21115b615dd37fb0ad17f3a4704445cdef4ce0",
+  "pushed": false,
+  "production_zip_produced": false,
+  "zip_sha256": null,
+  "phases": [
+    { "phase": 1,  "name": "Revenue path (bet purchase)",        "code": "DONE",    "verified": "PARTIAL", "note": "Contract unified on draw_id; both surfaces now resolve to BulkBetService::purchase(int). No end-to-end browser purchase was exercised against a live draw." },
+    { "phase": 2,  "name": "Wallet write contract",              "code": "DONE",    "verified": "YES",     "note": "wallets.version default confirmed = 1 on MariaDB 11.8.6. Zero MassAssignmentException in the final suite." },
+    { "phase": 3,  "name": "Draw identifier",                    "code": "DONE",    "verified": "YES",     "note": "8 call sites removed (audit had found 4). draws table confirmed to expose id and draw_number only, no uuid. Zero SQLSTATE[42S22] in the final suite." },
+    { "phase": 4,  "name": "Composer / PHP / CI platform",       "code": "DONE",    "verified": "LOCAL",   "note": "PHP 8.4 authoritative. validate + install + check-platform-reqs + audit all green on 8.4.26. Unverified on hosted CI." },
+    { "phase": 5,  "name": "Fixture safety",                     "code": "DONE",    "verified": "YES",     "note": "4 layers of defence plus a release-blocking test (6 passed). Additionally found and fixed importers defaulting to --provider=fixture." },
+    { "phase": 6,  "name": "Queue dispatch closure",             "code": "PARTIAL", "verified": "YES",     "note": "12 of 23 zero-dispatch jobs closed via the scheduler and verified with schedule:list. 11 money/result-critical event-driven jobs remain OPEN and are listed explicitly." },
+    { "phase": 7,  "name": "Scheduler closure",                  "code": "PARTIAL", "verified": "YES",     "note": "17 -> 29 entries. Draw lifecycle confirmed correctly scheduled via lottery:tick. Result importers remain unscheduled -- reported as a CRITICAL open finding." },
+    { "phase": 8,  "name": "Test suite",                         "code": "PARTIAL", "verified": "YES",     "note": "466 -> 251 failures, 1556 -> 1777 passing. Not green." },
+    { "phase": 9,  "name": "Failure inventory",                  "code": "DONE",    "verified": "YES",     "note": "runtime/final-test-failure-inventory.json" },
+    { "phase": 10, "name": "SQLite vs MariaDB parity",           "code": "DONE",    "verified": "YES",     "note": "migrate:fresh completes cleanly on MariaDB 11.8.6 including the new wallet migration." },
+    { "phase": 11, "name": "Pint",                               "code": "DONE",    "verified": "YES",     "note": "581 violations -> PASS across 1538 files. No pint.json created, no rule disabled, no path excluded." },
+    { "phase": 12, "name": "Local CI equivalence",               "code": "PARTIAL", "verified": "LOCAL",   "note": "Composer gates and Pint pass locally; the test gate does not." },
+    { "phase": 13, "name": "Hosted CI",                          "code": "BLOCKED", "verified": "NO",      "note": "HOSTED CI NOT VERIFIED. No push credentials. No run ID exists and none was invented." },
+    { "phase": 14, "name": "Production config safety",           "code": "DONE",    "verified": "YES",     "note": "ProductionSafetyServiceProvider refuses to boot on 10 distinct unsafe conditions." },
+    { "phase": 15, "name": "End-to-end browser verification",    "code": "NOT DONE","verified": "NO",      "note": "Not performed. With 251 failing tests and 120 of them public-page content assertions, a browser pass would report the same defects at higher cost." },
+    { "phase": 16, "name": "Final command sweep",                "code": "DONE",    "verified": "YES",     "note": "Captured across runtime/*.json." },
+    { "phase": 17, "name": "Acceptance",                         "code": "DONE",    "verified": "YES",     "note": "This file." }
+  ],
+  "blocking_reasons": [
+    "Hosted CI is unverified (phase 13). The governing rule makes a green hosted pipeline mandatory for RELEASE READY; the repository has never had one in 11 recorded runs.",
+    "The test suite is not green: 251 failures remain.",
+    "11 money-critical and result-critical jobs still have no producer.",
+    "No result importer is scheduled on any lane, so results never arrive automatically.",
+    "End-to-end browser verification of the revenue path was not performed."
+  ],
+  "integrity_statement": "No hosted CI run ID was fabricated. No test was weakened or removed. No Pint exclusion was added. No production artefact was produced, because the release is blocked."
+}

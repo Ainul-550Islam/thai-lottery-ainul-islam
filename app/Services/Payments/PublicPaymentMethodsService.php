@@ -22,8 +22,7 @@ class PublicPaymentMethodsService
 {
     public function __construct(
         private readonly ?PaymentGatewayManager $gatewayManager = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{

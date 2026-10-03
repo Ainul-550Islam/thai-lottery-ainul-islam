@@ -20,7 +20,7 @@
         <div class="about-shell about-header__inner">
             <a class="about-brand" href="{{ route('home') }}" aria-label="ThaiLotto home">
                 <span class="about-brand__mark" aria-hidden="true"><span>TL</span></span>
-                <span class="about-brand__name">THAILOTTO <small>PUBLIC INFORMATION</small></span>
+                <span class="about-brand__name">{{ config('app.name') }} <small>PUBLIC INFORMATION</small></span>
             </a>
             <nav class="about-nav" aria-label="Primary navigation">
                 <a href="{{ route('home') }}">HOME</a>
@@ -204,7 +204,7 @@
 
         <section class="about-cta" aria-labelledby="about-cta-title">
             <div class="about-cta__copy">
-                <p class="about-eyebrow">THAILOTTO · PUBLIC ROUTES</p>
+                <p class="about-eyebrow">{{ config('app.name') }} · PUBLIC ROUTES</p>
                 <h2 id="about-cta-title">{{ $page['cta']['title'] }}</h2>
                 <p>{{ $page['cta']['source_note'] }}</p>
             </div>

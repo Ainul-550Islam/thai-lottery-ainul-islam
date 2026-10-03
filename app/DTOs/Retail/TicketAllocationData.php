@@ -25,8 +25,7 @@ final readonly class TicketAllocationData
         public int $drawId,
         public int $quantity,
         public string $allocationKey,
-    ) {
-    }
+    ) {}
 
     /**
      * Build from raw input with the deterministic key derived.

@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Player;
 
 use App\DTOs\ResponsibleGaming\SelfExclusionData;
+use App\Enums\UserSessionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ResponsibleGamingLimit;
 use App\Models\SecuritySession;
-use App\Enums\UserSessionStatus;
 use App\Services\Account\AccountVerificationService;
 use App\Services\Compliance\SelfExclusionService;
 use App\Services\Security\ResponsibleGamingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 /**
  * Authenticated password, verification and player-protection page adapter.
@@ -31,8 +31,7 @@ final class PlayerSecuritySettingsController extends Controller
         private readonly ResponsibleGamingService $responsibleGaming,
         private readonly SelfExclusionService $selfExclusions,
         private readonly AccountVerificationService $verification,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View
     {
@@ -126,13 +125,12 @@ final class PlayerSecuritySettingsController extends Controller
             'duration' => ['required', 'string', Rule::in(['24h', '7d', '30d', '90d', '365d'])],
         ]);
 
-        $days = [
-            '24h' => 1,
-            '7d' => 7,
-            '30d' => 30,
-            '90d' => 90,
-            '365d' => 365,
-        ][(string) $validated['duration']];
+        // Derive the horizon from the validated key rather than restating it.
+        // The key already carries the number, so a lookup table duplicated it
+        // and allowed the two to disagree. '24h' is the one horizon shorter
+        // than a day and resolves to a single day of exclusion.
+        $duration = (string) $validated['duration'];
+        $days = $duration === '24h' ? 1 : (int) rtrim($duration, 'd');
         $requestData = SelfExclusionData::fromInput([
             'user_id' => (int) $user->id,
             'effective_at' => now(),

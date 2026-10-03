@@ -9,6 +9,4 @@ use Illuminate\Routing\Middleware\ThrottleRequests as BaseThrottleRequests;
 /**
  * Rate Limiting Middleware with Named Limiter Integration.
  */
-class ThrottleRequests extends BaseThrottleRequests
-{
-}
+class ThrottleRequests extends BaseThrottleRequests {}

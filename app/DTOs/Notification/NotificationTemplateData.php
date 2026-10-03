@@ -18,11 +18,10 @@ final class NotificationTemplateData
         public readonly int $version,
         public readonly string $subject,
         public readonly string $body,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array{template_key:string, locale?:string, version?:int, subject:string, body:string} $data
+     * @param  array{template_key:string, locale?:string, version?:int, subject:string, body:string}  $data
      */
     public static function fromInput(array $data): self
     {

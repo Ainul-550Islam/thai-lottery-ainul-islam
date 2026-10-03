@@ -6,6 +6,7 @@ export default defineConfig({
         laravel({
             input: [
                 'resources/css/app.css',
+                'resources/css/thailotto-theme.css',
                 'resources/css/lottery.css',
                 'resources/css/home.css',
         'resources/css/public-pages.css',
@@ -46,6 +47,7 @@ export default defineConfig({
                 'resources/css/lottery-history.css',
                 'resources/css/player-settings.css',
         'resources/js/app.js',
+        'resources/js/layout/mobile-menu.js',
         'resources/js/public-pages.js',
         'resources/js/pages/about.js',
         'resources/js/pages/vision.js',
@@ -71,7 +73,6 @@ export default defineConfig({
         'resources/js/how-to-play-portal.js',
         'resources/js/faq-portal.js',
         'resources/js/contact-portal.js',
-        'resources/js/download-app-portal.js',
         'resources/js/components/AuthCard.tsx',
         'resources/js/components/LottoFinAdminDashboard.tsx',
         'resources/js/components/GloResultsChecker.tsx',

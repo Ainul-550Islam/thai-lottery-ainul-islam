@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Verification;
 
+use App\Enums\VerificationDocumentType;
+use App\Http\Requests\Verification\SubmitAccountVerificationRequest;
 use App\Models\AccountVerification;
 use App\Models\User;
 use App\Services\Verification\AccountVerificationService;
@@ -31,8 +33,7 @@ final class AccountVerificationController
     public function __construct(
         private readonly AccountVerificationService $verification,
         private readonly DocumentStorageService $storage,
-    ) {
-    }
+    ) {}
 
     /**
      * The authenticated Account Verify page: account summary, status,
@@ -54,7 +55,7 @@ final class AccountVerificationController
             'canSubmit' => ! $this->verification->hasOpenRequest($user),
             'documentTypes' => array_map(
                 static fn ($case): string => $case->value,
-                \App\Enums\VerificationDocumentType::configured(),
+                VerificationDocumentType::configured(),
             ),
             'countryCodes' => (array) config('account_verification.phone.country_codes', ['+66']),
             'defaultCountryCode' => (string) config('account_verification.phone.default_country_code', '+66'),
@@ -68,7 +69,7 @@ final class AccountVerificationController
      * violation lands on the 'document' key — the established error
      * surface this page's tests already assert.
      */
-    public function submit(\App\Http\Requests\Verification\SubmitAccountVerificationRequest $request): RedirectResponse
+    public function submit(SubmitAccountVerificationRequest $request): RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -97,12 +98,20 @@ final class AccountVerificationController
      * Owner-authorized document download — never a public /storage
      * path, always a streaming response through authorization.
      */
-    public function download(Request $request, string $documentToken): BinaryFileResponse|Response
+    /**
+     * Stream one of the authenticated member's own verification documents.
+     *
+     * $document is the document id, or the legacy HMAC download token; see
+     * AccountVerificationService::documentForDownload() for why both are
+     * accepted. Either way the lookup is scoped to the requesting user, so a
+     * document belonging to someone else resolves to null and 404s here.
+     */
+    public function download(Request $request, string $document): BinaryFileResponse|Response
     {
         /** @var User $user */
         $user = $request->user();
 
-        $document = $this->verification->documentForDownload($user, $documentToken);
+        $document = $this->verification->documentForDownload($user, $document);
 
         if ($document === null) {
             abort(404);

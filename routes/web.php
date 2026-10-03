@@ -2,33 +2,37 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AccountGradeController;
 use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
 use App\Http\Controllers\Admin\ReleaseOperationsController;
 use App\Http\Controllers\Agent\AgentPortalController;
-use App\Http\Controllers\NotificationCenterController;
-use App\Http\Controllers\Support\SupportPortalController;
-use App\Http\Controllers\GloL6Controller;
-use App\Http\Controllers\GloResultsPageController;
-use App\Http\Controllers\Player\PlayerSecuritySettingsController;
+use App\Http\Controllers\Auth\MemberAuthController;
 use App\Http\Controllers\Betting\ThaiLotteryBettingController;
-use App\Http\Controllers\AccountGradeController;
 use App\Http\Controllers\BingoLotteryController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\GloL6Controller;
+use App\Http\Controllers\GloResultsPageController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\LottoDiscountController;
+use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\LotteryHubController;
 use App\Http\Controllers\LotteryPurchasePageController;
-use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\NationalLotteryController;
+use App\Http\Controllers\NotificationCenterController;
 use App\Http\Controllers\PcsoLotteryController;
-use App\Http\Controllers\PrizeVerificationController;
-use App\Http\Controllers\PublicAccountInfoController;
+use App\Http\Controllers\Player\PlayerSecuritySettingsController;
+use App\Http\Controllers\PublicDownloadAppController;
+use App\Http\Controllers\PublicFaqController;
+use App\Http\Controllers\PublicGradeController;
+use App\Http\Controllers\PublicHowToPlayController;
+use App\Http\Controllers\PublicLottoDiscountController;
 use App\Http\Controllers\PublicPagesController;
-use App\Http\Controllers\PublicServicePagesController;
+use App\Http\Controllers\PublicPrizeVerificationController;
+use App\Http\Controllers\PublicVerificationController;
 use App\Http\Controllers\ResultsController;
-use App\Http\Controllers\Auth\MemberAuthController;
+use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\Support\SupportPortalController;
 use App\Http\Controllers\Verification\AccountVerificationController as MemberAccountVerificationController;
 use App\Http\Controllers\Web\BetPurchaseController;
 use App\Http\Controllers\Web\PaymentCallbackController;
@@ -167,7 +171,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/account/verification', [MemberAccountVerificationController::class, 'submit'])
         ->middleware('throttle:account-verification')
         ->name('account.verification.submit');
-    Route::get('/account/verification/document/{documentToken}', [MemberAccountVerificationController::class, 'download'])
+    Route::get('/account/verification/document/{document}', [MemberAccountVerificationController::class, 'download'])
         ->middleware('throttle:account-verification')
         ->name('account.verification.document');
     Route::post('/account/verification/{verification}/decision', [MemberAccountVerificationController::class, 'decide'])
@@ -289,31 +293,31 @@ Route::get('/our-fees', [PublicPagesController::class, 'fees'])
     ->name('our-fees');
 
 // Public Prize Verification (PROMPT 4) — anonymous ticket / result checker.
-Route::get('/prize-verification', [\App\Http\Controllers\PublicPrizeVerificationController::class, 'index'])
+Route::get('/prize-verification', [PublicPrizeVerificationController::class, 'index'])
     ->middleware('public.legal')
     ->name('prize-verification');
-Route::post('/prize-verification', [\App\Http\Controllers\PublicPrizeVerificationController::class, 'verifyApi'])
+Route::post('/prize-verification', [PublicPrizeVerificationController::class, 'verifyApi'])
     ->middleware('throttle:ticket-verification')
     ->name('prize-verification.verify');
-Route::post('/prize-verification', [\App\Http\Controllers\PublicPrizeVerificationController::class, 'verifyApi'])
+Route::post('/prize-verification', [PublicPrizeVerificationController::class, 'verifyApi'])
     ->middleware('throttle:ticket-verification')
     ->name('prize-verification.submit');
 
 // Public Discount Rules (PROMPT 4) — anonymous product/game matrix.
-Route::get('/discounts', [\App\Http\Controllers\PublicLottoDiscountController::class, 'index'])
+Route::get('/discounts', [PublicLottoDiscountController::class, 'index'])
     ->middleware('public.legal')
     ->name('discounts');
-Route::get('/lotto-discount', [\App\Http\Controllers\PublicLottoDiscountController::class, 'index'])
+Route::get('/lotto-discount', [PublicLottoDiscountController::class, 'index'])
     ->middleware('public.legal')
     ->name('lotto-discount');
 
 // Public How to Play Guide
-Route::get('/how-to-play', [\App\Http\Controllers\PublicHowToPlayController::class, 'index'])
+Route::get('/how-to-play', [PublicHowToPlayController::class, 'index'])
     ->middleware('public.legal')
     ->name('how-to-play');
 
 // Public FAQ / Knowledge Base
-Route::get('/faq', [\App\Http\Controllers\PublicFaqController::class, 'index'])
+Route::get('/faq', [PublicFaqController::class, 'index'])
     ->middleware('public.legal')
     ->name('faq');
 
@@ -644,46 +648,46 @@ Route::get('/privacy', [PublicPagesController::class, 'privacy'])
 |
 */
 
-Route::get('/account-grades', [\App\Http\Controllers\PublicGradeController::class, 'index'])
+Route::get('/account-grades', [PublicGradeController::class, 'index'])
     ->middleware('public.legal')
     ->name('account-grades');
 
-Route::get('/account-grade', [\App\Http\Controllers\PublicGradeController::class, 'index'])
+Route::get('/account-grade', [PublicGradeController::class, 'index'])
     ->middleware('public.legal')
     ->name('account-grade');
 
-Route::get('/account-verification', [\App\Http\Controllers\PublicVerificationController::class, 'index'])
+Route::get('/account-verification', [PublicVerificationController::class, 'index'])
     ->middleware('public.legal')
     ->name('account-verification');
 
-Route::get('/account-verification-guide', [\App\Http\Controllers\PublicVerificationController::class, 'index'])
+Route::get('/account-verification-guide', [PublicVerificationController::class, 'index'])
     ->middleware('public.legal')
     ->name('account-verification-guide');
 
-Route::get('/contact', [\App\Http\Controllers\ContactController::class, 'show'])
+Route::get('/contact', [ContactController::class, 'show'])
     ->middleware('public.legal')
     ->name('contact');
 
-Route::get('/contact-us', [\App\Http\Controllers\ContactController::class, 'show'])
+Route::get('/contact-us', [ContactController::class, 'show'])
     ->middleware('public.legal')
     ->name('contact-us');
 
-Route::get('/download', [\App\Http\Controllers\PublicDownloadAppController::class, 'index'])
+Route::get('/download', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('download');
 
-Route::get('/download-app', [\App\Http\Controllers\PublicDownloadAppController::class, 'index'])
+Route::get('/download-app', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('download-app');
 
-Route::get('/app', [\App\Http\Controllers\PublicDownloadAppController::class, 'index'])
+Route::get('/app', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('app');
 
 // XML sitemap (FINAL AUDIT #15): canonical public URLs only — no auth,
 // admin, API, search-form, payment-return or legacy .php duplicates.
 // Read-only and cacheable.
-Route::get('/sitemap.xml', \App\Http\Controllers\SitemapController::class)
+Route::get('/sitemap.xml', SitemapController::class)
     ->name('sitemap');
 
 /*
@@ -823,6 +827,14 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'can:access-ad
     Route::get('/account-verification', [LottoFinExecutiveDashboardController::class, 'index'])->name('account-verification.index');
     Route::get('/responsible-gaming', [LottoFinExecutiveDashboardController::class, 'index'])->name('responsible-gaming.index');
     Route::get('/self-exclusion', [LottoFinExecutiveDashboardController::class, 'index'])->name('self-exclusion.index');
+    // Deliberately bound at /legacy/users, NOT /users: Filament's UserResource
+    // already owns the GET admin/users URI for its own list page. Laravel keys
+    // its route table by method+URI, so a second GET admin/users here would not
+    // sit alongside Filament's - it would replace it, and the evicted route's
+    // name would vanish from the name lookup, breaking every
+    // route('filament.admin.resources.users.index') call site with a
+    // RouteNotFoundException. This dashboard projection and the Filament
+    // resource list are two different surfaces; they get two different URIs.
     Route::get('/legacy/users', [LottoFinExecutiveDashboardController::class, 'index'])->name('users.index');
     Route::get('/users/{user}', [LottoFinExecutiveDashboardController::class, 'index'])
         ->where('user', '[0-9]+')

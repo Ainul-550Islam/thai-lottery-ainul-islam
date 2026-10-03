@@ -25,7 +25,11 @@
         <x-weekly-lottery.source-status :provenance="$provenance" :integrity="$integrity" compact />
     </header>
     @if (! $available || ! $hasNumbers || $numbers === [])
-        <div class="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6" role="status"><p class="font-semibold text-amber-200">{{ trans('weekly_lottery.status.'.$status) }}</p><p class="mt-2 text-sm leading-7 text-gray-400">{{ trans('weekly_lottery.result_unavailable_explainer') }}</p></div>
+        {{-- A draw whose numbers are not published carries an explicit badge.
+             The card previously printed only the machine status key and the
+             explainer, so `weekly_lottery.result_unavailable_badge` - the one
+             short phrase a reader scans for - appeared nowhere on the page. --}}
+        <div class="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6" role="status"><p class="inline-block rounded-full border border-amber-400/40 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-200" data-wl-badge="result-unavailable">{{ trans('weekly_lottery.result_unavailable_badge') }}</p><p class="mt-3 font-semibold text-amber-200">{{ trans('weekly_lottery.status.'.$status) }}</p><p class="mt-2 text-sm leading-7 text-gray-400">{{ trans('weekly_lottery.result_unavailable_explainer') }}</p></div>
     @else
         <div class="grid gap-4 sm:grid-cols-3">
             @foreach (['first_6', 'three_ball', 'two_ball'] as $field)

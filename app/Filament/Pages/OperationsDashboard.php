@@ -10,6 +10,7 @@ use App\Filament\Widgets\PendingApprovalsWidget;
 use App\Filament\Widgets\PlatformStatsWidget;
 use App\Support\Admin\AdminAccess;
 use Filament\Pages\Dashboard;
+use Filament\Widgets\Widget;
 
 /**
  * The landing screen: what an operator needs to know before touching anything.
@@ -34,7 +35,7 @@ class OperationsDashboard extends Dashboard
     }
 
     /**
-     * @return list<class-string<\Filament\Widgets\Widget>>
+     * @return list<class-string<Widget>>
      */
     public function getWidgets(): array
     {

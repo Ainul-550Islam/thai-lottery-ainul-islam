@@ -28,8 +28,7 @@ final readonly class PrizeEligibilityData
         public bool $claimWindowAllows,
         public bool $selfExcluded,
         public string $ticketState,
-    ) {
-    }
+    ) {}
 
     /**
      * The snapshot identity: one decision space per (payout, principal).

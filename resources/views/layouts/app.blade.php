@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- Read by script bundles that render the brand, so the name lives
+         in configuration rather than in compiled JavaScript. --}}
+    <meta name="app-name" content="{{ config('app.name') }}">
     <meta name="theme-color" content="#059669">
 
     <title>{{ config('app.name', 'Thai Lottery Enterprise Wagering Platform') }} - @yield('title', 'Player Portal')</title>
@@ -42,6 +45,7 @@
         'resources/css/public-pages.css',
         'resources/css/account-services.css',
         'resources/js/app.js',
+        'resources/js/layout/mobile-menu.js',
         'resources/js/wallet/wallet-balance.js',
         'resources/js/public-pages.js',
         'resources/js/account-verification.js',
@@ -157,31 +161,5 @@
 
     <!-- Core Scripts -->
     @stack('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var openBtn = document.getElementById('btn-open-mobile-menu');
-            var closeBtn = document.getElementById('btn-close-mobile-menu');
-            var drawer = document.getElementById('mobile-menu-drawer');
-
-            if (openBtn && closeBtn && drawer) {
-                openBtn.addEventListener('click', function () {
-                    drawer.classList.remove('translate-x-full');
-                    document.body.style.overflow = 'hidden';
-                });
-
-                closeBtn.addEventListener('click', function () {
-                    drawer.classList.add('translate-x-full');
-                    document.body.style.overflow = '';
-                });
-
-                document.addEventListener('keydown', function (e) {
-                    if (e.key === 'Escape' && !drawer.classList.contains('translate-x-full')) {
-                        drawer.classList.add('translate-x-full');
-                        document.body.style.overflow = '';
-                    }
-                });
-            }
-        });
-    </script>
 </body>
 </html>

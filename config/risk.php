@@ -46,6 +46,20 @@ return [
 
     'exposure' => [
         'max_per_number' => (string) env('RISK_MAX_EXPOSURE_PER_NUMBER', '100000.00'),
+
+        /*
+         * Aggregate STAKE ceiling for one number on one draw, written into
+         * number_limits.max_amount when capacity rows are provisioned.
+         *
+         * Deliberately has NO default. It is a real-money ceiling, and a
+         * silently invented one is worse than none: it would look configured
+         * while expressing nobody's risk appetite. risk:provision-number-limits
+         * refuses to run until it is set, and says so.
+         *
+         * Distinct from lottery.betting.max_amount, which bounds a SINGLE bet;
+         * this bounds the total staked on one number across all players.
+         */
+        'max_stake_per_number' => env('RISK_MAX_STAKE_PER_NUMBER'),
         'max_per_draw' => (string) env('RISK_MAX_BET_PER_DRAW', '50000.00'),
         'warning_percentage' => 80,
         'block_on_exceeded' => true,

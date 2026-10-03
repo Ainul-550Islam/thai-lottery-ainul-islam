@@ -6,6 +6,8 @@ namespace App\Filament\Resources\DrawResource\Pages;
 
 use App\Enums\DrawStatus;
 use App\Filament\Resources\DrawResource;
+use App\Models\Draw;
+use App\Services\Draw\DrawScheduleService;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
 use Filament\Actions;
@@ -39,7 +41,7 @@ class ListDraws extends ListRecords
                 ->visible(fn (): bool => AdminAccess::current(AdminAccess::MANAGE_DRAWS))
                 ->action(function (): void {
                     try {
-                        $summary = app(\App\Services\Draw\DrawScheduleService::class)->provision();
+                        $summary = app(DrawScheduleService::class)->provision();
 
                         Notification::make()
                             ->success()
@@ -72,12 +74,12 @@ class ListDraws extends ListRecords
         return [
             'needs_attention' => Tab::make('Awaiting numbers')
                 ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('status', DrawStatus::Drawing))
-                ->badge(fn (): int => \App\Models\Draw::query()->where('status', DrawStatus::Drawing)->count())
+                ->badge(fn (): int => Draw::query()->where('status', DrawStatus::Drawing)->count())
                 ->badgeColor('danger'),
 
             'live' => Tab::make('Open')
                 ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('status', DrawStatus::Open))
-                ->badge(fn (): int => \App\Models\Draw::query()->where('status', DrawStatus::Open)->count()),
+                ->badge(fn (): int => Draw::query()->where('status', DrawStatus::Open)->count()),
 
             'upcoming' => Tab::make('Upcoming')
                 ->modifyQueryUsing(fn (Builder $query): Builder => $query
@@ -93,7 +95,7 @@ class ListDraws extends ListRecords
 
     public function getDefaultActiveTab(): string|int|null
     {
-        return \App\Models\Draw::query()->where('status', DrawStatus::Drawing)->exists()
+        return Draw::query()->where('status', DrawStatus::Drawing)->exists()
             ? 'needs_attention'
             : 'live';
     }

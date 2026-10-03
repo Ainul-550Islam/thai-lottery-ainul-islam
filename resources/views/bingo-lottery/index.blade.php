@@ -18,6 +18,14 @@
     $projection = is_array($current ?? null) ? $current : [];
     $searchPayload = is_array($search ?? null) ? $search : null;
     $searchRows = is_array($searchPayload['matches'] ?? null) ? $searchPayload['matches'] : [];
+
+    // LANE PARITY: the controller has always passed `history` for the latest
+    // year, and this view never read it. The Mega lane was therefore the only
+    // one of the four whose landing page had no results table at all - the
+    // visitor saw the current-draw card plus a row of year links, while
+    // National, Weekly and PCSO all render the year's table inline.
+    $historyPayload = is_array($history ?? null) ? $history : null;
+    $historyRows = is_array($historyPayload['rows'] ?? null) ? $historyPayload['rows'] : [];
 @endphp
 <div class="wl-page" data-wl-page="bingo-lottery" data-wl-locale="{{ $meta['lang'] }}">
     <a class="wl-skip-link" href="#wl-main">{{ trans('bingo_lottery.skip_to_content') }}</a>
@@ -60,6 +68,13 @@
                         <x-bingo-lottery.result-card :result="$row" :is-thai="$is_thai" />
                     @endforeach
                 </div>
+            </section>
+        @endif
+
+        @if ($historyPayload !== null && $historyRows !== [])
+            <section class="wl-section" aria-labelledby="mega-history-preview-heading">
+                <h2 id="mega-history-preview-heading" class="wl-section__heading">{{ trans('bingo_lottery.history_heading') }}</h2>
+                <x-bingo-lottery.result-table :rows="$historyRows" :is-thai="$is_thai" />
             </section>
         @endif
 

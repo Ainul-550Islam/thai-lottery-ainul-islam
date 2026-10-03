@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\Deposit;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Wallet;
@@ -165,7 +166,7 @@ class PlayerWalletWiringTest extends TestCase
 
         // The Payment aggregate recorded the provider session reference.
         $payment = Payment::query()
-            ->where('payable_type', \App\Models\Deposit::class)
+            ->where('payable_type', Deposit::class)
             ->where('payable_id', $deposit->getKey())
             ->first();
         $this->assertNotNull($payment);

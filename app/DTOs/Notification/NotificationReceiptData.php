@@ -29,7 +29,7 @@ final class NotificationReceiptData
     }
 
     /**
-     * @param array{provider_reference:string, delivery_state:string, failure_reason?:string|null, reported_at?:\DateTimeInterface|null} $data
+     * @param  array{provider_reference:string, delivery_state:string, failure_reason?:string|null, reported_at?:\DateTimeInterface|null}  $data
      */
     public static function fromProvider(array $data): self
     {

@@ -9,7 +9,6 @@ use App\Enums\AgentStatus;
 use App\Enums\Currency;
 use App\Exceptions\FinancialException;
 use App\Models\Agent;
-use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\Wallet;
 

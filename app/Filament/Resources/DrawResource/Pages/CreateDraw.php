@@ -6,6 +6,7 @@ namespace App\Filament\Resources\DrawResource\Pages;
 
 use App\Filament\Resources\DrawResource;
 use App\Services\Draw\DrawScheduleService;
+use Carbon\CarbonImmutable;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateDraw extends CreateRecord
@@ -33,7 +34,7 @@ class CreateDraw extends CreateRecord
         $schedule = app(DrawScheduleService::class);
         $draw = $this->record;
 
-        $scheduledAt = \Carbon\CarbonImmutable::parse($draw->scheduled_at);
+        $scheduledAt = CarbonImmutable::parse($draw->scheduled_at);
 
         $draw->betting_open_at = $schedule->bettingOpenAtFor($scheduledAt);
         $draw->betting_close_at = $schedule->bettingCloseAtFor($scheduledAt);

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Agent;
 
 use App\DTOs\Agent\CommissionSettlementResult;
-use App\Enums\AgentStatus;
 use App\Enums\AuditAction;
 use App\Enums\CommissionStatus;
 use App\Enums\Currency;
@@ -33,8 +32,7 @@ class AgentCommissionSettlementService
         private readonly ConfigRepository $config,
         private readonly WalletService $wallets,
         private readonly WalletLockService $walletLocks,
-    ) {
-    }
+    ) {}
 
     /**
      * Settle all accrued commissions for a completed draw.
@@ -88,6 +86,7 @@ class AgentCommissionSettlementService
                 if (! $agent->canEarnCommission()) {
                     $commission->status = CommissionStatus::Cancelled;
                     $commission->save();
+
                     continue;
                 }
 
@@ -163,7 +162,7 @@ class AgentCommissionSettlementService
 
     private function recordAudit(int $drawId, string $drawNumber, CommissionSettlementResult $result): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'user_id' => null,
             'action' => AuditAction::Payout,

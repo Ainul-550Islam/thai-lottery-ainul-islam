@@ -24,8 +24,7 @@ final class PaymentProcessingResult
         public readonly string $actionTaken,
         public readonly ?string $message = null,
         public readonly array $metadata = [],
-    ) {
-    }
+    ) {}
 
     public static function completed(
         string $gateway,

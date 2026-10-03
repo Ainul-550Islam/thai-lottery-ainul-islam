@@ -260,7 +260,7 @@ final class TicketQrVerificationService
      */
     private function recordAudit(Ticket $ticket, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

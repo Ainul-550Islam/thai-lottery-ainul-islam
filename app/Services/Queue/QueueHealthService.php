@@ -25,8 +25,7 @@ class QueueHealthService
 {
     public function __construct(
         private readonly ConfigRepository $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Check overall queue health.

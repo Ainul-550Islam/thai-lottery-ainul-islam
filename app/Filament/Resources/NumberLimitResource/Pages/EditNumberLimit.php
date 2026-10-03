@@ -8,6 +8,7 @@ use App\Filament\Resources\NumberLimitResource;
 use App\Models\NumberLimit;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Editing a ceiling that may already have exposure against it.
@@ -45,10 +46,10 @@ class EditNumberLimit extends EditRecord
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Model  $record
+     * @param  Model  $record
      * @param  array<string, mixed>  $data
      */
-    protected function handleRecordUpdate($record, array $data): \Illuminate\Database\Eloquent\Model
+    protected function handleRecordUpdate($record, array $data): Model
     {
         $definitionFields = ['draw_id', 'bet_type', 'number', 'max_amount', 'maximum_payout_exposure', 'metadata'];
 

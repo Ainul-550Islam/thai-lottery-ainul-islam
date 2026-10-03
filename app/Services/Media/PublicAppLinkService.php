@@ -8,21 +8,32 @@ namespace App\Services\Media;
  * Hardened Public App Link Service.
  *
  * Configured Android / iOS / PWA download links for public marketing pages.
- * Validates URLs against scheme, host, and security allowlists.
- * Drops malformed, localhost, javascript:, data:, and unverified URLs.
+ *
+ * WHAT THIS VALIDATES, AND WHY IT IS NOT A STORE-HOST ALLOWLIST.
+ *
+ * This class previously required every Android URL to live on
+ * play.google.com / market.android.com and every iOS URL on
+ * apps.apple.com / itunes.apple.com. That is not a security boundary: the
+ * value comes from the operator's own environment file, so an attacker who
+ * can set it has already won. What the allowlist DID do was make three
+ * entirely legitimate distributions impossible to configure - a self hosted
+ * signed APK, an enterprise / MDM distribution page, and a TestFlight or
+ * other beta link. The links() contract says the card renders what the
+ * operator configured, and the allowlist silently contradicted it by
+ * returning NOT_CONFIGURED for a perfectly valid https URL.
+ *
+ * The real risk here is the rendered href, so that is what is checked:
+ *   - https only; javascript:, data:, file:, vbscript: and about: rejected,
+ *   - a resolvable public host; localhost, 127.0.0.1, *.local and *.internal
+ *     rejected so an operator cannot publish an unreachable or SSRF-shaped
+ *     link,
+ *   - protocol relative '//evil.test' rejected,
+ *   - empty and whitespace only values dropped rather than rendered.
+ * Anything that fails returns null, and a card with no surviving link reports
+ * NOT_CONFIGURED instead of showing a fabricated store button.
  */
 class PublicAppLinkService
 {
-    private const ALLOWED_ANDROID_HOSTS = [
-        'play.google.com',
-        'market.android.com',
-    ];
-
-    private const ALLOWED_IOS_HOSTS = [
-        'apps.apple.com',
-        'itunes.apple.com',
-    ];
-
     /**
      * @return array{
      *     status: string,
@@ -51,57 +62,12 @@ class PublicAppLinkService
 
     public function validateAndroidUrl(mixed $value): ?string
     {
-        $url = $this->safeUrl($value);
-        if ($url === null) {
-            return null;
-        }
-
-        $host = parse_url($url, PHP_URL_HOST);
-        if ($host === null) {
-            return null;
-        }
-
-        $host = strtolower($host);
-        foreach (self::ALLOWED_ANDROID_HOSTS as $allowed) {
-            if ($host === $allowed || str_ends_with($host, '.' . $allowed)) {
-                return $url;
-            }
-        }
-
-        // Also permit local app domain link
-        $appHost = parse_url((string) config('app.url', ''), PHP_URL_HOST);
-        if ($appHost !== null && $host === strtolower($appHost)) {
-            return $url;
-        }
-
-        return null;
+        return $this->safeUrl($value);
     }
 
     public function validateIosUrl(mixed $value): ?string
     {
-        $url = $this->safeUrl($value);
-        if ($url === null) {
-            return null;
-        }
-
-        $host = parse_url($url, PHP_URL_HOST);
-        if ($host === null) {
-            return null;
-        }
-
-        $host = strtolower($host);
-        foreach (self::ALLOWED_IOS_HOSTS as $allowed) {
-            if ($host === $allowed || str_ends_with($host, '.' . $allowed)) {
-                return $url;
-            }
-        }
-
-        $appHost = parse_url((string) config('app.url', ''), PHP_URL_HOST);
-        if ($appHost !== null && $host === strtolower($appHost)) {
-            return $url;
-        }
-
-        return null;
+        return $this->safeUrl($value);
     }
 
     public function validatePwaUrl(mixed $value): ?string

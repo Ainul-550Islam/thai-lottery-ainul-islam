@@ -54,7 +54,7 @@ final class BkashGatewayTest extends TestCase
             ], 200),
         ]);
 
-        $deposit = new Deposit();
+        $deposit = new Deposit;
         $deposit->id = 1;
         $deposit->user_id = 10;
         $deposit->wallet_id = 20;

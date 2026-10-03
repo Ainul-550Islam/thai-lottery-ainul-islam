@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Agent;
 
 use App\Enums\AgentStatus;
-use App\Models\AgentCommission;
 use App\Models\FinancialTransaction;
 use App\Models\Wallet;
 

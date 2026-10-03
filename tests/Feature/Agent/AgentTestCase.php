@@ -15,7 +15,6 @@ use App\Enums\DrawType;
 use App\Enums\LimitStatus;
 use App\Models\Agent;
 use App\Models\Draw;
-use App\Models\LedgerAccount;
 use App\Models\NumberLimit;
 use App\Models\User;
 use App\Models\Wallet;
@@ -50,7 +49,7 @@ abstract class AgentTestCase extends TestCase
 
     protected function seedChartOfAccounts(): void
     {
-        (new LedgerAccountSeeder())->run();
+        (new LedgerAccountSeeder)->run();
     }
 
     protected function configureAgentSettings(): void
@@ -227,7 +226,7 @@ abstract class AgentTestCase extends TestCase
             return;
         }
 
-        $limit = new NumberLimit();
+        $limit = new NumberLimit;
         $limit->draw_id = $draw->getKey();
         $limit->bet_type = $betType;
         $limit->number = $number;

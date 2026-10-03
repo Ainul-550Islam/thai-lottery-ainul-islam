@@ -49,7 +49,7 @@ final class NagadGatewayTest extends TestCase
             ], 200),
         ]);
 
-        $deposit = new Deposit();
+        $deposit = new Deposit;
         $deposit->id = 2;
         $deposit->user_id = 11;
         $deposit->wallet_id = 22;

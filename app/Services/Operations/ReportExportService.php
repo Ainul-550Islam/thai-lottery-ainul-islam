@@ -10,6 +10,7 @@ use App\Enums\ReportJobStatus;
 use App\Exceptions\ReportExportException;
 use App\Models\OperationalReportJob;
 use App\Models\ReportExport;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -23,12 +24,12 @@ use Illuminate\Support\Facades\Storage;
 final class ReportExportService
 {
     private const DISK = 'local';
+
     private const DIRECTORY = 'reports';
 
     public function __construct(
         private readonly OperationalReportService $reports,
-    ) {
-    }
+    ) {}
 
     /**
      * RENDER + SEAL: exactly-once by artifact_fingerprint.
@@ -147,9 +148,9 @@ final class ReportExportService
      * Deterministic artifact bytes: pinned envelope, stable columns,
      * stable ordering, LF endings — always.
      *
-     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $rows
+     * @param  Collection<int, array<string, mixed>>  $rows
      */
-    private function writeBytes(ReportFormat $format, OperationalReportJob $job, \Illuminate\Support\Collection $rows): string
+    private function writeBytes(ReportFormat $format, OperationalReportJob $job, Collection $rows): string
     {
         if ($format === ReportFormat::Json) {
             return json_encode([
@@ -181,7 +182,7 @@ final class ReportExportService
     }
 
     /**
-     * @param array<int, string> $cells
+     * @param  array<int, string>  $cells
      */
     private static function csvLine(array $cells): string
     {

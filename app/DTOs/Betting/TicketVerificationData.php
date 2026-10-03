@@ -20,8 +20,7 @@ final readonly class TicketVerificationData
     public function __construct(
         public string $ticketNumber,
         public ?int $ownerUserId,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload

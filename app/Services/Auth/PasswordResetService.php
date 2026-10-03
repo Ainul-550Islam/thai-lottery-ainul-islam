@@ -8,6 +8,7 @@ use App\Enums\AuthLoginIdentifier;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -37,16 +38,14 @@ final class PasswordResetService
 {
     public function __construct(
         private readonly CaptchaService $captcha,
-    ) {
-    }
+    ) {}
 
     /**
      * Request a recovery link.
      *
      * @param  array{identifier?: mixed, captcha_token?: mixed, captcha_answer?: mixed}  $input
-     *
      * @return array{sent: bool, message: string} the SAME shape and copy
-     *                                           for every outcome.
+     *                                            for every outcome.
      */
     public function requestReset(Request $request, array $input): array
     {
@@ -85,7 +84,6 @@ final class PasswordResetService
      * Complete a reset.
      *
      * @param  array{token?: mixed, email?: mixed, password?: mixed, password_confirmation?: mixed}  $input
-     *
      * @return array{reset: bool, message: string}
      */
     public function resetPassword(Request $request, array $input): array
@@ -100,7 +98,7 @@ final class PasswordResetService
         $status = Password::broker()->reset(
             $credentials,
             function (User $user, string $password): void {
-                $user->password = \Illuminate\Support\Facades\Hash::make($password);
+                $user->password = Hash::make($password);
 
                 // Drop the remember-device credential with the password.
                 $user->remember_token = null;

@@ -1,5 +1,9 @@
 <?php
 
+use Spatie\Permission\DefaultTeamResolver;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+
 return [
 
     /*
@@ -9,8 +13,8 @@ return [
     */
 
     'models' => [
-        'permission' => Spatie\Permission\Models\Permission::class,
-        'role' => Spatie\Permission\Models\Role::class,
+        'permission' => Permission::class,
+        'role' => Role::class,
     ],
 
     'table_names' => [
@@ -32,14 +36,14 @@ return [
     'register_octane_reset_listener' => false,
     'events_enabled' => false,
     'teams' => false,
-    'team_resolver' => \Spatie\Permission\DefaultTeamResolver::class,
+    'team_resolver' => DefaultTeamResolver::class,
     'use_passport_client_credentials' => false,
     'display_permission_in_exception' => env('PERMISSION_DISPLAY_IN_EXCEPTION', false),
     'display_role_in_exception' => env('ROLE_DISPLAY_IN_EXCEPTION', false),
     'enable_wildcard_permission' => env('PERMISSION_ENABLE_WILDCARD', false),
 
     'cache' => [
-        'expiration_time' => \DateInterval::createFromDateString(
+        'expiration_time' => DateInterval::createFromDateString(
             env('PERMISSION_CACHE_EXPIRATION', '24 hours')
         ),
         'key' => env('PERMISSION_CACHE_KEY', 'spatie.permission.cache'),

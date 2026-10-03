@@ -6,6 +6,7 @@ namespace Tests\Feature\Console;
 
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Console\Kernel;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -33,7 +34,7 @@ final class ScheduleRegistrationTest extends TestCase
         // withSchedule() registers on Artisan::starting, so the console kernel has to be
         // booted before the Schedule instance knows anything. Resolving the command list
         // is the cheapest way to boot it.
-        app(\Illuminate\Contracts\Console\Kernel::class)->all();
+        app(Kernel::class)->all();
 
         return app(Schedule::class)->events();
     }
@@ -123,7 +124,7 @@ final class ScheduleRegistrationTest extends TestCase
     #[Test]
     public function every_lottery_command_is_registered_with_artisan(): void
     {
-        $registered = array_keys(app(\Illuminate\Contracts\Console\Kernel::class)->all());
+        $registered = array_keys(app(Kernel::class)->all());
 
         foreach ([
             'lottery:tick',

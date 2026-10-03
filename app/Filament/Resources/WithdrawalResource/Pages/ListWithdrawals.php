@@ -7,6 +7,7 @@ namespace App\Filament\Resources\WithdrawalResource\Pages;
 use App\Enums\WithdrawalStatus;
 use App\Filament\Resources\WithdrawalResource;
 use App\Models\Withdrawal;
+use Filament\Actions\Action;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,7 +29,7 @@ class ListWithdrawals extends ListRecords
     protected static string $resource = WithdrawalResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

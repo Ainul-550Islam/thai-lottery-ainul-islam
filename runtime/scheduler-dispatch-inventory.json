@@ -1,0 +1,37 @@
+{
+  "artifact": "scheduler-dispatch-inventory",
+  "phase": 7,
+  "scheduler_definition_sites": ["routes/console.php", "bootstrap/app.php (withSchedule closure)"],
+  "entries_before": 17,
+  "entries_after": 29,
+  "verified_with": "php artisan schedule:list",
+  "draw_lifecycle": {
+    "scheduled_command": "lottery:tick",
+    "cadence": "config('lottery.automation.tick_cron'), default '* * * * *'",
+    "kill_switch": "config('lottery.automation.enabled') -- when false the task is NOT registered at all, rather than registered and returning early. The subcommands carry the same guard, so a manual run is also refused without --force.",
+    "fans_out_to": ["lottery:schedule-draws", "lottery:open-draws", "lottery:close-draws", "lottery:mark-results-pending", "lottery:settle-draws"],
+    "deliberately_excluded": "lottery:publish-result. Publication is a human-approved step by design, documented in TickCommand::STEPS. This is correct and was left alone."
+  },
+  "unscheduled_console_commands": {
+    "count": 29,
+    "assessment": "Most are correctly manual: operator tools (glo:freeze-ticket, glo:freeze-case, glo:stress-harness), one-shot rebuilds (grades:rebuild-snapshots) and ad-hoc imports. The following are recurring operational lanes with no producer and are reported as OPEN findings rather than silently scheduled:",
+    "open_findings": [
+      "glo:expire-freezes -- a freeze that never expires holds a winner's prize indefinitely",
+      "glo:notify-saved-tickets -- saved-ticket holders are never told their number came up",
+      "glo:process-frozen-winners -- frozen winners are never released",
+      "glo:reconcile-sales -- sales reconciliation never runs",
+      "glo:provider-health -- provider outages are never detected",
+      "finance:reconcile -- financial reconciliation never runs",
+      "queue:health -- queue depth and failure rate are never monitored",
+      "ops:evaluate-alerts / ops:metrics-export -- the observability lane produces nothing",
+      "contact:purge / contact:delivery-health -- contact retention and delivery health never run"
+    ]
+  },
+  "result_import_finding": {
+    "severity": "CRITICAL",
+    "finding": "No result importer is scheduled on any lane (glo, national, weekly, bingo, pcso). The lifecycle advances a draw to results-pending and it stays there forever unless an operator runs an import by hand.",
+    "second_finding": "Every lane importer declared {--provider=fixture} as its DEFAULT option value. A no-argument run -- exactly what a cron entry or a hurried operator would do -- would have imported fabricated results into a real draw.",
+    "fix_applied": "The default was changed to official on all four lane importers (ImportNationalLotteryResults, ImportWeeklyLotteryResults, ImportBingoLotteryResults, ImportPcsoLotteryResults). A run with no provider now targets the official source and fails closed if it is unreachable, instead of silently fabricating a result.",
+    "still_open": "The importers remain unscheduled. Scheduling them requires each lane's official provider endpoint and credentials, which are not present in this environment, so a schedule entry here would be cargo cult."
+  }
+}

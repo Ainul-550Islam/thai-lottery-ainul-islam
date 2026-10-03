@@ -39,17 +39,17 @@ class TaxCalculationData
 {
     /**
      * @param  string  $payoutReference  Reference number of the payout the
-     *                                  tax is computed against — the anchor.
+     *                                   tax is computed against — the anchor.
      * @param  string  $prizeAmount  Gross prize as a 2-decimal string, e.g.
-     *                              '900.00'.
+     *                               '900.00'.
      * @param  string  $taxableAmount  Taxable base as a 2-decimal string.
-     *                                MUST NOT exceed the gross: a base above
-     *                                the prize would charge the player for
-     *                                money they never won.
+     *                                 MUST NOT exceed the gross: a base above
+     *                                 the prize would charge the player for
+     *                                 money they never won.
      * @param  array<string, mixed>  $context  Safe rule-engine context:
-     *                                        payout method, claimant kind,
-     *                                        draw id, jurisdiction hints.
-     *                                        Amounts NEVER arrive here.
+     *                                         payout method, claimant kind,
+     *                                         draw id, jurisdiction hints.
+     *                                         Amounts NEVER arrive here.
      */
     public function __construct(
         public readonly string $payoutReference,
@@ -57,8 +57,7 @@ class TaxCalculationData
         public readonly string $taxableAmount,
         public readonly Currency $currency,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The deterministic identity of one calculation basis.

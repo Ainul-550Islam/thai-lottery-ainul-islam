@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Agent;
 
-use App\Enums\AgentStatus;
 use App\Enums\AuditAction;
 use App\Enums\RiskLevel;
 use App\Exceptions\FinancialException;
@@ -124,7 +123,7 @@ class AgentReferralService
         array $newValues = [],
         array $metadata = [],
     ): void {
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'user_id' => null,
             'action' => $action,

@@ -7,6 +7,7 @@ namespace App\Filament\Resources\DepositResource\Pages;
 use App\Enums\DepositStatus;
 use App\Filament\Resources\DepositResource;
 use App\Models\Deposit;
+use Filament\Actions\Action;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,7 +32,7 @@ class ListDeposits extends ListRecords
     protected static string $resource = DepositResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

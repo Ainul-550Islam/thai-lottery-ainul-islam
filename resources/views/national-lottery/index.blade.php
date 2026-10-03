@@ -11,7 +11,7 @@
 
 @push('styles')
 
-    <link rel="stylesheet" href="{{ asset('css/national-lottery.css') }}">
+    @vite(['resources/css/national-lottery.css'])
 @endpush
 
 @section('content')

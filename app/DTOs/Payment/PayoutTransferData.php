@@ -42,17 +42,17 @@ class PayoutTransferData
      * @param  string  $batchKey  Deterministic key of the owning batch.
      * @param  string  $payoutReference  The payout this transfer settles.
      * @param  array<string, mixed>|null  $beneficiary  Beneficiary details the
-     *                                                 method needs (wallet id
-     *                                                 for wallet, account keys
-     *                                                 for bank). Personal data
-     *                                                 flows here ONLY as
-     *                                                 payment-routing data, and
-     *                                                 toArray never emits it —
-     *                                                 projections keep it out.
+     *                                                  method needs (wallet id
+     *                                                  for wallet, account keys
+     *                                                  for bank). Personal data
+     *                                                  flows here ONLY as
+     *                                                  payment-routing data, and
+     *                                                  toArray never emits it —
+     *                                                  projections keep it out.
      * @param  string  $amount  2-decimal money string of THIS transfer.
      * @param  array<string, mixed>  $context  Execution context (run tag,
-     *                                        gateway hint id, executor pid —
-     *                                        never credentials).
+     *                                         gateway hint id, executor pid —
+     *                                         never credentials).
      */
     public function __construct(
         public readonly string $batchKey,
@@ -64,8 +64,7 @@ class PayoutTransferData
         public readonly ?array $beneficiary,
         public readonly string $idempotencyKey,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The replay anchor for one transfer lane.

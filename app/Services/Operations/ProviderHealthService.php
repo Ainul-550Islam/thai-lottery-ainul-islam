@@ -9,6 +9,8 @@ use App\Enums\ProviderOperationStatus;
 use App\Models\Payment;
 use App\Models\PaymentProvider;
 use App\Models\PaymentWebhook;
+use App\Models\ProviderOperation;
+use Illuminate\Support\Collection;
 
 /**
  * ProviderHealthService — provider-NEUTRAL health aggregation from
@@ -21,22 +23,21 @@ final class ProviderHealthService
 {
     public function __construct(
         private readonly ProviderOperationService $operations,
-    ) {
-    }
+    ) {}
 
     /**
      * Every provider the desk has ever observed (transaction lanes +
      * webhook lanes + operation seats).
      *
-     * @return \Illuminate\Support\Collection<int, string>
+     * @return Collection<int, string>
      */
-    public function knownProviders(): \Illuminate\Support\Collection
+    public function knownProviders(): Collection
     {
         $lanes = collect();
         $lanes = $lanes->merge(PaymentProvider::query()->orderBy('code')->pluck('code'));
         $lanes = $lanes->merge(Payment::query()->whereNotNull('gateway')->distinct()->orderBy('gateway')->pluck('gateway'));
         $lanes = $lanes->merge(PaymentWebhook::query()->distinct()->orderBy('provider')->pluck('provider'));
-        $lanes = $lanes->merge(\App\Models\ProviderOperation::query()->distinct()->orderBy('provider')->pluck('provider'));
+        $lanes = $lanes->merge(ProviderOperation::query()->distinct()->orderBy('provider')->pluck('provider'));
 
         return $lanes->filter()->unique()->sort()->values();
     }
@@ -84,9 +85,9 @@ final class ProviderHealthService
     /**
      * The desk-wide health sheet — one row per known provider.
      *
-     * @return \Illuminate\Support\Collection<int, ProviderHealthData>
+     * @return Collection<int, ProviderHealthData>
      */
-    public function sheet(): \Illuminate\Support\Collection
+    public function sheet(): Collection
     {
         return $this->knownProviders()
             ->map(fn (string $provider): ProviderHealthData => $this->snapshot($provider));

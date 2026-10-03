@@ -29,8 +29,7 @@ final readonly class BetAmendmentResult
         public ?string $chargedAmount,
         public string $currency,
         public ?string $failureReason,
-    ) {
-    }
+    ) {}
 
     public function isApplied(): bool
     {

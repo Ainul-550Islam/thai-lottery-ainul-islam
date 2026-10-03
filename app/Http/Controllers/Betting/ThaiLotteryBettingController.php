@@ -28,9 +28,7 @@ use Illuminate\View\View;
  */
 final class ThaiLotteryBettingController extends Controller
 {
-    public function __construct(private readonly ?BulkBetService $bulkBets = null)
-    {
-    }
+    public function __construct(private readonly ?BulkBetService $bulkBets = null) {}
 
     public function index(Request $request): View|RedirectResponse
     {

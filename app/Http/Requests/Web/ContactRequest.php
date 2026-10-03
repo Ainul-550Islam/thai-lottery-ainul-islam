@@ -12,6 +12,4 @@ use App\Http\Requests\ContactMessageRequest;
  * Enforces email/header injection defenses, honeypot spam prevention,
  * and payload boundary checks.
  */
-class ContactRequest extends ContactMessageRequest
-{
-}
+class ContactRequest extends ContactMessageRequest {}

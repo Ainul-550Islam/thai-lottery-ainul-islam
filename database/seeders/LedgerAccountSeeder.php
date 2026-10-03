@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Enums\Currency;
 use App\Models\LedgerAccount;
+use App\Services\Finance\LedgerPostingService;
 use App\Services\Finance\WalletService;
 use Illuminate\Database\Seeder;
 
@@ -45,9 +46,16 @@ use Illuminate\Database\Seeder;
  *   consumes would be a guess presented as a decision.
  * - No account is created beyond the eight the application actually posts to. An unused
  *   account in a chart of accounts is a liability, not a feature.
- * - Currency is left at the schema default (THB) rather than being set per account. These
- *   are the platform's own books; multi-currency ledgers need per-currency account sets,
- *   which is a design question this phase does not answer.
+ * MULTI-CURRENCY
+ * A ledger account is denominated in exactly one currency, so the platform holds one
+ * complete set of accounts per supported currency. The primary currency (THB) keeps the
+ * bare code, so existing books, reports and single-row lookups are unaffected; every other
+ * currency gets the same account suffixed with its ISO code, e.g. `2100:USD`. The suffix is
+ * produced by LedgerPostingService::accountCodeFor(), which is also what the resolver calls,
+ * so the seeder and the resolver cannot drift into two spellings of the same account. Before
+ * this existed, a USD or BDT wallet movement resolved the THB account and was refused deep
+ * in the posting layer with `ledger_account_currency_mismatch`, which made every non-THB
+ * payment method unusable despite being configured and enabled.
  */
 class LedgerAccountSeeder extends Seeder
 {
@@ -74,7 +82,7 @@ class LedgerAccountSeeder extends Seeder
                 'Withdrawals approved and deducted from a wallet but not yet paid out. Holds the money in transit so an approved-but-unpaid withdrawal is never invisible.',
             ],
             WalletService::ACCOUNT_PLAYER_LIABILITY => [
-                'Player Balances',
+                'Player Liability',
                 'liability',
                 'What the platform owes its players. The sum of every wallet balance and the single most important reconciliation figure on the books.',
             ],
@@ -110,13 +118,13 @@ class LedgerAccountSeeder extends Seeder
     {
         foreach ($this->accounts() as $code => [$name, $type, $description]) {
             LedgerAccount::query()->updateOrCreate(
-                ['code' => $code],
+                ['code' => LedgerPostingService::accountCodeFor((string) $code, Currency::primary())],
                 [
                     'name' => $name,
                     'type' => $type,
                     'description' => $description,
                     'is_active' => true,
-                    'currency' => Currency::THB,
+                    'currency' => Currency::primary(),
                 ],
             );
         }
@@ -124,10 +132,10 @@ class LedgerAccountSeeder extends Seeder
         // Each currency has its own chart rows. The code suffix prevents a
         // cross-currency account from ever being selected by accident while
         // LedgerPostingService keeps the stable base code at the service API.
-        foreach (array_filter(Currency::cases(), static fn (Currency $currency): bool => $currency !== Currency::THB) as $currency) {
+        foreach (array_filter(Currency::cases(), static fn (Currency $currency): bool => $currency !== Currency::primary()) as $currency) {
             foreach ($this->accounts() as $code => [$name, $type, $description]) {
                 LedgerAccount::query()->updateOrCreate(
-                    ['code' => $code.':'.$currency->value],
+                    ['code' => LedgerPostingService::accountCodeFor((string) $code, $currency)],
                     [
                         'name' => $name.' ('.$currency->value.')',
                         'type' => $type,

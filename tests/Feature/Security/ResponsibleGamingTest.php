@@ -16,6 +16,7 @@ final class ResponsibleGamingTest extends TestCase
     use RefreshDatabase;
 
     private User $player;
+
     private string $token;
 
     protected function setUp(): void

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterMemberRequest;
+use App\Rules\StrongPasswordRule;
 use App\Services\Auth\CaptchaService;
 use App\Services\Auth\LoginService;
 use App\Services\Auth\PasswordResetService;
@@ -41,8 +42,7 @@ class MemberAuthController
         private readonly RegistrationService $registration,
         private readonly PasswordResetService $passwordReset,
         private readonly CaptchaService $captcha,
-    ) {
-    }
+    ) {}
 
     /*
     |----------------------------------------------------------------------
@@ -180,7 +180,7 @@ class MemberAuthController
         $validated = $request->validate([
             'token' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email:filter', 'max:255'],
-            'password' => ['required', 'string', 'max:255', new \App\Rules\StrongPasswordRule()],
+            'password' => ['required', 'string', 'max:255', new StrongPasswordRule],
             'password_confirmation' => ['required', 'string', 'same:password'],
         ], [], [
             'password' => __('public_pages.login_password'),

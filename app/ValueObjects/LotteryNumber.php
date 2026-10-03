@@ -57,8 +57,7 @@ final readonly class LotteryNumber implements Stringable
     private function __construct(
         public string $value,
         public int $digits,
-    ) {
-    }
+    ) {}
 
     /**
      * Build a canonical number, requiring the exact digit count.

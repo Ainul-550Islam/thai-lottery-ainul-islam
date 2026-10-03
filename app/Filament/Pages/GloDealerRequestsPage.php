@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Enums\GloDealerRequestStatus;
+use App\Exceptions\GloDealerException;
 use App\Models\GloDealerChangeRequest;
 use App\Services\Lottery\GloDealerChangeRequestService;
 use App\Support\Admin\AdminAccess;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
-use Filament\Pages\Page;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 
 /**
  * Filament page — GLO-15 dealer change requests (operator review only).
@@ -115,7 +116,7 @@ class GloDealerRequestsPage extends Page
             } else {
                 Notification::make()->title('Unknown decision')->danger()->send();
             }
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             Notification::make()->title($e->getMessage())->danger()->send();
         }
     }

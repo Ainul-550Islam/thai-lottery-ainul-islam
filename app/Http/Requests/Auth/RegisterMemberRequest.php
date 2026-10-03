@@ -53,7 +53,7 @@ final class RegisterMemberRequest extends FormRequest
                 Rule::unique('users', 'phone'),
             ],
 
-            'password' => ['required', 'string', 'max:255', new StrongPasswordRule()],
+            'password' => ['required', 'string', 'max:255', new StrongPasswordRule],
             'password_confirmation' => ['required', 'string', 'same:password'],
 
             'first_name' => ['required', 'string', 'min:1', 'max:100', 'regex:/^[\p{L}\p{M}\'.\- ]+$/u'],

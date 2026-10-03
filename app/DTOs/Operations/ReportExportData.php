@@ -19,11 +19,10 @@ final class ReportExportData
     public function __construct(
         public readonly int $reportJobId,
         public readonly ReportFormat $format,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array{report_job_id:int, format:string|ReportFormat} $data
+     * @param  array{report_job_id:int, format:string|ReportFormat}  $data
      */
     public static function fromInput(array $data): self
     {

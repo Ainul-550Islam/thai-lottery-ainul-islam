@@ -11,7 +11,7 @@
         <div class="next-shell next-page-header__inner">
             <a class="next-brand" href="{{ route('player.dashboard') }}" aria-label="{{ trans('notifications.home_aria') }}">
                 <span class="next-brand__mark">TL</span>
-                <span>THAILOTTO<small>{{ trans('notifications.brand_subtitle') }}</small></span>
+                <span>{{ config('app.name') }}<small>{{ trans('notifications.brand_subtitle') }}</small></span>
             </a>
             <nav class="next-nav" aria-label="{{ trans('notifications.primary_nav') }}">
                 <a href="{{ route('player.dashboard') }}">{{ trans('notifications.nav_dashboard') }}</a>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Draw;
 
+use App\Exceptions\DrawReconciliationException;
+
 /**
  * The reconciliation lane's one-shot judgment pack.
  *
@@ -35,13 +37,12 @@ final readonly class DrawReconciliationData
         public string $expectedPrizeSettled,
         public string $expectedPayoutsPaid,
         public ?string $toleranceMinor = '0.00',
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<int, array{bet_type: string, prize_tier: ?string, position: ?string, number: string}>  $winningNumbers
      *
-     * @throws \App\Exceptions\DrawReconciliationException
+     * @throws DrawReconciliationException
      */
     public static function fromInput(
         int $drawId,
@@ -53,28 +54,28 @@ final readonly class DrawReconciliationData
         ?string $toleranceMinor = '0.00',
     ): self {
         if ($drawId < 1) {
-            throw \App\Exceptions\DrawReconciliationException::malformed(
+            throw DrawReconciliationException::malformed(
                 'the draw handle must be a positive integer',
             );
         }
 
         foreach (['expected_winners' => $expectedWinners, 'expected_payout' => $expectedPayout, 'expected_prize_settled' => $expectedPrizeSettled, 'expected_payouts_paid' => $expectedPayoutsPaid] as $field => $value) {
             if (! preg_match('/^-?\d+(\.\d{1,2})?$/', trim($value))) {
-                throw \App\Exceptions\DrawReconciliationException::malformed(
+                throw DrawReconciliationException::malformed(
                     sprintf('the %s must be a decimal string (money by money, never float)', $field),
                 );
             }
         }
 
         if ($toleranceMinor !== null && ! preg_match('/^\d+(\.\d{1,2})?$/', trim($toleranceMinor))) {
-            throw \App\Exceptions\DrawReconciliationException::malformed(
+            throw DrawReconciliationException::malformed(
                 'the tolerance must be a non-negative decimal string',
             );
         }
 
         foreach ($winningNumbers as $index => $row) {
             if (! is_array($row) || trim((string) ($row['bet_type'] ?? '')) === '' || trim((string) ($row['number'] ?? '')) === '') {
-                throw \App\Exceptions\DrawReconciliationException::malformed(
+                throw DrawReconciliationException::malformed(
                     sprintf('winning_numbers[%d]: every row must carry bet_type and number', $index),
                 );
             }

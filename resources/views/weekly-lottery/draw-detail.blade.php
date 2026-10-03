@@ -41,6 +41,28 @@
         @else
             <section class="wl-section" aria-labelledby="weekly-draw-result">
                 <h2 id="weekly-draw-result" class="wl-section__heading">{{ trans('weekly_lottery.current_result_heading') }}</h2>
+
+                {{--
+                    CORRECTION NOTICE.
+
+                    When a draw is re-published the new version row records the
+                    version it supersedes, and publicProvenance() exposes that
+                    as `supersedes_version`. This view - the one the
+                    /weekly-lottery/{draw} route actually renders - never read
+                    it, so a corrected draw silently replaced its own numbers:
+                    a reader who had seen version 1 was shown version 2 with no
+                    indication that anything had changed.
+
+                    (The markup did exist in weekly-lottery/show.blade.php,
+                    which no controller renders. That orphaned view is why the
+                    gap was not obvious.)
+                --}}
+                @if (($projection['provenance']['supersedes_version'] ?? null) !== null)
+                    <p class="wl-notice wl-notice--correction" role="status">
+                        {{ trans('weekly_lottery.correction_notice', ['version' => $projection['provenance']['result_version'] ?? '']) }}
+                    </p>
+                @endif
+
                 <x-weekly-lottery.result-card :result="$projection" :is-thai="$is_thai" :show-link="false" />
                 <dl class="wl-detail__dates">
                     <div><dt>{{ trans('weekly_lottery.date_gregorian_label') }}</dt><dd><time datetime="{{ $date['iso'] ?? '' }}">{{ $date['iso'] ?? '' }}</time></dd></div>

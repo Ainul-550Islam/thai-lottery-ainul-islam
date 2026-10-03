@@ -56,8 +56,7 @@ final class PayoutRequestData
         public readonly ?string $reason,
         public readonly string $requestKey,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Build a deterministic request key from the request's obligation anchor

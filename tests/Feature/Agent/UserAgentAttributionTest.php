@@ -6,7 +6,6 @@ namespace Tests\Feature\Agent;
 
 use App\Enums\AgentStatus;
 use App\Exceptions\FinancialException;
-use App\Models\Agent;
 use App\Models\User;
 
 final class UserAgentAttributionTest extends AgentTestCase

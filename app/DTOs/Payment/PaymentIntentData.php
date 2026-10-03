@@ -28,8 +28,7 @@ final readonly class PaymentIntentData
         public string $methodCode,
         public string $idempotencyKey,
         public ?string $expiresAt,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws PaymentIntentException

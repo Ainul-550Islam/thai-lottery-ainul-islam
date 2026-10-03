@@ -24,8 +24,7 @@ final readonly class PermutationRequestData
         public string $digits,
         public string $stakePerArrangement,
         public string $clientKey,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload

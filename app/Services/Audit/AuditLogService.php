@@ -56,7 +56,7 @@ class AuditLogService
         $auditableType = $auditable instanceof Model ? get_class($auditable) : (is_string($auditable) ? $auditable : null);
         $auditableId = $auditable instanceof Model ? (int) $auditable->getKey() : null;
 
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'user_id' => $userId,
             'action' => $actionEnum,

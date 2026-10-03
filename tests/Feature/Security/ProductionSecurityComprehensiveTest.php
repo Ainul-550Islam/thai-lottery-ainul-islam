@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Security;
 
+use App\Enums\AgentStatus;
 use App\Enums\AuditAction;
-use App\Enums\BetStatus;
 use App\Enums\BetType;
 use App\Enums\CommissionStatus;
 use App\Enums\Currency;
@@ -14,14 +14,10 @@ use App\Enums\LedgerAccountType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\RiskLevel;
-use App\Enums\TicketStatus;
-use App\Enums\UserRole;
 use App\Enums\UserStatus;
-use App\Enums\WalletStatus;
 use App\Filament\Resources\DepositResource;
-use App\Filament\Resources\DrawResource;
 use App\Filament\Resources\UserResource;
-use App\Filament\Resources\WithdrawalResource;
+use App\Models\Agent;
 use App\Models\AgentCommission;
 use App\Models\AuditLog;
 use App\Models\Bet;
@@ -37,6 +33,7 @@ use App\Services\Observability\CorrelationContext;
 use App\Services\Observability\StructuredLogger;
 use App\Support\Admin\AdminAccess;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
@@ -579,7 +576,7 @@ class ProductionSecurityComprehensiveTest extends TestCase
      */
     public function test_27_mass_assignment_protection_on_user_and_wallet(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\MassAssignmentException::class);
+        $this->expectException(MassAssignmentException::class);
 
         User::create([
             'name' => 'Test User',
@@ -630,7 +627,7 @@ class ProductionSecurityComprehensiveTest extends TestCase
         $this->assertSame(302, $guest->status());
 
         // Operator with panel role may read metrics.
-        $admin = \App\Models\User::factory()->create();
+        $admin = User::factory()->create();
         $admin->assignRole('super-admin');
         $response = $this->actingAs($admin)->get('/metrics');
         $response->assertStatus(200);
@@ -721,18 +718,18 @@ class ProductionSecurityComprehensiveTest extends TestCase
         $agentB = User::factory()->create(['status' => UserStatus::Active]);
         $agentB->assignRole('agent');
 
-        $agentRecordA = \App\Models\Agent::create([
+        $agentRecordA = Agent::create([
             'agent_code' => 'AGT001',
             'user_id' => $agentA->id,
-            'status' => \App\Enums\AgentStatus::Active,
+            'status' => AgentStatus::Active,
             'currency' => Currency::THB,
             'commission_rate' => '0.0500',
         ]);
 
-        $agentRecordB = \App\Models\Agent::create([
+        $agentRecordB = Agent::create([
             'agent_code' => 'AGT002',
             'user_id' => $agentB->id,
-            'status' => \App\Enums\AgentStatus::Active,
+            'status' => AgentStatus::Active,
             'currency' => Currency::THB,
             'commission_rate' => '0.0500',
         ]);
@@ -838,7 +835,7 @@ class ProductionSecurityComprehensiveTest extends TestCase
 
         $sqliPayloads = [
             "1' OR '1'='1",
-            "1; DROP TABLE users;--",
+            '1; DROP TABLE users;--',
             "' UNION SELECT null, null, null--",
         ];
 

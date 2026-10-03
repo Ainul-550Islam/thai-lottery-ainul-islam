@@ -40,21 +40,20 @@ class TicketOwnershipData
 {
     /**
      * @param  string  $boundAt  ISO-8601 stamp of when the binding was
-     *                          created (the ticket's issued_at). Dragging
-     *                          this fact rather than re-deriving it keeps
-     *                          the fingerprint stable across runs.
+     *                           created (the ticket's issued_at). Dragging
+     *                           this fact rather than re-deriving it keeps
+     *                           the fingerprint stable across runs.
      * @param  array<string, mixed>  $context  Safe binding context:
-     *                                        purchase channel, order id —
-     *                                        never the ticket's secret
-     *                                        verification code.
+     *                                         purchase channel, order id —
+     *                                         never the ticket's secret
+     *                                         verification code.
      */
     public function __construct(
         public readonly string $ticketReference,
         public readonly int $ownerUserId,
         public readonly string $boundAt,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The ownership fingerprint: replay-stable binding identity.

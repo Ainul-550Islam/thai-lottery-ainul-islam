@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Notification;
 
 use App\DTOs\Notification\NotificationMessageData;
-use App\Enums\NotificationChannel;
 use App\Enums\NotificationFailureReason;
+use App\Models\Notification;
 
 /**
  * NotificationSuppressionService — the desk's four suppression
@@ -37,7 +37,7 @@ final class NotificationSuppressionService
         }
 
         // THREE: the exact pronouncement must not be copied twice.
-        $exists = \App\Models\Notification::query()
+        $exists = Notification::query()
             ->where('message_fingerprint', $message->messageFingerprint())
             ->exists();
 

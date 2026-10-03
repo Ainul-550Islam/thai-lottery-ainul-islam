@@ -10,6 +10,7 @@ use App\Enums\BetStatus;
 use App\Enums\BetType;
 use App\Models\Bet;
 use App\Services\Betting\BetCancellationService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,8 +30,7 @@ final class LotteryHistoryPortalController
 {
     public function __construct(
         private readonly BetCancellationService $cancellations,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): RedirectResponse
     {
@@ -192,9 +192,9 @@ final class LotteryHistoryPortalController
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<Bet>
+     * @return Builder<Bet>
      */
-    private function ownedBets(int $userId): \Illuminate\Database\Eloquent\Builder
+    private function ownedBets(int $userId): Builder
     {
         return Bet::query()->where('user_id', $userId);
     }

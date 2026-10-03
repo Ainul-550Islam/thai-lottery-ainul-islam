@@ -39,6 +39,8 @@ final class PublicResultsAnonymousTest extends TestCase
     public function test_results_page_never_labels_fixture_as_official(): void
     {
         $draw = Draw::factory()->create([
+            // A published result belongs to a draw that has been held.
+            'scheduled_at' => now()->subDay(),
             'status' => DrawStatus::ResultPublished,
             'draw_number' => 'fixture-pub-1',
         ]);
@@ -80,6 +82,8 @@ final class PublicResultsAnonymousTest extends TestCase
     public function test_publish_command_refuses_missing_fingerprint(): void
     {
         $draw = Draw::factory()->create([
+            // A published result belongs to a draw that has been held.
+            'scheduled_at' => now()->subDay(),
             'status' => DrawStatus::ResultPublished,
             'draw_number' => 'no-fp-99',
         ]);
@@ -99,6 +103,8 @@ final class PublicResultsAnonymousTest extends TestCase
     public function test_publish_command_publishes_fingerprinted_result_once(): void
     {
         $draw = Draw::factory()->create([
+            // A published result belongs to a draw that has been held.
+            'scheduled_at' => now()->subDay(),
             'status' => DrawStatus::ResultPublished,
             'draw_number' => 'fp-100',
         ]);

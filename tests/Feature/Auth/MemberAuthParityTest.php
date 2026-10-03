@@ -5,14 +5,21 @@ declare(strict_types=1);
 namespace Tests\Feature\Auth;
 
 use App\Enums\AgentStatus;
+use App\Enums\UserStatus;
+use App\Exceptions\FinancialException;
 use App\Models\Agent;
+use App\Models\AgentCommission;
 use App\Models\User;
 use App\Notifications\AuthPasswordResetNotification;
+use App\Services\Agent\AgentReferralService;
 use App\Services\Auth\CaptchaService;
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -218,14 +225,14 @@ final class MemberAuthParityTest extends TestCase
         ])->assertRedirect(route('player.dashboard'));
 
         $this->player->refresh();
-        $this->assertSame(\App\Enums\UserStatus::Active, $this->player->status);
+        $this->assertSame(UserStatus::Active, $this->player->status);
         $this->assertFalse($this->player->isAdmin());
         $this->assertFalse($this->player->isSuperAdmin());
     }
 
     public function test_suspended_account_follows_existing_policy(): void
     {
-        $this->player->status = \App\Enums\UserStatus::Suspended;
+        $this->player->status = UserStatus::Suspended;
         $this->player->save();
 
         $this->from(route('login'))->post(route('login.attempt'), [
@@ -570,8 +577,8 @@ final class MemberAuthParityTest extends TestCase
         ]);
         $this->assertNotNull($agent);
 
-        $this->expectException(\App\Exceptions\FinancialException::class);
-        app(\App\Services\Agent\AgentReferralService::class)
+        $this->expectException(FinancialException::class);
+        app(AgentReferralService::class)
             ->attributeUser($this->player, 'SELFREF1');
     }
 
@@ -723,7 +730,7 @@ final class MemberAuthParityTest extends TestCase
         // commission of any kind.
         $this->assertSame(
             0,
-            \App\Models\AgentCommission::query()->where('agent_id', $agent->id)->count(),
+            AgentCommission::query()->where('agent_id', $agent->id)->count(),
         );
     }
 
@@ -994,17 +1001,17 @@ final class MemberAuthParityTest extends TestCase
 
     public function test_browser_form_routes_carry_the_csrf_middleware_group(): void
     {
-        $kernel = $this->app->make(\Illuminate\Contracts\Http\Kernel::class);
+        $kernel = $this->app->make(Kernel::class);
         $webGroup = $kernel->getMiddlewareGroups()['web'] ?? [];
 
         $this->assertContains(
-            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+            ValidateCsrfToken::class,
             $webGroup,
             'The web group must validate CSRF tokens',
         );
 
         foreach (['login.attempt', 'register.attempt', 'password.request.attempt', 'password.reset.attempt', 'logout'] as $name) {
-            $route = \Illuminate\Support\Facades\Route::getRoutes()->getByName($name);
+            $route = Route::getRoutes()->getByName($name);
             $this->assertNotNull($route, $name);
             $this->assertContains('web', $route->gatherMiddleware(), $name.' must live in the web group');
         }
@@ -1105,7 +1112,7 @@ final class MemberAuthParityTest extends TestCase
             return $this->agents[$key];
         }
 
-        $owner = User::factory()->create(['status' => \App\Enums\UserStatus::Active]);
+        $owner = User::factory()->create(['status' => UserStatus::Active]);
 
         return $this->agents[$key] = Agent::create([
             'user_id' => $owner->id,
@@ -1153,7 +1160,7 @@ final class MemberAuthParityTest extends TestCase
 
         $answer = match ($operator) {
             '+' => (string) ($a + $b),
-            "-", "\u{2212}" => (string) ($a - $b),
+            '-', "\u{2212}" => (string) ($a - $b),
             '×' => (string) ($a * $b),
             default => $this->fail('Unknown challenge operator: '.$operator),
         };

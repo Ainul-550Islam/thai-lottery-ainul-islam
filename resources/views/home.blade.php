@@ -1,642 +1,611 @@
 @extends('layouts.app')
 
-@section('title', trans('home.meta_title'))
-@section('meta_description', trans('home.meta_description'))
+{{--
+    PUBLIC HOME PAGE.
+
+    Every section on this page is rendered from HomePageDataService. Blade runs
+    no queries, invents no numbers and hardcodes no marketing claim.
+
+    The previous revision of this file was a static marketing mockup: it carried
+    a fabricated "Licensed & Provably Verified by Government Lottery Office"
+    badge, invented trust copy, and reduced the prize / stats / bonuses blocks to
+    empty <div id="..."> stubs that existed only so a landmark assertion would
+    pass. It also linked two asset files that do not exist in public/
+    (css/pages/home.css and js/pages/home.js).
+
+    Contract honoured here:
+      * Each section prints the explicit status string the service produced
+        (VERIFIED / CONFIGURED / AVAILABLE / CATALOGUE_ONLY / NO_VERIFIED_RESULT
+        / NOT_CONFIGURED / UNAVAILABLE). Nothing relies on truthy / falsey.
+      * An unconfigured section renders its honest message, never a placeholder
+        that looks like real data.
+      * All interpolation uses {{ }}, so configured campaign copy cannot inject
+        markup.
+      * The countdown is never the only timing information: an absolute <time>
+        element and a screen-reader sentence always accompany it.
+--}}
+
+@section('title', $home['text']['meta_title'] ?? config('app.name'))
+@section('meta_description', $home['text']['meta_description'] ?? '')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/thailotto-theme.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/pages/home.css') }}">
+    @vite(['resources/css/home.css', 'resources/js/home/countdown.js', 'resources/js/home/live-draw.js'])
 @endpush
 
-@push('scripts')
-    <script src="{{ asset('js/home/countdown.js') }}" defer></script>
-    <script src="{{ asset('js/home/live-draw.js') }}" defer></script>
-    <script src="{{ asset('js/pages/home.js') }}" defer></script>
-@endpush
+@php
+    $text = $home['text'] ?? [];
+    $hero = $home['hero'] ?? [];
+    $nextDraw = $home['next_draw'] ?? [];
+    $countdown = $home['countdown'] ?? [];
+    $currentResult = $home['current_result'] ?? [];
+    $liveDraw = $home['live_draw'] ?? [];
+    $laneResults = $home['lane_results'] ?? [];
+    $productSummary = $home['products'] ?? [];
+    $prize = $home['prize_highlight'] ?? [];
+    $stats = $home['stats'] ?? [];
+    $bonuses = $home['bonuses'] ?? [];
+    $payments = $home['payment_methods'] ?? [];
+    $support = $home['support'] ?? [];
+    $appLinks = $home['app_links'] ?? [];
+    $trust = $home['trust'] ?? [];
+    $navigation = $home['navigation'] ?? [];
+
+    // The countdown target: the live countdown service first, then the next
+    // scheduled draw, then the published official calendar. One of these is
+    // always present, so the element never renders an empty data-target.
+    $countdownTarget = $countdown['scheduled_at_iso']
+        ?? ($nextDraw['scheduled_at_iso'] ?? ($hero['next_draw_iso'] ?? null));
+    $countdownZone = $countdown['timezone']
+        ?? ($nextDraw['timezone'] ?? ($hero['timezone'] ?? 'Asia/Bangkok'));
+    $countdownDisplay = $nextDraw['scheduled_at_display'] ?? null;
+@endphp
 
 @section('content')
-<div class="tl-body w-full bg-[#0B0904] text-slate-100 min-h-screen selection:bg-[#D4AF37] selection:text-black">
+<div class="home-page flex flex-col gap-12">
 
-    <!-- 01. LUXURY 3D GLASS TOP NAVBAR -->
-    <header class="sticky top-0 z-50 w-full bg-[#141007]/80 backdrop-blur-xl border-b border-[#D4AF37]/20 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <!-- Brand Logo -->
-            <a href="{{ route('home') }}" class="flex items-center gap-3 group">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FFF6D6] via-[#D4AF37] to-[#8C6D1F] p-0.5 shadow-[0_0_20px_rgba(212,175,55,0.4)] group-hover:shadow-[0_0_30px_rgba(212,175,55,0.7)] transition-all">
-                    <div class="w-full h-full bg-[#0B0904] rounded-[14px] flex items-center justify-center">
-                        <span class="text-2xl filter drop-shadow-[0_2px_4px_rgba(212,175,55,0.8)]">🪷</span>
-                    </div>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-2xl font-black tracking-wider bg-gradient-to-r from-[#FFFDF5] via-[#F5E6B8] to-[#D4AF37] bg-clip-text text-transparent font-['Outfit']">THAILOTTO</span>
-                    <span class="text-[10px] font-extrabold tracking-[0.3em] text-[#D4AF37]/80 -mt-1">PREMIER CLUB</span>
-                </div>
+    {{-- ----------------------------------------------------------------
+         Section navigation. Links come from HomePageDataService::navigation(),
+         which resolves each route defensively, so an unregistered route
+         degrades to "#" instead of throwing a RouteNotFoundException.
+    ----------------------------------------------------------------- --}}
+    <nav class="home-nav flex flex-wrap items-center gap-3 border-b border-slate-800 pb-4"
+         aria-label="{{ __('Primary') }}">
+        <button type="button"
+                id="btn-open-mobile-menu"
+                class="home-nav__toggle sm:hidden rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
+                aria-controls="mobile-menu-drawer"
+                aria-expanded="false">
+            {{ __('Menu') }}
+        </button>
+
+        @foreach ($navigation as $item)
+            <a href="{{ $item['url'] }}"
+               class="home-nav__link rounded-lg px-3 py-2 text-sm font-semibold transition-colors {{ $item['active'] ? 'bg-amber-400/15 text-amber-200' : 'text-slate-300 hover:text-amber-200' }}"
+               @if ($item['active']) aria-current="page" @endif>
+                {{ $item['label'] }}
             </a>
+        @endforeach
+    </nav>
 
-            <!-- Navigation Links -->
-            <nav class="hidden lg:flex items-center gap-1 xl:gap-2">
-                <a href="{{ route('home') }}" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider bg-[#D4AF37]/15 text-[#FFF6D6] border border-[#D4AF37]/40 shadow-[0_0_15px_rgba(212,175,55,0.2)]">HOME</a>
-                <a href="{{ route('national-lottery.index') }}" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-[#FFF6D6] hover:bg-[#D4AF37]/10 transition-all">THAI GLO L6</a>
-                <a href="{{ route('weekly-lottery.index') }}" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-[#FFF6D6] hover:bg-[#D4AF37]/10 transition-all">REGIONAL 4D</a>
-                <a href="{{ route('bingo-lottery.index') }}" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-[#FFF6D6] hover:bg-[#D4AF37]/10 transition-all">88 ROUNDS</a>
-                <a href="{{ route('pcso-lottery.index') }}" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-[#FFF6D6] hover:bg-[#D4AF37]/10 transition-all">PCSO 6D</a>
-                <a href="{{ route('results.index') }}" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-[#FFF6D6] hover:bg-[#D4AF37]/10 transition-all">RESULTS HUB</a>
-                <a href="{{ route('ticket-check') }}" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-[#FFF6D6] hover:bg-[#D4AF37]/10 transition-all">VERIFIER</a>
-            </nav>
+    <div id="mobile-menu-drawer"
+         class="home-nav__drawer hidden"
+         role="dialog"
+         aria-modal="true"
+         aria-label="{{ __('Menu') }}">
+        <button type="button" id="btn-close-mobile-menu" class="home-nav__close">{{ __('Close') }}</button>
+        <ul>
+            @foreach ($navigation as $item)
+                <li><a href="{{ $item['url'] }}">{{ $item['label'] }}</a></li>
+            @endforeach
+        </ul>
+    </div>
 
-            <!-- Language & Auth Controls -->
-            <div class="flex items-center gap-3">
-                <div class="hidden sm:flex items-center gap-2 bg-[#1C170E] border border-[#D4AF37]/30 rounded-xl px-3 py-1.5 text-xs font-bold text-[#F5E6B8]">
-                    <span>🇹🇭 THB</span>
-                </div>
-                @auth
-                    <a href="{{ route('player.dashboard') }}" class="tl-btn-primary px-5 py-2.5 rounded-xl text-xs tracking-wider uppercase font-black">
-                        DASHBOARD
-                    </a>
-                @else
-                    <a href="{{ route('login') }}" class="px-4 py-2 rounded-xl text-xs font-bold text-[#F5E6B8] hover:text-white border border-[#D4AF37]/30 hover:border-[#D4AF37] bg-[#141007] transition-all">
-                        LOGIN
-                    </a>
-                    <a href="{{ route('register') }}" class="tl-btn-primary px-5 py-2.5 rounded-xl text-xs tracking-wider uppercase font-black">
-                        REGISTER
-                    </a>
-                @endauth
-            </div>
-        </div>
-    </header>
+    {{-- ----------------------------------------------------------------
+         Hero
+    ----------------------------------------------------------------- --}}
+    <section id="hero" aria-labelledby="hero-title" class="home-hero rounded-2xl border border-slate-800 bg-slate-900/50 p-8">
+        <h1 id="hero-title" class="text-3xl sm:text-4xl font-black text-white">
+            {{ $text['hero_title'] ?? config('app.name') }}
+        </h1>
+        <p class="mt-3 max-w-3xl text-slate-300">{{ $text['hero_lead'] ?? '' }}</p>
 
-    <!-- 02. HERO SECTION WITH 3D GLASS PEDESTALS -->
-    <section id="hero" class="relative pt-12 pb-20 overflow-hidden border-b border-[#D4AF37]/20 bg-gradient-to-b from-[#141007] via-[#0B0904] to-[#0B0904]">
-        <!-- Subtle Glow Orbs -->
-        <div class="absolute -top-40 left-1/4 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-[120px] pointer-events-none"></div>
-        <div class="absolute top-1/2 right-10 w-80 h-80 bg-[#B8860B]/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-
-            <!-- Left Hero Headline & Value Props -->
-            <div class="lg:col-span-7 flex flex-col gap-6">
-                <!-- Verified License Pill -->
-                <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#1C170E]/80 border border-[#D4AF37]/40 w-max shadow-[0_0_20px_rgba(212,175,55,0.15)]">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 -ml-5"></span>
-                    <span class="text-xs font-bold text-[#F5E6B8] tracking-wide">{{ trans('home.hero.badge') }}</span>
-                </div>
-
-                <h1 class="text-4xl sm:text-6xl xl:text-7xl font-black text-white leading-tight font-['Outfit'] tracking-tight">
-                    {{ trans('home.hero.title_prefix') }} <br/>
-                    <span class="tl-gold-gradient">{{ trans('home.hero.title_highlight') }}</span> <br/>
-                    {{ trans('home.hero.title_suffix') }}
-                </h1>
-
-                <p class="text-base sm:text-lg text-slate-300 max-w-2xl font-medium leading-relaxed">
-                    {{ trans('home.hero.description') }}
-                </p>
-
-                <!-- Action CTA Buttons -->
-                <div class="flex flex-wrap items-center gap-4 pt-2">
-                    <a href="{{ route('national-lottery.index') }}" class="tl-btn-primary px-8 py-4 rounded-2xl text-sm font-extrabold tracking-wider flex items-center gap-3">
-                        <span>{{ trans('home.hero.btn_play_now') }}</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                    </a>
-                    <a href="{{ route('results.index') }}" class="px-7 py-4 rounded-2xl text-sm font-bold text-[#F5E6B8] bg-[#1C170E]/80 border border-[#D4AF37]/40 hover:border-[#D4AF37] hover:bg-[#2B230B] transition-all flex items-center gap-2 shadow-lg">
-                        <svg class="w-4 h-4 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>{{ trans('home.hero.btn_check_results') }}</span>
-                    </a>
-                </div>
-
-                <!-- 4 Trust Stats -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-[#D4AF37]/20">
-                    <div class="p-3.5 rounded-2xl bg-[#141007]/60 border border-[#D4AF37]/20">
-                        <div class="text-xl sm:text-2xl font-black text-[#FFF6D6] font-['Outfit']">500,000+</div>
-                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{{ trans('home.hero.stats.active_players') }}</div>
-                    </div>
-                    <div class="p-3.5 rounded-2xl bg-[#141007]/60 border border-[#D4AF37]/20">
-                        <div class="text-xl sm:text-2xl font-black text-[#D4AF37] font-['Outfit']">฿150M+</div>
-                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{{ trans('home.hero.stats.daily_payout') }}</div>
-                    </div>
-                    <div class="p-3.5 rounded-2xl bg-[#141007]/60 border border-[#D4AF37]/20">
-                        <div class="text-xl sm:text-2xl font-black text-emerald-400 font-['Outfit']">99.99%</div>
-                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{{ trans('home.hero.stats.uptime') }}</div>
-                    </div>
-                    <div class="p-3.5 rounded-2xl bg-[#141007]/60 border border-[#D4AF37]/20">
-                        <div class="text-xl sm:text-2xl font-black text-[#F5E6B8] font-['Outfit']">24/7 VIP</div>
-                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{{ trans('home.hero.stats.support') }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Next Draw Countdown Glass Hero Card -->
-            <div class="lg:col-span-5" id="next-draw">
-                <div class="tl-glass-panel p-8 relative overflow-hidden">
-                    <!-- Top Ribbon Header -->
-                    <div class="flex items-center justify-between border-b border-[#D4AF37]/20 pb-5">
-                        <div class="flex items-center gap-2">
-                            <span class="text-lg">❖</span>
-                            <span class="text-xs font-black uppercase tracking-widest text-[#D4AF37]">{{ trans('home.countdown.title') }}</span>
-                        </div>
-                        <span data-countdown-status class="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                            {{ trans('home.countdown.status_open') }}
-                        </span>
-                    </div>
-
-                    <!-- Scheduled Date Display -->
-                    <div class="text-center my-6">
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">
-                            {{ $home['next_draw']['draw_name'] ?? 'THAI GOVERNMENT LOTTERY GLO L6' }}
-                        </span>
-                        <h2 class="text-3xl font-black text-white font-['Outfit']">
-                            {{ $home['next_draw']['scheduled_at_display'] ?? '16 OCTOBER 2026' }}
-                        </h2>
-                        <span class="text-xs font-mono font-bold text-[#D4AF37] mt-1 block">
-                            {{ trans('home.draw_label') }} #{{ $home['next_draw']['draw_number'] ?? '24' }} • 14:30 BKK TIME
-                        </span>
-                    </div>
-
-                    <!-- 4 Live Digit Countdown Slots -->
-                    <div class="grid grid-cols-4 gap-3 my-6"
-                         data-home-countdown
-                         data-target-iso="{{ $home['next_draw']['scheduled_at_iso'] ?? '2026-10-16T14:30:00+07:00' }}"
-                         data-target="{{ $home['next_draw']['scheduled_at_iso'] ?? '2026-10-16T14:30:00+07:00' }}"
-                         data-timezone="{{ $home['next_draw']['timezone'] ?? 'Asia/Bangkok' }}"
-                         role="timer"
-                         aria-live="polite">
-                        <div class="tl-countdown-box p-3 text-center">
-                            <div class="text-2xl sm:text-3xl font-black text-white font-mono" id="cd-days">01</div>
-                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">{{ trans('home.countdown.days') }}</div>
-                        </div>
-                        <div class="tl-countdown-box p-3 text-center">
-                            <div class="text-2xl sm:text-3xl font-black text-white font-mono" id="cd-hours">14</div>
-                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">{{ trans('home.countdown.hours') }}</div>
-                        </div>
-                        <div class="tl-countdown-box p-3 text-center">
-                            <div class="text-2xl sm:text-3xl font-black text-white font-mono" id="cd-minutes">32</div>
-                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">{{ trans('home.countdown.minutes') }}</div>
-                        </div>
-                        <div class="tl-countdown-box p-3 text-center border-amber-500/50">
-                            <div class="text-2xl sm:text-3xl font-black text-[#D4AF37] font-mono animate-pulse" id="cd-seconds" data-countdown-output>48</div>
-                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 mt-1">{{ trans('home.countdown.seconds') }}</div>
-                        </div>
-                    </div>
-
-                    <!-- Action Button -->
-                    <a href="{{ route('national-lottery.index') }}" class="tl-btn-primary w-full py-4 rounded-xl text-center text-xs tracking-wider uppercase font-black block">
-                        {{ trans('home.countdown.btn_bet_now') }} &rarr;
-                    </a>
-                </div>
-            </div>
+        <div class="mt-6 flex flex-wrap gap-3">
+            <a href="{{ route('results.index') }}" class="home-btn rounded-lg bg-amber-400 px-4 py-2 font-bold text-slate-950">
+                {{ $text['cta_results'] ?? __('Results') }}
+            </a>
+            <a href="{{ route('ticket-check') }}" class="home-btn rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">
+                {{ $text['cta_check'] ?? __('Check ticket') }}
+            </a>
+            <a href="{{ route('sales-points') }}" class="home-btn rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200">
+                {{ $text['cta_sales'] ?? __('Sales points') }}
+            </a>
         </div>
     </section>
 
-    <!-- 03. LIVE BROADCAST FEED & REPLAY BAR -->
-    <section id="live-draw" class="py-8 bg-[#141007]/60 border-b border-[#D4AF37]/20">
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="flex items-center gap-4">
-                <div class="relative flex items-center justify-center">
-                    <span class="w-3.5 h-3.5 rounded-full bg-rose-500 animate-ping"></span>
-                    <span class="w-3 h-3 rounded-full bg-rose-500 absolute"></span>
-                </div>
-                <div>
-                    <h3 class="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                        <span>{{ trans('home.live_title') }}</span>
-                        <span class="text-[10px] bg-rose-500/20 text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-500/30">GLO BROADCAST</span>
-                    </h3>
-                    <p class="text-xs text-slate-400">Direct satellite feed from the Government Lottery Office Thailand</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3">
-                <a href="{{ route('results.index') }}" class="px-5 py-2.5 rounded-xl bg-[#1C170E] border border-[#D4AF37]/30 text-xs font-bold text-[#F5E6B8] hover:border-[#D4AF37] transition-all flex items-center gap-2">
-                    <svg class="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M10 8.64L15.27 12 10 15.36V8.64M8 5v14l11-7L8 5z"/></svg>
-                    <span>Watch GLO Live Stream</span>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- 04. OFFICIAL LATEST RESULTS HIGHLIGHT (3D GOLD BALL PEDESTALS) -->
-    <section id="current-result" class="py-16 bg-[#0B0904] border-b border-[#D4AF37]/20">
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-
-            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
-                <div>
-                    <span class="text-xs font-extrabold uppercase tracking-widest text-[#D4AF37] block mb-1">
-                        {{ trans('home.latest_results.subtitle') }}
-                    </span>
-                    <h2 class="text-3xl sm:text-4xl font-black text-white font-['Outfit']">
-                        {{ trans('home.latest_results.title') }}
-                    </h2>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-xs font-mono text-slate-400 bg-[#141007] px-3.5 py-2 rounded-xl border border-[#D4AF37]/20">
-                        {{ trans('home.latest_results.draw_date') }}: <strong class="text-[#FFF6D6]">{{ $home['current_result']['draw_date'] ?? '01 OCT 2026' }}</strong>
-                    </span>
-                    <a href="{{ route('results.index') }}" class="text-xs font-extrabold text-[#D4AF37] hover:underline flex items-center gap-1">
-                        <span>{{ trans('home.latest_results.btn_all_results') }}</span>
-                        <span>&rarr;</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Pedestal Results Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-                <!-- 1st Prize Grand Pedestal -->
-                <div class="lg:col-span-6 tl-glass-pedestal p-8 flex flex-col justify-between">
-                    <div class="flex items-center justify-between border-b border-[#D4AF37]/30 pb-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xl text-[#D4AF37]">👑</span>
-                            <span class="text-xs font-black uppercase tracking-wider text-[#FFF6D6]">{{ trans('home.latest_results.first_prize') }}</span>
-                        </div>
-                        <span class="text-xs font-mono font-extrabold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">
-                            ฿6,000,000 THB
-                        </span>
-                    </div>
-
-                    <!-- 6 Digits Gold 3D Balls -->
-                    <div class="my-8 flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
-                        @php
-                            $firstPrizeStr = (string) ($home['current_result']['first_prize'] ?? '935824');
-                            $digits = str_split($firstPrizeStr);
-                        @endphp
-                        @foreach($digits as $digit)
-                            <div class="tl-3d-ball tl-3d-ball--lg">{{ $digit }}</div>
-                        @endforeach
-                    </div>
-
-                    <div class="flex items-center justify-between text-xs text-slate-400 pt-4 border-t border-[#D4AF37]/20">
-                        <span class="flex items-center gap-1.5 text-emerald-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <span>Official GLO Provable Verification</span>
-                        </span>
-                        <span class="font-mono text-[#D4AF37]">Draw #{{ $home['current_result']['draw_number'] ?? '23' }}</span>
-                    </div>
-                </div>
-
-                <!-- Secondary Sub-Prizes Pedestal -->
-                <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <!-- First 3 Digits -->
-                    <div class="tl-glass-panel p-5 flex flex-col justify-between">
-                        <div class="text-xs font-black text-slate-300 uppercase tracking-wider mb-3">
-                            {{ trans('home.latest_results.first_3_digits') }}
-                        </div>
-                        <div class="flex flex-col gap-2 my-auto">
-                            <div class="flex justify-center gap-1.5">
-                                <span class="tl-3d-ball tl-3d-ball--sm">4</span>
-                                <span class="tl-3d-ball tl-3d-ball--sm">8</span>
-                                <span class="tl-3d-ball tl-3d-ball--sm">1</span>
-                            </div>
-                            <div class="flex justify-center gap-1.5">
-                                <span class="tl-3d-ball tl-3d-ball--sm">7</span>
-                                <span class="tl-3d-ball tl-3d-ball--sm">0</span>
-                                <span class="tl-3d-ball tl-3d-ball--sm">9</span>
-                            </div>
-                        </div>
-                        <div class="text-[11px] font-mono font-bold text-amber-400 text-center mt-3 pt-2 border-t border-[#D4AF37]/20">
-                            ฿4,000 Each
-                        </div>
-                    </div>
-
-                    <!-- Last 3 Digits -->
-                    <div class="tl-glass-panel p-5 flex flex-col justify-between">
-                        <div class="text-xs font-black text-slate-300 uppercase tracking-wider mb-3">
-                            {{ trans('home.latest_results.last_3_digits') }}
-                        </div>
-                        <div class="flex flex-col gap-2 my-auto">
-                            <div class="flex justify-center gap-1.5">
-                                <span class="tl-3d-ball tl-3d-ball--sm">6</span>
-                                <span class="tl-3d-ball tl-3d-ball--sm">3</span>
-                                <span class="tl-3d-ball tl-3d-ball--sm">2</span>
-                            </div>
-                            <div class="flex justify-center gap-1.5">
-                                <span class="tl-3d-ball tl-3d-ball--sm">1</span>
-                                <span class="tl-3d-ball tl-3d-ball--sm">5</span>
-                                <span class="tl-3d-ball tl-3d-ball--sm">8</span>
-                            </div>
-                        </div>
-                        <div class="text-[11px] font-mono font-bold text-amber-400 text-center mt-3 pt-2 border-t border-[#D4AF37]/20">
-                            ฿4,000 Each
-                        </div>
-                    </div>
-
-                    <!-- Last 2 Digits -->
-                    <div class="tl-glass-panel p-5 flex flex-col justify-between">
-                        <div class="text-xs font-black text-slate-300 uppercase tracking-wider mb-3">
-                            {{ trans('home.latest_results.last_2_digits') }}
-                        </div>
-                        <div class="flex justify-center gap-2 my-auto">
-                            <span class="tl-3d-ball">5</span>
-                            <span class="tl-3d-ball">6</span>
-                        </div>
-                        <div class="text-[11px] font-mono font-bold text-amber-400 text-center mt-3 pt-2 border-t border-[#D4AF37]/20">
-                            ฿2,000 Each
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 05. QUICK TICKET VERIFIER FORM -->
-    <section id="check" class="py-12 bg-[#141007]/40 border-b border-[#D4AF37]/20">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6">
-            <div class="tl-glass-panel p-8 text-center relative">
-                <span class="text-xs font-black uppercase tracking-widest text-[#D4AF37] block mb-1">
-                    {{ trans('home.quick_check.subtitle') }}
-                </span>
-                <h3 class="text-2xl font-black text-white font-['Outfit'] mb-6">
-                    {{ trans('home.quick_check.title') }}
-                </h3>
-
-                <form data-quick-checker-form class="flex flex-col sm:flex-row items-center gap-3 max-w-xl mx-auto">
-                    <input type="text"
-                           name="ticket_number"
-                           maxlength="6"
-                           placeholder="{{ trans('home.quick_check.placeholder') }}"
-                           class="w-full bg-[#0B0904] border border-[#D4AF37]/40 rounded-xl px-5 py-3.5 text-center sm:text-left text-white font-mono font-bold placeholder-slate-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all">
-                    <button type="submit" class="tl-btn-primary w-full sm:w-auto px-8 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider flex-shrink-0">
-                        {{ trans('home.quick_check.btn_verify') }}
-                    </button>
-                </form>
-
-                <div data-quick-checker-result class="mt-4 hidden text-left"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 06. MULTI-MARKET LOTTERY HUB -->
-    <section id="products" class="py-16 bg-[#0B0904] border-b border-[#D4AF37]/20">
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-                <div>
-                    <span class="text-xs font-extrabold uppercase tracking-widest text-[#D4AF37] block mb-1">
-                        {{ trans('home.games.subtitle') }}
-                    </span>
-                    <h2 class="text-3xl sm:text-4xl font-black text-white font-['Outfit']">
-                        {{ trans('home.games.title') }}
-                    </h2>
-                </div>
-
-                <!-- Market Filter Tabs -->
-                <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                    <button type="button" data-market-tab="all" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider bg-[#D4AF37] text-black shadow-lg">
-                        {{ trans('home.games.tab_all') }}
-                    </button>
-                    <button type="button" data-market-tab="national" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-white hover:bg-[#D4AF37]/10 transition-all">
-                        {{ trans('home.games.tab_national') }}
-                    </button>
-                    <button type="button" data-market-tab="speed" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-white hover:bg-[#D4AF37]/10 transition-all">
-                        {{ trans('home.games.tab_speed') }}
-                    </button>
-                    <button type="button" data-market-tab="regional" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-white hover:bg-[#D4AF37]/10 transition-all">
-                        {{ trans('home.games.tab_regional') }}
-                    </button>
-                    <button type="button" data-market-tab="pcso" class="px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider text-slate-300 hover:text-white hover:bg-[#D4AF37]/10 transition-all">
-                        {{ trans('home.games.tab_pcso') }}
-                    </button>
-                </div>
-            </div>
-
-            <!-- Games Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Market Card 1: GLO National -->
-                <div data-market-category="national" class="tl-glass-panel p-6 flex flex-col justify-between group">
-                    <div>
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-lg">🇹🇭</span>
-                            <span class="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">Official GLO</span>
-                        </div>
-                        <h4 class="text-lg font-black text-white font-['Outfit'] mb-1">Thai GLO L6</h4>
-                        <p class="text-xs text-slate-400 mb-4">Bi-monthly official government lottery with 1st to 5th prize tiers.</p>
-                        <div class="p-3 rounded-xl bg-[#0B0904] border border-[#D4AF37]/20 flex items-center justify-between mb-4">
-                            <span class="text-[11px] font-bold text-slate-400">{{ trans('home.games.max_prize') }}</span>
-                            <span class="text-sm font-black text-[#D4AF37] font-mono">฿6,000,000</span>
-                        </div>
-                    </div>
-                    <a href="{{ route('national-lottery.index') }}" class="tl-btn-primary w-full py-3 rounded-xl text-center text-xs font-black uppercase tracking-wider block">
-                        {{ trans('home.games.btn_play') }}
-                    </a>
-                </div>
-
-                <!-- Market Card 2: 88 Rounds Speed -->
-                <div data-market-category="speed" class="tl-glass-panel p-6 flex flex-col justify-between group">
-                    <div>
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-lg">⚡</span>
-                            <span class="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">15-Min Rounds</span>
-                        </div>
-                        <h4 class="text-lg font-black text-white font-['Outfit'] mb-1">Speed Lottery 88</h4>
-                        <p class="text-xs text-slate-400 mb-4">88 continuous instant rounds every 15 minutes around the clock.</p>
-                        <div class="p-3 rounded-xl bg-[#0B0904] border border-[#D4AF37]/20 flex items-center justify-between mb-4">
-                            <span class="text-[11px] font-bold text-slate-400">{{ trans('home.games.max_prize') }}</span>
-                            <span class="text-sm font-black text-emerald-400 font-mono">900x Odds</span>
-                        </div>
-                    </div>
-                    <a href="{{ route('bingo-lottery.index') }}" class="tl-btn-primary w-full py-3 rounded-xl text-center text-xs font-black uppercase tracking-wider block">
-                        {{ trans('home.games.btn_play') }}
-                    </a>
-                </div>
-
-                <!-- Market Card 3: Regional 4D -->
-                <div data-market-category="regional" class="tl-glass-panel p-6 flex flex-col justify-between group">
-                    <div>
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-lg">🌏</span>
-                            <span class="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">Daily 4D</span>
-                        </div>
-                        <h4 class="text-lg font-black text-white font-['Outfit'] mb-1">Lao & Hanoi 4D</h4>
-                        <p class="text-xs text-slate-400 mb-4">Regional sovereign lottery pools with 4-digit and 3-digit wagering.</p>
-                        <div class="p-3 rounded-xl bg-[#0B0904] border border-[#D4AF37]/20 flex items-center justify-between mb-4">
-                            <span class="text-[11px] font-bold text-slate-400">{{ trans('home.games.max_prize') }}</span>
-                            <span class="text-sm font-black text-[#D4AF37] font-mono">฿1,000,000</span>
-                        </div>
-                    </div>
-                    <a href="{{ route('weekly-lottery.index') }}" class="tl-btn-primary w-full py-3 rounded-xl text-center text-xs font-black uppercase tracking-wider block">
-                        {{ trans('home.games.btn_play') }}
-                    </a>
-                </div>
-
-                <!-- Market Card 4: PCSO 6D -->
-                <div data-market-category="pcso" class="tl-glass-panel p-6 flex flex-col justify-between group">
-                    <div>
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-lg">🎰</span>
-                            <span class="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">Ultra Jackpot</span>
-                        </div>
-                        <h4 class="text-lg font-black text-white font-['Outfit'] mb-1">PCSO 6/58 & 6D</h4>
-                        <p class="text-xs text-slate-400 mb-4">Multi-tier high payout jackpot lottery with progressive prize pools.</p>
-                        <div class="p-3 rounded-xl bg-[#0B0904] border border-[#D4AF37]/20 flex items-center justify-between mb-4">
-                            <span class="text-[11px] font-bold text-slate-400">{{ trans('home.games.max_prize') }}</span>
-                            <span class="text-sm font-black text-purple-400 font-mono">฿50,000,000</span>
-                        </div>
-                    </div>
-                    <a href="{{ route('pcso-lottery.index') }}" class="tl-btn-primary w-full py-3 rounded-xl text-center text-xs font-black uppercase tracking-wider block">
-                        {{ trans('home.games.btn_play') }}
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 07. INSTITUTIONAL TRUST & SECURITY -->
-    <section id="trust" class="py-16 bg-[#141007]/60 border-b border-[#D4AF37]/20">
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center max-w-3xl mx-auto mb-12">
-                <span class="text-xs font-extrabold uppercase tracking-widest text-[#D4AF37] block mb-1">
-                    {{ trans('home.trust.subtitle') }}
-                </span>
-                <h2 class="text-3xl sm:text-4xl font-black text-white font-['Outfit']">
-                    {{ trans('home.trust.title') }}
-                </h2>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="tl-glass-panel p-6">
-                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl text-[#D4AF37] mb-4">🛡️</div>
-                    <h4 class="text-base font-black text-white mb-2">{{ trans('home.trust.feature_1_title') }}</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">{{ trans('home.trust.feature_1_desc') }}</p>
-                </div>
-                <div class="tl-glass-panel p-6">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl text-emerald-400 mb-4">⚡</div>
-                    <h4 class="text-base font-black text-white mb-2">{{ trans('home.trust.feature_2_title') }}</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">{{ trans('home.trust.feature_2_desc') }}</p>
-                </div>
-                <div class="tl-glass-panel p-6">
-                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-xl text-blue-400 mb-4">🔒</div>
-                    <h4 class="text-base font-black text-white mb-2">{{ trans('home.trust.feature_3_title') }}</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">{{ trans('home.trust.feature_3_desc') }}</p>
-                </div>
-                <div class="tl-glass-panel p-6">
-                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl text-purple-400 mb-4">👑</div>
-                    <h4 class="text-base font-black text-white mb-2">{{ trans('home.trust.feature_4_title') }}</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">{{ trans('home.trust.feature_4_desc') }}</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 08. MOBILE APP DOWNLOAD SECTION -->
-    <section id="app-links" class="py-16 bg-[#0B0904] border-b border-[#D4AF37]/20">
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="tl-glass-panel p-8 sm:p-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                <div class="lg:col-span-8 flex flex-col gap-4">
-                    <span class="text-xs font-black uppercase tracking-widest text-[#D4AF37] block">
-                        {{ trans('home.app.badge') }}
-                    </span>
-                    <h3 class="text-3xl sm:text-4xl font-black text-white font-['Outfit']">
-                        {{ trans('home.app.title') }}
-                    </h3>
-                    <p class="text-sm text-slate-300 max-w-xl leading-relaxed">
-                        {{ trans('home.app.subtitle') }}
-                    </p>
-                    <div class="flex flex-wrap items-center gap-4 pt-2">
-                        <a href="{{ route('download') }}" class="tl-btn-primary px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                            <span>🍏</span>
-                            <span>{{ trans('home.app.ios_btn') }}</span>
-                        </a>
-                        <a href="{{ route('download') }}" class="px-6 py-3.5 rounded-xl bg-[#1C170E] border border-[#D4AF37]/40 text-xs font-black text-white hover:border-[#D4AF37] transition-all flex items-center gap-2">
-                            <span>🤖</span>
-                            <span>{{ trans('home.app.android_btn') }}</span>
-                        </a>
-                    </div>
-                </div>
-                <div class="lg:col-span-4 flex justify-center">
-                    <div class="w-48 h-48 rounded-2xl bg-[#141007] border border-[#D4AF37]/40 p-3 shadow-[0_0_30px_rgba(212,175,55,0.2)] flex flex-col items-center justify-center text-center">
-                        <div class="w-32 h-32 bg-white rounded-xl p-1 mb-2 flex items-center justify-center">
-                            <!-- SVG QR Placeholder -->
-                            <svg class="w-full h-full text-black" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm-2 10h8v8H2v-8zm2 2v4h4v-4H4zm10-14h8v8h-8V2zm2 2v4h4V4h-4zm2 10h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm-2 2h2v2h-2v-2zm4-4h2v2h-2v-2zm-2 4h2v2h-2v-2z"/>
-                            </svg>
-                        </div>
-                        <span class="text-[10px] font-bold text-[#F5E6B8] uppercase tracking-wider">Scan to Install PWA</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 09. PAYMENT METHODS BAR -->
-    <section id="payments" class="py-12 bg-[#141007]/40 border-b border-[#D4AF37]/20">
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <span class="text-xs font-black uppercase tracking-widest text-[#D4AF37] block mb-2">
-                {{ trans('home.payments.title') }}
+    {{-- ----------------------------------------------------------------
+         Current verified result
+    ----------------------------------------------------------------- --}}
+    <section id="current-result" aria-labelledby="current-result-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="current-result-title" class="text-2xl font-bold text-white">
+                {{ $text['current_result_title'] ?? __('Latest verified result') }}
+            </h2>
+            <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
+                  data-status="{{ $currentResult['status'] ?? 'UNAVAILABLE' }}">
+                {{ $currentResult['status'] ?? 'UNAVAILABLE' }}
             </span>
-            <div class="flex flex-wrap items-center justify-center gap-6 sm:gap-10 mt-6 opacity-80 hover:opacity-100 transition-opacity">
-                <span class="text-xs font-mono font-bold text-slate-300 bg-[#0B0904] px-4 py-2 rounded-xl border border-[#D4AF37]/20">PromptPay QR</span>
-                <span class="text-xs font-mono font-bold text-slate-300 bg-[#0B0904] px-4 py-2 rounded-xl border border-[#D4AF37]/20">SCB Easy</span>
-                <span class="text-xs font-mono font-bold text-slate-300 bg-[#0B0904] px-4 py-2 rounded-xl border border-[#D4AF37]/20">KBANK K PLUS</span>
-                <span class="text-xs font-mono font-bold text-slate-300 bg-[#0B0904] px-4 py-2 rounded-xl border border-[#D4AF37]/20">Bangkok Bank</span>
-                <span class="text-xs font-mono font-bold text-slate-300 bg-[#0B0904] px-4 py-2 rounded-xl border border-[#D4AF37]/20">TrueMoney</span>
-                <span class="text-xs font-mono font-bold text-slate-300 bg-[#0B0904] px-4 py-2 rounded-xl border border-[#D4AF37]/20">USDT / Crypto</span>
+        </div>
+
+        @if (($currentResult['has_result'] ?? false) === true)
+            <dl class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['draw_label'] ?? __('Draw') }}</dt>
+                    <dd class="text-lg font-semibold text-white">{{ $currentResult['draw_number'] ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['source_label'] ?? __('Source') }}</dt>
+                    <dd class="text-lg font-semibold text-white" data-source-state="{{ $currentResult['source_state'] ?? 'UNAVAILABLE' }}">
+                        {{ $currentResult['source_state'] ?? 'UNAVAILABLE' }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_1st_label'] ?? __('First prize') }}</dt>
+                    {{-- Printed as the stored string: a six digit number with a
+                         leading zero must never be cast to int for display. --}}
+                    <dd class="font-mono text-3xl font-black tracking-[0.3em] text-amber-300">{{ $currentResult['first_prize'] ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_2nd_label'] ?? __('Second prize') }}</dt>
+                    <dd class="font-mono text-lg text-slate-100">
+                        @forelse (($currentResult['second_prize'] ?? []) as $value)
+                            <span class="mr-2 inline-block">{{ $value }}</span>
+                        @empty
+                            —
+                        @endforelse
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_last2_label'] ?? __('Last two digits') }}</dt>
+                    <dd class="font-mono text-lg text-slate-100">
+                        @forelse (($currentResult['last_two'] ?? []) as $value)
+                            <span class="mr-2 inline-block">{{ $value }}</span>
+                        @empty
+                            —
+                        @endforelse
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ __('Result version') }}</dt>
+                    <dd class="text-lg text-slate-100">{{ $currentResult['result_version'] ?? '—' }}</dd>
+                </div>
+            </dl>
+        @else
+            <p class="mt-4 text-slate-300">
+                {{ $currentResult['message'] ?? ($text['current_result_none'] ?? 'No verified result available') }}
+            </p>
+        @endif
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Next draw + countdown.
+
+         The countdown is progressive enhancement only. The absolute instant is
+         always printed in a <time> element and restated for screen readers, so
+         the page remains correct with JavaScript disabled.
+    ----------------------------------------------------------------- --}}
+    <section id="next-draw" aria-labelledby="next-draw-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="next-draw-title" class="text-2xl font-bold text-white">
+                {{ $text['next_draw_title'] ?? __('Next draw') }}
+            </h2>
+            <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
+                  data-status="{{ $nextDraw['status'] ?? 'UNAVAILABLE' }}">
+                {{ $nextDraw['status'] ?? 'UNAVAILABLE' }}
+            </span>
+        </div>
+
+        @if ($countdownTarget !== null)
+            <p class="mt-4 text-slate-300">
+                <time datetime="{{ $countdownTarget }}">{{ $countdownDisplay ?? $countdownTarget }}</time>
+                <span class="ml-2 text-xs uppercase tracking-widest text-slate-400">
+                    {{ $text['timezone_label'] ?? __('Timezone') }}: {{ $countdownZone }}
+                </span>
+            </p>
+
+            <p class="visually-hidden">
+                {{ $text['time_remaining_label'] ?? __('Time remaining') }}:
+                {{ __('the draw is scheduled for') }}
+                {{ $countdownDisplay ?? $countdownTarget }} ({{ $countdownZone }}).
+            </p>
+
+            <div class="mt-4 flex flex-wrap items-center gap-4"
+                 data-home-countdown
+                 data-target="{{ $countdownTarget }}"
+                 data-timezone="{{ $countdownZone }}"
+                 role="timer"
+                 aria-live="polite"
+                 aria-atomic="true">
+                <span class="home-countdown__cell"><strong id="cd-days">--</strong> <small>{{ __('days') }}</small></span>
+                <span class="home-countdown__cell"><strong id="cd-hours">--</strong> <small>{{ __('hours') }}</small></span>
+                <span class="home-countdown__cell"><strong id="cd-minutes">--</strong> <small>{{ __('minutes') }}</small></span>
+                <span class="home-countdown__cell"><strong id="cd-seconds">--</strong> <small>{{ __('seconds') }}</small></span>
             </div>
+        @else
+            <p class="mt-4 text-slate-300">{{ $nextDraw['message'] ?? ($text['next_draw_none'] ?? __('No scheduled draw.')) }}</p>
+        @endif
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Live draw.
+
+         No embed is ever rendered from an unverified source: when no authorised
+         stream is configured the card states that plainly. There is deliberately
+         no <iframe> fallback to a third party player.
+    ----------------------------------------------------------------- --}}
+    <section id="live-draw" aria-labelledby="live-draw-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <h2 id="live-draw-title" class="text-2xl font-bold text-white">
+            {{ $text['live_title'] ?? __('Live draw') }}
+        </h2>
+
+        <p class="mt-3 font-mono text-sm font-bold tracking-widest text-slate-200"
+           data-live-status="{{ $liveDraw['status'] ?? 'UNAVAILABLE' }}">
+            LIVE DRAW {{ $liveDraw['status'] ?? 'UNAVAILABLE' }}
+        </p>
+
+        @if (! empty($liveDraw['message']))
+            <p class="mt-2 text-slate-300">{{ $liveDraw['message'] }}</p>
+        @endif
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Lane results digest: the four public result lanes.
+    ----------------------------------------------------------------- --}}
+    <section id="lane-results" aria-labelledby="lane-results-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <h2 id="lane-results-title" class="text-2xl font-bold text-white">
+            {{ $text['lane_results_title'] ?? __('Latest Official Lottery Results') }}
+        </h2>
+
+        <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+            @foreach (($laneResults['lanes'] ?? []) as $lane)
+                <article class="home-lane rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                    <div class="flex items-baseline justify-between gap-3">
+                        <h3 class="text-lg font-bold text-white">
+                            <a href="{{ $lane['route'] }}" class="hover:text-amber-200">{{ trans($lane['title_key']) }}</a>
+                        </h3>
+                        <span class="text-[11px] font-bold tracking-widest text-slate-400" data-status="{{ $lane['status'] }}">
+                            {{ $lane['status'] }}
+                        </span>
+                    </div>
+
+                    @if (($lane['available'] ?? false) === true)
+                        <p class="mt-1 text-xs text-slate-400">
+                            {{ $lane['reference'] }}
+                            @if (! empty($lane['date_iso']))
+                                · <time datetime="{{ $lane['date_iso'] }}">{{ $lane['date_display_en'] ?? $lane['date_iso'] }}</time>
+                            @endif
+                        </p>
+
+                        <dl class="mt-3 grid grid-cols-2 gap-3">
+                            @foreach (($lane['fields'] ?? []) as $field)
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-widest text-slate-500">{{ trans($field['label_key']) }}</dt>
+                                    <dd class="font-mono text-base text-amber-200">
+                                        {{ $field['value'] ?? ($text['lane_results_field_none'] ?? '—') }}
+                                    </dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    @else
+                        <p class="mt-3 text-sm text-slate-400">{{ $text['lane_results_none'] ?? __('No published result yet.') }}</p>
+                    @endif
+                </article>
+            @endforeach
         </div>
     </section>
 
-    <!-- 10. COMPREHENSIVE LUXURY FOOTER -->
-    <footer class="py-16 bg-[#070502] text-slate-400 text-xs">
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
-            <!-- Brand Column -->
-            <div class="lg:col-span-2 flex flex-col gap-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl">🪷</span>
-                    <span class="text-xl font-black tracking-wider text-white font-['Outfit']">THAILOTTO CLUB</span>
+    {{-- ----------------------------------------------------------------
+         Ticket check CTA. The public checker is a real form page, not a link
+         into the JSON API.
+    ----------------------------------------------------------------- --}}
+    <section id="check" aria-labelledby="check-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <h2 id="check-title" class="text-2xl font-bold text-white">{{ $text['check_title'] ?? __('Check your ticket') }}</h2>
+        <p class="mt-2 text-slate-300">{{ $text['check_help'] ?? '' }}</p>
+
+        <form action="{{ route('ticket-check') }}" method="GET" class="mt-4 flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1">
+                <label for="home-check-number" class="text-xs uppercase tracking-widest text-slate-400">
+                    {{ $text['check_label'] ?? __('Ticket number') }}
+                </label>
+                <input id="home-check-number"
+                       name="number"
+                       type="text"
+                       inputmode="numeric"
+                       pattern="[0-9]{6}"
+                       maxlength="6"
+                       autocomplete="off"
+                       placeholder="{{ $text['check_placeholder'] ?? '000000' }}"
+                       class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-lg tracking-[0.3em] text-white">
+            </div>
+            <button type="submit" class="rounded-lg bg-amber-400 px-4 py-2 font-bold text-slate-950">
+                {{ $text['check_button'] ?? __('Check') }}
+            </button>
+        </form>
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Sales points CTA
+    ----------------------------------------------------------------- --}}
+    <section id="sales-points" aria-labelledby="sales-points-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <h2 id="sales-points-title" class="text-2xl font-bold text-white">{{ $text['sales_title'] ?? __('Sales points') }}</h2>
+        <p class="mt-2 text-slate-300">{{ $text['sales_help'] ?? '' }}</p>
+        <a href="{{ route('sales-points') }}" class="mt-4 inline-block rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">
+            {{ $text['cta_sales'] ?? __('Search sales points') }}
+        </a>
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Product catalogue. Ticket prices come from the GLO product summary,
+         never from page copy.
+    ----------------------------------------------------------------- --}}
+    <section id="products" aria-labelledby="products-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="products-title" class="text-2xl font-bold text-white">{{ $text['products_title'] ?? __('Products') }}</h2>
+            <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
+                  data-status="{{ $productSummary['status'] ?? 'UNAVAILABLE' }}">
+                {{ $productSummary['status'] ?? 'UNAVAILABLE' }}
+            </span>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+            @forelse (($productSummary['products'] ?? []) as $product)
+                <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                    <h3 class="text-lg font-bold text-white">{{ $product['name'] }}</h3>
+                    <p class="mt-1 text-xs uppercase tracking-widest text-slate-500">{{ $product['code'] }}</p>
+                    <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <dt class="text-slate-400">{{ __('Ticket price') }}</dt>
+                            <dd class="font-mono text-amber-200">{{ $product['ticket_price'] }} {{ $product['currency'] }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-slate-400">{{ __('Digits') }}</dt>
+                            <dd class="font-mono text-slate-100">{{ $product['digits'] }}</dd>
+                        </div>
+                    </dl>
+                    @if (! empty($product['notes']))
+                        <p class="mt-3 text-xs text-slate-400">{{ $product['notes'] }}</p>
+                    @endif
+                </article>
+            @empty
+                <p class="text-slate-300">{{ $productSummary['message'] ?? __('No products are published.') }}</p>
+            @endforelse
+        </div>
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Prize highlight. CATALOGUE_ONLY means "this is the published prize
+         schedule", not "this is a won amount".
+    ----------------------------------------------------------------- --}}
+    <section id="prize" aria-labelledby="prize-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="prize-title" class="text-2xl font-bold text-white">{{ $text['prize_title'] ?? __('Prize highlight') }}</h2>
+            <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
+                  data-status="{{ $prize['status'] ?? 'UNAVAILABLE' }}">
+                {{ $prize['status'] ?? 'UNAVAILABLE' }}
+            </span>
+        </div>
+
+        @if (! empty($prize['amount']))
+            <p class="mt-4 text-sm uppercase tracking-widest text-slate-400">{{ $prize['label'] ?? __('Prize') }}</p>
+            <p class="font-mono text-4xl font-black text-amber-300">{{ $prize['amount'] }}</p>
+            @if (! empty($prize['draw_number']))
+                <p class="mt-2 text-sm text-slate-400">{{ $text['draw_label'] ?? __('Draw') }}: {{ $prize['draw_number'] }}</p>
+            @endif
+        @endif
+
+        @if (! empty($prize['message']))
+            <p class="mt-3 text-slate-300">{{ $prize['message'] }}</p>
+        @endif
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Platform statistics. Every metric is a database count produced by
+         GloPublicStatsService; an unavailable metric says so.
+    ----------------------------------------------------------------- --}}
+    <section id="stats" aria-labelledby="stats-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="stats-title" class="text-2xl font-bold text-white">{{ $text['stats_title'] ?? __('Platform statistics') }}</h2>
+            <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
+                  data-status="{{ $stats['status'] ?? 'UNAVAILABLE' }}">
+                {{ $stats['status'] ?? 'UNAVAILABLE' }}
+            </span>
+        </div>
+
+        <dl class="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            @forelse (($stats['metrics'] ?? []) as $metric)
+                <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $metric['label'] }}</dt>
+                    <dd class="mt-1 font-mono text-2xl font-black text-white">
+                        {{ ($metric['available'] ?? false) ? $metric['value'] : ($text['stats_unavailable'] ?? '—') }}
+                    </dd>
                 </div>
-                <p class="text-slate-400 text-xs leading-relaxed max-w-sm">
-                    Thailand's official licensed 3D luxury online lottery terminal. Offering real-time GLO L6 live results, instant settlements, and provably fair multi-state jackpot pools.
-                </p>
-                <div class="flex items-center gap-3 text-sm text-[#D4AF37] pt-2">
-                    <span>🛡️ 256-Bit SSL</span>
-                    <span>•</span>
-                    <span>🔒 ISO 27001</span>
-                    <span>•</span>
-                    <span>⚡ Instant PromptPay</span>
+            @empty
+                <p class="text-slate-300">{{ $stats['message'] ?? ($text['stats_unavailable'] ?? __('Statistics are unavailable.')) }}</p>
+            @endforelse
+        </dl>
+
+        @if (! empty($stats['generated_at']))
+            <p class="mt-3 text-xs text-slate-500">
+                {{ $text['generated_label'] ?? __('Generated') }}:
+                <time datetime="{{ $stats['generated_at'] }}">{{ $stats['generated_at'] }}</time>
+                · {{ $text['stats_database'] ?? __('Source: application database') }}
+            </p>
+        @endif
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Campaigns. Config driven, window filtered, escaped on output.
+    ----------------------------------------------------------------- --}}
+    <section id="bonuses" aria-labelledby="bonuses-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <h2 id="bonuses-title" class="text-2xl font-bold text-white">{{ $text['bonuses_title'] ?? __('Promotions') }}</h2>
+
+        @php($campaigns = $bonuses['campaigns'] ?? [])
+
+        @if (count($campaigns) > 0)
+            <ul class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                @foreach ($campaigns as $campaign)
+                    <li class="rounded-xl border border-slate-800 bg-slate-950/50 p-4" data-campaign-id="{{ $campaign['id'] }}">
+                        <h3 class="text-lg font-bold text-white">{{ $campaign['title'] }}</h3>
+                        @if (! empty($campaign['description']))
+                            <p class="mt-1 text-sm text-slate-300">{{ $campaign['description'] }}</p>
+                        @endif
+                        <p class="mt-2 text-xs text-slate-500">
+                            <time datetime="{{ $campaign['valid_from'] }}">{{ $campaign['valid_from'] }}</time>
+                            —
+                            <time datetime="{{ $campaign['valid_until'] }}">{{ $campaign['valid_until'] }}</time>
+                        </p>
+                        @if (! empty($campaign['cta_url']) && ! empty($campaign['cta_label']))
+                            <a href="{{ $campaign['cta_url'] }}" class="mt-3 inline-block text-sm font-bold text-amber-200">
+                                {{ $campaign['cta_label'] }}
+                            </a>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <p class="mt-4 text-slate-300">
+                {{ ($bonuses['message'] ?? '') !== '' ? $bonuses['message'] : ($text['bonuses_empty'] ?? 'No active promotions') }}
+            </p>
+        @endif
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Payment rails. Only publicly safe fields are projected: a gateway's
+         label and status. Keys and secrets are never read by this view.
+    ----------------------------------------------------------------- --}}
+    <section id="payments" aria-labelledby="payments-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="payments-title" class="text-2xl font-bold text-white">{{ $text['payments_title'] ?? __('Payment methods') }}</h2>
+            <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
+                  data-status="{{ $payments['status'] ?? 'UNAVAILABLE' }}">
+                {{ $payments['status'] ?? 'UNAVAILABLE' }}
+            </span>
+        </div>
+
+        @php($methods = $payments['methods'] ?? [])
+
+        @if (count($methods) > 0)
+            <ul class="mt-5 flex flex-wrap gap-3">
+                @foreach ($methods as $method)
+                    <li class="rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3" data-method="{{ $method['code'] }}">
+                        <span class="font-bold text-white">{{ $method['label'] }}</span>
+                        <span class="ml-2 text-[11px] font-bold tracking-widest text-slate-400">{{ $method['status'] }}</span>
+                        @if (! empty($method['currencies']))
+                            <span class="ml-2 text-xs text-slate-500">{{ implode(', ', $method['currencies']) }}</span>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <p class="mt-4 text-slate-300">
+                {{ ($payments['message'] ?? '') !== '' ? $payments['message'] : ($text['payments_empty'] ?? __('No payment methods are publicly available yet.')) }}
+            </p>
+        @endif
+    </section>
+
+    {{-- ----------------------------------------------------------------
+         Support. Contact details are config only; nothing is invented.
+    ----------------------------------------------------------------- --}}
+    <section id="support" aria-labelledby="support-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="support-title" class="text-2xl font-bold text-white">{{ $text['support_title'] ?? __('Support') }}</h2>
+            <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
+                  data-status="{{ $support['status'] ?? 'UNAVAILABLE' }}">
+                {{ $support['status'] ?? 'UNAVAILABLE' }}
+            </span>
+        </div>
+
+        <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            @if (! empty($support['email']))
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['email_label'] ?? __('Email') }}</dt>
+                    <dd class="text-slate-100">{{ $support['email'] }}</dd>
                 </div>
-            </div>
+            @endif
+            @if (! empty($support['phone']))
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['phone_label'] ?? __('Phone') }}</dt>
+                    <dd class="text-slate-100">{{ $support['phone'] }}</dd>
+                </div>
+            @endif
+            @if (! empty($support['hours']))
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['hours_label'] ?? __('Hours') }}</dt>
+                    <dd class="text-slate-100">{{ $support['hours'] }}</dd>
+                </div>
+            @endif
+        </dl>
 
-            <!-- Quick Links -->
-            <div>
-                <h5 class="text-white font-bold uppercase tracking-wider mb-4">Lottery Markets</h5>
-                <ul class="flex flex-col gap-2.5">
-                    <li><a href="{{ route('national-lottery.index') }}" class="hover:text-[#D4AF37] transition-colors">Thai GLO L6 Official</a></li>
-                    <li><a href="{{ route('weekly-lottery.index') }}" class="hover:text-[#D4AF37] transition-colors">Lao & Hanoi 4D</a></li>
-                    <li><a href="{{ route('bingo-lottery.index') }}" class="hover:text-[#D4AF37] transition-colors">Speed Lottery 88</a></li>
-                    <li><a href="{{ route('pcso-lottery.index') }}" class="hover:text-[#D4AF37] transition-colors">PCSO 6/58 Jackpot</a></li>
-                </ul>
-            </div>
+        @if (! empty($support['message']))
+            <p class="mt-3 text-slate-300">{{ $support['message'] }}</p>
+        @endif
 
-            <!-- Verifier & Tools -->
-            <div>
-                <h5 class="text-white font-bold uppercase tracking-wider mb-4">Services & Tools</h5>
-                <ul class="flex flex-col gap-2.5">
-                    <li><a href="{{ route('ticket-check') }}" class="hover:text-[#D4AF37] transition-colors">Ticket Verification</a></li>
-                    <li><a href="{{ route('results.index') }}" class="hover:text-[#D4AF37] transition-colors">Results Archives</a></li>
-                    <li><a href="{{ route('account.grade') }}" class="hover:text-[#D4AF37] transition-colors">VIP Grade Programme</a></li>
-                    <li><a href="{{ route('fees') }}" class="hover:text-[#D4AF37] transition-colors">Fee Schedule</a></li>
-                </ul>
-            </div>
+        @if (! empty($support['route_url']))
+            <a href="{{ $support['route_url'] }}" class="mt-4 inline-block rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200">
+                {{ $text['support_contact'] ?? __('Contact us') }}
+            </a>
+        @endif
+    </section>
 
-            <!-- Legal & Support -->
-            <div id="support">
-                <h5 class="text-white font-bold uppercase tracking-wider mb-4">Help & Legal</h5>
-                <ul class="flex flex-col gap-2.5">
-                    <li><a href="{{ route('terms') }}" class="hover:text-[#D4AF37] transition-colors">Terms of Service</a></li>
-                    <li><a href="{{ route('privacy') }}" class="hover:text-[#D4AF37] transition-colors">Privacy Policy</a></li>
-                    <li><a href="{{ route('contact') }}" class="hover:text-[#D4AF37] transition-colors">Contact Support</a></li>
-                    <li><a href="{{ route('faq') }}" class="hover:text-[#D4AF37] transition-colors">FAQ & Guide</a></li>
-                </ul>
-            </div>
+    {{-- ----------------------------------------------------------------
+         App links. A store button is rendered only for a URL that an operator
+         actually configured and that passed scheme validation.
+    ----------------------------------------------------------------- --}}
+    <section id="app-links" aria-labelledby="app-links-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="app-links-title" class="text-2xl font-bold text-white">{{ $text['app_title'] ?? __('Mobile app') }}</h2>
+            <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
+                  data-status="{{ $appLinks['status'] ?? 'UNAVAILABLE' }}">
+                {{ $appLinks['status'] ?? 'UNAVAILABLE' }}
+            </span>
         </div>
 
-        <!-- Hidden landmarks for full architectural feature contract compliance -->
-        <div class="hidden">
-            <div id="sales-points">{{ trans('home.sales_title') }}</div>
-            <div id="prize">{{ trans('home.prize_title') }}</div>
-            <div id="stats">{{ trans('home.stats_title') }}</div>
-            <div id="bonuses">{{ trans('home.bonuses_title') }}</div>
-        </div>
+        @if (($appLinks['status'] ?? '') === 'CONFIGURED')
+            <ul class="mt-4 flex flex-wrap gap-3">
+                @if (! empty($appLinks['android']))
+                    <li><a href="{{ $appLinks['android'] }}" rel="noopener noreferrer" class="rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">{{ __('Android download') }}</a></li>
+                @endif
+                @if (! empty($appLinks['ios']))
+                    <li><a href="{{ $appLinks['ios'] }}" rel="noopener noreferrer" class="rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">{{ __('iOS download') }}</a></li>
+                @endif
+                @if (! empty($appLinks['pwa']))
+                    <li><a href="{{ $appLinks['pwa'] }}" rel="noopener noreferrer" class="rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200">{{ __('Install web app') }}</a></li>
+                @endif
+            </ul>
+        @else
+            <p class="mt-4 text-slate-300">{{ $appLinks['message'] ?? 'App download links are not configured.' }}</p>
+        @endif
+    </section>
 
-        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-slate-800 text-center text-[11px] text-slate-500">
-            <p>&copy; {{ date('Y') }} ThaiLotto Club. All rights reserved. Licensed & Provably Verified by Government Lottery Office Thailand.</p>
-        </div>
-    </footer>
+    {{-- ----------------------------------------------------------------
+         Trust. Each bullet states a property this codebase actually
+         implements and tests. No certification is claimed.
+    ----------------------------------------------------------------- --}}
+    <section id="trust" aria-labelledby="trust-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <h2 id="trust-title" class="text-2xl font-bold text-white">{{ $text['trust_title'] ?? __('How this platform protects you') }}</h2>
+
+        <ul class="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
+            @foreach (($trust['bullets'] ?? []) as $bullet)
+                <li class="flex gap-2 text-slate-300">
+                    <span aria-hidden="true" class="text-amber-300">&bull;</span>
+                    <span>{{ $bullet }}</span>
+                </li>
+            @endforeach
+        </ul>
+
+        <p class="mt-5 text-xs leading-relaxed text-slate-500">
+            {{ __('Draw rules and prize tables follow Government Lottery Office publications; this site is not the official GLO website and is not affiliated with it.') }}
+        </p>
+    </section>
 
 </div>
 @endsection

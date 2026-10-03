@@ -79,7 +79,7 @@ final class Pages25To34Test extends TestCase
             $this->assertStringNotContainsString($unsupportedValue, $content);
         }
 
-        $this->assertStringContainsString("x-bingo-lottery.result-card", $content);
+        $this->assertStringContainsString('x-bingo-lottery.result-card', $content);
         $this->assertStringContainsString("route('bingo-lottery.buy')", $content);
     }
 
@@ -87,8 +87,8 @@ final class Pages25To34Test extends TestCase
     {
         $content = (string) file_get_contents(resource_path('views/bingo-lottery/buy.blade.php'));
 
-        $this->assertStringContainsString("purchase_not_configured", $content);
-        $this->assertStringContainsString("NOT_CONFIGURED", (string) file_get_contents(lang_path('en/bingo_lottery.php')));
+        $this->assertStringContainsString('purchase_not_configured', $content);
+        $this->assertStringContainsString('NOT_CONFIGURED', (string) file_get_contents(lang_path('en/bingo_lottery.php')));
         $this->assertStringNotContainsString('price', strtolower($content));
         $this->assertStringNotContainsString('wallet', strtolower($content));
         $this->assertStringNotContainsString('purchase success', strtolower($content));

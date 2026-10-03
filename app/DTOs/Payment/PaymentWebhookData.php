@@ -24,8 +24,7 @@ final readonly class PaymentWebhookData
         public string $receivedAtIso,
         public string $payloadFingerprint,
         public array $payload,
-    ) {
-    }
+    ) {}
 
     /**
      * Canonical bytes for signing/fingerprinting: PHP's deterministic

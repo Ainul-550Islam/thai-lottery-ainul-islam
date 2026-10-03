@@ -34,8 +34,7 @@ final readonly class PermutationResultData
         public string $potentialPayoutPerWin,
         public string $maxPotentialPayout,
         public string $currency,
-    ) {
-    }
+    ) {}
 
     /**
      * The selections this permutation expands into, in BulkBetService's input shape.

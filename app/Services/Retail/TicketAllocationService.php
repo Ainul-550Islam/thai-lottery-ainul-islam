@@ -12,11 +12,11 @@ use App\Enums\TicketInventoryStatus;
 use App\Events\RetailTicketAllocated;
 use App\Exceptions\TicketAllocationException;
 use App\Models\AuditLog;
+use App\Models\RetailVendor;
 use App\Models\TicketAllocation;
 use App\Models\TicketInventoryItem;
 use App\Models\TicketProduct;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Allocates ticket quota to eligible retail vendors.
@@ -47,8 +47,7 @@ final class TicketAllocationService
 {
     public function __construct(
         private readonly RetailVendorService $vendors,
-    ) {
-    }
+    ) {}
 
     /* --------------------------------------------------- allocate --- */
 
@@ -73,7 +72,7 @@ final class TicketAllocationService
      */
     private function allocateWithin(TicketAllocationData $data): array
     {
-        if (!$data->asksForSomething()) {
+        if (! $data->asksForSomething()) {
             throw TicketAllocationException::vendorIneligible(
                 $data->vendorId,
                 'empty-ask',
@@ -131,11 +130,11 @@ final class TicketAllocationService
 
         // ELIGIBILITY + CAPACITY, one locked answer.
         $vendor = $this->vendors->assertCanReceive(
-            \App\Models\RetailVendor::query()->findOrFail($data->vendorId),
+            RetailVendor::query()->findOrFail($data->vendorId),
             $data->quantity,
         );
 
-        $allocation = new TicketAllocation();
+        $allocation = new TicketAllocation;
         $allocation->fill([
             'allocation_key' => $data->allocationKey,
             'vendor_id' => (int) $vendor->getKey(),
@@ -195,7 +194,7 @@ final class TicketAllocationService
             event(new RetailTicketAllocated(
                 allocationKey: $data->allocationKey,
                 vendorId: (int) $allocation->vendor_id,
-                vendorCode: (string) \App\Models\RetailVendor::query()->find((int) $allocation->vendor_id)?->vendor_code,
+                vendorCode: (string) RetailVendor::query()->find((int) $allocation->vendor_id)?->vendor_code,
                 ticketProductId: $data->ticketProductId,
                 drawId: $data->drawId,
                 quantity: $data->quantity,
@@ -228,7 +227,7 @@ final class TicketAllocationService
                 return $locked; // replay
             }
 
-            if (!$locked->status->canTransitionTo(TicketAllocationStatus::Accepted)) {
+            if (! $locked->status->canTransitionTo(TicketAllocationStatus::Accepted)) {
                 throw TicketAllocationException::stateForbids(
                     (string) $locked->allocation_key,
                     $locked->status->value,
@@ -272,7 +271,7 @@ final class TicketAllocationService
                 return ['allocation' => $locked, 'unbound' => $unboundReplay];
             }
 
-            if (!$locked->status->canTransitionTo(TicketAllocationStatus::Released)) {
+            if (! $locked->status->canTransitionTo(TicketAllocationStatus::Released)) {
                 throw TicketAllocationException::stateForbids(
                     (string) $locked->allocation_key,
                     $locked->status->value,
@@ -309,7 +308,7 @@ final class TicketAllocationService
 
     private function recordAudit(TicketAllocation $allocation, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

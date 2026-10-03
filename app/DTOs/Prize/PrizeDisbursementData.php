@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Prize;
 
+use App\Exceptions\PrizeDisbursementException;
+
 /**
  * Disbursement identity.
  *
@@ -25,11 +27,10 @@ final readonly class PrizeDisbursementData
         public string $amount,
         public string $currency,
         public string $settlementFingerprint,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\PrizeDisbursementException
+     * @throws PrizeDisbursementException
      */
     public static function fromInput(
         int $payoutId,
@@ -43,31 +44,31 @@ final readonly class PrizeDisbursementData
         $cur = strtolower(trim($currency));
 
         if ($payoutId < 1 || ($batchId !== null && $batchId < 1)) {
-            throw \App\Exceptions\PrizeDisbursementException::malformed(
+            throw PrizeDisbursementException::malformed(
                 'payout and batch handles must be positive integers',
             );
         }
 
         if (! preg_match('/^\d+(\.\d{1,2})?$/', $amt)) {
-            throw \App\Exceptions\PrizeDisbursementException::malformed(
+            throw PrizeDisbursementException::malformed(
                 'the amount must be a decimal string (money, never float)',
             );
         }
 
         if (extension_loaded('bcmath') ? bccomp($amt, '0', 2) !== 1 : ((float) $amt <= 0)) {
-            throw \App\Exceptions\PrizeDisbursementException::malformed(
+            throw PrizeDisbursementException::malformed(
                 'the amount must be strictly positive',
             );
         }
 
         if (! preg_match('/^[a-z]{3}$/', $cur)) {
-            throw \App\Exceptions\PrizeDisbursementException::malformed(
+            throw PrizeDisbursementException::malformed(
                 'the currency must be a 3-letter code',
             );
         }
 
         if (! preg_match('/^[0-9a-f]{64}$/', $fp)) {
-            throw \App\Exceptions\PrizeDisbursementException::malformed(
+            throw PrizeDisbursementException::malformed(
                 'the settlement fingerprint must be exactly 64 lowercase hex characters',
             );
         }

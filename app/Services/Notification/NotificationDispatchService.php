@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Notification;
 
 use App\DTOs\Notification\NotificationMessageData;
-use App\Enums\NotificationEventType;
+use App\Enums\NotificationFailureReason;
 use App\Enums\NotificationStatus;
 use App\Exceptions\NotificationException;
+use App\Listeners\RecordNotificationAudit;
 use App\Models\Notification;
 use App\Models\NotificationTemplate;
 use Illuminate\Support\Facades\DB;
@@ -24,9 +25,8 @@ final class NotificationDispatchService
 {
     public function __construct(
         private readonly NotificationSuppressionService $suppression,
-        private readonly \App\Listeners\RecordNotificationAudit $audit,
-    ) {
-    }
+        private readonly RecordNotificationAudit $audit,
+    ) {}
 
     /**
      * RESOLVE + QUEUE.
@@ -81,7 +81,7 @@ final class NotificationDispatchService
                         return [
                             'notification' => null,
                             'suppressed' => true,
-                            'reason' => \App\Enums\NotificationFailureReason::TemplateDisabled->value,
+                            'reason' => NotificationFailureReason::TemplateDisabled->value,
                             'replayed' => false,
                         ];
                     }

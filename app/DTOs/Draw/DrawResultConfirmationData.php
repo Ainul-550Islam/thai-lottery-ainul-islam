@@ -25,8 +25,8 @@ final class DrawResultConfirmationData
 {
     /**
      * @param  string  $resultFingerprint  The ingestion-side fingerprint of
-     *                                    the record being confirmed (sha256
-     *                                    over the canonical pair).
+     *                                     the record being confirmed (sha256
+     *                                     over the canonical pair).
      * @param  array<string, mixed>  $context  Safe diagnostic context.
      */
     public function __construct(
@@ -36,8 +36,7 @@ final class DrawResultConfirmationData
         public readonly string $claimedBottomTwo,
         public readonly ?string $resultFingerprint,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The claimed numbers must be machine-readable as exactly six + exactly

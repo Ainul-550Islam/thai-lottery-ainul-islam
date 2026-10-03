@@ -25,8 +25,7 @@ final readonly class TicketShareResult
         public TicketShare $share,
         public string $rawToken,
         public string $shareUrl,
-    ) {
-    }
+    ) {}
 
     public function expiresAt(): ?string
     {

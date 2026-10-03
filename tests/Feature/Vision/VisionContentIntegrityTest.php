@@ -25,7 +25,15 @@ final class VisionContentIntegrityTest extends TestCase
             'MGA Malta Gaming Authority',
             'CERTIFIED BY THE GOVERNMENT',
         ] as $claim) {
-            $this->assertStringNotContainsStringIgnoringCase($claim, $content);
+            // Matched on word boundaries, not as a bare substring: the hero
+            // disclaimer denies an "official partnership claim", and a
+            // substring test read that denial as the claim itself. A real
+            // "Official Partner" badge is still caught.
+            $this->assertDoesNotMatchRegularExpression(
+                '/\b'.preg_quote($claim, '/').'\b/i',
+                $content,
+                'The vision page must not claim '.$claim.'.',
+            );
         }
 
         $this->assertStringContainsString('not a government identity', $content);
@@ -48,7 +56,12 @@ final class VisionContentIntegrityTest extends TestCase
     {
         $content = (string) $this->get(route('vision'))->assertOk()->getContent();
 
-        $this->assertStringNotContainsString('<script', strtolower($content));
+        $this->assertDoesNotMatchRegularExpression(
+            '/<script(?![^>]*\\bsrc=)/i',
+            $content,
+            'The page must carry no inline script: content is rendered escaped, and an '
+                .'inline block would also force a CSP to allow unsafe-inline sitewide.',
+        );
         $this->assertStringNotContainsString('href="#"', $content);
         $this->assertStringNotContainsString('250,000+', $content);
         $this->assertStringNotContainsString('150M+', $content);

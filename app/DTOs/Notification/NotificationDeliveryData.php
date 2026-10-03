@@ -20,11 +20,10 @@ final class NotificationDeliveryData
         public readonly string $channel,
         public readonly int $attemptNumber,
         public readonly ?string $providerReference = null,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array{notification_id:int, channel:string, attempt_number:int, provider_reference?:string|null} $data
+     * @param  array{notification_id:int, channel:string, attempt_number:int, provider_reference?:string|null}  $data
      */
     public static function forAttempt(array $data): self
     {

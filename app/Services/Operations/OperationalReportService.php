@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Operations;
 
 use App\DTOs\Operations\OperationalReportData;
+use App\DTOs\Operations\ReportExportData;
 use App\Enums\ReportJobStatus;
 use App\Enums\ReportType;
 use App\Exceptions\OperationalReportException;
-use App\Models\AdminOperation;
 use App\Models\AuditLog;
 use App\Models\ComplianceCase;
 use App\Models\Draw;
@@ -16,7 +16,9 @@ use App\Models\LedgerEntry;
 use App\Models\OperationalReportJob;
 use App\Models\Payment;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * OperationalReportService — READ-ONLY cross-lane reporting from
@@ -52,7 +54,7 @@ final class OperationalReportService
                 'status' => ReportJobStatus::Queued,
                 'horizon_start' => $data->horizonStart,
                 'horizon_end' => $data->horizonEnd,
-                'expires_at' => now()->addHours(\App\DTOs\Operations\ReportExportData::RETENTION_HOURS),
+                'expires_at' => now()->addHours(ReportExportData::RETENTION_HOURS),
             ]);
 
             return ['job' => $row, 'created' => true];
@@ -109,9 +111,9 @@ final class OperationalReportService
      * THE PROJECTIONS — read-only rows per report family. Every
      * where clause is additive and deterministic in output.
      *
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     * @return Collection<int, array<string, mixed>>
      */
-    public function rows(OperationalReportJob $job): \Illuminate\Support\Collection
+    public function rows(OperationalReportJob $job): Collection
     {
         $filters = $job->filters;
 
@@ -126,8 +128,8 @@ final class OperationalReportService
         };
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function financialRows(OperationalReportJob $job, array $filters): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function financialRows(OperationalReportJob $job, array $filters): Collection
     {
         return LedgerEntry::query()
             ->whereBetween('posted_at', [$job->horizon_start, $job->horizon_end])
@@ -147,8 +149,8 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function paymentRows(OperationalReportJob $job, array $filters): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function paymentRows(OperationalReportJob $job, array $filters): Collection
     {
         return Payment::query()
             ->whereBetween('created_at', [$job->horizon_start, $job->horizon_end])
@@ -172,8 +174,8 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function drawRows(OperationalReportJob $job, array $filters): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function drawRows(OperationalReportJob $job, array $filters): Collection
     {
         return Draw::query()
             ->whereBetween('scheduled_at', [$job->horizon_start, $job->horizon_end])
@@ -191,18 +193,18 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function prizeRows(OperationalReportJob $job, array $filters): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function prizeRows(OperationalReportJob $job, array $filters): Collection
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable('prize_claims')) {
+        if (! Schema::hasTable('prize_claims')) {
             return collect();
         }
 
         return collect();
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function complianceRows(OperationalReportJob $job, array $filters): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function complianceRows(OperationalReportJob $job, array $filters): Collection
     {
         return ComplianceCase::query()
             ->whereBetween('created_at', [$job->horizon_start, $job->horizon_end])
@@ -224,8 +226,8 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function playerRows(OperationalReportJob $job, array $filters): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function playerRows(OperationalReportJob $job, array $filters): Collection
     {
         return User::query()
             ->whereBetween('created_at', [$job->horizon_start, $job->horizon_end])
@@ -241,8 +243,8 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function operationalRows(OperationalReportJob $job, array $filters): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function operationalRows(OperationalReportJob $job, array $filters): Collection
     {
         return AuditLog::query()
             ->whereBetween('created_at', [$job->horizon_start, $job->horizon_end])

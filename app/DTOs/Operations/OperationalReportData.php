@@ -32,11 +32,10 @@ final class OperationalReportData
         public readonly array $filters,
         public readonly Carbon $horizonStart,
         public readonly Carbon $horizonEnd,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array{requester_user_id:int, report_type:string|ReportType, filters?:array, horizon_start?:string|\DateTimeInterface|null, horizon_end?:string|\DateTimeInterface|null} $data
+     * @param  array{requester_user_id:int, report_type:string|ReportType, filters?:array, horizon_start?:string|\DateTimeInterface|null, horizon_end?:string|\DateTimeInterface|null}  $data
      */
     public static function fromInput(array $data): self
     {

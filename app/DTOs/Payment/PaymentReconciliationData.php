@@ -26,8 +26,7 @@ final readonly class PaymentReconciliationData
         public PaymentTransactionStatus $internalStatus,
         public ?PaymentTransactionStatus $observedStatus,
         public string $fingerprint,
-    ) {
-    }
+    ) {}
 
     public static function fingerprintOf(
         int $paymentId,

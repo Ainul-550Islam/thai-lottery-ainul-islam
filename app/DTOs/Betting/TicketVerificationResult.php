@@ -32,8 +32,7 @@ final readonly class TicketVerificationResult
         public ?string $drawNumber = null,
         public ?string $checkedAt = null,
         public ?array $ownerDetail = null,
-    ) {
-    }
+    ) {}
 
     public function isFound(): bool
     {

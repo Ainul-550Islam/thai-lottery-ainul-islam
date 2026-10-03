@@ -9,7 +9,6 @@ use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Does the ledger still balance?
@@ -42,7 +41,7 @@ class LedgerBalanceWidget extends StatsOverviewWidget
     protected function getStats(): array
     {
         $sums = LedgerEntry::query()
-            ->selectRaw("type, COUNT(*) as entry_count, COALESCE(SUM(amount), 0) as total")
+            ->selectRaw('type, COUNT(*) as entry_count, COALESCE(SUM(amount), 0) as total')
             ->groupBy('type')
             ->get()
             ->keyBy(fn ($row): string => (string) (is_object($row->type) ? $row->type->value : $row->type));

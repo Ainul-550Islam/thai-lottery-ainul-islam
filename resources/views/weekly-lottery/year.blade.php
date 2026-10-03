@@ -31,8 +31,15 @@
         </header>
 
         @if ($historyPayload === [] || $historyStatus !== 'result_found')
+            {{-- The year-specific sentence was missing: this branch printed only
+                 the generic machine status ("no public data"), which reads the
+                 same on a year that has no draws, on a lane that has never been
+                 imported, and on a provider outage. weekly_lottery.empty_year
+                 is the one that answers the question the visitor actually
+                 asked by navigating to this year. --}}
             <section class="wl-section wl-section--empty" role="status">
-                <p class="wl-empty">{{ trans('weekly_lottery.status.'.$historyStatus) }}</p>
+                <p class="wl-empty">{{ trans('weekly_lottery.empty_year') }}</p>
+                <p class="wl-empty wl-empty--status">{{ trans('weekly_lottery.status.'.$historyStatus) }}</p>
             </section>
         @else
             <section class="wl-section" aria-labelledby="weekly-year-heading">

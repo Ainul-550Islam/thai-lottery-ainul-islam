@@ -5,6 +5,6 @@
 @section('meta_canonical', $canonical)
 @section('meta_robots', 'noindex,follow')
 
-@push('styles')<link rel="stylesheet" href="{{ asset('css/lottery.css') }}">@endpush
+@push('styles')@vite(['resources/css/lottery.css'])@endpush
 
 @section('content')<x-lottery-purchase.unavailable :product-key="$product_key" :product-title="$product_title" :product-description="$product_description" :purchase-state="$purchase_state" :back-url="$back_url" />@endsection

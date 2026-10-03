@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Api;
 
+use App\Http\Support\BetPurchaseErrorMapper;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -400,7 +401,7 @@ final class ApplicationLayerSafetyTest extends TestCase
             'authorization_failed',
         ];
 
-        $reflection = new \ReflectionClass(\App\Http\Support\BetPurchaseErrorMapper::class);
+        $reflection = new \ReflectionClass(BetPurchaseErrorMapper::class);
         $declared = array_map(
             static fn (mixed $value): string => (string) $value,
             array_filter($reflection->getConstants(), 'is_string'),

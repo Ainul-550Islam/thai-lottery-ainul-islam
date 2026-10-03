@@ -4,22 +4,30 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Glo;
 
-use App\Enums\UserStatus;
 use App\Enums\DrawStatus;
 use App\Enums\GloDealerRequestType;
 use App\Enums\TicketStatus;
+use App\Enums\UserStatus;
+use App\Exceptions\GloDealerException;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Models\GloDealer;
+use App\Models\GloDealerChangeRequest;
 use App\Models\GloNotificationDelivery;
+use App\Models\GloSalesPointHistory;
+use App\Models\GloSavedTicket;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\Lottery\GloDealerChangeRequestService;
 use App\Services\Lottery\GloDealerService;
 use App\Services\Lottery\GloResultNotificationService;
-use App\Services\Lottery\GloSavedTicketService;
 use App\Services\Lottery\GloSalesPointService;
+use App\Services\Lottery\GloSavedTicketService;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -34,7 +42,7 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
 
     private User $operator;
 
-    private \App\Models\GloDealer $dealer;
+    private GloDealer $dealer;
 
     private Draw $openDraw;
 
@@ -73,7 +81,7 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
             'longitude' => 100.5,
         ], $this->dealerUser);
         $eff = $history->effective_date;
-        $effStr = $eff instanceof \Illuminate\Support\Carbon ? $eff->toDateString() : (string) $eff;
+        $effStr = $eff instanceof Carbon ? $eff->toDateString() : (string) $eff;
         $this->assertSame(now()->toDateString(), $effStr);
 
         // 2. Dealer submits sales_location change request; operator approves.
@@ -125,7 +133,7 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
         ]);
         $resultTicket->status = TicketStatus::Confirmed;
         $resultTicket->save();
-        \App\Models\GloSavedTicket::create([
+        GloSavedTicket::create([
             'user_id' => $this->dealerUser->getKey(),
             'ticket_id' => $resultTicket->getKey(),
             'draw_id' => $this->resultDraw->getKey(),
@@ -163,8 +171,8 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
             // Second "worker" same day.
             $sales->updateDailyLocation($this->dealer, $input, $this->dealerUser);
             $this->fail('second same-day update must fail');
-        } catch (\App\Exceptions\GloDealerException) {
-            $this->assertSame(1, \App\Models\GloSalesPointHistory::query()->count());
+        } catch (GloDealerException) {
+            $this->assertSame(1, GloSalesPointHistory::query()->count());
         }
     }
 
@@ -182,24 +190,24 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
 
         try {
             // Second approval attempt (replayed request object in stale state).
-            $stale = \App\Models\GloDealerChangeRequest::query()->find($row->getKey());
+            $stale = GloDealerChangeRequest::query()->find($row->getKey());
             $changes->approve($stale, $this->operator);
             $this->fail('double approve must be illegal');
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             $this->assertStringContainsString('Illegal', $e->getMessage());
         }
 
         $this->assertSame(
             'approved',
-            \App\Models\GloDealerChangeRequest::query()->find($row->getKey())->status->value,
+            GloDealerChangeRequest::query()->find($row->getKey())->status->value,
         );
     }
 
-    private function freshUser(): \Illuminate\Database\Eloquent\Factories\Factory
+    private function freshUser(): Factory
     {
         return User::factory()->state(fn (): array => [
-            'email' => \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(12)).'.'.bin2hex(random_bytes(4)).'@glofreeze.local',
-            'username' => 'gz'.\Illuminate\Support\Str::random(10),
+            'email' => Str::lower(Str::random(12)).'.'.bin2hex(random_bytes(4)).'@glofreeze.local',
+            'username' => 'gz'.Str::random(10),
             'phone' => '+8801'.random_int(100_000_000, 999_999_999),
             'status' => UserStatus::Active,
         ]);

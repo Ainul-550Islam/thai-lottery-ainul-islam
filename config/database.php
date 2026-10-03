@@ -40,11 +40,11 @@ return [
                 //
                 // The fallback is reached only on PHP 8.2 to 8.4, where Pdo\Mysql does
                 // not exist and the old constant is not deprecated. It is fetched with
-                // constant() rather than written as PDO::MYSQL_ATTR_SSL_CA so that the
-                // deprecated name appears nowhere in this file as a compiled constant
-                // reference on a PHP version that would warn about it.
-                (class_exists(\Pdo\Mysql::class)
-                    ? \Pdo\Mysql::ATTR_SSL_CA
+                // constant() rather than written as a compiled constant reference so
+                // that neither class name is compiled in on a PHP version where it is
+                // absent or deprecated, and so that the formatter leaves both alone.
+                (class_exists('Pdo\Mysql')
+                    ? constant('Pdo\Mysql::ATTR_SSL_CA')
                     : constant('PDO::MYSQL_ATTR_SSL_CA')) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],

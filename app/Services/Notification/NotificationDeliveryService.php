@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace App\Services\Notification;
 
 use App\DTOs\Notification\NotificationDeliveryData;
-use App\Enums\NotificationChannel;
 use App\Enums\NotificationFailureReason;
 use App\Enums\NotificationStatus;
 use App\Events\NotificationDelivered;
 use App\Events\NotificationDeliveryFailed;
 use App\Exceptions\NotificationDeliveryException;
+use App\Listeners\RecordNotificationAudit;
 use App\Models\Notification;
 use App\Models\NotificationDeliveryAttempt;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -25,9 +26,8 @@ use Illuminate\Support\Facades\DB;
 final class NotificationDeliveryService
 {
     public function __construct(
-        private readonly \App\Listeners\RecordNotificationAudit $audit,
-    ) {
-    }
+        private readonly RecordNotificationAudit $audit,
+    ) {}
 
     /**
      * START an attempt on a notification. Terminal rows refuse;
@@ -145,9 +145,9 @@ final class NotificationDeliveryService
      * ELIGIBILITY for the retry queue: Failed with a retryable reason
      * and attempts below the ceiling and before the horizon.
      *
-     * @return \Illuminate\Support\Collection<int, Notification>
+     * @return Collection<int, Notification>
      */
-    public function retryableFailures(int $limit = 100): \Illuminate\Support\Collection
+    public function retryableFailures(int $limit = 100): Collection
     {
         return Notification::query()
             ->where('status', NotificationStatus::Failed->value)
@@ -166,9 +166,9 @@ final class NotificationDeliveryService
      * CLAIM for dispatch: Pending / Queued / (airborne-only) rows
      * due to leave, before horizon. Skips bottom-locked lanes.
      *
-     * @return \Illuminate\Support\Collection<int, Notification>
+     * @return Collection<int, Notification>
      */
-    public function dueForDispatch(int $limit = 100): \Illuminate\Support\Collection
+    public function dueForDispatch(int $limit = 100): Collection
     {
         return Notification::query()
             ->whereIn('status', [NotificationStatus::Pending->value, NotificationStatus::Queued->value])

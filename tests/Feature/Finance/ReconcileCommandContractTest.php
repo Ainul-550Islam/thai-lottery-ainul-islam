@@ -7,8 +7,9 @@ namespace Tests\Feature\Finance;
 use App\Console\Commands\Finance\ReconcileFinancialRecordsCommand;
 use App\Services\Finance\FinancialReconciliationExportService;
 use App\Services\Finance\FinancialReconciliationService;
-use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -37,14 +38,14 @@ final class ReconcileCommandContractTest extends TestCase
     {
         // Exit 0 = clean books, 1 = critical found and reported. Either is a
         // successful *contract* run; a crash or option-parse failure is not.
-        $code = \Illuminate\Support\Facades\Artisan::call('finance:reconcile', [
+        $code = Artisan::call('finance:reconcile', [
             '--dry-run' => true,
             '--batch' => '10',
             '--json' => true,
         ]);
         $this->assertContains($code, [0, 1], 'dry-run must report, not crash (got '.$code.')');
 
-        $out = \Illuminate\Support\Facades\Artisan::output();
+        $out = Artisan::output();
         $this->assertStringContainsString('dry_run', $out);
         $this->assertStringContainsString('batch_bound', $out);
     }
@@ -53,13 +54,13 @@ final class ReconcileCommandContractTest extends TestCase
     public function batch_is_bounded_by_max_ceiling(): void
     {
         // Over-ceiling values are clamped, not rejected as a crash.
-        $code = \Illuminate\Support\Facades\Artisan::call('finance:reconcile', [
+        $code = Artisan::call('finance:reconcile', [
             '--dry-run' => true,
             '--batch' => '999999',
             '--json' => true,
         ]);
         $this->assertContains($code, [0, 1], 'clamped batch must report (got '.$code.')');
-        $out = \Illuminate\Support\Facades\Artisan::output();
+        $out = Artisan::output();
         $this->assertStringContainsString('batch_bound', $out);
         $decoded = json_decode($out, true);
         $this->assertIsArray($decoded);

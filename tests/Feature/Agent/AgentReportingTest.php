@@ -6,9 +6,6 @@ namespace Tests\Feature\Agent;
 
 use App\DTOs\Agent\AgentReportData;
 use App\Enums\AgentStatus;
-use App\Models\Agent;
-use App\Models\User;
-use Illuminate\Support\Carbon;
 
 final class AgentReportingTest extends AgentTestCase
 {

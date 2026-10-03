@@ -21,7 +21,7 @@
 <div class="next-public-page next-public-page--privacy" data-next-public-page="privacy" data-pp-page="privacy">
     <a class="pp-skip-link" href="#privacy-main">{{ trans('public_pages.skip_to_content') }}</a>
     <header class="next-page-header"><div class="next-shell next-page-header__inner">
-        <a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('public_pages.privacy_home_aria') }}"><span class="next-brand__mark">TL</span><span>THAILOTTO<small>{{ trans('public_pages.privacy_brand_subtitle') }}</small></span></a>
+        <a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('public_pages.privacy_home_aria') }}"><span class="next-brand__mark">TL</span><span>{{ config('app.name') }}<small>{{ trans('public_pages.privacy_brand_subtitle') }}</small></span></a>
         <nav class="next-nav" aria-label="{{ trans('public_pages.privacy_primary_nav') }}"><a href="{{ route('home') }}">{{ trans('public_pages.privacy_nav_home') }}</a><a href="{{ route('about') }}">{{ trans('public_pages.privacy_nav_about') }}</a><a href="{{ route('vision') }}">{{ trans('public_pages.privacy_nav_vision') }}</a><a class="is-active" href="{{ route('privacy') }}" aria-current="page">{{ trans('public_pages.privacy_nav_privacy') }}</a><a href="{{ route('terms') }}">{{ trans('public_pages.privacy_nav_terms') }}</a><a href="{{ route('contact') }}">{{ trans('public_pages.privacy_nav_contact') }}</a></nav>
         @guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('public_pages.privacy_login') }}</a>@else<a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">{{ trans('public_pages.privacy_dashboard') }}</a>@endguest
     </div></header>

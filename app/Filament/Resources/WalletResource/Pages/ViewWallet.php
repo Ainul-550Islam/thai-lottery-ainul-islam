@@ -6,6 +6,7 @@ namespace App\Filament\Resources\WalletResource\Pages;
 
 use App\Filament\Resources\WalletResource;
 use App\Filament\Resources\WalletResource\WalletControlActions;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 
 /**
@@ -24,7 +25,7 @@ class ViewWallet extends ViewRecord
     protected static string $resource = WalletResource::class;
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

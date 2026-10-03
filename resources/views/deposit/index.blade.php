@@ -8,7 +8,7 @@
 
     <!-- Tailwind CSS (CDN for standalone preview, plus project stylesheet) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('css/deposit-portal.css') }}">
+    @vite(['resources/css/deposit-portal.css'])
     <style>
         :root {
             --dp-bg-page: #0b0f17;
@@ -290,6 +290,6 @@
     </main>
 
     <!-- Browser Runtime Script -->
-    <script src="{{ asset('js/deposit-portal.js') }}"></script>
+    @vite(['resources/js/deposit-portal.js'])
 </body>
 </html>

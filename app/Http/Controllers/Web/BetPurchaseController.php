@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\DTOs\Betting\BulkBetSelectionData;
+use App\Http\Requests\Web\BetPurchaseRequest;
 use App\Models\Draw;
 use App\Services\Betting\BulkBetService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -22,10 +22,9 @@ final class BetPurchaseController
 {
     public function __construct(
         private readonly BulkBetService $bulkBets,
-    ) {
-    }
+    ) {}
 
-    public function store(Request $request): JsonResponse
+    public function store(BetPurchaseRequest $request): JsonResponse
     {
         $user = Auth::user();
 
@@ -36,18 +35,15 @@ final class BetPurchaseController
             ], 401);
         }
 
-        $validated = $request->validate([
-            'draw_reference' => ['required', 'string', 'max:128'],
-            'client_key' => ['required', 'string', 'min:8', 'max:128', 'regex:/^[A-Za-z0-9._:-]+$/'],
-            'items' => ['required', 'array', 'min:1', 'max:50'],
-            'items.*.market' => ['required', 'string', 'max:32'],
-            'items.*.number' => ['required', 'string', 'regex:/^\d{1,6}$/'],
-            'items.*.stake' => ['required', 'string', 'regex:/^\d{1,12}(?:\.\d{1,2})?$/'],
-        ]);
-
-        $draw = Draw::query()
-            ->where('draw_number', (string) $validated['draw_reference'])
-            ->first();
+        // BLOCKER CLOSURE — browser revenue path.
+        //
+        // Validation now lives in BetPurchaseRequest, which accepts the
+        // `draw_id` the bet slip actually posts as well as the legacy
+        // `draw_reference`, and resolves either to the canonical Draw. The
+        // controller previously inline-validated `draw_reference` only, so
+        // every browser purchase 422'd while the API returned 201.
+        $validated = $request->validated();
+        $draw = $request->resolveDraw();
 
         if (! $draw instanceof Draw) {
             return response()->json([
@@ -93,6 +89,11 @@ final class BetPurchaseController
             'message' => $isFullReplay
                 ? (string) trans('player.bet_slip_replayed')
                 : (string) trans('player.bet_slip_accepted'),
+            // Envelope parity with the API surface ({success, data, meta}).
+            // `report` is retained for the existing browser client and is
+            // deprecated; read data.report instead.
+            'data' => ['report' => $report],
+            'meta' => ['replayed' => $isFullReplay, 'draw_id' => $drawId],
             'report' => $report,
         ], $isFullReplay ? 200 : 201);
     }

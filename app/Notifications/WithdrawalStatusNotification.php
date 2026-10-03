@@ -26,8 +26,7 @@ class WithdrawalStatusNotification extends Notification implements ShouldQueue
         public readonly string $previousStatus,
         public readonly string $currentStatus,
         public readonly ?string $reason = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>
@@ -41,16 +40,16 @@ class WithdrawalStatusNotification extends Notification implements ShouldQueue
     {
         $amount = (string) $this->withdrawal->amount;
         $currency = $this->withdrawal->currency->value ?? 'THB';
-        $ref = (string) ($this->withdrawal->reference_number ?? ('WD-' . $this->withdrawal->id));
+        $ref = (string) ($this->withdrawal->reference_number ?? ('WD-'.$this->withdrawal->id));
 
         $subject = match ($this->currentStatus) {
-            WithdrawalStatus::Completed->value => 'Withdrawal Completed: ' . $amount . ' ' . $currency,
-            WithdrawalStatus::Processing->value, WithdrawalStatus::Dispatched->value => 'Withdrawal Processing: ' . $amount . ' ' . $currency,
-            WithdrawalStatus::UnderReview->value => 'Withdrawal Under Review: ' . $amount . ' ' . $currency,
-            WithdrawalStatus::Failed->value => 'Withdrawal Failed: ' . $amount . ' ' . $currency,
+            WithdrawalStatus::Completed->value => 'Withdrawal Completed: '.$amount.' '.$currency,
+            WithdrawalStatus::Processing->value, WithdrawalStatus::Dispatched->value => 'Withdrawal Processing: '.$amount.' '.$currency,
+            WithdrawalStatus::UnderReview->value => 'Withdrawal Under Review: '.$amount.' '.$currency,
+            WithdrawalStatus::Failed->value => 'Withdrawal Failed: '.$amount.' '.$currency,
             WithdrawalStatus::Rejected->value => 'Withdrawal Rejected',
-            WithdrawalStatus::Reversed->value => 'Withdrawal Reversed: ' . $amount . ' ' . $currency,
-            default => 'Withdrawal Update: ' . $amount . ' ' . $currency,
+            WithdrawalStatus::Reversed->value => 'Withdrawal Reversed: '.$amount.' '.$currency,
+            default => 'Withdrawal Update: '.$amount.' '.$currency,
         };
 
         $line = match ($this->currentStatus) {
@@ -58,7 +57,7 @@ class WithdrawalStatusNotification extends Notification implements ShouldQueue
             WithdrawalStatus::Processing->value, WithdrawalStatus::Dispatched->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) is currently being processed by the payment provider.",
             WithdrawalStatus::UnderReview->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) is undergoing routine security review.",
             WithdrawalStatus::Failed->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) failed to disburse. Reserved funds have been restored to your wallet.",
-            WithdrawalStatus::Rejected->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) was rejected. Reason: " . ($this->reason ?? 'Compliance or account check failed.') . " Funds have been refunded to your wallet.",
+            WithdrawalStatus::Rejected->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) was rejected. Reason: ".($this->reason ?? 'Compliance or account check failed.').' Funds have been refunded to your wallet.',
             WithdrawalStatus::Reversed->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) was reversed and returned to your balance.",
             default => "Your withdrawal request of {$amount} {$currency} (Ref: {$ref}) status has changed to: {$this->currentStatus}.",
         };
@@ -77,7 +76,7 @@ class WithdrawalStatusNotification extends Notification implements ShouldQueue
     {
         return [
             'withdrawal_id' => (int) $this->withdrawal->id,
-            'reference_number' => (string) ($this->withdrawal->reference_number ?? ('WD-' . $this->withdrawal->id)),
+            'reference_number' => (string) ($this->withdrawal->reference_number ?? ('WD-'.$this->withdrawal->id)),
             'amount' => (string) $this->withdrawal->amount,
             'currency' => $this->withdrawal->currency->value ?? 'THB',
             'channel' => (string) $this->withdrawal->channel,

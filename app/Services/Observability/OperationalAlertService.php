@@ -27,8 +27,7 @@ class OperationalAlertService
         private readonly ConfigRepository $config,
         private readonly QueueHealthService $queueHealth,
         private readonly SystemHealthService $systemHealth,
-    ) {
-    }
+    ) {}
 
     /**
      * Trigger an asynchronous financial anomaly alert with automatic deduplication.

@@ -1,5 +1,11 @@
 <?php
 
+use Monolog\Formatter\LineFormatter;
+use Monolog\Handler\NullHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Processor\ProcessIdProcessor;
+use Monolog\Processor\WebProcessor;
+
 return [
 
     'default' => env('LOG_CHANNEL', 'stack'),
@@ -68,14 +74,14 @@ return [
         'stderr' => [
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'info'),
-            'handler' => Monolog\Handler\StreamHandler::class,
-            'formatter' => Monolog\Formatter\LineFormatter::class,
+            'handler' => StreamHandler::class,
+            'formatter' => LineFormatter::class,
             'formatter_with' => [
                 'format' => "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n",
             ],
             'processors' => [
-                Monolog\Processor\ProcessIdProcessor::class,
-                Monolog\Processor\WebProcessor::class,
+                ProcessIdProcessor::class,
+                WebProcessor::class,
             ],
         ],
 
@@ -94,7 +100,7 @@ return [
 
         'null' => [
             'driver' => 'monolog',
-            'handler' => Monolog\Handler\NullHandler::class,
+            'handler' => NullHandler::class,
         ],
 
         'emergency' => [

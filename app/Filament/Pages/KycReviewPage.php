@@ -7,9 +7,10 @@ namespace App\Filament\Pages;
 use App\Models\KycDocument;
 use App\Services\Security\KycVerificationService;
 use App\Support\Admin\AdminAccess;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
-use Filament\Pages\Page;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 
 /**
  * Filament page — authorized operator KYC review (approve / reject / resubmit).
@@ -47,7 +48,7 @@ class KycReviewPage extends Page
     {
         return $form
             ->schema([
-                \Filament\Forms\Components\Select::make('status_filter')
+                Select::make('status_filter')
                     ->label('Status filter')
                     ->options([
                         'pending' => 'Pending',

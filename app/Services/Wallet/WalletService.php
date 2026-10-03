@@ -6,9 +6,7 @@ namespace App\Services\Wallet;
 
 use App\Enums\Currency;
 use App\Enums\FinancialTransactionType;
-use App\Enums\LedgerEntryType;
-use App\Exceptions\FinancialException;
-use App\Exceptions\InsufficientBalanceException;
+use App\Enums\WalletType;
 use App\Models\FinancialTransaction;
 use App\Models\User;
 use App\Models\Wallet;
@@ -43,21 +41,14 @@ class WalletService
         $userId = $user instanceof User ? (int) $user->getKey() : (int) $user;
         $currencyEnum = is_string($currency) ? Currency::from(strtoupper($currency)) : $currency;
 
+        // BLOCKER CLOSURE: see App\Services\Finance\WalletService::getOrCreateWallet().
+        // Creation invariants (status, zeroed money columns, version = 1) are
+        // owned by Wallet::booted() so both wallet services cannot diverge.
         return Wallet::query()->firstOrCreate(
             [
                 'user_id' => $userId,
                 'currency' => $currencyEnum,
-                'type' => \App\Enums\WalletType::Primary,
-            ],
-            [
-                'status' => \App\Enums\WalletStatus::Active,
-                'balance' => '0.00',
-                'locked_balance' => '0.00',
-                'total_deposited' => '0.00',
-                'total_withdrawn' => '0.00',
-                'total_wagered' => '0.00',
-                'total_won' => '0.00',
-                'version' => 1,
+                'type' => WalletType::Primary,
             ]
         );
     }
@@ -102,6 +93,7 @@ class WalletService
     public function lockFunds(Wallet $wallet, Money|string $amount, ?string $reason = null): Wallet
     {
         $moneyObj = is_string($amount) ? Money::of($amount, $wallet->currency) : $amount;
+
         return $this->canonical->lockFunds($wallet, $moneyObj, $reason);
     }
 
@@ -111,6 +103,7 @@ class WalletService
     public function unlockFunds(Wallet $wallet, Money|string $amount): Wallet
     {
         $moneyObj = is_string($amount) ? Money::of($amount, $wallet->currency) : $amount;
+
         return $this->canonical->unlockFunds($wallet, $moneyObj);
     }
 }

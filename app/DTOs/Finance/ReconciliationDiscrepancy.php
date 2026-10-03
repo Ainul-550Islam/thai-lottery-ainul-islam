@@ -25,8 +25,7 @@ final readonly class ReconciliationDiscrepancy
         public string $description,
         public array $details = [],
         public ?string $detectedAt = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

@@ -40,7 +40,7 @@ final class CryptoGatewayTest extends TestCase
 
     public function test_crypto_initiate_deposit(): void
     {
-        $deposit = new Deposit();
+        $deposit = new Deposit;
         $deposit->id = 3;
         $deposit->user_id = 15;
         $deposit->wallet_id = 30;

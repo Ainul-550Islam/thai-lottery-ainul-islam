@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/resources/css/thailotto-theme.css">
+    @vite(['resources/css/thailotto-theme.css'])
     <style>
         body {
             background-color: #050b14;
@@ -377,6 +377,6 @@
     </footer>
 
     <!-- Runtime JavaScript -->
-    <script src="/resources/js/lotto-discount-portal.js"></script>
+    @vite(['resources/js/lotto-discount-portal.js'])
 </body>
 </html>

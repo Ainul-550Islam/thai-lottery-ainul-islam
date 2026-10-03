@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace Tests\Feature\Betting;
 
 use App\DTOs\BetPurchaseData;
+use App\DTOs\BetPurchaseResult;
 use App\Enums\BetPurchaseStatus;
 use App\Enums\BetStatus;
 use App\Enums\BetType;
 use App\Enums\Currency;
 use App\Enums\DrawStatus;
 use App\Enums\DrawType;
-use App\Enums\TransactionType;
 use App\Enums\LedgerEntryType;
 use App\Enums\LimitStatus;
 use App\Enums\TicketStatus;
+use App\Enums\TransactionType;
 use App\Exceptions\BetPurchaseException;
 use App\Exceptions\BetPurchaseValidationException;
 use App\Models\Bet;
@@ -891,7 +892,7 @@ final class BetPurchaseAtomicityTest extends TestCase
     /**
      * A purchase against a freshly built fixture.
      */
-    private function buy(string $market, string $number, string $stake): \App\DTOs\BetPurchaseResult
+    private function buy(string $market, string $number, string $stake): BetPurchaseResult
     {
         return $this->purchase($this->fixture(), $market, $number, $stake);
     }
@@ -905,7 +906,7 @@ final class BetPurchaseAtomicityTest extends TestCase
         string $number,
         string $stake,
         ?string $key = null,
-    ): \App\DTOs\BetPurchaseResult {
+    ): BetPurchaseResult {
         $this->ensureLimit($fixture['draw'], $market, $number);
 
         return app(BetPurchaseService::class)->purchase(new BetPurchaseData(
@@ -991,7 +992,7 @@ final class BetPurchaseAtomicityTest extends TestCase
             return $limit;
         }
 
-        $limit = new NumberLimit();
+        $limit = new NumberLimit;
         $limit->draw_id = $drawId;
         $limit->bet_type = $betType;
         $limit->number = $number;
@@ -1184,7 +1185,6 @@ final class BetPurchaseAtomicityTest extends TestCase
             escapeshellarg($key),
         );
     }
-
 
     /**
      * Write the concurrency probe to a temporary location and return its path.

@@ -6,7 +6,9 @@ namespace App\Filament\Resources\LedgerAccountResource\Pages;
 
 use App\Filament\Resources\LedgerAccountResource;
 use App\Support\Admin\AdminFormat;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Contracts\View\View;
 
 /**
  * The chart of accounts as a single read-only screen.
@@ -33,7 +35,7 @@ class ListLedgerAccounts extends ListRecords
         parent::mount();
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         LedgerAccountResource::forgetEntrySums();
 
@@ -49,7 +51,7 @@ class ListLedgerAccounts extends ListRecords
     }
 
     /**
-     * @return array<int, \Filament\Actions\Action>
+     * @return array<int, Action>
      */
     protected function getHeaderActions(): array
     {

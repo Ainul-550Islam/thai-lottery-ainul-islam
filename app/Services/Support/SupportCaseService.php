@@ -10,7 +10,6 @@ namespace App\Services\Support;
 use App\Enums\AuditAction;
 use App\Enums\RiskLevel;
 use App\Models\SupportCase;
-use App\Models\SupportMessage;
 use App\Models\User;
 use App\Services\Audit\AuditLogService;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +20,7 @@ final class SupportCaseService
 {
     public function __construct(
         private readonly AuditLogService $audit,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<SupportCase>
@@ -59,7 +57,7 @@ final class SupportCaseService
     }
 
     /**
-     * @param array{category: string, subject: string, body: string, priority?: string} $data
+     * @param  array{category: string, subject: string, body: string, priority?: string}  $data
      */
     public function create(User $owner, array $data): SupportCase
     {

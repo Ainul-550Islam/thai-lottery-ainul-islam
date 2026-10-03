@@ -25,8 +25,7 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
         public readonly PaymentTransaction $transaction,
         public readonly string $previousStatus,
         public readonly string $currentStatus,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>
@@ -43,10 +42,10 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
         $ref = (string) $this->transaction->reference_id;
 
         $subject = match ($this->currentStatus) {
-            PaymentStatus::Completed->value => 'Payment Confirmed: ' . $amount . ' ' . $currency,
-            PaymentStatus::Failed->value => 'Payment Failed: ' . $amount . ' ' . $currency,
+            PaymentStatus::Completed->value => 'Payment Confirmed: '.$amount.' '.$currency,
+            PaymentStatus::Failed->value => 'Payment Failed: '.$amount.' '.$currency,
             PaymentStatus::Cancelled->value => 'Payment Cancelled',
-            default => 'Payment Update: ' . $amount . ' ' . $currency,
+            default => 'Payment Update: '.$amount.' '.$currency,
         };
 
         $line = match ($this->currentStatus) {

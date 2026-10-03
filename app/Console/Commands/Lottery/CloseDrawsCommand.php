@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Lottery;
 
 use App\Models\Draw;
+use App\Services\Draw\DrawLifecycleService;
 
 /**
  * Closes betting on draws whose cut-off has passed.
@@ -49,7 +50,7 @@ final class CloseDrawsCommand extends LotteryAutomationCommand
             return self::SUCCESS;
         }
 
-        $lifecycle = app(\App\Services\Draw\DrawLifecycleService::class);
+        $lifecycle = app(DrawLifecycleService::class);
 
         $this->eachDueDraw(
             $this->schedule->dueToClose(),

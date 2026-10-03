@@ -31,8 +31,7 @@ final readonly class PaymentCallbackData
         public ?string $signature,
         public string $payloadFingerprint,
         public ?string $providerEventId,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws PaymentWebhookException

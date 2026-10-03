@@ -8,6 +8,7 @@ use App\Filament\Resources\DrawResource;
 use App\Services\Draw\DrawLifecycleService;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditDraw extends EditRecord
 {
@@ -28,10 +29,10 @@ class EditDraw extends EditRecord
      * may change. Saving goes through applyModification() rather than Eloquent so that a
      * protected field cannot be smuggled in through a crafted form request.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $record
+     * @param  Model  $record
      * @param  array<string, mixed>  $data
      */
-    protected function handleRecordUpdate($record, array $data): \Illuminate\Database\Eloquent\Model
+    protected function handleRecordUpdate($record, array $data): Model
     {
         $allowed = array_intersect_key(
             $data,

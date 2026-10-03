@@ -42,8 +42,7 @@ final class LoginService
     public function __construct(
         private readonly CaptchaService $captcha,
         private readonly AuthAuditRecorder $audit,
-    ) {
-    }
+    ) {}
 
     /**
      * Attempt a member login.

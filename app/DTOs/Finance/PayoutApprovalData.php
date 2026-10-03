@@ -33,8 +33,7 @@ final class PayoutApprovalData
         public readonly PayoutApprovalStatus $decision,
         public readonly ?string $reason,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     public function isApproval(): bool
     {

@@ -11,6 +11,7 @@ use App\Models\KycDocument;
 use App\Models\User;
 use App\Services\Compliance\WithdrawalKycGateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -129,7 +130,7 @@ final class WithdrawalKycGateTest extends TestCase
         $user = $this->userWithKyc(KycStatus::Unverified->value);
         // Forged client payload — must have zero effect on the server gate.
         // Simulate a client-injected request attribute (never a model column).
-        $requestForged = new \Illuminate\Http\Request(['kyc_approved' => true, 'kyc_status' => 'verified']);
+        $requestForged = new Request(['kyc_approved' => true, 'kyc_status' => 'verified']);
         $this->assertTrue((bool) $requestForged->input('kyc_approved'));
         // The gate only reads User::kycStatus() — forged payload is ignored.
 

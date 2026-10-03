@@ -1,8 +1,17 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
+use App\Providers\EventServiceProvider;
+use App\Providers\Filament\AdminPanelProvider;
+use App\Providers\ProductionSafetyServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\AuthServiceProvider::class,
-    App\Providers\EventServiceProvider::class,
-    App\Providers\Filament\AdminPanelProvider::class,
+    AppServiceProvider::class,
+    // Refuses to boot on an unsafe production configuration
+    // (fixture lanes, APP_DEBUG, sync queue, non-expiring tokens...).
+    ProductionSafetyServiceProvider::class,
+    AuthServiceProvider::class,
+    EventServiceProvider::class,
+    AdminPanelProvider::class,
 ];

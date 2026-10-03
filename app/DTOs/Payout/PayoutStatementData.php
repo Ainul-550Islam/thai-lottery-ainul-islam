@@ -42,16 +42,16 @@ class PayoutStatementData
 {
     /**
      * @param  string|null  $claimReference  The claim's own reference when a
-     *                                      claim asserted the prize; null
-     *                                      for auto-credited digital prizes.
+     *                                       claim asserted the prize; null
+     *                                       for auto-credited digital prizes.
      * @param  string|null  $batchReference  Key of the batch that executed
-     *                                      this payout; null for wallet-
-     *                                      internal credits without one.
+     *                                       this payout; null for wallet-
+     *                                       internal credits without one.
      * @param  string  $completedAt  ISO-8601 moment the payout completed —
-     *                              the fact-time the statement cites.
+     *                               the fact-time the statement cites.
      * @param  array<string, mixed>  $context  Composition context the
-     *                                        statement job adds (run tag,
-     *                                        source rows seen); never PII.
+     *                                         statement job adds (run tag,
+     *                                         source rows seen); never PII.
      */
     public function __construct(
         public readonly string $payoutReference,
@@ -64,8 +64,7 @@ class PayoutStatementData
         public readonly int $claimantUserId,
         public readonly string $completedAt,
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * The document identity for a payout: one payout, one statement.

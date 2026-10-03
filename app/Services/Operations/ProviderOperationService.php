@@ -8,7 +8,9 @@ use App\DTOs\Operations\ProviderOperationData;
 use App\Enums\ProviderOperationStatus;
 use App\Events\ProviderOperationalStateChanged;
 use App\Exceptions\ProviderOperationException;
+use App\Listeners\RecordProviderOperationAudit;
 use App\Models\ProviderOperation;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,9 +24,8 @@ use Illuminate\Support\Facades\DB;
 final class ProviderOperationService
 {
     public function __construct(
-        private readonly \App\Listeners\RecordProviderOperationAudit $audit,
-    ) {
-    }
+        private readonly RecordProviderOperationAudit $audit,
+    ) {}
 
     /**
      * The current operational seat for a provider (null = never
@@ -39,9 +40,9 @@ final class ProviderOperationService
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, ProviderOperation>
+     * @return Collection<int, ProviderOperation>
      */
-    public function ledgerFor(string $provider, int $limit = 50): \Illuminate\Support\Collection
+    public function ledgerFor(string $provider, int $limit = 50): Collection
     {
         return ProviderOperation::query()
             ->where('provider', $provider)

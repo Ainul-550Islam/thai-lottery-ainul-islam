@@ -35,9 +35,7 @@ final class CaptchaService
 {
     private const SESSION_KEY = 'auth_member.captcha';
 
-    public function __construct()
-    {
-    }
+    public function __construct() {}
 
     /**
      * Issue (or reissue) a challenge for a form render.

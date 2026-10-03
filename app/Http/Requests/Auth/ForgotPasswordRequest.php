@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Auth;
 
 use App\Rules\AccountIdentifierRule;
+use App\Services\Auth\CaptchaService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /*
@@ -26,11 +27,11 @@ final class ForgotPasswordRequest extends FormRequest
      */
     public function rules(): array
     {
-        $captchaEnabled = app(\App\Services\Auth\CaptchaService::class)->isEnabled()
+        $captchaEnabled = app(CaptchaService::class)->isEnabled()
             && (bool) config('auth_security.captcha.password_reset', true);
 
         return [
-            'identifier' => ['required', 'string', 'max:255', new AccountIdentifierRule()],
+            'identifier' => ['required', 'string', 'max:255', new AccountIdentifierRule],
             'captcha_token' => [$captchaEnabled ? 'required' : 'nullable', 'string', 'max:128'],
             'captcha_answer' => [$captchaEnabled ? 'required' : 'nullable', 'string', 'max:64'],
         ];

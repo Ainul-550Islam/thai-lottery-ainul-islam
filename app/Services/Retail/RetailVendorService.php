@@ -7,9 +7,12 @@ namespace App\Services\Retail;
 use App\Enums\AuditAction;
 use App\Enums\RetailVendorStatus;
 use App\Enums\RiskLevel;
+use App\Enums\TicketInventoryStatus;
 use App\Exceptions\TicketAllocationException;
 use App\Models\AuditLog;
 use App\Models\RetailVendor;
+use App\Models\TicketInventoryItem;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -49,7 +52,7 @@ final class RetailVendorService
                 return ['vendor' => $existing, 'replayed' => true];
             }
 
-            $vendor = new RetailVendor();
+            $vendor = new RetailVendor;
             $vendor->fill([
                 'vendor_code' => $canonical,
                 'name' => $name,
@@ -70,7 +73,7 @@ final class RetailVendorService
     /* ------------------------------------------------------ lifecycle - */
 
     /**
-     * @throws \App\Exceptions\TicketAllocationException
+     * @throws TicketAllocationException
      */
     public function activate(RetailVendor $vendor): RetailVendor
     {
@@ -78,7 +81,7 @@ final class RetailVendorService
     }
 
     /**
-     * @throws \App\Exceptions\TicketAllocationException
+     * @throws TicketAllocationException
      */
     public function suspend(RetailVendor $vendor, string $reason): RetailVendor
     {
@@ -88,7 +91,7 @@ final class RetailVendorService
     }
 
     /**
-     * @throws \App\Exceptions\TicketAllocationException
+     * @throws TicketAllocationException
      */
     public function close(RetailVendor $vendor, string $reason): RetailVendor
     {
@@ -105,7 +108,7 @@ final class RetailVendorService
      * may call this inside their own transactions (it locks the vendor
      * row itself); outside-transaction callers are wrapped cleanly.
      *
-     * @throws \App\Exceptions\TicketAllocationException
+     * @throws TicketAllocationException
      */
     public function assertCanReceive(RetailVendor $vendor, int $additionalUnits): RetailVendor
     {
@@ -125,11 +128,11 @@ final class RetailVendorService
                 );
             }
 
-            $held = \App\Models\TicketInventoryItem::query()
+            $held = TicketInventoryItem::query()
                 ->whereIn('ticket_allocation_id', function ($q) use ($locked): void {
                     $q->select('id')->from('ticket_allocations')->where('vendor_id', (int) $locked->getKey());
                 })
-                ->whereIn('status', [\App\Enums\TicketInventoryStatus::Available->value, \App\Enums\TicketInventoryStatus::Reserved->value])
+                ->whereIn('status', [TicketInventoryStatus::Available->value, TicketInventoryStatus::Reserved->value])
                 ->count();
 
             if ($held + $additionalUnits > (int) $locked->quota_capacity) {
@@ -152,7 +155,7 @@ final class RetailVendorService
      * (they still lock the unit rows and assert their own preconditions;
      * this guard is fair and early so queries refuse cheaply).
      *
-     * @throws \App\Exceptions\TicketAllocationException
+     * @throws TicketAllocationException
      */
     public function assertCanSell(RetailVendor $vendor): RetailVendor
     {
@@ -176,12 +179,12 @@ final class RetailVendorService
     /**
      * Vendors in the active lane, for chunked allocation fan-outs.
      *
-     * @return \Illuminate\Support\Collection<int, RetailVendor>
+     * @return Collection<int, RetailVendor>
      */
-    public function eligibleVendors(): \Illuminate\Support\Collection
+    public function eligibleVendors(): Collection
     {
         return RetailVendor::query()
-            ->where('status', \App\Enums\RetailVendorStatus::Active->value)
+            ->where('status', RetailVendorStatus::Active->value)
             ->where('quota_capacity', '>', 0)
             ->orderBy('id')
             ->get();
@@ -192,7 +195,7 @@ final class RetailVendorService
     /**
      * One lifecycle step, the enum's map as the judge.
      *
-     * @throws \App\Exceptions\TicketAllocationException
+     * @throws TicketAllocationException
      */
     private function transitionTo(RetailVendor $vendor, RetailVendorStatus $target, string $note): RetailVendor
     {
@@ -233,7 +236,7 @@ final class RetailVendorService
      */
     private function recordAudit(RetailVendor $vendor, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

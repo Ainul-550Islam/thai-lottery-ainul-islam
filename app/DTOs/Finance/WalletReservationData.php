@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\DTOs\Finance;
 
+use App\Enums\LedgerEntryPurpose;
+use App\Exceptions\WalletReservationException;
+use Illuminate\Support\Carbon;
+
 /**
  * Money-reservation identity.
  *
@@ -28,20 +32,19 @@ final readonly class WalletReservationData
         public string $reference,
         public string $amount,
         public string $currency,
-        public \App\Enums\LedgerEntryPurpose $purpose,
+        public LedgerEntryPurpose $purpose,
         public ?string $expiresAt = null,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\WalletReservationException
+     * @throws WalletReservationException
      */
     public static function fromInput(
         int $walletId,
         string $reference,
         string $amount,
         string $currency,
-        \App\Enums\LedgerEntryPurpose $purpose,
+        LedgerEntryPurpose $purpose,
         ?string $expiresAt = null,
     ): self {
         $ref = strtoupper(trim($reference));
@@ -49,31 +52,31 @@ final readonly class WalletReservationData
         $cur = strtolower(trim($currency));
 
         if ($walletId < 1) {
-            throw \App\Exceptions\WalletReservationException::malformed(
+            throw WalletReservationException::malformed(
                 'the wallet handle must be a positive integer',
             );
         }
 
         if (strlen($ref) < 8 || strlen($ref) > 64 || ! preg_match('/^[A-Z0-9:\-\._]+$/', $ref)) {
-            throw \App\Exceptions\WalletReservationException::malformed(
+            throw WalletReservationException::malformed(
                 'the reference must be a canonical 8-64 character token',
             );
         }
 
         if (! preg_match('/^\d+(\.\d{1,2})?$/', $amt)) {
-            throw \App\Exceptions\WalletReservationException::malformed(
+            throw WalletReservationException::malformed(
                 'the amount must be a decimal string (money, never float)',
             );
         }
 
         if (extension_loaded('bcmath') ? bccomp($amt, '0', 2) !== 1 : ((float) $amt <= 0)) {
-            throw \App\Exceptions\WalletReservationException::malformed(
+            throw WalletReservationException::malformed(
                 'the amount must be strictly positive',
             );
         }
 
         if (! preg_match('/^[a-z]{3}$/', $cur)) {
-            throw \App\Exceptions\WalletReservationException::malformed(
+            throw WalletReservationException::malformed(
                 'the currency must be a 3-letter code',
             );
         }
@@ -84,9 +87,9 @@ final readonly class WalletReservationData
             $candidate = trim($expiresAt);
 
             try {
-                $expiry = \Illuminate\Support\Carbon::parse($candidate)->utc()->toIso8601String();
+                $expiry = Carbon::parse($candidate)->utc()->toIso8601String();
             } catch (\Throwable) {
-                throw \App\Exceptions\WalletReservationException::malformed(
+                throw WalletReservationException::malformed(
                     'the expiry, if carried, must be an ISO-8601 instant',
                 );
             }

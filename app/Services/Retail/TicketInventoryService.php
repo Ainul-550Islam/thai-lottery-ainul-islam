@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Retail;
 
+use App\DTOs\Retail\TicketInventoryData;
 use App\Enums\AuditAction;
 use App\Enums\RiskLevel;
 use App\Enums\TicketInventoryStatus;
@@ -11,6 +12,7 @@ use App\Exceptions\TicketInventoryException;
 use App\Models\AuditLog;
 use App\Models\TicketInventoryItem;
 use App\Models\TicketProduct;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -48,7 +50,7 @@ final class TicketInventoryService
     {
         $canonical = strtoupper(trim($serial));
 
-        $fingerprint = \App\DTOs\Retail\TicketInventoryData::deriveFingerprint($ticketProductId, $drawId, $canonical);
+        $fingerprint = TicketInventoryData::deriveFingerprint($ticketProductId, $drawId, $canonical);
 
         return DB::transaction(function () use ($ticketProductId, $drawId, $canonical, $fingerprint): TicketInventoryItem {
             $product = TicketProduct::query()->lockForUpdate()->find($ticketProductId);
@@ -81,7 +83,7 @@ final class TicketInventoryService
                 return $existing;
             }
 
-            $item = new TicketInventoryItem();
+            $item = new TicketInventoryItem;
             $item->fill([
                 'inventory_key' => $fingerprint,
                 'serial' => $canonical,
@@ -135,7 +137,7 @@ final class TicketInventoryService
             $locked->status = TicketInventoryStatus::Reserved;
             $locked->reserved_by_vendor_id = $vendorId;
             $locked->reserved_at = now();
-            $locked->reserved_until = \Illuminate\Support\Carbon::instance($expiresAt);
+            $locked->reserved_until = Carbon::instance($expiresAt);
             $locked->save();
 
             $this->recordAudit($locked, sprintf('Reserved for vendor #%d until %s', $vendorId, $expiresAt->format(\DateTimeInterface::ATOM)), RiskLevel::Low);
@@ -234,7 +236,7 @@ final class TicketInventoryService
                 return $locked; // re-run replay
             }
 
-            if (!$locked->status->canTransitionTo(TicketInventoryStatus::Voided)) {
+            if (! $locked->status->canTransitionTo(TicketInventoryStatus::Voided)) {
                 throw TicketInventoryException::stateForbids((string) $locked->serial, $locked->status->value, 'void');
             }
 
@@ -267,7 +269,7 @@ final class TicketInventoryService
                 return $locked;
             }
 
-            if (!$locked->status->canTransitionTo(TicketInventoryStatus::Expired)) {
+            if (! $locked->status->canTransitionTo(TicketInventoryStatus::Expired)) {
                 throw TicketInventoryException::stateForbids((string) $locked->serial, $locked->status->value, 'expire');
             }
 
@@ -333,7 +335,7 @@ final class TicketInventoryService
      */
     private function recordAudit(TicketInventoryItem $item, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

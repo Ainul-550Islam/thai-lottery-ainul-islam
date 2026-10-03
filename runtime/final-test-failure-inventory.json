@@ -1,0 +1,140 @@
+{
+  "artifact": "final-test-failure-inventory",
+  "phase": 8,
+  "database_under_test": "sqlite (phpunit.xml)",
+  "baseline": {
+    "failed": 466,
+    "passed": 1556,
+    "skipped": 5,
+    "total": 2027,
+    "duration_s": 307.74
+  },
+  "final": {
+    "failed": 248,
+    "passed": 1803,
+    "skipped": 5,
+    "total": 2056,
+    "duration_s": 339.69,
+    "assertions": 107715
+  },
+  "delta": {
+    "failures_removed": 218,
+    "tests_newly_passing": 247,
+    "tests_added": 29,
+    "note": "29 added tests: ProductionConfigSafetyTest (16), WalletWriteContractTest (9), QueueDispatchContractTest (4). All passing."
+  },
+  "status": "STILL FAILING -- the suite is not green. This is reported as-is. No test was weakened, skipped, marked incomplete or deleted to improve this number.",
+  "largest_single_cause_resolved": {
+    "cause": "Vite manifest not found at public/build/manifest.json",
+    "tests_affected": "approximately 215",
+    "explanation": "Front-end assets had never been compiled. Every feature test rendering a Blade view that extends the asset layout aborted during view render, before reaching any assertion. The real application-logic failure count was masked by a build gap.",
+    "fix": "npm ci && npm run build -- 142 packages, 0 vulnerabilities, 28 entrypoints emitted to public/build/."
+  },
+  "remaining_failures_classified": [
+    {
+      "class": "Public page content assertions",
+      "approximate_count": 120,
+      "representative_suites": [
+        "WeeklyLotteryPublicPageTest (32)",
+        "NationalLotteryPublicPageTest (26)",
+        "HomePagePublicExperienceTest (18)",
+        "LanePageParityTest (11)",
+        "PcsoLotteryPublicPageTest (11)",
+        "BingoLotteryPublicPageTest (8)"
+      ],
+      "symptom": "The route returns 200 and renders a full HTML document, but the document does not contain the string the test demands (prize status badges, lane parity blocks, DB-backed stat panels, countdown placeholders such as TBA).",
+      "assessment": "Genuine unimplemented or partially implemented marketing/public-surface features. These are the 'marketing and hosting integration gaps' class, not the five production blockers. Each needs individual feature work against its own acceptance test.",
+      "in_scope_for_this_pass": false
+    },
+    {
+      "class": "UrlGenerationException -- missing required route parameters",
+      "approximate_count": 10,
+      "symptom": "A named route is generated without a parameter it declares as required.",
+      "assessment": "Real routing defects on verification and lane pages. Separate from the five blockers.",
+      "in_scope_for_this_pass": false
+    },
+    {
+      "class": "ModelNotFoundException in lane tests",
+      "approximate_count": 13,
+      "assessment": "Fixture/seed expectations in lane tests that do not match what the lane services create. Needs per-lane investigation.",
+      "in_scope_for_this_pass": false
+    },
+    {
+      "class": "TypeError / Error",
+      "approximate_count": 29,
+      "representative_suites": [
+        "P0P1P2ComprehensiveEnterpriseSuiteTest",
+        "BusinessCriticalInvariantTest"
+      ],
+      "assessment": "Type contract violations in aggregate 'whole system' suites. Real defects requiring individual diagnosis.",
+      "in_scope_for_this_pass": false
+    },
+    {
+      "class": "Wallet / payment wiring",
+      "approximate_count": 8,
+      "suite": "Tests\\Feature\\Web\\PlayerWalletWiringTest",
+      "symptom": "'The selected method is invalid' on deposit and withdrawal -- no payment methods are configured or seeded in the testing environment -- plus a dashboard copy assertion on 'TBA'.",
+      "assessment": "Configuration/seed gap plus copy gap. NOT the Phase 2 mass-assignment defect, which is closed: zero MassAssignmentException remain in the final run.",
+      "in_scope_for_this_pass": false
+    }
+  ],
+  "blocker_specific_verification": {
+    "SQLSTATE_42S22_occurrences": 0,
+    "MassAssignmentException_occurrences": 4,
+    "MassAssignmentException_before_this_pass": 26,
+    "remaining_mass_assignment_sites": "User.kyc_status and GloL6Sale.created_at -- NOT Wallet. Reported open below.",
+    "Target_class_does_not_exist_occurrences": 0,
+    "production_safety_suite": "29 passed across 3 new release-blocking test classes"
+  },
+  "integrity_statement": "No test was modified, skipped, weakened or deleted to reach this result. No Pint exclusion was added and no pint.json exists. Where a test was found to be written against a non-existent API, that was reported as a test defect rather than fixed by loosening production code.",
+  "newly_found_and_fixed_this_pass": [
+    {
+      "defect": "App\\Services\\Payment\\ProcessPaymentWebhookService did not exist",
+      "found_by": "BusinessCriticalInvariantTest invariant 1 + FinalProductionReadinessTest check 6, both dying with BindingResolutionException",
+      "severity": "CRITICAL",
+      "impact": "Webhook replay protection -- the single most important money-safety property in the system -- was never actually verified by anything, because the class the tests exercised was absent.",
+      "fix": "Created the service plus App\\DTOs\\Payment\\WebhookProcessingResult. Idempotency is enforced by the UNIQUE index on financial_transactions.idempotency_key inside the crediting transaction, and a lost race on that index is correctly reported as a replay rather than an error."
+    },
+    {
+      "defect": "App\\Models\\User never imported in App\\Services\\Finance\\WalletService",
+      "severity": "HIGH",
+      "impact": "getOrCreateWallet() declares int|User, so PHP resolved the bare User to App\\Services\\Finance\\User, which does not exist. Passing a real User model always raised a TypeError; only the int branch was reachable.",
+      "fix": "use App\\Models\\User; added."
+    },
+    {
+      "defect": "Two classes named WalletService with divergent credit()/debit() signatures",
+      "severity": "HIGH",
+      "impact": "Finance\\WalletService accepted only Money and only the enum; Wallet\\WalletService accepted Money|string and string|enum and delegated to it. The same call succeeded or raised a TypeError depending on which use statement was at the top of the caller's file.",
+      "fix": "Canonical service widened to match the facade. Unrecognised type strings fall back to the method default rather than silently mis-labelling a ledger entry."
+    }
+  ],
+  "remaining_failures_open": [
+    {
+      "class": "Public page content assertions",
+      "approximate_count": 120,
+      "symptom": "Route returns 200 with a full HTML document, but the document lacks the demanded string (prize status badges, lane parity blocks, DB-backed stat panels, TBA countdown placeholders).",
+      "assessment": "Genuine unimplemented marketing-surface features. Each needs individual feature work against its own acceptance test."
+    },
+    {
+      "class": "TypeError / Error in aggregate suites",
+      "approximate_count": 29,
+      "assessment": "Several are tests written against APIs that do not exist in any form -- e.g. P0P1P2ComprehensiveEnterpriseSuiteTest calls credit() with a string as the 5th argument where the parameter is array $options. Those are test-side defects and were NOT papered over by changing the tests."
+    },
+    {
+      "class": "ModelNotFoundException in lane tests",
+      "approximate_count": 13,
+      "assessment": "Lane fixture/seed expectations do not match what the lane services create."
+    },
+    {
+      "class": "UrlGenerationException",
+      "approximate_count": 10,
+      "assessment": "Named routes generated without required parameters -- real routing defects on verification and lane pages."
+    },
+    {
+      "class": "MassAssignmentException",
+      "approximate_count": 4,
+      "detail": "User.kyc_status has a cast but is absent from $fillable, and GloL6Sale.created_at is not fillable. kyc_status was deliberately NOT added to $fillable: tests/Feature/Compliance/WithdrawalKycGateTest.php:133 is a forgery test proving the system must never accept kyc_status from request input. The correct fix is a factory state or an explicit service writer, not a wider mass-assignment surface.",
+      "assessment": "OPEN by design decision, documented rather than silently widened."
+    }
+  ]
+}

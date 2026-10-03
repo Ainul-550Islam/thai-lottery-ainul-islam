@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Draw;
 
+use App\Exceptions\DrawReconciliationException;
+
 /**
  * The public / authorized verification request.
  *
@@ -26,11 +28,10 @@ final readonly class ResultVerificationData
         public string $resultFingerprint,
         public string $nonce,
         public array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\DrawReconciliationException
+     * @throws DrawReconciliationException
      */
     public static function fromPayload(
         string $drawReference,
@@ -43,19 +44,19 @@ final readonly class ResultVerificationData
         $n = trim($nonce);
 
         if (! preg_match('/^[A-Z0-9-]{1,64}$/', $ref)) {
-            throw \App\Exceptions\DrawReconciliationException::malformed(
+            throw DrawReconciliationException::malformed(
                 'the draw reference is not canonical (uppercase ASCII, digits, hyphens)',
             );
         }
 
         if (! preg_match('/^[0-9a-f]{64}$/', $fp)) {
-            throw \App\Exceptions\DrawReconciliationException::malformed(
+            throw DrawReconciliationException::malformed(
                 'the result fingerprint must be exactly 64 lowercase hex characters',
             );
         }
 
         if (mb_strlen($n) < 16) {
-            throw \App\Exceptions\DrawReconciliationException::malformed(
+            throw DrawReconciliationException::malformed(
                 'the nonce must be at least 16 characters',
             );
         }

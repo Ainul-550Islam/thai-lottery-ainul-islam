@@ -10,24 +10,30 @@ use App\Enums\GloFreezeStatus;
 use App\Enums\GloPaymentHoldStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\GloClaimException;
+use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Models\FinancialHold;
 use App\Models\GloPrizeClaim;
 use App\Models\GloPrizePaymentHold;
-use App\Models\GloPublicTicketStatus;
 use App\Models\GloTicket;
 use App\Models\GloTicketFreeze;
 use App\Models\KycDocument;
+use App\Models\Payout;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Services\Lottery\GloFrozenWinnerService;
 use App\Services\Lottery\GloPrizeClaimService;
 use App\Services\Lottery\GloPublicTicketVerificationService;
 use App\Services\Lottery\GloStampDutyCalculator;
 use App\Services\Lottery\GloTicketFreezeService;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -363,7 +369,7 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
             $this->fail('duplicate claim must not insert a second row');
         } catch (GloClaimException) {
             $this->assertTrue(true);
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             // Unique constraint path also acceptable under true concurrency.
             $this->assertStringContainsString('UNIQUE', strtoupper($e->getMessage()));
         }
@@ -423,7 +429,7 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
         $claim = $this->submitApprovedClaim();
         $this->claims->pay($claim, $this->paymentOperator, 'TX-AUDIT');
 
-        $actions = \App\Models\AuditLog::query()->pluck('description')->all();
+        $actions = AuditLog::query()->pluck('description')->all();
 
         $this->assertContains('glo_freeze_requested', $actions);
         $this->assertContains('glo_freeze_under_review', $actions);
@@ -433,7 +439,7 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
         $this->assertContains('glo_claim_paid', $actions);
 
         // No secret-looking payloads in audit metadata.
-        foreach (\App\Models\AuditLog::query()->get() as $log) {
+        foreach (AuditLog::query()->get() as $log) {
             $json = json_encode($log->metadata ?? []);
             $this->assertFalse(str_contains((string) $json, 'password'));
             $this->assertFalse(str_contains((string) $json, 'Bearer'));
@@ -443,7 +449,7 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
     public function test_no_wallet_or_payout_lane_is_touched_by_glo_payment(): void
     {
         // Glo payment must not create Payout rows or move wallet balances.
-        $wallet = \App\Models\Wallet::factory()->create([
+        $wallet = Wallet::factory()->create([
             'user_id' => $this->claimant->id,
             'type' => 'primary',
             'currency' => 'THB',
@@ -457,8 +463,8 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
         $wallet->refresh();
         $this->assertSame('100.00', $wallet->balance);
 
-        $this->assertSame(0, \App\Models\Payout::query()->where('user_id', $this->claimant->id)->count());
-        $this->assertSame(0, \App\Models\FinancialHold::query()->count());
+        $this->assertSame(0, Payout::query()->where('user_id', $this->claimant->id)->count());
+        $this->assertSame(0, FinancialHold::query()->count());
 
         $this->assertSame(GloClaimStatus::Paid, $claim->fresh()->status);
     }
@@ -473,15 +479,15 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
             'ticket_number' => $this->ticketNumber,
             'requesting_authority' => 'Police',
             'jurisdiction' => 'BKK',
-            'case_reference' => 'CASE-INV-'.\Illuminate\Support\Str::random(16),
-            'evidence_reference' => 'EVD-INV-'.\Illuminate\Support\Str::random(16),
+            'case_reference' => 'CASE-INV-'.Str::random(16),
+            'evidence_reference' => 'EVD-INV-'.Str::random(16),
         ], $this->admin);
 
-        if ($freeze->status === \App\Enums\GloFreezeStatus::Requested) {
+        if ($freeze->status === GloFreezeStatus::Requested) {
             $freeze = $this->freezes->startReview($freeze, $this->admin);
         }
 
-        if ($freeze->status === \App\Enums\GloFreezeStatus::UnderReview) {
+        if ($freeze->status === GloFreezeStatus::UnderReview) {
             $freeze = $this->freezes->approveToFrozen($freeze, $this->admin);
         }
 
@@ -534,11 +540,11 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
         $this->fail(sprintf('Expected unique index on %s(%s)', $table, implode(', ', $columns)));
     }
 
-    private function freshUser(): \Illuminate\Database\Eloquent\Factories\Factory
+    private function freshUser(): Factory
     {
         return User::factory()->state(fn (): array => [
-            'email' => \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(12)).'@gloe2e.local',
-            'username' => 'ge'.\Illuminate\Support\Str::random(10),
+            'email' => Str::lower(Str::random(12)).'@gloe2e.local',
+            'username' => 'ge'.Str::random(10),
             'phone' => '+8801'.random_int(100_000_000, 999_999_999),
             'status' => UserStatus::Active,
         ]);

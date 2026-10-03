@@ -7,7 +7,6 @@ namespace Tests\Feature\Security;
 use App\Enums\KycDocumentType;
 use App\Enums\KycStatus;
 use App\Enums\UserStatus;
-use App\Models\KycDocument;
 use App\Models\User;
 use App\Services\Security\KycVerificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,7 +20,9 @@ final class KycVerificationTest extends TestCase
     use RefreshDatabase;
 
     private User $player;
+
     private User $admin;
+
     private string $token;
 
     protected function setUp(): void

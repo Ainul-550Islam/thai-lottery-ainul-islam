@@ -7,7 +7,6 @@ namespace Tests\Feature\Agent;
 use App\DTOs\Agent\AgentOnboardingData;
 use App\Enums\AgentStatus;
 use App\Enums\Currency;
-use App\Models\Agent;
 use App\Models\User;
 
 final class AgentReferralCodeUniquenessTest extends AgentTestCase

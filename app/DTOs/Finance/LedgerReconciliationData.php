@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Finance;
 
+use App\Exceptions\LedgerReconciliationException;
+
 /**
  * The wallet-ledger reconciliation input pack.
  *
@@ -30,11 +32,10 @@ final readonly class LedgerReconciliationData
         public string $ledgerAggregate,
         public string $reservationEffect,
         public string $fingerprint,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\LedgerReconciliationException
+     * @throws LedgerReconciliationException
      */
     public static function fromInput(
         int $walletId,
@@ -48,27 +49,27 @@ final readonly class LedgerReconciliationData
         $cur = strtolower(trim($currency));
 
         if ($walletId < 1) {
-            throw \App\Exceptions\LedgerReconciliationException::malformed(
+            throw LedgerReconciliationException::malformed(
                 'the wallet handle must be a positive integer',
             );
         }
 
         if (! preg_match('/^[a-z]{3}$/', $cur)) {
-            throw \App\Exceptions\LedgerReconciliationException::malformed(
+            throw LedgerReconciliationException::malformed(
                 'the currency must be a 3-letter code',
             );
         }
 
         foreach (['expected_balance' => $expectedBalance, 'ledger_aggregate' => $ledgerAggregate, 'reservation_effect' => $reservationEffect] as $field => $value) {
             if (! preg_match('/^-?\d+(\.\d{1,2})?$/', trim($value))) {
-                throw \App\Exceptions\LedgerReconciliationException::malformed(
+                throw LedgerReconciliationException::malformed(
                     sprintf('the %s must be a decimal string (money, never float)', $field),
                 );
             }
         }
 
         if (! preg_match('/^[0-9a-f]{64}$/', $fp)) {
-            throw \App\Exceptions\LedgerReconciliationException::malformed(
+            throw LedgerReconciliationException::malformed(
                 'the reconciliation fingerprint must be exactly 64 lowercase hex characters',
             );
         }

@@ -3,17 +3,19 @@
 namespace App\Providers;
 
 use App\Models\AccountGradeSnapshot;
+use App\Models\AccountVerification;
 use App\Models\Agent;
 use App\Models\Bet;
 use App\Models\Draw;
 use App\Models\GloPrizeClaim;
-use App\Models\GradeDiscountSnapshot;
 use App\Models\GloTicketFreeze;
+use App\Models\GradeDiscountSnapshot;
 use App\Models\LedgerEntry;
 use App\Models\Payment;
 use App\Models\Ticket;
 use App\Models\Wallet;
 use App\Policies\AccountGradePolicy;
+use App\Policies\AccountVerificationPolicy;
 use App\Policies\AgentPolicy;
 use App\Policies\BetPolicy;
 use App\Policies\DrawPolicy;
@@ -42,7 +44,7 @@ class AuthServiceProvider extends ServiceProvider
         Draw::class => DrawPolicy::class,
         Payment::class => PaymentPolicy::class,
         Agent::class => AgentPolicy::class,
-        \App\Models\AccountVerification::class => \App\Policies\AccountVerificationPolicy::class,
+        AccountVerification::class => AccountVerificationPolicy::class,
         GloTicketFreeze::class => GloTicketFreezePolicy::class,
         GloPrizeClaim::class => GloPrizeClaimPolicy::class,
     ];

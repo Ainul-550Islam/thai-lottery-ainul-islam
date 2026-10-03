@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Home;
 
 use App\Services\Home\HomeCountdownService;
-use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;

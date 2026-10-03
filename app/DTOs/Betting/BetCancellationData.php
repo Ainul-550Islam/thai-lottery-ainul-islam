@@ -41,7 +41,7 @@ final readonly class BetCancellationData
     /**
      * @param  int  $userId  the authenticated player, resolved by the caller
      * @param  string  $betIdentifier  bet id, uuid or bet_number, resolved and
-     *                               ownership-checked inside a user-scoped query
+     *                                 ownership-checked inside a user-scoped query
      * @param  BetCancellationReason  $reason  why the cancellation is happening
      * @param  string|null  $clientKey  the client's request key for idempotency,
      *                                  when one was supplied
@@ -53,8 +53,7 @@ final readonly class BetCancellationData
         public BetCancellationReason $reason,
         public ?string $clientKey = null,
         public array $ignoredClientFields = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Build from an untrusted associative payload.

@@ -15,6 +15,5 @@ final readonly class GloStampDutyResult
         public string $stampDutyThb,
         public string $netPayoutThb,
         public bool $isIncomeTaxExempt = true,
-    ) {
-    }
+    ) {}
 }

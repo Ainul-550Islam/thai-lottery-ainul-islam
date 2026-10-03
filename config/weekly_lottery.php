@@ -218,7 +218,17 @@ return [
         ],
 
         'fixture' => [
-            'enabled' => (bool) env('WEEKLY_LOTTERY_FIXTURE_ENABLED', false),
+            // PRODUCTION FIXTURE CONTAMINATION GUARD.
+            //
+            // A fixture lane may never exist in production, whatever the
+            // environment file says. .env.example shipped this flag as `true`
+            // and `composer create-project` copies .env.example to .env, so a
+            // stock deployment could stand up a fake-result lane. The env var
+            // is still honoured everywhere else so local work and the test
+            // suite are unaffected.
+            'enabled' => env('APP_ENV') === 'production'
+                ? false
+                : (bool) env('WEEKLY_LOTTERY_FIXTURE_ENABLED', false),
             'provider_label' => 'fixture',
             'schema_version' => 'WEEKLY_FIXTURE_V1',
         ],

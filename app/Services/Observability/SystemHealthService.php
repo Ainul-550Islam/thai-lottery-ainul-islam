@@ -24,8 +24,7 @@ class SystemHealthService
         private readonly QueueHealthService $queueHealth,
         private readonly CacheRepository $cache,
         private readonly ConfigRepository $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Liveness check: confirms application process is running.

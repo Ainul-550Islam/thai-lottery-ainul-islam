@@ -15,7 +15,7 @@ final class CommissionCalculationTest extends AgentTestCase
         Config::set('agent.commission.mode', 'turnover');
 
         $agent = $this->createAgent('0.0500', AgentStatus::Active);
-        $bet = new Bet();
+        $bet = new Bet;
         $bet->stake_amount = '250.00';
         $bet->actual_payout = '0.00';
 
@@ -32,7 +32,7 @@ final class CommissionCalculationTest extends AgentTestCase
         Config::set('agent.commission.mode', 'net_revenue');
 
         $agent = $this->createAgent('0.1000', AgentStatus::Active);
-        $bet = new Bet();
+        $bet = new Bet;
         $bet->stake_amount = '1000.00';
         $bet->actual_payout = '200.00'; // Net revenue = 800.00
 
@@ -49,7 +49,7 @@ final class CommissionCalculationTest extends AgentTestCase
         Config::set('agent.commission.mode', 'net_revenue');
 
         $agent = $this->createAgent('0.1000', AgentStatus::Active);
-        $bet = new Bet();
+        $bet = new Bet;
         $bet->stake_amount = '100.00';
         $bet->actual_payout = '900.00'; // Player won prize, house lost money
 
@@ -64,7 +64,7 @@ final class CommissionCalculationTest extends AgentTestCase
         Config::set('agent.commission.mode', 'turnover');
 
         $agent = $this->createAgent('0.0333', AgentStatus::Active);
-        $bet = new Bet();
+        $bet = new Bet;
         $bet->stake_amount = '15.00'; // 15 * 0.0333 = 0.4995 -> rounds to 0.50
 
         $result = $this->calculationService()->calculate($bet, $agent, 1);

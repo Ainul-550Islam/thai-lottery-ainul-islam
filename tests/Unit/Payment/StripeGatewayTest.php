@@ -6,7 +6,6 @@ namespace Tests\Unit\Payment;
 
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
-use App\Enums\PaymentMethod;
 use App\Enums\WebhookEventType;
 use App\Models\Deposit;
 use App\Services\Payment\Drivers\StripeGateway;
@@ -52,7 +51,7 @@ final class StripeGatewayTest extends TestCase
             ], 200),
         ]);
 
-        $deposit = new Deposit();
+        $deposit = new Deposit;
         $deposit->id = 1;
         $deposit->user_id = 42;
         $deposit->wallet_id = 99;

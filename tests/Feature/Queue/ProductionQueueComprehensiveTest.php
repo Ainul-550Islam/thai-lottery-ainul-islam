@@ -9,19 +9,14 @@ use App\DTOs\Payment\GatewayWithdrawalResponse;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\BetType;
 use App\Enums\Currency;
-use App\Enums\DepositStatus;
 use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Enums\LimitStatus;
 use App\Enums\PaymentMethod;
-use App\Enums\PaymentStatus;
-use App\Enums\PayoutStatus;
 use App\Enums\QueueName;
 use App\Enums\RiskLevel;
 use App\Enums\WebhookEventType;
 use App\Enums\WithdrawalStatus;
-use App\Exceptions\FinancialException;
-use App\Exceptions\WithdrawalException;
 use App\Jobs\Draw\ProcessPrizeSettlementJob;
 use App\Jobs\Finance\ProcessFinancialReconciliationJob;
 use App\Jobs\Notification\SendFinancialAlertJob;
@@ -29,18 +24,19 @@ use App\Jobs\Payment\DisburseWithdrawalJob;
 use App\Jobs\Payment\ProcessPaymentWebhookJob;
 use App\Models\AuditLog;
 use App\Models\Bet;
-use App\Models\Deposit;
 use App\Models\Draw;
 use App\Models\NumberLimit;
 use App\Models\Payout;
-use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Betting\BetPurchaseService;
 use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultPublicationService;
-use App\Services\Finance\DepositCompletionService;
+use App\Services\Draw\RealPrizeSettlementService;
+use App\Services\Finance\FinancialStateTransitionService;
 use App\Services\Finance\Money;
+use App\Services\Finance\WalletHoldService;
+use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalCompletionService;
 use App\Services\Finance\WithdrawalService;
@@ -50,12 +46,11 @@ use App\Services\Payment\PaymentWebhookService;
 use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\Queue\QueueHealthService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Feature\Payment\PaymentTestCase;
 
@@ -65,10 +60,15 @@ use Tests\Feature\Payment\PaymentTestCase;
 final class ProductionQueueComprehensiveTest extends PaymentTestCase
 {
     private WithdrawalService $withdrawalService;
+
     private WithdrawalApprovalService $withdrawalApprovalService;
+
     private WithdrawalCompletionService $withdrawalCompletionService;
+
     private WithdrawalDisbursementService $disbursementService;
+
     private PaymentWebhookService $webhookService;
+
     private QueueHealthService $queueHealthService;
 
     protected function setUp(): void
@@ -111,9 +111,9 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         return new WithdrawalDisbursementService(
             gateways: $gatewayManager,
-            locks: app(\App\Services\Finance\WalletLockService::class),
-            holds: app(\App\Services\Finance\WalletHoldService::class),
-            transitions: app(\App\Services\Finance\FinancialStateTransitionService::class),
+            locks: app(WalletLockService::class),
+            holds: app(WalletHoldService::class),
+            transitions: app(FinancialStateTransitionService::class),
             approvalService: $this->withdrawalApprovalService,
             completionService: $this->withdrawalCompletionService,
         );
@@ -292,7 +292,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $draw->save();
 
         // Create Limit & Purchase winning bet on 3d_direct with '123'
-        $limit = new NumberLimit();
+        $limit = new NumberLimit;
         $limit->draw_id = $draw->getKey();
         $limit->bet_type = BetType::ThreeD;
         $limit->number = '123';
@@ -322,7 +322,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $job = new ProcessPrizeSettlementJob((int) $draw->getKey());
 
         // 1st Run
-        $job->handle(app(\App\Services\Draw\RealPrizeSettlementService::class), $lifecycle);
+        $job->handle(app(RealPrizeSettlementService::class), $lifecycle);
 
         $draw->refresh();
         $this->assertSame(DrawStatus::Completed, $draw->status);
@@ -331,7 +331,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         // 2nd Duplicate Run
         $job2 = new ProcessPrizeSettlementJob((int) $draw->getKey());
-        $job2->handle(app(\App\Services\Draw\RealPrizeSettlementService::class), $lifecycle);
+        $job2->handle(app(RealPrizeSettlementService::class), $lifecycle);
 
         // Payouts and wallet balance remain unchanged
         $this->assertSame(1, Payout::query()->where('draw_id', $draw->id)->count());
@@ -381,7 +381,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
     public function test_09_failed_job_is_persisted_in_database(): void
     {
         DB::table('failed_jobs')->insert([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'connection' => 'database',
             'queue' => QueueName::FinancialCritical->value,
             'payload' => json_encode(['job' => DisburseWithdrawalJob::class, 'data' => ['withdrawalId' => 123]]),
@@ -467,7 +467,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $settlementJob = new ProcessPrizeSettlementJob(1);
         $this->assertTrue($settlementJob->afterCommit);
 
-        $reconciliationJob = new ProcessFinancialReconciliationJob();
+        $reconciliationJob = new ProcessFinancialReconciliationJob;
         $this->assertTrue($reconciliationJob->afterCommit);
 
         $payload = new WebhookPayload(
@@ -554,7 +554,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
     #[Test]
     public function test_16_scheduled_reconciliation_cannot_overlap(): void
     {
-        $job = new ProcessFinancialReconciliationJob();
+        $job = new ProcessFinancialReconciliationJob;
         $this->assertInstanceOf(ShouldBeUnique::class, $job);
         $this->assertSame(600, $job->uniqueFor);
     }

@@ -47,8 +47,12 @@ class SitemapTest extends TestCase
 
     public function test_real_lottery_year_and_detail_pages_are_included(): void
     {
-        NationalLotteryDraw::factory()->count(2)->create(['draw_year' => 2568]);
-        BingoLotteryDraw::factory()->create(['draw_year' => 2567]);
+        // The sitemap lists year archives only for draws that are publicly
+        // published, which is the point of the page. The factory default is
+        // publication_status Pending, so without ->published() this fixture
+        // asserted that unpublished draws appear in the sitemap.
+        NationalLotteryDraw::factory()->count(2)->published()->create(['draw_year' => 2568]);
+        BingoLotteryDraw::factory()->published()->create(['draw_year' => 2567]);
 
         $xml = $this->sitemapUrls();
 

@@ -6,7 +6,6 @@ namespace Tests\Feature\Agent;
 
 use App\Enums\AgentStatus;
 use App\Models\AgentCommission;
-use App\Models\Bet;
 
 final class BetAgentAttributionTest extends AgentTestCase
 {

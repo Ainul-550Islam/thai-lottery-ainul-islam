@@ -7,8 +7,6 @@ namespace Tests\Feature\Agent;
 use App\Enums\AgentStatus;
 use App\Enums\CommissionStatus;
 use App\Models\AgentCommission;
-use App\Models\Wallet;
-use App\Services\Finance\LedgerBalanceValidator;
 
 final class CommissionDrawCancellationTest extends AgentTestCase
 {

@@ -9,7 +9,7 @@
 
     <!-- Tailwind & Design System Roots -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('css/admin-lottofin.css') }}">
+    @vite(['resources/css/admin-lottofin.css'])
 
     @stack('styles')
 </head>
@@ -171,7 +171,7 @@
     </button>
 
     <!-- Admin Interactive Script -->
-    <script src="{{ asset('js/admin-lottofin.js') }}"></script>
+    @vite(['resources/js/admin-lottofin.js'])
     @stack('scripts')
 </body>
 </html>

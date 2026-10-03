@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\DTOs\Finance;
 
+use App\Exceptions\FinancialHoldException;
+use Illuminate\Support\Carbon;
+
 /**
  * Financial-hold identity.
  *
@@ -32,11 +35,10 @@ final readonly class FinancialHoldData
         public string $reason,
         public string $sourceReference,
         public ?string $expiresAt = null,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws \App\Exceptions\FinancialHoldException
+     * @throws FinancialHoldException
      */
     public static function fromInput(
         int $walletId,
@@ -52,37 +54,37 @@ final readonly class FinancialHoldData
         $src = strtoupper(trim($sourceReference));
 
         if ($walletId < 1) {
-            throw \App\Exceptions\FinancialHoldException::malformed(
+            throw FinancialHoldException::malformed(
                 'the wallet handle must be a positive integer',
             );
         }
 
         if (! preg_match('/^\d+(\.\d{1,2})?$/', $amt)) {
-            throw \App\Exceptions\FinancialHoldException::malformed(
+            throw FinancialHoldException::malformed(
                 'the amount must be a decimal string (money, never float)',
             );
         }
 
         if (extension_loaded('bcmath') ? bccomp($amt, '0', 2) !== 1 : ((float) $amt <= 0)) {
-            throw \App\Exceptions\FinancialHoldException::malformed(
+            throw FinancialHoldException::malformed(
                 'the amount must be strictly positive',
             );
         }
 
         if (! preg_match('/^[a-z]{3}$/', $cur)) {
-            throw \App\Exceptions\FinancialHoldException::malformed(
+            throw FinancialHoldException::malformed(
                 'the currency must be a 3-letter code',
             );
         }
 
         if (strlen($why) < 8 || strlen($why) > 255) {
-            throw \App\Exceptions\FinancialHoldException::malformed(
+            throw FinancialHoldException::malformed(
                 'the reason must be 8-255 characters (the judge deserves a whole sentence)',
             );
         }
 
         if (strlen($src) < 8 || strlen($src) > 64 || ! preg_match('/^[A-Z0-9:\-\._]+$/', $src)) {
-            throw \App\Exceptions\FinancialHoldException::malformed(
+            throw FinancialHoldException::malformed(
                 'the source reference must be a canonical 8-64 character token',
             );
         }
@@ -93,9 +95,9 @@ final readonly class FinancialHoldData
             $candidate = trim($expiresAt);
 
             try {
-                $expiry = \Illuminate\Support\Carbon::parse($candidate)->utc()->toIso8601String();
+                $expiry = Carbon::parse($candidate)->utc()->toIso8601String();
             } catch (\Throwable) {
-                throw \App\Exceptions\FinancialHoldException::malformed(
+                throw FinancialHoldException::malformed(
                     'the expiry, if carried, must be an ISO-8601 instant',
                 );
             }

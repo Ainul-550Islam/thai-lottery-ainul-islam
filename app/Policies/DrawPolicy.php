@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Draw;
 use App\Models\User;
+use App\Support\Admin\AdminAccess;
 
 class DrawPolicy extends BasePolicy
 {
@@ -37,7 +38,7 @@ class DrawPolicy extends BasePolicy
      */
     public function close(User $user, Draw $model): bool
     {
-        return \App\Support\Admin\AdminAccess::allows($user, \App\Support\Admin\AdminAccess::MANAGE_DRAWS);
+        return AdminAccess::allows($user, AdminAccess::MANAGE_DRAWS);
     }
 
     /**
@@ -45,7 +46,7 @@ class DrawPolicy extends BasePolicy
      */
     public function cancel(User $user, Draw $model): bool
     {
-        return \App\Support\Admin\AdminAccess::allows($user, \App\Support\Admin\AdminAccess::MANAGE_DRAWS);
+        return AdminAccess::allows($user, AdminAccess::MANAGE_DRAWS);
     }
 
     public function delete(User $user, Draw $model): bool

@@ -6,8 +6,8 @@
 @section('meta_robots', $meta['robots'])
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/thailotto-theme.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/lottery.css') }}">
+    @vite(['resources/css/thailotto-theme.css'])
+    @vite(['resources/css/lottery.css'])
 @endpush
 
 @section('content')

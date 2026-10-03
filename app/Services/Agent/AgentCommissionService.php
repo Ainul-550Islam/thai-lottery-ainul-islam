@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Agent;
 
-use App\DTOs\Agent\CommissionCalculationResult;
 use App\DTOs\Agent\CommissionSettlementResult;
 use App\Models\Agent;
 use App\Models\AgentCommission;
 use App\Models\Bet;
-use Illuminate\Contracts\Container\Container;
-use Illuminate\Support\Collection;
 
 /**
  * Universal Agent Commission Service Orchestrator.
@@ -25,8 +22,7 @@ class AgentCommissionService
         public readonly AgentCommissionAccrualService $accrual,
         public readonly AgentCommissionSettlementService $settlement,
         public readonly AgentCommissionReversalService $reversal,
-    ) {
-    }
+    ) {}
 
     /**
      * Calculate and accrue commission for a placed bet.

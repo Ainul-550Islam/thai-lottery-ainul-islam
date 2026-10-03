@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Verification;
 
 use App\Enums\KycDocumentType;
+use App\Enums\KycStatus;
 use App\Models\KycDocument;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -121,7 +122,7 @@ final class DocumentStorageService
             'original_filename' => mb_substr((string) $file->getClientOriginalName(), 0, 255),
             'mime_type' => $contentMime,
             'file_size' => $size,
-            'status' => \App\Enums\KycStatus::Pending,
+            'status' => KycStatus::Pending,
             'metadata' => [
                 'submission_ip' => $ipAddress,
                 'submitted_at' => now()->toIso8601String(),

@@ -22,11 +22,10 @@ final class NotificationPreferenceData
         public readonly NotificationChannel $channel,
         public readonly bool $enabled,
         public readonly ?array $quietHours,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array{user_id:int, event_type:string|NotificationEventType, channel:string|NotificationChannel, enabled:bool|string|int, quiet_hours?:array|null} $data
+     * @param  array{user_id:int, event_type:string|NotificationEventType, channel:string|NotificationChannel, enabled:bool|string|int, quiet_hours?:array|null}  $data
      */
     public static function fromInput(array $data): self
     {

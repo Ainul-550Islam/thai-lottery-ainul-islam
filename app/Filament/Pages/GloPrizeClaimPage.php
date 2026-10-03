@@ -6,6 +6,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\GloClaimStatus;
 use App\Models\GloPrizeClaim;
+use App\Models\User;
 use App\Services\Lottery\GloPrizeClaimService;
 use App\Support\Admin\AdminAccess;
 use Filament\Forms\Components\Select;
@@ -162,7 +163,7 @@ class GloPrizeClaimPage extends Page
             ->send();
     }
 
-    private function assertGloPermission(?\App\Models\User $actor, string $permission): \App\Models\User
+    private function assertGloPermission(?User $actor, string $permission): User
     {
         if ($actor === null || ! AdminAccess::allows($actor, $permission)) {
             throw new \RuntimeException('Missing required GLO permission.');
@@ -171,7 +172,7 @@ class GloPrizeClaimPage extends Page
         return $actor;
     }
 
-    private function assertGloClaimPermission(?\App\Models\User $actor, GloPrizeClaim $claim, string $permission): GloPrizeClaim
+    private function assertGloClaimPermission(?User $actor, GloPrizeClaim $claim, string $permission): GloPrizeClaim
     {
         $this->assertGloPermission($actor, $permission);
 

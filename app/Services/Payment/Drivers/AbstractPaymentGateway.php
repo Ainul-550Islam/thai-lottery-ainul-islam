@@ -17,8 +17,7 @@ abstract class AbstractPaymentGateway implements PaymentGatewayInterface
 {
     public function __construct(
         protected readonly ConfigRepository $config,
-    ) {
-    }
+    ) {}
 
     abstract public function name(): string;
 

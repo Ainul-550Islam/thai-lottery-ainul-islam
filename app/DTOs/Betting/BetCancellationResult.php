@@ -33,8 +33,7 @@ final readonly class BetCancellationResult
         public string $refundAmount,
         public string $currency,
         public bool $replayed,
-    ) {
-    }
+    ) {}
 
     public function isReplay(): bool
     {

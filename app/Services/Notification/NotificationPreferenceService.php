@@ -7,8 +7,8 @@ namespace App\Services\Notification;
 use App\DTOs\Notification\NotificationPreferenceData;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationEventType;
-use App\Exceptions\NotificationPreferenceException;
 use App\Models\NotificationPreference;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -86,9 +86,9 @@ final class NotificationPreferenceService
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, NotificationPreference>
+     * @return Collection<int, NotificationPreference>
      */
-    public function allFor(int $userId): \Illuminate\Support\Collection
+    public function allFor(int $userId): Collection
     {
         return NotificationPreference::query()
             ->where('user_id', $userId)

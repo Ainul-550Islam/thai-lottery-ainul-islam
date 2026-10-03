@@ -18,8 +18,7 @@ class CommissionCalculationService
 {
     public function __construct(
         private readonly ConfigRepository $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Calculate commission amount for an agent based on a placed bet.

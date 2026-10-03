@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Seeders;
 
+use App\Enums\Currency;
+use App\Exceptions\FinancialException;
 use App\Models\LedgerAccount;
 use App\Services\Finance\LedgerPostingService;
 use App\Services\Finance\WalletService;
+use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Tests\TestCase;
@@ -50,6 +53,21 @@ final class LedgerAccountSeederTest extends TestCase
      *
      * @return list<array{string, string}>
      */
+    /**
+     * How many rows a complete chart of accounts holds.
+     *
+     * A ledger account is denominated in exactly one currency, so the seeder
+     * writes one full set of the declared accounts per supported currency:
+     * the primary currency keeps the bare code and every other currency gets
+     * the same code suffixed with its ISO value. The total is therefore the
+     * number of declared codes times the number of currencies, not the number
+     * of declared codes.
+     */
+    private function expectedChartSize(): int
+    {
+        return count($this->declaredAccountCodes()) * count(Currency::cases());
+    }
+
     private function declaredAccountCodes(): array
     {
         $constants = (new \ReflectionClass(WalletService::class))->getConstants();
@@ -112,7 +130,7 @@ final class LedgerAccountSeederTest extends TestCase
     {
         $this->seed(LedgerAccountSeeder::class);
 
-        $this->expectException(\App\Exceptions\FinancialException::class);
+        $this->expectException(FinancialException::class);
 
         app(LedgerPostingService::class)->resolveAccount('9999-not-an-account');
     }
@@ -126,7 +144,7 @@ final class LedgerAccountSeederTest extends TestCase
         $second = LedgerAccount::query()->count();
 
         $this->assertSame($first, $second, 'Re-seeding the chart of accounts duplicated rows.');
-        $this->assertSame(count($this->declaredAccountCodes()), $second);
+        $this->assertSame($this->expectedChartSize(), $second);
     }
 
     public function test_re_seeding_does_not_reset_a_posted_balance(): void
@@ -149,12 +167,21 @@ final class LedgerAccountSeederTest extends TestCase
 
     public function test_the_default_database_seeder_includes_the_chart_of_accounts(): void
     {
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+        $this->seed(DatabaseSeeder::class);
 
         $this->assertSame(
-            count($this->declaredAccountCodes()),
+            $this->expectedChartSize(),
             LedgerAccount::query()->count(),
             'DatabaseSeeder does not seed the chart of accounts, so a fresh install cannot post.',
         );
+
+        // Counting rows alone would pass on twenty-four rows of the wrong
+        // accounts. Every code the application names must actually be there.
+        foreach ($this->declaredAccountCodes() as [$name, $code]) {
+            $this->assertTrue(
+                LedgerAccount::query()->where('code', $code)->exists(),
+                'WalletService::'.$name.' names account '.$code.', which the chart does not contain.',
+            );
+        }
     }
 }

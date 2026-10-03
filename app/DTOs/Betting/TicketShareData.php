@@ -19,8 +19,7 @@ final readonly class TicketShareData
         public int $userId,
         public string $ticketIdentifier,
         public ?int $ttlHours,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload

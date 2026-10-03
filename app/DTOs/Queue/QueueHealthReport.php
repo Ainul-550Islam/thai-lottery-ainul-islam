@@ -22,8 +22,7 @@ final class QueueHealthReport
         public readonly int $stuckCount,
         public readonly array $warnings = [],
         public readonly ?string $checkedAt = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

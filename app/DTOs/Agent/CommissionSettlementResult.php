@@ -23,8 +23,7 @@ final class CommissionSettlementResult
         public readonly bool $alreadySettled = false,
         public readonly array $paidCommissions = [],
         public readonly array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>
