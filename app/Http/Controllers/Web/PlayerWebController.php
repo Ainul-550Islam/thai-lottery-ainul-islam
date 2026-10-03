@@ -461,6 +461,9 @@ final class PlayerWebController
                 options: [
                     'ip' => $request->ip(),
                     'user_agent' => (string) $request->userAgent(),
+                    'metadata' => [
+                        'source' => 'web',
+                    ],
                 ],
             );
             $deposit = $payment['deposit'];
@@ -545,8 +548,7 @@ final class PlayerWebController
             ->take(5)
             ->get();
         $availableBalance = $wallet instanceof Wallet
-            ? Money::fromDatabase((string) $wallet->balance, $currency)
-                ->minus(Money::fromDatabase((string) ($wallet->locked_balance ?? '0'), $currency))
+            ? Money::fromDatabase($wallet->getAvailableBalance(), $currency)
                 ->assertNotNegative('available balance')
                 ->format()
             : null;
