@@ -29,6 +29,13 @@ class AppServiceProvider extends ServiceProvider
         // already reports 'not_configured' when no format is authorised.
         $this->app->bind(GloDataMatrixParserInterface::class, GloDataMatrixParser::class);
 
+        // The versioned responsible-gaming limit service must be explicitly
+        // bound: PlayerWebController accepts it as an optional constructor
+        // parameter with a null default, and the container deliberately never
+        // overrides a developer default for an unbound class. Without this
+        // binding the versioned pronouncements would silently never happen.
+        $this->app->bind(\App\Services\ResponsibleGaming\ResponsibleGamingLimitService::class);
+
         // Laravel 12 removed the old named-limiter probe; keep the adapter
         // available for the existing security contract without changing the
         // framework limiter semantics.

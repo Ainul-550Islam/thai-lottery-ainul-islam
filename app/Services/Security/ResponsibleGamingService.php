@@ -6,10 +6,13 @@ namespace App\Services\Security;
 
 use App\Enums\AuditAction;
 use App\Enums\DepositStatus;
+use App\Enums\ResponsibleGamingLimitType;
 use App\Models\AuditLog;
 use App\Models\Deposit;
 use App\Models\ResponsibleGamingLimit;
 use App\Models\User;
+use App\DTOs\ResponsibleGaming\ResponsibleGamingLimitData;
+use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use InvalidArgumentException;
 
 /**
@@ -17,6 +20,9 @@ use InvalidArgumentException;
  */
 final class ResponsibleGamingService
 {
+    public function __construct(
+        private readonly ResponsibleGamingLimitService $limitVersions,
+    ) {}
     /**
      * Set or update player deposit / wagering / single-bet limits.
      */
@@ -41,6 +47,38 @@ final class ResponsibleGamingService
         }
 
         $record->save();
+
+        // SYNC TO THE VERSIONED LIMIT STORE. Enforcement (purchase, deposit)
+        // reads only the versioned store through bindingLimitFor(), so a limit
+        // written to the summary row here must also be pronounced there or it
+        // would never bind. Pronouncement is deterministic by limit key; when
+        // the versioned service refuses - e.g. a raise is still inside its
+        // cooling-off window - this summary still records the player's request
+        // but the binding ceiling stays at the versioned service's word. The
+        // sync is best-effort by design and can only ever leave enforcement
+        // stricter, never looser.
+        $pronouncements = [
+            ResponsibleGamingLimitType::DailyDeposit->value => $dailyDepositLimit,
+            ResponsibleGamingLimitType::SingleBet->value => $singleBetLimit,
+            ResponsibleGamingLimitType::DailyWagering->value => $dailyWageringLimit,
+        ];
+
+        foreach ($pronouncements as $type => $amount) {
+            if ($amount === null || $amount === '') {
+                continue;
+            }
+
+            try {
+                $this->limitVersions->pronounce(ResponsibleGamingLimitData::fromInput([
+                    'user_id' => (int) $user->id,
+                    'limit_type' => $type,
+                    'amount' => $amount,
+                    'currency' => 'THB',
+                ]));
+            } catch (\Throwable) {
+                // Fail-closed: the versioned ceiling keeps the stricter word.
+            }
+        }
 
         AuditLog::create([
             'user_id' => $user->id,

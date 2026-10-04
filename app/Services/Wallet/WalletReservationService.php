@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Wallet;
 
 use App\DTOs\Finance\WalletReservationData;
+use App\Models\Wallet;
 use App\Models\WalletReservation;
 use App\Services\Finance\WalletReservationService as CanonicalWalletReservationService;
 use Illuminate\Contracts\Container\Container;
@@ -22,13 +23,15 @@ class WalletReservationService
     }
 
     public function reserve(
-        WalletReservationData|int $userIdOrData,
+        WalletReservationData|Wallet|int|null $userIdOrData = null,
         ?string $amount = null,
         ?string $currency = null,
         ?string $reason = null,
-        int $ttlSeconds = 300
+        int $ttlSeconds = 300,
+        ?int $userId = null,
+        ?string $reference = null,
     ): array|WalletReservation {
-        return $this->canonical->reserve($userIdOrData, $amount, $currency, $reason, $ttlSeconds);
+        return $this->canonical->reserve($userIdOrData, $amount, $currency, $reason, $ttlSeconds, $userId, $reference);
     }
 
     public function consume(int|string|WalletReservation $reservation, ?string $reason = null): bool|WalletReservation

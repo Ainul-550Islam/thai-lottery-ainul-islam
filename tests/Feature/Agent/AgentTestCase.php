@@ -232,7 +232,11 @@ abstract class AgentTestCase extends TestCase
         $limit->number = $number;
         $limit->max_amount = '1000000.00';
         $limit->current_amount = '0.00';
-        $limit->maximum_payout_exposure = null;
+        // An explicit payout-exposure ceiling sized for this suite's stakes, so
+        // the risk engine enforces the row's own ceiling instead of the global
+        // fallback (risk.exposure.max_per_number, 100000.00). A 3-digit direct
+        // bet at the configured 900x rate needs headroom for stake x 900.
+        $limit->maximum_payout_exposure = '1000000.00';
         $limit->current_payout_exposure = '0.00';
         $limit->status = LimitStatus::Active;
         $limit->save();

@@ -55,6 +55,12 @@ class WalletService
 
     /**
      * Credit a wallet with an exact decimal amount and ledger entry.
+     *
+     * A string $type is passed through to the canonical engine, which resolves
+     * a genuine transaction type by name and records anything else as a
+     * description against an Adjustment. It is never blanket-assumed to be a
+     * Deposit here: "Initial funds" on the ledger as a Deposit would assert
+     * that external money arrived when the caller held only a sentence.
      */
     public function credit(
         Wallet|int $wallet,
@@ -63,11 +69,7 @@ class WalletService
         ?string $idempotencyKey = null,
         array $options = [],
     ): FinancialTransaction {
-        $walletModel = is_int($wallet) ? Wallet::query()->findOrFail($wallet) : $wallet;
-        $moneyObj = is_string($amount) ? Money::of($amount, $walletModel->currency) : $amount;
-        $typeEnum = is_string($type) ? FinancialTransactionType::Deposit : $type;
-
-        return $this->canonical->credit($walletModel, $moneyObj, $typeEnum, $idempotencyKey, $options);
+        return $this->canonical->credit($wallet, $amount, $type, $idempotencyKey, $options);
     }
 
     /**
@@ -80,11 +82,7 @@ class WalletService
         ?string $idempotencyKey = null,
         array $options = [],
     ): FinancialTransaction {
-        $walletModel = is_int($wallet) ? Wallet::query()->findOrFail($wallet) : $wallet;
-        $moneyObj = is_string($amount) ? Money::of($amount, $walletModel->currency) : $amount;
-        $typeEnum = is_string($type) ? FinancialTransactionType::Withdrawal : $type;
-
-        return $this->canonical->debit($walletModel, $moneyObj, $typeEnum, $idempotencyKey, $options);
+        return $this->canonical->debit($wallet, $amount, $type, $idempotencyKey, $options);
     }
 
     /**

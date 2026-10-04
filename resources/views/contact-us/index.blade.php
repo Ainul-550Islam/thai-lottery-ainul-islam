@@ -134,7 +134,13 @@
             </a>
 
             <!-- Email -->
-            <a href="mailto:support@thailotto.club" class="tl-card group flex flex-col justify-between">
+            @php
+                // The single support identity comes from config('contact.support'),
+                // the same source the footer and Home page read, so this page can
+                // never advertise a different address than the rest of the site.
+                $supportEmail = (string) config('contact.support.email');
+            @endphp
+            <a href="{{ $supportEmail !== '' ? 'mailto:'.$supportEmail : route('contact') }}" class="tl-card group flex flex-col justify-between">
                 <div>
                     <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl mb-4 group-hover:scale-105 transition-transform">
                         <i class="fa-solid fa-envelope"></i>
@@ -144,7 +150,7 @@
                     <p class="text-xs text-slate-400 leading-relaxed">Formal inquiries, ticket inquiries, and technical troubleshooting.</p>
                 </div>
                 <div class="mt-4 pt-3 border-t border-[#1c2b44] text-xs font-bold text-amber-400 flex items-center gap-1">
-                    <span>support@thailotto.club</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    <span>{{ $supportEmail !== '' ? $supportEmail : __('contact.support_unavailable') }}</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
                 </div>
             </a>
 
@@ -188,7 +194,7 @@
 
                             <div>
                                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1 font-mono">Email or Mobile Number</label>
-                                <input type="text" id="contactContact" placeholder="e.g. member@thailotto.club or 0812345678" required class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
+                                <input type="text" id="contactContact" placeholder="e.g. member@example.com or 0812345678" required class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
                             </div>
                         </div>
 

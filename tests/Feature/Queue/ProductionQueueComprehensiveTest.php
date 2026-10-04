@@ -116,6 +116,8 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
             transitions: app(FinancialStateTransitionService::class),
             approvalService: $this->withdrawalApprovalService,
             completionService: $this->withdrawalCompletionService,
+            wallets: app(\App\Services\Finance\WalletService::class),
+            idempotency: app(\App\Services\Finance\IdempotencyService::class),
         );
     }
 

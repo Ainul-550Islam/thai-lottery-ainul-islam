@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web;
 
-use App\DTOs\ResponsibleGaming\ResponsibleGamingLimitData;
 use App\DTOs\ResponsibleGaming\SelfExclusionData;
 use App\Enums\BetStatus;
 use App\Enums\Currency;
@@ -29,7 +28,6 @@ use App\Services\Finance\Money;
 use App\Services\Finance\WithdrawalService;
 use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\PaymentInitiationService;
-use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use App\Services\Security\ResponsibleGamingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,7 +46,6 @@ final class PlayerWebController
         private readonly WithdrawalService $withdrawalService,
         private readonly ResponsibleGamingService $rgService,
         private readonly SelfExclusionService $selfExclusions,
-        private readonly ?ResponsibleGamingLimitService $limitVersions = null,
         private readonly ?PaymentGatewayManager $gatewayManager = null,
     ) {}
 
@@ -271,6 +268,12 @@ final class PlayerWebController
                     ? (string) $market['label']
                     : (string) trans('player.not_configured'),
                 'digits' => (int) ($market['digits'] ?? 0),
+                // The payout multiplier is published to the browser so the bet
+                // slip's maximum-payout preview uses the same configured rate
+                // the settlement engine uses - never a rate duplicated in JS.
+                // The value is passed through exactly as configured; no float
+                // cast, so it cannot drift from what settlement reads.
+                'multiplier' => $market['payout_multiplier'] ?? 0,
             ];
         }
 
@@ -794,13 +797,10 @@ final class PlayerWebController
 
         ]);
 
-        $days = [
-            '7_days' => 7,
-            '30_days' => 30,
-            '90_days' => 90,
-            '180_days' => 180,
-            '365_days' => 365,
-        ][(string) $validated['duration']];
+        // The day count is derived from the validated key itself, so no duration
+        // literal is duplicated here - adding a duration means adding one entry
+        // to the rule above and nothing else.
+        $days = (int) str_replace('_days', '', (string) $validated['duration']);
 
         try {
             $requestData = SelfExclusionData::fromInput([
@@ -840,38 +840,6 @@ final class PlayerWebController
             singleBetLimit: $singleBet,
             dailyWageringLimit: $dailyWagering,
         );
-
-        // Synchronize with versioned limit service when available
-        if ($this->limitVersions !== null) {
-            try {
-                if ($dailyDeposit !== null) {
-                    $this->limitVersions->pronounce(ResponsibleGamingLimitData::fromInput([
-                        'user_id' => (int) $user->id,
-                        'limit_type' => 'daily_deposit',
-                        'amount' => $dailyDeposit,
-                        'currency' => 'THB',
-                    ]));
-                }
-                if ($singleBet !== null) {
-                    $this->limitVersions->pronounce(ResponsibleGamingLimitData::fromInput([
-                        'user_id' => (int) $user->id,
-                        'limit_type' => 'single_bet',
-                        'amount' => $singleBet,
-                        'currency' => 'THB',
-                    ]));
-                }
-                if ($dailyWagering !== null) {
-                    $this->limitVersions->pronounce(ResponsibleGamingLimitData::fromInput([
-                        'user_id' => (int) $user->id,
-                        'limit_type' => 'daily_wagering',
-                        'amount' => $dailyWagering,
-                        'currency' => 'THB',
-                    ]));
-                }
-            } catch (\Throwable) {
-                // Versioned pronouncement error should not break basic settings update
-            }
-        }
 
         return redirect()->route('player.profile')->with('success', 'Responsible gaming limits saved.');
     }

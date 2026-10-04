@@ -34,6 +34,7 @@ final readonly class WalletReservationData
         public string $currency,
         public LedgerEntryPurpose $purpose,
         public ?string $expiresAt = null,
+        public ?string $description = null,
     ) {}
 
     /**

@@ -8,6 +8,7 @@ use App\Enums\DrawLifecycleState;
 use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Models\Draw;
+use App\Models\User;
 use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultPublicationService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
@@ -420,10 +421,31 @@ final class DrawAutomationTest extends TestCase
     {
         $draw = $this->pendingDraw();
 
+        // Publication is a TWO-operator act: one ingests the numbers, a
+        // DIFFERENT operator confirms and publishes them. A single mistaken
+        // CLI entry must never become the official result alone.
+        $ingester = User::factory()->create();
+        $confirmer = User::factory()->create();
+
+        // The announced bottom two agrees with the first prize's last two
+        // digits (456123 -> 23): the announcement cannot say both.
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '456123',
-            '--bottom-two' => '45',
+            '--bottom-two' => '23',
+            '--operator-id' => (string) $ingester->id,
+            '--yes' => true,
+        ])->assertSuccessful();
+
+        // Ingestion alone is a Pending review object: nothing is published.
+        $this->assertNotSame(DrawStatus::ResultPublished, $draw->refresh()->status);
+
+        $this->artisan('lottery:publish-result', [
+            'draw' => (string) $draw->draw_number,
+            '--first-prize' => '456123',
+            '--bottom-two' => '23',
+            '--operator-id' => (string) $confirmer->id,
+            '--confirm' => true,
             '--yes' => true,
         ])->assertSuccessful();
 
@@ -464,16 +486,20 @@ final class DrawAutomationTest extends TestCase
     }
 
     #[Test]
-    public function declining_the_confirmation_publishes_nothing(): void
+    public function declining_the_acknowledgement_publishes_nothing(): void
     {
         $draw = $this->pendingDraw();
+        $operator = User::factory()->create();
 
+        // Declining the acknowledgement prompt cancels the ingestion: no
+        // draw result row is written and the draw keeps awaiting its result.
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '456123',
             '--bottom-two' => '45',
+            '--operator-id' => (string) $operator->id,
         ])
-            ->expectsConfirmation('Publish these numbers as the official result?', 'no')
+            ->expectsConfirmation('INGEST FOR REVIEW?', 'no')
             ->assertSuccessful();
 
         $this->assertSame(0, DB::table('draw_results')->count());

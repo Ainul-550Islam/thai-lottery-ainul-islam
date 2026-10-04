@@ -63,11 +63,17 @@ class PlayerWalletWiringTest extends TestCase
     {
         // Pin the runtime config so the assertion is about the WIRING
         // (page follows config), not about any particular environment's
-        // env overrides.
+        // env overrides. The gateways the page may advertise must also be
+        // ENABLED — the page never advertises a disabled rail, which is the
+        // same capability gate the initiation path applies.
         config([
             'payment.deposit.min' => '50.00',
             'payment.deposit.max' => '500000.00',
             'payment.deposit.allowed_methods' => ['stripe', 'bkash', 'nagad', 'crypto'],
+            'payment.gateways.stripe.enabled' => true,
+            'payment.gateways.bkash.enabled' => true,
+            'payment.gateways.nagad.enabled' => true,
+            'payment.gateways.crypto.enabled' => true,
         ]);
 
         ['user' => $user] = $this->player();
@@ -96,6 +102,18 @@ class PlayerWalletWiringTest extends TestCase
             'payment.withdrawal.max' => '500000.00',
             'payment.withdrawal.processing_hours' => 24,
             'payment.withdrawal.allowed_methods' => ['bkash', 'nagad', 'bank_transfer', 'crypto'],
+            // A payout rail is only advertised when it is enabled (and the
+            // bank rail carries its full settlement identity).
+            'payment.gateways.bkash.enabled' => true,
+            'payment.gateways.nagad.enabled' => true,
+            'payment.gateways.crypto.enabled' => true,
+            'payment.gateways.bank_transfer.enabled' => true,
+            'payment.gateways.bank_transfer.settlement' => [
+                'bank_name' => 'Operator Bank PLC',
+                'account_number' => '888-999-000',
+                'account_name' => 'Operator Holdings Ltd',
+                'instructions' => 'Transfer within 24 hours',
+            ],
         ]);
 
         ['user' => $user] = $this->player();
@@ -238,8 +256,12 @@ class PlayerWalletWiringTest extends TestCase
     {
         ['user' => $user] = $this->player();
 
-        // Gateway enabled but NO settlement details: the deposit must be
-        // refused with the provider's honest error, never a fake account.
+        // Gateway enabled but NO settlement details. The bank rail's own
+        // capability gate fails closed here: supportsDeposit() is false
+        // without a full settlement identity, so the method never enters
+        // the validation vocabulary and can never reach the initiation
+        // path. The refusal is therefore the form's method gate — no
+        // deposit record, and no fake account can ever be advertised.
         config([
             'payment.deposit.allowed_methods' => ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer'],
             'payment.gateways.bank_transfer.enabled' => true,
@@ -252,9 +274,16 @@ class PlayerWalletWiringTest extends TestCase
             'amount' => '500',
             'method' => 'bank_transfer',
             'idempotency_key' => (string) Str::uuid(),
-        ])->assertRedirect(route('player.deposit'))->assertSessionHas('error');
+        ])->assertSessionHasErrors('method');
 
         $this->assertDatabaseCount('deposits', 0);
+
+        // And the page the player came from never offered the rail: the
+        // capability gate that refused the request also keeps it off the
+        // advertised list, so the player is never sent to a bank account
+        // that does not exist.
+        $page = (string) $this->actingAs($user)->get(route('player.deposit'))->getContent();
+        $this->assertStringNotContainsString('Thai Bank Transfer', $page);
     }
 
     public function test_store_deposit_rejects_a_method_outside_the_configured_list(): void
@@ -290,11 +319,26 @@ class PlayerWalletWiringTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // W2/W4: storeWithdraw reaches the real WithdrawalService and locks funds.
+    // W2/W4: storeWithdraw reaches the real WithdrawalService. The request
+    // lane takes NO hold by design ("read-only sufficiency check. No hold is
+    // taken here" - WithdrawalService::request): a pending request must not
+    // lock money that approval may never confirm. The hold arrives with the
+    // approval act, exactly as the finance engine documents.
     // ------------------------------------------------------------------
 
-    public function test_store_withdraw_creates_request_and_locks_the_funds(): void
+    public function test_store_withdraw_creates_a_real_request_without_touching_the_balance(): void
     {
+        // The bank-transfer payout rail must be enabled, with its full
+        // settlement identity, before a withdrawal can travel it.
+        config([
+            'payment.gateways.bank_transfer.enabled' => true,
+            'payment.gateways.bank_transfer.settlement' => [
+                'bank_name' => 'SCB',
+                'account_number' => '1234567890',
+                'account_name' => 'Thai Lottery Co.',
+            ],
+        ]);
+
         ['user' => $user, 'wallet' => $wallet] = $this->player('1000.00');
 
         $this->actingAs($user)->post(route('player.withdraw.store'), [
@@ -319,12 +363,29 @@ class PlayerWalletWiringTest extends TestCase
         $this->assertStringStartsWith('WD-', (string) $withdrawal->reference_number);
         $this->assertNotNull($withdrawal->payout_details);
 
-        // The hold: available balance shrinks by exactly the amount.
-        $this->assertSame('300.00', (string) $wallet->fresh()->locked_balance);
+        // The request lane is deliberately hold-free: the money is still
+        // fully available until the approval act takes the hold. A request
+        // that locked funds would strand money on a withdrawal that may
+        // never be approved.
+        $wallet->refresh();
+        $this->assertSame('1000.00', (string) $wallet->balance);
+        $this->assertSame('0.00', (string) $wallet->locked_balance);
+        $this->assertSame('1000.00', (string) $wallet->getAvailableBalance());
     }
 
     public function test_store_withdraw_rejects_insufficient_balance(): void
     {
+        // The bank-transfer payout rail must be enabled, with its full
+        // settlement identity, before a withdrawal can travel it.
+        config([
+            'payment.gateways.bank_transfer.enabled' => true,
+            'payment.gateways.bank_transfer.settlement' => [
+                'bank_name' => 'SCB',
+                'account_number' => '1234567890',
+                'account_name' => 'Thai Lottery Co.',
+            ],
+        ]);
+
         ['user' => $user] = $this->player('50.00');
 
         $this->actingAs($user)->post(route('player.withdraw.store'), [
@@ -341,6 +402,17 @@ class PlayerWalletWiringTest extends TestCase
 
     public function test_store_withdraw_rejects_amount_below_the_configured_minimum(): void
     {
+        // The bank-transfer payout rail must be enabled, with its full
+        // settlement identity, before a withdrawal can travel it.
+        config([
+            'payment.gateways.bank_transfer.enabled' => true,
+            'payment.gateways.bank_transfer.settlement' => [
+                'bank_name' => 'SCB',
+                'account_number' => '1234567890',
+                'account_name' => 'Thai Lottery Co.',
+            ],
+        ]);
+
         config(['payment.withdrawal.min' => '100.00']);
 
         ['user' => $user] = $this->player('1000.00');
