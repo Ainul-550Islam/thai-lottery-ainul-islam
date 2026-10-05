@@ -50,6 +50,15 @@ class AgentSettlementService
     }
 
     /**
+     * Alias of settleForDraw() accepting either a Draw model or its id —
+     * the call shape most callers already hold a Draw for.
+     */
+    public function settleDrawCommissions(Draw|int $draw): CommissionSettlementResult
+    {
+        return $this->settleForDraw($draw instanceof Draw ? (int) $draw->getKey() : $draw);
+    }
+
+    /**
      * Settle outstanding accrued commissions for a specific agent.
      *
      * @return array{settled_count: int, total_amount: string, currency: string}
