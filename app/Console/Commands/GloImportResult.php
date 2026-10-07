@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Services\Lottery\GloResultImportService;
 use App\Support\Admin\AdminAccess;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * glo:import-result — import an official/fixture GLO result onto a draw with
@@ -49,7 +48,7 @@ class GloImportResult extends Command
 
             $draw = ctype_digit($drawRef)
                 ? Draw::query()->find((int) $drawRef)
-                : Draw::query()->where('draw_number', $drawRef)->orWhere('uuid', $drawRef)->first();
+                : Draw::query()->where('draw_number', $drawRef)->first();
 
             if ($draw === null) {
                 $this->error('Draw not found: '.$drawRef);

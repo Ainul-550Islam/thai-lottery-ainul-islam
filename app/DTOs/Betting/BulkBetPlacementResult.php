@@ -7,7 +7,7 @@ namespace App\DTOs\Betting;
 use App\Models\Bet;
 
 /**
- * Object-shaped outcome of BulkBetService::placeBulkBet().
+ * Object-shaped outcome retained for consumers that project a bulk purchase report.
  *
  * The array-shaped report of purchase() answers "what happened to each item"
  * for the API lane; this DTO answers the caller holding models: the bets that

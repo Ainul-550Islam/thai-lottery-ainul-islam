@@ -22,7 +22,7 @@
             </tr>
             <tr>
                 <td style="color: #94a3b8; padding: 6px 0;">Amount:</td>
-                <td style="color: #10b981; font-family: monospace; font-weight: bold; font-size: 16px; text-align: right; padding: 6px 0;">฿{{ number_format((float) ($amount ?? 0), 2) }}</td>
+                <td style="color: #10b981; font-family: monospace; font-weight: bold; font-size: 16px; text-align: right; padding: 6px 0;">{{ isset($amount) ? \App\Support\Admin\AdminFormat::money($amount, $currency ?? null) : '—' }}</td>
             </tr>
             <tr>
                 <td style="color: #94a3b8; padding: 6px 0;">Channel:</td>

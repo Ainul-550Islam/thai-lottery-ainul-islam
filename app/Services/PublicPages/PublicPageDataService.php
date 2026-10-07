@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\PublicPages;
 
-use App\Services\PublicPages\AboutPageService;
-use App\Services\PublicPages\PrivacyPageService;
-use App\Services\PublicPages\TermsPageService;
-use App\Services\PublicPages\VisionMissionService;
 use App\Services\Account\PublicAccountInfoService;
 use App\Services\Media\PublicAppLinkService;
 use App\Services\Pricing\LottoDiscountService;
@@ -33,8 +29,7 @@ final class PublicPageDataService
         private readonly PublicAccountInfoService $accountInfo,
         private readonly LottoDiscountService $discounts,
         private readonly PublicAppLinkService $appLinks,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -298,7 +293,7 @@ final class PublicPageDataService
         $legalVersion = (string) config('legal.content_version', '1').'|'.(string) config('legal.version', 'v0');
         $contentVersion = (string) config('public_pages.content_version', '1');
         $sourceVersion = match ($page) {
-            'fees' => (string) config('fees.rule_version', '1'),
+            'fees' => (string) config('fees.rule_version', '1').'|'.hash('sha256', json_encode(config('fees.categories', []), JSON_THROW_ON_ERROR)),
             'discounts' => (string) config('discounts.catalogue_version', '1'),
             'grades' => (string) config('account_grades.rule_version', '1'),
             'verification' => (string) config('account_verification.content_version', '1'),

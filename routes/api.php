@@ -59,7 +59,6 @@ use App\Http\Controllers\PublicLottoDiscountController;
 use App\Http\Controllers\PublicPrizeVerificationController;
 use App\Http\Controllers\PublicServicePagesController;
 use App\Http\Controllers\PublicVerificationController;
-use App\Http\Controllers\Wallet\WalletManagementPageController;
 use App\Support\Admin\AdminAccess;
 use Illuminate\Support\Facades\Route;
 
@@ -201,47 +200,53 @@ Route::middleware(['throttle:glo.public'])->group(function (): void {
     Route::get('/v1/glo/latest-draw', [GloResultsPageController::class, 'latestDrawApi'])->name('api.v1.glo.latest-draw');
     Route::post('/v1/glo/check-ticket', [GloResultsPageController::class, 'checkTicketApi'])->name('api.v1.glo.check-ticket');
     Route::get('/v1/lotto/game-types', [ThaiLotteryBettingController::class, 'getGameTypesApi'])->name('api.v1.lotto.game-types');
-    Route::get('/v1/lotto/user/balance', [ThaiLotteryBettingController::class, 'getUserBalanceApi'])->name('api.v1.lotto.user.balance');
-    Route::post('/v1/lotto/bets/place', [ThaiLotteryBettingController::class, 'placeWagersApi'])->name('api.v1.lotto.bets.place');
-    Route::get('/v1/player/dashboard/summary', [PlayerDashboardController::class, 'getSummaryApi'])->name('api.v1.player.dashboard.summary');
-    Route::get('/v1/player/dashboard/wagers', [PlayerDashboardController::class, 'getRecentWagersApi'])->name('api.v1.player.dashboard.wagers');
-    Route::post('/v1/player/dashboard/wagers/{ticketId}/cancel', [PlayerDashboardController::class, 'cancelWagerApi'])->name('api.v1.player.dashboard.wagers.cancel');
-    Route::get('/v1/wallet/summary', [WalletManagementPageController::class, 'getSummaryApi'])->name('api.v1.wallet.summary');
-    Route::get('/v1/wallet/transactions', [WalletManagementPageController::class, 'getTransactionsApi'])->name('api.v1.wallet.transactions');
-    Route::post('/v1/wallet/deposit', [WalletManagementPageController::class, 'createDepositApi'])->name('api.v1.wallet.deposit');
-    Route::post('/v1/wallet/withdraw', [WalletManagementPageController::class, 'createWithdrawApi'])->name('api.v1.wallet.withdraw');
-    Route::get('/v1/deposit/methods', [DepositMethodsPageController::class, 'getDepositMethodsApi'])->name('api.v1.deposit.methods');
-    Route::post('/v1/deposit/promptpay/generate', [DepositMethodsPageController::class, 'generatePromptPayApi'])->name('api.v1.deposit.promptpay.generate');
-    Route::post('/v1/deposit/bank-transfer/intent', [DepositMethodsPageController::class, 'createBankTransferIntentApi'])->name('api.v1.deposit.bank-transfer.intent');
-    Route::post('/v1/deposit/crypto/address', [DepositMethodsPageController::class, 'generateCryptoDepositApi'])->name('api.v1.deposit.crypto.address');
-    Route::post('/v1/deposit/verify-slip', [DepositMethodsPageController::class, 'verifySlipApi'])->name('api.v1.deposit.verify-slip');
-    Route::get('/v1/deposit/status/{refId}', [DepositMethodsPageController::class, 'pollDepositStatusApi'])->name('api.v1.deposit.status');
-    Route::get('/v1/withdrawal/methods', [WithdrawalMethodsPageController::class, 'getWithdrawalMethodsApi'])->name('api.v1.withdrawal.methods');
-    Route::post('/v1/withdrawal/request', [WithdrawalMethodsPageController::class, 'requestWithdrawalApi'])->name('api.v1.withdrawal.request');
-    Route::get('/v1/withdrawal/recent', [WithdrawalMethodsPageController::class, 'getRecentWithdrawalsApi'])->name('api.v1.withdrawal.recent');
-    Route::get('/v1/withdrawal/status/{refId}', [WithdrawalMethodsPageController::class, 'getWithdrawalStatusApi'])->name('api.v1.withdrawal.status');
-    Route::get('/v1/player/security/limits', [PlayerSecuritySettingsController::class, 'getLimitsApi'])->name('api.v1.player.security.limits');
-    Route::post('/v1/player/security/limits', [PlayerSecuritySettingsController::class, 'updateLimitsApi'])->name('api.v1.player.security.limits.update');
-    Route::post('/v1/player/security/self-exclusion', [PlayerSecuritySettingsController::class, 'setSelfExclusionApi'])->name('api.v1.player.security.self-exclusion');
-    Route::get('/v1/player/profile', [PlayerProfilePortalController::class, 'getProfileApi'])->name('api.v1.player.profile');
-    Route::post('/v1/player/profile/update', [PlayerProfilePortalController::class, 'updateProfileApi'])->name('api.v1.player.profile.update');
-    Route::post('/v1/player/profile/password', [PlayerProfilePortalController::class, 'changePasswordApi'])->name('api.v1.player.profile.password');
-    Route::post('/v1/player/profile/pin', [PlayerProfilePortalController::class, 'setSecurityPinApi'])->name('api.v1.player.profile.pin');
-    Route::post('/v1/player/profile/transfer', [PlayerProfilePortalController::class, 'transferBalanceApi'])->name('api.v1.player.profile.transfer');
-    Route::post('/v1/player/profile/bank', [PlayerProfilePortalController::class, 'bindBankAccountApi'])->name('api.v1.player.profile.bank');
-    Route::get('/v1/player/history', [LotteryHistoryPortalController::class, 'getHistoryApi'])->name('api.v1.player.history');
-    Route::get('/v1/player/history/{slipId}', [LotteryHistoryPortalController::class, 'getSlipDetailApi'])->name('api.v1.player.history.detail');
-    Route::post('/v1/player/history/rebet/{slipId}', [LotteryHistoryPortalController::class, 'rebetSlipApi'])->name('api.v1.player.history.rebet');
-    Route::post('/v1/player/history/cancel/{slipId}', [LotteryHistoryPortalController::class, 'cancelSlipApi'])->name('api.v1.player.history.cancel');
-    Route::get('/v1/player/settings', [PlayerSettingsPortalController::class, 'getAllSettingsApi'])->name('api.v1.player.settings');
-    Route::post('/v1/player/settings/general', [PlayerSettingsPortalController::class, 'updateGeneralSettingsApi'])->name('api.v1.player.settings.general');
-    Route::post('/v1/player/settings/security', [PlayerSettingsPortalController::class, 'updateSecuritySettingsApi'])->name('api.v1.player.settings.security');
-    Route::post('/v1/player/settings/2fa', [PlayerSettingsPortalController::class, 'toggle2faApi'])->name('api.v1.player.settings.2fa');
-    Route::post('/v1/player/settings/betting', [PlayerSettingsPortalController::class, 'updateBettingPreferencesApi'])->name('api.v1.player.settings.betting');
-    Route::post('/v1/player/settings/notifications', [PlayerSettingsPortalController::class, 'updateNotificationPreferencesApi'])->name('api.v1.player.settings.notifications');
-    Route::post('/v1/player/settings/line-notify', [PlayerSettingsPortalController::class, 'bindLineNotifyApi'])->name('api.v1.player.settings.line-notify');
-    Route::post('/v1/player/settings/limits', [PlayerSettingsPortalController::class, 'updateResponsibleGamingLimitsApi'])->name('api.v1.player.settings.limits');
-    Route::post('/v1/player/settings/self-exclusion', [PlayerSettingsPortalController::class, 'applySelfExclusionApi'])->name('api.v1.player.settings.self-exclusion');
+
+    // Legacy portal endpoints still used by Blade clients. They remain as
+    // compatibility aliases, but are never public: Sanctum establishes the
+    // actor and every controller must derive ownership from that actor.
+    Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function (): void {
+        Route::get('/v1/lotto/user/balance', [ThaiLotteryBettingController::class, 'getUserBalanceApi'])->name('api.v1.lotto.user.balance');
+        Route::post('/v1/lotto/bets/place', [ThaiLotteryBettingController::class, 'placeWagersApi'])->name('api.v1.lotto.bets.place');
+        Route::get('/v1/player/dashboard/summary', [PlayerDashboardController::class, 'getSummaryApi'])->name('api.v1.player.dashboard.summary');
+        Route::get('/v1/player/dashboard/wagers', [PlayerDashboardController::class, 'getRecentWagersApi'])->name('api.v1.player.dashboard.wagers');
+        Route::post('/v1/player/dashboard/wagers/{ticketId}/cancel', [PlayerDashboardController::class, 'cancelWagerApi'])->name('api.v1.player.dashboard.wagers.cancel');
+        Route::get('/v1/wallet/summary', [WalletController::class, 'show'])->name('api.v1.wallet.summary');
+        Route::post('/v1/wallet/deposit', [DepositController::class, 'store'])->middleware('throttle:deposit')->name('api.v1.wallet.deposit');
+        Route::post('/v1/wallet/withdraw', [WithdrawalController::class, 'store'])->middleware('throttle:withdrawal')->name('api.v1.wallet.withdraw');
+        Route::get('/v1/deposit/methods', [DepositMethodsPageController::class, 'getDepositMethodsApi'])->name('api.v1.deposit.methods');
+        Route::post('/v1/deposit/promptpay/generate', [DepositMethodsPageController::class, 'generatePromptPayApi'])->name('api.v1.deposit.promptpay.generate');
+        Route::post('/v1/deposit/bank-transfer/intent', [DepositMethodsPageController::class, 'createBankTransferIntentApi'])->name('api.v1.deposit.bank-transfer.intent');
+        Route::post('/v1/deposit/crypto/address', [DepositMethodsPageController::class, 'generateCryptoDepositApi'])->name('api.v1.deposit.crypto.address');
+        Route::post('/v1/deposit/verify-slip', [DepositMethodsPageController::class, 'verifySlipApi'])->name('api.v1.deposit.verify-slip');
+        Route::get('/v1/deposit/status/{depositId}', [DepositController::class, 'show'])->name('api.v1.deposit.status');
+        Route::get('/v1/withdrawal/methods', [WithdrawalMethodsPageController::class, 'getWithdrawalMethodsApi'])->name('api.v1.withdrawal.methods');
+        Route::post('/v1/withdrawal/request', [WithdrawalController::class, 'store'])->middleware('throttle:withdrawal')->name('api.v1.withdrawal.request');
+        Route::get('/v1/withdrawal/recent', [WithdrawalController::class, 'index'])->name('api.v1.withdrawal.recent');
+        Route::get('/v1/withdrawal/status/{withdrawal}', [WithdrawalController::class, 'show'])->name('api.v1.withdrawal.status');
+        Route::get('/v1/player/security/limits', [PlayerSecuritySettingsController::class, 'getLimitsApi'])->name('api.v1.player.security.limits');
+        Route::post('/v1/player/security/limits', [PlayerSecuritySettingsController::class, 'updateLimitsApi'])->name('api.v1.player.security.limits.update');
+        Route::post('/v1/player/security/self-exclusion', [PlayerSecuritySettingsController::class, 'setSelfExclusionApi'])->name('api.v1.player.security.self-exclusion');
+        Route::get('/v1/player/profile', [PlayerProfilePortalController::class, 'getProfileApi'])->name('api.v1.player.profile');
+        Route::post('/v1/player/profile/update', [PlayerProfilePortalController::class, 'updateProfileApi'])->name('api.v1.player.profile.update');
+        Route::post('/v1/player/profile/password', [PlayerProfilePortalController::class, 'changePasswordApi'])->name('api.v1.player.profile.password');
+        Route::post('/v1/player/profile/pin', [PlayerProfilePortalController::class, 'setSecurityPinApi'])->name('api.v1.player.profile.pin');
+        Route::post('/v1/player/profile/transfer', [PlayerProfilePortalController::class, 'transferBalanceApi'])->name('api.v1.player.profile.transfer');
+        Route::post('/v1/player/profile/bank', [PlayerProfilePortalController::class, 'bindBankAccountApi'])->name('api.v1.player.profile.bank');
+        Route::get('/v1/player/history', [LotteryHistoryPortalController::class, 'getHistoryApi'])->name('api.v1.player.history');
+        Route::get('/v1/player/history/{slipId}', [LotteryHistoryPortalController::class, 'getSlipDetailApi'])->name('api.v1.player.history.detail');
+        Route::post('/v1/player/history/rebet/{slipId}', [LotteryHistoryPortalController::class, 'rebetSlipApi'])->name('api.v1.player.history.rebet');
+        Route::post('/v1/player/history/cancel/{slipId}', [LotteryHistoryPortalController::class, 'cancelSlipApi'])->name('api.v1.player.history.cancel');
+        Route::get('/v1/player/settings', [PlayerSettingsPortalController::class, 'getAllSettingsApi'])->name('api.v1.player.settings');
+        Route::post('/v1/player/settings/general', [PlayerSettingsPortalController::class, 'updateGeneralSettingsApi'])->name('api.v1.player.settings.general');
+        Route::post('/v1/player/settings/security', [PlayerSettingsPortalController::class, 'updateSecuritySettingsApi'])->name('api.v1.player.settings.security');
+        Route::post('/v1/player/settings/2fa', [PlayerSettingsPortalController::class, 'toggle2faApi'])->name('api.v1.player.settings.2fa');
+        Route::post('/v1/player/settings/betting', [PlayerSettingsPortalController::class, 'updateBettingPreferencesApi'])->name('api.v1.player.settings.betting');
+        Route::post('/v1/player/settings/notifications', [PlayerSettingsPortalController::class, 'updateNotificationPreferencesApi'])->name('api.v1.player.settings.notifications');
+        Route::post('/v1/player/settings/line-notify', [PlayerSettingsPortalController::class, 'bindLineNotifyApi'])->name('api.v1.player.settings.line-notify');
+        Route::post('/v1/player/settings/limits', [PlayerSettingsPortalController::class, 'updateResponsibleGamingLimitsApi'])->name('api.v1.player.settings.limits');
+        Route::post('/v1/player/settings/self-exclusion', [PlayerSettingsPortalController::class, 'applySelfExclusionApi'])->name('api.v1.player.settings.self-exclusion');
+    });
+
     // The Terms controller mirrors the Privacy one method for method. Its
     // routes were never registered, so every endpoint below returned 404
     // while the controller sat unreachable in the codebase.
@@ -585,7 +590,6 @@ Route::prefix('v1')
         Route::get('/glo/draws/{draw}', [GloController::class, 'draw'])
             ->where('draw', '[A-Za-z0-9-]{1,64}')
             ->name('glo.draw');
-        Route::post('/glo/check-ticket', [GloController::class, 'checkTicket'])->name('glo.check-ticket');
 
         // GLO-11 freeze mutations (permission-gated, default deny via glo.permission).
         Route::post('/glo/tickets/{ticket}/freeze', [GloController::class, 'requestFreeze'])
@@ -900,15 +904,6 @@ Route::prefix('v1/admin')
 | Public Legal & Compliance JSON APIs (Terms, Privacy, Fees)
 |--------------------------------------------------------------------------
 */
-Route::prefix('v1/public/privacy')
-    ->name('api.v1.public.privacy.')
-    ->group(function (): void {
-        Route::get('/', [PublicLegalPrivacyController::class, 'getPrivacyApi'])->name('index');
-        Route::get('/search', [PublicLegalPrivacyController::class, 'searchPrivacyApi'])->name('search');
-        Route::post('/dsar-request', [PublicLegalPrivacyController::class, 'submitDsarApi'])->name('dsar');
-        Route::get('/download', [PublicLegalPrivacyController::class, 'downloadPrivacyApi'])->name('download');
-    });
-
 Route::prefix('v1/public/fees')
     ->name('api.v1.public.fees.')
     ->group(function (): void {
@@ -920,6 +915,7 @@ Route::prefix('v1/public/fees')
 
 Route::prefix('v1/public/verification')
     ->name('api.v1.public.verification.')
+    ->middleware('throttle:ticket-verification')
     ->group(function (): void {
         Route::get('/guide', [PublicVerificationController::class, 'getGuideApi'])->name('guide');
         Route::post('/check-status', [PublicVerificationController::class, 'checkStatusApi'])->name('status');
@@ -935,6 +931,7 @@ Route::prefix('v1/public/grades')
 
 Route::prefix('v1/public/prize-verification')
     ->name('api.v1.public.prize-verification.')
+    ->middleware('throttle:ticket-verification')
     ->group(function (): void {
         Route::post('/verify', [PublicPrizeVerificationController::class, 'verifyApi'])->name('verify');
         Route::get('/prize-structure', [PublicPrizeVerificationController::class, 'getPrizeStructureApi'])->name('structure');

@@ -23,8 +23,6 @@ class HomeController extends Controller
 
     /**
      * GET /api/v1/public/home
-     *
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -36,19 +34,16 @@ class HomeController extends Controller
         unset($data['csrf']);
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => [
-                'hero' => $data['hero'] ?? [],
-                'next_draw' => $data['next_draw'] ?? [],
+                'current_time' => now()->toIso8601String(),
                 'countdown' => $data['countdown'] ?? [],
-                'current_result' => $data['current_result'] ?? [],
-                'lotteries' => $data['lottery_feed']['products'] ?? [],
-                'latest_results' => $data['lane_results']['lanes'] ?? [],
+                'lottery_feed' => $data['lottery_feed'] ?? [],
+                'result_feed' => $data['lane_results'] ?? [],
                 'prizes' => $data['prize_highlight'] ?? [],
-                'bonuses' => $data['bonuses']['campaigns'] ?? [],
-                'payment_methods' => $data['payment_methods']['methods'] ?? [],
+                'bonuses' => $data['bonuses'] ?? [],
+                'payments' => $data['payment_methods'] ?? [],
                 'app_links' => $data['app_links'] ?? [],
-                'stats' => $data['stats'] ?? [],
                 'trust' => $data['trust'] ?? [],
             ],
             'meta' => [

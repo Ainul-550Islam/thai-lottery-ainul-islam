@@ -29,8 +29,7 @@ class AdminController
     public function __construct(
         private readonly AdminOperationService $operations,
         private readonly FinancialReconciliationService $reconciliation,
-    ) {
-    }
+    ) {}
 
     /**
      * View summary of operations.
@@ -104,7 +103,7 @@ class AdminController
     {
         $user = $this->authorizeAdmin($request);
 
-        $report = $this->reconciliation->reconcileSystem(Carbon::today()->subDays(1), Carbon::today());
+        $report = $this->reconciliation->reconcile(Carbon::today()->subDays(1), Carbon::today());
 
         AuditLog::create([
             'user_id' => $user->id,

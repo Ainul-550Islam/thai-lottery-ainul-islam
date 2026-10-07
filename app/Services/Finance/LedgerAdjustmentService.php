@@ -6,8 +6,11 @@ namespace App\Services\Finance;
 
 use App\DTOs\Finance\LedgerAdjustmentData;
 use App\Enums\AuditAction;
+use App\Enums\Currency;
 use App\Enums\FinancialTransactionType;
 use App\Enums\RiskLevel;
+use App\Exceptions\FinancialException;
+use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\LedgerAdjustmentException;
 use App\Models\AuditLog;
 use App\Models\FinancialTransaction;
@@ -38,8 +41,7 @@ final class LedgerAdjustmentService
 {
     public function __construct(
         private readonly WalletService $wallets,
-    ) {
-    }
+    ) {}
 
     /* ------------------------------------------------------- post --- */
 
@@ -72,7 +74,7 @@ final class LedgerAdjustmentService
             throw LedgerAdjustmentException::notFound('operator:'.$data->operatorUserId);
         }
 
-        if (!$operator->isAdmin()) {
+        if (! $operator->isAdmin()) {
             throw LedgerAdjustmentException::unauthorized($data->operatorUserId);
         }
 
@@ -113,7 +115,7 @@ final class LedgerAdjustmentService
 
         $abs = self::moneyOf(self::absOf($data->amount));
 
-        $money = \App\Services\Finance\Money::of($abs, \App\Enums\Currency::from($walletCurrency));
+        $money = Money::of($abs, Currency::from($walletCurrency));
 
         $options = [
             'description' => sprintf('Adjustment by operator #%d: %s', $data->operatorUserId, $data->reason),
@@ -131,12 +133,12 @@ final class LedgerAdjustmentService
             $transaction = $isCredit
                 ? $this->wallets->credit($wallet, $money, FinancialTransactionType::Adjustment, $idempotencyKey, $options)
                 : $this->wallets->debit($wallet, $money, FinancialTransactionType::Adjustment, $idempotencyKey, $options);
-        } catch (\App\Exceptions\InsufficientBalanceException $e) {
+        } catch (InsufficientBalanceException $e) {
             throw LedgerAdjustmentException::conservationViolation(
                 $data->walletId,
                 sprintf('asked %s with %s available', $abs, $e->availableAmount()),
             );
-        } catch (\App\Exceptions\FinancialException $e) {
+        } catch (FinancialException $e) {
             throw LedgerAdjustmentException::conservationViolation($data->walletId, (string) $e->getMessage());
         }
 
@@ -154,16 +156,16 @@ final class LedgerAdjustmentService
 
     public static function moneyOf(string $amount): string
     {
-        if (extension_loaded('bcmath')) {
-            return bcadd($amount, '0', 2);
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary arithmetic.');
         }
 
-        return number_format((float) $amount, 2, '.', '');
+        return bcadd($amount, '0', 2);
     }
 
     private function recordAudit(LedgerAdjustmentData $data, FinancialTransaction $transaction, string $direction): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => $data->operatorUserId,

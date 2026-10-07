@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Multi-Game Discount & Payout Multiplier Controller
+ * Lottery Platform Multi-Game Discount & Payout Multiplier Controller
  */
 
 (function () {

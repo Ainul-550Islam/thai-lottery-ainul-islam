@@ -249,7 +249,7 @@ class GloPublicResultService
         $draws = $base->orderByDesc('scheduled_at')
             ->orderByDesc('id')
             ->forPage($page, $perPage)
-            ->get(['id', 'draw_number', 'scheduled_at', 'status', 'type', 'uuid']);
+            ->get(['id', 'draw_number', 'scheduled_at', 'status', 'type']);
 
         $rows = [];
 
@@ -367,7 +367,7 @@ class GloPublicResultService
 
         $draw = ctype_digit($drawRef)
             ? Draw::query()->find((int) $drawRef)
-            : Draw::query()->where('draw_number', $drawRef)->orWhere('uuid', $drawRef)->first();
+            : Draw::query()->where('draw_number', $drawRef)->first();
 
         if ($draw === null) {
             throw GloDealerException::invalidResultInput('draw not found');

@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\Currency;
 use App\Enums\PaymentMethod;
 use App\Enums\WalletHoldType;
-use App\Enums\WithdrawalStatus;
+use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\WithdrawalException;
 use App\Exceptions\WithdrawalKycException;
 use App\Http\Requests\Withdrawal\CancelWithdrawalRequest;
@@ -47,8 +47,7 @@ final class WithdrawalController
         private readonly WithdrawalService $withdrawalService,
         private readonly WalletHoldService $holdService,
         private readonly WithdrawalKycGateService $kycGate,
-    ) {
-    }
+    ) {}
 
     /**
      * Request a new player withdrawal.
@@ -105,7 +104,7 @@ final class WithdrawalController
             $this->holdService->hold($wallet, $amount, WalletHoldType::Withdrawal, [
                 'withdrawal_id' => $withdrawal->id,
             ]);
-        } catch (\App\Exceptions\InsufficientBalanceException $e) {
+        } catch (InsufficientBalanceException $e) {
             return ApiResponse::error(
                 code: 'insufficient_balance',
                 message: 'Available balance is insufficient to request this withdrawal amount.',
@@ -154,7 +153,6 @@ final class WithdrawalController
                     'requested_at' => $withdrawal->requested_at?->toIso8601String(),
                 ],
                 'kyc_detained' => $gateRefusal !== null,
-                'kyc_detention_reason' => $gateRefusal !== null ? $gateRefusal->getMessage() : null,
             ],
             message: $gateRefusal !== null
                 ? 'Withdrawal created and held pending identity verification.'
@@ -208,7 +206,6 @@ final class WithdrawalController
                 'approved_at' => $row->approved_at?->toIso8601String(),
                 'completed_at' => $row->completed_at?->toIso8601String(),
                 'rejected_at' => $row->rejected_at?->toIso8601String(),
-                'rejection_reason' => $row->rejection_reason,
             ],
             message: 'Withdrawal retrieved successfully.',
         );
@@ -224,7 +221,7 @@ final class WithdrawalController
         $withdrawals = Withdrawal::query()
             ->where('user_id', $user->id)
             ->latest('id')
-            ->paginate((int) $request->query('per_page', 15));
+            ->paginate(min(max((int) $request->query('per_page', 15), 1), 50));
 
         return ApiResponse::success(
             data: [

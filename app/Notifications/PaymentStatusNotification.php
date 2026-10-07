@@ -42,14 +42,14 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
         $ref = (string) $this->transaction->reference_id;
 
         $subject = match ($this->currentStatus) {
-            PaymentStatus::Completed->value => 'Payment Confirmed: '.$amount.' '.$currency,
+            PaymentStatus::Captured->value => 'Payment Confirmed: '.$amount.' '.$currency,
             PaymentStatus::Failed->value => 'Payment Failed: '.$amount.' '.$currency,
             PaymentStatus::Cancelled->value => 'Payment Cancelled',
             default => 'Payment Update: '.$amount.' '.$currency,
         };
 
         $line = match ($this->currentStatus) {
-            PaymentStatus::Completed->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) has been successfully processed and credited to your wallet.",
+            PaymentStatus::Captured->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) has been successfully processed and credited to your wallet.",
             PaymentStatus::Failed->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) could not be completed.",
             PaymentStatus::Cancelled->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) was cancelled.",
             default => "Your payment of {$amount} {$currency} (Ref: {$ref}) is currently in status: {$this->currentStatus}.",

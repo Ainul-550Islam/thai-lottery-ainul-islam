@@ -12,6 +12,8 @@ use App\Enums\LedgerEntryPurpose;
 use App\Enums\RiskLevel;
 use App\Enums\WalletHoldType;
 use App\Enums\WalletReservationStatus;
+use App\Exceptions\FinancialException;
+use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\WalletReservationException;
 use App\Models\AuditLog;
 use App\Models\Wallet;
@@ -43,8 +45,7 @@ final class WalletReservationService
     public function __construct(
         private readonly WalletHoldService $holds,
         private readonly WalletService $wallets,
-    ) {
-    }
+    ) {}
 
     /* ---------------------------------------------------- reserve --- */
 
@@ -69,14 +70,14 @@ final class WalletReservationService
             $userId = $userIdOrData;
             $currencyCode = $currency !== null ? strtoupper($currency) : 'THB';
             $wallet = $this->wallets->getOrCreateWallet($userId, $currencyCode);
-            $ref = 'resv_' . bin2hex(random_bytes(8));
+            $ref = 'resv_'.bin2hex(random_bytes(8));
             $data = new WalletReservationData(
                 walletId: (int) $wallet->id,
                 amount: (string) $amount,
                 currency: $currencyCode,
                 reference: $ref,
                 purpose: LedgerEntryPurpose::Reservation,
-                expiresAt: Carbon::now()->addSeconds($ttlSeconds),
+                expiresAt: Carbon::now()->addSeconds($ttlSeconds)->toIso8601String(),
                 description: $reason ?? 'Wallet reservation',
             );
             $returnArray = false;
@@ -137,13 +138,13 @@ final class WalletReservationService
 
         try {
             $this->holds->hold($wallet, $amount, WalletHoldType::OtherFinancialHold);
-        } catch (\App\Exceptions\InsufficientBalanceException $e) {
+        } catch (InsufficientBalanceException $e) {
             throw WalletReservationException::insufficient(
                 $data->walletId,
                 $data->amount,
                 $e->availableAmount(),
             );
-        } catch (\App\Exceptions\FinancialException $e) {
+        } catch (FinancialException $e) {
             throw WalletReservationException::insufficient(
                 $data->walletId,
                 $data->amount,
@@ -151,7 +152,7 @@ final class WalletReservationService
             );
         }
 
-        $row = new WalletReservation();
+        $row = new WalletReservation;
         $row->fill([
             'reservation_key' => $data->reservationKey(),
             'wallet_id' => $data->walletId,
@@ -195,7 +196,7 @@ final class WalletReservationService
                 return $locked; // replay
             }
 
-            if (!$locked->status->canTransitionTo(WalletReservationStatus::Consumed)) {
+            if (! $locked->status->canTransitionTo(WalletReservationStatus::Consumed)) {
                 throw WalletReservationException::invalidTransition(
                     (string) $locked->reservation_key,
                     $locked->status->value,
@@ -268,7 +269,7 @@ final class WalletReservationService
                 return $locked;
             }
 
-            if (!$locked->status->canTransitionTo(WalletReservationStatus::Released)) {
+            if (! $locked->status->canTransitionTo(WalletReservationStatus::Released)) {
                 throw WalletReservationException::invalidTransition(
                     (string) $locked->reservation_key,
                     $locked->status->value,
@@ -328,7 +329,7 @@ final class WalletReservationService
                 return $locked;
             }
 
-            if (!$locked->status->canTransitionTo(WalletReservationStatus::Expired)) {
+            if (! $locked->status->canTransitionTo(WalletReservationStatus::Expired)) {
                 throw WalletReservationException::invalidTransition(
                     (string) $locked->reservation_key,
                     $locked->status->value,
@@ -403,16 +404,16 @@ final class WalletReservationService
 
     public static function moneyOf(string $amount): string
     {
-        if (extension_loaded('bcmath')) {
-            return bcadd($amount, '0', 2);
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary arithmetic.');
         }
 
-        return number_format((float) $amount, 2, '.', '');
+        return bcadd($amount, '0', 2);
     }
 
     private function recordAudit(WalletReservation $reservation, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,
@@ -420,7 +421,7 @@ final class WalletReservationService
             'risk_level' => $riskLevel,
             'auditable_type' => WalletReservation::class,
             'auditable_id' => (int) $reservation->getKey(),
-            'description' => sprintf('%s (reservation %s...)', $description, substr((string) $reservation->reservation_key, 0, 12)),
+            'description' => sprintf('%s (reservation %s…)', $description, substr((string) $reservation->reservation_key, 0, 12)),
             'metadata' => [
                 'reservation_key' => (string) $reservation->reservation_key,
                 'wallet_id' => (int) $reservation->wallet_id,

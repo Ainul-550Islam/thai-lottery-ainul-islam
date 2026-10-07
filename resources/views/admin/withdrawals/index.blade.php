@@ -39,7 +39,7 @@
                     @forelse($withdrawals ?? [] as $withdrawal)
                         <tr class="hover:bg-slate-800/30 transition">
                             <td class="py-3.5 px-4 font-mono font-bold text-slate-200">
-                                {{ $withdrawal->reference_number ?? ('WD-' . $withdrawal->id) }}
+                                {{ $withdrawal->reference_number ?? '—' }}
                             </td>
                             <td class="py-3.5 px-4">
                                 <span class="font-bold text-white block">{{ $withdrawal->user?->name ?? 'User #' . $withdrawal->user_id }}</span>

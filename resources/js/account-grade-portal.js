@@ -1,5 +1,5 @@
 /**
- * ThaiLotto VIP Account Grade & Real-Time Rebate Simulator Controller
+ * Lottery Platform VIP Account Grade & Real-Time Rebate Simulator Controller
  */
 
 (function () {

@@ -1,12 +1,11 @@
+@import 'tailwindcss';
 @import './theme.css';
 @import './components/glass.css';
 @import './components/metrics.css';
 @import './components/lottery-3d.css';
 @import './auth-portal.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@config '../../tailwind.config.js';
 
 /* Base Reset & Design System Roots */
 :root {

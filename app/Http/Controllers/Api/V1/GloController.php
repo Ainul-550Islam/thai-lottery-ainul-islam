@@ -4,37 +4,36 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\GloFreezeStatus;
-use App\Enums\GloPublicStatus;
+use App\Enums\GloDealerRequestType;
+use App\Enums\GloSourceState;
 use App\Exceptions\GloClaimException;
+use App\Exceptions\GloDealerException;
 use App\Exceptions\GloFreezeException;
 use App\Http\Responses\ApiResponse;
 use App\Models\Draw;
+use App\Models\GloDealerChangeRequest;
+use App\Models\GloNotificationDelivery;
 use App\Models\GloPrizeClaim;
 use App\Models\GloTicket;
 use App\Models\GloTicketFreeze;
+use App\Services\Lottery\GloDataMatrixParser;
+use App\Services\Lottery\GloDealerChangeRequestService;
+use App\Services\Lottery\GloDealerService;
+use App\Services\Lottery\GloLiveDrawService;
 use App\Services\Lottery\GloPrizeCatalogue;
 use App\Services\Lottery\GloPrizeClaimService;
-use App\Services\Lottery\GloPublicTicketVerificationService;
 use App\Services\Lottery\GloPublicResultService;
+use App\Services\Lottery\GloPublicTicketVerificationService;
+use App\Services\Lottery\GloResultNotificationService;
+use App\Services\Lottery\GloResultService;
 use App\Services\Lottery\GloSalesPointService;
 use App\Services\Lottery\GloSavedTicketService;
-use App\Services\Lottery\GloDealerService;
-use App\Services\Lottery\GloDealerChangeRequestService;
-use App\Services\Lottery\GloResultNotificationService;
-use App\Services\Lottery\GloDataMatrixParser;
-use App\Services\Lottery\GloLiveDrawService;
-use App\Enums\GloDealerRequestType;
-use App\Models\GloDealer;
-use App\Models\GloDealerChangeRequest;
-use App\Models\GloNotificationDelivery;
-use App\Models\GloSavedTicket;
-use App\Services\Lottery\GloResultService;
 use App\Services\Lottery\GloTicketChecker;
 use App\Services\Lottery\GloTicketFreezeService;
 use App\Support\Admin\AdminAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 /*
@@ -73,7 +72,7 @@ class GloController
     {
         $model = ctype_digit($draw)
             ? Draw::query()->find((int) $draw)
-            : Draw::query()->where('draw_number', $draw)->orWhere('uuid', $draw)->first();
+            : Draw::query()->where('draw_number', $draw)->first();
 
         if ($model === null) {
             return ApiResponse::error('not_found', 'Draw not found', 404);
@@ -528,13 +527,13 @@ class GloController
                 'q' => ['nullable', 'string', 'max:120'],
                 'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return ApiResponse::error('validation_failed', $e->getMessage(), 422, $e->errors()->toArray());
         }
 
         try {
             $page = $this->salesPoints->publicSearch($validated);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return ApiResponse::error('invalid_coordinates', $e->getMessage(), 422);
         }
 
@@ -573,7 +572,7 @@ class GloController
         try {
             $dealer = $this->dealers->dealerForUser($user);
             $history = $this->salesPoints->updateDailyLocation($dealer, $validated, $user);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return ApiResponse::error('dealer_error', $e->getMessage(), $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422);
         }
 
@@ -643,7 +642,7 @@ class GloController
                 (string) $validated['requested_value'],
                 $validated['reason'] ?? null,
             );
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             $code = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422;
 
             return ApiResponse::error('dealer_request', $e->getMessage(), $code);
@@ -727,7 +726,7 @@ class GloController
         try {
             $reviewed = $this->changeRequests->startReview($row, $user);
             $reviewed = $this->changeRequests->approve($reviewed, $user, $validated['review_note'] ?? null);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             $code = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 403;
 
             return ApiResponse::error('forbidden_or_illegal', $e->getMessage(), $code);
@@ -762,7 +761,7 @@ class GloController
         try {
             $reviewed = $this->changeRequests->startReview($row, $user);
             $reviewed = $this->changeRequests->reject($reviewed, $user, $validated['review_note'] ?? null);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             $code = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 403;
 
             return ApiResponse::error('forbidden_or_illegal', $e->getMessage(), $code);
@@ -809,7 +808,7 @@ class GloController
 
         try {
             $result = $this->savedTickets->save($user, (int) $ticket);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             $code = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422;
 
             return ApiResponse::error('save_ticket', $e->getMessage(), $code);
@@ -835,7 +834,7 @@ class GloController
 
         try {
             $saved = $this->savedTickets->remove($user, (int) $ticket);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             $code = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 409;
 
             return ApiResponse::error('remove_ticket', $e->getMessage(), $code);
@@ -892,7 +891,7 @@ class GloController
             $payload = $draw !== ''
                 ? $this->publicResults->cachedResult($draw)
                 : $this->publicResults->cachedResult(null);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return ApiResponse::error('result_unavailable', $e->getMessage(), 404);
         }
 
@@ -910,9 +909,9 @@ class GloController
                 'page' => ['nullable', 'integer', 'min:1'],
             ]);
             $page = $this->publicResults->history($validated);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return ApiResponse::error('validation_failed', $e->getMessage(), 422, $e->errors()->toArray());
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return ApiResponse::error('history_window', $e->getMessage(), 422);
         }
 
@@ -950,7 +949,7 @@ class GloController
                 (string) $validated['number'],
                 $validated['draw'] !== null && $validated['draw'] !== '' ? (string) $validated['draw'] : null,
             );
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return ApiResponse::error('check_failed', $e->getMessage(), 422);
         }
 
@@ -963,7 +962,7 @@ class GloController
 
         try {
             $sheet = $this->publicResults->resultSheet($draw !== '' ? $draw : null);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return ApiResponse::error('sheet_unavailable', $e->getMessage(), 404);
         }
 
@@ -999,7 +998,7 @@ class GloController
                 $ticketNumber,
                 is_string($drawNumber) && $drawNumber !== '' ? $drawNumber : null,
             );
-        } catch (\App\Exceptions\GloDealerException) {
+        } catch (GloDealerException) {
             $check = null;
         }
 
@@ -1028,9 +1027,9 @@ class GloController
                 'replay_status' => 'configured',
                 'items' => $replays,
             ], 'Historical draw replay catalog');
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return ApiResponse::success([
-                'replay_status' => \App\Enums\GloSourceState::NotConfigured->value,
+                'replay_status' => GloSourceState::NotConfigured->value,
                 'items' => [],
                 'message' => $e->getMessage(),
             ], 'Replay provider status');
@@ -1041,7 +1040,7 @@ class GloController
     {
         try {
             $payload = $this->publicResults->cachedResult($draw);
-        } catch (\App\Exceptions\GloDealerException $e) {
+        } catch (GloDealerException $e) {
             return ApiResponse::error('result_unavailable', $e->getMessage(), 404);
         }
 

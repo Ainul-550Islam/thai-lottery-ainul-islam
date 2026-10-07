@@ -35,7 +35,7 @@ class PaymentResource extends JsonResource
             'channel' => $payment->channel->value ?? (string) $payment->channel,
             'direction' => $payment->direction->value ?? (string) $payment->direction,
             'status' => $payment->status->value ?? (string) $payment->status,
-            'is_settled' => in_array($payment->status->value ?? (string) $payment->status, ['completed', 'settled', 'success'], true),
+            'is_settled' => ($payment->status->value ?? (string) $payment->status) === 'captured',
             'processed_at' => $payment->processed_at?->toIso8601String(),
             'created_at' => $payment->created_at?->toIso8601String(),
         ];

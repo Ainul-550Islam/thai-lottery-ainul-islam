@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Payment;
 
 use App\DTOs\Payment\GatewayDepositResponse;
-use App\Enums\DepositStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Exceptions\DepositException;
@@ -15,9 +14,7 @@ use App\Models\Payment;
 use App\Models\Wallet;
 use App\Services\Finance\DepositService;
 use App\Services\Finance\Money;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Service orchestrating deposit initiation across payment gateway providers.
@@ -27,8 +24,7 @@ class PaymentInitiationService
     public function __construct(
         private readonly DepositService $depositService,
         private readonly PaymentGatewayManager $gateways,
-    ) {
-    }
+    ) {}
 
     /**
      * Initiate a deposit with a payment gateway.
@@ -87,6 +83,14 @@ class PaymentInitiationService
             // validated driver
             $gatewayResponse = $driver->initiateDeposit($deposit, $options);
 
+            if (! $gatewayResponse->successful) {
+                throw FinancialException::withCode(
+                    'payment_gateway_unavailable',
+                    'The configured payment gateway could not initiate this deposit.',
+                    ['gateway' => $driver->name()],
+                );
+            }
+
             // 4. Create or update Payment aggregate
             $payment = Payment::query()
                 ->where('payable_type', Deposit::class)
@@ -94,7 +98,7 @@ class PaymentInitiationService
                 ->first();
 
             if (! $payment instanceof Payment) {
-                $payment = new Payment();
+                $payment = new Payment;
                 $payment->fill([
                     'reference_number' => 'PAY-'.strtoupper(bin2hex(random_bytes(8))),
                     'user_id' => (int) $wallet->user_id,

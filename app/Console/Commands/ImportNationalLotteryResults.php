@@ -44,7 +44,7 @@ class ImportNationalLotteryResults extends Command
      */
     protected $signature = 'national-lottery:import
         {--file= : Path to a JSON payload file}
-        {--provider=fixture : Source provider lane (official, internal, fixture)}
+        {--provider=official : Source provider lane (official, internal, fixture)}
         {--draw-date= : Draw date, in one of the configured accepted formats}
         {--first-prize= : Six-digit first prize, leading zeros included}
         {--three-up= : Three-digit 3 Up}

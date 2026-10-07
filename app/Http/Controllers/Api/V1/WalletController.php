@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\Currency;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
+use App\Enums\WalletType;
+use App\Http\Requests\Wallet\WalletHistoryRequest;
 use App\Http\Resources\FinancialTransactionResource;
 use App\Http\Resources\WalletResource;
 use App\Http\Responses\ApiResponse;
@@ -31,7 +33,7 @@ final class WalletController
             ->where('user_id', $user->id)
             ->get();
 
-        $primaryWallet = $wallets->firstWhere('type', \App\Enums\WalletType::Primary) ?? $wallets->first();
+        $primaryWallet = $wallets->firstWhere('type', WalletType::Primary) ?? $wallets->first();
 
         if (! $primaryWallet instanceof Wallet) {
             return ApiResponse::error(
@@ -53,8 +55,9 @@ final class WalletController
     /**
      * Retrieve authenticated player's paginated financial transaction history.
      */
-    public function transactions(Request $request): JsonResponse
+    public function transactions(WalletHistoryRequest $request): JsonResponse
     {
+        $request->validated();
         $user = $request->user();
 
         $query = FinancialTransaction::query()
@@ -93,11 +96,9 @@ final class WalletController
             $query->whereDate('created_at', '<=', (string) $request->query('to'));
         }
 
-        $perPage = min(max((int) $request->query('per_page', 15), 1), 50);
-
         $transactions = $query
             ->latest('id')
-            ->paginate($perPage);
+            ->paginate($request->perPage());
 
         return ApiResponse::success(
             data: [

@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Enterprise Home & Landing Page Stylesheet
+ * Lottery Platform Enterprise Home & Landing Page Stylesheet
  * Dark Luxury Gold Theme: #0b0f17, #0f1522, #131b29, #172233, #1f2b3e
  * Glowing Amber: #f59e0b, #d97706, #fbbf24 | Emerald: #10b981 | Rose: #ef4444
  */
@@ -576,4 +576,8 @@ body.th-home-body {
     .th-footer-grid {
         grid-template-columns: 1fr;
     }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }

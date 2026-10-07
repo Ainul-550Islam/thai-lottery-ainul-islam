@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
+use App\Enums\AuditAction;
+use App\Enums\ResultSourceType;
+use App\Enums\RiskLevel;
+use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Models\GloResultImport;
 use App\Models\User;
-use App\Services\Draw\DrawResultIngestionService;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Str;
 
@@ -34,7 +37,6 @@ class GloResultImportService
         private readonly DatabaseManager $db,
         private readonly GloFixtureResultProvider $fixtureProvider,
         private readonly GloOfficialResultProvider $officialProvider,
-        private readonly DrawResultIngestionService $ingestion,
     ) {}
 
     public function provider(): GloResultProvider
@@ -76,7 +78,6 @@ class GloResultImportService
         if ($fixtureDraw !== '') {
             $draw = Draw::query()
                 ->where('draw_number', $fixtureDraw)
-                ->orWhere('uuid', $fixtureDraw)
                 ->first();
         }
 
@@ -100,47 +101,93 @@ class GloResultImportService
         $status = (string) ($payload['status'] ?? 'failed');
 
         if ($status !== 'imported') {
+            // Honest negative: record provenance, do not write results.
             $import = $this->recordImport($drawId, $provider, $payload, $actor);
 
-            return ['import' => $import, 'draw_result' => null, 'payload' => $payload, 'ingestion' => null];
+            return ['import' => $import, 'draw_result' => null, 'payload' => $payload];
         }
 
-        $fingerprint = trim((string) ($payload['fingerprint'] ?? ''));
+        $fingerprint = (string) ($payload['fingerprint'] ?? '');
 
-        if ($fingerprint === '') {
-            $payload['status'] = 'failed';
-            $payload['failure_reason'] = 'Provider returned an imported payload without a result fingerprint.';
-            $import = $this->recordImport($drawId, $provider, $payload, $actor);
+        if ($fingerprint !== '') {
+            $existing = GloResultImport::query()
+                ->where('draw_id', $drawId)
+                ->where('result_fingerprint', $fingerprint)
+                ->where('status', 'imported')
+                ->first();
 
-            return ['import' => $import, 'draw_result' => null, 'payload' => $payload, 'ingestion' => null];
+            if ($existing !== null) {
+                $result = DrawResult::query()->where('draw_id', $drawId)->first();
+
+                return ['import' => $existing, 'draw_result' => $result, 'payload' => $payload];
+            }
         }
 
-        $existing = GloResultImport::query()
-            ->where('draw_id', $drawId)
-            ->where('result_fingerprint', $fingerprint)
-            ->where('status', 'imported')
-            ->first();
+        return $this->db->connection()->transaction(function () use ($drawId, $provider, $payload, $fingerprint, $actor): array {
+            $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
 
-        if ($existing instanceof GloResultImport) {
-            return [
-                'import' => $existing,
-                'draw_result' => null,
-                'payload' => $payload,
-                'ingestion' => $this->ingestion->currentIngestion($drawId),
+            $result = DrawResult::query()
+                ->where('draw_id', $drawId)
+                ->lockForUpdate()
+                ->first();
+
+            $attributes = [
+                'draw_id' => $drawId,
+                'first_prize' => (string) $payload['first_prize'],
+                'second_prize' => array_values($payload['second_prize'] ?? []),
+                'third_prize' => array_values($payload['third_prize'] ?? []),
+                'consolation_prizes' => $result->consolation_prizes ?? [],
+                'all_numbers' => $result->all_numbers ?? [],
+                'total_winners' => $result->total_winners ?? 0,
+                'total_payout' => $result->total_payout ?? '0.00',
+                'house_profit' => $result->house_profit ?? '0.00',
+                'published_at' => $result->published_at ?? now(),
             ];
-        }
 
-        return $this->db->connection()->transaction(function () use ($drawId, $provider, $payload, $actor): array {
+            $lane = is_array($result?->metadata[$tierKey] ?? null) ? $result->metadata[$tierKey] : [];
+            $lane = array_merge($lane, (array) ($payload['tiers'] ?? []));
+
+            if (($payload['n3'] ?? []) !== []) {
+                $lane['n3'] = $payload['n3'];
+            }
+
+            $lane['import_fingerprint'] = $fingerprint;
+            $lane['import_provider'] = $provider->name();
+            $lane['imported_at'] = now()->toIso8601String();
+
+            $metadata = is_array($result?->metadata) ? $result->metadata : [];
+            $metadata[$tierKey] = $lane;
+            $attributes['metadata'] = $metadata;
+
+            if ($result === null) {
+                $result = DrawResult::create($attributes);
+            } else {
+                $result->fill($attributes);
+                $result->save();
+            }
+
             $import = $this->recordImport($drawId, $provider, $payload, $actor);
-            $firstPrize = (string) ($payload['first_prize'] ?? '');
-            $ingestion = $this->ingestion->ingest(
-                $drawId,
-                ['first_prize' => $firstPrize, 'bottom_two' => substr($firstPrize, -2)],
-                'glo:'.$provider->name().':'.$import->import_reference,
-                $actor?->getKey() !== null ? (int) $actor->getKey() : null,
-            );
 
-            return ['import' => $import, 'draw_result' => null, 'payload' => $payload, 'ingestion' => $ingestion];
+            AuditLog::create([
+                'user_id' => $actor?->getKey(),
+                'action' => AuditAction::DataImport,
+                'risk_level' => RiskLevel::High,
+                'auditable_type' => DrawResult::class,
+                'auditable_id' => $result->getKey(),
+                'description' => 'glo_result_imported',
+                'metadata' => [
+                    'action_type' => 'glo_result_imported',
+                    'provider' => $provider->name(),
+                    'draw_id' => $drawId,
+                    'import_reference' => $import->import_reference,
+                    'result_fingerprint' => $fingerprint,
+                    // Digit string — never int.
+                    'first_prize' => (string) $payload['first_prize'],
+                    'source_type' => ResultSourceType::Import->value,
+                ],
+            ]);
+
+            return ['import' => $import, 'draw_result' => $result, 'payload' => $payload];
         });
     }
 

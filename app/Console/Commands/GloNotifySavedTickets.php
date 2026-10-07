@@ -38,7 +38,7 @@ class GloNotifySavedTickets extends Command
 
         $draw = ctype_digit($ref)
             ? Draw::query()->find((int) $ref)
-            : Draw::query()->where('draw_number', $ref)->orWhere('uuid', $ref)->first();
+            : Draw::query()->where('draw_number', $ref)->first();
 
         if ($draw === null) {
             $this->error('Draw not found: '.$ref);

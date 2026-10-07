@@ -25,9 +25,12 @@ class PaymentWebhook extends Model
         'status_reason',
         'received_at',
         'verified_at',
+        'claimed_at',
         'applied_at',
         'rejected_at',
+        'last_error_at',
         'sightings',
+        'processing_attempts',
         'metadata',
     ];
 
@@ -36,8 +39,11 @@ class PaymentWebhook extends Model
         'payload' => 'array',
         'received_at' => 'datetime',
         'verified_at' => 'datetime',
+        'claimed_at' => 'datetime',
         'applied_at' => 'datetime',
         'rejected_at' => 'datetime',
+        'last_error_at' => 'datetime',
+        'processing_attempts' => 'integer',
         'metadata' => 'array',
     ];
 }

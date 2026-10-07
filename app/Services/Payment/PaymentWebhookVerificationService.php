@@ -105,11 +105,7 @@ final class PaymentWebhookVerificationService
     {
         $providerCode = strtolower(trim($providerCode));
 
-        return (string) (
-            config("payment.gateways.{$providerCode}.webhook_secret")
-            ?? env('PAYMENT_'.strtoupper(str_replace(['-', '_'], '_', $providerCode)).'_WEBHOOK_SECRET')
-            ?: ''
-        ) ?: null;
+        return (string) (config("payment.gateways.{$providerCode}.webhook_secret") ?: '') ?: null;
     }
 
     /**

@@ -29,7 +29,7 @@ final class WalletResource extends JsonResource
             'type' => $wallet->type?->value,
             'status' => $wallet->status?->value,
             'balance' => (string) $wallet->balance,
-            'locked_balance' => (string) $wallet->locked_balance,
+            'reserved_balance' => (string) $wallet->locked_balance,
             'available_balance' => (string) $wallet->getAvailableBalance(),
             'can_transact' => $wallet->canTransact(),
             'is_locked' => $wallet->isLocked(),

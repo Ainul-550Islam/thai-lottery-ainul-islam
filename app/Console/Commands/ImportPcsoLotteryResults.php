@@ -51,7 +51,7 @@ class ImportPcsoLotteryResults extends Command
      * @var string
      */
     protected $signature = 'pcso-lottery:import
-        {--provider=fixture : Source provider lane (official, internal, replay, fixture)}
+        {--provider=official : Source provider lane (official, internal, replay, fixture)}
         {--file= : Path to a JSON payload file}
         {--date= : Draw date, in one of the configured accepted formats}
         {--draw= : Draw reference to target; must agree with --date when both are given}

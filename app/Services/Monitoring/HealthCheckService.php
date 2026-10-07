@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Monitoring;
 
+use App\Enums\PaymentMethodStatus;
 use App\Models\Draw;
-use App\Models\PaymentMethod;
+use App\Models\PaymentMethodConfig;
 use App\Services\Observability\SystemHealthService;
 use App\Services\Queue\QueueHealthService;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -156,11 +157,13 @@ class HealthCheckService
     private function checkPaymentConfiguration(): array
     {
         try {
-            if (! DB::getSchemaBuilder()->hasTable('payment_methods')) {
+            if (! DB::getSchemaBuilder()->hasTable('payment_method_configs')) {
                 return ['enabled_count' => 0, 'configured' => false];
             }
 
-            $count = PaymentMethod::query()->where('is_enabled', true)->count();
+            $count = PaymentMethodConfig::query()
+                ->where('status', PaymentMethodStatus::Enabled->value)
+                ->count();
 
             return [
                 'enabled_count' => $count,

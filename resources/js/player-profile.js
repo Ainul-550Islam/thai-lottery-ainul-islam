@@ -1,6 +1,6 @@
 /**
- * ThaiLotto Club Member Profile Browser Runtime (JavaScript)
- * Reference: https://thailotto.club/
+ * Lottery Platform Club Member Profile Browser Runtime (JavaScript)
+ * Reference: https://lottery-platform.club/
  */
 
 (function (window, document) {

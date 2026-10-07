@@ -31,6 +31,7 @@ class UserResource extends JsonResource
             : ($user->kyc_status?->value ?? 'unverified');
 
         return [
+            'id' => (int) $user->getKey(),
             'name' => (string) $user->name,
             'username' => (string) $user->username,
             'email' => (string) $user->email,
@@ -41,6 +42,7 @@ class UserResource extends JsonResource
             'email_verified' => $user->email_verified_at !== null,
             'phone_verified' => $user->phone_verified_at !== null,
             'created_at' => $user->created_at?->toIso8601String(),
+            'roles' => $user->getRoleNames()->values()->all(),
             'wallets' => WalletResource::collection($this->whenLoaded('wallets')),
         ];
     }

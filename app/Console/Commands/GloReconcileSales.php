@@ -44,7 +44,7 @@ class GloReconcileSales extends Command
 
         $draw = ctype_digit($drawRef)
             ? Draw::query()->find((int) $drawRef)
-            : Draw::query()->where('draw_number', $drawRef)->orWhere('uuid', $drawRef)->first();
+            : Draw::query()->where('draw_number', $drawRef)->first();
 
         if ($draw === null) {
             $this->error('Draw not found: '.$drawRef);

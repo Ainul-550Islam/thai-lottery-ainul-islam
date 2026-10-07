@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Member Account & System Settings Controller
+ * Lottery Platform Member Account & System Settings Controller
  */
 
 export interface GeneralSettings {
@@ -298,10 +298,19 @@ export class PlayerSettingsManager {
     }
 
     public async saveResponsibleGamingLimits(): Promise<void> {
-        const dailyDeposit = parseFloat((document.getElementById('inputDailyDeposit') as HTMLInputElement)?.value || '5000');
-        const singleBet = parseFloat((document.getElementById('inputSingleBet') as HTMLInputElement)?.value || '1000');
-        const dailyWager = parseFloat((document.getElementById('inputDailyWager') as HTMLInputElement)?.value || '10000');
-        const dailyLoss = parseFloat((document.getElementById('inputDailyLoss') as HTMLInputElement)?.value || '5000');
+        const readDecimal = (id: string): string =>
+            ((document.getElementById(id) as HTMLInputElement | null)?.value || '').trim();
+
+        const dailyDeposit = readDecimal('inputDailyDeposit');
+        const singleBet = readDecimal('inputSingleBet');
+        const dailyWager = readDecimal('inputDailyWager');
+        const dailyLoss = readDecimal('inputDailyLoss');
+        const limits = [dailyDeposit, singleBet, dailyWager, dailyLoss];
+
+        if (limits.some((value) => !/^\d+(\.\d{1,2})?$/.test(value))) {
+            alert('Enter each spending limit as a decimal amount with at most two decimal places.');
+            return;
+        }
 
         try {
             const res = await fetch('/api/v1/player/settings/limits', {
@@ -319,9 +328,12 @@ export class PlayerSettingsManager {
                 }),
             });
             const data = await res.json();
-            alert(data.message || 'Responsible gaming limits saved.');
+            if (!res.ok) {
+                throw new Error(data.message || 'Spending limits were not accepted.');
+            }
+            alert(data.message || 'Responsible gaming limits were accepted.');
         } catch (e) {
-            alert('Failed to save spending limits.');
+            alert(e instanceof Error ? e.message : 'Failed to save spending limits.');
         }
     }
 

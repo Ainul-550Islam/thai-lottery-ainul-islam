@@ -35,7 +35,6 @@ final class DepositResource extends JsonResource
             'method' => $deposit->method?->value,
             'confirmed_at' => $deposit->confirmed_at?->toIso8601String(),
             'failed_at' => $deposit->failed_at?->toIso8601String(),
-            'failure_reason' => $deposit->failure_reason,
             'created_at' => $deposit->created_at?->toIso8601String(),
         ];
     }

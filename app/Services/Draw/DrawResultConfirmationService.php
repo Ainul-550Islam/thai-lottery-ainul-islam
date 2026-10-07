@@ -81,19 +81,6 @@ class DrawResultConfirmationService
             $draw = $this->lockedDraw($drawId);
             $record = $this->pendingRecord($draw, throwNotPending: true);
 
-            $ingestedBy = isset($record['ingested_by']) ? (int) $record['ingested_by'] : null;
-
-            if ($ingestedBy === null || $ingestedBy < 1 || $ingestedBy === $operatorId) {
-                throw DrawResultException::confirmationForbidden(
-                    $drawId,
-                    DrawConfirmationStatus::Pending->value,
-                    $ingestedBy === $operatorId
-                        ? 'confirmed by the same operator who ingested it'
-                        : 'confirmed without an attributable ingesting operator',
-                    ['draw_id' => $drawId, 'operator_id' => $operatorId],
-                );
-            }
-
             $stored = $record['payload'] ?? [];
             $claimedNormalized = $this->normalizeClaim($drawId, $claimed);
 

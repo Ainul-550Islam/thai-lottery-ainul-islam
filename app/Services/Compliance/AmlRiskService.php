@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Compliance;
 
-use App\DTOs\Compliance\AmlRiskAssessmentData;
 use App\Enums\AmlRiskLevel;
-use App\Exceptions\AmlRiskAssessmentException;
 use App\Models\AmlRiskAssessment;
 use App\Models\User;
 
@@ -20,8 +18,7 @@ class AmlRiskService
 {
     public function __construct(
         private readonly AmlRiskAssessmentService $assessmentService,
-    ) {
-    }
+    ) {}
 
     /**
      * Compute real-time live AML risk facts and score for a user.
@@ -58,7 +55,7 @@ class AmlRiskService
     {
         $result = $this->assessmentService->measure($userId);
 
-        return $result['level'] === AmlRiskLevel::High || $result['level'] === AmlRiskLevel::Prohibited;
+        return in_array($result['level'], [AmlRiskLevel::High, AmlRiskLevel::Critical], true);
     }
 
     /**
@@ -68,6 +65,6 @@ class AmlRiskService
     {
         $result = $this->assessmentService->measure($userId);
 
-        return $result['level'] === AmlRiskLevel::Prohibited;
+        return $result['level'] === AmlRiskLevel::Critical;
     }
 }

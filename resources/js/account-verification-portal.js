@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Account Verification & Real-Time KYC Portal Runtime Controller
+ * Lottery Platform Account Verification & Real-Time KYC Portal Runtime Controller
  */
 
 (function () {
@@ -40,7 +40,7 @@
                     },
                     body: JSON.stringify({
                         reference_id: ref,
-                        phone_or_email: contact || 'member@thailotto.club'
+                        phone_or_email: contact || 'member@lottery-platform.club'
                     })
                 })
                 .then(function (res) { return res.json(); })

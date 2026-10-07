@@ -153,15 +153,22 @@ final class LottoPayoutRuleService
 
     private function stringify(mixed $value): ?string
     {
-        if ($value === null || ! is_numeric($value)) {
+        $decimal = is_int($value)
+            ? (string) $value
+            : (is_string($value) ? trim($value) : null);
+
+        if ($decimal === null || preg_match('/^\d+(\.\d{1,6})?$/', $decimal) !== 1) {
             return null;
         }
 
-        // Money-adjacent values are carried as strings; trailing zeros are
-        // trimmed for display only, never for arithmetic.
-        $formatted = number_format((float) $value, 4, '.', '');
-        $formatted = rtrim(rtrim($formatted, '0'), '.');
+        // Multiplier values remain decimal strings; display normalization
+        // removes insignificant zeros without binary floating-point conversion.
+        if (! str_contains($decimal, '.')) {
+            return $decimal;
+        }
 
-        return $formatted === '' ? '0' : $formatted;
+        $normalized = rtrim(rtrim($decimal, '0'), '.');
+
+        return $normalized === '' ? '0' : $normalized;
     }
 }

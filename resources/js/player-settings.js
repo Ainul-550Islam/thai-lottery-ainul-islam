@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Member Account & System Settings Runtime (Vanilla JS)
+ * Lottery Platform Member Account & System Settings Runtime (Vanilla JS)
  */
 
 (function () {
@@ -130,18 +130,30 @@
         if (respForm) {
             respForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                var dep = parseFloat(document.getElementById('inputDailyDeposit').value);
-                var bet = parseFloat(document.getElementById('inputSingleBet').value);
-                var wag = parseFloat(document.getElementById('inputDailyWager').value);
-                var loss = parseFloat(document.getElementById('inputDailyLoss').value);
+                var dep = document.getElementById('inputDailyDeposit').value.trim();
+                var bet = document.getElementById('inputSingleBet').value.trim();
+                var wag = document.getElementById('inputDailyWager').value.trim();
+                var loss = document.getElementById('inputDailyLoss').value.trim();
+                var decimal = /^\d+(\.\d{1,2})?$/;
+
+                if (![dep, bet, wag, loss].every(function (value) { return decimal.test(value); })) {
+                    alert('Enter each spending limit as a decimal amount with at most two decimal places.');
+                    return;
+                }
 
                 fetch('/api/v1/player/settings/limits', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({ daily_deposit_limit: dep, single_bet_limit: bet, daily_wager_limit: wag, daily_loss_limit: loss })
                 })
-                .then(function (res) { return res.json(); })
-                .then(function (res) { alert(res.message || 'Limits updated.'); });
+                .then(function (response) {
+                    return response.json().then(function (data) {
+                        if (!response.ok) throw new Error(data.message || 'Limits could not be updated.');
+                        return data;
+                    });
+                })
+                .then(function (data) { alert(data.message || 'Responsible gaming limits were accepted.'); })
+                .catch(function (error) { alert(error.message || 'Limits could not be updated.'); });
             });
         }
 

@@ -1,6 +1,6 @@
 /**
  * Thai Lottery Interactive Auth Portal JavaScript Engine
- * Reference: https://thailotto.club/
+ * Reference: https://lottery-platform.club/
  */
 
 (function (window, document) {

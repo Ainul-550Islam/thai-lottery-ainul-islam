@@ -22,8 +22,7 @@ class ResultsController
 {
     public function __construct(
         private readonly ResultsPageService $resultsPageService,
-    ) {
-    }
+    ) {}
 
     /**
      * Render the public results index page.
@@ -44,7 +43,7 @@ class ResultsController
     public function search(Request $request): View
     {
         $rawQuery = (string) $request->input('q', '');
-        $query = trim(strip_tags($rawQuery));
+        $query = trim($rawQuery);
 
         $results = [];
 
@@ -60,7 +59,7 @@ class ResultsController
                     ->where(function ($q) use ($query): void {
                         $q->where('draw_number', $query)
                             ->orWhereHas('result', function ($rq) use ($query): void {
-                                $rq->where('first_prize', 'LIKE', '%' . $query . '%');
+                                $rq->where('first_prize', 'LIKE', '%'.$query.'%');
                             });
                     })
                     ->limit(20)

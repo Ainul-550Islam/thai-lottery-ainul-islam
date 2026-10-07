@@ -34,7 +34,7 @@
                 {{ \App\Services\Finance\Money::of((string) ($agent->total_commission_earned ?? '0'), $agent->currency ?? \App\Enums\Currency::THB)->format() }}
             </div>
             <div class="tl-metric-card__footer">
-                <span>Rate: {{ number_format((float) (($agent->commission_rate ?? 0.05) * 100), 2) }}%</span>
+                <span>Rate: {{ $agent->commission_rate !== null ? bcmul((string) $agent->commission_rate, '100', 2).'%' : '—' }}</span>
             </div>
         </div>
 

@@ -8,11 +8,13 @@ use App\DTOs\Prize\PrizeDisbursementData;
 use App\Enums\PayoutStatus;
 use App\Enums\PrizeClaimStatus;
 use App\Enums\PrizeDisbursementStatus;
-use App\Listeners\RecordPrizeDisbursementAudit;
 use App\Exceptions\PrizeDisbursementException;
+use App\Exceptions\PrizeEligibilityException;
+use App\Listeners\RecordPrizeDisbursementAudit;
 use App\Models\Payout;
 use App\Models\PrizeDisbursement;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * The settlement court: approved prize claims → reservation → final
@@ -42,8 +44,7 @@ final class PrizeDisbursementService
     public function __construct(
         private readonly PrizeEligibilityService $eligibility,
         private readonly RecordPrizeDisbursementAudit $scribe,
-    ) {
-    }
+    ) {}
 
     /* ------------------------------------------------- fingerprint --- */
 
@@ -152,7 +153,7 @@ final class PrizeDisbursementService
         // ELIGIBILITY: fail-closed lane.
         try {
             $this->eligibility->assertAdmits((int) $payout->getKey());
-        } catch (\App\Exceptions\PrizeEligibilityException $e) {
+        } catch (PrizeEligibilityException $e) {
             throw PrizeDisbursementException::ineligible((int) $payout->getKey(), (string) $e->errorCode());
         }
 
@@ -170,7 +171,7 @@ final class PrizeDisbursementService
             );
         }
 
-        $row = new PrizeDisbursement();
+        $row = new PrizeDisbursement;
         $row->fill([
             'disbursement_key' => $data->disbursementKey(),
             'payout_id' => (int) $payout->getKey(),
@@ -219,7 +220,7 @@ final class PrizeDisbursementService
                 return $locked; // replay
             }
 
-            if (!$locked->status->canTransitionTo(PrizeDisbursementStatus::Disbursed)) {
+            if (! $locked->status->canTransitionTo(PrizeDisbursementStatus::Disbursed)) {
                 if ($locked->status->isTerminal()) {
                     throw PrizeDisbursementException::reversalViolation((string) $locked->disbursement_key, $locked->status->value);
                 }
@@ -279,7 +280,7 @@ final class PrizeDisbursementService
                 return $locked;
             }
 
-            if (!$locked->status->canTransitionTo(PrizeDisbursementStatus::Reversed)) {
+            if (! $locked->status->canTransitionTo(PrizeDisbursementStatus::Reversed)) {
                 throw PrizeDisbursementException::reversalViolation((string) $locked->disbursement_key, $locked->status->value);
             }
 
@@ -288,7 +289,7 @@ final class PrizeDisbursementService
 
             $locked->status = PrizeDisbursementStatus::Reversed;
             $locked->reversed_at = now();
-            $locked->reversal_reason = \Illuminate\Support\Str::limit(trim($reason), 255, '');
+            $locked->reversal_reason = Str::limit(trim($reason), 255, '');
             $locked->save();
 
             if ($payout instanceof Payout) {
@@ -325,17 +326,17 @@ final class PrizeDisbursementService
             }
 
             if ($locked->status === PrizeDisbursementStatus::Failed
-                && \Illuminate\Support\Str::contains((string) $locked->failure_reason, $reason)) {
+                && Str::contains((string) $locked->failure_reason, $reason)) {
                 return $locked;
             }
 
-            if (!$locked->status->canTransitionTo(PrizeDisbursementStatus::Failed)) {
+            if (! $locked->status->canTransitionTo(PrizeDisbursementStatus::Failed)) {
                 throw PrizeDisbursementException::reversalViolation((string) $locked->disbursement_key, $locked->status->value);
             }
 
             $locked->status = PrizeDisbursementStatus::Failed;
             $locked->failed_at = now();
-            $locked->failure_reason = \Illuminate\Support\Str::limit(trim($reason), 255, '');
+            $locked->failure_reason = Str::limit(trim($reason), 255, '');
             $locked->save();
 
             /** @var Payout|null $payout */
@@ -361,7 +362,7 @@ final class PrizeDisbursementService
      */
     public function ledgersTotal(int $payoutId): string
     {
-        $total = \Illuminate\Support\Facades\DB::selectOne(
+        $total = DB::selectOne(
             'SELECT COALESCE(SUM(amount), 0) AS total FROM prize_disbursements WHERE payout_id = ? AND status IN (?, ?)',
             [$payoutId, PrizeDisbursementStatus::Reserved->value, PrizeDisbursementStatus::Disbursed->value],
         );
@@ -373,10 +374,10 @@ final class PrizeDisbursementService
 
     public static function moneyOf(string $amount): string
     {
-        if (extension_loaded('bcmath')) {
-            return bcadd($amount, '0', 2);
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary arithmetic.');
         }
 
-        return number_format((float) $amount, 2, '.', '');
+        return bcadd($amount, '0', 2);
     }
 }

@@ -65,7 +65,11 @@ final readonly class LedgerAdjustmentData
             );
         }
 
-        if (extension_loaded('bcmath') ? bccomp($amt, '0', 2) === 0 : ((float) $amt === 0.0)) {
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary validation.');
+        }
+
+        if (bccomp($amt, '0', 2) === 0) {
             throw LedgerAdjustmentException::malformed(
                 'a zero adjustment is not an adjustment — no movement at all',
             );

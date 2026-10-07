@@ -1,5 +1,5 @@
 /**
- * ThaiLotto FAQ & Interactive Knowledge Base Controller
+ * Lottery Platform FAQ & Interactive Knowledge Base Controller
  */
 
 (function () {

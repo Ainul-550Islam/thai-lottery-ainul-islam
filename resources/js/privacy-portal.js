@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Privacy Policy Interactive Controller & Real API Connector
+ * Lottery Platform Privacy Policy Interactive Controller & Real API Connector
  */
 
 (function () {

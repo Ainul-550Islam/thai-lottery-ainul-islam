@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Customer Support & Ticket Dispatch Controller
+ * Lottery Platform Customer Support & Ticket Dispatch Controller
  */
 
 (function () {

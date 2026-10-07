@@ -40,7 +40,7 @@ export const PlayerProfile: React.FC = () => {
                         🪷
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-base font-black text-white tracking-wide">THAILOTTO.CLUB</span>
+                        <span className="text-base font-black text-white tracking-wide">LOTTERY PLATFORM</span>
                         <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Member Area</span>
                     </div>
                 </a>

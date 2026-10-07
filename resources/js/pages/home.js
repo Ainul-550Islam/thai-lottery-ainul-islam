@@ -1,5 +1,5 @@
 /**
- * ThaiLotto - Home Page Interactive Runtime Engine
+ * Lottery Platform - Home Page Interactive Runtime Engine
  * Manages synchronized countdowns, live jackpot feeds, interactive number verification, and dynamic market switching.
  */
 
@@ -144,7 +144,7 @@ function initLiveResultRefresh() {
         .then(data => {
             if (data && data.success && data.data) {
                 // Background update if needed
-                console.debug('ThaiLotto Home Live Sync:', data.data.current_time);
+                console.debug('Lottery Platform Home Live Sync:', data.data.current_time);
             }
         })
         .catch(err => {

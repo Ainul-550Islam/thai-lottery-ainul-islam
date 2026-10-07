@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Interactive 6-Digit Lucky Number Picker & Live Keypad Controller
+ * Lottery Platform Interactive 6-Digit Lucky Number Picker & Live Keypad Controller
  */
 
 (function () {

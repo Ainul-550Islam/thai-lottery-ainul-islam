@@ -40,7 +40,7 @@
                         @foreach($prizes as $prize)
                             <tr class="border-b border-gray-100 dark:border-gray-800">
                                 <td class="py-2 pr-4 font-medium text-gray-900 dark:text-gray-100">{{ $prize['label'] }}</td>
-                                <td class="py-2 pr-4 font-mono">{{ number_format((float) $prize['amount'], 2) }}</td>
+                                <td class="py-2 pr-4 font-mono">{{ \App\Support\Admin\AdminFormat::money($prize['amount']) }}</td>
                                 <td class="py-2 pr-4">{{ $prize['winners'] }}</td>
                                 <td class="py-2 pr-4">{{ $prize['digits'] }}</td>
                                 <td class="py-2 pr-4 font-mono text-xs">{{ $prize['match_mode'] }}</td>

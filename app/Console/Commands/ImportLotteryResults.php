@@ -35,20 +35,23 @@ class ImportLotteryResults extends Command
 
         if (empty($lane)) {
             $this->error('The --lane option is required (national, weekly, bingo, pcso, glo).');
+
             return Command::FAILURE;
         }
 
         if (empty($file) || ! file_exists($file)) {
             $this->error(sprintf('File or directory [%s] not found.', $file));
+
             return Command::FAILURE;
         }
 
         $files = is_dir($file)
-            ? glob(rtrim($file, '/') . '/*.json')
+            ? glob(rtrim($file, '/').'/*.json')
             : [$file];
 
         if (empty($files)) {
             $this->error('No JSON files found to import.');
+
             return Command::FAILURE;
         }
 
@@ -60,6 +63,7 @@ class ImportLotteryResults extends Command
             if ($content === false) {
                 $this->error("Failed to read file: {$filePath}");
                 $failed++;
+
                 continue;
             }
 
@@ -68,12 +72,14 @@ class ImportLotteryResults extends Command
             } catch (JsonException $e) {
                 $this->error("Malformed JSON in {$filePath}: {$e->getMessage()}");
                 $failed++;
+
                 continue;
             }
 
             if (! is_array($payload)) {
                 $this->error("Payload in {$filePath} must be a JSON object.");
                 $failed++;
+
                 continue;
             }
 
@@ -88,7 +94,7 @@ class ImportLotteryResults extends Command
                 );
 
                 if ($result['status'] === ResultImportService::STATUS_REJECTED) {
-                    $this->error("Rejected {$filePath}: " . implode(', ', $result['errors']));
+                    $this->error("Rejected {$filePath}: ".implode(', ', $result['errors']));
                     $failed++;
                 } else {
                     $this->info("Successfully processed {$filePath} (Status: {$result['status']})");
@@ -101,6 +107,7 @@ class ImportLotteryResults extends Command
         }
 
         $this->line("Summary: {$imported} processed, {$failed} failed.");
+
         return $failed > 0 ? Command::FAILURE : Command::SUCCESS;
     }
 }

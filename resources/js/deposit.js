@@ -29,8 +29,8 @@
                 return false;
             }
 
-            var amount = parseFloat(amountInput ? amountInput.value : '0');
-            if (isNaN(amount) || amount <= 0) {
+            var amount = amountInput ? amountInput.value.trim() : '';
+            if (!/^\d+(\.\d{1,2})?$/.test(amount) || !/[1-9]/.test(amount)) {
                 event.preventDefault();
                 alert('Please enter a valid deposit amount.');
                 return false;

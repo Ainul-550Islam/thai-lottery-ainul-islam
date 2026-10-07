@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Enums\AuditAction;
 use App\Enums\DrawStatus;
 use App\Enums\GloSourceState;
+use App\Enums\RiskLevel;
+use App\Models\AuditLog;
 use App\Models\Draw;
+use App\Models\DrawReconciliation;
 use App\Models\DrawResult;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
@@ -57,7 +61,7 @@ class GloPublicResultPublishCommand extends Command
 
         $draw = ctype_digit($drawRef)
             ? Draw::query()->find((int) $drawRef)
-            : Draw::query()->where('draw_number', $drawRef)->orWhere('uuid', $drawRef)->first();
+            : Draw::query()->where('draw_number', $drawRef)->first();
 
         if ($draw === null) {
             $this->error('Draw not found: '.$drawRef);
@@ -92,7 +96,7 @@ class GloPublicResultPublishCommand extends Command
         }
 
         // Gate 3: no unresolved reconciliation conflict on this draw.
-        $conflict = \App\Models\DrawReconciliation::query()
+        $conflict = DrawReconciliation::query()
             ->where('draw_id', $draw->getKey())
             ->whereIn('status', ['drift_detected', 'pending'])
             ->exists();
@@ -148,10 +152,10 @@ class GloPublicResultPublishCommand extends Command
         }
 
         $actor = (string) ($this->option('actor') ?? 'CLI:glo:publish-public-result');
-        \App\Models\AuditLog::create([
+        AuditLog::create([
             'user_id' => null,
-            'action' => \App\Enums\AuditAction::Update,
-            'risk_level' => \App\Enums\RiskLevel::Medium,
+            'action' => AuditAction::Update,
+            'risk_level' => RiskLevel::Medium,
             'auditable_type' => DrawResult::class,
             'auditable_id' => (int) $result->getKey(),
             'description' => 'glo_public_result_published',

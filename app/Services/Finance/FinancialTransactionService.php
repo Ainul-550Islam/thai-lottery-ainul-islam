@@ -63,8 +63,7 @@ final class FinancialTransactionService
         private readonly LedgerPostingService $ledger,
         private readonly WalletService $wallets,
         private readonly LedgerBalanceValidator $validator,
-    ) {
-    }
+    ) {}
 
     /**
      * Execute a complete, atomic, idempotent wallet movement.
@@ -357,7 +356,7 @@ final class FinancialTransactionService
             $feeAmount = Money::zero($amount->currency())->toString();
         }
 
-        $transaction = new FinancialTransaction();
+        $transaction = new FinancialTransaction;
 
         $transaction->fill([
             'reference_number' => $this->generateReferenceNumber(),
@@ -432,9 +431,14 @@ final class FinancialTransactionService
         FinancialTransactionType $type,
         LedgerEntryType $walletSide,
     ): array {
-        $liabilityAccount = $this->ledger->resolveAccount($this->wallets->walletAccountCode());
+        $liabilityAccount = $this->ledger->resolveAccount(
+            LedgerPostingService::accountCodeFor($this->wallets->walletAccountCode(), $amount->currency()),
+        );
         $counterpartAccount = $this->ledger->resolveAccount(
-            $this->wallets->counterpartAccountCode($type, $walletSide),
+            LedgerPostingService::accountCodeFor(
+                $this->wallets->counterpartAccountCode($type, $walletSide),
+                $amount->currency(),
+            ),
         );
 
         $this->assertAccountCurrency($liabilityAccount->currency, $amount->currency());

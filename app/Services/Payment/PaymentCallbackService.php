@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Payment;
 
 use App\DTOs\Payment\PaymentCallbackData;
+use App\DTOs\Payment\PaymentWebhookData;
 use App\Enums\AuditAction;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
@@ -44,8 +45,7 @@ final class PaymentCallbackService
     public function __construct(
         private readonly DepositCompletionService $depositCompletion,
         private readonly WithdrawalCompletionService $withdrawalCompletion,
-    ) {
-    }
+    ) {}
 
     /**
      * READ-ONLY status projection for browser-return pages (FINAL AUDIT #2).
@@ -63,7 +63,7 @@ final class PaymentCallbackService
      * @return array{
      *     found: bool,
      *     reason?: string,
-     *     payment?: \App\Models\Payment,
+     *     payment?: Payment,
      *     document_reference?: string,
      *     state?: string,
      *     paid?: bool
@@ -81,30 +81,30 @@ final class PaymentCallbackService
         $gatewayReference = self::safeReference($gatewayReference);
 
         if ($paymentReference !== null && preg_match('/^PAY-[A-Za-z0-9_-]{1,100}$/i', $paymentReference) === 1) {
-            $payment = \App\Models\Payment::query()->where('reference_number', $paymentReference)->first();
+            $payment = Payment::query()->where('reference_number', $paymentReference)->first();
         } elseif ($documentReference !== null && preg_match('/^(?:DP|WD)-[A-Za-z0-9_-]{1,100}$/i', $documentReference) === 1) {
-            $deposit = \App\Models\Deposit::query()->where('reference_number', $documentReference)->first();
+            $deposit = Deposit::query()->where('reference_number', $documentReference)->first();
 
-            if ($deposit instanceof \App\Models\Deposit) {
-                $payment = \App\Models\Payment::query()
-                    ->where('payable_type', \App\Models\Deposit::class)
+            if ($deposit instanceof Deposit) {
+                $payment = Payment::query()
+                    ->where('payable_type', Deposit::class)
                     ->where('payable_id', $deposit->getKey())
                     ->first();
             } else {
-                $withdrawal = \App\Models\Withdrawal::query()->where('reference_number', $documentReference)->first();
+                $withdrawal = Withdrawal::query()->where('reference_number', $documentReference)->first();
 
-                if ($withdrawal instanceof \App\Models\Withdrawal) {
-                    $payment = \App\Models\Payment::query()
-                        ->where('payable_type', \App\Models\Withdrawal::class)
+                if ($withdrawal instanceof Withdrawal) {
+                    $payment = Payment::query()
+                        ->where('payable_type', Withdrawal::class)
                         ->where('payable_id', $withdrawal->getKey())
                         ->first();
                 }
             }
         } elseif ($gatewayReference !== null && preg_match('/^[A-Za-z0-9._:-]{1,120}$/', $gatewayReference) === 1) {
-            $payment = \App\Models\Payment::query()->where('gateway_reference', $gatewayReference)->first();
+            $payment = Payment::query()->where('gateway_reference', $gatewayReference)->first();
         }
 
-        if (! $payment instanceof \App\Models\Payment) {
+        if (! $payment instanceof Payment) {
             return ['found' => false, 'reason' => 'reference_not_found'];
         }
 
@@ -115,11 +115,11 @@ final class PaymentCallbackService
         }
 
         $state = match ($payment->status) {
-            \App\Enums\PaymentStatus::Captured => 'confirmed',
-            \App\Enums\PaymentStatus::Failed => 'failed',
-            \App\Enums\PaymentStatus::Cancelled => 'cancelled',
-            \App\Enums\PaymentStatus::Refunded, \App\Enums\PaymentStatus::PartiallyRefunded, \App\Enums\PaymentStatus::Disputed => 'updated',
-            \App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::Authorized => 'pending',
+            PaymentStatus::Captured => 'confirmed',
+            PaymentStatus::Failed => 'failed',
+            PaymentStatus::Cancelled => 'cancelled',
+            PaymentStatus::Refunded, PaymentStatus::PartiallyRefunded, PaymentStatus::Disputed => 'updated',
+            PaymentStatus::Pending, PaymentStatus::Authorized => 'pending',
         };
 
         return [
@@ -130,7 +130,7 @@ final class PaymentCallbackService
             'state' => $state,
             // "Paid" is proven ONLY by the internal captured status - never
             // by the URL, a query flag, or the route the browser landed on.
-            'paid' => $payment->status === \App\Enums\PaymentStatus::Captured,
+            'paid' => $payment->status === PaymentStatus::Captured,
         ];
     }
 
@@ -168,11 +168,13 @@ final class PaymentCallbackService
             throw PaymentReconciliationException::malformed('the payload carries no external reference');
         }
 
-        if ($amount === null || ! (is_int($amount) || is_float($amount) || is_string($amount)) || ! preg_match('/^\d+(\.\d{1,2})?$/', is_string($amount) ? trim($amount) : number_format((float) $amount, 2, '.', ''))) {
+        $normalizedAmount = is_string($amount)
+            ? trim($amount)
+            : (is_int($amount) ? (string) $amount : null);
+
+        if ($normalizedAmount === null || preg_match('/^\d+(\.\d{1,2})?$/', $normalizedAmount) !== 1) {
             throw PaymentReconciliationException::amountMismatch(trim($reference), '(on paper)', (string) $amount, (string) ($currency ?? '??'));
         }
-
-        $normalizedAmount = is_string($amount) ? trim($amount) : number_format((float) $amount, 2, '.', '');
 
         if (! is_string($currency) || trim($currency) === '') {
             throw PaymentReconciliationException::malformed('the payload carries no currency');
@@ -190,7 +192,7 @@ final class PaymentCallbackService
             providerStatus: $statusWord,
             failureReason: is_string($facts['failure_reason'] ?? null) ? $facts['failure_reason'] : null,
             signature: is_string($payload['signature'] ?? null) ? $payload['signature'] : null,
-            payloadFingerprint: (string) ($payload['payload_fingerprint'] ?? \App\DTOs\Payment\PaymentWebhookData::fingerprintOf($providerCode, (string) ($payload['id'] ?? $payload['event_id'] ?? ''), $payload)),
+            payloadFingerprint: (string) ($payload['payload_fingerprint'] ?? PaymentWebhookData::fingerprintOf($providerCode, (string) ($payload['id'] ?? $payload['event_id'] ?? ''), $payload)),
             providerEventId: is_string($payload['id'] ?? null) ? $payload['id'] : (is_string($payload['event_id'] ?? null) ? $payload['event_id'] : null),
         );
     }
@@ -294,16 +296,16 @@ final class PaymentCallbackService
 
     public static function moneyOf(string $amount): string
     {
-        if (extension_loaded('bcmath')) {
-            return bcadd($amount, '0', 2);
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary arithmetic.');
         }
 
-        return number_format((float) $amount, 2, '.', '');
+        return bcadd($amount, '0', 2);
     }
 
     private function recordAudit(Payment $payment, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => (int) $payment->user_id,

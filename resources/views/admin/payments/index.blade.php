@@ -39,7 +39,7 @@
                     @forelse($payments ?? [] as $payment)
                         <tr class="hover:bg-slate-800/30 transition">
                             <td class="py-3.5 px-4 font-mono font-bold text-slate-200">
-                                {{ $payment->reference_number ?? ('TX-' . $payment->id) }}
+                                {{ $payment->reference_number ?? '—' }}
                             </td>
                             <td class="py-3.5 px-4">
                                 <span class="font-bold text-white block">{{ $payment->user?->name ?? 'User #' . $payment->user_id }}</span>

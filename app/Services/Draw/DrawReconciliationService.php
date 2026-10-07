@@ -7,13 +7,19 @@ namespace App\Services\Draw;
 use App\DTOs\Draw\DrawCertificationData;
 use App\DTOs\Draw\DrawReconciliationData;
 use App\Enums\AuditAction;
+use App\Enums\BetStatus;
 use App\Enums\DrawReconciliationStatus;
+use App\Enums\PayoutStatus;
+use App\Enums\PrizeClaimStatus;
 use App\Enums\RiskLevel;
 use App\Exceptions\DrawReconciliationException;
 use App\Models\AuditLog;
+use App\Models\Bet;
 use App\Models\Draw;
 use App\Models\DrawReconciliation;
+use App\Models\Payout;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * The draw-level reconciler: cross-checks the result lane against every
@@ -72,26 +78,26 @@ final class DrawReconciliationService
 
             // WINNERS LANE: asserted winners vs. winning-ticket scoring
             // (bets marked Won carry the lane's actuals).
-            if (!$this->within($data->expectedWinners, $actual['winner_bets'])) {
+            if (! $this->within($data->expectedWinners, $actual['winner_bets'])) {
                 $drift[] = ['lane' => 'tickets', 'line' => 'winner-count', 'expected' => $data->expectedWinners, 'actual' => $actual['winner_bets']];
             }
 
             // PRIZE LANE: asserted prize-settlement total vs. what the won
             // bets actually owe (the entitlement reading).
-            if (!$this->within($data->expectedPrizeSettled, $actual['prize_owed'])) {
+            if (! $this->within($data->expectedPrizeSettled, $actual['prize_owed'])) {
                 $drift[] = ['lane' => 'prizes', 'line' => 'owed-disagree', 'expected' => $data->expectedPrizeSettled, 'actual' => $actual['prize_owed']];
             }
 
             // CLAIMS LANE: asserted prize-settlement total vs. the claims
             // the house has actually ADJUDICATED approved on this draw's
             // payout records (the settlement reading).
-            if (!$this->within($data->expectedPrizeSettled, $actual['claims_approved'])) {
+            if (! $this->within($data->expectedPrizeSettled, $actual['claims_approved'])) {
                 $drift[] = ['lane' => 'claims', 'line' => 'adjudicated-disagree', 'expected' => $data->expectedPrizeSettled, 'actual' => $actual['claims_approved']];
             }
 
             // PAYOUT LANE: asserted payouts-paid vs. what completed payout
             // records actually moved.
-            if (!$this->within($data->expectedPayoutsPaid, $actual['payouts_paid'])) {
+            if (! $this->within($data->expectedPayoutsPaid, $actual['payouts_paid'])) {
                 $drift[] = ['lane' => 'payouts', 'line' => 'paid-disagree', 'expected' => $data->expectedPayoutsPaid, 'actual' => $actual['payouts_paid']];
             }
 
@@ -107,7 +113,7 @@ final class DrawReconciliationService
                     DrawReconciliationStatus::DriftDetected->value,
                 ])
                 ->first()
-                ?? new DrawReconciliation();
+                ?? new DrawReconciliation;
 
             $asserted = [
                 'result_fingerprint' => $assertedFingerprint,
@@ -134,7 +140,7 @@ final class DrawReconciliationService
             }
             $row->save();
 
-            if (!$matched) {
+            if (! $matched) {
                 $this->recordAudit($row, sprintf(
                     'Drift pronounced on %d lane(s) of draw #%d',
                     count($drift),
@@ -172,12 +178,12 @@ final class DrawReconciliationService
                 return $locked;
             }
 
-            if (!$locked->status->canTransitionTo(DrawReconciliationStatus::Resolved)) {
+            if (! $locked->status->canTransitionTo(DrawReconciliationStatus::Resolved)) {
                 throw DrawReconciliationException::unresolvedDrift((int) $locked->draw_id);
             }
 
             $locked->status = DrawReconciliationStatus::Resolved;
-            $locked->resolved_note = \Illuminate\Support\Str::limit(trim($note), 255, '');
+            $locked->resolved_note = Str::limit(trim($note), 255, '');
             $locked->resolved_at = now();
             $locked->save();
 
@@ -233,12 +239,12 @@ final class DrawReconciliationService
 
         $actual = $this->actualTotals($data->drawId);
 
-        if (!$this->within($data->expectedWinners, $actual['winner_bets'])) {
+        if (! $this->within($data->expectedWinners, $actual['winner_bets'])) {
             throw DrawReconciliationException::ticketMismatch($data->drawId, $data->expectedWinners, $actual['winner_bets']);
         }
 
-        if (!$this->within($data->expectedPrizeSettled, $actual['prize_owed'])
-            || !$this->within($data->expectedPrizeSettled, $actual['claims_approved'])) {
+        if (! $this->within($data->expectedPrizeSettled, $actual['prize_owed'])
+            || ! $this->within($data->expectedPrizeSettled, $actual['claims_approved'])) {
             throw DrawReconciliationException::prizeMismatch(
                 $data->drawId,
                 $data->expectedPrizeSettled,
@@ -256,26 +262,26 @@ final class DrawReconciliationService
      */
     private function actualTotals(int $drawId): array
     {
-        $winnerBets = (int) \App\Models\Bet::query()
+        $winnerBets = (int) Bet::query()
             ->where('draw_id', $drawId)
-            ->where('status', \App\Enums\BetStatus::Won->value)
+            ->where('status', BetStatus::Won->value)
             ->count();
 
-        $prizeOwed = (string) \App\Models\Bet::query()
+        $prizeOwed = (string) Bet::query()
             ->where('draw_id', $drawId)
-            ->where('status', \App\Enums\BetStatus::Won->value)
+            ->where('status', BetStatus::Won->value)
             ->sum('actual_payout');
 
         // Prize settlements the claim court has adjudicated: payouts whose
         // claim lane carries the Approved stamp.
-        $claimsApproved = (string) \App\Models\Payout::query()
+        $claimsApproved = (string) Payout::query()
             ->where('draw_id', $drawId)
-            ->where('metadata->claim->status', \App\Enums\PrizeClaimStatus::Approved->value)
+            ->where('metadata->claim->status', PrizeClaimStatus::Approved->value)
             ->sum('amount');
 
-        $payoutsPaid = (string) \App\Models\Payout::query()
+        $payoutsPaid = (string) Payout::query()
             ->where('draw_id', $drawId)
-            ->where('status', \App\Enums\PayoutStatus::Completed->value)
+            ->where('status', PayoutStatus::Completed->value)
             ->sum('amount');
 
         return [
@@ -292,16 +298,16 @@ final class DrawReconciliationService
      */
     private function within(string $expected, string $actual): bool
     {
-        if (extension_loaded('bcmath')) {
-            return bccomp($expected, $actual, 2) === 0;
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary reconciliation.');
         }
 
-        return number_format((float) $expected, 2, '.', '') === number_format((float) $actual, 2, '.', '');
+        return bccomp($expected, $actual, 2) === 0;
     }
 
     private function recordAudit(DrawReconciliation $reconciliation, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

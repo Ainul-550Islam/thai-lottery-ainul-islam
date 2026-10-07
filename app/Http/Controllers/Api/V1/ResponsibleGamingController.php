@@ -273,6 +273,7 @@ final class ResponsibleGamingController
             ->where('user_id', $user->id)
             ->where('limit_status', 'active')
             ->orderBy('limit_type')
+            ->limit(25)
             ->get()
             ->map(static fn (ResponsibleGamingLimitVersion $v): array => [
                 'limit_type' => $v->limit_type->value,
@@ -285,6 +286,8 @@ final class ResponsibleGamingController
         $pending = ResponsibleGamingLimitVersion::query()
             ->where('user_id', $user->id)
             ->where('limit_status', 'pending')
+            ->orderByDesc('effective_from')
+            ->limit(25)
             ->get(['limit_type', 'amount', 'currency', 'effective_from'])
             ->map(static fn (ResponsibleGamingLimitVersion $v): array => [
                 'limit_type' => $v->limit_type->value,

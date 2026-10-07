@@ -6,15 +6,19 @@ namespace App\Services\Finance;
 
 use App\DTOs\Finance\FinancialHoldData;
 use App\Enums\AuditAction;
+use App\Enums\Currency;
 use App\Enums\FinancialHoldStatus;
 use App\Enums\FinancialTransactionType;
 use App\Enums\RiskLevel;
 use App\Enums\WalletHoldType;
+use App\Exceptions\FinancialException;
 use App\Exceptions\FinancialHoldException;
+use App\Exceptions\InsufficientBalanceException;
 use App\Models\AuditLog;
 use App\Models\FinancialHold;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Compliance/settlement financial holds.
@@ -43,8 +47,7 @@ final class FinancialHoldService
     public function __construct(
         private readonly WalletHoldService $holds,
         private readonly WalletService $wallets,
-    ) {
-    }
+    ) {}
 
     /* ------------------------------------------------------ place --- */
 
@@ -93,17 +96,17 @@ final class FinancialHoldService
             throw FinancialHoldException::notFound('wallet:'.$data->walletId);
         }
 
-        $money = \App\Services\Finance\Money::of($data->amount, \App\Enums\Currency::from($data->currency));
+        $money = Money::of($data->amount, Currency::from($data->currency));
 
         try {
             $this->holds->hold($wallet, $money, WalletHoldType::OtherFinancialHold);
-        } catch (\App\Exceptions\InsufficientBalanceException $e) {
+        } catch (InsufficientBalanceException $e) {
             throw FinancialHoldException::amountMismatch($data->holdKey(), $e->availableAmount(), $data->amount);
-        } catch (\App\Exceptions\FinancialException $e) {
+        } catch (FinancialException $e) {
             throw FinancialHoldException::amountMismatch($data->holdKey(), 'wallet-unavailable', $data->amount);
         }
 
-        $row = new FinancialHold();
+        $row = new FinancialHold;
         $row->fill([
             'hold_key' => $data->holdKey(),
             'wallet_id' => $data->walletId,
@@ -148,7 +151,7 @@ final class FinancialHoldService
                 throw FinancialHoldException::expired((string) $locked->hold_key);
             }
 
-            if (!$locked->status->canTransitionTo(FinancialHoldStatus::Reviewed)) {
+            if (! $locked->status->canTransitionTo(FinancialHoldStatus::Reviewed)) {
                 throw FinancialHoldException::invalidRelease((string) $locked->hold_key, $locked->status->value);
             }
 
@@ -156,7 +159,7 @@ final class FinancialHoldService
             $locked->reviewed_at = now();
 
             $evidence = is_array($locked->evidence) ? $locked->evidence : [];
-            $evidence['reviewed'] = ['at' => now()->toIso8601String(), 'by' => $operatorUserId, 'note' => \Illuminate\Support\Str::limit(trim($note), 255, '')];
+            $evidence['reviewed'] = ['at' => now()->toIso8601String(), 'by' => $operatorUserId, 'note' => Str::limit(trim($note), 255, '')];
             $locked->evidence = $evidence;
             $locked->save();
 
@@ -192,7 +195,7 @@ final class FinancialHoldService
                 throw FinancialHoldException::invalidRelease((string) $locked->hold_key, FinancialHoldStatus::Expired->value);
             }
 
-            if (!$locked->status->canTransitionTo(FinancialHoldStatus::Released)) {
+            if (! $locked->status->canTransitionTo(FinancialHoldStatus::Released)) {
                 throw FinancialHoldException::invalidRelease((string) $locked->hold_key, $locked->status->value);
             }
 
@@ -205,11 +208,11 @@ final class FinancialHoldService
 
             $this->holds->release(
                 $wallet,
-                \App\Services\Finance\Money::of((string) $locked->amount, \App\Enums\Currency::from(strtoupper((string) $locked->currency))),
+                Money::of((string) $locked->amount, Currency::from(strtoupper((string) $locked->currency))),
             );
 
             $evidence = is_array($locked->evidence) ? $locked->evidence : [];
-            $evidence['released'] = ['at' => now()->toIso8601String(), 'reason' => \Illuminate\Support\Str::limit(trim($reason), 255, '')];
+            $evidence['released'] = ['at' => now()->toIso8601String(), 'reason' => Str::limit(trim($reason), 255, '')];
 
             $locked->status = FinancialHoldStatus::Released;
             $locked->released_at = now();
@@ -251,7 +254,7 @@ final class FinancialHoldService
                 ];
             }
 
-            if (!$locked->status->canTransitionTo(FinancialHoldStatus::Converted)) {
+            if (! $locked->status->canTransitionTo(FinancialHoldStatus::Converted)) {
                 throw FinancialHoldException::invalidRelease((string) $locked->hold_key, $locked->status->value);
             }
 
@@ -267,12 +270,12 @@ final class FinancialHoldService
             // with the hold's own deterministic idempotency key.
             $this->holds->consume(
                 $wallet,
-                \App\Services\Finance\Money::of((string) $locked->amount, \App\Enums\Currency::from(strtoupper((string) $locked->currency))),
+                Money::of((string) $locked->amount, Currency::from(strtoupper((string) $locked->currency))),
             );
 
             $transaction = $this->wallets->debit(
                 $wallet,
-                \App\Services\Finance\Money::of((string) $locked->amount, \App\Enums\Currency::from(strtoupper((string) $locked->currency))),
+                Money::of((string) $locked->amount, Currency::from(strtoupper((string) $locked->currency))),
                 FinancialTransactionType::Adjustment,
                 idempotencyKey: sprintf('fin-hold-conv:%s', substr((string) $locked->hold_key, 0, 44)),
                 options: [
@@ -285,7 +288,7 @@ final class FinancialHoldService
             $ev['converted'] = [
                 'at' => now()->toIso8601String(),
                 'by' => $operatorUserId,
-                'evidence' => \Illuminate\Support\Str::limit(trim($evidence), 255, ''),
+                'evidence' => Str::limit(trim($evidence), 255, ''),
                 'reference' => (string) $transaction->reference_number,
             ];
 
@@ -323,7 +326,7 @@ final class FinancialHoldService
                 return $locked;
             }
 
-            if (!$locked->status->canTransitionTo(FinancialHoldStatus::Expired)) {
+            if (! $locked->status->canTransitionTo(FinancialHoldStatus::Expired)) {
                 throw FinancialHoldException::invalidRelease((string) $locked->hold_key, $locked->status->value);
             }
 
@@ -339,7 +342,7 @@ final class FinancialHoldService
 
                 $this->holds->release(
                     $wallet,
-                    \App\Services\Finance\Money::of((string) $locked->amount, \App\Enums\Currency::from(strtoupper((string) $locked->currency))),
+                    Money::of((string) $locked->amount, Currency::from(strtoupper((string) $locked->currency))),
                 );
             }
 
@@ -361,16 +364,16 @@ final class FinancialHoldService
 
     public static function moneyOf(string $amount): string
     {
-        if (extension_loaded('bcmath')) {
-            return bcadd($amount, '0', 2);
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary arithmetic.');
         }
 
-        return number_format((float) $amount, 2, '.', '');
+        return bcadd($amount, '0', 2);
     }
 
     private function recordAudit(FinancialHold $hold, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

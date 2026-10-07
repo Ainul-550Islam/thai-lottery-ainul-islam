@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Finance;
 
+use App\Enums\Currency;
 use App\Enums\LedgerAccountStatus;
 use App\Enums\LedgerEntryType;
 use App\Enums\TransactionStatus;
@@ -11,6 +12,7 @@ use App\Exceptions\FinancialException;
 use App\Models\FinancialTransaction;
 use App\Models\LedgerAccount;
 use App\Models\LedgerEntry;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -27,27 +29,24 @@ use Illuminate\Support\Facades\DB;
  *    because the account row locks it takes must live until the caller commits.
  * 2. Debits must equal credits (delegated to LedgerBalanceValidator) before any
  *    row is written, and re-verified from the persisted rows afterwards.
- * 3. A transaction may be posted exactly once. The audited schema has no unique
- *    constraint for this, so the guard is an application check performed while
- *    holding the account locks - see the schema note below.
+ * 3. A transaction may be posted exactly once. The application re-check runs
+ *    after account locks are acquired, and the database unique key rejects a
+ *    repeated transaction/account/side posting even from another writer.
  * 4. Accounts are locked in ascending id order, so two concurrent postings
  *    touching the same accounts always take them in the same sequence and cannot
  *    deadlock against each other.
  * 5. Posted entries are append-only. This class contains no update and no delete
  *    path for ledger_entries; a mistake is corrected by posting a reversal.
  *
- * SCHEMA NOTE (reported, not patched)
- * ledger_entries has no unique index on financial_transaction_id, so duplicate
- * posting is prevented by the check in assertNotAlreadyPosted() executed under
- * the account locks rather than by the database. Adding a partial unique index
- * would be a migration change and migrations are out of scope for this phase.
+ * The posting identity is financial transaction plus ledger account plus side.
+ * It permits the legitimate debit and credit pair and split postings to distinct
+ * accounts while rejecting accidental repetition of the same logical line.
  */
 final class LedgerPostingService
 {
     public function __construct(
         private readonly LedgerBalanceValidator $validator,
-    ) {
-    }
+    ) {}
 
     /**
      * Post a balanced double-entry set for the given transaction.
@@ -62,11 +61,11 @@ final class LedgerPostingService
     {
         $this->assertInsideTransaction();
         $this->assertTransactionPostable($transaction);
-        $this->assertNotAlreadyPosted($transaction);
 
         $normalised = $this->validator->validate($entries, $transaction->currency);
 
         $accounts = $this->lockAccounts($this->accountIdsFor($normalised), $transaction);
+        $this->assertNotAlreadyPosted($transaction);
 
         $postedAt = Carbon::now();
         $created = [];
@@ -91,6 +90,29 @@ final class LedgerPostingService
         $this->validator->assertTransactionBalanced($transaction->fresh() ?? $transaction);
 
         return $created;
+    }
+
+    /**
+     * Return the currency-specific chart-of-accounts code.
+     *
+     * The primary currency retains the stable base code used by existing books.
+     * Every other currency receives an ISO suffix so a posting can never resolve
+     * an account denominated in another currency.
+     */
+    public static function accountCodeFor(string $baseCode, Currency $currency): string
+    {
+        $baseCode = trim($baseCode);
+
+        if ($baseCode === '') {
+            throw FinancialException::withCode(
+                'ledger_account_code_empty',
+                'Ledger account code cannot be empty.',
+            );
+        }
+
+        return $currency === Currency::primary()
+            ? $baseCode
+            : $baseCode.':'.$currency->value;
     }
 
     /**
@@ -144,7 +166,7 @@ final class LedgerPostingService
     /**
      * The entries already posted for a transaction, oldest first.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, LedgerEntry>
+     * @return Collection<int, LedgerEntry>
      */
     public function postedEntriesFor(FinancialTransaction $transaction)
     {
@@ -294,7 +316,7 @@ final class LedgerPostingService
         Carbon $postedAt,
         ?string $balanceAfter,
     ): LedgerEntry {
-        $ledgerEntry = new LedgerEntry();
+        $ledgerEntry = new LedgerEntry;
 
         $ledgerEntry->fill([
             'ledger_account_id' => $entry['ledger_account_id'],

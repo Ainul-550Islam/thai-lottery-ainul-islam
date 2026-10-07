@@ -56,11 +56,7 @@ final class WithdrawalResource extends JsonResource
             'approved_at' => $withdrawal->approved_at?->toIso8601String(),
             'completed_at' => $withdrawal->completed_at?->toIso8601String(),
             'rejected_at' => $withdrawal->rejected_at?->toIso8601String(),
-            'rejection_reason' => $withdrawal->rejection_reason,
             'kyc_detained' => (bool) ($kycLane['detained'] ?? false),
-            'kyc_detained_reason' => ((bool) ($kycLane['detained'] ?? false))
-                ? (is_string($kycLane['detention_reason'] ?? null) ? (string) $kycLane['detention_reason'] : null)
-                : null,
             'created_at' => $withdrawal->created_at?->toIso8601String(),
         ];
     }

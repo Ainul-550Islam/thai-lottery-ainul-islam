@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Member Lottery Bet History & Slip Verification Runtime (Vanilla JS)
+ * Lottery Platform Member Lottery Bet History & Slip Verification Runtime (Vanilla JS)
  */
 
 (function () {

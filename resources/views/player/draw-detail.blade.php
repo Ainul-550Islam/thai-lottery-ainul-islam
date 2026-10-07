@@ -20,7 +20,7 @@
         <span class="rounded-full bg-slate-800 px-3 py-1 font-mono text-xs text-slate-300">{{ $draw->draw_number ?? $draw->id }}</span>
     </div>
 
-    <section class="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl sm:p-8" aria-labelledby="draw-detail-heading">
+    <section id="live-results-board" class="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl sm:p-8" aria-labelledby="draw-detail-heading" aria-live="polite">
         <div class="flex flex-col gap-4 border-b border-slate-800 pb-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <p class="text-xs font-black uppercase tracking-wider text-emerald-400">{{ __('player.draw_detail_label') }}</p>
@@ -33,7 +33,7 @@
         @if ($result)
             <div class="mt-6 rounded-2xl border border-amber-500/20 bg-slate-950 p-6 text-center">
                 <span class="block text-xs font-bold uppercase tracking-widest text-slate-400">{{ __('player.first_prize_1') }}</span>
-                <strong class="mt-2 block font-mono text-4xl font-black tracking-widest text-amber-400">{{ $result->first_prize ?? __('player.not_published') }}</strong>
+                <strong class="mt-2 block font-mono text-4xl font-black tracking-widest text-amber-400" data-prize="first_prize">{{ $result->first_prize ?? __('player.not_published') }}</strong>
             </div>
             <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 @foreach ($resultArrays as $field => $label)
@@ -59,3 +59,7 @@
     </section>
 </div>
 @endsection
+
+@push('scripts')
+    @vite('resources/js/lottery/live-results.js')
+@endpush

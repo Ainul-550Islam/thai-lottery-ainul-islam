@@ -154,14 +154,15 @@ export class LottoFinAdminDashboard {
     }
 
     public async triggerInstantReconciliation(): Promise<void> {
-        const btn = document.getElementById('reconcileNowBtn');
-        if (btn) {
-            btn.textContent = 'Running...';
-            setTimeout(() => {
-                btn.textContent = 'Actions ⌄';
-                alert('Automated ledger reconciliation completed successfully. All accounts balanced with 0.00 THB variance.');
-            }, 1200);
+        const btn = document.getElementById('reconcileNowBtn') as HTMLButtonElement | null;
+
+        if (!btn) {
+            return;
         }
+
+        btn.disabled = true;
+        alert('Reconciliation must be started from the authorized operations workflow. No reconciliation was run.');
+        btn.disabled = false;
     }
 }
 

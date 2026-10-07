@@ -1,6 +1,6 @@
 /**
  * Thai Lottery Interactive Auth Portal Module (TypeScript)
- * Reference: https://thailotto.club/
+ * Reference: https://lottery-platform.club/
  */
 
 export interface PasswordStrengthResult {

@@ -69,7 +69,19 @@ final class CreateWithdrawalRequest extends FormRequest
             // them loudly is kinder than silently dropping them when a
             // compromised client tries to assert "my balance says yes".
             'kyc_verified' => ['prohibited'],
+            'kyc_status' => ['prohibited'],
             'balance' => ['prohibited'],
+            'user_id' => ['prohibited'],
+            'wallet_id' => ['prohibited'],
+            'status' => ['prohibited'],
+            'fee' => ['prohibited'],
+            'fee_amount' => ['prohibited'],
+            'fee_percentage' => ['prohibited'],
+            'net_amount' => ['prohibited'],
+            'exchange_rate' => ['prohibited'],
+            'provider' => ['prohibited'],
+            'provider_reference' => ['prohibited'],
+            'approved_by' => ['prohibited'],
         ];
     }
 

@@ -96,7 +96,7 @@ final class AdminFormat
      */
     public static function currency(): string
     {
-        return (string) config('lottery.betting.currency', env('FINANCE_DEFAULT_CURRENCY', 'THB'));
+        return (string) config('lottery.betting.currency', config('payment.currency.default', 'THB'));
     }
 
     /**

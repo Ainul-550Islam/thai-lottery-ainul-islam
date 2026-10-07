@@ -23,6 +23,7 @@ class PaymentTransaction extends Model
     protected $fillable = [
         'user_id',
         'wallet_id',
+        'financial_transaction_id',
         'reference_id',
         'provider',
         'channel',
@@ -44,6 +45,7 @@ class PaymentTransaction extends Model
             'status' => PaymentStatus::class,
             'amount' => 'decimal:2',
             'fee' => 'decimal:2',
+            'financial_transaction_id' => 'integer',
             'processed_at' => 'datetime',
             'metadata' => 'array',
         ];
@@ -57,5 +59,10 @@ class PaymentTransaction extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function financialTransaction(): BelongsTo
+    {
+        return $this->belongsTo(FinancialTransaction::class);
     }
 }

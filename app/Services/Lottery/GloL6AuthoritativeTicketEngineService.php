@@ -4,44 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
-use App\DTOs\DrawResultData;
 use App\Enums\AuditAction;
 use App\Enums\Currency;
-use App\Enums\DrawStatus;
-use App\Enums\GloClaimChannel;
+use App\Enums\FinancialTransactionType;
 use App\Enums\GloClaimStatus;
-use App\Enums\GloPaymentHoldStatus;
-use App\Enums\GloPrizeTier;
 use App\Enums\GloSourceState;
-use App\Enums\KycStatus;
-use App\Enums\LedgerEntryType;
-use App\Enums\PaymentChannel;
-use App\Enums\PaymentDirection;
-use App\Enums\PaymentStatus;
 use App\Enums\RiskLevel;
-use App\Exceptions\FinancialException;
 use App\Exceptions\GloClaimException;
-use App\Exceptions\GloSalesException;
 use App\Models\AuditLog;
 use App\Models\Draw;
-use App\Models\DrawResult;
 use App\Models\GloL6Sale;
 use App\Models\GloPrizeClaim;
-use App\Models\GloPrizePaymentHold;
 use App\Models\GloTicket;
-use App\Models\PaymentTransaction;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\WinningNumber;
 use App\Services\Finance\LedgerPostingService;
 use App\Services\Finance\Money;
 use App\Services\Finance\WalletService;
 use Carbon\Carbon;
-use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -86,9 +68,13 @@ use RuntimeException;
 class GloL6AuthoritativeTicketEngineService
 {
     public const FULL_SERIES_UNITS = 1000000;
+
     public const TICKET_PRICE_THB = '80.00';
+
     public const FULL_SERIES_PRIZE_POOL_THB = '48000000.00';
+
     public const MINIMUM_CLAIMANT_AGE = 20;
+
     public const CLAIM_WINDOW_YEARS = 2;
 
     public const PRIZE_LADDER = [
@@ -156,13 +142,12 @@ class GloL6AuthoritativeTicketEngineService
         private readonly GloStampDutyCalculator $stampDutyCalculator,
         private readonly GloTicketChecker $ticketChecker,
         private readonly GloTicketFreezeService $freezeService,
-    ) {
-    }
+    ) {}
 
     /**
      * Allocate and seat an official GLO L6 series for a scheduled draw.
      *
-     * @param array{units_sold: int, series_number: int, source_ref?: string} $params
+     * @param  array{units_sold: int, series_number: int, source_ref?: string}  $params
      */
     public function seatL6DrawSeries(Draw $draw, array $params, ?User $actor = null): GloL6Sale
     {
@@ -171,7 +156,7 @@ class GloL6AuthoritativeTicketEngineService
         $seriesNumber = (int) ($params['series_number'] ?? 1);
 
         if ($unitsSold < 0 || $unitsSold > self::FULL_SERIES_UNITS) {
-            throw new InvalidArgumentException("Units sold must be between 0 and " . self::FULL_SERIES_UNITS);
+            throw new InvalidArgumentException('Units sold must be between 0 and '.self::FULL_SERIES_UNITS);
         }
 
         $grossSales = bcmul((string) $unitsSold, self::TICKET_PRICE_THB, 2);
@@ -202,7 +187,6 @@ class GloL6AuthoritativeTicketEngineService
                     'gross_sales' => $grossSales,
                     'sold_fraction' => $soldFraction,
                     'proportional_prize_pool' => $proportionalPrizePool,
-                    'updated_at' => Carbon::now(),
                 ]);
 
                 return $existing;
@@ -221,9 +205,8 @@ class GloL6AuthoritativeTicketEngineService
                 'full_allocation_pool' => self::FULL_SERIES_PRIZE_POOL_THB,
                 'proportional_prize_pool' => $proportionalPrizePool,
                 'currency' => Currency::THB,
-                'source_reference' => $params['source_ref'] ?? ('GLO-L6-' . $draw->draw_number),
+                'source_reference' => $params['source_ref'] ?? ('GLO-L6-'.$draw->draw_number),
                 'provenance' => GloSourceState::OfficialSourceVerified->value,
-                'created_at' => Carbon::now(),
             ]);
 
             if ($actor !== null) {
@@ -251,17 +234,17 @@ class GloL6AuthoritativeTicketEngineService
     /**
      * Purchase and bind digital GLO L6 ticket ownership to a verified player.
      *
-     * @param array{ticket_number: string, set_series: int} $ticketData
+     * @param  array{ticket_number: string, set_series: int}  $ticketData
      */
     public function purchaseL6Ticket(User $buyer, Draw $draw, array $ticketData, string $clientKey): GloTicket
     {
         if (! $draw->isOpen()) {
-            throw new RuntimeException("Draw is not open for ticket sales.");
+            throw new RuntimeException('Draw is not open for ticket sales.');
         }
 
         $ticketNumber = trim((string) ($ticketData['ticket_number'] ?? ''));
         if (! preg_match('/^[0-9]{6}$/', $ticketNumber)) {
-            throw new InvalidArgumentException("GLO L6 ticket number must be exactly 6 numeric digits (000000-999999).");
+            throw new InvalidArgumentException('GLO L6 ticket number must be exactly 6 numeric digits (000000-999999).');
         }
 
         $series = (int) ($ticketData['set_series'] ?? 1);
@@ -291,11 +274,16 @@ class GloL6AuthoritativeTicketEngineService
             // Debit 80.00 THB from wallet with double-entry ledger posting
             $this->walletService->debit(
                 wallet: $wallet,
-                amount: self::TICKET_PRICE_THB,
-                referenceType: 'glo_l6_ticket_purchase',
-                referenceId: $idempotencyKey,
-                description: sprintf('Official GLO L6 Ticket #%s (Draw #%s)', $ticketNumber, $draw->draw_number),
-                options: ['ticket_number' => $ticketNumber, 'series' => $series]
+                amount: Money::of(self::TICKET_PRICE_THB, Currency::THB),
+                type: FinancialTransactionType::BetDebit,
+                idempotencyKey: $idempotencyKey,
+                options: [
+                    'reference_type' => 'glo_l6_ticket_purchase',
+                    'reference_id' => $idempotencyKey,
+                    'description' => sprintf('Official GLO L6 Ticket #%s (Draw #%s)', $ticketNumber, $draw->draw_number),
+                    'ticket_number' => $ticketNumber,
+                    'series' => $series,
+                ],
             );
 
             // Generate deterministic digital verification seal
@@ -309,13 +297,13 @@ class GloL6AuthoritativeTicketEngineService
                 'set_series' => $series,
                 'price' => self::TICKET_PRICE_THB,
                 'currency' => Currency::THB,
-                'digital_seal_hash' => $verificationHash,
                 'status' => 'active',
                 'purchased_at' => Carbon::now(),
                 'metadata' => [
                     'buyer_kyc' => $buyer->kycStatus()->value,
                     'client_key' => $clientKey,
                     'price_thb' => self::TICKET_PRICE_THB,
+                    'digital_seal_hash' => $verificationHash,
                 ],
             ]);
         });
@@ -373,7 +361,7 @@ class GloL6AuthoritativeTicketEngineService
             }
 
             if ($lockedClaim->status !== GloClaimStatus::Approved) {
-                throw new GloClaimException("Only Approved claims can be settled for payment.");
+                throw new GloClaimException('Only Approved claims can be settled for payment.');
             }
 
             $draw = Draw::query()->findOrFail((int) $lockedClaim->draw_id);
@@ -383,23 +371,23 @@ class GloL6AuthoritativeTicketEngineService
             // 1. Verify Claimant Age >= 20
             $age = $claimant->ageAt(Carbon::now());
             if ($age === null || $age < self::MINIMUM_CLAIMANT_AGE) {
-                throw new GloClaimException(sprintf("Claimant age (%s) does not meet legal minimum of %d years.", $age ?? 'unknown', self::MINIMUM_CLAIMANT_AGE));
+                throw new GloClaimException(sprintf('Claimant age (%s) does not meet legal minimum of %d years.', $age ?? 'unknown', self::MINIMUM_CLAIMANT_AGE));
             }
 
             // 2. Verify KYC Standing
             if (! $claimant->kycStatus()->isVerified()) {
-                throw new GloClaimException("Claimant identity must be fully KYC verified prior to prize disbursement.");
+                throw new GloClaimException('Claimant identity must be fully KYC verified prior to prize disbursement.');
             }
 
             // 3. Verify Claim Window (2 Years from Draw Date)
             $deadline = $draw->scheduled_at->copy()->addYears(self::CLAIM_WINDOW_YEARS)->endOfDay();
             if (Carbon::now()->greaterThan($deadline)) {
-                throw new GloClaimException("GLO prize claim window has expired for this draw.");
+                throw new GloClaimException('GLO prize claim window has expired for this draw.');
             }
 
             // 4. Verify Active Freezes or Holds
             if ($this->freezeService->hasActiveEffectiveFreeze((int) $ticket->getKey())) {
-                throw new GloClaimException("Ticket is currently frozen under compliance investigation.");
+                throw new GloClaimException('Ticket is currently frozen under compliance investigation.');
             }
 
             // 5. Compute authoritative proportional payout and stamp duty
@@ -415,29 +403,30 @@ class GloL6AuthoritativeTicketEngineService
 
             $this->walletService->credit(
                 wallet: $wallet,
-                amount: $netPrize,
-                referenceType: 'glo_l6_prize_payout',
-                referenceId: $payoutRef,
-                description: sprintf('Official GLO L6 Prize Settlement: %s (Ticket #%s)', $lockedClaim->prize_category, $ticket->ticket_number),
+                amount: Money::of($netPrize, Currency::THB),
+                type: FinancialTransactionType::Payout,
+                idempotencyKey: $payoutRef,
                 options: [
+                    'reference_type' => 'glo_l6_prize_payout',
+                    'reference_id' => $payoutRef,
+                    'description' => sprintf('Official GLO L6 Prize Settlement: %s (Ticket #%s)', $lockedClaim->prize_category, $ticket->ticket_number),
                     'gross_prize' => $grossPrize,
                     'stamp_duty' => $stampDuty,
                     'claim_reference' => $lockedClaim->claim_reference,
                     'draw_id' => $draw->id,
-                ]
+                ],
             );
 
             // 7. Update Claim State to Paid
-            $lockedClaim->update([
-                'status' => GloClaimStatus::Paid,
-                'payment_status' => 'settled',
-                'gross_prize' => $grossPrize,
-                'stamp_duty' => $stampDuty,
-                'net_prize' => $netPrize,
-                'payment_transaction_reference' => $payoutRef,
-                'settled_at' => Carbon::now(),
-                'approved_by' => $authorizingOperator->id,
-            ]);
+            $lockedClaim->status = GloClaimStatus::Paid;
+            $lockedClaim->payment_status = 'settled';
+            $lockedClaim->gross_prize = $grossPrize;
+            $lockedClaim->stamp_duty = $stampDuty;
+            $lockedClaim->net_prize = $netPrize;
+            $lockedClaim->payment_transaction_reference = $payoutRef;
+            $lockedClaim->paid_at = Carbon::now();
+            $lockedClaim->paid_by = $authorizingOperator->id;
+            $lockedClaim->save();
 
             // 8. Immutable Audit Trail
             AuditLog::create([
@@ -466,10 +455,10 @@ class GloL6AuthoritativeTicketEngineService
     public function calculateSoldFraction(int $unitsSold, int $unitsFull = self::FULL_SERIES_UNITS): string
     {
         if ($unitsFull <= 0) {
-            throw new InvalidArgumentException("Units full must be strictly positive.");
+            throw new InvalidArgumentException('Units full must be strictly positive.');
         }
         if ($unitsSold < 0) {
-            throw new InvalidArgumentException("Units sold cannot be negative.");
+            throw new InvalidArgumentException('Units sold cannot be negative.');
         }
         if ($unitsSold >= $unitsFull) {
             return '1.000000000000';

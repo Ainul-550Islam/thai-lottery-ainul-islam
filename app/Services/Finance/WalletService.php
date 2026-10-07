@@ -7,8 +7,12 @@ namespace App\Services\Finance;
 use App\Enums\Currency;
 use App\Enums\FinancialTransactionType;
 use App\Enums\LedgerEntryType;
+use App\Enums\WalletStatus;
+use App\Enums\WalletType;
 use App\Exceptions\FinancialException;
 use App\Exceptions\InsufficientBalanceException;
+use App\Models\FinancialTransaction;
+use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Carbon;
@@ -74,8 +78,7 @@ final class WalletService
     public function __construct(
         private readonly WalletLockService $locks,
         private readonly Container $container,
-    ) {
-    }
+    ) {}
 
     /**
      * Resolve or create the canonical primary wallet for a user and currency.
@@ -85,30 +88,18 @@ final class WalletService
         $userId = $user instanceof User ? (int) $user->getKey() : (int) $user;
         $currencyEnum = is_string($currency) ? Currency::from(strtoupper($currency)) : $currency;
 
-        return Wallet::query()->firstOrCreate(
-            [
-                'user_id' => $userId,
-                'currency' => $currencyEnum,
-                'type' => \App\Enums\WalletType::Primary,
-            ],
-            [
-                'status' => \App\Enums\WalletStatus::Active,
-                'balance' => '0.00',
-                'locked_balance' => '0.00',
-                'total_deposited' => '0.00',
-                'total_withdrawn' => '0.00',
-                'total_wagered' => '0.00',
-                'total_won' => '0.00',
-                'version' => 1,
-            ]
-        );
+        return Wallet::query()->firstOrCreate([
+            'user_id' => $userId,
+            'currency' => $currencyEnum,
+            'type' => WalletType::Primary,
+        ]);
     }
 
     /**
      * Move money into a wallet, atomically and with a ledger posting.
      *
      * @param  array<string, mixed>  $options  description, metadata, reference_type,
-     *                                        reference_id, fee, actor_user_id
+     *                                         reference_id, fee, actor_user_id
      *
      * @throws FinancialException
      */
@@ -118,7 +109,7 @@ final class WalletService
         FinancialTransactionType $type = FinancialTransactionType::Deposit,
         ?string $idempotencyKey = null,
         array $options = [],
-    ): \App\Models\FinancialTransaction {
+    ): FinancialTransaction {
         return $this->transactions()->execute(
             wallet: $wallet,
             amount: $amount,
@@ -143,7 +134,7 @@ final class WalletService
         FinancialTransactionType $type = FinancialTransactionType::Withdrawal,
         ?string $idempotencyKey = null,
         array $options = [],
-    ): \App\Models\FinancialTransaction {
+    ): FinancialTransaction {
         return $this->transactions()->execute(
             wallet: $wallet,
             amount: $amount,
@@ -301,7 +292,7 @@ final class WalletService
         return $this->withinTransaction(function () use ($wallet, $reason): Wallet {
             $locked = $this->locks->relock($wallet);
 
-            if ($locked->status === \App\Enums\WalletStatus::Closed) {
+            if ($locked->status === WalletStatus::Closed) {
                 throw FinancialException::withCode(
                     'wallet_closed',
                     sprintf('Wallet %d is closed and its status cannot be changed.', (int) $locked->getKey()),
@@ -309,7 +300,7 @@ final class WalletService
                 );
             }
 
-            $locked->status = \App\Enums\WalletStatus::Locked;
+            $locked->status = WalletStatus::Locked;
             $locked->locked_reason = $reason;
             $locked->locked_at = Carbon::now();
             $locked->version = (int) $locked->version + 1;
@@ -329,7 +320,7 @@ final class WalletService
         return $this->withinTransaction(function () use ($wallet): Wallet {
             $locked = $this->locks->relock($wallet);
 
-            if ($locked->status !== \App\Enums\WalletStatus::Locked) {
+            if ($locked->status !== WalletStatus::Locked) {
                 throw FinancialException::withCode(
                     'wallet_not_locked',
                     sprintf(
@@ -341,7 +332,7 @@ final class WalletService
                 );
             }
 
-            $locked->status = \App\Enums\WalletStatus::Active;
+            $locked->status = WalletStatus::Active;
             $locked->locked_reason = null;
             $locked->locked_at = null;
             $locked->version = (int) $locked->version + 1;

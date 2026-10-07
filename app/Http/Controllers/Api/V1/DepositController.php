@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\Currency;
 use App\Enums\PaymentMethod;
+use App\Exceptions\FinancialException;
+use App\Http\Requests\Payment\DepositRequest;
 use App\Http\Responses\ApiResponse;
 use App\Models\Deposit;
 use App\Models\Wallet;
@@ -21,8 +23,7 @@ final class DepositController
 {
     public function __construct(
         private readonly PaymentInitiationService $initiationService,
-    ) {
-    }
+    ) {}
 
     /**
      * List payment methods available for deposits.
@@ -55,7 +56,7 @@ final class DepositController
         $deposits = Deposit::query()
             ->where('user_id', $user->id)
             ->latest('id')
-            ->paginate((int) $request->query('per_page', 15));
+            ->paginate(min(max((int) $request->query('per_page', 15), 1), 50));
 
         return ApiResponse::success(
             data: [
@@ -86,14 +87,9 @@ final class DepositController
     /**
      * Initiate a new deposit request.
      */
-    public function store(Request $request): JsonResponse
+    public function store(DepositRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'amount' => ['required', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
-            'method' => ['required', 'string', 'in:'.implode(',', array_column(PaymentMethod::cases(), 'value'))],
-            'currency' => ['nullable', 'string', 'in:THB,USD,BDT'],
-            'idempotency_key' => ['nullable', 'string', 'min:16', 'max:128'],
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
         $currency = isset($validated['currency'])
@@ -114,16 +110,37 @@ final class DepositController
         }
 
         $method = PaymentMethod::from($validated['method']);
-        $amount = Money::of($validated['amount'], $currency);
+        $amount = Money::of($request->amount(), $currency);
         $idempotencyKey = $validated['idempotency_key'] ?? $request->header('X-Idempotency-Key');
 
-        $result = $this->initiationService->initiateDeposit(
-            wallet: $wallet,
-            amount: $amount,
-            method: $method,
-            idempotencyKey: $idempotencyKey,
-            options: ['ip' => $request->ip()],
-        );
+        try {
+            $result = $this->initiationService->initiateDeposit(
+                wallet: $wallet,
+                amount: $amount,
+                method: $method,
+                idempotencyKey: $idempotencyKey,
+                options: ['ip' => $request->ip()],
+            );
+        } catch (FinancialException $exception) {
+            $code = $exception->errorCode() ?? 'deposit_request_refused';
+
+            return ApiResponse::error(
+                code: $code,
+                message: 'The deposit could not be initiated with the requested details.',
+                status: $code === 'payment_gateway_unavailable' ? 503 : 422,
+            );
+        }
+
+        $gatewayResponse = $result['gateway_response'];
+        $instructions = is_array($gatewayResponse->metadata['instructions'] ?? null)
+            ? array_intersect_key($gatewayResponse->metadata['instructions'], array_flip([
+                'bank_name',
+                'account_number',
+                'account_name',
+                'instructions',
+                'reference',
+            ]))
+            : [];
 
         return ApiResponse::success(
             data: [
@@ -142,7 +159,10 @@ final class DepositController
                     'reference_number' => $result['payment']->reference_number,
                     'status' => $result['payment']->status->value,
                 ],
-                'checkout' => $result['gateway_response']->toArray(),
+                'checkout' => [
+                    'redirect_url' => $gatewayResponse->redirectUrl,
+                    'instructions' => $instructions,
+                ],
             ],
             message: 'Deposit initiated successfully.',
             status: 201,
@@ -189,7 +209,6 @@ final class DepositController
                 'method' => $deposit->method->value,
                 'confirmed_at' => $deposit->confirmed_at?->toIso8601String(),
                 'failed_at' => $deposit->failed_at?->toIso8601String(),
-                'failure_reason' => $deposit->failure_reason,
             ],
             message: 'Deposit retrieved successfully.',
         );

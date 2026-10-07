@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Official Prize Verification & Keypad Controller
+ * Lottery Platform Official Prize Verification & Keypad Controller
  */
 
 (function () {

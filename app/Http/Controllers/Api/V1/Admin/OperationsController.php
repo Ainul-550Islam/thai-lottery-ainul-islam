@@ -109,10 +109,9 @@ final class OperationsController
         /** @var User $user */
         $user = $request->user();
 
-        $operation = AdminOperation::query()->where('operation_fingerprint', $fingerprint)->firstOrFail();
-
         try {
             AdminOperationService::assertAuthorized($user, 'approve');
+            $operation = AdminOperation::query()->where('operation_fingerprint', $fingerprint)->firstOrFail();
             $row = $this->operations->approve((int) $operation->id, $user, $request->input('note'));
             ExecuteAdminOperationJob::dispatch($fingerprint);
         } catch (AdminOperationException $e) {
@@ -235,10 +234,9 @@ final class OperationsController
 
         $validated = $request->validate(['format' => ['nullable', 'string', 'in:json,csv,xlsx,pdf']]);
 
-        $job = OperationalReportJob::query()->where('query_fingerprint', $queryFingerprint)->firstOrFail();
-
         try {
             AdminOperationService::assertAuthorized($user, 'view');
+            $job = OperationalReportJob::query()->where('query_fingerprint', $queryFingerprint)->firstOrFail();
             $result = $this->exports->render(ReportExportData::fromInput([
                 'report_job_id' => (int) $job->id,
                 'format' => $validated['format'] ?? 'json',

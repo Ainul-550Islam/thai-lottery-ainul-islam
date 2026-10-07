@@ -52,6 +52,29 @@ class Wallet extends Model
 
     use SoftDeletes;
 
+    public const INITIAL_VERSION = 1;
+
+    public const MONEY_COLUMNS = [
+        'balance',
+        'locked_balance',
+        'total_deposited',
+        'total_withdrawn',
+        'total_wagered',
+        'total_won',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $wallet): void {
+            $wallet->status ??= WalletStatus::Active;
+            $wallet->version = self::INITIAL_VERSION;
+
+            foreach (self::MONEY_COLUMNS as $column) {
+                $wallet->setAttribute($column, $wallet->getAttribute($column) ?? '0.00');
+            }
+        });
+    }
+
     /**
      * Only the wallet identity is mass assignable.
      *

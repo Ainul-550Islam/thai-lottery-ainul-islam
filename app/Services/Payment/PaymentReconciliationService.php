@@ -13,11 +13,13 @@ use App\Enums\PaymentWebhookStatus;
 use App\Enums\RiskLevel;
 use App\Events\PaymentTransactionReconciled;
 use App\Exceptions\PaymentReconciliationException;
+use App\Listeners\RecordPaymentReconciliationAudit;
 use App\Models\AuditLog;
 use App\Models\Payment;
 use App\Models\PaymentReconciliation;
 use App\Models\PaymentWebhook;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Provider-vs-internal payment reconciliation, exact bcmath.
@@ -43,9 +45,8 @@ use Illuminate\Support\Facades\DB;
 final class PaymentReconciliationService
 {
     public function __construct(
-        private readonly \App\Listeners\RecordPaymentReconciliationAudit $audit,
-    ) {
-    }
+        private readonly RecordPaymentReconciliationAudit $audit,
+    ) {}
 
     /* ------------------------------------------------ run one ------ */
 
@@ -177,7 +178,7 @@ final class PaymentReconciliationService
             }
 
             $locked->status = LedgerReconciliationStatus::Resolved;
-            $locked->resolved_note = \Illuminate\Support\Str::limit($note, 255, '');
+            $locked->resolved_note = Str::limit($note, 255, '');
             $locked->resolved_at = now();
             $locked->save();
 
@@ -198,7 +199,7 @@ final class PaymentReconciliationService
         $reference = (string) $payment->gateway_reference;
 
         // INTERNAL FACTS AT THE ROW.
-        $expected = \App\Services\Payment\PaymentCallbackService::moneyOf((string) $payment->amount);
+        $expected = PaymentCallbackService::moneyOf((string) $payment->amount);
         $currency = strtoupper(($payment->currency instanceof \BackedEnum ? (string) $payment->currency->value : (string) $payment->currency));
         $internalStatusEnum = $payment->status instanceof PaymentStatus ? $payment->status : PaymentStatus::tryFrom((string) $payment->status);
         $internalStatus = PaymentTransactionStatus::fromInternalPaymentStatus($internalStatusEnum ?? PaymentStatus::Pending);
@@ -231,10 +232,12 @@ final class PaymentReconciliationService
             $facts = is_array($payload['data']['object'] ?? null) ? $payload['data']['object'] : $payload;
 
             if (isset($facts['amount'])) {
-                $raw = is_string($facts['amount']) ? trim($facts['amount']) : number_format((float) $facts['amount'], 2, '.', '');
+                $raw = is_string($facts['amount'])
+                    ? trim($facts['amount'])
+                    : (is_int($facts['amount']) ? (string) $facts['amount'] : null);
 
-                if (preg_match('/^\d+(\.\d{1,2})?$/', $raw)) {
-                    $observedAmount = \App\Services\Payment\PaymentCallbackService::moneyOf($raw);
+                if ($raw !== null && preg_match('/^\d+(\.\d{1,2})?$/', $raw) === 1) {
+                    $observedAmount = PaymentCallbackService::moneyOf($raw);
                 }
             }
 
@@ -313,7 +316,7 @@ final class PaymentReconciliationService
             ->where('reconciliation_key', 'LIKE', $baseKey.'%')
             ->count();
 
-        $row = new PaymentReconciliation();
+        $row = new PaymentReconciliation;
         $row->fill([
             'reconciliation_key' => $generations === 0 ? $baseKey : sprintf('%s:%d', $baseKey, $generations + 1),
             'payment_id' => (int) $payment->id,
@@ -338,7 +341,7 @@ final class PaymentReconciliationService
 
     private function recordAudit(PaymentReconciliation $row, string $description): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

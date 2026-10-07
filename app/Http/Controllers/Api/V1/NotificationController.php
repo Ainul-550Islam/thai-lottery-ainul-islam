@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\Notification\NotificationPreferenceData;
-use App\Enums\NotificationEventType;
 use App\Enums\NotificationStatus;
 use App\Exceptions\NotificationException;
 use App\Exceptions\NotificationPreferenceException;
@@ -14,7 +13,6 @@ use App\Models\Notification;
 use App\Models\User;
 use App\Services\Notification\NotificationDispatchService;
 use App\Services\Notification\NotificationPreferenceService;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,8 +26,7 @@ final class NotificationController
     public function __construct(
         private readonly NotificationPreferenceService $preferences,
         private readonly NotificationDispatchService $dispatch,
-    ) {
-    }
+    ) {}
 
     /** GET /notifications — own rows, newest first. */
     public function index(Request $request): JsonResponse
@@ -37,7 +34,8 @@ final class NotificationController
         /** @var User $user */
         $user = $request->user();
 
-        $rows = Notification::query()
+        $perPage = min(max((int) $request->query('per_page', 20), 1), 50);
+        $page = Notification::query()
             ->where('user_id', $user->id)
             ->whereIn('status', [
                 NotificationStatus::Queued->value,
@@ -45,20 +43,28 @@ final class NotificationController
                 NotificationStatus::Delivered->value,
             ])
             ->orderByDesc('created_at')
-            ->limit(50)
-            ->get()
-            ->map(static fn (Notification $n): array => [
-                'id' => $n->id,
-                'event_type' => $n->event_type->value,
-                'channel' => $n->channel->value,
-                'priority' => $n->priority->value,
-                'subject' => $n->subject,
-                'body' => $n->body,
-                'created_at' => $n->created_at?->toIso8601String(),
-                'read_at' => $n->read_at?->toIso8601String(),
-            ]);
+            ->paginate($perPage);
 
-        return ApiResponse::success(['notifications' => $rows], 'Notifications listed.');
+        $items = collect($page->items())->map(static fn (Notification $n): array => [
+            'id' => $n->id,
+            'event_type' => $n->event_type->value,
+            'channel' => $n->channel->value,
+            'priority' => $n->priority->value,
+            'subject' => $n->subject,
+            'body' => $n->body,
+            'created_at' => $n->created_at?->toIso8601String(),
+            'read_at' => $n->read_at?->toIso8601String(),
+        ]);
+
+        return ApiResponse::success([
+            'items' => $items,
+            'pagination' => [
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+            ],
+        ], 'Notifications listed.');
     }
 
     /** POST /notifications/{id}/read — own rows only. */

@@ -14,10 +14,9 @@ use App\Enums\PaymentStatus;
 use App\Enums\PaymentWebhookStatus;
 use App\Enums\RiskLevel;
 use App\Enums\WithdrawalStatus;
-use App\Exceptions\DepositException;
 use App\Exceptions\FinancialException;
+use App\Exceptions\PaymentReconciliationException;
 use App\Exceptions\PaymentWebhookException;
-use App\Exceptions\WithdrawalException;
 use App\Listeners\RecordPaymentWebhookAudit;
 use App\Models\AuditLog;
 use App\Models\Deposit;
@@ -29,7 +28,6 @@ use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
 use App\Services\Finance\FinancialReversalService;
 use App\Services\Finance\FinancialStateTransitionService;
-use App\Services\Finance\Money;
 use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalCompletionService;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -38,7 +36,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Robust, production-grade Payment Webhook Processing Engine.
@@ -67,10 +65,9 @@ class PaymentWebhookService
         private readonly WithdrawalCompletionService $withdrawalCompletion,
         private readonly FinancialReversalService $reversalService,
         private readonly FinancialStateTransitionService $transitions,
-        private readonly ?PaymentWebhookVerificationService $webhookVerification = null,
-        private readonly ?PaymentCallbackService $paymentCallbacks = null,
-    ) {
-    }
+        private readonly PaymentWebhookVerificationService $webhookVerification,
+        private readonly PaymentCallbackService $paymentCallbacks,
+    ) {}
 
     /**
      * Process an incoming webhook request from a gateway.
@@ -128,24 +125,36 @@ class PaymentWebhookService
             );
         }
 
-        return DB::transaction(function () use ($payload, $gateway): PaymentProcessingResult {
-            if ($payload->eventType->isDeposit()) {
-                return $this->processDepositWebhook($payload);
+        try {
+            $result = DB::transaction(function () use ($payload, $gateway): PaymentProcessingResult {
+                if ($payload->eventType->isDeposit()) {
+                    return $this->processDepositWebhook($payload);
+                }
+
+                if ($payload->eventType->isWithdrawal()) {
+                    return $this->processWithdrawalWebhook($payload);
+                }
+
+                if ($payload->eventType->isReversal()) {
+                    return $this->processReversalWebhook($payload);
+                }
+
+                return PaymentProcessingResult::ignored(
+                    gateway: $gateway,
+                    reason: 'Ignored unsupported webhook event: '.$payload->eventType->value,
+                );
+            });
+
+            if (! $result->success) {
+                $this->cache->forget($cacheKey);
             }
 
-            if ($payload->eventType->isWithdrawal()) {
-                return $this->processWithdrawalWebhook($payload);
-            }
+            return $result;
+        } catch (Throwable $exception) {
+            $this->cache->forget($cacheKey);
 
-            if ($payload->eventType->isReversal()) {
-                return $this->processReversalWebhook($payload);
-            }
-
-            return PaymentProcessingResult::ignored(
-                gateway: $gateway,
-                reason: 'Ignored unsupported webhook event: '.$payload->eventType->value,
-            );
-        });
+            throw $exception;
+        }
     }
 
     /**
@@ -257,7 +266,7 @@ class PaymentWebhookService
             return PaymentProcessingResult::completed(
                 gateway: $gateway,
                 payment: $payment,
-                transaction: $existingTx ?? new FinancialTransaction(),
+                transaction: $existingTx ?? new FinancialTransaction,
                 actionTaken: 'replayed',
                 replayed: true,
                 metadata: ['already_settled' => true],
@@ -646,7 +655,7 @@ class PaymentWebhookService
             ->first();
 
         if (! $payment instanceof Payment) {
-            $payment = new Payment();
+            $payment = new Payment;
             $payment->fill([
                 'reference_number' => 'PAY-'.strtoupper(bin2hex(random_bytes(8))),
                 'user_id' => $deposit->user_id,
@@ -675,7 +684,7 @@ class PaymentWebhookService
         array $newValues = [],
         array $metadata = [],
     ): void {
-        $log = new AuditLog();
+        $log = new AuditLog;
         $log->fill([
             'user_id' => null,
             'action' => $action,
@@ -689,7 +698,6 @@ class PaymentWebhookService
         ]);
         $log->save();
     }
-
 
     /* =====================================================================
      * Batch-12 hardened envelope lane (additive): verify BEFORE trust,
@@ -709,109 +717,126 @@ class PaymentWebhookService
      */
     public function processEnvelope(PaymentWebhookData $envelope): array
     {
+        try {
+            $this->webhookVerification->verify($envelope);
+        } catch (PaymentWebhookException $refusal) {
+            $this->persistRejectedEnvelope($envelope, $refusal);
+
+            throw $refusal;
+        }
+
         return DB::transaction(function () use ($envelope): array {
-            // SIGHTING-FIRST: identical bytes seen before with the same
-            // declared identity is a duplicate sighting — a no-op with
-            // its own evidence, never a second application.
-            /** @var PaymentWebhook|null $existing */
-            $existing = PaymentWebhook::query()
-                ->lockForUpdate()
-                ->where('payload_fingerprint', $envelope->payloadFingerprint)
-                ->first();
-
-            if ($existing instanceof PaymentWebhook) {
-                $factsMatch = (string) $existing->provider === $envelope->providerCode
-                    && (string) $existing->event_id === $envelope->eventId
-                    && (string) $existing->event_type === $envelope->eventType;
-
-                if (! $factsMatch) {
-                    throw PaymentWebhookException::duplicate($envelope->payloadFingerprint);
-                }
-
-                $existing->sightings = (int) $existing->sightings + 1;
-                $existing->save();
-
-                RecordPaymentWebhookAudit::from($existing, PaymentWebhookStatus::Duplicate, sprintf('duplicate sighting #%d', $existing->sightings));
-
-                return ['webhook' => $existing, 'status' => PaymentWebhookStatus::Duplicate, 'outcome' => 'duplicate'];
-            }
-
-            // VERIFY BEFORE TRUST. Refusal is still evidence.
-            try {
-                $this->webhookVerification?->verify($envelope);
-            } catch (PaymentWebhookException $refusal) {
-                $rejected = new PaymentWebhook();
-                $rejected->fill([
-                    'webhook_key' => $envelope->webhookKey(),
-                    'provider' => $envelope->providerCode,
-                    'event_id' => $envelope->eventId,
-                    'event_type' => $envelope->eventType,
-                    'signature' => $envelope->signature,
-                    'payload' => $envelope->payload,
-                    'payload_fingerprint' => $envelope->payloadFingerprint,
-                    'status_reason' => $refusal->errorCode(),
-                    'received_at' => now(),
-                    'rejected_at' => now(),
-                    'sightings' => 1,
-                    'metadata' => [],
-                ]);
-                $rejected->status = PaymentWebhookStatus::Rejected;
-                $rejected->save();
-
-                RecordPaymentWebhookAudit::from($rejected, PaymentWebhookStatus::Rejected, $refusal->errorCode());
-
-                throw $refusal;
-            }
-
-            $row = new PaymentWebhook();
-            $row->fill([
+            $now = now();
+            $inserted = DB::table('payment_webhooks')->insertOrIgnore([
                 'webhook_key' => $envelope->webhookKey(),
                 'provider' => $envelope->providerCode,
                 'event_id' => $envelope->eventId,
                 'event_type' => $envelope->eventType,
                 'signature' => $envelope->signature,
-                'payload' => $envelope->payload,
+                'payload' => json_encode($envelope->payload, JSON_THROW_ON_ERROR),
                 'payload_fingerprint' => $envelope->payloadFingerprint,
-                'received_at' => now(),
+                'status' => PaymentWebhookStatus::Verified->value,
+                'received_at' => $now,
+                'verified_at' => $now,
+                'claimed_at' => $now,
                 'sightings' => 1,
-                'metadata' => [],
+                'processing_attempts' => 1,
+                'metadata' => json_encode([], JSON_THROW_ON_ERROR),
+                'created_at' => $now,
+                'updated_at' => $now,
             ]);
-            $row->status = PaymentWebhookStatus::Verified;
-            $row->verified_at = now();
-            $row->save();
 
-            RecordPaymentWebhookAudit::from($row, PaymentWebhookStatus::Verified, 'signature and identity proved');
+            $row = PaymentWebhook::query()
+                ->where('provider', $envelope->providerCode)
+                ->where('event_id', $envelope->eventId)
+                ->lockForUpdate()
+                ->first();
+
+            $row ??= PaymentWebhook::query()
+                ->where('payload_fingerprint', $envelope->payloadFingerprint)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $row instanceof PaymentWebhook) {
+                throw PaymentWebhookException::malformed('durable webhook claim could not be loaded');
+            }
+
+            $factsMatch = (string) $row->provider === $envelope->providerCode
+                && (string) $row->event_id === $envelope->eventId
+                && (string) $row->event_type === $envelope->eventType
+                && (string) $row->payload_fingerprint === $envelope->payloadFingerprint;
+
+            if (! $factsMatch) {
+                throw PaymentWebhookException::duplicate($envelope->payloadFingerprint);
+            }
+
+            if ($inserted === 0) {
+                $row->sightings = (int) $row->sightings + 1;
+                $row->save();
+
+                RecordPaymentWebhookAudit::from(
+                    $row,
+                    PaymentWebhookStatus::Duplicate,
+                    sprintf('duplicate sighting #%d', $row->sightings),
+                );
+
+                return [
+                    'webhook' => $row,
+                    'status' => PaymentWebhookStatus::Duplicate,
+                    'outcome' => 'duplicate',
+                ];
+            }
+
+            RecordPaymentWebhookAudit::from(
+                $row,
+                PaymentWebhookStatus::Verified,
+                'signature and identity proved; durable claim acquired',
+            );
 
             $applied = false;
 
-            // APPLY ONCE. A miss (no internal paper) leaves the row
-            // Verified with the refusal as status_reason — the async job
-            // may retry application WITHOUT re-scanning for paper shape.
             if ($this->paymentCallbacks !== null) {
                 try {
                     $callback = $this->paymentCallbacks->normalizeFromPayload(
                         $envelope->providerCode,
-                        $envelope->payload + ['payload_fingerprint' => $envelope->payloadFingerprint, 'signature' => $envelope->signature],
+                        $envelope->payload + [
+                            'payload_fingerprint' => $envelope->payloadFingerprint,
+                            'signature' => $envelope->signature,
+                        ],
                     );
 
                     $this->paymentCallbacks->apply($callback);
 
                     $row->status = PaymentWebhookStatus::Applied;
                     $row->applied_at = now();
+                    $row->status_reason = null;
                     $row->save();
 
-                    RecordPaymentWebhookAudit::from($row, PaymentWebhookStatus::Applied, 'facts applied to internal paper');
+                    RecordPaymentWebhookAudit::from(
+                        $row,
+                        PaymentWebhookStatus::Applied,
+                        'facts applied to internal paper',
+                    );
                     $applied = true;
-                } catch (\App\Exceptions\PaymentReconciliationException $applicationRefusal) {
-                    $row->status_reason = $applicationRefusal->errorCode().': '.\Illuminate\Support\Str::limit($applicationRefusal->getMessage(), 200, '');
+                } catch (PaymentReconciliationException $applicationRefusal) {
+                    $row->status_reason = $applicationRefusal->errorCode();
+                    $row->last_error_at = now();
                     $row->save();
 
-                    RecordPaymentWebhookAudit::from($row, PaymentWebhookStatus::Verified, 'verified; application deferred ('.$applicationRefusal->errorCode().')');
+                    RecordPaymentWebhookAudit::from(
+                        $row,
+                        PaymentWebhookStatus::Verified,
+                        'verified; application deferred ('.$applicationRefusal->errorCode().')',
+                    );
                 }
             }
 
-            return ['webhook' => $row, 'status' => $row->status, 'outcome' => $applied ? 'applied' : 'verified'];
-        });
+            return [
+                'webhook' => $row,
+                'status' => $row->status,
+                'outcome' => $applied ? 'applied' : 'verified',
+            ];
+        }, 3);
     }
 
     /**
@@ -822,59 +847,137 @@ class PaymentWebhookService
      * internal paper already carries the facts.
      *
      * @throws PaymentWebhookException
-     * @throws \App\Exceptions\PaymentReconciliationException
+     * @throws PaymentReconciliationException
      */
     public function applyPersisted(PaymentWebhook $webhook): PaymentWebhook
     {
-        return DB::transaction(function () use ($webhook): PaymentWebhook {
-            /** @var PaymentWebhook|null $locked */
-            $locked = PaymentWebhook::query()->lockForUpdate()->find((int) $webhook->getKey());
+        try {
+            return DB::transaction(function () use ($webhook): PaymentWebhook {
+                /** @var PaymentWebhook|null $locked */
+                $locked = PaymentWebhook::query()->lockForUpdate()->find((int) $webhook->getKey());
 
-            if (! $locked instanceof PaymentWebhook) {
-                throw PaymentWebhookException::notFound((string) $webhook->webhook_key);
+                if (! $locked instanceof PaymentWebhook) {
+                    throw PaymentWebhookException::notFound((string) $webhook->webhook_key);
+                }
+
+                if ($locked->status === PaymentWebhookStatus::Applied) {
+                    return $locked;
+                }
+
+                if ($locked->status === PaymentWebhookStatus::Rejected) {
+                    throw PaymentWebhookException::malformed('a rejected envelope may never be applied');
+                }
+
+                $locked->claimed_at = now();
+                $locked->processing_attempts = (int) $locked->processing_attempts + 1;
+                $locked->save();
+
+                $envelope = PaymentWebhookData::fromInput(
+                    providerCode: (string) $locked->provider,
+                    eventId: (string) $locked->event_id,
+                    eventType: (string) $locked->event_type,
+                    signature: $locked->signature,
+                    receivedAtIso: $locked->received_at?->toIso8601String() ?? now()->toIso8601String(),
+                    payload: is_array($locked->payload) ? $locked->payload : [],
+                    payloadFingerprint: (string) $locked->payload_fingerprint,
+                );
+
+                $this->webhookVerification->verify($envelope, allowStale: true);
+
+                if ($this->paymentCallbacks === null) {
+                    throw PaymentWebhookException::malformed('callback lane unavailable');
+                }
+
+                $callback = $this->paymentCallbacks->normalizeFromPayload(
+                    $envelope->providerCode,
+                    $envelope->payload + [
+                        'payload_fingerprint' => $envelope->payloadFingerprint,
+                        'signature' => $envelope->signature,
+                    ],
+                );
+
+                $this->paymentCallbacks->apply($callback);
+
+                $locked->status = PaymentWebhookStatus::Applied;
+                $locked->applied_at = now();
+                $locked->last_error_at = null;
+                $locked->status_reason = null;
+                $locked->save();
+
+                RecordPaymentWebhookAudit::from(
+                    $locked,
+                    PaymentWebhookStatus::Applied,
+                    'persisted envelope applied by queue worker',
+                );
+
+                return $locked;
+            }, 3);
+        } catch (Throwable $failure) {
+            $reason = $failure instanceof PaymentWebhookException
+                ? $failure->errorCode()
+                : 'WEBHOOK_APPLICATION_FAILED';
+
+            PaymentWebhook::query()
+                ->whereKey((int) $webhook->getKey())
+                ->where('status', '!=', PaymentWebhookStatus::Applied->value)
+                ->update([
+                    'last_error_at' => now(),
+                    'status_reason' => $reason,
+                ]);
+
+            throw $failure;
+        }
+    }
+
+    private function persistRejectedEnvelope(
+        PaymentWebhookData $envelope,
+        PaymentWebhookException $refusal,
+    ): PaymentWebhook {
+        return DB::transaction(function () use ($envelope, $refusal): PaymentWebhook {
+            $now = now();
+
+            DB::table('payment_webhooks')->insertOrIgnore([
+                'webhook_key' => $envelope->webhookKey(),
+                'provider' => $envelope->providerCode,
+                'event_id' => $envelope->eventId,
+                'event_type' => $envelope->eventType,
+                'signature' => $envelope->signature,
+                'payload' => json_encode($envelope->payload, JSON_THROW_ON_ERROR),
+                'payload_fingerprint' => $envelope->payloadFingerprint,
+                'status' => PaymentWebhookStatus::Rejected->value,
+                'status_reason' => $refusal->errorCode(),
+                'received_at' => $now,
+                'rejected_at' => $now,
+                'last_error_at' => $now,
+                'sightings' => 1,
+                'processing_attempts' => 0,
+                'metadata' => json_encode([], JSON_THROW_ON_ERROR),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            $row = PaymentWebhook::query()
+                ->where('provider', $envelope->providerCode)
+                ->where('event_id', $envelope->eventId)
+                ->lockForUpdate()
+                ->first();
+
+            $row ??= PaymentWebhook::query()
+                ->where('payload_fingerprint', $envelope->payloadFingerprint)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $row instanceof PaymentWebhook) {
+                throw PaymentWebhookException::malformed('rejected webhook evidence could not be loaded');
             }
 
-            if ($locked->status === PaymentWebhookStatus::Applied) {
-                return $locked; // exactly-once, already spoken
-            }
-
-            if ($locked->status === PaymentWebhookStatus::Rejected) {
-                throw PaymentWebhookException::malformed('a rejected envelope may never be applied');
-            }
-
-            $envelope = PaymentWebhookData::fromInput(
-                providerCode: (string) $locked->provider,
-                eventId: (string) $locked->event_id,
-                eventType: (string) $locked->event_type,
-                signature: $locked->signature,
-                receivedAtIso: $locked->received_at?->toIso8601String() ?? now()->toIso8601String(),
-                payload: is_array($locked->payload) ? $locked->payload : [],
-                payloadFingerprint: (string) $locked->payload_fingerprint,
+            RecordPaymentWebhookAudit::from(
+                $row,
+                PaymentWebhookStatus::Rejected,
+                $refusal->errorCode(),
             );
 
-            // Re-prove the stored bytes (window relaxed; custody proved).
-            $this->webhookVerification?->verify($envelope, allowStale: true);
-
-            if ($this->paymentCallbacks === null) {
-                throw PaymentWebhookException::malformed('callback lane unavailable');
-            }
-
-            $callback = $this->paymentCallbacks->normalizeFromPayload(
-                $envelope->providerCode,
-                $envelope->payload + ['payload_fingerprint' => $envelope->payloadFingerprint, 'signature' => $envelope->signature],
-            );
-
-            $this->paymentCallbacks->apply($callback);
-
-            $locked->status = PaymentWebhookStatus::Applied;
-            $locked->applied_at = now();
-            $locked->status_reason = null;
-            $locked->save();
-
-            RecordPaymentWebhookAudit::from($locked, PaymentWebhookStatus::Applied, 'persisted envelope applied (job)');
-
-            return $locked;
-        });
+            return $row;
+        }, 3);
     }
 }
-

@@ -70,7 +70,11 @@ final readonly class WalletReservationData
             );
         }
 
-        if (extension_loaded('bcmath') ? bccomp($amt, '0', 2) !== 1 : ((float) $amt <= 0)) {
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary validation.');
+        }
+
+        if (bccomp($amt, '0', 2) !== 1) {
             throw WalletReservationException::malformed(
                 'the amount must be strictly positive',
             );

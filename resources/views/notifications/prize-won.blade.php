@@ -12,7 +12,7 @@
     <div style="background-color: #020617; border-radius: 12px; padding: 24px; border: 1px solid #334155; margin-bottom: 24px; text-align: center;">
         <span style="color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">Total Prize Amount</span>
         <div style="font-size: 36px; font-weight: 900; color: #10b981; font-family: monospace; margin-top: 4px; margin-bottom: 12px;">
-            ฿{{ number_format((float) ($prize_amount ?? 0), 2) }}
+            {{ isset($prize_amount) ? \App\Support\Admin\AdminFormat::money($prize_amount, $currency ?? null) : '—' }}
         </div>
 
         <table style="width: 100%; font-size: 13px; border-top: 1px solid #1e293b; padding-top: 12px; margin-top: 12px; border-collapse: collapse;">

@@ -20,8 +20,7 @@ final class PaymentWebhookController
 {
     public function __construct(
         private readonly PaymentWebhookService $webhookService,
-    ) {
-    }
+    ) {}
 
     /**
      * Handle incoming payment gateway webhook.
@@ -55,7 +54,6 @@ final class PaymentWebhookController
             Log::error('Unhandled webhook exception', [
                 'gateway' => $gateway,
                 'exception' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
             return ApiResponse::error(
@@ -118,7 +116,9 @@ final class PaymentWebhookController
         } catch (PaymentWebhookException $e) {
             return ApiResponse::error(
                 code: strtolower($e->errorCode()),
-                message: $e->getMessage(),
+                message: $e->errorCode() === PaymentWebhookException::CODE_SIGNATURE_INVALID
+                    ? 'Webhook signature verification failed.'
+                    : 'Webhook evidence was rejected.',
                 status: $e->errorCode() === PaymentWebhookException::CODE_SIGNATURE_INVALID ? 403 : 422,
             );
         }

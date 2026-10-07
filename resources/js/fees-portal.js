@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Fee Schedule & Real-Time Fee Calculator Controller
+ * Lottery Platform Fee Schedule & Real-Time Fee Calculator Controller
  */
 
 (function () {
@@ -14,11 +14,20 @@
         var calcCategory = document.getElementById('calcCategory');
         var calcAmount = document.getElementById('calcAmount');
 
+        function formatDecimal(value) {
+            var raw = typeof value === 'string' ? value.trim() : '';
+            if (!/^\d+(\.\d{1,2})?$/.test(raw)) return null;
+            var parts = raw.split('.');
+            var integer = parts[0].replace(/^0+(?=\d)/, '');
+            var fraction = (parts[1] || '').padEnd(2, '0');
+            return integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + fraction;
+        }
+
         function triggerCalculation() {
             var cat = calcCategory ? calcCategory.value : 'deposit_promptpay';
-            var amt = calcAmount ? parseFloat(calcAmount.value) : 1000.00;
+            var amt = calcAmount ? calcAmount.value.trim() : '';
 
-            if (isNaN(amt) || amt <= 0) amt = 100.00;
+            if (formatDecimal(amt) === null || !/[1-9]/.test(amt)) return;
 
             fetch('/api/v1/public/fees/calculate', {
                 method: 'POST',
@@ -46,9 +55,13 @@
             var netEl = document.getElementById('calcResultNet');
             var noteEl = document.getElementById('calcResultNote');
 
-            if (baseEl) baseEl.textContent = Number(data.base_amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + data.currency;
-            if (feeEl) feeEl.textContent = Number(data.fee_amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + data.currency + ' (' + data.fee_rate + ')';
-            if (netEl) netEl.textContent = Number(data.net_amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + data.currency;
+            var base = formatDecimal(data.base_amount);
+            var fee = formatDecimal(data.fee_amount);
+            var net = formatDecimal(data.net_amount);
+
+            if (baseEl) baseEl.textContent = base !== null ? base + ' ' + data.currency : 'Unavailable';
+            if (feeEl) feeEl.textContent = fee !== null ? fee + ' ' + data.currency + ' (' + data.fee_rate + ')' : 'Unavailable';
+            if (netEl) netEl.textContent = net !== null ? net + ' ' + data.currency : 'Unavailable';
             if (noteEl) noteEl.textContent = data.note;
         }
 

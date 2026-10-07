@@ -1,5 +1,5 @@
 /**
- * ThaiLotto - Official App Download & Verification Portal
+ * Lottery Platform - Official App Download & Verification Portal
  * Interactive Platform Switcher, Checksum Validator, and QR Generator
  */
 
@@ -16,14 +16,14 @@
                 name: 'Android Official APK',
                 platform: 'Android',
                 version: 'v4.8.2 (Build 4820)',
-                package_name: 'club.thailotto.official',
-                file_name: 'ThaiLotto-v4.8.2-release.apk',
+                package_name: 'club.lottery-platform.official',
+                file_name: 'Lottery Platform-v4.8.2-release.apk',
                 size: '28.4 MB',
                 min_os: 'Android 9.0 (Pie) or higher',
                 architecture: 'arm64-v8a, armeabi-v7a, x86_64',
                 sha256: '9f83a6b2c417d8e5f01239aa87e4125b3901fc88a1b7e45210986ef9a8234bc1',
                 md5: 'e7b1a2c89f0321d45678ab9c01ef4321',
-                download_url: '/downloads/ThaiLotto-v4.8.2-release.apk',
+                download_url: '/downloads/Lottery Platform-v4.8.2-release.apk',
                 btn_text: 'Download Android APK (28.4 MB)',
                 badge: 'Recommended',
                 icon: 'fa-brands fa-android',
@@ -42,7 +42,7 @@
                     {
                         step: '3',
                         title: 'Complete Setup & Log In',
-                        desc: 'Tap Install to finalize setup. Open ThaiLotto, enable Biometric login, and enjoy ultra-fast betting.'
+                        desc: 'Tap Install to finalize setup. Open Lottery Platform, enable Biometric login, and enjoy ultra-fast betting.'
                     }
                 ],
                 features: [
@@ -57,14 +57,14 @@
                 name: 'iOS Web App & TestFlight',
                 platform: 'iOS / iPadOS',
                 version: 'v4.8.2 (Build 4820)',
-                package_name: 'club.thailotto.ios',
-                file_name: 'ThaiLotto-iOS-PWA-WebClip.mobileconfig',
+                package_name: 'club.lottery-platform.ios',
+                file_name: 'Lottery Platform-iOS-PWA-WebClip.mobileconfig',
                 size: '12.8 MB (PWA Container)',
                 min_os: 'iOS 15.0 or iPadOS 15.0+',
                 architecture: 'Universal (arm64 Apple Silicon)',
                 sha256: '4c81f0923b18a6e7d9501a238b76c54301ef87a9b0c2e34567890abcdef12345',
                 md5: 'd8e2a1b94c5031e678901234abcd5678',
-                download_url: '/downloads/ThaiLotto-iOS-Profile.mobileconfig',
+                download_url: '/downloads/Lottery Platform-iOS-Profile.mobileconfig',
                 btn_text: 'Add to iOS Home Screen (Instant PWA)',
                 badge: 'Instant PWA',
                 icon: 'fa-brands fa-apple',
@@ -73,7 +73,7 @@
                     {
                         step: '1',
                         title: 'Open in Safari Browser',
-                        desc: 'Open Safari on your iPhone or iPad and navigate to thailotto.club or scan the iOS QR code.'
+                        desc: 'Open Safari on your iPhone or iPad and navigate to lottery-platform.club or scan the iOS QR code.'
                     },
                     {
                         step: '2',
@@ -98,14 +98,14 @@
                 name: 'macOS Desktop Client',
                 platform: 'macOS',
                 version: 'v4.8.2 (Universal)',
-                package_name: 'club.thailotto.mac',
-                file_name: 'ThaiLotto-4.8.2-universal.dmg',
+                package_name: 'club.lottery-platform.mac',
+                file_name: 'Lottery Platform-4.8.2-universal.dmg',
                 size: '64.2 MB',
                 min_os: 'macOS 12.0 (Monterey) or newer',
                 architecture: 'Universal (Apple M1/M2/M3/M4 & Intel x86_64)',
                 sha256: '7b39a82c401fe6d5981240ac89e345b1209ef784a3c1092837465abcde890123',
                 md5: 'c1b2a3d4e5f60718293a4b5c6d7e8f90',
-                download_url: '/downloads/ThaiLotto-4.8.2-universal.dmg',
+                download_url: '/downloads/Lottery Platform-4.8.2-universal.dmg',
                 btn_text: 'Download for Mac DMG (64.2 MB)',
                 badge: 'Desktop Pro',
                 icon: 'fa-solid fa-laptop',
@@ -119,12 +119,12 @@
                     {
                         step: '2',
                         title: 'Drag to Applications',
-                        desc: 'Double-click the downloaded ThaiLotto.dmg file, then drag the ThaiLotto icon into your Applications folder.'
+                        desc: 'Double-click the downloaded Lottery Platform.dmg file, then drag the Lottery Platform icon into your Applications folder.'
                     },
                     {
                         step: '3',
                         title: 'Launch & Set Hotkeys',
-                        desc: 'Open ThaiLotto via Spotlight (Cmd + Space) and configure your multi-window VIP betting layout.'
+                        desc: 'Open Lottery Platform via Spotlight (Cmd + Space) and configure your multi-window VIP betting layout.'
                     }
                 ],
                 features: [
@@ -139,14 +139,14 @@
                 name: 'Windows PC Desktop Client',
                 platform: 'Windows',
                 version: 'v4.8.2 (x64)',
-                package_name: 'club.thailotto.win',
-                file_name: 'ThaiLotto-Setup-4.8.2-x64.exe',
+                package_name: 'club.lottery-platform.win',
+                file_name: 'Lottery Platform-Setup-4.8.2-x64.exe',
                 size: '58.7 MB',
                 min_os: 'Windows 10 / Windows 11 (64-bit)',
                 architecture: 'x86_64, ARM64 (Windows on ARM)',
                 sha256: '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
                 md5: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
-                download_url: '/downloads/ThaiLotto-Setup-4.8.2-x64.exe',
+                download_url: '/downloads/Lottery Platform-Setup-4.8.2-x64.exe',
                 btn_text: 'Download Windows Setup (58.7 MB)',
                 badge: 'Desktop Pro',
                 icon: 'fa-brands fa-windows',
@@ -160,12 +160,12 @@
                     {
                         step: '2',
                         title: 'Run Setup Wizard',
-                        desc: 'Double-click ThaiLotto-Setup-4.8.2-x64.exe and follow the simple installation prompts.'
+                        desc: 'Double-click Lottery Platform-Setup-4.8.2-x64.exe and follow the simple installation prompts.'
                     },
                     {
                         step: '3',
                         title: 'Launch from Desktop',
-                        desc: 'Launch ThaiLotto from your Desktop shortcut or Start Menu and connect your thermal slip printer.'
+                        desc: 'Launch Lottery Platform from your Desktop shortcut or Start Menu and connect your thermal slip printer.'
                     }
                 ],
                 features: [
@@ -384,7 +384,7 @@
                         // Trigger simulated file download
                         setTimeout(() => {
                             const blob = new Blob([
-                                `ThaiLotto Official ${data.name}\nVersion: ${data.version}\nSHA-256: ${data.sha256}\nBuilt: 2026-09-28\nStatus: Official Signed Release`
+                                `Lottery Platform Official ${data.name}\nVersion: ${data.version}\nSHA-256: ${data.sha256}\nBuilt: 2026-09-28\nStatus: Official Signed Release`
                             ], { type: 'text/plain' });
                             const url = window.URL.createObjectURL(blob);
                             const a = document.createElement('a');

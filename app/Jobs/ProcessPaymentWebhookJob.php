@@ -27,12 +27,18 @@ final class ProcessPaymentWebhookJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
+    public int $tries = 5;
+
+    /** @var list<int> */
+    public array $backoff = [5, 15, 60, 180];
+
+    public int $timeout = 90;
 
     public function __construct(
         public readonly int $paymentWebhookId,
     ) {
         $this->onQueue('finance-webhooks');
+        $this->afterCommit();
     }
 
     public function handle(PaymentWebhookService $webhooks): void

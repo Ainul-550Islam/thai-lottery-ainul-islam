@@ -50,9 +50,9 @@
             return null;
         }
 
-        var amount = Number(match[1].replace(/[,\s]/g, ''));
+        var amount = match[1].replace(/[,\s]/g, '');
 
-        if (!Number.isFinite(amount)) {
+        if (!/^\d+(\.\d{1,2})?$/.test(amount)) {
             return null;
         }
 
@@ -60,10 +60,20 @@
     }
 
     function format(amount) {
-        return amount.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
+        var raw = typeof amount === 'number' && Number.isInteger(amount)
+            ? String(amount)
+            : (typeof amount === 'string' ? amount.trim() : '');
+
+        if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
+            return null;
+        }
+
+        var parts = raw.split('.');
+        var integer = parts[0].replace(/^0+(?=\d)/, '');
+        var fraction = (parts[1] || '').padEnd(2, '0');
+        var grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+        return grouped + '.' + fraction;
     }
 
     function init(pill) {
@@ -107,11 +117,14 @@
         }
 
         function write(amount) {
-            if (!Number.isFinite(amount)) {
+            var formatted = format(amount);
+
+            if (formatted === null) {
+                markStale();
                 return;
             }
 
-            display.textContent = format(amount) + (suffix ? ' ' + suffix : '');
+            display.textContent = formatted + (suffix ? ' ' + suffix : '');
             pill.setAttribute('data-wallet-state', 'fresh');
             pill.removeAttribute('data-wallet-stale');
             flash();
@@ -119,12 +132,11 @@
 
         document.addEventListener('wallet:balance-changed', function (event) {
             var detail = event.detail || {};
-            var amount = Number(detail.balance);
 
-            // Only an amount that came from the server is written. An event
-            // without one is treated as "stale", never as zero.
-            if (Number.isFinite(amount)) {
-                write(amount);
+            // Only a canonical decimal string or integer supplied by the
+            // server is written. Binary floating-point values are rejected.
+            if (format(detail.balance) !== null) {
+                write(detail.balance);
             } else {
                 markStale();
             }
@@ -174,10 +186,12 @@
                     // WalletController::show wraps the payload in the standard
                     // ApiResponse envelope: { data: { wallet: { balance } } }.
                     var wallet = body && body.data ? body.data.wallet : null;
-                    var amount = wallet ? Number(wallet.balance) : NaN;
+                    var amount = wallet ? wallet.balance : null;
 
-                    if (Number.isFinite(amount)) {
+                    if (format(amount) !== null) {
                         write(amount);
+                    } else {
+                        markStale();
                     }
                 })
                 .catch(function () {

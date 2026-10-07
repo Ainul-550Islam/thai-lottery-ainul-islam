@@ -98,6 +98,7 @@
 
         var endpoint = (container.getAttribute('data-purchase-endpoint') || '').trim();
         var token = (container.getAttribute('data-api-token') || '').trim();
+        var form = container.closest('form');
         var drawIdRaw = container.getAttribute('data-draw-id');
         var drawId = Number(drawIdRaw);
         var hasDraw = Number.isFinite(drawId) && drawId > 0;
@@ -116,7 +117,7 @@
         }
 
         function canSubmit() {
-            return endpoint !== '' && hasDraw;
+            return hasDraw && (endpoint !== '' || form !== null);
         }
 
         function render() {
@@ -291,6 +292,28 @@
                     'warning'
                 );
 
+                return;
+            }
+
+            if (endpoint === '' && form !== null) {
+                var clientKeyInput = form.querySelector('[data-client-key]');
+                if (clientKeyInput) {
+                    clientKeyInput.value = clientKey;
+                }
+
+                items.forEach(function (item, index) {
+                    ['market', 'number', 'stake'].forEach(function (field) {
+                        var input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'items[' + index + '][' + field + ']';
+                        input.value = field === 'stake' ? fromMinorUnits(item.stakeMinor) : item[field];
+                        form.appendChild(input);
+                    });
+                });
+
+                submitting = true;
+                placeButton.disabled = true;
+                form.submit();
                 return;
             }
 

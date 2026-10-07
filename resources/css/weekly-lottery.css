@@ -1,5 +1,5 @@
 /*
- * ThaiLotto - Weekly & Regional Lottery Luxury Dark Gold Stylesheet
+ * Lottery Platform - Weekly & Regional Lottery Luxury Dark Gold Stylesheet
  * Custom styles for Lao, Hanoi, and regional daily draw boards, pedestals, and keypads.
  */
 
@@ -74,4 +74,9 @@
     border-color: #D4AF37 !important;
     color: #F5E6B8 !important;
     box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+}
+
+@media (max-width: 24rem) {
+  .wl-history-table td::before { content: attr(data-label); display: block; font-weight: 700; }
+  .wl-history-table td { display: block; width: 100%; }
 }

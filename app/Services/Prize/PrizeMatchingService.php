@@ -14,8 +14,10 @@ use App\Models\AuditLog;
 use App\Models\Bet;
 use App\Models\Draw;
 use App\Models\PrizeMatch;
+use App\Models\WinningNumber;
 use App\Services\Draw\DrawCertificationService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * The matching court: deterministically matches CONFIRMED draw results
@@ -109,17 +111,17 @@ final class PrizeMatchingService
             );
         }
 
-        if (!$bet->isWinning()) {
+        if (! $bet->isWinning()) {
             throw PrizeMatchException::notWinner($data->betId, (string) ($bet->status?->value ?? (string) $bet->status));
         }
 
         // TIER lives in the draw's own result lane, or not at all.
-        $tierPresent = \App\Models\WinningNumber::query()
+        $tierPresent = WinningNumber::query()
             ->where('draw_id', $data->drawId)
             ->where('prize_tier', $data->prizeTier)
             ->exists();
 
-        if (!$tierPresent) {
+        if (! $tierPresent) {
             throw PrizeMatchException::invalidTier($data->prizeTier, $data->drawId);
         }
 
@@ -142,7 +144,7 @@ final class PrizeMatchingService
             throw PrizeMatchException::duplicate($data->matchKey());
         }
 
-        $match = new PrizeMatch();
+        $match = new PrizeMatch;
         $match->fill([
             'match_key' => $data->matchKey(),
             'draw_id' => $data->drawId,
@@ -204,7 +206,7 @@ final class PrizeMatchingService
                 return $locked; // replay
             }
 
-            if (!$locked->status->canTransitionTo(PrizeMatchStatus::Verified)) {
+            if (! $locked->status->canTransitionTo(PrizeMatchStatus::Verified)) {
                 throw PrizeMatchException::notFound((string) $locked->match_key.' (state '.$locked->status->value.')');
             }
 
@@ -237,13 +239,13 @@ final class PrizeMatchingService
                 return $locked;
             }
 
-            if (!$locked->status->canTransitionTo(PrizeMatchStatus::Rejected)) {
+            if (! $locked->status->canTransitionTo(PrizeMatchStatus::Rejected)) {
                 throw PrizeMatchException::notFound((string) $locked->match_key.' (state '.$locked->status->value.')');
             }
 
             $locked->status = PrizeMatchStatus::Rejected;
             $locked->rejected_at = now();
-            $locked->rejected_reason = \Illuminate\Support\Str::limit(trim($reason), 255, '');
+            $locked->rejected_reason = Str::limit(trim($reason), 255, '');
             $locked->save();
 
             $this->recordAudit($locked, sprintf('Rejected (%s)', $locked->rejected_reason), RiskLevel::High);
@@ -256,12 +258,16 @@ final class PrizeMatchingService
 
     private function moneyOf(string $amount): string
     {
-        return number_format((float) $amount, 2, '.', '');
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact prize arithmetic.');
+        }
+
+        return bcadd($amount, '0', 2);
     }
 
     private function recordAudit(PrizeMatch $match, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

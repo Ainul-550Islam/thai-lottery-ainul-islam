@@ -1,28 +1,62 @@
 /**
- * Wallet Management & Transactions TypeScript Controller
- * Reference: wallet_transactions.png (FortuneLotto)
+ * Wallet management client.
+ *
+ * This UI consumes the canonical authenticated wallet, deposit and withdrawal
+ * APIs. It never fabricates references, applies optimistic money mutations or
+ * treats a failed network request as a successful financial operation.
  */
 
-export interface TransactionRecord {
-    refId: string;
-    date: string;
-    type: 'deposit' | 'wager' | 'payout';
-    typeLabel: string;
-    description: string;
-    amount: string;
-    fee: string;
-    status: 'Completed' | 'Processing' | 'Failed';
+interface ApiErrorEnvelope {
+    success: false;
+    error?: {
+        code?: string;
+        message?: string;
+        details?: Record<string, unknown>;
+    };
+    message?: string;
+}
+
+interface WalletContract {
+    available_balance: string;
+    currency: string;
+}
+
+interface WalletEnvelope {
+    success: true;
+    data: {
+        wallet: WalletContract;
+    };
+}
+
+interface DepositEnvelope {
+    success: true;
+    data: {
+        deposit: {
+            reference_number: string;
+            status: string;
+        };
+        checkout?: {
+            redirect_url?: string;
+        };
+    };
+}
+
+interface WithdrawalEnvelope {
+    success: true;
+    data: {
+        withdrawal: {
+            reference_number: string;
+            status: string;
+        };
+        kyc_detained: boolean;
+    };
 }
 
 export class WalletManagement {
     private activeTab: 'deposit' | 'withdraw' = 'deposit';
-    private selectedGateway: string = 'stripe';
-    private selectedAmount: number = 500;
-    private selectedMethod: string = 'USDT';
-
-    private availableBalance: number = 5450.00;
-    private lockedBalance: number = 250.00;
-    private lifetimeWinnings: number = 94800.00;
+    private selectedAmount = '500';
+    private selectedMethod = 'stripe';
+    private submitting = false;
 
     constructor() {
         this.init();
@@ -34,36 +68,43 @@ export class WalletManagement {
         this.bindAmountPresets();
         this.bindMethodDropdown();
         this.bindProceedButton();
+        void this.refreshWallet();
     }
 
     private bindTabs(): void {
         const tabs = document.querySelectorAll<HTMLButtonElement>('[data-tab-name]');
         tabs.forEach((tab) => {
             tab.addEventListener('click', () => {
-                const name = tab.getAttribute('data-tab-name') as 'deposit' | 'withdraw';
-                if (name) {
-                    this.activeTab = name;
-                    tabs.forEach((t) => t.classList.remove('active'));
-                    tab.classList.add('active');
+                const name = tab.getAttribute('data-tab-name');
+                if (name !== 'deposit' && name !== 'withdraw') return;
 
-                    const btnText = document.getElementById('proceedBtnText');
-                    if (btnText) {
-                        btnText.textContent = name === 'deposit' ? 'Proceed to Deposit' : 'Proceed to Withdraw';
-                    }
-                }
+                this.activeTab = name;
+                tabs.forEach((item) => item.classList.remove('active'));
+                tab.classList.add('active');
+
+                const text = name === 'deposit' ? 'Proceed to Deposit' : 'Proceed to Withdraw';
+                const buttonText = document.getElementById('proceedBtnText');
+                const buttonLabel = document.getElementById('proceedBtnLabel');
+                if (buttonText) buttonText.textContent = text;
+                if (buttonLabel) buttonLabel.textContent = text;
             });
         });
     }
 
     private bindGateways(): void {
-        const gatewayBtns = document.querySelectorAll<HTMLButtonElement>('[data-gateway]');
-        gatewayBtns.forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const gateway = btn.getAttribute('data-gateway');
-                if (gateway) {
-                    this.selectedGateway = gateway;
-                    gatewayBtns.forEach((b) => b.classList.remove('active'));
-                    btn.classList.add('active');
+        const buttons = document.querySelectorAll<HTMLButtonElement>('[data-gateway]');
+        buttons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const method = button.getAttribute('data-gateway');
+                if (!method) return;
+
+                this.selectedMethod = method;
+                buttons.forEach((item) => item.classList.remove('active'));
+                button.classList.add('active');
+
+                const select = document.getElementById('paymentMethodSelect') as HTMLSelectElement | null;
+                if (select && Array.from(select.options).some((option) => option.value === method)) {
+                    select.value = method;
                 }
             });
         });
@@ -73,9 +114,11 @@ export class WalletManagement {
         const pills = document.querySelectorAll<HTMLButtonElement>('[data-preset-amount]');
         pills.forEach((pill) => {
             pill.addEventListener('click', () => {
-                const amount = parseInt(pill.getAttribute('data-preset-amount') || '500', 10);
+                const amount = pill.getAttribute('data-preset-amount');
+                if (!amount || !/^\d+(\.\d{1,2})?$/.test(amount)) return;
+
                 this.selectedAmount = amount;
-                pills.forEach((p) => p.classList.remove('active'));
+                pills.forEach((item) => item.classList.remove('active'));
                 pill.classList.add('active');
             });
         });
@@ -83,81 +126,115 @@ export class WalletManagement {
 
     private bindMethodDropdown(): void {
         const select = document.getElementById('paymentMethodSelect') as HTMLSelectElement | null;
-        if (select) {
-            select.addEventListener('change', () => {
-                this.selectedMethod = select.value;
-            });
-        }
+        if (!select) return;
+
+        this.selectedMethod = select.value;
+        select.addEventListener('change', () => {
+            this.selectedMethod = select.value;
+        });
     }
 
     private bindProceedButton(): void {
-        const proceedBtn = document.getElementById('proceedPaymentBtn');
-        if (proceedBtn) {
-            proceedBtn.addEventListener('click', () => this.handleProceed());
-        }
+        document.getElementById('proceedPaymentBtn')?.addEventListener('click', () => {
+            void this.handleProceed();
+        });
     }
 
     private async handleProceed(): Promise<void> {
-        const action = this.activeTab;
-        const promptAmount = prompt(`Enter ${action} amount in THB:`, this.selectedAmount.toString());
-        if (!promptAmount) return;
+        if (this.submitting) return;
 
-        const amount = parseFloat(promptAmount);
-        if (isNaN(amount) || amount <= 0) {
-            alert('Please enter a valid amount.');
+        const rawAmount = prompt(`Enter ${this.activeTab} amount:`, this.selectedAmount);
+        if (rawAmount === null) return;
+
+        const amount = rawAmount.trim();
+        if (!/^\d+(\.\d{1,2})?$/.test(amount) || /^0+(\.0{1,2})?$/.test(amount)) {
+            alert('Enter a positive decimal amount with no more than two fractional digits.');
             return;
         }
 
-        try {
-            const endpoint = action === 'deposit' ? '/api/v1/wallet/deposit' : '/api/v1/wallet/withdraw';
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-                },
-                body: JSON.stringify({
-                    amount: amount,
-                    gateway: this.selectedGateway,
-                    method: this.selectedMethod,
-                }),
-            });
+        this.submitting = true;
+        this.setProceedDisabled(true);
 
-            const data = await res.json();
-            if (action === 'deposit') {
-                this.availableBalance += amount;
-                alert(`Deposit of ${amount.toLocaleString()} THB via ${this.selectedGateway.toUpperCase()} initiated successfully.\nTransaction Ref: ${data.ref_id || 'TX-' + Math.floor(10000 + Math.random() * 90000)}`);
+        try {
+            if (this.activeTab === 'deposit') {
+                const result = await this.post<DepositEnvelope>('/api/v1/deposits', {
+                    amount,
+                    method: this.selectedMethod,
+                    idempotency_key: this.idempotencyKey('deposit'),
+                });
+                alert(`Deposit ${result.data.deposit.reference_number} is ${result.data.deposit.status}.`);
             } else {
-                if (amount > this.availableBalance) {
-                    alert('Insufficient available balance.');
-                    return;
-                }
-                this.availableBalance -= amount;
-                alert(`Withdrawal request of ${amount.toLocaleString()} THB submitted for processing.`);
+                const result = await this.post<WithdrawalEnvelope>('/api/v1/withdrawals', {
+                    amount,
+                    method: this.selectedMethod,
+                    idempotency_key: this.idempotencyKey('withdrawal'),
+                });
+                const suffix = result.data.kyc_detained ? ' Identity verification is required.' : '';
+                alert(`Withdrawal ${result.data.withdrawal.reference_number} is ${result.data.withdrawal.status}.${suffix}`);
             }
-            this.updateBalanceDisplays();
-        } catch {
-            if (action === 'deposit') {
-                this.availableBalance += amount;
-                alert(`Deposit of ${amount.toLocaleString()} THB initiated successfully.\nTransaction Ref: TX-${Math.floor(10000 + Math.random() * 90000)}`);
-            } else {
-                this.availableBalance -= amount;
-                alert(`Withdrawal request of ${amount.toLocaleString()} THB submitted.`);
-            }
-            this.updateBalanceDisplays();
+
+            await this.refreshWallet();
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'The financial request could not be completed.');
+        } finally {
+            this.submitting = false;
+            this.setProceedDisabled(false);
         }
     }
 
-    private updateBalanceDisplays(): void {
-        const el = document.getElementById('availableBalanceDisplay');
-        if (el) {
-            el.textContent = `${this.availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} THB`;
+    private async refreshWallet(): Promise<void> {
+        try {
+            const response = await fetch('/api/v1/wallet', {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            const payload = await response.json() as WalletEnvelope | ApiErrorEnvelope;
+            if (!response.ok || !payload.success) return;
+
+            const wallet = payload.data.wallet;
+            const display = document.getElementById('availableBalanceDisplay');
+            if (display) display.textContent = `${wallet.available_balance} ${wallet.currency}`;
+        } catch {
+            // The server-rendered balance remains visible when refresh is unavailable.
         }
+    }
+
+    private async post<T extends { success: true }>(url: string, body: Record<string, unknown>): Promise<T> {
+        const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(body),
+        });
+        const payload = await response.json() as T | ApiErrorEnvelope;
+
+        if (!response.ok || !payload.success) {
+            const failure = payload as ApiErrorEnvelope;
+            throw new Error(failure.error?.message ?? failure.message ?? 'The financial request was rejected.');
+        }
+
+        return payload as T;
+    }
+
+    private idempotencyKey(action: string): string {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return `${action}:${crypto.randomUUID()}`;
+        }
+
+        throw new Error('This browser cannot create a secure request identifier.');
+    }
+
+    private setProceedDisabled(disabled: boolean): void {
+        const button = document.getElementById('proceedPaymentBtn') as HTMLButtonElement | null;
+        if (button) button.disabled = disabled;
     }
 }
 
-// Global initialization
 if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => new WalletManagement());

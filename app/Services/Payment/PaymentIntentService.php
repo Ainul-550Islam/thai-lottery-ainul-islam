@@ -46,8 +46,7 @@ final class PaymentIntentService
 
     public function __construct(
         private readonly PaymentProviderRegistry $registry,
-    ) {
-    }
+    ) {}
 
     /* ------------------------------------------------------ create --- */
 
@@ -122,7 +121,7 @@ final class PaymentIntentService
             );
         }
 
-        $row = new PaymentIntent();
+        $row = new PaymentIntent;
         $row->fill([
             'intent_key' => $data->intentKey(),
             'user_id' => $data->userId,
@@ -281,16 +280,16 @@ final class PaymentIntentService
 
     public static function moneyOf(string $amount): string
     {
-        if (extension_loaded('bcmath')) {
-            return bcadd($amount, '0', 2);
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary arithmetic.');
         }
 
-        return number_format((float) $amount, 2, '.', '');
+        return bcadd($amount, '0', 2);
     }
 
     private function recordAudit(PaymentIntent $intent, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => (int) $intent->user_id,

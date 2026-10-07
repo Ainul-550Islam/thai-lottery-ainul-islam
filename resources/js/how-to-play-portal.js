@@ -1,5 +1,5 @@
 /**
- * ThaiLotto Interactive How to Play & Bet Type Simulator Controller
+ * Lottery Platform Interactive How to Play & Bet Type Simulator Controller
  */
 
 (function () {

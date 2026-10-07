@@ -155,6 +155,8 @@ final class BetPurchaseErrorMapper
 
             $exception instanceof BetDomainException => $this->betDomain($exception),
 
+            $this->isProjectDomainException($exception) => $this->projectDomainException($exception),
+
             // Framework and middleware aborts. EnsureUserIsActive, for instance, calls
             // abort(403) rather than throwing a domain exception, and a 403 that arrived as
             // a plain HttpException must still leave the API as a 403 - collapsing it into
@@ -535,6 +537,70 @@ final class BetPurchaseErrorMapper
     private function financial(FinancialException $exception): array
     {
         return $this->transactionFailed();
+    }
+
+    private function isProjectDomainException(Throwable $exception): bool
+    {
+        return str_starts_with($exception::class, 'App\\Exceptions\\')
+            && method_exists($exception, 'errorCode');
+    }
+
+    /**
+     * Safe fallback for project domain exceptions that do not inherit one of the
+     * specialised betting, risk or finance bases above.
+     *
+     * The internal exception message and context are deliberately withheld. Only
+     * the stable machine code is normalised for the public envelope, and the HTTP
+     * class is derived from explicit code vocabulary already used by the domain.
+     *
+     * @return array{code: string, status: int, message: string, details: array<string, mixed>}
+     */
+    private function projectDomainException(Throwable $exception): array
+    {
+        $rawCode = $exception->errorCode();
+        $code = is_string($rawCode) && trim($rawCode) !== ''
+            ? strtolower(trim($rawCode))
+            : 'domain_operation_failed';
+        $upper = strtoupper($code);
+
+        $status = match (true) {
+            str_contains($upper, 'UNAUTHENTICATED'),
+            str_contains($upper, 'INVALID_CREDENTIAL') => 401,
+            str_contains($upper, 'FORBIDDEN'),
+            str_contains($upper, 'UNAUTHORIZED'),
+            str_contains($upper, 'KYC_REQUIRED'),
+            str_contains($upper, 'SELF_EXCLUDED'),
+            str_contains($upper, 'OWNERSHIP') => 403,
+            str_contains($upper, 'NOT_FOUND'),
+            str_contains($upper, 'MISSING') => 404,
+            str_contains($upper, 'CONFLICT'),
+            str_contains($upper, 'DUPLICATE'),
+            str_contains($upper, 'ALREADY'),
+            str_contains($upper, 'IDEMPOTENCY') => 409,
+            str_contains($upper, 'RATE_LIMIT'),
+            str_contains($upper, 'TOO_MANY') => 429,
+            str_contains($upper, 'PROVIDER'),
+            str_contains($upper, 'UNAVAILABLE'),
+            str_contains($upper, 'DELIVERY_FAILED') => 503,
+            default => 422,
+        };
+
+        $message = match ($status) {
+            401 => 'Authentication is required for this operation.',
+            403 => 'This operation is not permitted.',
+            404 => 'The requested resource was not found.',
+            409 => 'The operation conflicts with the current resource state.',
+            429 => 'Too many requests. Please retry later.',
+            503 => 'The operation is temporarily unavailable.',
+            default => 'The operation was refused by the domain rules.',
+        };
+
+        return [
+            'code' => $code,
+            'status' => $status,
+            'message' => $message,
+            'details' => [],
+        ];
     }
 
     /**

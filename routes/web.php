@@ -72,9 +72,6 @@ Route::middleware(['auth', 'can:access-metrics'])->group(function (): void {
 Route::get('/up/health', [HealthController::class, 'health'])->name('health');
 Route::get('/up/ready', [HealthController::class, 'ready'])->name('health.ready');
 Route::get('/up/live', [HealthController::class, 'live'])->name('health.live');
-Route::get('/health', [HealthController::class, 'health'])->name('health.canonical');
-Route::get('/ready', [HealthController::class, 'ready'])->name('health.ready.canonical');
-Route::get('/live', [HealthController::class, 'live'])->name('health.live.canonical');
 
 Route::middleware('guest')->group(function (): void {
     // PROMPT 3: the member auth surface (login / registration /
@@ -242,7 +239,9 @@ Route::get('/glo-l6/result/{draw}', [GloL6Controller::class, 'resultDetail'])
     ->middleware('public.legal')
     ->name('glo-l6.result');
 
-Route::get('/results', [GloResultsPageController::class, 'index'])->name('results.index');
+Route::get('/results', [GloResultsPageController::class, 'index'])
+    ->middleware('public.legal')
+    ->name('results.index');
 
 // Account and protection aliases are authenticated. They delegate to the
 // canonical player/profile, responsible-gaming and security architecture;
@@ -261,7 +260,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/member/history', fn () => redirect()->route('player.bets'))->name('member.history');
     Route::get('/player/history-portal', fn () => redirect()->route('player.bets'))->name('player.history.portal');
 });
-Route::get('/results/search', [ResultsController::class, 'search'])->name('results.search');
+Route::get('/results/search', [ResultsController::class, 'search'])
+    ->middleware(['public.legal', 'throttle:national-result-search'])
+    ->name('results.search');
 
 // Public ticket check UI (primary UX; the JSON API remains at /api/v1/glo/results/check/{n}).
 Route::get('/check', [HomeController::class, 'checkForm'])->name('ticket-check');
@@ -296,9 +297,6 @@ Route::get('/our-fees', [PublicPagesController::class, 'fees'])
 Route::get('/prize-verification', [PublicPrizeVerificationController::class, 'index'])
     ->middleware('public.legal')
     ->name('prize-verification');
-Route::post('/prize-verification', [PublicPrizeVerificationController::class, 'verifyApi'])
-    ->middleware('throttle:ticket-verification')
-    ->name('prize-verification.verify');
 Route::post('/prize-verification', [PublicPrizeVerificationController::class, 'verifyApi'])
     ->middleware('throttle:ticket-verification')
     ->name('prize-verification.submit');
