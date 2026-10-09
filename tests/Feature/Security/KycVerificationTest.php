@@ -70,6 +70,9 @@ final class KycVerificationTest extends TestCase
                 'document' => $file,
             ]);
 
+        // The API publishes the document's identity and state — never the
+        // storage path, never the original filename and never the unmasked
+        // document number. Those are back-office facts, not client facts.
         $response->assertStatus(201)
             ->assertJson([
                 'success' => true,
@@ -77,15 +80,23 @@ final class KycVerificationTest extends TestCase
                     'document' => [
                         'document_type' => 'passport',
                         'status' => 'pending',
-                        'original_filename' => 'passport.pdf',
                     ],
                 ],
-            ]);
+            ])
+            ->assertJsonMissingPath('data.document.original_filename')
+            ->assertJsonMissingPath('data.document.file_path')
+            ->assertJsonMissingPath('data.document.document_number');
 
+        $masked = (string) $response->json('data.document.document_number_masked');
+        $this->assertNotSame('', $masked, 'The masked number must still be shown to the owner.');
+        $this->assertNotSame('AB1234567', $masked, 'The full document number must never be echoed back.');
+
+        // The evidence the player sent IS persisted, filename included.
         $this->assertDatabaseHas('kyc_documents', [
             'user_id' => $this->player->id,
             'document_type' => 'passport',
             'status' => 'pending',
+            'original_filename' => 'passport.pdf',
         ]);
     }
 

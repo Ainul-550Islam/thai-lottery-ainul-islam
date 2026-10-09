@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Lottery;
 
 use Illuminate\Http\Request;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -16,9 +17,7 @@ use Tests\TestCase;
  */
 final class Pages25To34Test extends TestCase
 {
-    /**
-     * @dataProvider pageRouteProvider
-     */
+    #[DataProvider('pageRouteProvider')]
     public function test_each_page_has_an_independent_public_route(string $path, string $expectedName): void
     {
         $route = app('router')->getRoutes()->match(Request::create($path, 'GET'));

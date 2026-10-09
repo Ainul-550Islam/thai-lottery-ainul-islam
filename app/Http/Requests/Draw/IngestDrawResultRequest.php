@@ -17,9 +17,14 @@ use Illuminate\Foundation\Http\FormRequest;
  * - first_prize must be EXACTLY six numeric characters; leading zeros are
  *   preserved as data (lottery numbers are strings, not integers — a prize
  *   of 003412 is a different winner from 3412).
- * - bottom_two may be supplied or DERIVED, but if supplied it must be two
- *   numeric characters; the service will then also re-check that it matches
- *   the first prize's tail, per the GLO rule.
+ * - bottom_two is REQUIRED. It is a separately drawn two-digit number, not a
+ *   slice of the first prize, and this platform does not derive it — deriving
+ *   it would settle the two-digit market against a number the GLO never drew.
+ *   The service re-checks only the SHAPE; the two numbers are independent and a
+ *   real announcement will normally have them differ. (The previous docblock
+ *   here claimed the service "re-checks that it matches the first prize's tail,
+ *   per the GLO rule" — there is no such GLO rule, and the service no longer
+ *   does that.)
  * - NOTHING THE INGESTION SAYS BECOMES A PROMISE: this request's docblock
  *   state what the endpoint is not (a finalization path) is enforced by the
  *   entire draw pipeline. This is validation only; the confirm endpoint
@@ -53,9 +58,11 @@ final class IngestDrawResultRequest extends FormRequest
             // The canonical six-digit GLO announcement, leading zeros kept.
             'first_prize' => ['required', 'string', 'regex:/^\d{6}$/'],
 
-            // Physical-ticket companion result. If present, it must shape as
-            // two digits; agreement with first_prize is the service's check.
-            'bottom_two' => ['nullable', 'string', 'regex:/^\d{2}$/'],
+            // The announcement's own two-digit prize. REQUIRED: it is a
+            // separate draw, so an announcement without it is incomplete, and
+            // this platform would rather refuse an incomplete announcement than
+            // complete it with an invented number.
+            'bottom_two' => ['required', 'string', 'regex:/^\d{2}$/'],
 
             // The operator-declared provenance feed tag the pipeline groups
             // results by (manual / feed / correction), with a closed
@@ -83,7 +90,9 @@ final class IngestDrawResultRequest extends FormRequest
     {
         return [
             'first_prize.regex' => 'The first prize must be exactly six numeric characters, leading zeros preserved.',
-            'bottom_two.regex' => 'The bottom two must be exactly two numeric characters when supplied.',
+            'bottom_two.required' => 'The bottom two must be stated: it is a separately drawn number, and the platform '
+                .'does not derive it from the first prize.',
+            'bottom_two.regex' => 'The bottom two must be exactly two numeric characters.',
             'source.regex' => 'The source tag may only carry letters, digits, dashes and underscores.',
             'result_id.prohibited' => 'The result identity is server-derived; the client may not assert it.',
             'fingerprint.prohibited' => 'The ingestion fingerprint is server-derived; the client may not assert it.',
@@ -94,17 +103,19 @@ final class IngestDrawResultRequest extends FormRequest
      * The operator payload the ingestion service receives, scrubbed and
      * canonical at this layer so the service sees a clean shape.
      *
-     * @return array{first_prize: string, bottom_two?: string, optional_prizes?: array<int, string>}
+     * @return array{first_prize: string, bottom_two: string, optional_prizes?: array<int, string>}
      */
     public function resultPayload(): array
     {
-        $payload = ['first_prize' => (string) $this->validated('first_prize')];
-
-        $bottomTwo = $this->validated('bottom_two');
-
-        if (is_string($bottomTwo) && $bottomTwo !== '') {
-            $payload['bottom_two'] = $bottomTwo;
-        }
+        $payload = [
+            'first_prize' => (string) $this->validated('first_prize'),
+            // Set unconditionally. The rule above makes bottom_two required and
+            // two digits, so there is no branch in which it is absent — and a
+            // conditional write here would silently drop the number the rule
+            // just insisted on, which is the derivation-by-omission this change
+            // exists to stop.
+            'bottom_two' => (string) $this->validated('bottom_two'),
+        ];
 
         $optional = $this->validated('optional_prizes');
 

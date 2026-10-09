@@ -102,6 +102,33 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->description('Report draws whose per-number capacity rows are missing or stale');
         }
 
+        // ---------------------------------------------------------------------
+        // Webhook replay-guard retention
+        // ---------------------------------------------------------------------
+        //
+        // webhook_replay_guards backs the durable replay control on the inbound
+        // payment webhook lane: UNIQUE (gateway, nonce) is what refuses a
+        // replayed delivery, where a cache entry could not, because `Cache::add`
+        // on the file driver is atomic on one machine and meaningless across two.
+        //
+        // That table grows with delivered traffic - one row per distinct signed
+        // payload - so it is pruned on a schedule. The delete is bounded by the
+        // ROW'S OWN expires_at, which is an indexed range delete, and never by a
+        // recomputed "now minus N days": deleting a row that is still live
+        // re-opens the replay window for that exact payload.
+        //
+        // It is NOT gated on lottery.automation.enabled. That flag is the draw
+        // automation kill switch; the payment lane is not draw automation, and
+        // tying retention to it would let an unrelated flag cause the guard table
+        // to grow without bound and, at the limit, slow the hot payment path.
+        $schedule->command('webhooks:purge-replay-guards')
+            ->dailyAt('03:20')
+            ->withoutOverlapping(30)
+            ->onOneServer()
+            ->timezone(config('app.timezone', 'UTC'))
+            ->appendOutputTo(storage_path('logs/webhook-replay-guard-purge.log'))
+            ->description('Delete webhook replay-guard rows whose retention horizon has passed');
+
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
@@ -205,4 +232,38 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e): bool {
             return $request->is('api/*') || $request->expectsJson();
         });
+
+        // ---------------------------------------------------------------------
+        // Secrets are never flashed back to the session on a validation failure.
+        // ---------------------------------------------------------------------
+        //
+        // Laravel's built-in list covers `password` and `password_confirmation`.
+        // It does NOT cover the names this platform actually uses for credentials,
+        // so a validation error on a form that carried an API key, a webhook
+        // secret or a bearer token would flash the VALUE back into the session,
+        // and from there into the old-input rendering of the form.
+        //
+        // This list used to live in app/Exceptions/Handler.php, which NOTHING
+        // resolved: since Laravel 11 the exception handling pipeline is built by
+        // `withExceptions()` below, and `App\Exceptions\Handler` was never bound
+        // anywhere. The override was dead code — the guarantee it advertised was
+        // not in force — which is the one kind of security code that is worse than
+        // none, because a reviewer who finds it stops looking. The file is deleted
+        // and the list is carried HERE, where it is actually applied.
+        $exceptions->dontFlash([
+            'current_password',
+            'password',
+            'password_confirmation',
+            'secret',
+            'api_key',
+            'api_secret',
+            'webhook_secret',
+            'token',
+            'access_token',
+            'refresh_token',
+            'private_key',
+            'card_number',
+            'cvv',
+            'pin',
+        ]);
     })->create();

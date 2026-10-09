@@ -93,11 +93,40 @@ class ImportLotteryResults extends Command
                     dryRun: $dryRun
                 );
 
+                // STATUS_REJECTED and STATUS_FAILED are DIFFERENT answers and
+                // were collapsed into one branch before. A rejection means the
+                // caller's payload or request was refused; a failure means the
+                // SOURCE was (an upstream outage, an unconfigured provider).
+                // Reporting both as "Rejected" blames the wrong system and sends
+                // an operator to inspect a file that is perfectly valid.
                 if ($result['status'] === ResultImportService::STATUS_REJECTED) {
-                    $this->error("Rejected {$filePath}: ".implode(', ', $result['errors']));
+                    // The message is printed, not just the error codes. On the
+                    // GLO lane the message is the actionable part: it says that a
+                    // GLO result can never be auto-published and names the two
+                    // commands that stage it instead. Codes alone would leave an
+                    // operator staring at AUTO_PUBLISH_FORBIDDEN with no next step.
+                    $this->error(sprintf(
+                        'Rejected %s [%s] %s',
+                        $filePath,
+                        implode(', ', $result['errors']),
+                        $result['message'] ?? '',
+                    ));
+                    $failed++;
+                } elseif ($result['status'] === ResultImportService::STATUS_FAILED) {
+                    $this->warn(sprintf(
+                        'Source failure for %s [%s] %s',
+                        $filePath,
+                        implode(', ', $result['errors']),
+                        $result['message'] ?? '',
+                    ));
                     $failed++;
                 } else {
-                    $this->info("Successfully processed {$filePath} (Status: {$result['status']})");
+                    $this->info(sprintf(
+                        'Processed %s (status: %s) %s',
+                        $filePath,
+                        $result['status'],
+                        $result['message'] ?? '',
+                    ));
                     $imported++;
                 }
             } catch (\Throwable $e) {

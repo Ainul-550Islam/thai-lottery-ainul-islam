@@ -100,6 +100,57 @@ class ProductionSafetyServiceProvider extends ServiceProvider
             }
         }
 
+        // ── GLO: the lane this gate was missing entirely ─────────────────────
+        //
+        // THE HOLE, STATED PLAINLY. The four lanes above are checked. GLO was
+        // not checked by anything, and it is the lane that MOVES THE MONEY:
+        // a GLO result is what DrawResultConfirmationService publishes and what
+        // RealPrizeSettlementService pays prizes against.
+        //
+        // config/glo.php:288 reads:
+        //
+        //     'mode' => env('GLO_OFFICIAL_SOURCE_MODE', 'fixture'),
+        //
+        // so a production deployment that simply never set
+        // GLO_OFFICIAL_SOURCE_MODE runs the GLO lane on GloFixtureResultProvider
+        // — which replays resources/glo/fixtures/lottery_result.json, whose own
+        // `provenance.note` says:
+        //
+        //     "Numbers are synthetic test vectors, not a live GLO publication."
+        //
+        // Those numbers then flow through the ordinary path: ingested as
+        // Pending, confirmed by a second operator who has no reason to doubt
+        // them, published to `draw_results`, read by every public surface, and
+        // paid out against winning slips. Nothing in that path is broken. Every
+        // control works. The result is still not a real GLO publication, and real
+        // money would be paid on it.
+        //
+        // A DEFAULT IS NOT A DECISION. `env(..., 'fixture')` is a sensible
+        // default for a developer cloning the repository, and an unacceptable
+        // one for a lottery operator. Production must therefore STATE that it is
+        // on the official source — the same standard this gate already applies to
+        // SESSION_SECURE_COOKIE and SANCTUM_TOKEN_EXPIRATION, which are also
+        // merely-wrong-defaults rather than attacks.
+        $gloMode = config('glo.official_source.mode');
+
+        if ($gloMode !== 'official') {
+            $violations[] = sprintf(
+                'GLO_OFFICIAL_SOURCE_MODE is "%s" but must be "official" in production; the fixture lane replays '
+                .'synthetic test vectors that would be published and paid out against as if they were a real GLO result.',
+                is_string($gloMode) ? $gloMode : 'unset',
+            );
+        }
+
+        // The ladder's fixture rung. Independent of the mode check above, because
+        // a deployment can be on the official source AND still have configured a
+        // fallback to the fixture lane — which would answer with synthetic
+        // numbers on the day the official fetch failed, without anybody choosing
+        // to answer with synthetic numbers that day.
+        if (config('glo.sources.fall_through_to_fixture') === true) {
+            $violations[] = 'glo.sources.fall_through_to_fixture is true; a failed official GLO fetch would answer with '
+                .'synthetic fixture vectors and publish them.';
+        }
+
         // ── Debug / disclosure ─────────────────────────────────────────────
         if (config('app.debug') === true) {
             $violations[] = 'APP_DEBUG is true; stack traces and environment values would be served publicly.';
@@ -122,6 +173,44 @@ class ProductionSafetyServiceProvider extends ServiceProvider
                 'SESSION_DRIVER is "file" but the security policy expects "%s"; file sessions cannot be shared across instances.',
                 $expectedDriver
             );
+        }
+
+        // ── The cache store, when the cache is load-bearing as a control ────
+        //
+        // THE ARGUMENT IS THE SAME ONE, AND IT WAS APPLIED TO SESSIONS ONLY.
+        // A file cache is atomic on ONE machine. `Cache::add` — the primitive
+        // behind an idempotency claim, a replay check and a rate limiter — is
+        // therefore a different answer on each container behind a load
+        // balancer, and a meaningless one across a restart.
+        //
+        // WHAT THIS SPECIFICALLY PROTECTS, measured rather than asserted:
+        //
+        //   * the v1 payment webhook replay guard
+        //     (PaymentWebhookService::processWebhookPayload claims
+        //     'payment:webhook:seen:{gateway}:{eventId}' with Cache::add);
+        //   * the idempotency middleware, whose whole promise is that a retried
+        //     financial request is applied once, keyed in the cache;
+        //   * the 90 throttle bindings, including `throttle:webhook` on the
+        //     public money ingest surface — on file cache each instance grants
+        //     its own full allowance, so the effective limit is N × the declared
+        //     limit with N containers.
+        //
+        // The durable webhook_replay_guards table means the FIRST of those no
+        // longer depends on the cache for its guarantee. The other two still do,
+        // which is why this check exists rather than being retired.
+        //
+        // Set security.cache.require_shared_store_in_production to false only
+        // for a genuinely single-instance deployment, and say so in the change
+        // that does it — on file cache a restart also clears every claim, so the
+        // window re-opens every deploy.
+        if ((bool) config('security.cache.require_shared_store_in_production', true)) {
+            $store = config('cache.default');
+
+            if ($store === 'file') {
+                $violations[] = 'CACHE_STORE is "file"; a per-node cache cannot back cross-instance idempotency, '
+                    .'replay or throttle claims. A shared store (redis, database) is required, or set '
+                    .'security.cache.require_shared_store_in_production to false for a single-instance deployment.';
+            }
         }
 
         // ── Queue ──────────────────────────────────────────────────────────

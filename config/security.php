@@ -261,4 +261,31 @@ return [
         'invalidate_on_logout' => true,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cache store
+    |--------------------------------------------------------------------------
+    |
+    | Enforced by ProductionSafetyServiceProvider alongside the session checks,
+    | for the same reason those exist: a file cache is atomic on ONE machine, so
+    | a cache-backed claim is a different answer on every container behind a load
+    | balancer and a meaningless one across a restart.
+    |
+    | The claims that matter are cross-instance ones — idempotency keys, the
+    | throttle buckets behind the 90 `throttle:*` bindings (including
+    | `throttle:webhook` on the public money-ingest surface), and any remaining
+    | replay check. A genuine single-instance deployment can set this to false,
+    | and the change should say so out loud, because on a file cache every deploy
+    | also clears every claim that was in it.
+    |
+    | The durable webhook_replay_guards table means the inbound payment webhook
+    | replay control no longer relies on the cache for its guarantee. It is the
+    | other claims that keep this check necessary.
+    |
+    */
+
+    'cache' => [
+        'require_shared_store_in_production' => true,
+    ],
+
 ];

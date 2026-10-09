@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Lottery;
 
 use App\Enums\AuditAction;
+use App\Enums\DrawConfirmationStatus;
 use App\Enums\DrawLifecycleState;
 use App\Enums\GloPrizeTier;
 use App\Enums\RiskLevel;
@@ -15,6 +16,7 @@ use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Models\WinningNumber;
 use App\Services\Draw\DrawLifecycleService;
+use App\Services\Draw\DrawResultIngestionService;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\QueryException;
@@ -68,9 +70,38 @@ class GloResultPublicationService
         $provenance = (string) ($payload['provenance'] ?? self::PROVENANCE_UNKNOWN);
         $this->assertProvenanceAllowed($provenance);
 
+        // ── FOUR-EYES GATE ────────────────────────────────────────────────
+        //
+        // This service was a SECOND publication door that bypassed the whole
+        // maker/checker pipeline. It wrote the draw_results row itself, set
+        // published_at itself, and — critically — took `operator_id` from the
+        // CALLER-SUPPLIED PAYLOAD. A caller could therefore name any operator,
+        // or none, and publish an official result unilaterally.
+        //
+        // It had no production callers, which is the only reason this was not a
+        // live exploit rather than a latent one. It is guarded here rather than
+        // deleted because a class that is resolvable from the container is
+        // callable by any future code, and "nobody calls it today" is not a
+        // security control.
+        //
+        // Publication may now only proceed when the draw carries a CONFIRMED
+        // ingestion — i.e. the four-eyes pipeline has actually been traversed by
+        // two different operators. That record is written exclusively by
+        // DrawResultConfirmationService::confirm().
+        $this->assertFourEyesSatisfied($drawId, $payload);
+
         $firstPrize = trim((string) ($payload['first_prize'] ?? ''));
         if (! preg_match('/^\d{6}$/', $firstPrize)) {
-            throw DrawPublicationException::malformedNumber('first_prize', $firstPrize, 'must be exactly 6 digits');
+            // Was `DrawPublicationException::malformedNumber(...)`, a factory that
+            // does not exist on the class — so this line was a guaranteed
+            // "Call to undefined method" fatal. Together with the missing
+            // four-eyes gate and the fact that nothing calls this service, that
+            // is strong evidence this publication path has never successfully
+            // run once. `malformed()` is the real factory.
+            throw DrawPublicationException::malformed(
+                sprintf('first_prize [%s] must be exactly 6 digits', $firstPrize),
+                ['draw_id' => $drawId, 'field' => 'first_prize'],
+            );
         }
 
         return $this->db->connection()->transaction(function () use ($drawId, $payload, $firstPrize, $provenance): array {
@@ -161,6 +192,95 @@ class GloResultPublicationService
     /**
      * Validate that provenance is allowed in the current environment.
      */
+    /**
+     * Refuse unless a SECOND operator has confirmed this draw's ingestion.
+     *
+     * THE CHECK
+     * The draw metadata carries the ingestion record at
+     * DrawResultIngestionService::METADATA_KEY. A record only reaches
+     * DrawConfirmationStatus::Confirmed through
+     * DrawResultConfirmationService::confirm(), which refuses when the
+     * confirming operator is the ingesting one. Requiring that status here means
+     * this door cannot be used to bypass the separation — there is no payload a
+     * caller can supply that fabricates it.
+     *
+     * WHY IT ALSO REFUSES AN UNCONFIRMED RECORD RATHER THAN PUBLISHING IT
+     * A Pending record means exactly one operator has seen these numbers. This
+     * method is therefore the second half of the same control the confirmation
+     * service implements, expressed on the other door into the same table.
+     *
+     * @param  array<string, mixed>  $payload
+     *
+     * @throws DrawPublicationException
+     */
+    private function assertFourEyesSatisfied(int $drawId, array $payload): void
+    {
+        $draw = Draw::query()->find($drawId);
+
+        if ($draw === null) {
+            throw DrawPublicationException::fourEyesRequired(
+                sprintf('draw %d does not exist, so no ingestion could have been confirmed.', $drawId),
+                ['draw_id' => $drawId],
+            );
+        }
+
+        $metadata = is_array($draw->metadata) ? $draw->metadata : [];
+        $record = $metadata[DrawResultIngestionService::METADATA_KEY] ?? null;
+
+        if (! is_array($record)) {
+            throw DrawPublicationException::fourEyesRequired(
+                sprintf(
+                    'draw %d has no ingestion record. An official result must be ingested and '
+                    .'confirmed by two different operators before it can be published.',
+                    $drawId,
+                ),
+                ['draw_id' => $drawId],
+            );
+        }
+
+        $status = (string) ($record['status'] ?? '');
+
+        if ($status !== DrawConfirmationStatus::Confirmed->value) {
+            throw DrawPublicationException::fourEyesRequired(
+                sprintf(
+                    'draw %d\'s ingestion is "%s", not "%s". A second operator must confirm the '
+                    .'result before publication.',
+                    $drawId,
+                    $status === '' ? 'unknown' : $status,
+                    DrawConfirmationStatus::Confirmed->value,
+                ),
+                ['draw_id' => $drawId, 'ingestion_status' => $status],
+            );
+        }
+
+        $ingestedBy = isset($record['ingested_by']) ? (int) $record['ingested_by'] : null;
+        $confirmedBy = isset($record['confirmed_by']) ? (int) $record['confirmed_by'] : null;
+
+        if ($ingestedBy === null || $confirmedBy === null || $ingestedBy === $confirmedBy) {
+            throw DrawPublicationException::fourEyesRequired(
+                sprintf(
+                    'draw %d has no attributable separation between the ingesting and confirming '
+                    .'operator (ingested_by=%s, confirmed_by=%s).',
+                    $drawId,
+                    $ingestedBy === null ? 'null' : (string) $ingestedBy,
+                    $confirmedBy === null ? 'null' : (string) $confirmedBy,
+                ),
+                ['draw_id' => $drawId],
+            );
+        }
+
+        // The publisher must not be the person who entered the numbers either —
+        // otherwise the "second pair of eyes" is the same pair, twice.
+        $operatorId = isset($payload['operator_id']) ? (int) $payload['operator_id'] : null;
+
+        if ($operatorId !== null && $operatorId === $ingestedBy) {
+            throw DrawPublicationException::fourEyesRequired(
+                sprintf('operator %d ingested draw %d and may not also publish it.', $operatorId, $drawId),
+                ['draw_id' => $drawId, 'operator_id' => $operatorId],
+            );
+        }
+    }
+
     public function assertProvenanceAllowed(string $provenance): void
     {
         if ($provenance === self::PROVENANCE_UNKNOWN) {

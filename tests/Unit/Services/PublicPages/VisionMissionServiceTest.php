@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\PublicPages;
 
 use App\Services\PublicPages\VisionMissionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 final class VisionMissionServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();

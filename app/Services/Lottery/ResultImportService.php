@@ -33,6 +33,43 @@ class ResultImportService
     public const LANE_PCSO = 'pcso';
     public const LANE_GLO = 'glo';
 
+    /*
+    |--------------------------------------------------------------------------
+    | Import outcome vocabulary — THESE WERE MISSING, AND THEIR ABSENCE WAS FATAL
+    |--------------------------------------------------------------------------
+    |
+    | `app/Console/Commands/ImportLotteryResults.php` has always done this:
+    |
+    |     if ($result['status'] === ResultImportService::STATUS_REJECTED) {
+    |
+    | and STATUS_REJECTED was **not defined on this class**. It is defined on
+    | AbstractLotteryImportService, which the four lane services extend and which
+    | this orchestrator does NOT — this class is a dispatcher, not a lane. So any
+    | invocation of `php artisan lottery:import` that got as far as examining a
+    | result raised `Error: Undefined constant`, on top of the GLO lane's
+    | undefined-method problem.
+    |
+    | They are declared here, on the orchestrator, because the orchestrator is
+    | the only component that sees all five lanes and is therefore the only place
+    | the vocabulary can be stated once. The lane services keep their own
+    | inherited copies; the STRINGS are identical on purpose, so a status read
+    | from any lane compares equal to these constants.
+    */
+    public const STATUS_IMPORTED = 'imported';
+
+    public const STATUS_DUPLICATE = 'duplicate';
+
+    public const STATUS_CONFLICT = 'conflict';
+
+    public const STATUS_REJECTED = 'rejected';
+
+    /**
+     * No counterpart in any lane. A GLO payload whose SOURCE failed (an upstream
+     * outage, an unconfigured provider) is not a rejection of the caller's
+     * bytes, and reporting it as one would blame the wrong system.
+     */
+    public const STATUS_FAILED = 'failed';
+
     public function __construct(
         private readonly Container $container,
         private readonly DatabaseManager $db,
@@ -110,12 +147,28 @@ class ResultImportService
         return $res;
     }
 
+    /**
+     * The GLO lane — and the one lane whose rules differ.
+     *
+     * `$autoPublish` is passed through unchanged and GloResultImportService
+     * REFUSES it, returning REJECTED / AUTO_PUBLISH_FORBIDDEN. That refusal is
+     * not an oversight to be fixed here: since the four-eyes fix, publication of
+     * a GLO result requires a second operator through
+     * DrawResultConfirmationService::confirm(), and this orchestrator has no way
+     * to supply one. An orchestrator-level `$autoPublish` default of true — which
+     * is what the universal command sends — would otherwise be a documented
+     * bypass of the guard, reachable from a single command.
+     *
+     * So the lane is usable from here ONLY with --no-publish, and the error
+     * message says so and names the command that does work.
+     */
     private function importGlo(array $payload, string $provider, ?int $actorId, bool $autoPublish, bool $dryRun): array
     {
         /** @var GloResultImportService $service */
         $service = $this->container->make(GloResultImportService::class);
         $res = $service->import($payload, $provider, $actorId, $autoPublish, $dryRun);
         $res['lane'] = self::LANE_GLO;
+
         return $res;
     }
 }

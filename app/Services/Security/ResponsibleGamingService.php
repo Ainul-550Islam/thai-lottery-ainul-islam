@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Security;
 
+use App\DTOs\ResponsibleGaming\ResponsibleGamingLimitData;
 use App\Enums\AuditAction;
 use App\Enums\DepositStatus;
 use App\Enums\ResponsibleGamingLimitType;
@@ -11,7 +12,6 @@ use App\Models\AuditLog;
 use App\Models\Deposit;
 use App\Models\ResponsibleGamingLimit;
 use App\Models\User;
-use App\DTOs\ResponsibleGaming\ResponsibleGamingLimitData;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use InvalidArgumentException;
 
@@ -23,6 +23,7 @@ final class ResponsibleGamingService
     public function __construct(
         private readonly ResponsibleGamingLimitService $limitVersions,
     ) {}
+
     /**
      * Set or update player deposit / wagering / single-bet limits.
      */

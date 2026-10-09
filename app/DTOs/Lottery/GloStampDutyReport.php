@@ -19,8 +19,7 @@ final readonly class GloStampDutyReport
         public string $netPayoutThb,
         public bool $isIncomeTaxExempt,
         public string $rule,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{gross_prize_thb: string, stamp_duty_thb: string, net_payout_thb: string, is_income_tax_exempt: bool, rule: string}

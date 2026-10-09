@@ -256,24 +256,46 @@ class SettlementSimulationException extends RuntimeException
     }
 
     /**
-     * Settlement was invoked while another database transaction was already open.
+     * Settlement was refused because something is already settling this draw.
      *
-     * Mirrors the guard in App\Services\Betting\BetPurchaseTransactionService: a
-     * settlement run must own its own transaction, or its rollback guarantee would
-     * belong to an outer caller instead.
+     * TWO CAUSES SHARE THIS CODE, AND THEY NEED DIFFERENT MESSAGES.
+     *
+     *   1. The caller was already inside a transaction (no `reason` supplied).
+     *      Mirrors the guard in App\Services\Betting\BetPurchaseTransactionService:
+     *      a settlement run must own its own transaction, or its rollback guarantee
+     *      would belong to an outer caller instead.
+     *
+     *   2. A chunked settlement run is in flight for this draw (a `reason` is
+     *      supplied by RealPrizeSettlementService). The draw is NOT settled yet —
+     *      the chunked path does not move it to Settled until the last chunk — so
+     *      the monolithic path would otherwise start a second, overlapping run.
+     *
+     * The message was previously hard-coded to cause 1, which meant that once
+     * cause 2 started calling this factory the operator was told a transaction was
+     * open when the truth was that a chunked run held the draw. A refusal that
+     * names the wrong cause is worse than a refusal that names none: it sends the
+     * reader to the wrong place. The context therefore decides the sentence, and
+     * `$context['reason']` is the one field that changes it.
      *
      * @param  array<string, scalar|null>  $context
      */
     public static function alreadyRunning(int $drawId, int $transactionLevel, array $context = []): self
     {
-        return new self(
-            sprintf(
+        $reason = $context['reason'] ?? null;
+        $reason = is_string($reason) ? trim($reason) : '';
+
+        $message = $reason !== ''
+            ? sprintf('Settlement of draw %d was refused: %s.', $drawId, rtrim($reason, '.'))
+            : sprintf(
                 'Simulated settlement of draw %d was invoked while a database transaction was already '
                 .'open (level %d). Settlement must own its transaction so that a failure rolls the '
                 .'whole run back, so this call is refused.',
                 $drawId,
                 $transactionLevel,
-            ),
+            );
+
+        return new self(
+            $message,
             self::CODE_ALREADY_RUNNING,
             $context + [
                 'draw_id' => $drawId,

@@ -70,6 +70,7 @@ final class QueueDispatchContractTest extends TestCase
         'ReconcileCompletedDrawJob' => 'Post-settlement reconciliation; belongs with the Phase 5.2 financial close.',
         'SendWinnerNotificationJob' => 'Consumes a winner_notification row that only prize matching creates, and prize matching is not yet automated.',
         'AllocateRetailTicketQuotaJob' => 'Retail quota allocation is triggered by product activation in the admin panel, which is not yet built.',
+        'AllocateTicketInventoryJob' => 'Supply-side inventory allocation is triggered by product activation in the same operator console, which does not exist yet. Nothing retail is minted by it, and it self-guards on the quota it is handed, so it is unwired rather than dangerous — but unwired it is, and this list says so.',
     ];
 
     /**
@@ -132,11 +133,45 @@ final class QueueDispatchContractTest extends TestCase
                     continue;
                 }
 
-                $corpus[$file->getPathname()] = (string) file_get_contents($file->getPathname());
+                $corpus[$file->getPathname()] = self::codeOnly((string) file_get_contents($file->getPathname()));
             }
         }
 
         return $corpus;
+    }
+
+    /**
+     * The file's CODE, with comments removed.
+     *
+     * A job is WIRED when code dispatches it, not when a docblock mentions its name.
+     * Matching raw text made this contract report the opposite of the truth in both
+     * directions: a comment naming a dormant job read as "dispatched", and a comment
+     * explaining why a job is deferred read as "wired". The write-boundary gate strips
+     * comments for exactly this reason, and the fix there left the explanations in
+     * place instead of deleting them to satisfy a grep.
+     *
+     * String literals are KEPT: dispatching by class name from a string
+     * (`Bus::dispatch('App\Jobs\X')`) is still dispatching.
+     */
+    private static function codeOnly(string $source): string
+    {
+        $out = '';
+
+        foreach (token_get_all($source) as $token) {
+            if (is_array($token)) {
+                if ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT) {
+                    continue;
+                }
+
+                $out .= $token[1];
+
+                continue;
+            }
+
+            $out .= $token;
+        }
+
+        return $out;
     }
 
     #[Test]

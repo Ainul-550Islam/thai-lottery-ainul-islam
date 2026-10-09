@@ -1,0 +1,55 @@
+[package]
+name = "settlement-worker"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.79"
+description = "Thai Lottery high-throughput settlement hot path"
+license = "proprietary"
+
+[[bin]]
+name = "settlement-worker"
+path = "src/main.rs"
+
+[dependencies]
+# Async runtime. multi-thread so the HTTP surface and the settlement loop
+# share one process without blocking each other.
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "signal", "time", "sync"] }
+
+# HTTP for the health/metrics surface and the internal trigger API.
+axum = { version = "0.7", features = ["json"] }
+
+# Postgres driver. This worker talks to the SAME database as Laravel and must
+# read the same rows with the same types — sqlx is used rather than a hand-rolled
+# client precisely because its compile-time query checks catch schema drift at
+# build time instead of at draw time.
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "rust_decimal", "macros"] }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Money is never f64. rust_decimal is a fixed-point decimal, the Rust analogue
+# of the bcmath strings the PHP side uses. Mixing a float into a payout is the
+# single easiest way to lose a satang over a million bets.
+rust_decimal = { version = "1.36", features = ["serde-with-str"] }
+
+# Signing and fingerprinting, matching the PHP side's HMAC-SHA256 scheme exactly.
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+thiserror = "1.0"
+anyhow = "1.0"
+
+[dev-dependencies]
+tokio = { version = "1.40", features = ["macros", "rt-multi-thread"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

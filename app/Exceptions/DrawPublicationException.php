@@ -38,12 +38,34 @@ final class DrawPublicationException extends Exception
 
     public const CODE_UNCERTIFIED = 'DRAW_PUB_UNCERTIFIED';
 
+    /**
+     * The four-eyes control was not satisfied: publication was attempted without
+     * a second operator having confirmed the ingested result.
+     */
+    public const CODE_FOUR_EYES_REQUIRED = 'DRAW_PUB_FOUR_EYES_REQUIRED';
+
     public function __construct(
         string $message,
         private readonly string $errorCode,
         private readonly array $errorContext = [],
     ) {
         parent::__construct($message);
+    }
+
+    /**
+     * Publication refused because the maker/checker separation was not satisfied.
+     *
+     * A caller is being told, in the exception itself, that this is not a data
+     * problem to fix in the payload — it is a process problem that requires a
+     * SECOND HUMAN to confirm the result.
+     */
+    public static function fourEyesRequired(string $reason, array $context = []): self
+    {
+        return new self(
+            sprintf('Draw publication refused (four-eyes): %s', $reason),
+            self::CODE_FOUR_EYES_REQUIRED,
+            $context + ['reason' => $reason],
+        );
     }
 
     public static function malformed(string $reason, array $context = []): self

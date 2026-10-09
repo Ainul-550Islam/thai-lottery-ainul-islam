@@ -293,6 +293,61 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Result sources — the ladder
+    |--------------------------------------------------------------------------
+    |
+    | `priority` is the ordered list of sources GloResultProviderChain walks.
+    | Implemented names: 'official' (the documented public GLO catalog endpoints)
+    | and 'fixture' (resources/glo/fixtures — SYNTHETIC test vectors).
+    |
+    | LEAVING THIS EMPTY IS A VALID AND IMPORTANT CONFIGURATION. With no ladder,
+    | the chain is the single source named by official_source.mode, which is
+    | exactly how this lane behaved before the ladder existed. The ladder is
+    | therefore additive: a deployment that configures nothing new keeps its
+    | present behaviour, and one that wants ordering states it here.
+    |
+    | fall_through_to_fixture — READ THIS BEFORE SETTING IT TRUE.
+    |
+    | The fixture lane replays synthetic test vectors. Falling through to it does
+    | not mean "another source answered"; it means "we could not get a real
+    | result, so we will answer with test data instead" — and those numbers are
+    | then published and settled against like any other. ProductionSafetyServiceProvider
+    | REFUSES TO BOOT PRODUCTION while this is true, so setting it here is a
+    | development convenience, never a production fallback.
+    |
+    | breaker.*     per-source circuit breaker (see Support/CircuitBreaker.php).
+    |   enabled              true  — an absent breaker is not safe for a source
+    |                                that can hang a scheduled command.
+    |   failure_threshold    3     — consecutive failures before opening.
+    |   cooldown_seconds     120   — how long to refuse before probing again.
+    |   half_open_probes     1     — attempts allowed while half-open. NOT
+    |                                unlimited: a still-broken upstream must not
+    |                                receive full traffic the moment the cooldown
+    |                                expires.
+    |   window_seconds       300   — drives the cache TTL, not a rolling count.
+    |
+    */
+
+    'sources' => [
+        'priority' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('GLO_SOURCE_PRIORITY', '')),
+        ))),
+
+        'fall_through_to_fixture' => (bool) env('GLO_FALL_THROUGH_TO_FIXTURE', false),
+
+        'breaker' => [
+            'enabled' => (bool) env('GLO_BREAKER_ENABLED', true),
+            'failure_threshold' => (int) env('GLO_BREAKER_FAILURE_THRESHOLD', 3),
+            'cooldown_seconds' => (int) env('GLO_BREAKER_COOLDOWN_SECONDS', 120),
+            'half_open_probes' => (int) env('GLO_BREAKER_HALF_OPEN_PROBES', 1),
+            'window_seconds' => (int) env('GLO_BREAKER_WINDOW_SECONDS', 300),
+            'key_prefix' => 'glo:breaker:',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Sales reconciliation
     |--------------------------------------------------------------------------
     */

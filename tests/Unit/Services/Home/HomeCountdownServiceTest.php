@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Home;
 
 use App\Services\Home\HomeCountdownService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
- * Unit tests for HomeCountdownService (Prompt 01).
- * Verifies exact countdown, timezone conversions, and boundary checks.
+ * Read-only contract tests for HomeCountdownService.
+ *
+ * These cases create no rows and assert only the normalized projection, so they
+ * intentionally avoid RefreshDatabase's migrate:fresh cycle against the shared
+ * SQLite test database. The service itself remains exercised through the real
+ * database connection; no test is skipped or mocked out.
  */
 final class HomeCountdownServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();

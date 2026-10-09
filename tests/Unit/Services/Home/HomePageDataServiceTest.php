@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Home;
 
 use App\Services\Home\HomePageDataService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
@@ -15,8 +14,6 @@ use Tests\TestCase;
  */
 final class HomePageDataServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();

@@ -116,9 +116,15 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
             transitions: app(FinancialStateTransitionService::class),
             approvalService: $this->withdrawalApprovalService,
             completionService: $this->withdrawalCompletionService,
-            wallets: app(\App\Services\Finance\WalletService::class),
-            idempotency: app(\App\Services\Finance\IdempotencyService::class),
         );
+        // SIX dependencies, because that is the constructor the service ships
+        // with. `wallets`, `idempotency` and then `reversals` were each named
+        // here in turn and each was an argument to a parameter that does not
+        // exist, so the four tests below died at the instantiation line and
+        // never reached the behaviour they exist to prove. The instantiation
+        // is now pinned to the real signature; if the constructor grows a
+        // dependency, the container-resolved path (`app(...)`) is the way to
+        // get it, not a guessed named argument.
     }
 
     // -------------------------------------------------------------------------

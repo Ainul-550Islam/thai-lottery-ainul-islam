@@ -102,7 +102,7 @@ class GloResultDashboardPage extends Page
      */
     public function getProviderHealth(): array
     {
-        $officialMode = (string) config('glo.official_source.mode', 'fixture');
+        $officialMode = (string) config('glo.official_source.mode', 'official');
         $live = (string) config('glo.result_experience.live_draw.mode', 'not_configured');
         $matrix = (string) config('glo.result_experience.data_matrix.mode', 'not_configured');
         $push = (string) config('glo.notifications.push_provider', 'not_configured');

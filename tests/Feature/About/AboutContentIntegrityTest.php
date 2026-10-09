@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature\About;
 
 use App\Services\PublicPages\AboutPageService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Public content assertions are read-only; no migration reset or data fixture is needed.
+ */
 final class AboutContentIntegrityTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_timeline_is_ordered_and_source_labelled(): void
     {
         $content = (string) $this->get(route('about'))->assertOk()->getContent();

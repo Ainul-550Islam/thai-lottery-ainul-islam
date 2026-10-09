@@ -207,10 +207,44 @@ final class DatabaseDriverOptionsTest extends TestCase
         );
 
         // The spelling is cosmetic; this is the part that matters. With a CA
-        // path configured, the mysql connection must carry attribute id 1008 -
-        // PDO::MYSQL_ATTR_SSL_CA under either class name - and must carry the
-        // path itself. A typo inside the guard satisfied the old string match
-        // and cannot satisfy this one, because the guard is evaluated here.
+        // path configured, the mysql connection must carry the SSL_CA attribute
+        // and must carry the path itself. A typo inside the guard satisfied the
+        // old string match and cannot satisfy this one, because the guard is
+        // evaluated here.
+        //
+        // ====================================================================
+        // THE ID IN THIS ASSERTION WAS WRONG, AND BEING WRONG WAS DANGEROUS
+        // ====================================================================
+        // This asserted `[1008]` with the message "must resolve to
+        // PDO::MYSQL_ATTR_SSL_CA (1008)". 1008 is NOT SSL_CA. On PHP 8.4:
+        //
+        //     1008  PDO::MYSQL_ATTR_SSL_CERT   <- the CLIENT CERTIFICATE
+        //     1009  PDO::MYSQL_ATTR_SSL_CA     <- the CA bundle
+        //
+        // (verified with ReflectionClass over both PDO::MYSQL_ATTR_* and
+        // Pdo\Mysql::ATTR_*; every pair is identical, which is the property the
+        // first test in this file asserts.)
+        //
+        // The config was right and the test was wrong, so the test could only
+        // ever have been satisfied by BREAKING the configuration: setting
+        // attribute 1008 to a CA path hands the driver that path as the client
+        // certificate, the CA never loads, and the connection silently loses CA
+        // verification. A red test that can only be greened by a silent TLS
+        // downgrade is worth less than no test at all.
+        //
+        // The assertion now derives the expected id from PHP itself and asserts
+        // the two ids are different, so this cannot regress in either direction.
+        // ====================================================================
+        $sslCaId = class_exists('Pdo\Mysql')
+            ? constant('Pdo\Mysql::ATTR_SSL_CA')
+            : constant('PDO::MYSQL_ATTR_SSL_CA');
+        $sslCertId = class_exists('Pdo\Mysql')
+            ? constant('Pdo\Mysql::ATTR_SSL_CERT')
+            : constant('PDO::MYSQL_ATTR_SSL_CERT');
+
+        $this->assertSame(1009, $sslCaId, 'PDO::MYSQL_ATTR_SSL_CA is attribute id 1009 on this PHP build.');
+        $this->assertSame(1008, $sslCertId, 'PDO::MYSQL_ATTR_SSL_CERT is attribute id 1008; the two must never be confused.');
+        $this->assertNotSame($sslCaId, $sslCertId);
         if (extension_loaded('pdo_mysql')) {
             $repository = Env::getRepository();
             $caPath = '/etc/ssl/certs/verify-driver-guard.pem';
@@ -235,9 +269,11 @@ final class DatabaseDriverOptionsTest extends TestCase
                 $options = $fresh['connections']['mysql']['options'] ?? [];
 
                 $this->assertSame(
-                    [1008],
+                    [$sslCaId],
                     array_keys($options),
-                    'The guarded expression must resolve to PDO::MYSQL_ATTR_SSL_CA (1008).',
+                    'The guarded expression must resolve to PDO::MYSQL_ATTR_SSL_CA (1009), not to '
+                    .'PDO::MYSQL_ATTR_SSL_CERT (1008): the CA path must reach the driver as the CA, '
+                    .'or CA verification is silently not applied.',
                 );
                 $this->assertSame(
                     [$caPath],

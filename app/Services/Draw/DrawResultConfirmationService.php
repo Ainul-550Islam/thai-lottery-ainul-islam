@@ -11,6 +11,7 @@ use App\Exceptions\DrawLifecycleException;
 use App\Exceptions\DrawResultException;
 use App\Models\AuditLog;
 use App\Models\Draw;
+use App\Models\DrawResult;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -81,15 +82,57 @@ class DrawResultConfirmationService
             $draw = $this->lockedDraw($drawId);
             $record = $this->pendingRecord($draw, throwNotPending: true);
 
+            // ── FOUR-EYES: THE CONFIRMING OPERATOR MUST NOT BE THE INGESTING ONE.
+            //
+            // This is the entire control. Without it the "second pair of eyes"
+            // is a second click by the same person, and the separation between
+            // maker and checker exists only in the documentation.
+            //
+            // The record's own `ingested_by` is the attribution — written by
+            // DrawResultIngestionService::ingest() from the authenticated actor,
+            // never from request input. Three ways this is refused:
+            //
+            //   1. ingested_by is absent  -> the record cannot be attributed to
+            //      anybody, so it cannot be reviewed by a different person. This
+            //      is what makes the control fail CLOSED: a legacy or hand-edited
+            //      record with no attributable ingester is not silently
+            //      confirmable by whoever happens to be standing there.
+            //   2. ingested_by < 1        -> an unattributed ingest (e.g. a feed
+            //      with no operator), same refusal.
+            //   3. ingested_by === operator -> the same person in both seats.
+            //
+            // This block is also present in P0-GLO-WRITE-BOUNDARY.patch, which
+            // was applied in commit 544d319 and then reverted by the restore
+            // commit f5cec15. It is restored here and gated by a CI assertion so
+            // that a future restore cannot silently remove it again.
+            $ingestedBy = isset($record['ingested_by']) ? (int) $record['ingested_by'] : null;
+
+            if ($ingestedBy === null || $ingestedBy < 1 || $ingestedBy === $operatorId) {
+                throw DrawResultException::confirmationForbidden(
+                    $drawId,
+                    DrawConfirmationStatus::Pending->value,
+                    $ingestedBy === $operatorId
+                        ? 'confirmed by the same operator who ingested it'
+                        : 'confirmed without an attributable ingesting operator',
+                    ['draw_id' => $drawId, 'operator_id' => $operatorId],
+                );
+            }
+
             $stored = $record['payload'] ?? [];
             $claimedNormalized = $this->normalizeClaim($drawId, $claimed);
 
             $this->assertClaimsAgree($draw->getKey(), $stored, $claimedNormalized);
 
-            // Publish via the one true publication path. It validates again,
-            // moves the lifecycle, and writes draw_results + winning_numbers —
-            // all in this same transaction, so a failure anywhere here leaves
-            // the draw exactly as found.
+            // Publish via the one true publication path.
+            //
+            // The source lane (optional tier/n3/provider structure carried by a
+            // feed payload) is passed through here and written only now —
+            // AFTER the second operator has attested the canonical numbers.
+            // This is the point the write boundary was designed around: the
+            // importer never writes a draw_results row, so the tier lane cannot
+            // reach settlement or public display without two operators.
+            $sourceLane = is_array($stored['source_lane'] ?? null) ? $stored['source_lane'] : [];
+
             $published = $this->publication->publish(
                 $drawId,
                 [
@@ -101,6 +144,25 @@ class DrawResultConfirmationService
             $drawResultId = isset($published['result']) && $published['result'] instanceof \App\Models\DrawResult
                 ? (int) $published['result']->getKey()
                 : 0;
+
+            // ── SOURCE LANE: written now, by the CONFIRMING act.
+            //
+            // The tier/n3/provider structure a feed carried is merged into the
+            // published row's metadata HERE, not at intake. Two reasons this is
+            // the correct place and the correct writer:
+            //
+            //   1. It is the only moment at which a second operator has attested
+            //      the canonical numbers. Everything downstream that reads this
+            //      lane — public tier display, GloN3TicketChecker — is therefore
+            //      reading data a human verified.
+            //   2. The importer is structurally incapable of reaching this row.
+            //      That is the write boundary: an unattended feed cannot publish,
+            //      and cannot even prepare a publishable lane.
+            //
+            // A merge, not a replacement: publication has already written
+            // `bottom_two`, `first_prize_digits` and `published_by_phase`, and
+            // dropping those would break MarketResultResolver.
+            $this->writeSourceLane($published['result'] ?? null, $sourceLane, $operatorId);
 
             $stamp = $record;
             $stamp['status'] = DrawConfirmationStatus::Confirmed->value;
@@ -260,8 +322,29 @@ class DrawResultConfirmationService
 
     /**
      * The operator's claimed numbers in the same canonical shape ingestion
-     * stored. An absent bottom_two is derived — the operator reviews the same
-     * announced numbers, not a different pair.
+     * stored.
+     *
+     * ── AN ABSENT bottom_two IS REFUSED, NOT DERIVED. ─────────────────────
+     *
+     * This used to fall back to `substr($firstPrize, -2)`, and the fallback
+     * quietly broke the control this entire class exists to enforce.
+     *
+     * The second operator's job is to attest the numbers. If they state the
+     * first prize and omit the bottom two, the old code filled the gap from the
+     * first prize and then compared it to the stored value — so the comparison
+     * passed, and the confirmation record says the checker attested a two-digit
+     * number they never typed, against a stored value that had itself been
+     * invented the same way. Two systems agreeing on a number neither was told
+     * is not verification; it is a tautology with a signature on it.
+     *
+     * And the number was wrong. The bottom two is a separately drawn number, not
+     * a slice of the first prize — see DrawResultIngestionService::canonicalize()
+     * for the seven published draws. The effect of the fallback was that a
+     * checker who never looked at the two-digit prize came away from the screen
+     * having "confirmed" whichever number the derivation produced.
+     *
+     * So the omission is now a refusal. A checker must state both numbers they
+     * are attesting, because the record of their attestation is evidence.
      *
      * @param  array<string, mixed>  $claimed
      *
@@ -277,7 +360,21 @@ class DrawResultConfirmationService
 
         $bottomTwo = isset($claimed['bottom_two']) && is_scalar($claimed['bottom_two'])
             ? trim((string) $claimed['bottom_two'])
-            : ($firstPrize !== '' ? substr($firstPrize, -2) : '');
+            : '';
+
+        if ($bottomTwo === '') {
+            throw DrawResultException::malformed('confirmation-claim', sprintf(
+                'the confirming operator did not state bottom_two for draw %d. Confirmation is an attestation of '
+                .'BOTH numbers: the two-digit prize is a separately drawn number, so this platform will neither '
+                .'derive it from first_prize [%s] nor accept a confirmation in which it was never stated. State the '
+                .'announced bottom two and confirm again.',
+                $drawId,
+                $firstPrize === '' ? '(absent)' : $firstPrize,
+            ), [
+                'draw_id' => $drawId,
+                'refusal' => 'bottom_two_not_attested',
+            ]);
+        }
 
         return [
             'first_prize' => $firstPrize,
@@ -312,6 +409,87 @@ class DrawResultConfirmationService
                 ['draw_id' => $drawId],
             );
         }
+    }
+
+    /**
+     * Merge the optional source lane into a just-published DrawResult.
+     *
+     * WHAT THIS PRESERVES
+     * The tier key that every downstream reader resolves through
+     * config('glo.tiers.metadata_key'), matching the shape the previous
+     * importer-written lane had:
+     *
+     *     metadata[$tierKey] = [
+     *         ...tier lists from the feed...,   // fourth/fifth/front3/last3/last2
+     *         'n3'                => [...],     // present only when the feed had it
+     *         'import_provider'   => 'official' | 'fixture',
+     *         'import_fingerprint'=> <provider fingerprint>,
+     *         'imported_at'       => ISO8601,
+     *     ]
+     *
+     * GloPublicResultService::sourceStateFor() reads `import_provider` and
+     * compares it against the literal strings 'official' and 'fixture' — those
+     * are echoed verbatim from the provider's own name() and are not altered
+     * here, because altering them would silently downgrade an official source to
+     * "internal reconciled" on every public result page.
+     *
+     * NON-MONETARY AND NON-AUTHORITATIVE
+     * Nothing in this lane is read when settlement decides what a bet won:
+     * first_prize and bottom_two live in dedicated columns, and n3 settlement
+     * (GloN3SettlementService) writes its own keys into the same lane under its
+     * own fingerprint. This method therefore merges rather than overwrites, so
+     * it cannot clobber an n3 settlement that has already run.
+     *
+     * @param  mixed  $result  the DrawResult returned by publication, if any
+     * @param  array<string, mixed>  $sourceLane
+     */
+    private function writeSourceLane(mixed $result, array $sourceLane, int $operatorId): void
+    {
+        if (! $result instanceof DrawResult) {
+            // Nothing was published (a publication path that answered without a
+            // row). Refuse to invent one: this method writes to an existing row.
+            return;
+        }
+
+        if ($sourceLane === []) {
+            // A plain operator paste carries no lane. Leave publication's own
+            // metadata exactly as it is.
+            return;
+        }
+
+        $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
+
+        $metadata = is_array($result->metadata) ? $result->metadata : [];
+        $lane = is_array($metadata[$tierKey] ?? null) ? $metadata[$tierKey] : [];
+
+        $tiers = $sourceLane['tiers'] ?? [];
+        if (is_array($tiers)) {
+            $lane = array_merge($lane, $tiers);
+        }
+
+        if (isset($sourceLane['n3']) && is_array($sourceLane['n3'])) {
+            $lane['n3'] = $sourceLane['n3'];
+        }
+
+        if (isset($sourceLane['import_provider'])) {
+            $lane['import_provider'] = (string) $sourceLane['import_provider'];
+        }
+
+        if (isset($sourceLane['import_fingerprint'])) {
+            $lane['import_fingerprint'] = (string) $sourceLane['import_fingerprint'];
+        }
+
+        $lane['imported_at'] = now()->toIso8601String();
+
+        // Attribution: which SECOND operator let this lane onto the row. This is
+        // the value an auditor reads to answer "who vouched for the tier list
+        // the public is looking at".
+        $lane['lane_confirmed_by'] = $operatorId;
+
+        $metadata[$tierKey] = $lane;
+
+        $result->metadata = $metadata;
+        $result->save();
     }
 
     /**

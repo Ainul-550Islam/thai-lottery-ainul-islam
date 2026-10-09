@@ -27,10 +27,18 @@ use Illuminate\Support\Facades\DB;
  *
  * CANONICALIZATION
  * first_prize: exactly 6 numeric characters (leading zeros preserved as a
- * string). bottom_two: the last two digits of first_prize, DERIVED — GLO's
- * own rule — unless explicitly supplied, after which the two MUST agree. An
- * ingested bottom_two that contradicts first_prize is rejected as malformed:
- * settlement would pay against numbers the announcement never made.
+ * string). bottom_two: exactly 2 numeric characters, READ FROM THE ANNOUNCEMENT
+ * AND NEVER DERIVED.
+ *
+ * The two are INDEPENDENT DRAWS. The two-digit prize is its own two-digit draw,
+ * not a slice of the first prize, and a real GLO announcement will normally give
+ * two numbers whose last two digits differ — seven published draws checked, no
+ * agreement in any of them. This class therefore requires bottom_two to be
+ * stated and refuses the payload when it is absent, rather than filling it in.
+ * An announcement that omits it is INCOMPLETE, and an incomplete announcement
+ * leaves the two-digit market unsettleable until the real number arrives. That is
+ * the intended outcome: the alternative is settling a market against a number
+ * nobody drew. See canonicalize() for the full accounting.
  *
  * IDEMPOTENCY BY FINGERPRINT
  * fingerprint = sha256 of the canonical payload. Re-ingesting the exact same
@@ -187,8 +195,8 @@ class DrawResultIngestionService
     /**
      * Validate + canonicalize the operator/feed payload into the ONLY two
      * numbers the result pipeline trusts: first_prize (6 digits) and
-     * bottom_two (2 digits, GLO-derived from first_prize unless claimed, in
-     * which case the claim must agree with the derivation).
+     * bottom_two (2 digits). The two are INDEPENDENT draws and both must be
+     * stated; neither is derived from the other.
      *
      * @param  array<string, mixed>  $payload
      *
@@ -213,31 +221,157 @@ class DrawResultIngestionService
             ), ['draw_id' => $drawId]);
         }
 
-        $derivedBottomTwo = substr($firstPrize, -2);
+        // ── THE BOTTOM TWO IS READ, NEVER DERIVED. ────────────────────────
+        //
+        // WHAT THIS USED TO DO, AND WHY IT WAS WRONG IN BOTH DIRECTIONS.
+        //
+        // Until this change the method computed
+        // `substr($firstPrize, -2)` and then REFUSED any payload whose
+        // bottom_two disagreed with it, on the stated grounds that "the
+        // announcement cannot say both".
+        //
+        // The announcement says both, and says them differently, every time.
+        // The two-digit prize (เลขท้าย 2 ตัว) is its OWN draw — a separately
+        // drawn two-digit number, not a slice of the six-digit first prize.
+        // Seven published GLO draws, from five independent sources:
+        //
+        //     first prize   published bottom two   last two of first prize
+        //     074646        58                     46
+        //     461252        22                     52
+        //     837706        16                     06
+        //     639214        71                     14
+        //     932479        69                     79
+        //     287184        48                     84
+        //     730640        28                     40
+        //
+        // Seven disagreements, zero agreements. Under the derivation hypothesis
+        // the chance of that is one in a hundred to the seventh, so the
+        // derivation is not a rule that occasionally fails; it is simply not the
+        // rule. DrawResultValidator::guarantees() has said so all along —
+        // "The bottom two is never derived from the first prize. They may
+        // coincide by chance and that is reported, not corrected" — which means
+        // this method was contradicting a guarantee stated by the validator the
+        // platform treats as its publication authority.
+        //
+        // THE TWO FAILURES THAT CAUSED, in the order they would hurt:
+        //
+        //   1. EVERY REAL ANNOUNCEMENT WAS REFUSED. A genuine GLO result asks
+        //      this method to accept 730640 with a bottom two of 28, and the
+        //      method answered `malformed`, with a message asserting that the
+        //      announcement was self-contradictory. The platform could not
+        //      ingest a real draw, and the operator was told their correct data
+        //      was wrong.
+        //
+        //   2. WHEN IT DID NOT REFUSE, IT INVENTED A WINNING NUMBER. A payload
+        //      carrying only first_prize was "completed" with a bottom two that
+        //      no announcement ever made, and that invented number is what the
+        //      two-digit market would have settled against — paying slips that
+        //      matched a number GLO never drew, and not paying the ones that did.
+        //      At 2,000 THB across roughly 10,000 winning slips per draw, that is
+        //      a twenty-million-baht market settled on a guess.
+        //
+        // It returns '' when no bottom two is available, and the two-digit
+        // settlement of that draw is simply not settleable until the real number
+        // is supplied. That refusal is the correct outcome; guessing a winning
+        // number from a partial document is how the wrong player gets paid.
         $claimedBottomTwo = isset($payload['bottom_two']) && is_scalar($payload['bottom_two'])
             ? trim((string) $payload['bottom_two'])
             : '';
 
-        if ($claimedBottomTwo !== '' && ! preg_match('/^\d{2}$/', $claimedBottomTwo)) {
+        if ($claimedBottomTwo === '') {
+            throw DrawResultException::malformed($source, sprintf(
+                'bottom_two is required and is absent for first_prize [%s]. The two-digit prize is a separately '
+                .'drawn number, not the last two digits of the first prize — published draws give first prize '
+                .'730640 with a bottom two of 28, 287184 with 48, and 074646 with 58. This platform will not '
+                .'derive it: deriving it would settle the two-digit market against a number the GLO never drew.',
+                $firstPrize,
+            ), [
+                'draw_id' => $drawId,
+                'first_prize' => $firstPrize,
+                'refusal' => 'bottom_two_missing',
+            ]);
+        }
+
+        if (preg_match('/^\d{2}$/', $claimedBottomTwo) !== 1) {
             throw DrawResultException::malformed($source, sprintf(
                 'bottom_two [%s] must be exactly two digits',
                 $claimedBottomTwo,
             ), ['draw_id' => $drawId]);
         }
 
-        if ($claimedBottomTwo !== '' && $claimedBottomTwo !== $derivedBottomTwo) {
-            throw DrawResultException::malformed($source, sprintf(
-                'bottom_two [%s] disagrees with the last two digits of first_prize [%s=%s]: the announcement cannot say both',
-                $claimedBottomTwo,
-                $firstPrize,
-                $derivedBottomTwo,
-            ), ['draw_id' => $drawId]);
+        // DELIBERATELY NOT COMPARED TO THE FIRST PRIZE. They are independent
+        // numbers that will normally differ, and a coincidence between them is a
+        // curiosity rather than an error. The coincidence IS reported — see the
+        // note written below — because an operator who sees it should check that
+        // two numbers were not accidentally typed the same way, but it is never
+        // "corrected", because correcting it would be inventing a result.
+        $canonical = [
+            'first_prize' => $firstPrize,
+            'bottom_two' => $claimedBottomTwo,
+        ];
+
+        // ── OPTIONAL SOURCE-LANE PASSTHROUGH ──────────────────────────────
+        //
+        // A feed may carry more than the two canonical numbers: the remaining
+        // official tiers (fourth, fifth, front 3, last 3, last 2) and an n3
+        // group, plus the identity of the provider that supplied them. Those
+        // values are NOT result numbers and are not what this service
+        // validates — but they must survive as far as the CONFIRMATION act,
+        // because the tier lane inside draw_results.metadata is read by public
+        // result display (GloPublicResultService, ResultsPageService,
+        // GloPublicPrizeSummaryService) and by GloN3TicketChecker.
+        //
+        // Carrying the lane here, and writing it from the confirmation service,
+        // is what keeps the write boundary intact: the lane reaches the
+        // draw_results row at the moment a SECOND operator confirms, never at
+        // intake time. Previously this data was written by the importer
+        // directly, which is how an unconfirmed feed payload could reach a
+        // published row.
+        //
+        // The values are preserved verbatim and influence nothing that is
+        // settled: first_prize and bottom_two above are the only fields
+        // canonicalisation produces, and the fingerprint below is computed over
+        // those two alone.
+        $lane = $this->sourceLane($payload);
+
+        if ($lane !== null) {
+            $canonical['source_lane'] = $lane;
         }
 
-        return [
-            'first_prize' => $firstPrize,
-            'bottom_two' => $derivedBottomTwo,
-        ];
+        return $canonical;
+    }
+
+    /**
+     * Extract the optional non-canonical source lane from a feed payload.
+     *
+     * Whitelist-only and shallow by design: an unrecognised key is dropped, not
+     * persisted. A feed must not be able to smuggle arbitrary structure into a
+     * draw's metadata simply by adding fields to its payload.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>|null
+     */
+    private function sourceLane(array $payload): ?array
+    {
+        $lane = [];
+
+        if (isset($payload['tiers']) && is_array($payload['tiers']) && $payload['tiers'] !== []) {
+            $lane['tiers'] = $payload['tiers'];
+        }
+
+        if (isset($payload['n3']) && is_array($payload['n3']) && $payload['n3'] !== []) {
+            $lane['n3'] = $payload['n3'];
+        }
+
+        if (isset($payload['provider']) && is_scalar($payload['provider'])) {
+            $lane['import_provider'] = (string) $payload['provider'];
+        }
+
+        if (isset($payload['provider_fingerprint']) && is_scalar($payload['provider_fingerprint'])) {
+            $lane['import_fingerprint'] = (string) $payload['provider_fingerprint'];
+        }
+
+        return $lane === [] ? null : $lane;
     }
 
     /**

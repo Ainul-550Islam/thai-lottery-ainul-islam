@@ -366,6 +366,42 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Settlement — chunked real-money prize settlement
+    |--------------------------------------------------------------------------
+    |
+    | RealPrizeSettlementService::settle() settles a whole draw inside ONE
+    | transaction: every bet locked at once, one items query per bet, every
+    | selection DTO retained, and no resumption if it fails at slip 99,000.
+    | Serviceable for a small draw; not serviceable for the 100,000+ slip draw
+    | this platform is specified to handle.
+    |
+    | chunk_size is the number of BETS settled per transaction in the chunked
+    | path driven by App\Services\Draw\ChunkedSettlementOrchestrator. It is
+    | clamped to 50..5000 by the orchestrator:
+    |
+    |   - below 50 the run is thousands of tiny transactions and the per-chunk
+    |     overhead dominates;
+    |   - above 5000 the "chunk" is approaching the monolithic transaction that
+    |     chunking exists to replace, and the lock footprint stops being bounded.
+    |
+    | Chunk size is recorded ON the settlement_runs row when a run opens, so a
+    | config change mid-run cannot change the shape of work under a run that is
+    | already part-way through.
+    |
+    | actor_user_id names the operator recorded on settlement_runs.started_by
+    | when the chunked command is run from a scheduler or a container where no
+    | operator is otherwise identifiable. It is nullable and best-effort: not
+    | being able to name the operator is not a reason to refuse to settle.
+    |
+    */
+
+    'settlement' => [
+        'chunk_size' => (int) env('LOTTERY_SETTLEMENT_CHUNK_SIZE', 500),
+        'actor_user_id' => env('LOTTERY_SETTLEMENT_ACTOR_ID'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Prize Claims
     |--------------------------------------------------------------------------
     |

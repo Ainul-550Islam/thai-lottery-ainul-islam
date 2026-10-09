@@ -78,7 +78,19 @@ return new class () extends Migration
             $table->string('endpoint', 255)->nullable();
             $table->string('upstream_draw_id', 64)->nullable();
 
-            // status: imported | not_configured | failed | skipped
+            // status: imported | not_configured | failed | skipped | refused | duplicate | conflict
+            //
+            // `refused` is not a synonym for `failed`. It is written when the
+            // payload itself was fine but the DRAW would not accept it — the
+            // lifecycle guard in DrawResultIngestionService::ingest() refusing a
+            // result for a draw that has already published or settled. That is a
+            // fact about the draw, not about the source, and an operator looking
+            // at a refused row must not be sent to glo.or.th to debug it.
+            //
+            // `duplicate` and `conflict` are the values ResultImportService and
+            // AbstractLotteryImportService already emit for the other lanes; they
+            // are listed here so the column's vocabulary is one vocabulary rather
+            // than one per lane.
             $table->string('status', 32)->index();
             $table->string('result_fingerprint', 64)->nullable();
 

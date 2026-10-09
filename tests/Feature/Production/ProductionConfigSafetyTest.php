@@ -224,6 +224,10 @@ final class ProductionConfigSafetyTest extends TestCase
             'session.secure' => true,
             'session.encrypt' => true,
             'session.driver' => 'redis',
+            // Stated explicitly rather than leaned on from phpunit.xml's
+            // CACHE_STORE=array, so this test describes the whole safe
+            // production configuration instead of the test harness defaults.
+            'cache.default' => 'redis',
             'queue.default' => 'redis',
             'sanctum.expiration' => 1440,
             'national_lottery.sources.fixture.enabled' => false,
@@ -232,7 +236,67 @@ final class ProductionConfigSafetyTest extends TestCase
             'pcso_lottery.sources.fixture.enabled' => false,
             'finance.prize_payout.safety_mode' => 'DISABLED',
             'lottery.payouts.auto_process' => false,
+            // The GLO lane runs the money. Its mode defaults to 'fixture' —
+            // synthetic test vectors — so a production configuration is not
+            // safe until it SAYS it is on the official source.
+            'glo.official_source.mode' => 'official',
+            'glo.sources.fall_through_to_fixture' => false,
         ]);
+
+        $this->assertSame([], ProductionSafetyServiceProvider::violations());
+    }
+
+    /**
+     * A FILE CACHE IS A PER-NODE CONTROL SUBSTRATE, AND PRODUCTION MUST SAY SO.
+     *
+     * This is the same argument the provider already makes about file sessions —
+     * "file sessions cannot be shared across instances" — applied to a substrate
+     * the estate leans on far harder. On a file cache, EVERY cache-backed claim
+     * is per-node: the idempotency middleware, the 90 `throttle:*` buckets, and
+     * any replay check that has not been replaced by a durable table.
+     *
+     * The durable webhook_replay_guards table means the inbound payment webhook
+     * replay control no longer depends on the cache for its guarantee, which is
+     * exactly why this is a CONFIGURATION gate rather than a claim that the cache
+     * has been retired. What remains cache-backed is idempotency and throttling,
+     * and on N containers a file cache gives each container its own full
+     * allowance and its own opinion about whether a request has been seen.
+     *
+     * A genuinely single-instance deployment may turn this off. The setting is
+     * named so that doing so reads as a decision rather than an oversight.
+     */
+    #[Test]
+    public function a_file_cache_store_is_reported_as_an_unsafe_production_configuration(): void
+    {
+        config([
+            'app.debug' => false,
+            'session.secure' => true,
+            'session.encrypt' => true,
+            'session.driver' => 'redis',
+            'cache.default' => 'file',
+            'queue.default' => 'redis',
+            'sanctum.expiration' => 1440,
+            'national_lottery.sources.fixture.enabled' => false,
+            'weekly_lottery.sources.fixture.enabled' => false,
+            'bingo_lottery.sources.fixture.enabled' => false,
+            'pcso_lottery.sources.fixture.enabled' => false,
+            'finance.prize_payout.safety_mode' => 'DISABLED',
+            'lottery.payouts.auto_process' => false,
+            // The GLO lane runs the money. Its mode defaults to 'fixture' —
+            // synthetic test vectors — so a production configuration is not
+            // safe until it SAYS it is on the official source.
+            'glo.official_source.mode' => 'official',
+            'glo.sources.fall_through_to_fixture' => false,
+        ]);
+
+        $violations = implode("\n", ProductionSafetyServiceProvider::violations());
+
+        $this->assertStringContainsString('CACHE_STORE is "file"', $violations);
+        $this->assertStringContainsString('idempotency', $violations);
+
+        // And the escape hatch is honoured, so a single-instance deployment can
+        // proceed deliberately rather than by weakening the check in code.
+        config(['security.cache.require_shared_store_in_production' => false]);
 
         $this->assertSame([], ProductionSafetyServiceProvider::violations());
     }
@@ -270,6 +334,16 @@ final class ProductionConfigSafetyTest extends TestCase
             'session.driver' => 'redis',
             'queue.default' => 'redis',
             'sanctum.expiration' => 1440,
+            // The GLO lane is moved to its safe production value FIRST, so the
+            // count below isolates what this test is about. Its own gate is real
+            // and fires otherwise: with the lane left at its default `fixture`
+            // mode the list holds FIVE entries — the four lanes below plus the
+            // GLO source mode — and this test failed by counting a violation it
+            // was not intending to produce. The GLO mode has its own tests; this
+            // one counts fixture lanes, so it puts the rest of the production
+            // gates in a satisfied state rather than loosening the assertion.
+            'glo.official_source.mode' => 'official',
+            'glo.sources.fall_through_to_fixture' => false,
             'national_lottery.sources.fixture.enabled' => true,
             'weekly_lottery.sources.fixture.enabled' => true,
             'bingo_lottery.sources.fixture.enabled' => true,
@@ -352,6 +426,67 @@ final class ProductionConfigSafetyTest extends TestCase
     }
 
     /**
+     * THE GLO LANE, WHICH THIS GATE DID NOT CHECK AT ALL.
+     *
+     * config/glo.php ships `'mode' => env('GLO_OFFICIAL_SOURCE_MODE', 'fixture')`.
+     * A production deployment that never set that variable ran the GLO lane on
+     * GloFixtureResultProvider, which replays
+     * resources/glo/fixtures/lottery_result.json — a file whose own
+     * provenance.note reads "Numbers are synthetic test vectors, not a live GLO
+     * publication."
+     *
+     * Those numbers are the numbers RealPrizeSettlementService pays prizes
+     * against. Every control in the pipeline works; the input was simply never
+     * real. A default that is sensible for a developer cloning the repository is
+     * unacceptable for a lottery operator, so production has to SAY which source
+     * it is on.
+     */
+    #[Test]
+    public function the_glo_fixture_mode_is_refused_in_production(): void
+    {
+        $this->safeProductionConfig();
+
+        config(['glo.official_source.mode' => 'fixture']);
+
+        $violations = implode("\n", ProductionSafetyServiceProvider::violations());
+
+        $this->assertStringContainsString('GLO_OFFICIAL_SOURCE_MODE', $violations);
+        $this->assertStringContainsString('synthetic test vectors', $violations);
+    }
+
+    /**
+     * The ladder's fixture rung, which is a SEPARATE risk from the mode.
+     *
+     * A deployment can be correctly on the official source and still have
+     * configured a fallback to the fixture lane — which would answer with
+     * synthetic numbers on the one day the official fetch failed, without anybody
+     * choosing to answer with synthetic numbers that day.
+     */
+    #[Test]
+    public function the_glo_fixture_fall_through_is_refused_in_production(): void
+    {
+        $this->safeProductionConfig();
+
+        config(['glo.sources.fall_through_to_fixture' => true]);
+
+        $violations = implode("\n", ProductionSafetyServiceProvider::violations());
+
+        $this->assertStringContainsString('glo.sources.fall_through_to_fixture is true', $violations);
+    }
+
+    #[Test]
+    public function the_glo_fixture_priority_is_refused_in_production(): void
+    {
+        $this->safeProductionConfig();
+
+        config(['glo.sources.priority' => ['official', 'fixture']]);
+
+        $violations = implode("\n", ProductionSafetyServiceProvider::violations());
+
+        $this->assertStringContainsString('glo.sources.priority contains fixture', $violations);
+    }
+
+    /**
      * The baseline every money-gate test starts from: everything else safe,
      * so the assertion can only be about the payout switch.
      */
@@ -362,6 +497,7 @@ final class ProductionConfigSafetyTest extends TestCase
             'session.secure' => true,
             'session.encrypt' => true,
             'session.driver' => 'redis',
+            'cache.default' => 'redis',
             'queue.default' => 'redis',
             'sanctum.expiration' => 1440,
             'national_lottery.sources.fixture.enabled' => false,
@@ -370,6 +506,11 @@ final class ProductionConfigSafetyTest extends TestCase
             'pcso_lottery.sources.fixture.enabled' => false,
             'finance.prize_payout.safety_mode' => 'DISABLED',
             'lottery.payouts.auto_process' => false,
+            // The GLO lane runs the money. Its mode defaults to 'fixture' —
+            // synthetic test vectors — so a production configuration is not
+            // safe until it SAYS it is on the official source.
+            'glo.official_source.mode' => 'official',
+            'glo.sources.fall_through_to_fixture' => false,
         ]);
     }
 }

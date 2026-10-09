@@ -45,6 +45,8 @@
             Tests\TestCase migrates it once per process if it is empty.
         -->
         <env name="DB_CONNECTION" value="sqlite"/>
+        <!-- Give the disposable SQLite test store a bounded wait for concurrent test writers. -->
+        <env name="DB_BUSY_TIMEOUT" value="15000"/>
         <env name="DB_DATABASE" value="database/thai_lottery_test"/>
         <env name="DB_FOREIGN_KEYS" value="true"/>
         <env name="CACHE_STORE" value="array"/>

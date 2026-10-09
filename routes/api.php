@@ -715,9 +715,45 @@ Route::prefix('v1/payments')
         Route::post('/intents/{intent}/cancel', [PaymentController::class, 'cancelIntent'])->name('intents.cancel');
     });
 
+/*
+|--------------------------------------------------------------------------
+| Payment webhooks — the one public inbound money surface
+|--------------------------------------------------------------------------
+|
+| MIDDLEWARE ORDER IS THE DESIGN, AND `webhook.signature` WAS MISSING FROM IT.
+|
+| `webhook.signature` was registered as an alias in bootstrap/app.php and
+| applied to NO route — dead security code, which is worse than none, because a
+| reviewer who finds it concludes this surface is guarded and stops reading.
+| It is attached here now, and it is no longer the signature verifier it once
+| pretended to be: it is the DURABLE REPLAY GUARD
+| (App\Http\Middleware\VerifyWebhookSignature writes webhook_replay_guards).
+|
+| The order is deliberate:
+|
+|   1. throttle:webhook    cheap refusal of a flood before any DB work.
+|   2. webhook.signature   durable replay refusal, ONE unique-index insert, and
+|                          a timestamp window when the provider's protocol
+|                          actually carries a timestamp.
+|   3. controller          per-provider cryptographic signature verification,
+|                          then persistence, then async application.
+|
+| Replay is refused at step 2 because it is cheap and unambiguous. Signature
+| verification stays at step 3 because each provider signs differently (Stripe
+| signs "<timestamp>.<body>"; bKash, Nagad, Crypto and Bank Transfer sign the raw
+| body) and duplicating that here would create a second definition of "valid
+| signature" that could drift from the first — the exact failure mode behind the
+| GLO write-boundary regression.
+|
+| Replay protection previously existed only as a cache entry keyed on event id.
+| With CACHE_STORE=file that is atomic on one machine and meaningless across two,
+| so the same signed webhook delivered to two containers was "first seen" on
+| both. The guard table makes the database the authority.
+|
+*/
 Route::prefix('v1/payments/webhook')
     ->name('api.v1.payments.webhook.')
-    ->middleware(['throttle:webhook'])
+    ->middleware(['throttle:webhook', 'webhook.signature'])
     ->group(function (): void {
         Route::post('/{gateway}', [PaymentWebhookController::class, 'handle'])->name('handle');
         // Hardened envelope lane (batch-12): signature verification

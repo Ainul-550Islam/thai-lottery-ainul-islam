@@ -60,6 +60,17 @@ class GloImportResult extends Command
         }
 
         $import = $outcome['import'];
+
+        // `draw_result_written` is always false now, and that is the point:
+        // this command stages a Pending ingestion and CANNOT publish. Publishing
+        // requires a different operator through the confirmation path.
+        //
+        // The report therefore answers the question an operator actually has —
+        // "did this become reviewable?" — with `pending_confirmation`, rather
+        // than the old `result_written`, which recorded a publication that
+        // should never have happened from an import.
+        $ingestion = $outcome['ingestion'] ?? null;
+
         $report = [
             'import_reference' => $import->import_reference,
             'status' => $import->status,
@@ -67,6 +78,9 @@ class GloImportResult extends Command
             'mode' => $import->mode,
             'draw_id' => $import->draw_id,
             'draw_result_written' => $outcome['draw_result'] !== null,
+            'pending_confirmation' => is_array($ingestion)
+                && ($ingestion['status'] ?? null) === 'pending',
+            'ingestion_fingerprint' => is_array($ingestion) ? ($ingestion['fingerprint'] ?? null) : null,
             'failure_reason' => $import->failure_reason,
             'first_prize' => $import->payload_summary['first_prize'] ?? null,
         ];
@@ -75,13 +89,20 @@ class GloImportResult extends Command
             $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         } else {
             $this->info(sprintf(
-                'Import %s: %s (provider=%s result_written=%s)%s',
+                'Import %s: %s (provider=%s pending_confirmation=%s)%s',
                 $report['import_reference'],
                 $report['status'],
                 $report['provider'],
-                $report['draw_result_written'] ? 'yes' : 'no',
+                $report['pending_confirmation'] ? 'yes' : 'no',
                 $report['failure_reason'] !== null ? ' — '.$report['failure_reason'] : '',
             ));
+
+            if ($report['pending_confirmation']) {
+                $this->warn(
+                    'Staged as Pending. A DIFFERENT operator must confirm it before it publishes: '
+                    .'php artisan lottery:publish-result --draw='.$import->draw_id.' --confirm'
+                );
+            }
         }
 
         return $report['status'] === 'imported' ? self::SUCCESS : self::FAILURE;

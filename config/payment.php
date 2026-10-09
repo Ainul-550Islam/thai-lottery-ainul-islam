@@ -220,6 +220,27 @@ return [
         'max_age_seconds' => 300,
         'replay_protection' => true,
         'replay_cache_prefix' => 'payment:webhook:seen:',
+
+        /*
+        |----------------------------------------------------------------------
+        | Durable replay guard retention
+        |----------------------------------------------------------------------
+        |
+        | How long a signed webhook payload is remembered in
+        | webhook_replay_guards, as the substrate for replay refusal. Shorter
+        | reopens the replay window; longer costs a few dozen bytes per delivery.
+        |
+        | 30 days is chosen to comfortably exceed every gateway's retry horizon
+        | (Stripe retries for up to 3 days; bKash and Nagad for far less) while
+        | keeping the table small enough that pruning stays an indexed range
+        | delete.
+        |
+        | This is NOT the same thing as webhook.max_age_seconds, which bounds how
+        | OLD a signed request may be. This bounds how long we remember that we
+        | have seen it.
+        |
+        */
+        'replay_guard_retention_days' => (int) env('WEBHOOK_REPLAY_GUARD_RETENTION_DAYS', 30),
         'require_https' => true,
         'log_rejections' => true,
     ],
@@ -303,9 +324,47 @@ return [
         ],
 
         'promptpay' => [
-            // Thai QR payment rail configuration. Requires active driver binding
-            // in PaymentGatewayManager and valid target identity before it can be
-            // advertised or processed.
+            // ── THE THAI QR RAIL IS PARTIALLY BUILT. READ THIS BEFORE ENABLING IT. ──
+            //
+            // WHAT EXISTS AND WORKS (app/Services/Payment/PromptPayPaymentService.php):
+            //   - dynamic ThaiQR/EMVCo payload generation, with the PromptPay
+            //     merchant block and a CRC16-CCITT checksum;
+            //   - a static collection payload;
+            //   - HMAC-SHA256 verification of an aggregator callback over
+            //     "reference:amount:THB", failing closed when the secret is absent.
+            //
+            // WHAT DOES NOT EXIST — the INBOUND lane, i.e. everything between a
+            // player paying and this platform crediting them:
+            //   - no `PaymentMethod::PromptPay` enum case;
+            //   - no driver in App\Services\Payment\Drivers\;
+            //   - no entry in PaymentGatewayManager::driver(), so
+            //     `driver('promptpay')` throws and `isEnabled('promptpay')` is
+            //     permanently false;
+            //   - no route for the aggregator's notification, and
+            //     PromptPayPaymentService itself is referenced by nothing.
+            //
+            // WHY IT WAS NOT WIRED HERE. A merchant does not receive PromptPay
+            // notifications directly: they arrive from an ACQUIRING BANK or an
+            // aggregator, whose notification contract, credentials and callback
+            // shape are specific to the provider the operator contracts with.
+            // Inventing one would produce a lane that looks integrated and credits
+            // nothing — and a fake money rail is worse than an absent one. So this
+            // is documented as unfinished rather than guessed at.
+            //
+            // TO WIRE IT, in this order:
+            //   1. choose the acquirer/aggregator and obtain its notification spec;
+            //   2. add `case PromptPay = 'promptpay';` to App\Enums\PaymentMethod;
+            //   3. implement a PromptPayGateway in Drivers/ that composes this
+            //      service and verifies callbacks with assertValidWebhookSignature;
+            //   4. register it in PaymentGatewayManager::driver() and hasDriver();
+            //   5. add it to payment.deposit.allowed_methods;
+            //   6. add a webhook route behind 'throttle:webhook' and
+            //      'webhook.signature' (the replay guard is already generic);
+            //   7. add the method to whatever quotes deposit options to players.
+            //
+            // UNTIL STEP 3 IS DONE, `enabled => true` changes nothing: the manager
+            // refuses the method before any driver is consulted. Setting it true
+            // while believing otherwise is the mistake this comment exists to stop.
             'enabled' => (bool) env('PROMPTPAY_ENABLED', false),
             'driver' => 'promptpay',
             'target' => env('PROMPTPAY_TARGET'),

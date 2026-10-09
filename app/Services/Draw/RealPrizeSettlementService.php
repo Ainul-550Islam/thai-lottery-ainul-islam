@@ -23,6 +23,7 @@ use App\Models\BetItem;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Models\Payout;
+use App\Models\SettlementRun;
 use App\Models\User;
 use App\Models\WinningNumber;
 use App\Services\Betting\BetPurchaseWalletService;
@@ -116,10 +117,79 @@ class RealPrizeSettlementService
                 return $this->replayStoredSettlement($draw, $stateBefore);
             }
 
+            // ── REFUSE WHILE A CHUNKED RUN IS PART-WAY THROUGH THIS DRAW.
+            //
+            // ChunkedSettlementOrchestrator settles a draw in slices and does
+            // NOT move the draw to Settled until the last chunk. So during a
+            // chunked run the draw is still ResultPublished and this method —
+            // which until now knew nothing about settlement_runs — would happily
+            // start a SECOND, monolithic settlement alongside it.
+            //
+            // The overlap is money-safe: both paths collide on the same
+            // deterministic per-(draw, bet) payout reference and the same
+            // per-bet wallet idempotency key, so no bet is paid twice. It is not
+            // REPORT-safe, and that is not a lesser problem. Each run would
+            // report its own total, both would look authoritative, and a
+            // reported prize total that does not match what was paid is exactly
+            // the number an operator uses to decide whether to escalate. Two
+            // settlements racing over one draw would also fight for the same row
+            // locks for the duration of the larger one.
+            //
+            // The check is INSIDE this transaction and reads the run row
+            // directly rather than through the orchestrator, because
+            // ChunkedSettlementOrchestrator depends on this service and
+            // injecting it back would be a circular dependency. The coupling
+            // that remains is one table read, and it buys the guarantee that two
+            // settlement runs cannot overlap on one draw.
+            if ($this->chunkedRunInFlight($drawId)) {
+                throw SettlementSimulationException::alreadyRunning(
+                    $drawId,
+                    DB::transactionLevel(),
+                    [
+                        'reason' => 'a chunked settlement run is in flight for this draw',
+                        'resolution' => 'let the chunked run finish, or resume it with '
+                            .'php artisan lottery:settle-draw-chunked --draw='.$drawId.' --resume, '
+                            .'before settling this draw monolithically',
+                    ],
+                );
+            }
+
             $this->lifecycle->assertCanSettle($draw, ['stage' => 'settlement', 'mode' => self::MODE]);
 
             return $this->performSettlement($draw, $stateBefore);
         });
+    }
+
+    /**
+     * The chunked settlement run for this draw that has not yet completed, if any.
+     *
+     * Deliberately counts BOTH `open` and `aborted` runs. An aborted run is a
+     * resumable run — its cursor and totals are exactly what the last committed
+     * chunk left behind — so treating it as "not in flight" would let the
+     * monolithic path settle alongside money that a resume is still going to pay.
+     * That is the same overlap, only with a paused second participant.
+     */
+    public function inFlightChunkedRun(int $drawId): ?SettlementRun
+    {
+        return SettlementRun::query()
+            ->where('draw_id', $drawId)
+            ->whereIn('status', [SettlementRun::STATUS_OPEN, SettlementRun::STATUS_ABORTED])
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Whether a chunked settlement run for this draw has not yet completed.
+     *
+     * PUBLIC, and not merely because the guard above calls it. The monolithic
+     * queued settlement (ProcessPrizeSettlementJob) needs the same answer BEFORE
+     * it calls settle(), so that it can stand aside instead of being failed by
+     * the refusal. A refusal that a caller cannot see coming is a refusal that
+     * turns into a permanently failed job.
+     */
+    public function chunkedRunInFlight(int $drawId): bool
+    {
+        return $this->inFlightChunkedRun($drawId) !== null;
     }
 
     /**
@@ -186,6 +256,281 @@ class RealPrizeSettlementService
         $this->assertResultIntegrity($drawId, $data);
 
         return $data;
+    }
+
+    /**
+     * Assert a draw can be settled in CHUNKS, and return its validated result.
+     *
+     * Called ONCE when a chunked run is opened, for two reasons that the chunk
+     * loop itself cannot provide:
+     *
+     *   1. THE LIFECYCLE IS CHECKED EXACTLY ONCE, AT THE START, AND THE DRAW IS
+     *      NOT MOVED. settle() transitions to Settled at the end of its single
+     *      transaction, so there is no window in which the draw is half settled.
+     *      A chunked run has exactly that window: chunks 1..n-1 have paid money
+     *      while the draw is still ResultPublished. Moving it at the end — and
+     *      only at the end — is what makes the window meaningful, because
+     *      ResultPublished + a settlement_runs row is the unambiguous, resumable
+     *      signature of "partially settled".
+     *
+     *   2. THE RESULT IS VALIDATED BEFORE ANY MONEY MOVES. publishedResultFor()
+     *      re-reads the published numbers and confirms every winning_numbers row
+     *      still agrees with them. Doing this once up front means a tampered
+     *      result is refused before the first chunk rather than after the
+     *      ninetieth; each chunk re-validates anyway, but failing early is the
+     *      difference between an aborted run and a run that paid 90,000 slips
+     *      against numbers it should never have touched.
+     *
+     * @throws DrawLifecycleException
+     * @throws SettlementSimulationException
+     */
+    public function assertChunkable(Draw $draw): DrawResultData
+    {
+        return DB::transaction(function () use ($draw): DrawResultData {
+            $drawId = (int) $draw->getKey();
+
+            if (DB::transactionLevel() > 1) {
+                throw SettlementSimulationException::alreadyRunning($drawId, DB::transactionLevel());
+            }
+
+            $locked = $this->lifecycle->lockForUpdate($drawId);
+            $state = $this->lifecycle->currentState($locked);
+
+            if ($state->isSettled()) {
+                throw SettlementSimulationException::selectionUnreadable(
+                    0,
+                    sprintf('draw %d is already settled; a chunked run would pay nothing', $drawId),
+                    ['draw_id' => $drawId],
+                );
+            }
+
+            $this->lifecycle->assertCanSettle($locked, [
+                'stage' => 'settlement',
+                'mode' => self::MODE,
+                'chunked' => true,
+            ]);
+
+            return $this->publishedResultFor($locked);
+        });
+    }
+
+    /**
+     * Settle ONE CHUNK: every bet of the draw with id greater than $afterBetId,
+     * up to $limit of them, inside a transaction of its own.
+     *
+     * WHY THIS IS A METHOD ON THIS SERVICE AND NOT IN THE ORCHESTRATOR
+     * Because "how a winning bet is paid" must have exactly ONE definition. The
+     * chunked path is not a second settlement implementation — it is the same
+     * one, entered in slices. This method calls the same payWinningBet(),
+     * writeSelection() and writeBet() that performSettlement() calls, in the
+     * same order, with the same deterministic per-(draw,bet) payout reference
+     * and the same per-bet wallet idempotency key.
+     *
+     * That is what makes a chunk safe to RETRY. If a chunk's transaction fails
+     * after paying 300 of its 500 bets, nothing about the failed chunk survives
+     * — it rolls back whole — and re-running it pays the same 500 bets and hits
+     * the same unique payout references. The unique index is the guarantee;
+     * chunking does not weaken it.
+     *
+     * WHAT IT DELIBERATELY DOES NOT DO
+     *   - it does not transition the draw (finalizeChunkedSettlement does that,
+     *     once, when every bet has been processed);
+     *   - it does not build a SettlementResult (that DTO carries every selection
+     *     in memory, which is the cost chunking exists to avoid — it returns
+     *     counters instead);
+     *   - it does not touch settlement_runs (progress is the orchestrator's job,
+     *     so this money service stays free of run bookkeeping).
+     *
+     * $limit is clamped to at least 1. A limit of 0 would return "exhausted"
+     * with bets remaining, and the orchestrator would conclude the draw was
+     * finished — a silent under-settlement, which is the one failure mode that
+     * pays some players and strands others.
+     *
+     * @return array{
+     *     bets_seen: int,
+     *     bets_settled: int,
+     *     selections_evaluated: int,
+     *     selections_written: int,
+     *     winning_selections: int,
+     *     payouts_created: int,
+     *     total_stake_delta: string,
+     *     total_prize_delta: string,
+     *     currency: Currency|null,
+     *     last_bet_id: int,
+     *     exhausted: bool
+     * }
+     *
+     * @throws DrawLifecycleException
+     * @throws SettlementSimulationException
+     * @throws \App\Exceptions\FinancialException
+     */
+    public function settleBetRange(
+        Draw $draw,
+        DrawResultData $result,
+        int $afterBetId,
+        int $limit,
+        string $safetyMode,
+        ?Currency $currencySoFar = null,
+    ): array {
+        $drawId = (int) $draw->getKey();
+        $limit = max(1, $limit);
+
+        if (DB::transactionLevel() > 0) {
+            // Same rule as settle(): the rollback guarantee must belong to this
+            // chunk. Inside a caller's transaction, a failure here could be
+            // swallowed by an outer catch and the partial chunk — including
+            // paid-out money — committed anyway.
+            throw SettlementSimulationException::alreadyRunning($drawId, DB::transactionLevel());
+        }
+
+        return DB::transaction(function () use ($draw, $drawId, $result, $afterBetId, $limit, $safetyMode, $currencySoFar): array {
+            $bets = $this->lockedBetsAfter($drawId, $afterBetId, $limit);
+
+            $stats = [
+                'bets_seen' => $bets->count(),
+                'bets_settled' => 0,
+                'selections_evaluated' => 0,
+                'selections_written' => 0,
+                'winning_selections' => 0,
+                'payouts_created' => 0,
+                'total_stake_delta' => '0.00',
+                'total_prize_delta' => '0.00',
+                // Seeded from the previous chunk so the one-currency rule is
+                // enforced across the whole run and not merely within a slice.
+                'currency' => $currencySoFar,
+                'last_bet_id' => $afterBetId,
+                'exhausted' => $bets->count() < $limit,
+            ];
+
+            foreach ($bets as $bet) {
+                $betPrize = '0.00';
+                $betHasWinner = false;
+                $betTouched = false;
+
+                // Currency coherence, through the SAME helper the monolithic
+                // path uses, so a mixed-currency draw is refused here for the
+                // same reason and with the same message. Within a chunk this
+                // accumulates; ACROSS chunks it is carried by the run row's
+                // recorded currency, which the orchestrator seeds from the
+                // previous chunk.
+                $stats['currency'] = $this->assertSingleCurrency($drawId, $stats['currency'], $bet);
+
+                foreach ($this->lockedItems((int) $bet->getKey()) as $item) {
+                    $record = $this->selections->resolve($item, $bet, $result);
+
+                    $this->writeSelection($item, $record);
+
+                    $stats['selections_evaluated']++;
+                    $stats['selections_written']++;
+                    $betTouched = true;
+
+                    $stats['total_stake_delta'] = bcadd($stats['total_stake_delta'], $record->stake, 2);
+                    $stats['total_prize_delta'] = bcadd($stats['total_prize_delta'], $record->simulatedPrize, 2);
+                    $betPrize = bcadd($betPrize, $record->simulatedPrize, 2);
+
+                    if ($record->isWinner()) {
+                        $betHasWinner = true;
+                        $stats['winning_selections']++;
+                    }
+
+                    // The DTO is deliberately dropped here. In the monolithic
+                    // path every one of these is retained in $records and handed
+                    // back inside SettlementResult; at 100,000+ slips that list
+                    // is the memory failure. The row is written above, which is
+                    // the durable record that matters.
+                    unset($record);
+                }
+
+                if (! $betTouched) {
+                    $stats['last_bet_id'] = (int) $bet->getKey();
+
+                    continue;
+                }
+
+                $stats['bets_settled']++;
+
+                if ($betHasWinner && bccomp($betPrize, '0.00', 2) > 0) {
+                    $currency = $stats['currency'] instanceof Currency ? $stats['currency'] : $this->defaultCurrency();
+
+                    $payout = $this->payWinningBet($bet, $betPrize, $currency, $safetyMode);
+
+                    $this->writeBet($bet, true, $betPrize, $payout);
+                    $stats['payouts_created']++;
+                } else {
+                    $this->writeBet($bet, $betHasWinner, $betHasWinner ? $betPrize : '0.00', null);
+                }
+
+                $stats['last_bet_id'] = (int) $bet->getKey();
+            }
+
+            return $stats;
+        });
+    }
+
+    /**
+     * Transition a chunked run's draw to Settled. Called ONCE, after the
+     * orchestrator has confirmed there are no bets past the cursor.
+     *
+     * Idempotent by construction: an already-settled draw is returned as-is, so
+     * a finalize that runs twice (a retried job, an operator re-running the
+     * command) cannot move a terminal state a second time. That matters because
+     * Settled is terminal in this project and nothing reversal-shaped is
+     * implemented — moving it twice is not "harmless".
+     *
+     * @param  array<string, mixed>  $totals  the run's recorded totals, for the audit trail
+     *
+     * @throws DrawLifecycleException
+     */
+    public function finalizeChunkedSettlement(Draw $draw, array $totals = []): Draw
+    {
+        return DB::transaction(function () use ($draw, $totals): Draw {
+            $locked = $this->lifecycle->lockForUpdate((int) $draw->getKey());
+            $state = $this->lifecycle->currentState($locked);
+
+            if ($state->isSettled()) {
+                return $locked;
+            }
+
+            $this->lifecycle->assertCanSettle($locked, [
+                'stage' => 'settlement',
+                'mode' => self::MODE,
+                'chunked' => true,
+            ]);
+
+            return $this->lifecycle->markSettled($locked, [
+                'stage' => 'settlement',
+                'mode' => self::MODE,
+                'chunked' => true,
+                'selections' => $totals['selections_written'] ?? null,
+                'payouts_created' => $totals['payouts_created'] ?? null,
+                'bets_settled' => $totals['bets_settled'] ?? null,
+                'total_prize' => $totals['total_prize'] ?? null,
+            ]);
+        });
+    }
+
+    /**
+     * The next slice of a draw's bets, locked for update, in a stable order.
+     *
+     * KEYSET PAGINATION, NOT OFFSET. `id > $afterBetId` walks the primary key
+     * index and touches only the rows it returns. An OFFSET would make chunk N
+     * scan and discard every row before it — the hundredth chunk would read
+     * 100,000 rows to lock 500, which is the same cost as not chunking at all
+     * while looking like progress.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Bet>
+     */
+    private function lockedBetsAfter(int $drawId, int $afterBetId, int $limit)
+    {
+        return Bet::query()
+            ->with(['ticket', 'user'])
+            ->where('draw_id', $drawId)
+            ->whereNull('deleted_at')
+            ->where('id', '>', $afterBetId)
+            ->orderBy('id')
+            ->limit($limit)
+            ->lockForUpdate()
+            ->get();
     }
 
     /**

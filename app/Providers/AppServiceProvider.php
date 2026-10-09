@@ -6,6 +6,7 @@ use App\Http\Responses\ApiResponse;
 use App\Http\Support\BetPurchaseErrorMapper;
 use App\Services\Lottery\GloDataMatrixParser;
 use App\Services\Lottery\GloDataMatrixParserInterface;
+use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
         // parameter with a null default, and the container deliberately never
         // overrides a developer default for an unbound class. Without this
         // binding the versioned pronouncements would silently never happen.
-        $this->app->bind(\App\Services\ResponsibleGaming\ResponsibleGamingLimitService::class);
+        $this->app->bind(ResponsibleGamingLimitService::class);
 
         // Laravel 12 removed the old named-limiter probe; keep the adapter
         // available for the existing security contract without changing the

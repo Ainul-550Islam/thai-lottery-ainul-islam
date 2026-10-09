@@ -40,6 +40,23 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  * Webhooks from the PromptPay aggregator are HMAC-SHA256 over
  * "reference:amount:currency" with the gateway webhook secret — timing-safe
  * comparison only. The service never sees or stores a bank credential.
+ *
+ * ── CURRENT STATUS: NOTHING CALLS THIS CLASS, ON PURPOSE. ────────────────
+ *
+ * As of this writing the class is referenced by no driver, no route and no
+ * service. It is a correct OUTBOUND component of a lane that was never
+ * assembled, and the missing half is not code that can be written from this
+ * repository: a merchant does not receive PromptPay notifications directly, they
+ * arrive from an acquiring bank or an aggregator whose notification contract and
+ * credentials the operator has to contract for. Fabricating that contract would
+ * produce a rail that looks integrated and credits nothing.
+ *
+ * So the lane is documented as unfinished rather than guessed at, the config
+ * carries the wiring steps, and PaymentGatewayManager refuses 'promptpay' by
+ * name. What is asserted by tests instead is that the parts that DO exist are
+ * correct — the QR payload is EMVCo-shaped with a valid CRC, and the signature
+ * check fails closed without a secret — so that the unfinished lane cannot rot
+ * silently while it waits.
  */
 class PromptPayPaymentService
 {

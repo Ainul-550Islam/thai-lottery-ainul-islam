@@ -387,10 +387,24 @@ final class AccountVerificationFlowTest extends TestCase
             ->post(route('account.verification.submit'), $this->submissionPayload())
             ->assertSessionHasNoErrors();
 
-        $front = KycDocument::query()->where('user_id', $this->player->id)->orderBy('id')->firstOrFail();
+        // The download route is keyed by an opaque 64-hex owner token, never by
+        // a database id: the whole chain is exercised by scraping the URL the
+        // page ACTUALLY publishes (submit -> listing -> authorized download).
+        $page = (string) $this->actingAs($this->player)
+            ->get(route('account.verification'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '#/account/verification/document/[a-f0-9]{64}#',
+            $page,
+            'The page must publish an opaque 64-hex download URL for the owner.',
+        );
+
+        preg_match('#/account/verification/document/([a-f0-9]{64})#', $page, $matches);
 
         $this->actingAs($this->player)
-            ->get(route('account.verification.document', ['document' => $front->id]))
+            ->get('/account/verification/document/'.$matches[1])
             ->assertOk()
             ->assertHeader('X-Content-Type-Options', 'nosniff');
     }

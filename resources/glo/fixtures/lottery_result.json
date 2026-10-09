@@ -17,7 +17,7 @@
     ],
     "front_three": ["123", "456"],
     "last_three": ["321", "654"],
-    "last_two": ["42"],
+    "last_two": ["58"],
     "n3": {
         "special": ["007"],
         "first": ["111"],
@@ -26,6 +26,6 @@
     },
     "provenance": {
         "source": "fixture",
-        "note": "Official-shape replay fixture for GloFixtureResultProvider. Numbers are synthetic test vectors, not a live GLO publication."
+        "note": "Official-shape replay fixture for GloFixtureResultProvider. Numbers are synthetic test vectors, not a live GLO publication. last_two is deliberately 58, which is NOT the last two digits of the first prize 042042: the two-digit prize is a separately drawn number, so a fixture in which the two agree would teach a shape no real GLO announcement ever has."
     }
 }

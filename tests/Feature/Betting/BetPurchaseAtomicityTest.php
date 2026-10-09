@@ -498,8 +498,6 @@ final class BetPurchaseAtomicityTest extends TestCase
     #[Test]
     public function aa_lets_only_one_of_two_concurrent_purchases_spend_the_last_balance(): void
     {
-        $this->requiresRealConcurrency();
-
         $fixture = $this->fixture(balance: '100.00');
         $this->tightenLimit($fixture['draw'], BetType::ThreeD, '123', ['max_amount' => '100000.00']);
 
@@ -517,8 +515,6 @@ final class BetPurchaseAtomicityTest extends TestCase
     #[Test]
     public function ab_lets_only_one_of_two_concurrent_purchases_consume_the_last_capacity(): void
     {
-        $this->requiresRealConcurrency();
-
         $fixture = $this->fixture(balance: '100000.00');
         $this->tightenLimit($fixture['draw'], BetType::ThreeD, '123', [
             'max_amount' => '1000.00',
@@ -542,8 +538,6 @@ final class BetPurchaseAtomicityTest extends TestCase
     #[Test]
     public function ab2_replays_rather_than_duplicates_two_concurrent_identical_requests(): void
     {
-        $this->requiresRealConcurrency();
-
         $fixture = $this->fixture(balance: '100.00');
         $key = $this->key('same');
         $this->ensureLimit($fixture['draw'], '3d_direct', '123');
@@ -1357,20 +1351,6 @@ PROBE;
     private function describe(array $outcomes): string
     {
         return 'Concurrency probe outcomes: '.json_encode($outcomes);
-    }
-
-    /**
-     * Row locks only exist on a real server. SQLite in memory gives each connection its
-     * own private database, so a concurrency claim measured there would be meaningless.
-     */
-    private function requiresRealConcurrency(): void
-    {
-        if (DB::connection()->getDriverName() === 'sqlite') {
-            $this->markTestSkipped(
-                'Real multi-process concurrency requires a shared server with row locks; '
-                .'SQLite in memory gives each process its own database.'
-            );
-        }
     }
 
     /**

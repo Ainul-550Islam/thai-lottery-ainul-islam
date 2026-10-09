@@ -99,6 +99,25 @@ final class ProductionPaymentExecutionHubService
         return $this->gateways->driver($provider)->verifyWebhookSignature($request);
     }
 
+    /**
+     * Map a caller-supplied channel string onto a payment method.
+     *
+     * ── 'promptpay' USED TO MAP TO BankTransfer. IT NO LONGER DOES. ────────
+     *
+     * The old arm was `'bank_transfer', 'promptpay' => PaymentMethod::BankTransfer`,
+     * which meant a player who chose the Thai QR rail was silently executed as a
+     * BANK TRANSFER: different rail, different settlement, different fees,
+     * different reconciliation, and a deposit record naming the wrong one. The
+     * player would be shown a PromptPay flow's expectation while the platform ran
+     * a bank transfer against it — and on the day somebody reconciled the two,
+     * every one of those deposits would look like a discrepancy.
+     *
+     * The PromptPay inbound lane is not implemented (see the status block in
+     * config/payment.php). For anything this method does not support, the correct
+     * behaviour is a REFUSAL that names the reason, not a substitution that
+     * happens to have an envelope shape. A rail chosen by a customer is part of
+     * the contract with that customer; quietly changing it is not a fallback.
+     */
     private function methodForChannel(string $channel): PaymentMethod
     {
         return match (strtolower(trim($channel))) {
@@ -106,8 +125,13 @@ final class ProductionPaymentExecutionHubService
             'bkash' => PaymentMethod::Bkash,
             'nagad' => PaymentMethod::Nagad,
             'crypto' => PaymentMethod::Crypto,
-            'bank_transfer', 'promptpay' => PaymentMethod::BankTransfer,
+            'bank_transfer' => PaymentMethod::BankTransfer,
             'manual' => PaymentMethod::Manual,
+            'promptpay' => throw new InvalidArgumentException(
+                'The PromptPay channel is not executable: the Thai QR rail has no payment driver and no inbound '
+                .'notification lane, so a deposit initiated through it could never be credited. It is deliberately '
+                .'not aliased onto the bank transfer rail. See the status block in config/payment.php.',
+            ),
             default => throw new InvalidArgumentException('The requested payment channel is unsupported.'),
         };
     }

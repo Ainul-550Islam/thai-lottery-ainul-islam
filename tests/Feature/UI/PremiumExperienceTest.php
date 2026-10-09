@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature\UI;
 
 use App\Enums\Currency;
+use App\Enums\FinancialTransactionType;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Finance\Money;
 use App\Services\Finance\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -81,7 +83,13 @@ class PremiumExperienceTest extends TestCase
         $user = User::factory()->create(['name' => 'Somchai Jaidee']);
         $walletService = app(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
-        $walletService->credit($wallet->id, '1500.50', 'Test balance');
+        $walletService->credit(
+            wallet: $wallet,
+            amount: Money::of('1500.50', Currency::THB),
+            type: FinancialTransactionType::Deposit,
+            idempotencyKey: 'test-dashboard-balance',
+            options: ['description' => 'Test balance'],
+        );
 
         $response = $this->actingAs($user)->get(route('player.dashboard'));
         $response->assertOk();

@@ -182,18 +182,89 @@ final class ApplicationLayerSafetyTest extends TestCase
         }
     }
 
+    /**
+     * Split comment-free code into statements.
+     *
+     * Statements, not lines: a balance write is routinely spread over four lines
+     * by any formatter, and a line-based scan would see `->update([` on one line
+     * and the balance key three lines later and conclude there was nothing to
+     * see. `;` ends a statement, as do the braces of a block.
+     *
+     * @return list<string>
+     */
+    private function statementsOf(string $code): array
+    {
+        return array_values(array_filter(
+            preg_split('/[;{}]/', $code) ?: [],
+            static fn (string $statement): bool => trim($statement) !== '',
+        ));
+    }
+
     #[Test]
     public function the_controllers_never_mutate_a_wallet_balance(): void
     {
+        // ── READS ARE NOT WRITES, AND THE OLD RULE COULD NOT TELL THEM APART. ──
+        //
+        // This test used to ban the bare strings `available_balance` and
+        // `locked_balance` anywhere in a controller. The admin dashboard is a
+        // READ-ONLY projection: it selects the balance columns for display and
+        // never writes them — and it failed, because a correct read-only page
+        // contains the same words as a balance update. A guard that fires on the
+        // projection has to be either weakened until it protects nothing, or
+        // switched off and never switched back on. (The old `'balance ='` needle
+        // was worse than crude: it was compared against a haystack with every
+        // space removed, so it could never match anything at all — the assertion
+        // was dead, and it read as coverage.)
+        //
+        // So the rule is now stated as what it actually forbids: a WRITE to a
+        // balance column. Three mechanical forms, all of them mutations:
+        //
+        //   1. the balance column named as a key inside a write call — update,
+        //      fill, forceFill, create, updateOrCreate, insert, upsert, save —
+        //      anywhere in the same statement;
+        //   2. a property assignment on a balance column (`$wallet->balance =`,
+        //      `->balance -=`, `->balance +=`), including compound operators;
+        //   3. an atomic counter mutation (`->increment(`/`->decrement(`), which
+        //      is banned outright because the call itself does not name its
+        //      column, so it cannot be distinguished from a wallet update.
+        //
+        // The money services stay banned outright as well: a controller that
+        // injects WalletService or LedgerService has not "read a balance", it has
+        // taken a dependency on the money layer — which is the boundary this file
+        // exists to enforce.
+        $writeCalls = '/(?:->update|->updateOrCreate|->firstOrCreate|->create|->fill|->forceFill'
+            .'|->push|->insert|->upsert|->insertGetId|->save|->saveQuietly)\s*\(/';
+
         foreach ($this->controllerFiles() as $path) {
             $code = $this->codeOf($path);
+            $name = basename($path);
 
+            // 1. A balance column written through a write call.
+            foreach ($this->statementsOf($code) as $statement) {
+                if (preg_match('/\b(?:balance|available_balance|locked_balance)\b/', $statement) !== 1) {
+                    continue;
+                }
+
+                $this->assertDoesNotMatchRegularExpression(
+                    $writeCalls,
+                    $statement,
+                    sprintf(
+                        '%s must not write a balance column: [%s]',
+                        $name,
+                        trim(preg_replace('/\s+/', ' ', $statement) ?? $statement),
+                    ),
+                );
+            }
+
+            // 2. Direct and compound property assignment on a balance column.
+            $this->assertDoesNotMatchRegularExpression(
+                '/\$[A-Za-z_][A-Za-z0-9_]*(?:->|\?->)(?:balance|available_balance|locked_balance)\s*(?:[+\-*\/.]?=)/',
+                $code,
+                sprintf('%s must not assign to a wallet balance column.', $name),
+            );
+
+            // 3. Atomic counter mutations and the money services.
             foreach ([
-                'balance =',
-                'balance-=',
-                'balance+=',
-                'available_balance',
-                'locked_balance',
                 'increment(',
                 'decrement(',
                 'WalletService',
@@ -202,7 +273,7 @@ final class ApplicationLayerSafetyTest extends TestCase
                 $this->assertStringNotContainsString(
                     $forbidden,
                     str_replace(' ', '', $code),
-                    sprintf('%s must not touch %s.', basename($path), $forbidden),
+                    sprintf('%s must not touch %s.', $name, $forbidden),
                 );
             }
         }
@@ -417,13 +488,14 @@ final class ApplicationLayerSafetyTest extends TestCase
     }
 
     #[Test]
-    public function no_phase_one_to_four_three_domain_file_was_modified_by_this_phase(): void
+    public function domain_layer_files_do_not_depend_on_http_transport(): void
     {
-        // Phase 4.4 is an application layer. It must not have reached into the domain. This
-        // is asserted structurally: the directories that hold verified financial logic must
-        // contain no reference to the HTTP layer, because a domain class that knew about a
-        // controller, a form request or an HTTP response would be evidence that the
-        // boundary had been crossed in the wrong direction.
+        // App\\Exceptions\\Handler is Laravel's HTTP exception adapter, not a domain
+        // exception. It must produce HTTP responses and is verified separately below;
+        // including it in a domain-dependency scan would forbid its actual job.
+        $handlerPath = base_path('app/Exceptions/Handler.php');
+        $this->assertFileExists($handlerPath);
+
         $roots = [
             base_path('app/Services'),
             base_path('app/DTOs'),
@@ -443,6 +515,10 @@ final class ApplicationLayerSafetyTest extends TestCase
 
             foreach ($iterator as $file) {
                 if (! $file->isFile() || $file->getExtension() !== 'php') {
+                    continue;
+                }
+
+                if (realpath($file->getPathname()) === realpath($handlerPath)) {
                     continue;
                 }
 
@@ -467,5 +543,16 @@ final class ApplicationLayerSafetyTest extends TestCase
                 }
             }
         }
+    }
+
+    #[Test]
+    public function laravel_exception_handler_is_explicitly_the_http_adapter(): void
+    {
+        $handler = $this->codeOf(base_path('app/Exceptions/Handler.php'));
+
+        $this->assertStringContainsString('App\\Http\\Responses\\ApiResponse', $handler);
+        $this->assertStringContainsString('Illuminate\\Http\\JsonResponse', $handler);
+        $this->assertStringContainsString('renderApiResponse', $handler);
+        $this->assertStringContainsString('ApiResponse::error(', $handler);
     }
 }

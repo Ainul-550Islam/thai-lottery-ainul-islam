@@ -533,10 +533,53 @@ final class AccountServicesPagesTest extends TestCase
             ]);
         $doc = KycDocument::query()->where('user_id', $this->player->id)->firstOrFail();
 
+        $auditsBefore = AuditLog::query()->count();
+
         // Self-review forbidden by canonical service.
-        $this->expectException(\InvalidArgumentException::class);
-        app(KycVerificationService::class)
-            ->reviewDocument($doc, $this->player, true, null);
+        //
+        // THIS IS WRITTEN AS try/catch RATHER THAN expectException, AND THE
+        // REASON IS THE POINT OF THE TEST. `expectException` ends the test at the
+        // throw, so it can only assert THAT the guard fires — never what the
+        // guard prevented. A guard that fires AFTER the write would satisfy
+        // expectException perfectly while the operator had already approved their
+        // own identity document, and both this test and the happy-path tests in
+        // tests/Feature/Security/KycVerificationTest would still be green.
+        //
+        // WHAT IS ASSERTED BELOW IS THE ABSENCE OF SIDE EFFECTS, which is what
+        // four-eyes actually buys: the document is still pending, nobody is
+        // recorded as its verifier, the player's own KYC status is untouched, and
+        // no audit row claims a review happened.
+        try {
+            app(KycVerificationService::class)
+                ->reviewDocument($doc, $this->player, true, null);
+
+            $this->fail('A reviewer approved their own identity document.');
+        } catch (\InvalidArgumentException $e) {
+            $this->assertStringContainsString('Self-review', $e->getMessage());
+        }
+
+        $doc->refresh();
+
+        $this->assertSame(
+            KycStatus::Pending,
+            $doc->status,
+            'a refused self-review must leave the document exactly as it was',
+        );
+        $this->assertNull(
+            $doc->verified_by,
+            'a refused self-review must not record anybody as the verifier',
+        );
+        $this->assertNull($doc->verified_at);
+
+        // The player's aggregate status is the thing a downstream KYC gate reads,
+        // so a refusal that leaked as far as users.kyc_status would be a check
+        // that passes while the account is marked verified.
+        $this->assertFalse($this->player->fresh()->kycStatus()->isVerified());
+
+        // And no audit row was written, because no review took place. An audit
+        // entry for a refused act is not harmless bookkeeping: it is the record a
+        // compliance reviewer would read as evidence that a review happened.
+        $this->assertSame($auditsBefore, AuditLog::query()->count());
     }
 
     // 24

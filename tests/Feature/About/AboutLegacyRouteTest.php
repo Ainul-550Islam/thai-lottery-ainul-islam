@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\About;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 final class AboutLegacyRouteTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_legacy_about_url_redirects_to_the_canonical_about_route(): void
     {
         $this->get('/about.php')

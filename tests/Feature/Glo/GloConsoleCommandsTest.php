@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Glo;
 
+use App\Enums\DrawStatus;
 use App\Models\Draw;
 use App\Services\Lottery\GloL6SalesService;
 use App\Services\Lottery\GloN3SaleService;
@@ -103,6 +104,17 @@ class GloConsoleCommandsTest extends TestCase
 
     public function test_import_result_by_draw_number_success(): void
     {
+        // The shared fixture draw is `result_published`, which is NOT an
+        // ingestible lifecycle state: DrawResultIngestionService::mayIngestIn()
+        // accepts only Closed or Result Pending, precisely so a result cannot be
+        // written over a draw that already published (or settled) it. The
+        // importer now honours that guard instead of writing draw_results
+        // directly, so the draw is moved to the state a real import happens in.
+        $this->draw->update([
+            'status' => DrawStatus::Drawing,
+            'result_published_at' => null,
+        ]);
+
         $this->artisan('glo:import-result', [
             '--draw' => 'GLO-2026-09-16',
             '--json' => true,
@@ -112,6 +124,13 @@ class GloConsoleCommandsTest extends TestCase
             'draw_id' => $this->draw->getKey(),
             'status' => 'imported',
         ]);
+
+        // The import STAGED the result; it published nothing. A second operator
+        // is required to cross that line.
+        $this->assertDatabaseCount('draw_results', 0);
+
+        $stored = $this->draw->fresh()->metadata['result_ingestion'] ?? [];
+        $this->assertSame('pending', $stored['status'] ?? null);
     }
 
     public function test_import_result_missing_draw_fails(): void

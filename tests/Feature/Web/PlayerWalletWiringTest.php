@@ -127,7 +127,7 @@ class PlayerWalletWiringTest extends TestCase
         $this->assertStringContainsString('within 24 hours', $page);
 
         // Configured payout methods.
-        $this->assertStringContainsString('Thai Bank Transfer', $page);
+        $this->assertStringContainsString('Bank transfer', $page);
         $this->assertStringContainsString('bKash', $page);
 
         // The invented "5-15 mins" promise must be gone.
@@ -465,7 +465,8 @@ class PlayerWalletWiringTest extends TestCase
         $page = (string) $this->actingAs($user)->get(route('player.dashboard'))->getContent();
 
         $this->assertStringContainsString('Not scheduled', $page);
-        $this->assertStringContainsString('TBA', $page);
+        $this->assertStringContainsString('Not recorded', $page);
+        $this->assertStringContainsString('—', $page);
 
         // The fabricated fallback strings must be gone.
         $this->assertStringNotContainsString('DRAW-20260916', $page);
