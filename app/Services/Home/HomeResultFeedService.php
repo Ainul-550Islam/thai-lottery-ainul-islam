@@ -23,7 +23,7 @@ class HomeResultFeedService
     public function getLatestResultsFeed(): array
     {
         try {
-            return Cache::remember('home.result_feed.all', 60, function (): array {
+            return Cache::remember('home.result_feed.all.trust-v1', 60, function (): array {
                 $currentGlo = $this->gloHome->currentResultCard();
                 $lanes = $this->laneResults->lanes();
 

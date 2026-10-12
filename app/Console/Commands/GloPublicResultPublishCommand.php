@@ -27,24 +27,20 @@ class GloPublicResultPublishCommand extends Command
         {--draw= : Local draw id or draw_number}
         {--force : Republish the SAME result_version fingerprint only}
         {--actor= : Operator email for audit attribution}
-        {--json : JSON output}
-        {--allow-fixture-in-production : Explicitly accept fixture-sourced publication in production}';
+        {--json : JSON output}';
 
     protected $description = 'Publish only verified GLO result versions into the public projection (never fabricates)';
 
     public function handle(): int
     {
-        // Gate 0 (audit S3): the official-source mode defaults to fixture
-        // for local/test boots. Production must set GLO_OFFICIAL_SOURCE_MODE
-        // explicitly before this command is trusted with the public result
-        // lane; publishing fixture data there requires the explicit
-        // acknowledgement flag, in the command output and in the audit log.
+        // Gate 0: production must be configured for the official source lane.
+        // This is a hard refusal; no CLI acknowledgement can authorize fixture
+        // data to enter the production public-result projection.
         if (config('app.env') === 'production'
-            && (string) config('glo.official_source.mode', 'fixture') === 'fixture'
-            && ! $this->option('allow-fixture-in-production')) {
+            && (string) config('glo.official_source.mode', 'fixture') === 'fixture') {
             $this->error(
                 'GLO_OFFICIAL_SOURCE_MODE is "fixture" — refusing to publish fixture-sourced results in production. '
-                .'Configure the intended official source mode, or pass --allow-fixture-in-production to accept fixture data explicitly.'
+                .'Configure and verify the official source mode; fixture data cannot be authorized for production publication.'
             );
 
             return self::FAILURE;
@@ -84,13 +80,53 @@ class GloPublicResultPublishCommand extends Command
             return self::FAILURE;
         }
 
-        // Gate 2: provenance must exist (import fingerprint or explicit publish hash).
+        // Gate 2: trust only the provenance stamp created by the authoritative
+        // DrawResultPublicationService. An arbitrary non-empty provider label is
+        // not evidence that the row was verified, and missing provenance is not
+        // promoted to official by configuration or by this cache publisher.
         $meta = is_array($result->metadata) ? $result->metadata : [];
         $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
-        $fingerprint = (string) ($lane['import_fingerprint'] ?? $lane['n3_fingerprint'] ?? '');
+        $provenance = is_string($meta['provenance'] ?? null) ? trim($meta['provenance']) : '';
+        $provenanceReference = is_string($meta['provenance_reference'] ?? null)
+            ? trim($meta['provenance_reference'])
+            : '';
+        $provider = is_string($lane['import_provider'] ?? null)
+            ? strtolower(trim($lane['import_provider']))
+            : '';
+        $fingerprint = is_string($lane['import_fingerprint'] ?? null)
+            ? strtolower(trim($lane['import_fingerprint']))
+            : '';
 
-        if ($fingerprint === '') {
-            $this->error('Result has no source fingerprint — refusing to publish unverified data.');
+        if (preg_match('/\\A[a-f0-9]{64}\\z/iD', $fingerprint) !== 1) {
+            $this->error('Result has no valid SHA-256 provider fingerprint — refusing to publish unverified data.');
+
+            return self::FAILURE;
+        }
+
+        if ($provenance === 'fixture') {
+            if ($provider !== 'fixture' || $provenanceReference === '') {
+                $this->error('Fixture provenance does not match the persisted GLO source lane — publication refused.');
+
+                return self::FAILURE;
+            }
+
+            if ((string) config('app.env') === 'production') {
+                $this->error('Fixture provenance is forbidden in production — public-result publication refused.');
+
+                return self::FAILURE;
+            }
+
+            $sourceState = GloSourceState::FixtureOnly;
+        } elseif ($provenance === 'source-verified') {
+            if ($provider !== 'official' || $provenanceReference === '') {
+                $this->error('Verified provenance does not match an official GLO import — publication refused.');
+
+                return self::FAILURE;
+            }
+
+            $sourceState = GloSourceState::OfficialSourceVerified;
+        } else {
+            $this->error('Result provenance is unknown or unsupported — public-result publication refused.');
 
             return self::FAILURE;
         }
@@ -106,10 +142,6 @@ class GloPublicResultPublishCommand extends Command
 
             return self::FAILURE;
         }
-
-        $sourceState = ($lane['import_provider'] ?? '') === 'fixture'
-            ? GloSourceState::FixtureOnly
-            : GloSourceState::OfficialSourceVerified;
 
         $cacheKey = sprintf(
             'glo:public-result:%s:%s:%s',

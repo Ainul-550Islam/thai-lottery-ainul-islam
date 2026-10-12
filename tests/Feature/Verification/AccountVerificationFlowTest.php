@@ -686,8 +686,8 @@ final class AccountVerificationFlowTest extends TestCase
             'country_code' => '+66',
             'mobile' => '812345678',
             'document_type' => 'passport',
-            'document' => UploadedFile::fake()->image('front-passport.jpg', 900, 600),
-            'document_back' => UploadedFile::fake()->image('back-passport.jpg', 900, 600),
+            'document' => $this->fakeImageUpload('front-passport.jpg', 900, 600),
+            'document_back' => $this->fakeImageUpload('back-passport.jpg', 900, 600),
         ], $overrides);
     }
 

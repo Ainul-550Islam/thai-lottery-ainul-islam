@@ -13,6 +13,7 @@ use App\Enums\PayoutStatus;
 use App\Enums\TicketProductStatus;
 use App\Enums\WalletType;
 use App\Enums\WithdrawalStatus;
+use App\Models\AuditLog;
 use App\Models\Bet;
 use App\Models\Draw;
 use App\Models\DrawResult;
@@ -225,6 +226,9 @@ final class Batch7ApiSurfaceTest extends TestCase
                 'source' => 'manual',
             ])
             ->assertStatus(403);
+
+        $this->apiAs($this->token, 'GET', '/api/v1/draws/'.$draw->id.'/result/pending')
+            ->assertStatus(403);
     }
 
     public function test_maker_checker_publish_flow_end_to_end(): void
@@ -234,9 +238,19 @@ final class Batch7ApiSurfaceTest extends TestCase
 
         $staged = $this->apiAs($this->adminToken, 'POST', '/api/v1/draws/'.$draw->id.'/result/ingest', [
                 'first_prize' => '123456',
+                'bottom_two' => '58',
                 'source' => 'manual',
             ]);
         $staged->assertStatus(201);
+
+        // A different authorized checker can inspect the complete Pending
+        // settlement payload before supplying the separate attestation.
+        $review = $this->apiAs($this->admin2Token, 'GET', '/api/v1/draws/'.$draw->id.'/result/pending');
+        $review->assertStatus(200)
+            ->assertJsonPath('data.ingestion.status', DrawConfirmationStatus::Pending->value)
+            ->assertJsonPath('data.ingestion.maker_user_id', $this->admin->id)
+            ->assertJsonPath('data.ingestion.payload.first_prize', '123456')
+            ->assertJsonPath('data.ingestion.payload.bottom_two', '58');
 
         // The UI review screen's view of the lane sees a Pending card.
         $status = app(\App\Services\Draw\DrawResultConfirmationService::class)->statusOf((int) $draw->id);
@@ -245,9 +259,22 @@ final class Batch7ApiSurfaceTest extends TestCase
         // A checker (a different operator) confirms.
         $confirmed = $this->apiAs($this->admin2Token, 'POST', '/api/v1/draws/'.$draw->id.'/result/confirm', [
                 'first_prize' => '123456',
-                'notes' => 'Verified against the physical announcement sheet.',
+                'bottom_two' => '58',
+                'notes' => 'Verified against the physical announcement sheet; api_key=must-not-persist',
             ]);
         $confirmed->assertStatus(200);
+
+        $confirmationAudit = AuditLog::query()
+            ->where('user_id', $this->admin2->id)
+            ->where('auditable_type', Draw::class)
+            ->where('auditable_id', $draw->id)
+            ->latest('id')
+            ->first();
+        $this->assertInstanceOf(AuditLog::class, $confirmationAudit);
+        $this->assertSame(
+            'Verified against the physical announcement sheet; api_key=[redacted]',
+            $confirmationAudit->metadata['confirmation_notes'] ?? null,
+        );
 
         // Only now publication is admitted.
         $published = $this->apiAs($this->adminToken, 'POST', '/api/v1/draws/'.$draw->id.'/result/publish');
@@ -261,6 +288,43 @@ final class Batch7ApiSurfaceTest extends TestCase
         $shown->assertStatus(200)
             ->assertJsonPath('data.result.first_prize', '123456')
             ->assertJsonPath('data.result.publication.shape', 'public');
+    }
+
+    public function test_checker_can_review_complete_provider_payload_and_players_cannot(): void
+    {
+        $draw = Draw::factory()->create(['status' => \App\Enums\DrawStatus::Closed]);
+        app(\App\Services\Draw\DrawLifecycleService::class)->markResultPending($draw);
+
+        app(\App\Services\Draw\DrawResultIngestionService::class)->ingest(
+            (int) $draw->id,
+            [
+                'first_prize' => '123456',
+                'bottom_two' => '58',
+                'second_prize' => ['000111', '000222'],
+                'third_prize' => ['000333', '000444', '000555'],
+                'provider' => 'glo_official',
+                'provider_fingerprint' => str_repeat('a', 64),
+                'upstream_draw_id' => 'GLO-2026-1016',
+                'tiers' => ['last_two' => ['58'], 'last_three' => ['456']],
+                'n3' => ['special' => ['007']],
+            ],
+            'glo_import:glo_official',
+            (int) $this->admin->id,
+        );
+
+        $this->apiAs($this->token, 'GET', '/api/v1/draws/'.$draw->id.'/result/pending')
+            ->assertStatus(403);
+
+        $review = $this->apiAs($this->admin2Token, 'GET', '/api/v1/draws/'.$draw->id.'/result/pending');
+        $review->assertStatus(200)
+            ->assertJsonPath('data.ingestion.maker_user_id', $this->admin->id)
+            ->assertJsonPath('data.ingestion.payload.second_prize.0', '000111')
+            ->assertJsonPath('data.ingestion.payload.second_prize.1', '000222')
+            ->assertJsonPath('data.ingestion.payload.third_prize.2', '000555')
+            ->assertJsonPath('data.ingestion.payload.source_lane.tiers.last_two.0', '58')
+            ->assertJsonPath('data.ingestion.payload.source_lane.n3.special.0', '007')
+            ->assertJsonPath('data.ingestion.payload.source_lane.import_provider', 'glo_official')
+            ->assertJsonPath('data.ingestion.payload.source_lane.upstream_draw_id', 'GLO-2026-1016');
     }
 
     /* ------------------------------------------- PRODUCT CATALOGUE ---- */

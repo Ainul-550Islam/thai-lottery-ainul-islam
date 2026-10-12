@@ -404,7 +404,11 @@ final class MemberAuthParityTest extends TestCase
         $this->assertNotNull($parts);
 
         // Solve and complete a login, then scan every log channel for the
-        // plaintext answer — it must appear nowhere.
+        // plaintext answer — it must appear nowhere. Inspect only bytes written
+        // by this request so an earlier test run's stale stack trace cannot
+        // produce a false positive.
+        $logPath = storage_path('logs/laravel.log');
+        $existingLogSize = is_file($logPath) ? filesize($logPath) : 0;
         [$token, $answer] = $this->solveRenderedChallenge($page);
 
         $this->post(route('login.attempt'), [
@@ -414,8 +418,10 @@ final class MemberAuthParityTest extends TestCase
             'captcha_answer' => $answer,
         ]);
 
-        $logPath = storage_path('logs/laravel.log');
         $logBody = is_file($logPath) ? (string) file_get_contents($logPath) : '';
+        if ($existingLogSize !== false) {
+            $logBody = substr($logBody, $existingLogSize);
+        }
 
         $this->assertStringNotContainsString('Secret123!', $logBody, 'Passwords must never be logged');
 

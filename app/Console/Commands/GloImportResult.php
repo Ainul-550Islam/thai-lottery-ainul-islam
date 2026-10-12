@@ -15,9 +15,8 @@ use Illuminate\Console\Command;
  * provenance. NEVER invents numbers: NOT_CONFIGURED / failed imports are
  * recorded and reported without writing draw_results.
  *
- *   glo:import-result --draw=GLO-…            # by draw_number or id
- *   glo:import-result --latest                # fixture/latest replay
- *   glo:import-result --draw=123 --actor=…    # audit attribution
+ *   glo:import-result --draw=GLO-… --actor=…  # by draw_number or id, with maker attribution
+ *   glo:import-result --latest                # provenance-only if no matching draw; matched draws need --actor
  *   glo:import-result --json
  */
 class GloImportResult extends Command
@@ -70,6 +69,12 @@ class GloImportResult extends Command
         // than the old `result_written`, which recorded a publication that
         // should never have happened from an import.
         $ingestion = $outcome['ingestion'] ?? null;
+        $ingestionPending = is_array($ingestion) && ($ingestion['status'] ?? null) === 'pending';
+        $importedBy = $import->imported_by;
+        $makerId = is_int($importedBy)
+            ? $importedBy
+            : (is_string($importedBy) && ctype_digit($importedBy) ? (int) $importedBy : 0);
+        $makerAttributable = $makerId > 0 && User::query()->whereKey($makerId)->exists();
 
         $report = [
             'import_reference' => $import->import_reference,
@@ -78,8 +83,9 @@ class GloImportResult extends Command
             'mode' => $import->mode,
             'draw_id' => $import->draw_id,
             'draw_result_written' => $outcome['draw_result'] !== null,
-            'pending_confirmation' => is_array($ingestion)
-                && ($ingestion['status'] ?? null) === 'pending',
+            'ingestion_pending' => $ingestionPending,
+            'maker_attributable' => $makerAttributable,
+            'pending_confirmation' => $ingestionPending && $makerAttributable,
             'ingestion_fingerprint' => is_array($ingestion) ? ($ingestion['fingerprint'] ?? null) : null,
             'failure_reason' => $import->failure_reason,
             'first_prize' => $import->payload_summary['first_prize'] ?? null,
@@ -99,8 +105,15 @@ class GloImportResult extends Command
 
             if ($report['pending_confirmation']) {
                 $this->warn(
-                    'Staged as Pending. A DIFFERENT operator must confirm it before it publishes: '
-                    .'php artisan lottery:publish-result --draw='.$import->draw_id.' --confirm'
+                    'Staged as Pending with an attributable maker. A DIFFERENT operator must inspect '
+                    .'/api/v1/draws/'.$import->draw_id.'/result/pending and confirm it. The checker command '
+                    .'requires --operator-id, --confirm, and confirmation notes; it prompts for the two claimed numbers '
+                    .'when they are not supplied: php artisan lottery:publish-result --draw='.$import->draw_id.' --operator-id=<checker-user-id> --confirm'
+                );
+            } elseif ($report['ingestion_pending'] && ! $report['maker_attributable']) {
+                $this->error(
+                    'This Pending card has no attributable maker and CANNOT be confirmed. '
+                    .'Create a new attributable ingestion through the controlled draw-result workflow; do not reuse this card.'
                 );
             }
         }

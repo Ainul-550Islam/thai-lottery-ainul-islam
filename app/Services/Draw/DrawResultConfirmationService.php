@@ -12,6 +12,7 @@ use App\Exceptions\DrawResultException;
 use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -28,13 +29,13 @@ use Illuminate\Support\Facades\DB;
  *        value that disagrees with the stored one is reported as a mismatch
  *        and the confirmation is refused — confirming either version would
  *        attest a falsehood.
- *     3. Publish through DrawResultPublicationService::publish() — the same
- *        validated, transactional path any other publication takes, which
- *        writes draw_results + winning_numbers and moves the lifecycle to
- *        result_published atomically.
- *     4. Write the confirmation stamp (status Confirmed, confirmed_by/at,
- *        linked draw_result id) onto the same draw metadata record, and
- *        supersede any previously Confirmed sibling in history.
+ *     3. Stamp the ingestion Confirmed inside the outer transaction, then
+ *        publish through DrawResultPublicationService::publish(). The writer
+ *        re-reads the locked persisted maker/checker record and provenance,
+ *        writes draw_results + winning_numbers and advances lifecycle atomically.
+ *     4. Link the authoritative draw_result id, supersede any previously
+ *        Confirmed sibling in history, and write the confirmation audit before
+ *        the outer transaction commits.
  *
  *   reject($drawId, $operatorId, $reason):
  *     Marks the Pending record Rejected with the operator's reason; the draw
@@ -63,6 +64,7 @@ class DrawResultConfirmationService
      * and publishing the stored result.
      *
      * @param  array{first_prize: string, bottom_two?: string|null}  $claimed
+     * @param  string|null  $confirmationNotes  Required at operator-facing API/CLI boundaries and stored on the audit row
      *
      * @return array{
      *     draw_id: int,
@@ -76,11 +78,35 @@ class DrawResultConfirmationService
      * @throws DrawResultException
      * @throws DrawLifecycleException
      */
-    public function confirm(int $drawId, int $operatorId, array $claimed): array
-    {
-        return DB::transaction(function () use ($drawId, $operatorId, $claimed): array {
+    public function confirm(
+        int $drawId,
+        mixed $operatorId,
+        array $claimed,
+        ?string $confirmationNotes = null,
+    ): array {
+        $confirmationNotes = $confirmationNotes === null ? null : trim($confirmationNotes);
+
+        if ($confirmationNotes !== null && (mb_strlen($confirmationNotes) < 5 || mb_strlen($confirmationNotes) > 500)) {
+            throw DrawResultException::malformed(
+                'confirmation-notes',
+                'confirmation notes must be between 5 and 500 characters',
+                ['draw_id' => $drawId],
+            );
+        }
+
+        return DB::transaction(function () use ($drawId, $operatorId, $claimed, $confirmationNotes): array {
             $draw = $this->lockedDraw($drawId);
             $record = $this->pendingRecord($draw, throwNotPending: true);
+            $checkerId = $this->persistedOperatorId($operatorId);
+
+            if ($checkerId === null) {
+                throw DrawResultException::confirmationForbidden(
+                    $drawId,
+                    DrawConfirmationStatus::Pending->value,
+                    'confirmed without an attributable persisted checking operator',
+                    ['draw_id' => $drawId, 'operator_id' => $checkerId],
+                );
+            }
 
             // ── FOUR-EYES: THE CONFIRMING OPERATOR MUST NOT BE THE INGESTING ONE.
             //
@@ -101,20 +127,22 @@ class DrawResultConfirmationService
             //      with no operator), same refusal.
             //   3. ingested_by === operator -> the same person in both seats.
             //
-            // This block is also present in P0-GLO-WRITE-BOUNDARY.patch, which
-            // was applied in commit 544d319 and then reverted by the restore
-            // commit f5cec15. It is restored here and gated by a CI assertion so
-            // that a future restore cannot silently remove it again.
-            $ingestedBy = isset($record['ingested_by']) ? (int) $record['ingested_by'] : null;
+            // Regression coverage in tests/Feature/Glo/GloWriteBoundaryTest.php
+            // protects the maker/checker and unattributable-maker refusals.
+            $ingestedBy = $this->persistedOperatorId($record['ingested_by'] ?? null);
 
-            if ($ingestedBy === null || $ingestedBy < 1 || $ingestedBy === $operatorId) {
+            if ($ingestedBy === null || $ingestedBy === $checkerId) {
                 throw DrawResultException::confirmationForbidden(
                     $drawId,
                     DrawConfirmationStatus::Pending->value,
-                    $ingestedBy === $operatorId
+                    $ingestedBy === $checkerId
                         ? 'confirmed by the same operator who ingested it'
                         : 'confirmed without an attributable ingesting operator',
-                    ['draw_id' => $drawId, 'operator_id' => $operatorId],
+                    [
+                        'draw_id' => $drawId,
+                        'operator_id' => $checkerId,
+                        'ingested_by' => $ingestedBy,
+                    ],
                 );
             }
 
@@ -123,66 +151,62 @@ class DrawResultConfirmationService
 
             $this->assertClaimsAgree($draw->getKey(), $stored, $claimedNormalized);
 
-            // Publish via the one true publication path.
-            //
-            // The source lane (optional tier/n3/provider structure carried by a
-            // feed payload) is passed through here and written only now —
-            // AFTER the second operator has attested the canonical numbers.
-            // This is the point the write boundary was designed around: the
-            // importer never writes a draw_results row, so the tier lane cannot
-            // reach settlement or public display without two operators.
-            $sourceLane = is_array($stored['source_lane'] ?? null) ? $stored['source_lane'] : [];
+            // The publisher independently requires a persisted Confirmed state.
+            // Stamp that state inside this outer transaction before the call; no
+            // other transaction can observe it until publication, winning-number
+            // generation, lifecycle advancement and audit have all succeeded.
+            // Any failure rolls this stamp back with the rest of the operation.
+            $stamp = $record;
+            $stamp['status'] = DrawConfirmationStatus::Confirmed->value;
+            $stamp['confirmed_by'] = $checkerId;
+            $stamp['confirmed_at'] = now()->toIso8601String();
+            unset($stamp['draw_result_id']);
 
-            $published = $this->publication->publish(
-                $drawId,
-                [
-                    'first_prize' => (string) $stored['first_prize'],
-                    'bottom_two' => (string) $stored['bottom_two'],
-                ],
-            );
+            $this->writeRecord($draw, $stamp, supersedeConfirmedSiblings: true);
+
+            $publicationInput = [
+                'first_prize' => (string) $stored['first_prize'],
+                'bottom_two' => (string) $stored['bottom_two'],
+            ];
+
+            // Keep official second/third prize lists on the pending card until
+            // this checker act. The publication validator re-validates them and
+            // the sole writer persists their existing DrawResult columns; the
+            // importer itself still cannot write those columns.
+            foreach (['second_prize', 'third_prize'] as $optionalField) {
+                if (array_key_exists($optionalField, $stored)) {
+                    $publicationInput[$optionalField] = $stored[$optionalField];
+                }
+            }
+
+            $published = $this->publication->publish($drawId, $publicationInput);
 
             $drawResultId = isset($published['result']) && $published['result'] instanceof \App\Models\DrawResult
                 ? (int) $published['result']->getKey()
                 : 0;
 
-            // ── SOURCE LANE: written now, by the CONFIRMING act.
-            //
-            // The tier/n3/provider structure a feed carried is merged into the
-            // published row's metadata HERE, not at intake. Two reasons this is
-            // the correct place and the correct writer:
-            //
-            //   1. It is the only moment at which a second operator has attested
-            //      the canonical numbers. Everything downstream that reads this
-            //      lane — public tier display, GloN3TicketChecker — is therefore
-            //      reading data a human verified.
-            //   2. The importer is structurally incapable of reaching this row.
-            //      That is the write boundary: an unattended feed cannot publish,
-            //      and cannot even prepare a publishable lane.
-            //
-            // A merge, not a replacement: publication has already written
-            // `bottom_two`, `first_prize_digits` and `published_by_phase`, and
-            // dropping those would break MarketResultResolver.
-            $this->writeSourceLane($published['result'] ?? null, $sourceLane, $operatorId);
+            if ($drawResultId < 1) {
+                throw DrawResultException::publishRequiresConfirmed(
+                    $drawId,
+                    DrawConfirmationStatus::Confirmed->value,
+                    ['stage' => 'publication_returned_no_result'],
+                );
+            }
 
-            $stamp = $record;
-            $stamp['status'] = DrawConfirmationStatus::Confirmed->value;
-            $stamp['confirmed_by'] = $operatorId;
-            $stamp['confirmed_at'] = now()->toIso8601String();
             $stamp['draw_result_id'] = $drawResultId;
+            $this->writeRecord($draw, $stamp, supersedeConfirmedSiblings: false);
 
-            $this->writeRecord($draw, $stamp, supersedeConfirmedSiblings: true);
-
-            $this->recordAudit($draw, $stamp, $operatorId, sprintf(
+            $this->recordAudit($draw, $stamp, $checkerId, sprintf(
                 'Confirmed and published official result (first prize %s, bottom two %s).',
                 (string) $stored['first_prize'],
                 (string) $stored['bottom_two'],
-            ));
+            ), $confirmationNotes);
 
             return [
                 'draw_id' => $drawId,
                 'status' => DrawConfirmationStatus::Confirmed->value,
                 'draw_result_id' => $drawResultId,
-                'confirmed_by' => $operatorId,
+                'confirmed_by' => $checkerId,
                 'confirmed_at' => $stamp['confirmed_at'],
                 'published' => true,
             ];
@@ -267,6 +291,33 @@ class DrawResultConfirmationService
             'fingerprint' => (string) ($pending['fingerprint'] ?? ''),
             'ingested_at' => (string) ($pending['ingested_at'] ?? ''),
         ];
+    }
+
+    /**
+     * Normalize an operator reference and require that it names a persisted user.
+     *
+     * Numeric strings are accepted for JSON/CLI compatibility; booleans, floats,
+     * null, malformed strings, zero, overflow and unknown user ids fail closed.
+     */
+    private function persistedOperatorId(mixed $candidate): ?int
+    {
+        if (is_int($candidate)) {
+            $id = $candidate > 0 ? $candidate : null;
+        } elseif (is_string($candidate) && preg_match('/\A[0-9]+\z/D', $candidate) === 1) {
+            $normalized = ltrim($candidate, '0');
+            $parsed = $normalized === ''
+                ? false
+                : filter_var($normalized, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $id = is_int($parsed) ? $parsed : null;
+        } else {
+            $id = null;
+        }
+
+        if ($id === null || ! User::query()->whereKey($id)->exists()) {
+            return null;
+        }
+
+        return $id;
     }
 
     /**
@@ -412,87 +463,6 @@ class DrawResultConfirmationService
     }
 
     /**
-     * Merge the optional source lane into a just-published DrawResult.
-     *
-     * WHAT THIS PRESERVES
-     * The tier key that every downstream reader resolves through
-     * config('glo.tiers.metadata_key'), matching the shape the previous
-     * importer-written lane had:
-     *
-     *     metadata[$tierKey] = [
-     *         ...tier lists from the feed...,   // fourth/fifth/front3/last3/last2
-     *         'n3'                => [...],     // present only when the feed had it
-     *         'import_provider'   => 'official' | 'fixture',
-     *         'import_fingerprint'=> <provider fingerprint>,
-     *         'imported_at'       => ISO8601,
-     *     ]
-     *
-     * GloPublicResultService::sourceStateFor() reads `import_provider` and
-     * compares it against the literal strings 'official' and 'fixture' — those
-     * are echoed verbatim from the provider's own name() and are not altered
-     * here, because altering them would silently downgrade an official source to
-     * "internal reconciled" on every public result page.
-     *
-     * NON-MONETARY AND NON-AUTHORITATIVE
-     * Nothing in this lane is read when settlement decides what a bet won:
-     * first_prize and bottom_two live in dedicated columns, and n3 settlement
-     * (GloN3SettlementService) writes its own keys into the same lane under its
-     * own fingerprint. This method therefore merges rather than overwrites, so
-     * it cannot clobber an n3 settlement that has already run.
-     *
-     * @param  mixed  $result  the DrawResult returned by publication, if any
-     * @param  array<string, mixed>  $sourceLane
-     */
-    private function writeSourceLane(mixed $result, array $sourceLane, int $operatorId): void
-    {
-        if (! $result instanceof DrawResult) {
-            // Nothing was published (a publication path that answered without a
-            // row). Refuse to invent one: this method writes to an existing row.
-            return;
-        }
-
-        if ($sourceLane === []) {
-            // A plain operator paste carries no lane. Leave publication's own
-            // metadata exactly as it is.
-            return;
-        }
-
-        $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
-
-        $metadata = is_array($result->metadata) ? $result->metadata : [];
-        $lane = is_array($metadata[$tierKey] ?? null) ? $metadata[$tierKey] : [];
-
-        $tiers = $sourceLane['tiers'] ?? [];
-        if (is_array($tiers)) {
-            $lane = array_merge($lane, $tiers);
-        }
-
-        if (isset($sourceLane['n3']) && is_array($sourceLane['n3'])) {
-            $lane['n3'] = $sourceLane['n3'];
-        }
-
-        if (isset($sourceLane['import_provider'])) {
-            $lane['import_provider'] = (string) $sourceLane['import_provider'];
-        }
-
-        if (isset($sourceLane['import_fingerprint'])) {
-            $lane['import_fingerprint'] = (string) $sourceLane['import_fingerprint'];
-        }
-
-        $lane['imported_at'] = now()->toIso8601String();
-
-        // Attribution: which SECOND operator let this lane onto the row. This is
-        // the value an auditor reads to answer "who vouched for the tier list
-        // the public is looking at".
-        $lane['lane_confirmed_by'] = $operatorId;
-
-        $metadata[$tierKey] = $lane;
-
-        $result->metadata = $metadata;
-        $result->save();
-    }
-
-    /**
      * @param  array<string, mixed>  $stamp
      */
     private function writeRecord(Draw $draw, array $stamp, bool $supersedeConfirmedSiblings): void
@@ -545,7 +515,13 @@ class DrawResultConfirmationService
     /**
      * @param  array<string, mixed>  $stamp
      */
-    private function recordAudit(Draw $draw, array $stamp, int $operatorId, string $description): void
+    private function recordAudit(
+        Draw $draw,
+        array $stamp,
+        int $operatorId,
+        string $description,
+        ?string $confirmationNotes = null,
+    ): void
     {
         $log = new AuditLog();
 
@@ -563,9 +539,32 @@ class DrawResultConfirmationService
                 'fingerprint' => (string) ($stamp['fingerprint'] ?? ''),
                 'draw_result_id' => $stamp['draw_result_id'] ?? null,
                 'rejection_reason' => $stamp['rejection_reason'] ?? null,
+                'confirmation_notes' => $confirmationNotes === null
+                    ? null
+                    : $this->safeConfirmationNotes($confirmationNotes),
             ],
         ]);
 
         $log->save();
+    }
+
+    /**
+     * Keep sensitive credentials out of free-text operator notes in the audit row.
+     */
+    private function safeConfirmationNotes(string $notes): string
+    {
+        $notes = preg_replace(
+            '/\\bauthorization\\s*[:=]\\s*(?:bearer\\s+)?[^\\s,;]+/i',
+            'authorization=[redacted]',
+            $notes,
+        ) ?? $notes;
+
+        $notes = preg_replace(
+            '/\\b(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|secret|password|signature)\\s*[:=]\\s*[^\\s,;]+/i',
+            '$1=[redacted]',
+            $notes,
+        ) ?? $notes;
+
+        return mb_substr($notes, 0, 500);
     }
 }

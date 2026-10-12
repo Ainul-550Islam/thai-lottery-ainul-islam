@@ -6,10 +6,14 @@ namespace App\Services\Draw;
 
 use App\DTOs\DrawResultData;
 use App\DTOs\MarketRuleData;
+use App\Enums\DrawConfirmationStatus;
 use App\Enums\DrawLifecycleState;
 use App\Exceptions\DrawLifecycleException;
+use App\Exceptions\DrawResultException;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Models\GloResultImport;
+use App\Models\User;
 use App\Models\WinningNumber;
 use App\Services\Betting\MarketPayoutService;
 use App\Services\Betting\MarketRuleResolver;
@@ -21,16 +25,20 @@ use Illuminate\Support\Facades\DB;
  * Publishes ONE official result for ONE draw, atomically, exactly once.
  *
  * WHAT A PUBLICATION DOES, ALL OR NOTHING
- *   1. locks the draw row with SELECT ... FOR UPDATE
- *   2. refuses unless the lifecycle state is ResultPending
- *   3. refuses when a draw_results row already exists
- *   4. validates the submitted numbers through DrawResultValidator
- *   5. writes the draw_results row, with the bottom two in its metadata JSON
- *   6. writes one winning_numbers row per configured market
- *   7. moves the draw ResultPending -> ResultPublished
+ *   1. validates the submitted digit strings through DrawResultValidator
+ *   2. locks the draw row with SELECT ... FOR UPDATE
+ *   3. requires a persisted Confirmed ingestion, a valid fingerprint, and distinct
+ *      persisted maker/checker users
+ *   4. derives trusted provenance from the ingestion and matching GLO import row;
+ *      unknown provenance is refused and fixture provenance is refused in production
+ *   5. refuses unless the lifecycle state is ResultPending and no result already exists
+ *   6. writes the draw_results row, including confirmation-bound source metadata
+ *   7. writes one winning_numbers row per configured market
+ *   8. moves the draw ResultPending -> ResultPublished
  *
- * All seven happen inside one database transaction. A failure at any step leaves NO
- * draw_results row, NO winning_numbers rows and the draw still in ResultPending,
+ * All persistence and lifecycle operations happen inside one database transaction;
+ * validation is side-effect-free and runs before it opens. A failure at any write
+ * step leaves NO draw_results row, NO winning_numbers rows and the draw still in ResultPending,
  * which is the "no partial result publication" requirement.
  *
  * DUPLICATE PUBLICATION IS REFUSED THREE TIMES OVER
@@ -102,18 +110,22 @@ class DrawResultPublicationService
         // Validated BEFORE the transaction opens, so a malformed submission never
         // takes a row lock and never holds one while it is rejected. Validation
         // reads nothing from the database.
-        $data = $this->validator->validate($input);
+        $requestedData = $this->validator->validate($input);
 
-        $run = function () use ($drawId, $data): array {
+        $run = function () use ($drawId, $requestedData): array {
             $draw = $this->lifecycle->lockForUpdate($drawId);
+            $ingestion = $this->assertConfirmedIngestion($draw, $requestedData);
+            $data = $this->dataBoundToIngestion($drawId, $ingestion, $requestedData);
+            [$provenance, $provenanceReference] = $this->resolveProvenance($draw, $ingestion);
 
             $this->lifecycle->assertCanPublishResult($draw, [
                 'stage' => 'publication',
+                'provenance' => $provenance,
             ]);
 
             $this->assertNoExistingResult($drawId);
 
-            $result = $this->writeResult($draw, $data);
+            $result = $this->writeResult($draw, $data, $ingestion, $provenance, $provenanceReference);
             $winningNumbers = $this->writeWinningNumbers($draw, $data);
 
             $draw = $this->lifecycle->markResultPublished($draw, [
@@ -224,6 +236,7 @@ class DrawResultPublicationService
     {
         return [
             'result_columns_written' => ['draw_id', 'first_prize', 'published_at', 'metadata'],
+            'optional_result_columns_written_when_present' => ['second_prize', 'third_prize'],
             'result_columns_not_written' => [
                 'total_winners' => 'settlement summary, left at the column default',
                 'total_payout' => 'settlement summary, left at the column default',
@@ -234,6 +247,11 @@ class DrawResultPublicationService
                 $this->bottomTwoMetadataKey(),
             ),
             'winning_numbers_source' => 'config(lottery.markets) via MarketRuleResolver::all()',
+            'publication_gates' => [
+                'confirmation' => 'persisted ingestion must be Confirmed with distinct persisted maker/checker users',
+                'provenance' => 'derived from the persisted source lane and matching GLO import record; unknown is refused',
+                'fixture' => 'refused when app.env is production',
+            ],
             'duplicate_guards' => [
                 'lifecycle' => 'state must be '.DrawLifecycleState::ResultPending->value,
                 'existence' => 'no draw_results row may exist for the draw',
@@ -251,8 +269,11 @@ class DrawResultPublicationService
     public function guarantees(): array
     {
         return [
-            'atomic' => 'The result row, the winning number rows and the state change are one '
-                .'transaction. A failure leaves no partial publication.',
+            'atomic' => 'The confirmed ingestion transition, result row, winning number rows, lifecycle '
+                .'change and confirmation audit share one outer transaction. A failure leaves no partial publication.',
+            'four_eyes' => 'Publication re-reads the locked persisted Confirmed ingestion and requires distinct, existing maker and checker users.',
+            'provenance' => 'Only a matching persisted provider import or an enumerated controlled operator source is accepted; missing and unknown provenance fail closed.',
+            'fixture_environment' => 'Fixture provenance is rejected when app.env is production.',
             'exactly_once' => 'Refused by the lifecycle state, by an existence check under the draw '
                 .'lock, and by database unique keys. No cache is involved.',
             'no_new_columns' => 'The existing draw_results and winning_numbers schema is used as it '
@@ -273,6 +294,311 @@ class DrawResultPublicationService
             'no_leakage' => 'A database unique violation is translated into a domain refusal; the SQL '
                 .'message is kept only as the previous exception and is not surfaced.',
         ];
+    }
+
+    /**
+     * Verify the persisted four-eyes record under the draw lock before publication.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws DrawResultException
+     */
+    private function assertConfirmedIngestion(Draw $draw, DrawResultData $data): array
+    {
+        $drawId = (int) $draw->getKey();
+        $metadata = is_array($draw->metadata) ? $draw->metadata : [];
+        $record = $metadata[DrawResultIngestionService::METADATA_KEY] ?? null;
+
+        if (! is_array($record)) {
+            throw DrawResultException::publishRequiresConfirmed($drawId, 'missing');
+        }
+
+        $status = is_string($record['status'] ?? null) ? $record['status'] : 'unknown';
+
+        if ($status !== DrawConfirmationStatus::Confirmed->value) {
+            throw DrawResultException::publishRequiresConfirmed($drawId, $status);
+        }
+
+        $ingestedBy = $this->persistedUserId($record['ingested_by'] ?? null);
+        $confirmedBy = $this->persistedUserId($record['confirmed_by'] ?? null);
+        $confirmedAt = is_string($record['confirmed_at'] ?? null) ? trim($record['confirmed_at']) : '';
+
+        if ($ingestedBy === null || $confirmedBy === null || $ingestedBy === $confirmedBy) {
+            throw DrawResultException::confirmationForbidden(
+                $drawId,
+                $status,
+                'published without a persisted maker and distinct persisted checker',
+                [
+                    'draw_id' => $drawId,
+                    'ingested_by' => $ingestedBy,
+                    'confirmed_by' => $confirmedBy,
+                ],
+            );
+        }
+
+        if ($confirmedAt === '') {
+            throw DrawResultException::confirmationForbidden(
+                $drawId,
+                $status,
+                'published without a persisted confirmation timestamp',
+                ['draw_id' => $drawId, 'confirmed_by' => $confirmedBy],
+            );
+        }
+
+        $payload = $record['payload'] ?? null;
+        $fingerprint = $record['fingerprint'] ?? null;
+        $expectedFingerprint = is_array($payload)
+            ? DrawResultIngestionService::fingerprintFor($payload)
+            : '';
+
+        if (! is_array($payload)
+            || ! is_string($payload['first_prize'] ?? null)
+            || ! is_string($payload['bottom_two'] ?? null)
+            || $payload['first_prize'] !== $data->firstPrize()
+            || $payload['bottom_two'] !== $data->bottomTwo()
+            || ! is_string($fingerprint)
+            || preg_match('/\A[a-f0-9]{64}\z/iD', $fingerprint) !== 1
+            || ! hash_equals($expectedFingerprint, strtolower($fingerprint))) {
+            throw DrawResultException::malformed(
+                'confirmed-ingestion',
+                'the confirmed payload or its fingerprint does not match the publication payload',
+                ['draw_id' => $drawId],
+            );
+        }
+
+        return $record;
+    }
+
+    /**
+     * Validate and publish optional prize columns only from the confirmed card.
+     *
+     * A recovery caller may submit only first_prize/bottom_two; persisted optional
+     * prizes remain authoritative because the complete card fingerprint covers
+     * them. If a caller does supply an optional column, it must exactly match the
+     * persisted value rather than overriding it.
+     *
+     * @param  array<string, mixed>  $record
+     */
+    private function dataBoundToIngestion(int $drawId, array $record, DrawResultData $requestedData): DrawResultData
+    {
+        $payload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
+        $input = [
+            'first_prize' => (string) ($payload['first_prize'] ?? ''),
+            'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
+        ];
+        $storedOptional = [];
+
+        foreach (['second_prize', 'third_prize'] as $field) {
+            if (array_key_exists($field, $payload)) {
+                $storedOptional[$field] = $payload[$field];
+            }
+        }
+
+        foreach ($requestedData->optionalPrizes() as $field => $value) {
+            if (! array_key_exists($field, $storedOptional)
+                || $storedOptional[$field] !== $value) {
+                throw DrawResultException::malformed(
+                    'confirmed-ingestion',
+                    sprintf('publication field [%s] does not match the persisted confirmed payload', $field),
+                    ['draw_id' => $drawId, 'field' => $field],
+                );
+            }
+        }
+
+        return $this->validator->validate($input + $storedOptional);
+    }
+
+    /**
+     * Resolve trusted provenance from the persisted ingestion and GLO import row.
+     * Caller-provided provenance is never consulted.
+     *
+     * @param  array<string, mixed>  $record
+     * @return array{0: string, 1: string}
+     *
+     * @throws DrawResultException
+     */
+    private function resolveProvenance(Draw $draw, array $record): array
+    {
+        $drawId = (int) $draw->getKey();
+        $source = is_string($record['source'] ?? null) ? trim($record['source']) : '';
+        $payload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
+        $sourceLane = is_array($payload['source_lane'] ?? null) ? $payload['source_lane'] : [];
+        $provenance = 'unknown';
+        $reference = '';
+
+        if (str_starts_with($source, 'glo_import:')) {
+            $provider = is_string($sourceLane['import_provider'] ?? null)
+                ? strtolower(trim($sourceLane['import_provider']))
+                : '';
+            $providerFingerprint = is_string($sourceLane['import_fingerprint'] ?? null)
+                ? strtolower(trim($sourceLane['import_fingerprint']))
+                : '';
+            $sourceProvider = substr($source, strlen('glo_import:'));
+
+            if ($provider === ''
+                || $sourceProvider !== $provider
+                || preg_match('/\A[a-f0-9]{64}\z/iD', $providerFingerprint) !== 1) {
+                throw DrawResultException::provenanceForbidden(
+                    $drawId,
+                    'unknown',
+                    'provider provenance is missing or does not match the ingestion source',
+                    ['draw_id' => $drawId],
+                );
+            }
+
+            $import = GloResultImport::query()
+                ->where('draw_id', $drawId)
+                ->where('provider', $provider)
+                ->where('result_fingerprint', $providerFingerprint)
+                ->where('status', 'imported')
+                ->first();
+
+            $makerId = $this->persistedUserId($record['ingested_by'] ?? null);
+            $importerId = $import instanceof GloResultImport
+                ? $this->persistedUserId($import->imported_by)
+                : null;
+
+            if (! $import instanceof GloResultImport || $makerId === null || $importerId !== $makerId) {
+                throw DrawResultException::provenanceForbidden(
+                    $drawId,
+                    'unknown',
+                    'the successful provider import cannot be tied to the persisted ingestion maker',
+                    ['draw_id' => $drawId],
+                );
+            }
+
+            $upstreamDrawId = is_string($sourceLane['upstream_draw_id'] ?? null)
+                ? trim($sourceLane['upstream_draw_id'])
+                : '';
+            $storedImportDrawId = is_string($import->upstream_draw_id)
+                ? trim($import->upstream_draw_id)
+                : '';
+            $acceptedDrawIds = array_values(array_filter([
+                is_string($draw->draw_number) ? trim($draw->draw_number) : '',
+                is_string($draw->uuid) ? trim($draw->uuid) : '',
+            ], static fn (string $value): bool => $value !== ''));
+
+            if ($upstreamDrawId === ''
+                || $upstreamDrawId !== $storedImportDrawId
+                || ! in_array($upstreamDrawId, $acceptedDrawIds, true)) {
+                throw DrawResultException::provenanceForbidden(
+                    $drawId,
+                    'unknown',
+                    'the provider result identity does not match this local draw',
+                    ['draw_id' => $drawId],
+                );
+            }
+
+            $expectedProviderFingerprint = $this->providerFingerprintFor($payload, $sourceLane, $upstreamDrawId);
+
+            if (! hash_equals($providerFingerprint, $expectedProviderFingerprint)) {
+                throw DrawResultException::provenanceForbidden(
+                    $drawId,
+                    'unknown',
+                    'the provider fingerprint does not match the staged prize payload',
+                    ['draw_id' => $drawId],
+                );
+            }
+
+            $summary = is_array($import->payload_summary) ? $import->payload_summary : [];
+
+            if (($summary['first_prize'] ?? null) !== ($payload['first_prize'] ?? null)
+                || ($summary['bottom_two'] ?? null) !== ($payload['bottom_two'] ?? null)) {
+                throw DrawResultException::provenanceForbidden(
+                    $drawId,
+                    'unknown',
+                    'the imported summary does not match the confirmed primary prize values',
+                    ['draw_id' => $drawId],
+                );
+            }
+
+            if ($provider === 'official' && (string) $import->mode === 'official') {
+                $provenance = 'source-verified';
+                $reference = (string) $import->import_reference;
+            } elseif ($provider === 'fixture') {
+                $provenance = 'fixture';
+                $reference = (string) $import->import_reference;
+            }
+        } elseif ($sourceLane === []
+            && ! array_key_exists('second_prize', $payload)
+            && ! array_key_exists('third_prize', $payload)
+            && in_array(strtolower($source), [
+                'admin-panel',
+                'admin_entry',
+                'correction',
+                'feed',
+                'glo_feed',
+                'internal',
+                'manual',
+                'operator',
+                'operator-cli',
+            ], true)
+        ) {
+            $provenance = 'source-known';
+            $reference = $source;
+        }
+
+        if ($provenance === 'unknown') {
+            throw DrawResultException::provenanceForbidden(
+                $drawId,
+                'unknown',
+                'the persisted source is not in the trusted provenance registry',
+                ['draw_id' => $drawId],
+            );
+        }
+
+        if ($provenance === 'fixture' && (string) $this->config->get('app.env', 'production') === 'production') {
+            throw DrawResultException::provenanceForbidden(
+                $drawId,
+                'fixture',
+                'fixture provenance is forbidden in production',
+                ['draw_id' => $drawId],
+            );
+        }
+
+        return [$provenance, $reference];
+    }
+
+    /**
+     * Recompute the official provider digest from the exact values staged for
+     * confirmation. This proves that the import fingerprint covers the same
+     * prize lists, tiers, n3 values, and draw identity that would be published.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $sourceLane
+     */
+    private function providerFingerprintFor(array $payload, array $sourceLane, string $upstreamDrawId): string
+    {
+        $canonical = [
+            $upstreamDrawId,
+            (string) ($payload['first_prize'] ?? ''),
+            is_array($payload['second_prize'] ?? null) ? array_values($payload['second_prize']) : [],
+            is_array($payload['third_prize'] ?? null) ? array_values($payload['third_prize']) : [],
+            is_array($sourceLane['n3'] ?? null) ? $sourceLane['n3'] : [],
+            is_array($sourceLane['tiers'] ?? null) ? $sourceLane['tiers'] : [],
+        ];
+
+        return hash('sha256', json_encode($canonical, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * Accept a persisted user id represented as an integer or JSON numeric string.
+     */
+    private function persistedUserId(mixed $candidate): ?int
+    {
+        if (is_int($candidate)) {
+            $id = $candidate > 0 ? $candidate : null;
+        } elseif (is_string($candidate) && preg_match('/\A[0-9]+\z/D', $candidate) === 1) {
+            $normalized = ltrim($candidate, '0');
+            $parsed = $normalized === ''
+                ? false
+                : filter_var($normalized, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $id = is_int($parsed) ? $parsed : null;
+        } else {
+            $id = null;
+        }
+
+        return $id !== null && User::query()->whereKey($id)->exists() ? $id : null;
     }
 
     /**
@@ -303,10 +629,68 @@ class DrawResultPublicationService
     }
 
     /**
-     * Write the draw_results row.
+     * Write the draw_results row and its confirmation-bound provenance metadata.
+     *
+     * This remains the only code path that mutates an authoritative DrawResult.
+     * Provider-controlled tier data is copied only from the persisted confirmed
+     * ingestion and is stamped with the persisted checker identity here.
+     *
+     * @param  array<string, mixed>  $record
      */
-    private function writeResult(Draw $draw, DrawResultData $data): DrawResult
-    {
+    private function writeResult(
+        Draw $draw,
+        DrawResultData $data,
+        array $record,
+        string $provenance,
+        string $provenanceReference,
+    ): DrawResult {
+        $recordPayload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
+        $sourceLane = is_array($recordPayload['source_lane'] ?? null) ? $recordPayload['source_lane'] : [];
+        $metadata = [
+            'provenance' => $provenance,
+            'provenance_reference' => $provenanceReference,
+            'four_eyes' => [
+                'ingested_by' => $record['ingested_by'],
+                'confirmed_by' => $record['confirmed_by'],
+                'ingestion_fingerprint' => (string) $record['fingerprint'],
+            ],
+        ];
+
+        if ($sourceLane !== []) {
+            $tierKey = (string) $this->config->get('glo.tiers.metadata_key', 'glo');
+            $lane = [];
+            $tiers = is_array($sourceLane['tiers'] ?? null) ? $sourceLane['tiers'] : [];
+
+            foreach ($tiers as $key => $values) {
+                if (is_string($key) && is_array($values)) {
+                    $lane[$key] = array_values($values);
+                }
+            }
+
+            if (is_array($sourceLane['n3'] ?? null)) {
+                $lane['n3'] = $sourceLane['n3'];
+            }
+
+            $provider = is_string($sourceLane['import_provider'] ?? null)
+                ? strtolower(trim($sourceLane['import_provider']))
+                : null;
+            $providerFingerprint = is_string($sourceLane['import_fingerprint'] ?? null)
+                ? strtolower(trim($sourceLane['import_fingerprint']))
+                : null;
+
+            if ($provider !== null) {
+                $lane['import_provider'] = $provider;
+            }
+
+            if ($providerFingerprint !== null) {
+                $lane['import_fingerprint'] = $providerFingerprint;
+            }
+
+            $lane['imported_at'] = (string) ($record['ingested_at'] ?? now()->toIso8601String());
+            $lane['lane_confirmed_by'] = (int) $record['confirmed_by'];
+            $metadata[$tierKey] = $lane;
+        }
+
         $result = new DrawResult();
 
         $result->fill($data->toResultColumns() + [
@@ -315,7 +699,7 @@ class DrawResultPublicationService
             // to read an unpublished result while
             // config('lottery.payouts.require_published_result') is true, which it is.
             'published_at' => now(),
-            'metadata' => $data->metadataPayload($this->bottomTwoMetadataKey()),
+            'metadata' => $data->metadataPayload($this->bottomTwoMetadataKey(), $metadata),
         ]);
 
         $result->save();
@@ -439,12 +823,12 @@ class DrawResultPublicationService
     /**
      * Whether a query failure is a unique constraint violation.
      *
-     * Matched on the SQLSTATE class, which is 23000 for an integrity constraint
-     * violation in both MariaDB and SQLite, so the check does not depend on a vendor
-     * specific error number.
+     * Match the SQLSTATE values used by supported drivers: 23000 for integrity
+     * constraint violations in MariaDB/SQLite and 23505 for PostgreSQL unique
+     * violations. No vendor-specific numeric error code is required.
      */
     private function isUniqueViolation(QueryException $exception): bool
     {
-        return $exception->getCode() === '23000' || $exception->getCode() === 23000;
+        return in_array((string) $exception->getCode(), ['23000', '23505'], true);
     }
 }
