@@ -28,7 +28,6 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use Tests\Feature\Glo\Concerns\CreatesTrustedGloResult;
 use Tests\TestCase;
 
 /**
@@ -37,7 +36,6 @@ use Tests\TestCase;
  */
 class GloDealerAndNotificationIntegrationTest extends TestCase
 {
-    use CreatesTrustedGloResult;
     use DatabaseTruncation;
 
     private User $dealerUser;
@@ -117,27 +115,13 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
         // 4. Result publishes on a parallel draw path: reassign association for
         //    notification by planting a saved ticket on the result draw (post-draw
         //    save is forbidden — this models the same ticket that was saved pre-draw).
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
         DrawResult::create([
             'draw_id' => $this->resultDraw->getKey(),
             'first_prize' => '042042',
             'second_prize' => [],
             'third_prize' => [],
             'published_at' => now(),
-            'metadata' => $this->trustedFixtureResultMetadata(
-                $this->resultDraw,
-                $maker,
-                $checker,
-                '042042',
-                '58',
-                [],
-                [],
-                [],
-                [],
-                'glo-integration-result-1',
-                str_repeat('a', 64),
-            ),
+            'metadata' => ['glo' => ['import_fingerprint' => 'fp-integration-1', 'import_provider' => 'fixture']],
         ]);
 
         $resultTicket = Ticket::create([
@@ -167,7 +151,7 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
         $this->assertSame(1, $first['notified']);
         $this->assertSame(1, $second['replayed']);
         $this->assertSame(1, GloNotificationDelivery::query()->count());
-        $this->assertSame(str_repeat('a', 64), $first['result_version']);
+        $this->assertSame('fp-integration-1', $first['result_version']);
 
         // 6. Audit trail exists for location, request, notification.
         $this->assertDatabaseHas('audit_logs', ['description' => 'glo_daily_sales_location_updated']);

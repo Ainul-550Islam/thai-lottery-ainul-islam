@@ -34,7 +34,6 @@ use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use Tests\Feature\Glo\Concerns\CreatesTrustedGloResult;
 use Tests\TestCase;
 
 /**
@@ -48,7 +47,6 @@ use Tests\TestCase;
  */
 class GloFreezeClaimSettlementIntegrationTest extends TestCase
 {
-    use CreatesTrustedGloResult;
     use DatabaseTruncation;
 
     private GloTicketFreezeService $freezes;
@@ -97,8 +95,6 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
             'completed_at' => now()->subDays(7),
         ]);
 
-        $resultMaker = User::factory()->create();
-        $resultChecker = User::factory()->create();
         DrawResult::create([
             'draw_id' => $this->draw->id,
             'first_prize' => $this->ticketNumber,
@@ -110,15 +106,7 @@ class GloFreezeClaimSettlementIntegrationTest extends TestCase
             'total_payout' => '6200000.00',
             'house_profit' => '0.00',
             'published_at' => now()->subDays(7),
-            'metadata' => $this->trustedFixtureResultMetadata(
-                $this->draw,
-                $resultMaker,
-                $resultChecker,
-                $this->ticketNumber,
-                '42',
-                ['202020'],
-                ['303030'],
-            ),
+            'metadata' => ['glo' => []],
         ]);
 
         $this->ticket = GloTicket::create([

@@ -1,0 +1,102 @@
+
+   PASS  Tests\Feature\BusinessCriticalInvariantTest
+  ✓ invariant 1 idempotent webhook processing                                                                                                                                                                                                      4.06s  
+  ✓ invariant 2 withdrawal disbursement terminal state safety                                                                                                                                                                                      0.09s  
+  ✓ invariant 3 financial reconciliation engine auditing                                                                                                                                                                                           0.09s  
+  ✓ invariant 4 wallet ledger balance consistency                                                                                                                                                                                                  0.09s  
+  ✓ invariant 5 winner notification requires completed settlement                                                                                                                                                                                  0.08s  
+  ✓ invariant 6 rate limiter ceilings registered                                                                                                                                                                                                   0.07s  
+  ✓ invariant 7 csrf exemptions contain only webhook routes                                                                                                                                                                                        0.08s  
+  ✓ invariant 8 unauthenticated request handling                                                                                                                                                                                                   0.09s  
+  ✓ invariant 9 kyc document upload security                                                                                                                                                                                                       0.08s  
+  ✓ invariant 10 agent commission settlement idempotency                                                                                                                                                                                           0.09s  
+  ✓ invariant 11 agent commission cancellation for suspended agent                                                                                                                                                                                 0.08s  
+  ✓ invariant 12 aml risk deterministic scoring and immutability                                                                                                                                                                                   0.08s  
+  ✓ invariant 13 self exclusion lifecycle                                                                                                                                                                                                          0.08s  
+  ✓ invariant 14 bet slip minor unit arithmetic                                                                                                                                                                                                    0.07s  
+  ✓ invariant 15 multi currency wallet isolation                                                                                                                                                                                                   0.09s  
+
+   FAIL  Tests\Feature\RealMoneyBusinessReadinessTest
+  ⨯ glo l6 proportional prize calculation and stamp duty                                                                                                                                                                                           0.10s  
+  ⨯ glo prize claim lifecycle and approval                                                                                                                                                                                                         0.09s  
+  ✓ multi currency wallet reservation and consumption                                                                                                                                                                                              0.11s  
+  ✓ financial reconciliation engine runs without anomalies                                                                                                                                                                                         0.10s  
+  ✓ payment gateway manager capabilities                                                                                                                                                                                                           0.09s  
+  ⨯ withdrawal disbursement failure restores balance                                                                                                                                                                                               0.11s  
+  ✓ responsible gaming limits decrease immediate and increase cooling off                                                                                                                                                                          0.09s  
+  ⨯ bulk bet slip cart partial success and replay idempotency                                                                                                                                                                                      0.10s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\RealMoneyBusinessReadinessTest > glo l6 proportional prize calculation and stamp duty                                                                                                                                    Error   
+  Call to undefined method App\Services\Lottery\GloStampDutyCalculator::calculateDuty()
+
+  at tests/Feature/RealMoneyBusinessReadinessTest.php:67
+     63▕         $firstPrize = $prizes[GloPrizeTier::First->value];
+     64▕         $this->assertEquals('6000000.00', $firstPrize['amount']);
+     65▕ 
+     66▕         // Stamp duty calculation: 0.5% (1 THB per 200 THB)
+  ➜  67▕         $taxReport = $stampDuty->calculateDuty('6000000.00');
+     68▕         $this->assertEquals('30000.00', $taxReport->stampDutyThb);
+     69▕         $this->assertEquals('5970000.00', $taxReport->netPayoutThb);
+     70▕         $this->assertTrue($taxReport->isIncomeTaxExempt);
+     71▕     }
+
+  1   tests/Feature/RealMoneyBusinessReadinessTest.php:67
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\RealMoneyBusinessReadinessTest > glo prize claim lifecycle and approval                                                                                                                                                  Error   
+  Call to undefined method App\Services\Lottery\GloPrizeClaimService::approveClaim()
+
+  at tests/Feature/RealMoneyBusinessReadinessTest.php:98
+     94▕ 
+     95▕         $this->assertEquals(GloClaimStatus::Pending->value, $claim->claim_status);
+     96▕ 
+     97▕         // Approve claim
+  ➜  98▕         $approved = $claimService->approveClaim($claim->id, 'Officer note: Verified authentic ticket');
+     99▕         $this->assertEquals(GloClaimStatus::Approved->value, $approved->claim_status);
+    100▕         $this->assertNotNull($approved->approved_at);
+    101▕     }
+    102▕
+
+  1   tests/Feature/RealMoneyBusinessReadinessTest.php:98
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\RealMoneyBusinessReadinessTest > withdrawal disbursement failure restores balance                                                                                                                                        Error   
+  Call to undefined method App\Services\Payment\WithdrawalDisbursementService::rejectWithdrawal()
+
+  at tests/Feature/RealMoneyBusinessReadinessTest.php:199
+    195▕         $walletService->debit($wallet->id, '200.00', 'Withdrawal pending');
+    196▕         $this->assertEquals('300.00', $wallet->fresh()->balance);
+    197▕ 
+    198▕         // Fail withdrawal and ensure funds are refunded
+  ➜ 199▕         $disbursementService->rejectWithdrawal($withdrawal->id, 'Invalid bank account number');
+    200▕ 
+    201▕         // The model casts this column to the enum, so the enum is the comparable form.
+    202▕         $this->assertEquals(WithdrawalStatus::Failed, $withdrawal->fresh()->status);
+    203▕         $this->assertEquals('500.00', $wallet->fresh()->balance);
+
+  1   tests/Feature/RealMoneyBusinessReadinessTest.php:199
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\RealMoneyBusinessReadinessTest > bulk bet slip cart partial success and replay idempotency                                                                                                                                       
+  Failed asserting that two strings are equal.
+  -'100.00'
+  +'0.00'
+  
+
+  at tests/Feature/RealMoneyBusinessReadinessTest.php:258
+    254▕         ];
+    255▕ 
+    256▕         // Quote
+    257▕         $quote = $bulkBetService->quote($draw->id, $selections);
+  ➜ 258▕         $this->assertEquals('100.00', $quote->totalStake);
+    259▕         $this->assertCount(2, $quote->items);
+    260▕ 
+    261▕         // Purchase with idempotency key
+    262▕         $clientKey = 'SLIP-' . uniqid();
+
+  1   tests/Feature/RealMoneyBusinessReadinessTest.php:258
+
+
+  Tests:    4 failed, 19 passed (70 assertions)
+  Duration: 6.07s
+

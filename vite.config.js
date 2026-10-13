@@ -41,6 +41,8 @@ export default defineConfig({
                 'resources/css/thai-lottery-betting.css',
                 'resources/css/player-dashboard.css',
                 'resources/css/wallet-management.css',
+                // Cash <-> Win conversion lane (member page, quote form, detail page).
+                'resources/css/wallet-conversion.css',
                 'resources/css/deposit-portal.css',
                 'resources/css/withdrawal-portal.css',
                 'resources/css/player-profile.css',
@@ -59,6 +61,8 @@ export default defineConfig({
         'resources/js/thai-lottery-betting.js',
         'resources/js/player-dashboard.js',
         'resources/js/wallet-management.js',
+        // Conversion page: idempotency key, server-priced preview, quote countdown.
+        'resources/js/wallet-conversion.js',
         'resources/js/deposit-portal.js',
         'resources/js/withdrawal-portal.js',
         'resources/js/player-profile.js',

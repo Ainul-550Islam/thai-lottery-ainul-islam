@@ -1,0 +1,1978 @@
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest
+  ⨯ journey one a member moves money out of cash into win and back agai… 2.84s  
+  ⨯ journey two a brand new member converts for the very first time      0.19s  
+  ✓ journey three a double tap on convert moves the money once           0.15s  
+  ✓ journey four a member who cannot afford it is told and nothing move… 0.14s  
+  ⨯ journey five a stale price cannot be used to move money at yesterda… 0.15s  
+  ⨯ journey six an operator reverses a mistake and the money comes home  0.22s  
+  ⨯ journey seven the lane closes mid journey and the member keeps thei… 0.16s  
+  ⨯ journey eight the members daily allowance runs out and is reported…  0.21s  
+  ✓ journey nine a members conversions are theirs alone                  0.20s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionAccessControlTest
+  ✓ a member may read their own conversion                               0.15s  
+  ✓ a member may not read another members conversion                     0.15s  
+  ✓ an operator with the history permission may read any conversion      0.16s  
+  ✓ nobody may edit or delete a conversion row                           0.18s  
+  ✓ only an operator may reverse                                         0.19s  
+  ✓ an operator who cannot log in is refused even with the role          0.18s  
+  ✓ a guest is refused by the gate before the policy is consulted        0.17s  
+  ✓ the lane middleware answers 503 with a retry hint when conversions…  0.12s  
+  ✓ the lane middleware lets a request through while conversions are on  0.11s  
+  ✓ the idempotency middleware normalises a header key onto the request  0.10s  
+  ✓ the idempotency middleware never generates a key of its own          0.09s  
+  ✓ a read only request without a key is never blocked                   0.09s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest
+  ✓ the navigation offers the conversion screen to the roles that may r… 0.12s  
+  ✓ a member with no operator permissions cannot open the screen         0.11s  
+  ✓ a role that may not read finance is offered nothing                  0.13s  
+  ⨯ the screen is read only by construction                              0.14s  
+  ✓ the form schema is empty so no future page can inherit a writable f… 0.12s  
+  ✓ there is one page and it is the list                                 0.09s  
+  ✓ the list renders and shows every conversion regardless of channel    0.27s  
+  ✓ the list offers exactly the view action and no bulk actions          0.21s  
+  ⨯ the list filters by direction status and reversals                   0.17s  
+  ✓ the directory badge counts only work that is still moving            0.22s  
+  ✓ the volume widget reports todays completed movement and its fee      0.23s  
+  ✓ the volume widget leaves a refused conversion out of the volume      0.22s  
+  ⨯ the volume widget turns the settlement figure red only when somethi… 0.21s  
+  ⨯ the widget figures are counted in the operators timezone day not ut… 0.20s  
+  ✓ the widget sums money as strings so no artefact reaches the dashboa… 0.26s  
+  ✓ the detail modal shows the evidence an operator would ask for        0.21s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionApiContractTest
+  ✓ a quote is created with 201 and returns the price                    0.17s  
+  ✓ executing returns 201 and the movement                               0.18s  
+  ✓ a retry answers 200 with the original and says it replayed           0.25s  
+  ✓ a missing idempotency key is a 422 and not a 500                     0.20s  
+  ✓ a refusal is reported with a code a client can switch on             0.19s  
+  ✓ the history endpoint pages and scopes to the caller                  0.28s  
+  ✓ reading someone elses conversion is a 404 not a 403                  0.27s  
+  ✓ the summary endpoint reports the members own figures                 0.34s  
+  ✓ a reversal by a member is refused and by an operator is allowed      0.25s  
+  ✓ an operator reversing outside the window is told it is a timing pro… 0.24s  
+  ✓ a short reason is rejected with a field error                        0.22s  
+  ✓ the client cannot dictate anything the server decides                0.14s  
+  ✓ a guest gets 401 rather than a redirect on the api lane              0.13s  
+  ✓ the rate limiter protects the pricing endpoint                       0.14s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionAssetContractTest
+  ✓ both assets are registered with vite                                 0.15s  
+  ✓ both assets are present in the built manifest                        0.12s  
+  ✓ the views pull in the assets they need                               0.09s  
+  ✓ the stylesheet defines every class the views ask for                 0.12s  
+  ✓ the stylesheet styles the three figures a member must not confuse    0.12s  
+  ✓ the script never does arithmetic on money                            0.12s  
+  ✓ the script generates a key only where the platform can prove it is…  0.14s  
+  ✓ the script refuses to submit without a key instead of inventing a w… 0.13s  
+  ✓ the script reuses the key that is already on the form                0.12s  
+  ✓ the script degrades when the preview cannot be reached               0.14s  
+  ✓ the stylesheet respects a member who has asked for less motion       0.13s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionAuditTrailTest
+  ⨯ a completed conversion writes both trails                            0.20s  
+  ⨯ a refusal is audited even though no conversion row exists            0.21s  
+  ✓ the audit row records where the request came from                    0.21s  
+  ✓ an operator doing something on a members behalf is recorded as the…  0.19s  
+  ⨯ a reversal is audited at medium risk and names both conversions      0.20s  
+  ⨯ a quote is recorded when it is issued                                0.14s  
+  ✓ the audit row can reconstruct the conversion by itself               0.14s  
+  ✓ the timeline of a refused then accepted attempt reads in order       0.17s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionCommandTest
+  ✓ the status command reports the lane                                  0.22s  
+  ✓ the status command names both directions and their rates             0.15s  
+  ✓ the status command emits json when asked                             0.16s  
+  ✓ the expiry command dry run changes nothing                           0.16s  
+  ✓ the expiry command sweeps what is late and says how much             0.15s  
+  ✓ the expiry command is a no op when there is nothing to sweep         0.14s  
+  ✓ the expiry command stays out of the way when the lane is closed      0.14s  
+  ⨯ the reconcile command passes on a healthy ledger                     0.20s  
+  ⨯ the reconcile command fails loudly when a conversion disagrees       0.18s  
+  ⨯ the reconcile command changes nothing even when it finds a problem   0.17s  
+  ✓ the reconcile command can be queued instead of run                   0.12s  
+  ⨯ the reconcile command emits json for monitoring                      0.15s  
+  ✓ every command in the lane is registered and discoverable             0.13s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest
+  ⨯ a conversion announces that it was requested and then completed      0.14s  
+  ✓ a replayed conversion is not announced as new demand                 0.16s  
+  ⨯ a refusal is announced with the code the member was given            0.14s  
+  ⨯ a failure inside the transaction is announced too                    0.13s  
+  ⨯ a reversal is announced with both references                         0.20s  
+  ⨯ every event has somebody listening                                   0.13s  
+  ⨯ the metrics listener counts what it receives                         0.13s  
+  ⨯ the refusal counter is keyed by reason                               0.13s  
+  ⨯ an operator fault refusal alerts on its first occurrence             0.12s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionFeatureContractTest
+  ✓ both directions are offered and each carries its own switch          0.11s  
+  ✓ the fee is one percent each way and the page charges what it publis… 0.09s  
+  ✓ the fee is taken from the source so the member knows costs before m… 0.15s  
+  ✓ the amount envelope is published and enforced                        0.13s  
+  ⨯ the daily and monthly allowances are published and enforced at pric… 0.21s  
+  ✓ a price is held for two minutes and a conversion cannot execute wit… 0.13s  
+  ✓ every execution must carry an idempotency key long enough to be unp… 0.14s  
+  ✓ identity is required and self exclusion overrides everything         0.12s  
+  ⨯ a reversal is operator only and bounded by a twenty four hour windo… 0.14s  
+  ⨯ the two wallets share one currency and a conversion never crosses m… 0.13s  
+  ⨯ the money is double entered into named accounts that an auditor can… 0.14s  
+  ✓ the public fee page and the engine read the same rule                0.14s  
+  ⨯ the reversal returns the original fee because an undo may not itsel… 0.17s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionFeatureTest
+  ✓ a guest is sent to sign in rather than shown a conversion form       0.13s  
+  ✓ the web quote form is told the engines own numbers before anything…  0.11s  
+  ✓ a web execution without an idempotency key moves no money            0.12s  
+  ✓ the api refuses a money moving call that carries no key              0.12s  
+  ✓ the api creates a conversion and answers a retry with the first one  0.14s  
+  ✓ one member can never read another members conversion                 0.17s  
+  ✓ a member cannot reverse and an operator can                          0.19s  
+  ✓ every entry written by the lane leaves the ledger balanced           0.18s  
+  ✓ a member without the money is refused and nothing is written         0.13s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionFeeParityTest
+  ✓ the public page and the engine publish the same rate for both direc… 0.10s  
+  ✓ one percent means one thb on a hundred thb conversion                0.10s  
+  ✓ the engine charges exactly what the breakdown promised               0.15s  
+  ✓ the rule version is recorded so a later price change cannot rewrite… 0.18s  
+  ✓ an unreadable live value falls back to the published row not to zer… 0.12s  
+  ✓ a row with no price at all is refused rather than treated as free    0.10s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionHistoryTest
+  ✓ a member sees their own movements in the order they happened         0.20s  
+  ✓ a member can never see another members rows                          0.17s  
+  ✓ the statement filters by direction                                   0.18s  
+  ✓ the statement filters by status                                      0.15s  
+  ✓ the statement pages rather than truncating                           0.32s  
+  ✓ the page size is clamped so a member cannot ask for everything       0.13s  
+  ✓ the summary counts each outcome separately                           0.19s  
+  ✓ the audit timeline tells the story of one conversion                 0.16s  
+  ✓ refusals are counted by reason for the operations dashboard          0.14s  
+  ✓ an empty statement is empty rather than an error                     0.11s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionIdempotencyTest
+  ✓ the same key returns the first conversion and moves no money         0.14s  
+  ✓ a replay writes no second set of ledger rows                         0.17s  
+  ✓ a different key is a different conversion                            0.18s  
+  ✓ the same key with a different amount is refused as a conflict        0.16s  
+  ✓ a key shorter than the minimum is refused                            0.12s  
+  ✓ two members may use the same key without colliding                   0.18s  
+  ✓ a replay after a reversal still returns the reversal era row         0.18s  
+  ✓ the key is never stored in plain text where a page could leak it     0.15s  
+  ✓ the quote is released by a replay rather than consumed twice         0.16s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionJobTest
+  ✓ the expiry job expires the late and reports how many                 0.13s  
+  ✓ the expiry job is safe to run when there is nothing to do            0.10s  
+  ⨯ running the expiry job twice expires nothing the second time         0.11s  
+  ✓ the expiry job never touches a consumed quote                        0.14s  
+  ✓ both jobs queue where the workers are expecting them                 0.10s  
+  ✓ both jobs refuse to run twice at once                                0.09s  
+  ✓ the reconcile job reports a clean sheet for a healthy ledger         0.16s  
+  ✓ the reconcile job explains a mismatch instead of just counting it    0.17s  
+  ⨯ a reversal is not reported as a mismatch                             0.17s  
+  ✓ a conversion inside the settling window is pending rather than brok… 0.17s  
+  ✓ a drift inside the tolerance is not an incident                      0.16s  
+  ✓ a mismatch is logged at critical so it reaches whoever is on call    0.17s  
+  ⨯ the mismatch list is capped so one bad night cannot exhaust memory   0.26s  
+  ✓ the reconcile job writes nothing at all                              0.16s  
+  ✓ the reconcile job honours its lookback and its limit                 0.21s  
+  ✓ the expiry job uses the services sweep and does not reimplement it   0.13s  
+  ✓ the reconcile job reads through the repository it is given           0.12s  
+  ✓ the scheduler dispatches both jobs                                   0.10s  
+  ✓ the jobs are real queue jobs                                         0.09s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionLedgerIntegrityTest
+  ✓ a conversion posts a balanced three leg movement                     0.15s  
+  ✓ the wallets and the ledger tell the same story                       0.15s  
+  ✓ the fee lands in the revenue account and not in a wallet             0.16s  
+  ✓ a refused conversion posts nothing at all                            0.13s  
+  ✓ a reversal returns the books to where they started                   0.18s  
+  ✓ the ledger still balances after a run of movements                   0.26s  
+  ⨯ nothing is posted against a conversion that never completed          0.16s  
+  ✓ the members own wallets are the only accounts that move              0.16s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionLocalisationTest
+  ✓ both locales carry exactly the same keys                             0.12s  
+  ✓ no translation is an empty string                                    0.09s  
+  ✓ the thai copy is actually thai                                       0.09s  
+  ✓ every money placeholder survives translation                         0.09s  
+  ✓ every direction resolves a label in both locales                     0.09s  
+  ✓ every status resolves a label in both locales                        0.10s  
+  ✓ every wallet type resolves a label in both locales                   0.09s  
+  ✓ every fee bearer resolves a label                                    0.09s  
+  ✓ every key the views use exists                                       0.09s  
+  ✓ the script copy is translated too and never assembled in javascript  0.09s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionNotificationTest
+  ⨯ a completed conversion leaves exactly one message                    0.14s  
+  ⨯ the message is fingerprinted so a retry cannot produce a second one  0.14s  
+  ⨯ a refused conversion leaves a message that says no money moved       0.13s  
+  ⨯ a reversed conversion raises the priority of its message             0.15s  
+  ⨯ notifications can be switched off without touching the engine        0.19s  
+  ⨯ a delivery failure is swallowed rather than thrown                   0.16s  
+  ⨯ messages are written in the platform locale not the request locale   0.15s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionQuoteAndLimitTest
+  ✓ a quote states a price and an expiry                                 0.13s  
+  ✓ a quote can be executed exactly once                                 0.16s  
+  ⨯ an expired quote is refused even though its row still exists         0.15s  
+  ⨯ a quote priced by a superseded rule is refused                       0.13s  
+  ✓ a quote for one amount cannot be used for another                    0.12s  
+  ✓ another members quote is not found rather than forbidden             0.14s  
+  ✓ an execution without a quote is refused while quotes are required    0.12s  
+  ✓ the sweep expires stale quotes and leaves fresh ones alone           0.12s  
+  ✓ an amount under the floor is refused before a wallet is locked       0.12s  
+  ✓ the daily ceiling stops the second conversion and says so            0.17s  
+  ✓ the monthly ceiling is enforced independently of the daily one       0.22s  
+  ✓ a limit refusal leaves no conversion row behind                      0.19s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionQuoteLifecycleTest
+  ✓ a quote prices the conversion before it happens                      0.14s  
+  ✓ a quote expires on its own clock                                     0.13s  
+  ✓ an expired quote is refused and cannot fund a movement               0.17s  
+  ✓ a consumed quote cannot fund a second movement                       0.15s  
+  ✓ a quote taken before a price change cannot execute at the old price  0.13s  
+  ✓ the quote carries the limits that were in force when it was taken    0.13s  
+  ✓ an open quote is listed for the member who owns it                   0.15s  
+  ✓ the sweep expires only what is late                                  0.16s  
+  ✓ a swept quote is an expiry and not a failure                         0.14s  
+  ✓ a quote for a direction prices that direction only                   0.15s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionReconciliationTest
+  ⨯ a clean ledger over a mixed day reports balanced                     0.20s  
+  ⨯ a reversed conversion reconciles as balanced rather than as a false… 0.18s  
+  ⨯ a missing posting is named with the delta that proves it             0.19s  
+  ⨯ an altered amount is detected even when the row still balances inte… 0.16s  
+  ⨯ a duplicated posting is detected                                     0.18s  
+  ⨯ a conversion with no postings inside the settling window is pending… 0.18s  
+  ⨯ the same conversion is a mismatch once the settling window has pass… 0.16s  
+  ⨯ a drift inside the configured tolerance is not an incident           0.16s  
+  ⨯ the pass writes nothing at all even when it finds damage             0.18s  
+  ⨯ the mismatch detail is capped but the count is not                   0.17s  
+  ✓ the fingerprint of a clean ledger is stable across runs              0.18s  
+  ⨯ the window is respected so old damage does not reappear forever      0.18s  
+  ⨯ a mismatch is logged at critical and a clean pass is not             0.16s  
+  ⨯ the alert can be switched off without switching off the report       0.18s  
+  ⨯ a conversion that is still in flight is not examined at all          0.24s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionReversalTest
+  ✓ a reversal restores both balances exactly                            0.20s  
+  ✓ the fee is refunded so the reversal costs the member nothing         0.21s  
+  ✓ the original row is marked reversed and never rewritten              0.22s  
+  ✓ a conversion cannot be reversed twice                                0.27s  
+  ✓ a failed conversion cannot be reversed                               0.17s  
+  ✓ a conversion outside the reversal window is refused with a conflict… 0.19s  
+  ✓ a reversal carries its own audit trail and reason                    0.20s  
+  ✓ the ledger is still balanced after a reversal                        0.24s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionValidationTest
+  ✓ an amount must be a plain decimal string                             0.15s  
+  ✓ an amount below the floor is refused at the rule rather than the en… 0.12s  
+  ✓ the floor itself is accepted                                         0.13s  
+  ✓ an amount above the ceiling is refused                               0.13s  
+  ✓ an unknown direction is refused                                      0.13s  
+  ✓ the direction rule states both directions so a client can self corr… 0.13s  
+  ⨯ a currency other than the one the wallets hold is refused            0.12s  
+  ✓ an idempotency key must be long enough to be unpredictable           0.15s  
+  ✓ a quote reference must belong to the caller                          0.16s  
+  ⨯ an expired quote is refused at the execution boundary not silently…  0.14s  
+  ✓ a quote without an amount still carries the one it priced            0.13s  
+  ✓ a reversal reason is required and substantial                        0.18s  
+  ✓ the web form refuses the same inputs as the api                      0.16s  
+  ✓ the validation never reaches the engine                              0.13s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionViewContractTest
+  ✓ the page renders for a verified member                               0.12s  
+  ✓ a guest is sent to the login page rather than seeing a form          0.11s  
+  ✓ both of the members balances are shown with two decimals             0.12s  
+  ✓ the published fee on the page is the configured fee                  0.13s  
+  ✓ the page never prints a translation key at the member                0.14s  
+  ✓ the thai locale renders thai copy on the money surfaces              0.16s  
+  ✓ the fee section shows where the number comes from                    0.14s  
+  ✓ the form posts to the execute route and carries a csrf token         0.14s  
+  ✓ the form offers no field by which a member could name their own pri… 0.13s  
+  ✓ the idempotency field starts empty and is filled by the browser      0.14s  
+  ✓ the amount field is prefilled with the minimum not with zero         0.12s  
+  ✓ a closed master lane replaces the form with an explanation           0.12s  
+  ✓ a closed direction says which way is closed and that the other stil… 0.14s  
+  ⨯ a closed direction stays visible in the switch as a disabled label   0.12s  
+  ✓ the history table shows the members own conversions and nobody else… 0.21s  
+  ✓ a member with no conversions is told so in words                     0.16s  
+  ✓ an open price is listed with its expiry until it is used             0.20s  
+  ✓ the limits panel shows what is left rather than only what is allowe… 0.17s  
+  ✓ the detail page shows the movement the balances and the audit trail  0.20s  
+  ✓ a conversion the member does not own is not viewable from the web l… 0.22s  
+  ✓ a reference that does not exist is a redirect with a message not a…  0.15s  
+  ✓ the preview endpoint answers a web request with the price for that…  0.12s  
+  ✓ the preview refuses an amount outside the envelope without moving a… 0.15s  
+  ✓ the web quote endpoint stores the price the member was shown         0.15s  
+  ✓ the web execute endpoint moves the money and returns the member to…  0.16s  
+  ✓ a web execution without a quote comes back with a field error and n… 0.14s  
+  ✓ the page loads the conversion assets from the build                  0.16s  
+  ✓ the wallet page offers a way into the conversion page                0.13s  
+  ✓ the page renders with no wallets open at all                         0.13s  
+  ⨯ the page shows a suspended member the reason rather than a form      0.14s  
+  ⨯ an unverified member is shown the reason instead of the form         0.15s  
+  ⨯ a member whose balance is below the floor is told that no amount wo… 0.13s  
+  ✓ a daily limit that is used up keeps the form and the limits panel    0.21s  
+  ✓ the wallet row the page displays is the members own                  0.22s  
+
+   PASS  Tests\Feature\Wallet\Conversion\ConversionViewTest
+  ✓ the conversion page renders for a signed in member                   0.17s  
+  ✓ the page shows the fee the engine will charge                        0.13s  
+  ✓ the page renders in thai when the member asks for thai               0.13s  
+  ✓ a conversion detail page shows the members own movement              0.16s  
+  ✓ another members conversion is reported as not found                  0.22s  
+  ✓ an unknown reference is answered exactly like another members        0.17s  
+  ✓ the closed lane still renders the page and the published price       0.14s  
+  ✓ one direction can be closed while the other stays open               0.14s  
+  ✓ the wallet page links to the conversion lane when it is open         0.16s  
+  ✓ the conversion page does not leak the idempotency key of a previous… 0.18s  
+
+   FAIL  Tests\Feature\Wallet\Conversion\ConversionWiringTest
+  ✓ the contract resolves to the one implementation                      0.14s  
+  ✓ the policy is registered for the model                               0.18s  
+  ✓ the conversion rate limiter is registered and per member             0.13s  
+  ✓ the lane schedules both pieces of recurring work                     0.11s  
+  ✓ the quote sweep is frequent and single flight                        0.10s  
+  ✓ the reconciliation runs nightly and writes its output somewhere a h… 0.10s  
+  ✓ closing the lane also stops its timers                               0.16s  
+  ⨯ the lanes config block carries every key the code reads              0.11s  
+  ✓ the two directions are the only two the platform knows               0.10s  
+  ✓ the config file can be published under its own tag                   0.11s  
+  ✓ every conversion route is named and reachable by the name the views… 0.09s  
+  ✓ the preview route is declared before the reference route             0.10s  
+  ✓ the money moving routes carry the middleware that guards them        0.09s  
+  ✓ the page route stays reachable when the lane is closed               0.13s  
+
+   FAIL  Tests\Unit\Wallet\Conversion\ConversionEnumsTest
+  ✓ there are exactly two directions and they are mirror images          0.06s  
+  ✓ the two directions move money in opposite directions                 0.05s  
+  ✓ a direction round trips through its wallet pair                      0.05s  
+  ✓ a wallet pair that is not a conversion returns null rather than gue… 0.04s  
+  ✓ the asserting pair form refuses an unsupported pair by name          0.04s  
+  ✓ the same wallet on both sides is its own exception                   0.04s  
+  ✓ a direction string is tolerated with whitespace and case but never…  0.04s  
+  ✓ the fee rule of a direction is the published rule and it exists      0.05s  
+  ✓ the labels of the directions are human and distinct                  0.04s  
+  ✓ a status is terminal exactly when it has no way out                  0.04s  
+  ✓ the transition map moves forward only                                0.04s  
+  ✓ a status never transitions to itself                                 0.04s  
+  ✓ only successful money can be reversed                                0.05s  
+  ✓ the in flight and settled sets are disjoint and cover every state t… 0.04s  
+  ✓ every status carries a label and a tone                              0.04s  
+  ✓ in flight is a question the status answers                           0.04s  
+  ✓ the member facing channels are exactly the two a member can use      0.04s  
+  ✓ every channel names its own rate limit bucket                        0.05s  
+  ✓ every refusal carries an http status a message key and a remedy      0.03s  
+  ✓ a refusal that the member cannot fix is not advertised as theirs     0.03s  
+  ✓ only a post execution refusal is marked as such                      0.04s  
+  ✓ the reconciliation state is derived from the counts in the right or… 0.04s  
+  ✓ only a mismatch asks for a human                                     0.05s  
+  ✓ the win wallet is a real wallet with its own qualities               0.04s  
+  ⨯ every label key an enum can produce resolves in every locale         0.03s  
+  ⨯ every reconciliation description key resolves in every locale        0.03s  
+  ✓ the two locale files describe the same key set                       0.03s  
+
+   PASS  Tests\Unit\Wallet\Conversion\ConversionFeeCalculatorTest
+  ✓ it prices a conversion from the published rate                       0.01s  
+  ✓ a live rule value wins over the static rate
+  ✓ the live value is read as a whole percent
+  ✓ an unreadable live value falls back to the published rate
+  ✓ a negative live value is rejected rather than applied
+  ✓ a disabled rule is unconfigured even though it has a rate
+  ✓ a rule hidden from the public page is not charged
+  ✓ a row with no rate at all is unconfigured rather than free
+  ✓ a zero amount prices to zero without dividing by anything
+  ✓ the bearer decides who pays and is reported verbatim
+  ✓ both directions are priced from their own row
+
+   FAIL  Tests\Unit\Wallet\Conversion\ConversionLimitsTest
+  ✓ the minimum is inclusive and one satang below is not
+  ✓ a below minimum amount reports its cause
+  ✓ the ceiling is inclusive and one satang above is not
+  ✓ a daily total that lands exactly on the ceiling is allowed
+  ✓ a daily total one satang over the ceiling is refused
+  ✓ the monthly ceiling is judged separately from the daily one
+  ⨯ a disabled ceiling is not enforced but is still published
+  ✓ a null ceiling means no ceiling rather than a zero one
+  ✓ the remaining head room is never negative
+  ⨯ the whole shape survives a round trip to the api
+  ✓ the limits are read in the currency they will be charged in
+
+   PASS  Tests\Unit\Wallet\Conversion\ConversionRateTest
+  ✓ a rate from the published row is exact
+  ✓ the api percentage is what the page prints
+  ✓ a fee is rounded half up at the boundary and never truncated
+  ✓ fee and net always add up to the original amount
+  ✓ basis points round trip through the rate
+  ✓ a rate may not be negative
+  ✓ a rate may not be read at an absurd scale
+  ✓ a blank rate is zero rather than an exception
+  ✓ rates compare by value not by identity
+
+   PASS  Tests\Unit\Wallet\Conversion\ConversionRulesTest
+  ✓ an amount at the floor is accepted                                   0.04s  
+  ✓ a half baht below the floor is refused with the floor in the messag… 0.03s  
+  ✓ an amount at the ceiling is accepted and a cent over is not          0.04s  
+  ✓ the floor moves when an operator moves it                            0.04s  
+  ✓ the ceiling can be removed entirely                                  0.05s  
+  ✓ an input that is not a plain amount is refused with data set "null"  0.04s  
+  ✓ an input that is not a plain amount is refused with data set "an ar… 0.04s  
+  ✓ an input that is not a plain amount is refused with data set "a boo… 0.04s  
+  ✓ an input that is not a plain amount is refused with data set "lette… 0.04s  
+  ✓ an input that is not a plain amount is refused with data set "a com… 0.04s  
+  ✓ an input that is not a plain amount is refused with data set "expon… 0.04s  
+  ✓ an input that is not a plain amount is refused with data set "two d… 0.04s  
+  ✓ an input that is not a plain amount is refused with data set "a neg… 0.04s  
+  ✓ an input that is not a plain amount is refused with data set "a tra… 0.05s  
+  ✓ an input that is not a plain amount is refused with data set "a cur… 0.05s  
+  ✓ an input that is not a plain amount is refused with data set "a cur… 0.05s  
+  ✓ an input that is not a plain amount is refused with data set "a lea… 0.05s  
+  ✓ an input that is not a plain amount is refused with data set "a lea… 0.04s  
+  ✓ an input that is not a plain amount is refused with data set "an in… 0.05s  
+  ✓ a third decimal place is refused rather than rounded                 0.04s  
+  ✓ zero is refused with its own message                                 0.04s  
+  ✓ whole baht without decimals is a valid amount                        0.04s  
+  ✓ the amount rule survives serialisation                               0.04s  
+  ✓ the amount rule names the currency it was built for                  0.05s  
+  ✓ a real direction string is accepted                                  0.04s  
+  ✓ a surrounding space is tolerated but a case change is not            0.04s  
+  ✓ the direction enum instance itself is accepted                       0.04s  
+  ✓ an absent or empty direction is the required rules business          0.04s  
+  ✓ a value that is not a direction is refused with the list of real on… 0.04s  
+  ✓ a value that is not a direction is refused with the list of real on… 0.04s  
+  ✓ a value that is not a direction is refused with the list of real on… 0.04s  
+  ✓ a value that is not a direction is refused with the list of real on… 0.04s  
+  ✓ a value that is not a direction is refused with the list of real on… 0.05s  
+  ✓ a value that is not a direction is refused with the list of real on… 0.04s  
+  ✓ a direction that is switched off is refused by name                  0.04s  
+  ✓ a closed lane refuses every direction                                0.04s  
+  ✓ a closed lane says so instead of listing nothing                     0.04s  
+  ✓ the direction rule survives serialisation                            0.05s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest >…   
+  A completed conversion must leave the member a notification.
+Failed asserting that false is true.
+
+  at tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:148
+    144▕ 
+    145▕         $this->assertContains('conversion.completed', $auditEvents);
+    146▕ 
+    147▕         // ---- 8. They are told it happened, in the member's own notification list.
+  ➜ 148▕         $this->assertTrue(
+    149▕             Notification::query()->where('user_id', '=', $user->getKey())->exists(),
+    150▕             'A completed conversion must leave the member a notification.',
+    151▕         );
+    152▕
+
+  1   tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:148
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest >…   
+  Expected response status code [201, 301, 302, 303, 307, 308] but received 500.
+Failed asserting that false is true.
+
+The following exception occurred during the last request:
+
+Illuminate\Database\Eloquent\MassAssignmentException: Add fillable property [status, balance, locked_balance, version] to allow mass assignment on [App\Models\Wallet]. in /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+Stack trace:
+#0 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(713): Illuminate\Database\Eloquent\Model->fill()
+#1 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1749): Illuminate\Database\Eloquent\Model->newInstance()
+#2 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1218): Illuminate\Database\Eloquent\Builder->newModelInstance()
+#3 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(725): Illuminate\Database\Eloquent\Builder->create()
+#4 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1961): Illuminate\Database\Eloquent\Builder->{closure:Illuminate\Database\Eloquent\Builder::createOrFirst():725}()
+#5 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(725): Illuminate\Database\Eloquent\Builder->withSavepointIfNeeded()
+#6 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(712): Illuminate\Database\Eloquent\Builder->createOrFirst()
+#7 /home/user/repo/app/Services/Wallet/Conversion/ConversionWalletResolver.php(128): Illuminate\Database\Eloquent\Builder->firstOrCreate()
+#8 /home/user/repo/app/Services/Wallet/Conversion/ConversionWalletResolver.php(51): App\Services\Wallet\Conversion\ConversionWalletResolver->walletFor()
+#9 /home/user/repo/app/Services/Wallet/Conversion/ConversionPolicyGuard.php(179): App\Services\Wallet\Conversion\ConversionWalletResolver->resolve()
+#10 /home/user/repo/app/Services/Wallet/Conversion/WalletConversionService.php(70): App\Services\Wallet\Conversion\ConversionPolicyGuard->evaluate()
+#11 /home/user/repo/app/Http/Controllers/Wallet/WalletConversionActionController.php(51): App\Services\Wallet\Conversion\WalletConversionService->quote()
+#12 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(46): App\Http\Controllers\Wallet\WalletConversionActionController->quote()
+#13 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Route.php(265): Illuminate\Routing\ControllerDispatcher->dispatch()
+#14 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Route.php(211): Illuminate\Routing\Route->runController()
+#15 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(822): Illuminate\Routing\Route->run()
+#16 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Routing\Router->{closure:Illuminate\Routing\Router::runRouteWithinStack():821}()
+#17 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}()
+#18 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\SubstituteBindings->handle()
+#19 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(166): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#20 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(129): Illuminate\Routing\Middleware\ThrottleRequests->handleRequest()
+#21 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(90): Illuminate\Routing\Middleware\ThrottleRequests->handleRequestUsingNamedLimiter()
+#22 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\ThrottleRequests->handle()
+#23 /home/user/repo/vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php(63): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#24 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Auth\Middleware\Authenticate->handle()
+#25 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php(87): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#26 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\VerifyCsrfToken->handle()
+#27 /home/user/repo/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(48): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#28 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\View\Middleware\ShareErrorsFromSession->handle()
+#29 /home/user/repo/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(120): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#30 /home/user/repo/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(63): Illuminate\Session\Middleware\StartSession->handleStatefulRequest()
+#31 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Session\Middleware\StartSession->handle()
+#32 /home/user/repo/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(36): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#33 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse->handle()
+#34 /home/user/repo/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(74): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#35 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Cookie\Middleware\EncryptCookies->handle()
+#36 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#37 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\Pipeline\Pipeline->then()
+#38 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\Routing\Router->runRouteWithinStack()
+#39 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\Routing\Router->runRoute()
+#40 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\Routing\Router->dispatchToRoute()
+#41 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\Routing\Router->dispatch()
+#42 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Foundation\Http\Kernel->{closure:Illuminate\Foundation\Http\Kernel::dispatchToRouter():197}()
+#43 /home/user/repo/vendor/livewire/livewire/src/Features/SupportDisablingBackButtonCache/DisableBackButtonCacheMiddleware.php(19): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}()
+#44 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Livewire\Features\SupportDisablingBackButtonCache\DisableBackButtonCacheMiddleware->handle()
+#45 /home/user/repo/app/Http/Middleware/SetLocale.php(57): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#46 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\SetLocale->handle()
+#47 /home/user/repo/app/Http/Middleware/CorrelationIdMiddleware.php(35): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#48 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\CorrelationIdMiddleware->handle()
+#49 /home/user/repo/app/Http/Middleware/SecurityHeaders.php(13): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#50 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\SecurityHeaders->handle()
+#51 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#52 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#53 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull->handle()
+#54 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#55 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#56 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\TrimStrings->handle()
+#57 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#58 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePostSize->handle()
+#59 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#60 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance->handle()
+#61 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#62 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\HandleCors->handle()
+#63 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#64 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\TrustProxies->handle()
+#65 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#66 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks->handle()
+#67 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#68 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePathEncoding->handle()
+#69 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#70 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\Pipeline\Pipeline->then()
+#71 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\Foundation\Http\Kernel->sendRequestThroughRouter()
+#72 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(607): Illuminate\Foundation\Http\Kernel->handle()
+#73 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(397): Illuminate\Foundation\Testing\TestCase->call()
+#74 /home/user/repo/tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php(61): Illuminate\Foundation\Testing\TestCase->post()
+#75 /home/user/repo/tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php(209): Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest->quoteViaWebForm()
+#76 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest->journey_two_a_brand_new_member_converts_for_the_very_first_time()
+#77 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\Framework\TestCase->runTest()
+#78 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\Framework\TestCase->runBare()
+#79 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\Framework\TestRunner->run()
+#80 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestCase->run()
+#81 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestSuite->run()
+#82 /home/user/repo/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\Framework\TestSuite->run()
+#83 /home/user/repo/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\TextUI\TestRunner->run()
+#84 /home/user/repo/vendor/phpunit/phpunit/phpunit(104): PHPUnit\TextUI\Application->run()
+#85 {main}
+
+----------------------------------------------------------------------------------
+
+Add fillable property [status, balance, locked_balance, version] to allow mass assignment on [App\Models\Wallet].
+
+  at tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:64
+     60▕     {
+     61▕         $this->actingAs($user)->post(route('player.wallet.conversion.quote'), [
+     62▕             'direction' => $direction,
+     63▕             'amount' => $amount,
+  ➜  64▕         ])->assertRedirect();
+     65▕ 
+     66▕         return (string) session('conversion_quote_reference');
+     67▕     }
+     68▕
+
+  1   tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:209
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest >…   
+  Expected response status code [201, 301, 302, 303, 307, 308] but received 500.
+Failed asserting that false is true.
+
+The following exception occurred during the last request:
+
+TypeError: App\Exceptions\Wallet\ConversionQuoteExpiredException::forReference(): Argument #2 ($expiredAt) must be of type DateTimeImmutable, Illuminate\Support\Carbon given, called in /home/user/repo/app/Services/Wallet/Conversion/ConversionQuoteService.php on line 136 and defined in /home/user/repo/app/Exceptions/Wallet/ConversionQuoteExpiredException.php:61
+Stack trace:
+#0 /home/user/repo/app/Services/Wallet/Conversion/ConversionQuoteService.php(136): App\Exceptions\Wallet\ConversionQuoteExpiredException::forReference()
+#1 /home/user/repo/app/Services/Wallet/Conversion/WalletConversionService.php(141): App\Services\Wallet\Conversion\ConversionQuoteService->lockForExecution()
+#2 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php(35): App\Services\Wallet\Conversion\WalletConversionService->{closure:App\Services\Wallet\Conversion\WalletConversionService::convert():122}()
+#3 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(491): Illuminate\Database\Connection->transaction()
+#4 /home/user/repo/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(363): Illuminate\Database\DatabaseManager->__call()
+#5 /home/user/repo/app/Services/Wallet/Conversion/WalletConversionService.php(122): Illuminate\Support\Facades\Facade::__callStatic()
+#6 /home/user/repo/app/Http/Controllers/Wallet/WalletConversionActionController.php(79): App\Services\Wallet\Conversion\WalletConversionService->convert()
+#7 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(46): App\Http\Controllers\Wallet\WalletConversionActionController->store()
+#8 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Route.php(265): Illuminate\Routing\ControllerDispatcher->dispatch()
+#9 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Route.php(211): Illuminate\Routing\Route->runController()
+#10 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(822): Illuminate\Routing\Route->run()
+#11 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Routing\Router->{closure:Illuminate\Routing\Router::runRouteWithinStack():821}()
+#12 /home/user/repo/app/Http/Middleware/RequireConversionIdempotencyKey.php(95): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}()
+#13 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\RequireConversionIdempotencyKey->handle()
+#14 /home/user/repo/app/Http/Middleware/EnsureWalletConversionEnabled.php(66): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#15 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\EnsureWalletConversionEnabled->handle()
+#16 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#17 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\SubstituteBindings->handle()
+#18 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(166): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#19 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(129): Illuminate\Routing\Middleware\ThrottleRequests->handleRequest()
+#20 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(90): Illuminate\Routing\Middleware\ThrottleRequests->handleRequestUsingNamedLimiter()
+#21 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\ThrottleRequests->handle()
+#22 /home/user/repo/vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php(63): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#23 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Auth\Middleware\Authenticate->handle()
+#24 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php(87): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#25 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\VerifyCsrfToken->handle()
+#26 /home/user/repo/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(48): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#27 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\View\Middleware\ShareErrorsFromSession->handle()
+#28 /home/user/repo/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(120): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#29 /home/user/repo/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(63): Illuminate\Session\Middleware\StartSession->handleStatefulRequest()
+#30 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Session\Middleware\StartSession->handle()
+#31 /home/user/repo/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(36): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#32 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse->handle()
+#33 /home/user/repo/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(74): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#34 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Cookie\Middleware\EncryptCookies->handle()
+#35 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#36 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\Pipeline\Pipeline->then()
+#37 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\Routing\Router->runRouteWithinStack()
+#38 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\Routing\Router->runRoute()
+#39 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\Routing\Router->dispatchToRoute()
+#40 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\Routing\Router->dispatch()
+#41 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Foundation\Http\Kernel->{closure:Illuminate\Foundation\Http\Kernel::dispatchToRouter():197}()
+#42 /home/user/repo/vendor/livewire/livewire/src/Features/SupportDisablingBackButtonCache/DisableBackButtonCacheMiddleware.php(19): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}()
+#43 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Livewire\Features\SupportDisablingBackButtonCache\DisableBackButtonCacheMiddleware->handle()
+#44 /home/user/repo/app/Http/Middleware/SetLocale.php(57): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#45 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\SetLocale->handle()
+#46 /home/user/repo/app/Http/Middleware/CorrelationIdMiddleware.php(35): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#47 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\CorrelationIdMiddleware->handle()
+#48 /home/user/repo/app/Http/Middleware/SecurityHeaders.php(13): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#49 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\SecurityHeaders->handle()
+#50 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#51 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#52 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull->handle()
+#53 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#54 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#55 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\TrimStrings->handle()
+#56 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#57 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePostSize->handle()
+#58 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#59 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance->handle()
+#60 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#61 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\HandleCors->handle()
+#62 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#63 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\TrustProxies->handle()
+#64 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#65 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks->handle()
+#66 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#67 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePathEncoding->handle()
+#68 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#69 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\Pipeline\Pipeline->then()
+#70 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\Foundation\Http\Kernel->sendRequestThroughRouter()
+#71 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(607): Illuminate\Foundation\Http\Kernel->handle()
+#72 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(397): Illuminate\Foundation\Testing\TestCase->call()
+#73 /home/user/repo/tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php(51): Illuminate\Foundation\Testing\TestCase->post()
+#74 /home/user/repo/tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php(300): Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest->executeViaWebForm()
+#75 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest->journey_five_a_stale_price_cannot_be_used_to_move_money_at_yesterdays_rate()
+#76 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\Framework\TestCase->runTest()
+#77 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\Framework\TestCase->runBare()
+#78 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\Framework\TestRunner->run()
+#79 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestCase->run()
+#80 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestSuite->run()
+#81 /home/user/repo/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\Framework\TestSuite->run()
+#82 /home/user/repo/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\TextUI\TestRunner->run()
+#83 /home/user/repo/vendor/phpunit/phpunit/phpunit(104): PHPUnit\TextUI\Application->run()
+#84 {main}
+
+----------------------------------------------------------------------------------
+
+App\Exceptions\Wallet\ConversionQuoteExpiredException::forReference(): Argument #2 ($expiredAt) must be of type DateTimeImmutable, Illuminate\Support\Carbon given, called in /home/user/repo/app/Services/Wallet/Conversion/ConversionQuoteService.php on line 136
+
+  at tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:301
+    297▕             ->where('reference', '=', $quoteReference)
+    298▕             ->update(['expires_at' => now()->subMinutes(5)]);
+    299▕ 
+    300▕         $this->executeViaWebForm($user, 'cash_to_win', '100.00', $quoteReference, 'journey-five-key-00001')
+  ➜ 301▕             ->assertRedirect()
+    302▕             ->assertSessionHas('error');
+    303▕ 
+    304▕         $this->assertSame('1000.00', $this->balanceOf($cash));
+    305▕         $this->assertSame(0, WalletConversion::query()->count());
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest >…   
+  A reversal pair must reconcile. Mismatches: [{"reference":"CONV-REV-5EF51977B1","conversion_id":2,"amount_in":"396.00","fee_amount":"0.00","amount_out":"396.00","source_delta":"-396.00","destination_delta":"400.00","fee_posted":"-4.00"}]
+Failed asserting that 1 is identical to 0.
+
+  at tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:395
+    391▕         // And the pair nets to zero on both wallets, which the reconciliation pass
+    392▕         // must confirm rather than flag.
+    393▕         $report = $this->app->call([new \App\Jobs\Wallet\ReconcileConversionLedgerJob(48, 100), 'handle']);
+    394▕ 
+  ➜ 395▕         $this->assertSame(0, $report['mismatched'], 'A reversal pair must reconcile. Mismatches: '.json_encode($report['mismatches']));
+    396▕         $this->assertSame('0.00', $this->balanceOf($win));
+    397▕ 
+    398▕         // Revenue is back to nothing: the fee was refunded, not earned.
+    399▕         $this->assertSame('0.00', $this->feeRevenueTotal());
+
+  1   tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:395
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest >…   
+  Expected response status code [201, 301, 302, 303, 307, 308] but received 503.
+Failed asserting that false is true.
+
+  at tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:415
+    411▕         // produces.
+    412▕         config()->set('conversions.enabled', false);
+    413▕ 
+    414▕         $this->executeViaWebForm($user, 'cash_to_win', '100.00', $quoteReference, 'journey-seven-key-01')
+  ➜ 415▕             ->assertRedirect()
+    416▕             ->assertSessionHas('error');
+    417▕ 
+    418▕         $this->assertSame('1000.00', $this->balanceOf($cash));
+    419▕         $this->assertSame(0, WalletConversion::query()->count());
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAcceptanceJourneyTest >…   
+  Session is missing expected key [error].
+Failed asserting that false is true.
+
+The following exception occurred during the last request:
+
+SQLSTATE[23000]: Integrity constraint violation: 19 NOT NULL constraint failed: notifications.expires_at (Connection: sqlite, Database: database/thai_lottery_test, SQL: insert into "notifications" ("message_fingerprint", "user_id", "event_type", "channel", "priority", "status", "locale", "subject", "body", "payload_fingerprint", "updated_at", "created_at") values (f26927f6fc9d24a332f8267d1d53a2fc535c79c5fb8255efdadc7074344c8bf9, 1, manual, in_app, normal, pending, en, Cash to Win completed, Conversion CONV-AC076159AABE completed: 500000.00 THB converted with a 5000.00 THB fee, 495000.00 THB credited., 48ce96556c36ecabda93391cdd19ff612c8f6b6408ab38bc5ae530f88323ca0a, 2026-10-13 10:42:37, 2026-10-13 10:42:37))
+
+----------------------------------------------------------------------------------
+
+SQLSTATE[23000]: Integrity constraint violation: 19 NOT NULL constraint failed: notifications.expires_at (Connection: sqlite, Database: database/thai_lottery_test, SQL: insert into "notifications" ("message_fingerprint", "user_id", "event_type", "channel", "priority", "status", "locale", "subject", "body", "payload_fingerprint", "updated_at", "created_at") values (f26927f6fc9d24a332f8267d1d53a2fc535c79c5fb8255efdadc7074344c8bf9, 1, manual, in_app, normal, pending, en, Cash to Win completed, Conversion CONV-AC076159AABE completed: 500000.00 THB converted with a 5000.00 THB fee, 495000.00 THB credited., 48ce96556c36ecabda93391cdd19ff612c8f6b6408ab38bc5ae530f88323ca0a, 2026-10-13 10:42:37, 2026-10-13 10:42:37))
+
+  at tests/Feature/Wallet/Conversion/ConversionAcceptanceJourneyTest.php:464
+    460▕             'amount' => '10.00',
+    461▕         ]);
+    462▕ 
+    463▕         $response->assertRedirect();
+  ➜ 464▕         $response->assertSessionHas('error');
+    465▕ 
+    466▕         $message = (string) session('error');
+    467▕ 
+    468▕         $this->assertStringContainsString('daily', strtolower($message));
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionAdminSurfaceTest.php:96
+     92▕     {
+     93▕         $operator = $this->operatorWith(AdminAccess::MANAGE_WALLET);
+     94▕ 
+     95▕         $result = $this->convert($this->makeFundedMember()['user'], '100.00');
+  ➜  96▕         $conversion = $this->modelFor($result->reference);
+     97▕ 
+     98▕         $this->actingAs($operator);
+     99▕ 
+    100▕         // A conversion is a record of what happened. Nothing on this screen may
+
+  1   tests/Feature/Wallet/Conversion/ConversionAdminSurfaceTest.php:96
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionAdminSurfaceTest.php:196
+    192▕ 
+    193▕         // One conversion each way, and one of them reversed, so every filter has
+    194▕         // something to separate.
+    195▕         $forward = $this->convert($member, '100.00');
+  ➜ 196▕         $this->reversalOf($this->modelFor($forward->reference));
+    197▕ 
+    198▕         $this->actingAs($operator);
+    199▕ 
+    200▕         $table = Livewire::test(ListWalletConversions::class)->instance()->getTable();
+
+  1   tests/Feature/Wallet/Conversion/ConversionAdminSurfaceTest.php:196
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionAdminSurfaceTest.php:363
+    359▕ 
+    360▕         $member = $this->makeFundedMember()['user'];
+    361▕         $result = $this->convert($member, '100.00');
+    362▕ 
+  ➜ 363▕         $this->modelFor($result->reference)
+    364▕             ->forceFill(['status' => WalletConversionStatus::Processing->value])
+    365▕             ->save();
+    366▕ 
+    367▕         $stuckByName = [];
+
+  1   tests/Feature/Wallet/Conversion/ConversionAdminSurfaceTest.php:363
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionAdminSurfaceTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionAdminSurfaceTest.php:393
+    389▕         // Yesterday, in the platform's own day boundary. If the widget counted
+    390▕         // from UTC midnight it would report this on a Bangkok morning as today's
+    391▕         // business, and an operator reading the dashboard at 09:00 would believe
+    392▕         // a day of movement had already happened.
+  ➜ 393▕         $this->modelFor($result->reference)->forceFill([
+    394▕             'created_at' => now()->subDay()->setTime(23, 30),
+    395▕             'completed_at' => now()->subDay()->setTime(23, 31),
+    396▕         ])->save();
+    397▕
+
+  1   tests/Feature/Wallet/Conversion/ConversionAdminSurfaceTest.php:393
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAuditTrailTest > a comp…   
+  The platform audit trail must carry the completion.
+Failed asserting that null is not null.
+
+  at tests/Feature/Wallet/Conversion/ConversionAuditTrailTest.php:53
+     49▕             ->where('action', '=', 'wallet_conversion.completed')
+     50▕             ->where('auditable_id', '=', (string) $result->reference)
+     51▕             ->first();
+     52▕ 
+  ➜  53▕         $this->assertNotNull($platform, 'The platform audit trail must carry the completion.');
+     54▕         $this->assertSame(\App\Enums\RiskLevel::Low, $platform->risk_level);
+     55▕         $this->assertSame((int) $user->getKey(), (int) $platform->user_id);
+     56▕ 
+     57▕         // The payload is the event's own projection, so a reader of the audit
+
+  1   tests/Feature/Wallet/Conversion/ConversionAuditTrailTest.php:53
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAuditTrailTest > a refu…   
+  Failed asserting that two strings are identical.
+  -'failed'
+  +''
+  
+
+  at tests/Feature/Wallet/Conversion/ConversionAuditTrailTest.php:91
+     87▕         // The refusal is the record that matters here: without it, the member's
+     88▕         // complaint that "it said no" has no evidence behind it anywhere.
+     89▕         $this->assertNotNull($audit, 'A refusal must leave evidence.');
+     90▕         $this->assertSame('insufficient_balance', (string) $audit->error_code);
+  ➜  91▕         $this->assertSame('failed', (string) $audit->status_to);
+     92▕         $this->assertSame('500.00', bcadd((string) $audit->amount_in, '0', 2));
+     93▕         $this->assertSame('THB', (string) $audit->currency);
+     94▕ 
+     95▕         $this->assertSame('20.00', $this->balanceOf($cash));
+
+  1   tests/Feature/Wallet/Conversion/ConversionAuditTrailTest.php:91
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAuditTrailTest > a reve…   
+  Failed asserting that null is not null.
+
+  at tests/Feature/Wallet/Conversion/ConversionAuditTrailTest.php:202
+    198▕             ->where('action', '=', 'wallet_conversion.reversed')
+    199▕             ->where('auditable_id', '=', (string) $reversal->reference)
+    200▕             ->first();
+    201▕ 
+  ➜ 202▕         $this->assertNotNull($platform);
+    203▕ 
+    204▕         // A reversal is an intervention, not routine traffic, and the platform
+    205▕         // trail says so — which is what lets an alert rule watch reversals
+    206▕         // without also watching every conversion.
+
+  1   tests/Feature/Wallet/Conversion/ConversionAuditTrailTest.php:202
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionAuditTrailTest > a quot…   
+  Failed asserting that two strings are identical.
+  -'quoted'
+  +''
+  
+
+  at tests/Feature/Wallet/Conversion/ConversionAuditTrailTest.php:241
+    237▕         // A quote is a statement of price made to a member. Recording it means a
+    238▕         // later dispute can be answered with what the member was actually shown,
+    239▕         // rather than with what the tariff says today.
+    240▕         $this->assertNotNull($audit, 'Issuing a quote must be recorded.');
+  ➜ 241▕         $this->assertSame('quoted', (string) $audit->status_to);
+    242▕         $this->assertSame('100.00', bcadd((string) $audit->amount_in, '0', 2));
+    243▕         $this->assertSame('THB', (string) $audit->currency);
+    244▕ 
+    245▕         // The audit row is a state change, so it names the state it came from as
+
+  1   tests/Feature/Wallet/Conversion/ConversionAuditTrailTest.php:241
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionCommand…  ErrorException   
+  Trying to access array offset on int
+
+  at app/Console/Commands/Conversions/ReconcileConversionLedgerCommand.php:65
+     61▕ 
+     62▕             return $this->exitCode($report);
+     63▕         }
+     64▕ 
+  ➜  65▕         $this->components->twoColumnDetail('Conversions examined', (string) $report['checked']);
+     66▕         $this->components->twoColumnDetail('Balanced', (string) $report['balanced']);
+     67▕         $this->components->twoColumnDetail('Still settling', (string) $report['pending']);
+     68▕         $this->components->twoColumnDetail('Mismatched', (string) $report['mismatched']);
+     69▕
+
+      [2m+13 vendor frames [22m
+  14  tests/Feature/Wallet/Conversion/ConversionCommandTest.php:154
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionCommand…  ErrorException   
+  Trying to access array offset on int
+
+  at app/Console/Commands/Conversions/ReconcileConversionLedgerCommand.php:65
+     61▕ 
+     62▕             return $this->exitCode($report);
+     63▕         }
+     64▕ 
+  ➜  65▕         $this->components->twoColumnDetail('Conversions examined', (string) $report['checked']);
+     66▕         $this->components->twoColumnDetail('Balanced', (string) $report['balanced']);
+     67▕         $this->components->twoColumnDetail('Still settling', (string) $report['pending']);
+     68▕         $this->components->twoColumnDetail('Mismatched', (string) $report['mismatched']);
+     69▕
+
+      [2m+13 vendor frames [22m
+  14  tests/Feature/Wallet/Conversion/ConversionCommandTest.php:172
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionCommand…  ErrorException   
+  Trying to access array offset on int
+
+  at app/Console/Commands/Conversions/ReconcileConversionLedgerCommand.php:65
+     61▕ 
+     62▕             return $this->exitCode($report);
+     63▕         }
+     64▕ 
+  ➜  65▕         $this->components->twoColumnDetail('Conversions examined', (string) $report['checked']);
+     66▕         $this->components->twoColumnDetail('Balanced', (string) $report['balanced']);
+     67▕         $this->components->twoColumnDetail('Still settling', (string) $report['pending']);
+     68▕         $this->components->twoColumnDetail('Mismatched', (string) $report['mismatched']);
+     69▕
+
+      [2m+13 vendor frames [22m
+  14  tests/Feature/Wallet/Conversion/ConversionCommandTest.php:193
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionCommandTest…   TypeError   
+  App\Console\Commands\Conversions\ReconcileConversionLedgerCommand::exitCode(): Argument #1 ($report) must be of type array, int given, called in /home/user/repo/app/Console/Commands/Conversions/ReconcileConversionLedgerCommand.php on line 62
+
+  at app/Console/Commands/Conversions/ReconcileConversionLedgerCommand.php:100
+     96▕ 
+     97▕     /**
+     98▕      * @param  array<string, mixed>  $report
+     99▕      */
+  ➜ 100▕     private function exitCode(array $report): int
+    101▕     {
+    102▕         return ((int) ($report['mismatched'] ?? 0)) > 0 ? self::FAILURE : self::SUCCESS;
+    103▕     }
+    104▕ }
+
+  1   app/Console/Commands/Conversions/ReconcileConversionLedgerCommand.php:100
+  2   app/Console/Commands/Conversions/ReconcileConversionLedgerCommand.php:62
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest > a c…   
+  The expected [App\Events\Wallet\ConversionRequested] event was not dispatched.
+Failed asserting that false is true.
+
+  at vendor/laravel/framework/src/Illuminate/Support/Testing/Fakes/EventFake.php:144
+    140▕         if (is_int($callback)) {
+    141▕             return $this->assertDispatchedTimes($event, $callback);
+    142▕         }
+    143▕ 
+  ➜ 144▕         PHPUnit::assertTrue(
+    145▕             $this->dispatched($event, $callback)->count() > 0,
+    146▕             "The expected [{$event}] event was not dispatched."
+    147▕         );
+    148▕     }
+
+      [2m+2 vendor frames [22m
+  3   tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:43
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest > a r…   
+  The expected [App\Events\Wallet\ConversionRejected] event was not dispatched.
+Failed asserting that false is true.
+
+  at vendor/laravel/framework/src/Illuminate/Support/Testing/Fakes/EventFake.php:144
+    140▕         if (is_int($callback)) {
+    141▕             return $this->assertDispatchedTimes($event, $callback);
+    142▕         }
+    143▕ 
+  ➜ 144▕         PHPUnit::assertTrue(
+    145▕             $this->dispatched($event, $callback)->count() > 0,
+    146▕             "The expected [{$event}] event was not dispatched."
+    147▕         );
+    148▕     }
+
+      [2m+2 vendor frames [22m
+  3   tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:101
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest > a f…   
+  The expected [App\Events\Wallet\ConversionRejected] event was not dispatched.
+Failed asserting that false is true.
+
+  at vendor/laravel/framework/src/Illuminate/Support/Testing/Fakes/EventFake.php:144
+    140▕         if (is_int($callback)) {
+    141▕             return $this->assertDispatchedTimes($event, $callback);
+    142▕         }
+    143▕ 
+  ➜ 144▕         PHPUnit::assertTrue(
+    145▕             $this->dispatched($event, $callback)->count() > 0,
+    146▕             "The expected [{$event}] event was not dispatched."
+    147▕         );
+    148▕     }
+
+      [2m+2 vendor frames [22m
+  3   tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:133
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest > a r…   
+  The expected [App\Events\Wallet\ConversionReversed] event was not dispatched.
+Failed asserting that false is true.
+
+  at vendor/laravel/framework/src/Illuminate/Support/Testing/Fakes/EventFake.php:144
+    140▕         if (is_int($callback)) {
+    141▕             return $this->assertDispatchedTimes($event, $callback);
+    142▕         }
+    143▕ 
+  ➜ 144▕         PHPUnit::assertTrue(
+    145▕             $this->dispatched($event, $callback)->count() > 0,
+    146▕             "The expected [{$event}] event was not dispatched."
+    147▕         );
+    148▕     }
+
+      [2m+2 vendor frames [22m
+  3   tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:155
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest > eve…   
+  App\Listeners\Wallet\PublishConversionMetrics is registered 2 times for App\Events\Wallet\ConversionRequested; it must run exactly once.
+Failed asserting that 2 is identical to 1.
+
+  at tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:212
+    208▕                     $registered,
+    209▕                     static fn (string $entry): bool => $entry === $listener || str_starts_with($entry, $listener.'@'),
+    210▕                 ));
+    211▕ 
+  ➜ 212▕                 $this->assertSame(
+    213▕                     1,
+    214▕                     $count,
+    215▕                     "{$listener} is registered {$count} times for {$event}; it must run exactly once.",
+    216▕                 );
+
+  1   tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:212
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest > the…   
+  Failed asserting that 0 is identical to 1.
+
+  at tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:233
+    229▕         // counter is the observable proof, because it is the only artefact of the
+    230▕         // listener that outlives the request.
+    231▕         $this->convert($user, '100.00');
+    232▕ 
+  ➜ 233▕         $this->assertSame(1, (int) Cache::get('conversion:metrics:requested'));
+    234▕         $this->assertSame(1, (int) Cache::get('conversion:metrics:completed'));
+    235▕     }
+    236▕ 
+    237▕     #[Test]
+
+  1   tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:233
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest > the…   
+  Failed asserting that 0 is identical to 1.
+
+  at tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:253
+    249▕ 
+    250▕         // Keyed by code, not merely counted: "twenty refusals" is not actionable,
+    251▕         // "twenty refusals, all `insufficient_balance`" points at the deposit
+    252▕         // lane.
+  ➜ 253▕         $this->assertSame(1, (int) Cache::get('conversion:metrics:rejected:insufficient_balance'));
+    254▕ 
+    255▕         $counts = app(PublishConversionMetrics::class)->refusalCounts();
+    256▕ 
+    257▕         $this->assertArrayHasKey('insufficient_balance', $counts);
+
+  1   tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:253
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionEventDispatchTest > an…    
+  The operator-fault refusal must still be counted and announced.
+Failed asserting that 0 is identical to 1.
+
+  at tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:280
+    276▕         } catch (\Throwable) {
+    277▕             // Expected.
+    278▕         }
+    279▕ 
+  ➜ 280▕         $this->assertSame(
+    281▕             1,
+    282▕             (int) Cache::get('conversion:metrics:rejected:feature_disabled'),
+    283▕             'The operator-fault refusal must still be counted and announced.',
+    284▕         );
+
+  1   tests/Feature/Wallet/Conversion/ConversionEventDispatchTest.php:280
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionFeatureContractTest > t…   
+  Failed asserting that null is not null.
+
+  at tests/Feature/Wallet/Conversion/ConversionFeatureContractTest.php:175
+    171▕         } catch (\App\Exceptions\Wallet\ConversionException $exception) {
+    172▕             $refusal = $exception;
+    173▕         }
+    174▕ 
+  ➜ 175▕         $this->assertNotNull($refusal);
+    176▕         $this->assertSame(WalletConversionRejectionReason::DailyLimitExceeded->value, $refusal->errorCode());
+    177▕ 
+    178▕         // The monthly window uses the same machinery; it is asserted through the
+    179▕         // limit service because reaching 5,000,000 across a day would make this file
+
+  1   tests/Feature/Wallet/Conversion/ConversionFeatureContractTest.php:175
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionFeatureContractT…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionFeatureContractTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionFeatureContractTest.php:311
+    307▕ 
+    308▕         ['user' => $member] = $this->makeFundedMember('1000.00');
+    309▕ 
+    310▕         $result = $this->convert($member, '100.00');
+  ➜ 311▕         $conversion = $this->modelFor($result->reference);
+    312▕ 
+    313▕         // A member cannot reverse: the reversal exists for platform mistakes and for
+    314▕         // a goodwill gesture, and both are decisions the platform makes.
+    315▕         $memberRefusal = null;
+
+  1   tests/Feature/Wallet/Conversion/ConversionFeatureContractTest.php:311
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\Conversi…  MassAssignmentException   
+  Add fillable property [status, balance, locked_balance, version] to allow mass assignment on [App\Models\Wallet].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+8 vendor frames [22m
+  9   app/Services/Wallet/Conversion/ConversionWalletResolver.php:128
+  10  app/Services/Wallet/Conversion/ConversionWalletResolver.php:51
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionFeatureContractT…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionFeatureContractTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionFeatureContractTest.php:412
+    408▕ 
+    409▕         ['user' => $user] = $this->makeFundedMember('1000.00');
+    410▕ 
+    411▕         $result = $this->convert($user, '100.00');
+  ➜ 412▕         $conversion = $this->modelFor($result->reference);
+    413▕ 
+    414▕         $codes = LedgerEntry::query()
+    415▕             ->where('reference_type', '=', 'wallet_conversion')
+    416▕             ->where('reference_id', '=', (int) $conversion->getKey())
+
+  1   tests/Feature/Wallet/Conversion/ConversionFeatureContractTest.php:412
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionFeatureContractT…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionFeatureContractTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionFeatureContractTest.php:481
+    477▕         ['user' => $member, 'cash' => $cash, 'win' => $win] = $this->makeFundedMember('1000.00');
+    478▕         $operator = $this->makeOperator();
+    479▕ 
+    480▕         $result = $this->convert($member, '100.00');
+  ➜ 481▕         $conversion = $this->modelFor($result->reference);
+    482▕ 
+    483▕         $this->assertSame('900.00', $this->balanceOf($cash));
+    484▕         $this->assertSame('99.00', $this->balanceOf($win));
+    485▕
+
+  1   tests/Feature/Wallet/Conversion/ConversionFeatureContractTest.php:481
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionJobTest > running the e…   
+  Failed asserting that 1 is identical to 0.
+
+  at tests/Feature/Wallet/Conversion/ConversionJobTest.php:82
+     78▕         // scheduler). It must be a no-op, and it must not re-expire an already
+     79▕         // expired quote — a count that kept climbing would make the metric
+     80▕         // meaningless and hide a real backlog.
+     81▕         $this->assertSame(1, $first);
+  ➜  82▕         $this->assertSame(0, $second);
+     83▕     }
+     84▕ 
+     85▕     #[Test]
+     86▕     public function the_expiry_job_never_touches_a_consumed_quote(): void
+
+  1   tests/Feature/Wallet/Conversion/ConversionJobTest.php:82
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionJobTest > a reversal is…   
+  Failed asserting that 1 is identical to 2.
+
+  at tests/Feature/Wallet/Conversion/ConversionJobTest.php:218
+    214▕         // report every reversal on the platform as a mismatch, and an alarm that
+    215▕         // cries wolf is an alarm nobody reads. Skipping the original instead would
+    216▕         // leave its postings unchecked: the goal state says both are settled
+    217▕         // history, and damage does not stop mattering because the money came back.
+  ➜ 218▕         $this->assertSame(2, $report['checked']);
+    219▕         $this->assertSame(2, $report['balanced']);
+    220▕         $this->assertSame(0, $report['mismatched'], 'Mismatches: '.json_encode($report['mismatches']));
+    221▕ 
+    222▕         // The original is examined through the reversal it points at: the pair is
+
+  1   tests/Feature/Wallet/Conversion/ConversionJobTest.php:218
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionJobTest > the mismatch…    
+  Failed asserting that 2 is identical to 4.
+
+  at tests/Feature/Wallet/Conversion/ConversionJobTest.php:327
+    323▕ 
+    324▕         // The count an operator triages on is always complete; only the
+    325▕         // row-by-row evidence is capped. Reporting the capped length as the count
+    326▕         // told an operator with a 200-row cap that 900 broken rows were 200.
+  ➜ 327▕         $this->assertSame(4, $report['mismatched']);
+    328▕         $this->assertCount(2, $report['mismatches']);
+    329▕         $this->assertTrue($report['mismatch_rows_capped']);
+    330▕     }
+    331▕
+
+  1   tests/Feature/Wallet/Conversion/ConversionJobTest.php:327
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionLedgerIntegrityTest > n…   
+  Three balanced transactions, two rows each.
+Failed asserting that 4 is identical to 6.
+
+  at tests/Feature/Wallet/Conversion/ConversionLedgerIntegrityTest.php:215
+    211▕         // Three engine transactions, each double-entered: the amount leaving the
+    212▕         // source wallet, the amount arriving in the destination wallet, and the
+    213▕         // fee leaving the destination for revenue.
+    214▕         $entries = $this->postings()->entriesFor($conversion);
+  ➜ 215▕         $this->assertSame(6, $entries->count(), 'Three balanced transactions, two rows each.');
+    216▕ 
+    217▕         $this->assertSame(
+    218▕             3,
+    219▕             $entries->pluck('financial_transaction_id')->unique()->count(),
+
+  1   tests/Feature/Wallet/Conversion/ConversionLedgerIntegrityTest.php:215
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionNotificationTest > a co…   
+  Failed asserting that actual size 0 matches expected size 1.
+
+  at tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:41
+     37▕             ->where('user_id', '=', (int) $user->getKey())
+     38▕             ->where('subject', 'like', '%completed%')
+     39▕             ->get();
+     40▕ 
+  ➜  41▕         $this->assertCount(1, $messages);
+     42▕ 
+     43▕         $message = $messages->first();
+     44▕ 
+     45▕         // The body states all three figures the member cares about, because a
+
+  1   tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:41
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionNotificationTest > the…    
+  Failed asserting that 0 is identical to 1.
+
+  at tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:73
+     69▕ 
+     70▕         // One movement, one message. Two "your money arrived" messages is the
+     71▕         // fastest way to make a member believe they were charged twice, and the
+     72▕         // guard is the unique message fingerprint rather than a hope.
+  ➜  73▕         $this->assertSame(1, $count);
+     74▕     }
+     75▕ 
+     76▕     #[Test]
+     77▕     public function a_refused_conversion_leaves_a_message_that_says_no_money_moved(): void
+
+  1   tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:73
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionNotificationTest > a re…   
+  A refusal should be explained to the member.
+Failed asserting that null is not null.
+
+  at tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:92
+     88▕             ->where('user_id', '=', (int) $user->getKey())
+     89▕             ->where('subject', 'like', '%could not be completed%')
+     90▕             ->first();
+     91▕ 
+  ➜  92▕         $this->assertNotNull($message, 'A refusal should be explained to the member.');
+     93▕ 
+     94▕         // The sentence that matters most is the one that says nothing was taken.
+     95▕         $this->assertStringContainsString('No money moved', (string) $message->body);
+     96▕         $this->assertStringContainsString('insufficient_balance', (string) $message->body);
+
+  1   tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:92
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionNotificationTest > a re…   
+  Failed asserting that null is not null.
+
+  at tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:121
+    117▕             ->where('user_id', '=', (int) $user->getKey())
+    118▕             ->where('subject', 'like', '%reversed%')
+    119▕             ->first();
+    120▕ 
+  ➜ 121▕         $this->assertNotNull($message);
+    122▕ 
+    123▕         // A reversal is an intervention in the member's money: it is not routine
+    124▕         // traffic, and the message says so by carrying a higher priority than the
+    125▕         // completion it undoes.
+
+  1   tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:121
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionNotificationTest > noti…   
+  Failed asserting that 0 is identical to 1.
+
+  at tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:158
+    154▕         config()->set('conversions.notifications.enabled', true);
+    155▕ 
+    156▕         $this->convert($user, '20.00', idempotencyKey: 'notify-reenabled-0001');
+    157▕ 
+  ➜ 158▕         $this->assertSame(1, Notification::query()
+    159▕             ->where('user_id', '=', (int) $user->getKey())
+    160▕             ->count());
+    161▕     }
+    162▕
+
+  1   tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:158
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionNotificationTest > a de…   
+  The real message is still there.
+Failed asserting that null is not null.
+
+  at tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:195
+    191▕ 
+    192▕         // And the real conversion is untouched by that failure.
+    193▕         $this->assertSame('900.00', $this->balanceOf($cash));
+    194▕         $this->assertSame('completed', (string) $conversion->fresh()->status->value);
+  ➜ 195▕         $this->assertNotNull(Notification::query()
+    196▕             ->where('user_id', '=', (int) $user->getKey())
+    197▕             ->where('subject', 'like', '%completed%')
+    198▕             ->first(), 'The real message is still there.');
+    199▕     }
+
+  1   tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:195
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\Conversio…  ModelNotFoundException   
+  No query results for model [App\Models\Notification].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:780
+    776▕         if (! is_null($model = $this->first($columns))) {
+    777▕             return $model;
+    778▕         }
+    779▕ 
+  ➜ 780▕         throw (new ModelNotFoundException)->setModel(get_class($this->model));
+    781▕     }
+    782▕ 
+    783▕     /**
+    784▕      * Execute the query and get the first result or call a callback.
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/Wallet/Conversion/ConversionNotificationTest.php:213
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionQuoteAndLimi…  TypeError   
+  App\Exceptions\Wallet\ConversionQuoteExpiredException::forReference(): Argument #2 ($expiredAt) must be of type DateTimeImmutable, Illuminate\Support\Carbon given, called in /home/user/repo/app/Services/Wallet/Conversion/ConversionQuoteService.php on line 136
+
+  at app/Exceptions/Wallet/ConversionQuoteExpiredException.php:61
+     57▕             $previous,
+     58▕         );
+     59▕     }
+     60▕ 
+  ➜  61▕     public static function forReference(
+     62▕         string $quoteReference,
+     63▕         DateTimeImmutable $expiredAt,
+     64▕         ?DateTimeImmutable $attemptedAt = null,
+     65▕         ?Throwable $previous = null,
+
+  1   app/Exceptions/Wallet/ConversionQuoteExpiredException.php:61
+  2   app/Services/Wallet/Conversion/ConversionQuoteService.php:136
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionQuoteAndLimi…  TypeError   
+  App\Exceptions\Wallet\ConversionQuoteExpiredException::forSupersededRule(): Argument #2 ($expiredAt) must be of type DateTimeImmutable, Illuminate\Support\Carbon given, called in /home/user/repo/app/Services/Wallet/Conversion/ConversionQuoteService.php on line 156
+
+  at app/Exceptions/Wallet/ConversionQuoteExpiredException.php:74
+     70▕     /**
+     71▕      * The fee schedule was revised inside the quote's lifetime, so the agreed
+     72▕      * price is no longer the published price even if the clock has not run out.
+     73▕      */
+  ➜  74▕     public static function forSupersededRule(
+     75▕         string $quoteReference,
+     76▕         DateTimeImmutable $expiredAt,
+     77▕         string $quotedRuleVersion,
+     78▕         string $currentRuleVersion,
+
+  1   app/Exceptions/Wallet/ConversionQuoteExpiredException.php:74
+  2   app/Services/Wallet/Conversion/ConversionQuoteService.php:156
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:72
+     68▕         $this->assertSame(0, $report['pending']);
+     69▕         $this->assertSame(0, $report['mismatched']);
+     70▕         $this->assertSame([], $report['mismatches']);
+     71▕ 
+  ➜  72▕         $this->assertSame(6, $this->entriesOf($this->modelFor($first->reference)));
+     73▕         $this->assertSame(6, $this->entriesOf($this->modelFor($second->reference)));
+     74▕     }
+     75▕ 
+     76▕     #[Test]
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:72
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:83
+     79▕         $member = $this->makeFundedMember('1000.00')['user'];
+     80▕         $operator = $this->makeOperator();
+     81▕ 
+     82▕         $result = $this->convert($member, '100.00');
+  ➜  83▕         $conversion = $this->modelFor($result->reference);
+     84▕ 
+     85▕         $this->service()->reverse(
+     86▕             (int) $conversion->getKey(),
+     87▕             new \App\DTOs\Wallet\ConversionAuditContextData(
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:83
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:112
+    108▕     {
+    109▕         $member = $this->makeFundedMember('1000.00')['user'];
+    110▕ 
+    111▕         $result = $this->convert($member, '100.00');
+  ➜ 112▕         $conversion = $this->modelFor($result->reference);
+    113▕ 
+    114▕         // The credit into the destination wallet is gone: a half-posted movement
+    115▕         // is exactly what an interrupted deploy leaves behind. The destination is
+    116▕         // credited the gross amount and debited the fee, so with the credit missing
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:112
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:158
+    154▕     {
+    155▕         $member = $this->makeFundedMember('1000.00')['user'];
+    156▕ 
+    157▕         $result = $this->convert($member, '100.00');
+  ➜ 158▕         $conversion = $this->modelFor($result->reference);
+    159▕ 
+    160▕         // Somebody "fixed" a posting by moving 99.00 to 98.00 on the ledger side
+    161▕         // only. Double entry still balances globally — the pair moved together —
+    162▕         // so a whole-ledger sum would call this healthy. It is not: the member's
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:158
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:188
+    184▕     {
+    185▕         $member = $this->makeFundedMember('1000.00')['user'];
+    186▕ 
+    187▕         $result = $this->convert($member, '100.00');
+  ➜ 188▕         $conversion = $this->modelFor($result->reference);
+    189▕ 
+    190▕         $original = LedgerEntry::query()
+    191▕             ->where('reference_type', '=', 'wallet_conversion')
+    192▕             ->where('reference_id', '=', (int) $conversion->getKey())
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:188
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:241
+    237▕     {
+    238▕         $member = $this->makeFundedMember('1000.00')['user'];
+    239▕ 
+    240▕         $result = $this->convert($member, '100.00');
+  ➜ 241▕         $conversion = $this->modelFor($result->reference);
+    242▕ 
+    243▕         LedgerEntry::query()
+    244▕             ->where('reference_type', '=', 'wallet_conversion')
+    245▕             ->where('reference_id', '=', (int) $conversion->getKey())
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:241
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:265
+    261▕     {
+    262▕         $member = $this->makeFundedMember('1000.00')['user'];
+    263▕ 
+    264▕         $result = $this->convert($member, '100.00');
+  ➜ 265▕         $conversion = $this->modelFor($result->reference);
+    266▕ 
+    267▕         LedgerEntry::query()
+    268▕             ->where('reference_type', '=', 'wallet_conversion')
+    269▕             ->where('reference_id', '=', (int) $conversion->getKey())
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:265
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:288
+    284▕     {
+    285▕         $member = $this->makeFundedMember('1000.00')['user'];
+    286▕ 
+    287▕         $result = $this->convert($member, '100.00');
+  ➜ 288▕         $conversion = $this->modelFor($result->reference);
+    289▕ 
+    290▕         // One hundredth of a baht short: the smallest drift a rounding policy
+    291▕         // could plausibly produce.
+    292▕         LedgerEntry::query()
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:288
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:323
+    319▕     {
+    320▕         $member = $this->makeFundedMember('1000.00')['user'];
+    321▕ 
+    322▕         $result = $this->convert($member, '100.00');
+  ➜ 323▕         $conversion = $this->modelFor($result->reference);
+    324▕ 
+    325▕         LedgerEntry::query()
+    326▕             ->where('reference_type', '=', 'wallet_conversion')
+    327▕             ->where('reference_id', '=', (int) $conversion->getKey())
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:323
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:371
+    367▕             // and fee legs alone would leave the source's 50.00 in place, which is
+    368▕             // a different (also real) finding.
+    369▕             LedgerEntry::query()
+    370▕                 ->where('reference_type', '=', 'wallet_conversion')
+  ➜ 371▕                 ->where('reference_id', '=', (int) $this->modelFor($result->reference)->getKey())
+    372▕                 ->delete();
+    373▕         }
+    374▕ 
+    375▕         // Backdated past the settling window so all three are mismatches.
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:371
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:418
+    414▕     {
+    415▕         $member = $this->makeFundedMember('1000.00')['user'];
+    416▕ 
+    417▕         $result = $this->convert($member, '100.00');
+  ➜ 418▕         $conversion = $this->modelFor($result->reference);
+    419▕ 
+    420▕         // Damage from four days ago. The default lookback is 48 hours, so a
+    421▕         // scheduled run does not re-report it every night — the operator who owns
+    422▕         // it has already been told, and a nightly repeat is how an alert channel
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:418
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:450
+    446▕     {
+    447▕         $member = $this->makeFundedMember('1000.00')['user'];
+    448▕ 
+    449▕         $result = $this->convert($member, '100.00');
+  ➜ 450▕         $conversion = $this->modelFor($result->reference);
+    451▕ 
+    452▕         Log::spy();
+    453▕ 
+    454▕         $this->reconcile();
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:450
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:482
+    478▕     {
+    479▕         $member = $this->makeFundedMember('1000.00')['user'];
+    480▕ 
+    481▕         $result = $this->convert($member, '100.00');
+  ➜ 482▕         $conversion = $this->modelFor($result->reference);
+    483▕ 
+    484▕         LedgerEntry::query()
+    485▕             ->where('reference_type', '=', 'wallet_conversion')
+    486▕             ->where('reference_id', '=', (int) $conversion->getKey())
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:482
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionReconciliationTe…  Error   
+  Call to undefined method Tests\Feature\Wallet\Conversion\ConversionReconciliationTest::modelFor()
+
+  at tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:508
+    504▕     {
+    505▕         $member = $this->makeFundedMember('1000.00')['user'];
+    506▕ 
+    507▕         $result = $this->convert($member, '100.00');
+  ➜ 508▕         $conversion = $this->modelFor($result->reference);
+    509▕ 
+    510▕         // A conversion the platform is still moving is not a completed movement,
+    511▕         // and its postings are not expected to be complete yet. Examining it would
+    512▕         // produce a permanent pending row in every report.
+
+  1   tests/Feature/Wallet/Conversion/ConversionReconciliationTest.php:508
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionValidationTest > a curr…   
+  Expected response status code [422] but received 500.
+Failed asserting that 500 is identical to 422.
+
+The following exception occurred during the last request:
+
+Illuminate\Database\Eloquent\MassAssignmentException: Add fillable property [status, balance, locked_balance, version] to allow mass assignment on [App\Models\Wallet]. in /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+Stack trace:
+#0 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(713): Illuminate\Database\Eloquent\Model->fill()
+#1 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1749): Illuminate\Database\Eloquent\Model->newInstance()
+#2 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1218): Illuminate\Database\Eloquent\Builder->newModelInstance()
+#3 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(725): Illuminate\Database\Eloquent\Builder->create()
+#4 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1961): Illuminate\Database\Eloquent\Builder->{closure:Illuminate\Database\Eloquent\Builder::createOrFirst():725}()
+#5 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(725): Illuminate\Database\Eloquent\Builder->withSavepointIfNeeded()
+#6 /home/user/repo/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(712): Illuminate\Database\Eloquent\Builder->createOrFirst()
+#7 /home/user/repo/app/Services/Wallet/Conversion/ConversionWalletResolver.php(128): Illuminate\Database\Eloquent\Builder->firstOrCreate()
+#8 /home/user/repo/app/Services/Wallet/Conversion/ConversionWalletResolver.php(51): App\Services\Wallet\Conversion\ConversionWalletResolver->walletFor()
+#9 /home/user/repo/app/Services/Wallet/Conversion/ConversionPolicyGuard.php(179): App\Services\Wallet\Conversion\ConversionWalletResolver->resolve()
+#10 /home/user/repo/app/Services/Wallet/Conversion/WalletConversionService.php(70): App\Services\Wallet\Conversion\ConversionPolicyGuard->evaluate()
+#11 /home/user/repo/app/Http/Controllers/Api/V1/WalletConversionController.php(36): App\Services\Wallet\Conversion\WalletConversionService->quote()
+#12 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(46): App\Http\Controllers\Api\V1\WalletConversionController->quote()
+#13 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Route.php(265): Illuminate\Routing\ControllerDispatcher->dispatch()
+#14 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Route.php(211): Illuminate\Routing\Route->runController()
+#15 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(822): Illuminate\Routing\Route->run()
+#16 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Routing\Router->{closure:Illuminate\Routing\Router::runRouteWithinStack():821}()
+#17 /home/user/repo/app/Http/Middleware/EnsureUserIsActive.php(23): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}()
+#18 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\EnsureUserIsActive->handle()
+#19 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#20 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\SubstituteBindings->handle()
+#21 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(166): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#22 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(129): Illuminate\Routing\Middleware\ThrottleRequests->handleRequest()
+#23 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(90): Illuminate\Routing\Middleware\ThrottleRequests->handleRequestUsingNamedLimiter()
+#24 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\ThrottleRequests->handle()
+#25 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(166): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#26 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(129): Illuminate\Routing\Middleware\ThrottleRequests->handleRequest()
+#27 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Middleware/ThrottleRequests.php(90): Illuminate\Routing\Middleware\ThrottleRequests->handleRequestUsingNamedLimiter()
+#28 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\ThrottleRequests->handle()
+#29 /home/user/repo/vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php(63): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#30 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Auth\Middleware\Authenticate->handle()
+#31 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#32 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\Pipeline\Pipeline->then()
+#33 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\Routing\Router->runRouteWithinStack()
+#34 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\Routing\Router->runRoute()
+#35 /home/user/repo/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\Routing\Router->dispatchToRoute()
+#36 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\Routing\Router->dispatch()
+#37 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Foundation\Http\Kernel->{closure:Illuminate\Foundation\Http\Kernel::dispatchToRouter():197}()
+#38 /home/user/repo/vendor/livewire/livewire/src/Features/SupportDisablingBackButtonCache/DisableBackButtonCacheMiddleware.php(19): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}()
+#39 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Livewire\Features\SupportDisablingBackButtonCache\DisableBackButtonCacheMiddleware->handle()
+#40 /home/user/repo/app/Http/Middleware/SetLocale.php(57): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#41 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\SetLocale->handle()
+#42 /home/user/repo/app/Http/Middleware/CorrelationIdMiddleware.php(35): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#43 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\CorrelationIdMiddleware->handle()
+#44 /home/user/repo/app/Http/Middleware/SecurityHeaders.php(13): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#45 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\SecurityHeaders->handle()
+#46 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#47 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#48 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull->handle()
+#49 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#50 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#51 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\TrimStrings->handle()
+#52 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#53 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePostSize->handle()
+#54 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#55 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance->handle()
+#56 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#57 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\HandleCors->handle()
+#58 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#59 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\TrustProxies->handle()
+#60 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#61 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks->handle()
+#62 /home/user/repo/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#63 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePathEncoding->handle()
+#64 /home/user/repo/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#65 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\Pipeline\Pipeline->then()
+#66 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\Foundation\Http\Kernel->sendRequestThroughRouter()
+#67 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(607): Illuminate\Foundation\Http\Kernel->handle()
+#68 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(573): Illuminate\Foundation\Testing\TestCase->call()
+#69 /home/user/repo/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(411): Illuminate\Foundation\Testing\TestCase->json()
+#70 /home/user/repo/tests/Feature/Wallet/Conversion/ConversionValidationTest.php(140): Illuminate\Foundation\Testing\TestCase->postJson()
+#71 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\Feature\Wallet\Conversion\ConversionValidationTest->a_currency_other_than_the_one_the_wallets_hold_is_refused()
+#72 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\Framework\TestCase->runTest()
+#73 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\Framework\TestCase->runBare()
+#74 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\Framework\TestRunner->run()
+#75 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestCase->run()
+#76 /home/user/repo/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestSuite->run()
+#77 /home/user/repo/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\Framework\TestSuite->run()
+#78 /home/user/repo/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\TextUI\TestRunner->run()
+#79 /home/user/repo/vendor/phpunit/phpunit/phpunit(104): PHPUnit\TextUI\Application->run()
+#80 {main}
+
+----------------------------------------------------------------------------------
+
+Add fillable property [status, balance, locked_balance, version] to allow mass assignment on [App\Models\Wallet].
+
+  at tests/Feature/Wallet/Conversion/ConversionValidationTest.php:141
+    137▕         // misconfigured or probing, and either way the platform must not invent a
+    138▕         // USD conversion out of a THB wallet.
+    139▕         $this->actingAs($user, 'sanctum')
+    140▕             ->postJson('/api/v1/wallet/conversions/quote', $this->quotePayload(['currency' => 'USD']))
+  ➜ 141▕             ->assertStatus(422);
+    142▕     }
+    143▕ 
+    144▕     #[Test]
+    145▕     public function an_idempotency_key_must_be_long_enough_to_be_unpredictable(): void
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionValidationTest > an exp…   
+  Failed asserting that an array contains 500.
+
+  at tests/Feature/Wallet/Conversion/ConversionValidationTest.php:217
+    213▕         ]);
+    214▕ 
+    215▕         // Refused, not repriced: charging a price the member never accepted is a
+    216▕         // worse outcome than asking them to press the button again.
+  ➜ 217▕         $this->assertContains($response->status(), [409, 422]);
+    218▕         $this->assertSame(0, \App\Models\WalletConversion::query()->count());
+    219▕     }
+    220▕ 
+    221▕     #[Test]
+
+  1   tests/Feature/Wallet/Conversion/ConversionValidationTest.php:217
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionViewContractTest > a cl…   
+  Expected: <!DOCTYPE html>\n
+  <html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+  <head>\n
+  ... (457 more lines)
+
+  To contain: Win to Cash
+
+  at tests/Feature/Wallet/Conversion/ConversionViewContractTest.php:290
+    286▕ 
+    287▕         // The closed direction is still named — the member has winnings and needs
+    288▕         // to know the way out exists — but as a disabled label rather than a link
+    289▕         // that would bounce them back with a refusal.
+  ➜ 290▕         $response->assertSee(__('wallet_conversion.direction_win_to_cash'), false);
+    291▕         $response->assertSee('wc-switch__item--disabled', false);
+    292▕         $response->assertSee(__('wallet_conversion.direction_disabled'), false);
+    293▕ 
+    294▕         // And it is not a link: nothing on the page invites a click that cannot
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionViewContractTest > the…    
+  Expected: <!DOCTYPE html>\n
+  <html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+  <head>\n
+  ... (459 more lines)
+
+  Not to contain: data-wc-conversion-form
+
+  at tests/Feature/Wallet/Conversion/ConversionViewContractTest.php:586
+    582▕         // The policy refuses this member no matter what they type, so the page
+    583▕         // must neither invite them to fill in a form nor leave them guessing why
+    584▕         // nothing works.
+    585▕         $response->assertOk();
+  ➜ 586▕         $response->assertDontSee('data-wc-conversion-form', false);
+    587▕         $response->assertSee(__('wallet_conversion.blocked_title'), false);
+    588▕         $response->assertSee(__('wallet_conversion.rejection_account_suspended'), false);
+    589▕     }
+    590▕
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionViewContractTest > an u…   
+  Expected: <!DOCTYPE html>\n
+  <html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+  <head>\n
+  ... (459 more lines)
+
+  Not to contain: data-wc-conversion-form
+
+  at tests/Feature/Wallet/Conversion/ConversionViewContractTest.php:609
+    605▕ 
+    606▕         $response = $this->actingAs($user)->get(route('player.wallet.conversion'));
+    607▕ 
+    608▕         $response->assertOk();
+  ➜ 609▕         $response->assertDontSee('data-wc-conversion-form', false);
+    610▕         $response->assertSee(__('wallet_conversion.rejection_kyc_not_verified'), false);
+    611▕     }
+    612▕ 
+    613▕     #[Test]
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionViewContractTest > a me…   
+  Expected: <!DOCTYPE html>\n
+  <html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+  <head>\n
+  ... (459 more lines)
+
+  Not to contain: data-wc-conversion-form
+
+  at tests/Feature/Wallet/Conversion/ConversionViewContractTest.php:625
+    621▕ 
+    622▕         $response = $this->actingAs($user)->get(route('player.wallet.conversion'));
+    623▕ 
+    624▕         $response->assertOk();
+  ➜ 625▕         $response->assertDontSee('data-wc-conversion-form', false);
+    626▕         $response->assertSee(__('wallet_conversion.rejection_insufficient_balance'), false);
+    627▕     }
+    628▕ 
+    629▕     #[Test]
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Wallet\Conversion\ConversionWiringTest > the lanes…    
+  config('conversions.reconciliation.enabled') must be present.
+Failed asserting that null is not null.
+
+  at tests/Feature/Wallet/Conversion/ConversionWiringTest.php:222
+    218▕             'conversions.ledger.transfer_counterpart_code',
+    219▕         ];
+    220▕ 
+    221▕         foreach ($keys as $key) {
+  ➜ 222▕             $this->assertNotNull(config($key), "config('{$key}') must be present.");
+    223▕         }
+    224▕     }
+    225▕ 
+    226▕     #[Test]
+
+  1   tests/Feature/Wallet/Conversion/ConversionWiringTest.php:222
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Unit\Wallet\Conversion\ConversionEnumsTest > every label ke…   
+  The translation key [wallet_conversion.channel_web] is missing in locale [en].
+Failed asserting that two strings are not identical.
+
+  at tests/Unit/Wallet/Conversion/ConversionEnumsTest.php:580
+    576▕         foreach (['en', 'th'] as $locale) {
+    577▕             app()->setLocale($locale);
+    578▕ 
+    579▕             foreach ($keys as $key) {
+  ➜ 580▕                 $this->assertNotSame(
+    581▕                     $key,
+    582▕                     __($key),
+    583▕                     sprintf('The translation key [%s] is missing in locale [%s].', $key, $locale),
+    584▕                 );
+
+  1   tests/Unit/Wallet/Conversion/ConversionEnumsTest.php:580
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Unit\Wallet\Conversion\ConversionEnumsTest > every reconcil…   
+  Failed asserting that two strings are not identical.
+
+  at tests/Unit/Wallet/Conversion/ConversionEnumsTest.php:600
+    596▕         foreach (['en', 'th'] as $locale) {
+    597▕             app()->setLocale($locale);
+    598▕ 
+    599▕             foreach (WalletConversionReconciliationState::cases() as $state) {
+  ➜ 600▕                 $this->assertNotSame($state->labelKey(), __($state->labelKey()));
+    601▕                 $this->assertNotSame($state->descriptionKey(), __($state->descriptionKey()));
+    602▕             }
+    603▕         }
+    604▕
+
+  1   tests/Unit/Wallet/Conversion/ConversionEnumsTest.php:600
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Unit\Wallet\Conversion\ConversionLimitsTest > a disabled ce…   
+  Turning enforcement off must actually stop refusing; a switch that only changes the copy is a trap.
+Failed asserting that two arrays are identical.
+  -Array &0 []
+  +Array &0 [
+  +    0 => App\Enums\WalletConversionRejectionReason Enum #12195 (DailyLimitExceeded, 'daily_limit_exceeded'),
+  +]
+  
+
+  at tests/Unit/Wallet/Conversion/ConversionLimitsTest.php:121
+    117▕             $this->config(['daily_limit' => '1000.00', 'enforce_daily' => false]),
+    118▕             Currency::THB,
+    119▕         );
+    120▕ 
+  ➜ 121▕         $this->assertSame(
+    122▕             [],
+    123▕             $limits->rollingViolations('5000.00', '900.00'),
+    124▕             'Turning enforcement off must actually stop refusing; a switch that only changes the copy is a trap.',
+    125▕         );
+
+  1   tests/Unit/Wallet/Conversion/ConversionLimitsTest.php:121
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Unit\Wallet\Conversion\ConversionLimitsTest > the whole sha…   
+  A limits object returned in a JSON response must serialise to these fields, not to {}. An empty object here is a field the API client cannot read.
+Failed asserting that two arrays are identical.
+  -Array &0 [
+  -    'currency' => 'THB',
+  -    'min_amount' => '10.00',
+  -    'max_amount' => '500000.00',
+  -    'daily_limit' => '1000000.00',
+  -    'monthly_limit' => '5000000.00',
+  -]
+  +Array &0 []
+  
+
+  at tests/Unit/Wallet/Conversion/ConversionLimitsTest.php:175
+    171▕         $this->assertSame('500000.00', $array['max_amount']);
+    172▕         $this->assertSame('1000000.00', $array['daily_limit']);
+    173▕         $this->assertSame('5000000.00', $array['monthly_limit']);
+    174▕ 
+  ➜ 175▕         $this->assertSame(
+    176▕             $array,
+    177▕             json_decode((string) json_encode($limits), true),
+    178▕             'A limits object returned in a JSON response must serialise to these fields, not to {}. '
+    179▕                 .'An empty object here is a field the API client cannot read.',
+
+  1   tests/Unit/Wallet/Conversion/ConversionLimitsTest.php:175
+
+
+  Tests:    69 failed, 327 passed (2494 assertions)
+  Duration: 51.90s
+

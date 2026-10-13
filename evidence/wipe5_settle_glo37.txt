@@ -1,0 +1,951 @@
+
+   PASS  Tests\Feature\Settlement\DrawLifecycleTest
+  ✓ point 01 walks the whole valid lifecycle                                                                                                                                                                                                       4.50s  
+  ✓ point 01b every state is reachable and cancellation is available until publication                                                                                                                                                             0.28s  
+  ✓ point 01c the seven declared states all exist                                                                                                                                                                                                  0.20s  
+  ✓ point 02 refuses an invalid transition                                                                                                                                                                                                         0.21s  
+  ✓ point 02b refuses every transition out of a terminal state                                                                                                                                                                                     0.24s  
+  ✓ point 02c a published draw can no longer be cancelled                                                                                                                                                                                          0.24s  
+  ✓ point 02d the transition table is the single source of truth                                                                                                                                                                                   0.22s  
+  ✓ point 03 refuses to modify a closed draw                                                                                                                                                                                                       0.20s  
+  ✓ point 03b refuses to modify a published or settled draw                                                                                                                                                                                        0.21s  
+  ✓ point 03c allows a declared modification only while draft or open                                                                                                                                                                              0.20s  
+  ✓ point 03d refuses to modify a protected field even on an open draw                                                                                                                                                                             0.21s  
+  ✓ point 03e a draw stops accepting bets once closed                                                                                                                                                                                              0.20s  
+  ✓ the added draw status case does not disturb the existing ones                                                                                                                                                                                  0.19s  
+  ✓ the lifecycle state maps to and from draw status totally                                                                                                                                                                                       0.19s  
+  ✓ a missing draw is reported and not invented                                                                                                                                                                                                    0.20s  
+
+   PASS  Tests\Feature\Settlement\DrawResultPublicationTest
+  ✓ point 14 preserves the leading zeroes of the first prize                                                                                                                                                                                       0.48s  
+  ✓ point 14b preserves leading zeroes in every derived winning number row                                                                                                                                                                         0.23s  
+  ✓ point 14c a bottom two of double zero is a valid result                                                                                                                                                                                        0.23s  
+  ✓ point 15 refuses a first prize of the wrong length                                                                                                                                                                                             0.24s  
+  ✓ point 15b refuses a bottom two that is not exactly two digits                                                                                                                                                                                  0.21s  
+  ✓ point 15c never pads a short result into a valid one                                                                                                                                                                                           0.21s  
+  ✓ point 16 refuses a first prize that is not a digit string                                                                                                                                                                                      0.23s  
+  ✓ point 16b refuses a missing result                                                                                                                                                                                                             0.21s  
+  ✓ point 16c refuses a numeric result that is not a string                                                                                                                                                                                        0.20s  
+  ✓ point 16d refuses an operator supplied winner or payout field                                                                                                                                                                                  0.20s  
+  ✓ point 17 refuses a second publication of the same draw                                                                                                                                                                                         0.25s  
+  ✓ point 17b refuses publication when a result row already exists                                                                                                                                                                                 0.24s  
+  ✓ point 17c refuses publication from a state that is not result pending                                                                                                                                                                          0.25s  
+  ✓ the bottom two lives in metadata because there is no column for it                                                                                                                                                                             0.25s  
+  ✓ publication writes exactly one winning number row per configured market                                                                                                                                                                        0.28s  
+  ✓ the derived values match the verified market result sources                                                                                                                                                                                    0.26s  
+  ✓ publication stamps the existing columns and advances the state                                                                                                                                                                                 0.24s  
+
+   PASS  Tests\Feature\Settlement\NonMonetarySettlementTest
+  ✓ point 21 a large simulated win does not credit the wallet                                                                                                                                                                                      0.32s  
+  ✓ point 21b a losing settlement does not debit the wallet                                                                                                                                                                                        0.28s  
+  ✓ point 21c the replay of a settled draw does not touch the wallet                                                                                                                                                                               0.27s  
+  ✓ point 21d settlement never locks or releases a balance                                                                                                                                                                                         0.28s  
+  ✓ point 22 settlement writes no ledger entry                                                                                                                                                                                                     0.30s  
+  ✓ point 22b the settlement service does not reference the ledger                                                                                                                                                                                 0.26s  
+  ✓ point 23 settlement creates no financial transaction                                                                                                                                                                                           0.25s  
+  ✓ point 23b no deposit withdrawal or payment row is created                                                                                                                                                                                      0.27s  
+  ✓ point 23c the declared write set is exactly what is written                                                                                                                                                                                    0.22s  
+  ✓ point 23d the row counts of every financial table are stable across a full cycle                                                                                                                                                               0.31s  
+  ✓ point 24 no outbound http request is made during settlement                                                                                                                                                                                    0.30s  
+  ✓ point 24b the phase 51 sources reference no gateway or transport                                                                                                                                                                               0.23s  
+  ✓ point 24c the phase 51 sources import no financial class                                                                                                                                                                                       0.20s  
+  ✓ point 24d no queued job or event can carry the settlement into the money domain                                                                                                                                                                0.23s  
+  ✓ point 30 settle accepts a draw id and nothing else                                                                                                                                                                                             0.24s  
+  ✓ point 30b no public method of the settlement service accepts an amount                                                                                                                                                                         0.19s  
+  ✓ point 30c the stored prize is the configured product and not anything a caller asked for                                                                                                                                                       0.30s  
+  ✓ point 30d a tampered stored multiplier cannot change the win decision                                                                                                                                                                          0.30s  
+  ✓ point 30e the simulation mode is a constant with no configuration switch                                                                                                                                                                       0.23s  
+  ✓ point 30f the simulation result declares its non monetary guarantees                                                                                                                                                                           0.23s  
+
+   PASS  Tests\Feature\Settlement\Phase51FollowUpTest
+  ✓ item f three digit direct pays exactly stake times nine hundred                                                                                                                                                                                0.27s  
+  ✓ item f three digit tod pays exactly stake times forty five once                                                                                                                                                                                0.26s  
+  ✓ item f two digit top pays exactly stake times ninety                                                                                                                                                                                           0.26s  
+  ✓ item f two digit bottom pays exactly stake times ninety                                                                                                                                                                                        0.26s  
+  ✓ item f run top pays exactly stake times three not the legacy twelve                                                                                                                                                                            0.28s  
+  ✓ item f run bottom pays exactly stake times four not the legacy twelve                                                                                                                                                                          0.29s  
+  ✓ item a every configured multiplier is storable in the integer column                                                                                                                                                                           0.23s  
+  ✓ item a a fractional multiplier is refused rather than truncated                                                                                                                                                                                0.20s  
+  ✓ item a a settled selection stores the configured rate exactly                                                                                                                                                                                  0.51s  
+  ✓ item e a first prize edited after publication refuses settlement                                                                                                                                                                               0.28s  
+  ✓ item e an edited winning number row refuses settlement                                                                                                                                                                                         0.28s  
+  ✓ item e a missing prize tier refuses settlement                                                                                                                                                                                                 0.27s  
+  ✓ item e a result edited after settlement refuses the replay                                                                                                                                                                                     0.31s  
+  ✓ item e an untampered result settles and replays normally                                                                                                                                                                                       0.28s  
+  ✓ item e publication leaves the result and the winning numbers in agreement                                                                                                                                                                      0.25s  
+  ✓ item g a three digit selection of 007 keeps its leading zeros                                                                                                                                                                                  0.26s  
+  ✓ item g a three digit selection of 000 keeps its leading zeros                                                                                                                                                                                  0.27s  
+  ✓ item g a tod selection of 099 keeps its leading zero                                                                                                                                                                                           0.28s  
+  ✓ item g a two digit top selection of 09 keeps its leading zero                                                                                                                                                                                  0.28s  
+  ✓ item g a two digit bottom selection of 00 keeps its leading zeros                                                                                                                                                                              0.27s  
+  ✓ item g a run selection of zero records occurrences without multiplying the prize                                                                                                                                                               0.27s  
+  ✓ item c draw status keeps its original values and adds result published                                                                                                                                                                         0.22s  
+
+   WARN  Tests\Feature\Settlement\SettlementSimulationTest
+  ✓ point 04 settles a winning three digit direct selection                                                                                                                                                                                        0.25s  
+  ✓ point 04b settles a losing three digit direct selection                                                                                                                                                                                        0.25s  
+  ✓ point 04c a permutation does not win the direct market                                                                                                                                                                                         0.26s  
+  ✓ point 05 settles a winning three digit tod selection                                                                                                                                                                                           0.27s  
+  ✓ point 05b a tod selection pays once and not once per arrangement                                                                                                                                                                               0.27s  
+  ✓ point 05c a tod selection that shares no digits loses                                                                                                                                                                                          0.26s  
+  ✓ point 06 the selection 123 covers six arrangements                                                                                                                                                                                             0.28s  
+  ✓ point 07 the selection 112 covers three arrangements                                                                                                                                                                                           0.32s  
+  ✓ point 08 the selection 111 covers one arrangement                                                                                                                                                                                              0.33s  
+  ✓ point 09 the selection 007 covers three arrangements and is never read as seven                                                                                                                                                                0.38s  
+  ✓ point 10 settles a two digit top selection                                                                                                                                                                                                     0.33s  
+  ✓ point 11 settles a two digit bottom selection                                                                                                                                                                                                  0.35s  
+  ✓ point 12 settles a run top selection at its own configured rate                                                                                                                                                                                0.34s  
+  ✓ point 13 settles a run bottom selection at its own configured rate                                                                                                                                                                             0.31s  
+  ✓ point 13b a run digit appearing twice still pays once                                                                                                                                                                                          0.26s  
+  ✓ point 14 settles a leading zero selection without normalising it                                                                                                                                                                               0.34s  
+  ✓ point 18 settling twice produces the same result and writes once                                                                                                                                                                               0.44s  
+  ✓ point 18b idempotency survives a cleared cache                                                                                                                                                                                                 0.30s  
+  ✓ point 18c a second run does not duplicate any simulation record                                                                                                                                                                                0.29s  
+  ✓ point 18d settlement is refused before the result is published                                                                                                                                                                                 0.24s  
+  ✓ point 19 rolls back completely when one selection cannot be settled                                                                                                                                                                            0.30s  
+  ✓ point 19b refuses to run inside a caller transaction                                                                                                                                                                                           0.30s  
+  ✓ point 19c a contradictory stored market aborts the run                                                                                                                                                                                         0.29s  
+  - point 20 lets only one of two concurrent settlements write → Real multi-process concurrency requires a shared server with row locks; SQLite in memory gives each process its own database.                                                     0.25s  
+  ✓ point 25 computes the simulated prize as an exact decimal                                                                                                                                                                                      0.25s  
+  ✓ point 25b a large product is exact to the cent                                                                                                                                                                                                 0.28s  
+  ✓ point 25c the reported totals are the exact sums of the selections                                                                                                                                                                             0.36s  
+  ✓ point 26 uses the configured multiplier as the only authority                                                                                                                                                                                  0.52s  
+  ✓ point 26b stores the configured multiplier on the settled selection                                                                                                                                                                            0.32s  
+  ✓ the simulation result reports every field the requirement asks for                                                                                                                                                                             0.30s  
+  ✓ settlement marks the bet and advances the draw                                                                                                                                                                                                 0.30s  
+  ✓ a losing bet is marked lost with a zero simulated prize                                                                                                                                                                                        0.32s  
+  ✓ a draw with no bets settles to an empty but valid simulation                                                                                                                                                                                   0.27s  
+  ✓ settling a missing draw is reported and not invented                                                                                                                                                                                           0.24s  
+
+   FAIL  Tests\Feature\Glo\GloConsoleCommandsTest
+  ✓ stress harness dry run pure math success                                                                                                                                                                                                       0.33s  
+  ✓ stress harness json report shape                                                                                                                                                                                                               0.22s  
+  ✓ stress harness iterations capped at max                                                                                                                                                                                                        2.06s  
+  ✓ stress harness with draw seats and settles                                                                                                                                                                                                     0.30s  
+  ✓ provider health reports fixture ready and official not configured                                                                                                                                                                              0.24s  
+  ✓ provider health counts increase after seat                                                                                                                                                                                                     0.29s  
+  ⨯ import result by draw number success                                                                                                                                                                                                           0.22s  
+  ✓ import result missing draw fails                                                                                                                                                                                                               0.28s  
+  ✓ import result requires draw or latest                                                                                                                                                                                                          0.24s  
+  ⨯ import result latest fixture                                                                                                                                                                                                                   0.22s  
+  ✓ reconcile sales requires draw                                                                                                                                                                                                                  0.20s  
+  ✓ reconcile sales matched exit zero                                                                                                                                                                                                              0.22s  
+  ✓ reconcile sales variance writes conflict gate                                                                                                                                                                                                  0.21s  
+  ✓ reconcile sales unknown draw fails                                                                                                                                                                                                             0.21s  
+  ✓ all four commands are registered                                                                                                                                                                                                               0.24s  
+
+   PASS  Tests\Feature\Glo\GloDealerChangeRequestTest
+  ✓ submit review approve updates profile                                                                                                                                                                                                          0.34s  
+  ✓ reject does not mutate profile                                                                                                                                                                                                                 0.29s  
+  ✓ direct submit to approved is forbidden                                                                                                                                                                                                         0.29s  
+  ✓ dealer cannot approve own request                                                                                                                                                                                                              0.41s  
+  ✓ duplicate open request rejected                                                                                                                                                                                                                0.29s  
+  ✓ api submit and list own requests                                                                                                                                                                                                               0.31s  
+  ✓ api operator approve endpoint                                                                                                                                                                                                                  0.57s  
+  ✓ api operator reject endpoint                                                                                                                                                                                                                   0.30s  
+  ✓ api operator forbidden for non permission user                                                                                                                                                                                                 0.32s  
+  ✓ api player cannot list operator requests                                                                                                                                                                                                       0.35s  
+  ✓ audit log written on submit                                                                                                                                                                                                                    0.49s  
+  ✓ another dealer cannot submit for this dealer                                                                                                                                                                                                   0.40s  
+  ✓ invalid phone rejected                                                                                                                                                                                                                         0.30s  
+
+   PASS  Tests\Feature\Glo\GloDealerServiceTest
+  ✓ dealer profile is created for user                                                                                                                                                                                                             0.38s  
+  ✓ ensure is idempotent                                                                                                                                                                                                                           0.28s  
+  ✓ api own profile only                                                                                                                                                                                                                           0.31s  
+  ✓ profile requires authentication                                                                                                                                                                                                                0.27s  
+  ✓ history labels internal source                                                                                                                                                                                                                 0.28s  
+  ✓ another dealer cannot see other history via api                                                                                                                                                                                                0.39s  
+  ✓ activate is operator path                                                                                                                                                                                                                      0.27s  
+  ✓ own profile does not leak internal ids                                                                                                                                                                                                         0.28s  
+
+   PASS  Tests\Feature\Glo\GloFrozenWinnerTest
+  ✓ frozen winning ticket gets payment hold and public announcement                                                                                                                                                                                0.39s  
+  ✓ dry run does not write holds                                                                                                                                                                                                                   0.32s  
+  ✓ non winning frozen ticket is not held                                                                                                                                                                                                          0.62s  
+  ✓ released freeze does not create hold                                                                                                                                                                                                           0.41s  
+  ✓ expired freeze does not auto pay and clear returns claim to eligible not paid                                                                                                                                                                  0.52s  
+  ✓ process frozen winners command json and never pays                                                                                                                                                                                             0.41s  
+  ✓ command dry run flag                                                                                                                                                                                                                           0.36s  
+  ✓ freeze command requires actor and permission                                                                                                                                                                                                   0.33s  
+
+   PASS  Tests\Feature\Glo\GloL6ProportionalCalculatorTest
+  ✓ ticket price is 80 thb string                                                                                                                                                                                                                  0.30s  
+  ✓ full allocation is 48m                                                                                                                                                                                                                         0.21s  
+  ✓ total prize count is 14168                                                                                                                                                                                                                     0.23s  
+  ✓ full sellout fraction is one                                                                                                                                                                                                                   0.23s  
+  ✓ zero sold fraction                                                                                                                                                                                                                             0.21s  
+  ✓ half sellout fraction                                                                                                                                                                                                                          0.22s  
+  ✓ over capacity rejected                                                                                                                                                                                                                         0.22s  
+  ✓ negative units rejected                                                                                                                                                                                                                        0.31s  
+  ✓ full sellout allocated gross equals full allocation                                                                                                                                                                                            0.22s  
+  ✓ half sellout allocated gross is half                                                                                                                                                                                                           0.24s  
+  ✓ zero sellout allocated gross is zero                                                                                                                                                                                                           0.21s  
+  ✓ gross for units is price times units                                                                                                                                                                                                           0.20s  
+  ✓ negative units gross rejected                                                                                                                                                                                                                  0.21s  
+  ✓ proportional breakdown at full sellout                                                                                                                                                                                                         0.22s  
+  ✓ proportional breakdown scales with unsold                                                                                                                                                                                                      0.21s  
+  ✓ breakdown never exceeds full allocation                                                                                                                                                                                                        0.21s  
+  ✓ proportional pots sum does not exceed allocated gross                                                                                                                                                                                          0.20s  
+
+   PASS  Tests\Feature\Glo\GloN3PrizePoolEngineTest
+  ✓ ticket price is 20 thb                                                                                                                                                                                                                         0.43s  
+  ✓ pool rate is sixty percent                                                                                                                                                                                                                     0.38s  
+  ✓ pool from gross sales is sixty percent                                                                                                                                                                                                         0.38s  
+  ✓ non money gross rejected                                                                                                                                                                                                                       0.36s  
+  ✓ non money gross rejected float style                                                                                                                                                                                                           0.24s  
+  ✓ non positive pool rejected                                                                                                                                                                                                                     0.21s  
+  ✓ allocation honours group caps                                                                                                                                                                                                                  0.19s  
+  ✓ special at least one percent of pool                                                                                                                                                                                                           0.21s  
+  ✓ caps are 30 30 39                                                                                                                                                                                                                              0.20s  
+  ✓ allocation balances to pool with reserve                                                                                                                                                                                                       0.19s  
+  ✓ banned fixed payouts never appear in allocation                                                                                                                                                                                                0.19s  
+  ✓ draw number is three digit string with leading zeros                                                                                                                                                                                           0.21s  
+  ✓ draw number respects exclude list                                                                                                                                                                                                              0.25s  
+  ✓ matches is exact string equality no int cast                                                                                                                                                                                                   0.21s  
+  ✓ draw for pool returns unique digit strings per group                                                                                                                                                                                           0.23s  
+  ✓ per winner amounts are pool derived not fixed                                                                                                                                                                                                  0.24s  
+  ✓ calculate from gross sales end to end                                                                                                                                                                                                          0.32s  
+  ✓ sixty percent pool from one million sales                                                                                                                                                                                                      0.23s  
+  ✓ allocation engine mode is pool variable                                                                                                                                                                                                        0.25s  
+  ✓ zero pool rejected for allocation                                                                                                                                                                                                              0.22s  
+
+   PASS  Tests\Feature\Glo\GloN3SettlementAndCheckerTest
+  ✓ settle without seat rejected                                                                                                                                                                                                                   0.38s  
+  ✓ settle conflicted seat rejected                                                                                                                                                                                                                0.30s  
+  ✓ settle seats variable pool numbers                                                                                                                                                                                                             0.29s  
+  ✓ settle is idempotent on same pool                                                                                                                                                                                                              0.33s  
+  ✓ dry run does not write metadata                                                                                                                                                                                                                0.30s  
+  ✓ checker matches seated n3 result digit string                                                                                                                                                                                                  0.29s  
+  ✓ checker miss returns not won                                                                                                                                                                                                                   0.26s  
+  ✓ checker rejects malformed ticket                                                                                                                                                                                                               0.29s  
+  ✓ checker rejects four digit ticket                                                                                                                                                                                                              0.20s  
+  ✓ checker without result has no n3                                                                                                                                                                                                               0.22s  
+  ✓ checker reads draw result metadata n3                                                                                                                                                                                                          0.21s  
+  ✓ settlement metadata group counts match allocator                                                                                                                                                                                               0.24s  
+
+   PASS  Tests\Feature\Glo\GloPrizeClaimTest
+  ✓ stamp duty calculator preserves official rule                                                                                                                                                                                                  0.45s  
+  ✓ successful claim submit review approve pay                                                                                                                                                                                                     0.37s  
+  ✓ underage claim is denied from server side dob                                                                                                                                                                                                  0.37s  
+  ✓ client supplied age is ignored and missing dob fails closed                                                                                                                                                                                    0.38s  
+  ✓ frozen ticket blocks claim payment                                                                                                                                                                                                             0.33s  
+  ✓ duplicate claim is rejected with idempotent identity                                                                                                                                                                                           0.33s  
+  ✓ double pay second worker sees already paid                                                                                                                                                                                                     0.33s  
+  ✓ claim window expired is refused                                                                                                                                                                                                                0.31s  
+  ✓ physical channel requires original ticket evidence                                                                                                                                                                                             0.32s  
+  ✓ unverified identity cannot submit                                                                                                                                                                                                              0.37s  
+  ✓ api claim routes default deny and pay requires payment permission                                                                                                                                                                              0.39s  
+  ✓ payment fail closed when settlement not final                                                                                                                                                                                                  0.48s  
+  ✓ active payment hold blocks payment                                                                                                                                                                                                             0.43s  
+  ✓ l6 claim respects proportional unsold sales seat                                                                                                                                                                                               0.37s  
+
+   PASS  Tests\Feature\Glo\GloPublicResultHistoryTest
+  ✓ valid six digit with leading zeros                                                                                                                                                                                                             0.37s  
+  ✓ six digit check post body                                                                                                                                                                                                                      0.27s  
+  ✓ invalid six digit rejected                                                                                                                                                                                                                     0.27s  
+  ✓ number is string not int in response                                                                                                                                                                                                           0.27s  
+  ✓ current result endpoint                                                                                                                                                                                                                        0.32s  
+  ✓ history excludes older than two years                                                                                                                                                                                                          0.27s  
+  ✓ history explicit old from date rejected                                                                                                                                                                                                        0.26s  
+  ✓ history pagination                                                                                                                                                                                                                             0.26s  
+  ✓ result sheet labels fixture not official                                                                                                                                                                                                       0.28s  
+  ✓ result sheet can label official when import provider official                                                                                                                                                                                  0.28s  
+  ✓ datamatrix fixture envelope parses                                                                                                                                                                                                             0.31s  
+  ✓ datamatrix opaque payload unsupported                                                                                                                                                                                                          0.26s  
+  ✓ datamatrix empty rejected                                                                                                                                                                                                                      0.26s  
+  ✓ datamatrix unknown json schema not configured                                                                                                                                                                                                  0.26s  
+  ✓ live draw not configured                                                                                                                                                                                                                       0.26s  
+  ✓ result cache key includes version                                                                                                                                                                                                              0.29s  
+  ✓ public routes throttled by glo public                                                                                                                                                                                                          0.35s  
+  ✓ no pii in result payloads                                                                                                                                                                                                                      0.30s  
+
+   PASS  Tests\Feature\Glo\GloPublicTicketVerificationTest
+  ✓ unknown reference returns not found                                                                                                                                                                                                            0.34s  
+  ✓ malformed reference returns not found                                                                                                                                                                                                          0.27s  
+  ✓ frozen ticket returns frozen status                                                                                                                                                                                                            0.34s  
+  ✓ frozen winning ticket returns payment held status                                                                                                                                                                                              0.32s  
+  ✓ released freeze returns released status                                                                                                                                                                                                        0.30s  
+  ✓ expired freeze returns expired status                                                                                                                                                                                                          0.31s  
+  ✓ not frozen when only non effective history exists                                                                                                                                                                                              0.33s  
+  ✓ public payload never contains pii or internal secrets                                                                                                                                                                                          0.30s  
+  ✓ route is unauthenticated and rate limited                                                                                                                                                                                                      0.32s  
+  ✓ no authentication cookies or tokens required or leaked                                                                                                                                                                                         0.39s  
+
+   FAIL  Tests\Feature\Glo\GloResultFallbackTest
+  ⨯ an empty priority ladder is the single configured source                                                                                                                                                                                       0.09s  
+  ⨯ the official source is preferred when the ladder says so                                                                                                                                                                                       0.08s  
+  ⨯ a failed official fetch falls through to the fixture lane when permitted                                                                                                                                                                       0.08s  
+  ⨯ the ladder refuses to reach the fixture lane without explicit permission                                                                                                                                                                       0.09s  
+  ⨯ an open circuit skips the source without a network call                                                                                                                                                                                        0.10s  
+  ⨯ a successful probe after the cooldown closes the circuit                                                                                                                                                                                       0.08s  
+  ⨯ an unconfigured source is skipped without being counted as a failure                                                                                                                                                                           0.07s  
+  ⨯ when every source fails the answer contains no numbers                                                                                                                                                                                         0.08s  
+  ⨯ an empty ladder is reported as a deployment error not an outage                                                                                                                                                                                0.08s  
+  ⨯ a provider that declares itself not configured does not open the circuit                                                                                                                                                                       0.08s  
+  ⨯ the import service fetches through the ladder and labels from the payload                                                                                                                                                                      0.08s  
+
+   FAIL  Tests\Feature\Glo\GloResultImportTest
+  ✓ fixture provider is configured when directory exists                                                                                                                                                                                           0.35s  
+  ✓ fixture fetch returns imported with six digit first                                                                                                                                                                                            0.23s  
+  ✓ fixture unknown draw number fails honestly                                                                                                                                                                                                     0.22s  
+  ✓ fixture missing directory reports not configured                                                                                                                                                                                               0.24s  
+  ✓ official provider not configured in fixture mode                                                                                                                                                                                               0.23s  
+  ✓ official provider not configured when mode official but unreachable                                                                                                                                                                            0.35s  
+  ✓ official provider unreachable is not configured                                                                                                                                                                                                0.25s  
+  ✓ official provider only uses documented endpoints                                                                                                                                                                                               0.27s  
+  ⨯ import stages pending ingestion and writes no draw result                                                                                                                                                                                      0.26s  
+  ⨯ import without an actor stages an unattributable record                                                                                                                                                                                        0.24s  
+  ⨯ import into a published draw is refused by the lifecycle guard                                                                                                                                                                                 0.23s  
+  ⨯ import of a payload without a fingerprint fails closed                                                                                                                                                                                         0.39s  
+  ⨯ import is idempotent on same fingerprint                                                                                                                                                                                                       0.40s  
+  ⨯ import unknown draw number records failure without result                                                                                                                                                                                      0.39s  
+  ⨯ import latest without matching draw records provenance only                                                                                                                                                                                    0.41s  
+  ⨯ import official mode not configured writes provenance not results                                                                                                                                                                              0.26s  
+  ✓ fixture payload second and third are six digit strings                                                                                                                                                                                         0.26s  
+  ✓ fixture n3 numbers are three digit strings                                                                                                                                                                                                     0.27s  
+
+   PASS  Tests\Feature\Glo\GloResultNotificationTest
+  ✓ verified result processes saved tickets                                                                                                                                                                                                        0.46s  
+  ✓ notification is idempotent on second run                                                                                                                                                                                                       0.33s  
+  ✓ duplicate process import same version no second notification                                                                                                                                                                                   0.51s  
+  ✓ multiple saved tickets multiple users                                                                                                                                                                                                          0.37s  
+  ✓ no winning ticket still notifies with not a winner                                                                                                                                                                                             0.31s  
+  ✓ process requires verified result state                                                                                                                                                                                                         0.35s  
+  ✓ command requires draw and runs                                                                                                                                                                                                                 0.35s  
+  ✓ dry run writes nothing                                                                                                                                                                                                                         0.30s  
+  ✓ push provider not configured is honest                                                                                                                                                                                                         0.34s  
+  ✓ in app delivery uses database provider                                                                                                                                                                                                         0.33s  
+  ✓ two workers same result only one delivery                                                                                                                                                                                                      0.30s  
+  ✓ payload has no other user pii                                                                                                                                                                                                                  0.42s  
+  ✓ frozen winning ticket notification carries hold without legal detail                                                                                                                                                                           0.34s  
+  ✓ send failure marks delivery failed when preference disables event                                                                                                                                                                              0.31s  
+  ✓ retry after failure advances same delivery key without duplicate rows                                                                                                                                                                          0.35s  
+
+   PASS  Tests\Feature\Glo\GloSalesPointTest
+  ✓ update own daily location and history                                                                                                                                                                                                          0.46s  
+  ✓ duplicate daily update rejected                                                                                                                                                                                                                0.32s  
+  ✓ cannot update another dealers location                                                                                                                                                                                                         0.37s  
+  ✓ cannot backdate location                                                                                                                                                                                                                       0.30s  
+  ✓ invalid coordinates rejected                                                                                                                                                                                                                   0.31s  
+  ✓ paired coordinates required when partial                                                                                                                                                                                                       0.30s  
+  ✓ inactive dealer cannot update location                                                                                                                                                                                                         0.29s  
+  ✓ api update sales location                                                                                                                                                                                                                      0.31s  
+  ✓ public search lists points without pii                                                                                                                                                                                                         0.29s  
+  ✓ public search radius filters and bounds                                                                                                                                                                                                        0.31s  
+  ✓ public search pagination bounded                                                                                                                                                                                                               0.31s  
+  ✓ search without coordinates returns normal results                                                                                                                                                                                              0.30s  
+  ✓ official sync reports not configured                                                                                                                                                                                                           0.28s  
+  ✓ sync command not configured                                                                                                                                                                                                                    0.29s  
+  ✓ partial radius query rejected                                                                                                                                                                                                                  0.28s  
+
+   PASS  Tests\Feature\Glo\GloSalesSeatAndReconciliationTest
+  ✓ n3 seat creates row with computed pool                                                                                                                                                                                                         0.33s  
+  ✓ n3 seat is unique per draw                                                                                                                                                                                                                     0.22s  
+  ✓ n3 negative seats rejected                                                                                                                                                                                                                     0.22s  
+  ✓ n3 explicit gross must match seats times price                                                                                                                                                                                                 0.23s  
+  ✓ n3 close seat blocks further conflict free seats                                                                                                                                                                                               0.31s  
+  ✓ glon3 sales conflict gate is seated                                                                                                                                                                                                            0.33s  
+  ✓ conflicted n3 seat rejects new seats                                                                                                                                                                                                           0.23s  
+  ✓ conflicted n3 seat rejects close                                                                                                                                                                                                               0.23s  
+  ✓ l6 seat with capacity and gross                                                                                                                                                                                                                0.26s  
+  ✓ l6 over capacity rejected                                                                                                                                                                                                                      0.23s  
+  ✓ l6 seat upsert updates units                                                                                                                                                                                                                   0.24s  
+  ✓ reconciliation matched when no expected override                                                                                                                                                                                               0.30s  
+  ✓ reconciliation variance seats gate                                                                                                                                                                                                             0.34s  
+  ✓ reconciliation inherits seat conflict                                                                                                                                                                                                          0.28s  
+  ✓ reconciliation l6 matched                                                                                                                                                                                                                      0.28s  
+  ✓ reconciliation l6 money variance conflicts                                                                                                                                                                                                     0.23s  
+  ✓ reconcile draw both products                                                                                                                                                                                                                   0.24s  
+  ✓ reconcile draw skips missing seats                                                                                                                                                                                                             0.26s  
+  ✓ unknown product rejected                                                                                                                                                                                                                       0.27s  
+  ✓ l6 proportional for seated draw                                                                                                                                                                                                                0.29s  
+  ✓ l6 proportional without seat rejected                                                                                                                                                                                                          0.24s  
+
+   PASS  Tests\Feature\Glo\GloSavedTicketTest
+  ✓ valid save                                                                                                                                                                                                                                     0.33s  
+  ✓ duplicate save rejected                                                                                                                                                                                                                        0.35s  
+  ✓ unique constraint blocks race insert                                                                                                                                                                                                           0.30s  
+  ✓ remove deactivates but keeps row                                                                                                                                                                                                               0.29s  
+  ✓ cannot save another users ticket                                                                                                                                                                                                               0.28s  
+  ✓ cancelled ticket rejected                                                                                                                                                                                                                      0.35s  
+  ✓ finalized draw rejected                                                                                                                                                                                                                        0.28s  
+  ✓ unknown ticket 404                                                                                                                                                                                                                             0.27s  
+  ✓ api save list remove                                                                                                                                                                                                                           0.28s  
+  ✓ api requires auth                                                                                                                                                                                                                              0.32s  
+  ✓ api cannot save foreign ticket                                                                                                                                                                                                                 0.33s  
+  ✓ reactivate after remove is allowed                                                                                                                                                                                                             0.36s  
+
+   PASS  Tests\Feature\Glo\GloTicketFreezeTest
+  ✓ freeze lifecycle requested review frozen release                                                                                                                                                                                               0.40s  
+  ✓ requested to rejected and rejected cannot frozen without reopen                                                                                                                                                                                0.41s  
+  ✓ requested directly to frozen is forbidden                                                                                                                                                                                                      0.38s  
+  ✓ final freeze requires complete evidence                                                                                                                                                                                                        0.36s  
+  ✓ exact ticket match preserves leading zero and rejects mass freeze                                                                                                                                                                              0.61s  
+  ✓ idempotent fingerprint replay is stable                                                                                                                                                                                                        0.31s  
+  ✓ multiple active freezes block until all released                                                                                                                                                                                               0.33s  
+  ✓ expiry is audited transition and keeps history                                                                                                                                                                                                 0.31s  
+  ✓ api freeze routes default deny and enforce permissions                                                                                                                                                                                         0.32s  
+  ✓ freeze never accepts request supplied trust fields                                                                                                                                                                                             0.28s  
+
+   FAIL  Tests\Feature\Glo\GloWriteBoundaryTest
+  ✓ the ingesting operator cannot confirm their own result                                                                                                                                                                                         0.27s  
+  ✓ a different operator can confirm and that publishes                                                                                                                                                                                            0.23s  
+  ✓ an unattributable ingestion cannot be confirmed by anyone                                                                                                                                                                                      0.22s  
+  ⨯ the importer writes no draw result and sets no published at                                                                                                                                                                                    0.20s  
+  ⨯ the full gated journey requires two operators                                                                                                                                                                                                  0.20s  
+  ⨯ the source lane is written only by the confirming operator                                                                                                                                                                                     0.20s  
+  ✓ a lane less confirmation publishes without a source lane                                                                                                                                                                                       0.22s  
+  ⨯ an independent bottom two is accepted and stored verbatim                                                                                                                                                                                      0.21s  
+  ✓ a payload without a bottom two is refused rather than derived                                                                                                                                                                                  0.21s  
+  ✓ a confirmation that does not state the bottom two is refused                                                                                                                                                                                   0.21s  
+
+   PASS  Tests\Integration\Glo\GloDealerAndNotificationIntegrationTest
+  ✓ full dealer location change notify flow                                                                                                                                                                                                        0.40s  
+  ✓ concurrent style double location same day only one row                                                                                                                                                                                         0.28s  
+  ✓ double approve same request only one state                                                                                                                                                                                                     0.31s  
+
+   PASS  Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest
+  ✓ happy path claim without freeze settles to paid once                                                                                                                                                                                           0.42s  
+  ✓ freeze claim hold release approve pay flow                                                                                                                                                                                                     0.37s  
+  ✓ state machine invariants reject illegal transitions                                                                                                                                                                                            0.35s  
+  ✓ unique constraints support concurrency idempotency                                                                                                                                                                                             0.33s  
+  ✓ concurrent style double claim and double pay                                                                                                                                                                                                   0.34s  
+  ✓ transactional pay rolls back on conflict                                                                                                                                                                                                       0.34s  
+  ✓ audit log written for freeze claim and payment                                                                                                                                                                                                 0.36s  
+  ✓ no wallet or payout lane is touched by glo payment                                                                                                                                                                                             0.34s  
+
+   PASS  Tests\Feature\Console\DrawAutomationTest
+  ✓ it creates the draws the calendar declares with their betting window                                                                                                                                                                           0.31s  
+  ✓ running provisioning again creates nothing                                                                                                                                                                                                     0.25s  
+  ✓ a deleted draw is not silently recreated                                                                                                                                                                                                       0.23s  
+  ✓ a dry run writes nothing                                                                                                                                                                                                                       0.22s  
+  ✓ it opens a draw whose betting window has started                                                                                                                                                                                               0.28s  
+  ✓ it does not open a draw whose window has not started                                                                                                                                                                                           0.23s  
+  ✓ it does not open a draw whose cut off has already passed                                                                                                                                                                                       0.27s  
+  ✓ it closes a draw whose cut off has passed                                                                                                                                                                                                      0.29s  
+  ✓ it leaves a draw open while its window is still running                                                                                                                                                                                        0.24s  
+  ✓ it closes a hand created draw that has no planned cut off                                                                                                                                                                                      0.31s  
+  ✓ closing respects the auto close setting and the force override                                                                                                                                                                                 0.65s  
+  ✓ it moves a closed draw to result pending once the draw moment has passed                                                                                                                                                                       0.29s  
+  ✓ it does not move a closed draw whose moment has not arrived                                                                                                                                                                                    0.28s  
+  ✓ it settles a published draw once the delay has elapsed                                                                                                                                                                                         0.30s  
+  ✓ it waits out the settlement delay so a mistyped result can still be caught                                                                                                                                                                     0.22s  
+  ✓ an operator can settle one named draw immediately                                                                                                                                                                                              0.25s  
+  ✓ settling twice writes nothing the second time                                                                                                                                                                                                  0.27s  
+  ✓ unattended settlement can be switched off independently of real payouts                                                                                                                                                                        0.32s  
+  ✓ one bad draw does not stop the batch and the command still reports failure                                                                                                                                                                     0.28s  
+  ✓ the kill switch stops every command unless it is forced                                                                                                                                                                                        0.29s  
+  ✓ a batch is bounded so a backlog cannot overrun the next tick                                                                                                                                                                                   0.26s  
+  ✓ one tick walks a draw from open to awaiting its result                                                                                                                                                                                         0.31s  
+  ✓ a tick never publishes a result and never moves money                                                                                                                                                                                          0.31s  
+  ✓ an operator can publish a result from the console                                                                                                                                                                                              0.26s  
+  ✓ publication refuses numbers the validator rejects and writes nothing                                                                                                                                                                           0.25s  
+  ✓ publication is refused for a draw that is not awaiting its result                                                                                                                                                                              0.22s  
+  ✓ declining the acknowledgement publishes nothing                                                                                                                                                                                                0.23s  
+  ✓ an unknown draw is reported rather than created                                                                                                                                                                                                0.24s  
+
+   PASS  Tests\Feature\Console\GloPublishProductionGuardTest
+  ✓ production with fixture mode refuses to publish                                                                                                                                                                                                0.09s  
+  ✓ explicit flag acknowledges the fixture mode and passes the gate                                                                                                                                                                                0.09s  
+  ✓ production with official mode passes the gate                                                                                                                                                                                                  0.08s  
+  ✓ non production environments are not gated                                                                                                                                                                                                      0.08s  
+
+   PASS  Tests\Feature\Console\GradesRebuildSnapshotsTest
+  ✓ dry run evaluates but writes nothing                                                                                                                                                                                                           0.10s  
+  ✓ real run creates snapshots from the canonical evaluator                                                                                                                                                                                        0.09s  
+  ✓ rerun is idempotent by fingerprint                                                                                                                                                                                                             0.15s  
+  ✓ a changed evaluation appends a new row and never rewrites                                                                                                                                                                                      0.10s  
+  ✓ account option scopes the rebuild to one user                                                                                                                                                                                                  0.09s  
+  ✓ unknown account fails and writes nothing                                                                                                                                                                                                       0.08s  
+  ✓ as of pins the exact window                                                                                                                                                                                                                    0.08s  
+  ✓ invalid as of fails the command and writes nothing                                                                                                                                                                                             0.09s  
+  ✓ chunk is clamped to the allowed range                                                                                                                                                                                                          0.09s  
+  ✓ there is no force option                                                                                                                                                                                                                       0.07s  
+
+   PASS  Tests\Feature\Console\ScheduleRegistrationTest
+  ✓ the draw tick is scheduled                                                                                                                                                                                                                     0.11s  
+  ✓ the tick runs on the configured expression                                                                                                                                                                                                     0.10s  
+  ✓ the tick cannot overlap itself                                                                                                                                                                                                                 0.12s  
+  ✓ the tick leaves a trace an operator can read                                                                                                                                                                                                   0.12s  
+  ✓ result publication is never scheduled                                                                                                                                                                                                          0.11s  
+  ✓ no scheduled task touches money                                                                                                                                                                                                                0.10s  
+  ✓ every lottery command is registered with artisan                                                                                                                                                                                               0.10s  
+
+   PASS  Tests\Feature\SafetyGate\PrizePayoutSafetyGateTest
+  ✓ default safety mode is disabled and never credits                                                                                                                                                                                              0.32s  
+  ✓ dry run mode computes but never credits                                                                                                                                                                                                        0.29s  
+  ✓ live auto small payout credits exactly once                                                                                                                                                                                                    0.29s  
+  ✓ live above threshold never credits without approval                                                                                                                                                                                            0.32s  
+  ✓ requires approval is config threshold driven not hardcoded                                                                                                                                                                                     0.26s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloConsoleCommandsTest > import result by draw number success                                                                                                                                      MassAssignmentException   
+  Add fillable property [result_published_at] to allow mass assignment on [App\Models\Draw].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+2 vendor frames [22m
+  3   tests/Feature/Glo/GloConsoleCommandsTest.php:113
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloConsoleCommandsTest > import result latest fixture                                                                                                                                                  DrawResultException   
+  Draw-result row #0 is result_published and cannot be ingested a result.
+
+  at app/Exceptions/DrawResultException.php:129
+    125▕      * @param  array<string, scalar|null>  $context
+    126▕      */
+    127▕     public static function confirmationForbidden(int $resultId, string $status, string $attemptedStep, array $context = []): self
+    128▕     {
+  ➜ 129▕         return new self(
+    130▕             sprintf(
+    131▕                 'Draw-result row #%d is %s and cannot be %s.',
+    132▕                 $resultId,
+    133▕                 $status,
+
+  1   app/Exceptions/DrawResultException.php:129
+  2   app/Services/Draw/DrawResultIngestionService.php:90
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > an empty priority ladder is the single configured source                                                                                                                                     Error   
+  Call to undefined method App\Services\Lottery\GloResultProviderChain::name()
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:103
+     99▕         config(['glo.official_source.mode' => 'fixture']);
+    100▕ 
+    101▕         $chain = app(GloResultProviderChain::class);
+    102▕ 
+  ➜ 103▕         $this->assertSame('chain', $chain->name());
+    104▕         $this->assertTrue($chain->isConfigured());
+    105▕ 
+    106▕         $payload = $chain->fetch('GLO-2026-09-16');
+    107▕
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:103
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > the official source is preferred when the ladder says so                                                                                                                                             
+  Failed asserting that two strings are identical.
+  -'official'
+  +'ladder'
+  
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:138
+    134▕ 
+    135▕         $chain = app(GloResultProviderChain::class);
+    136▕         $payload = $chain->fetch('DRAW-1');
+    137▕ 
+  ➜ 138▕         $this->assertSame('official', $payload['provider']);
+    139▕         $this->assertSame(
+    140▕             [['source' => 'official', 'outcome' => 'imported', 'reason' => null]],
+    141▕             $chain->attempts(),
+    142▕         );
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:138
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > a failed official fetch falls through to the fixture lane when permitted                                                                                                                             
+  Failed asserting that two strings are identical.
+  -'fixture'
+  +'ladder'
+  
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:176
+    172▕         // THE LABEL IS THE ASSERTION THAT MATTERS. The ladder was asked for the
+    173▕         // official source and answered with the fixture source; the payload must
+    174▕         // say `fixture`, because that is the field that is written to
+    175▕         // glo_result_imports.provider and read by the public source-state surface.
+  ➜ 176▕         $this->assertSame('fixture', $payload['provider']);
+    177▕         $this->assertSame('imported', $payload['status']);
+    178▕ 
+    179▕         $this->assertSame([
+    180▕             ['source' => 'official', 'outcome' => 'failed', 'reason' => 'connection timed out'],
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:176
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > the ladder refuses to reach the fixture lane without explicit permission                                                                                                                             
+  Expected: No result source is configured on the ladder.
+
+  To contain: Every result source failed
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:218
+    214▕ 
+    215▕         $this->assertSame('failed', $payload['status']);
+    216▕         $this->assertNull($payload['first_prize']);
+    217▕         $this->assertNull($payload['fingerprint']);
+  ➜ 218▕         $this->assertStringContainsString('Every result source failed', (string) $payload['failure_reason']);
+    219▕         $this->assertStringContainsString('official', (string) $payload['failure_reason']);
+    220▕     }
+    221▕ 
+    222▕     #[Test]
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:218
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > an open circuit skips the source without a network call                                                                                                                                              
+  Failed asserting that two strings are identical.
+  -'fixture'
+  +'ladder'
+  
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:257
+    253▕ 
+    254▕         // One failure trips the breaker (threshold 1). The first fetch falls
+    255▕         // through to fixture, and the SECOND is the one that proves the point.
+    256▕         $first = $chain->fetch('DRAW-1');
+  ➜ 257▕         $this->assertSame('fixture', $first['provider']);
+    258▕         $this->assertSame(1, $officialCalls);
+    259▕ 
+    260▕         $second = $chain->fetch('DRAW-1');
+    261▕         $this->assertSame('fixture', $second['provider']);
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:257
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > a successful probe after the cooldown closes the circuit                                                                                                                                             
+  Failed asserting that two strings are identical.
+  -'fixture'
+  +'ladder'
+  
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:310
+    306▕         $policy = BreakerPolicy::fromConfig(app('config'));
+    307▕         $chain = app(GloResultProviderChain::class);
+    308▕ 
+    309▕         // Trip it (threshold 1).
+  ➜ 310▕         $this->assertSame('fixture', $chain->fetch('DRAW-1')['provider']);
+    311▕         $this->assertSame('open', $breaker->describe('official', $policy)['state']);
+    312▕ 
+    313▕         // Travel past the cooldown. Config is time-independent, so the clock is
+    314▕         // moved rather than the policy weakened — a test that shortened the
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:310
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > an unconfigured source is skipped without being counted as a failure                                                                                                                                 
+  Failed asserting that two strings are identical.
+  -'fixture'
+  +'ladder'
+  
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:350
+    346▕ 
+    347▕         $chain = app(GloResultProviderChain::class);
+    348▕         $payload = $chain->fetch('DRAW-1');
+    349▕ 
+  ➜ 350▕         $this->assertSame('fixture', $payload['provider']);
+    351▕         $this->assertSame('skipped', $chain->attempts()[0]['outcome']);
+    352▕ 
+    353▕         $state = app(CircuitBreaker::class)->describe('official', BreakerPolicy::fromConfig(app('config')));
+    354▕
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:350
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > when every source fails the answer contains no numbers                                                                                                                                               
+  Expected: No result source is configured on the ladder.
+
+  To contain: official
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:394
+    390▕ 
+    391▕         // The reason names every attempt, so an operator does not have to read
+    392▕         // three log files to find out which sources were tried.
+    393▕         $reason = (string) $payload['failure_reason'];
+  ➜ 394▕         $this->assertStringContainsString('official', $reason);
+    395▕         $this->assertStringContainsString('fixture', $reason);
+    396▕         $this->assertStringContainsString('timeout', $reason);
+    397▕         $this->assertStringContainsString('fixture file missing', $reason);
+    398▕     }
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:394
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > an empty ladder is reported as a deployment error not an outage                                                                                                                              Error   
+  Call to undefined method App\Services\Lottery\GloResultProviderChain::attempts()
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:409
+    405▕         $chain = app(GloResultProviderChain::class);
+    406▕         $payload = $chain->fetch('DRAW-1');
+    407▕ 
+    408▕         $this->assertSame('failed', $payload['status']);
+  ➜ 409▕         $this->assertSame([], $chain->attempts());
+    410▕         $this->assertStringContainsString('No result source is configured', (string) $payload['failure_reason']);
+    411▕     }
+    412▕ 
+    413▕     #[Test]
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:409
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > a provider that declares itself not configured does not open the circuit                                                                                                                             
+  Expected: No result source is configured on the ladder.
+
+  To contain: not_configured
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:442
+    438▕ 
+    439▕         $payload = app(GloResultProviderChain::class)->fetch('DRAW-1');
+    440▕ 
+    441▕         $this->assertSame('failed', $payload['status']);
+  ➜ 442▕         $this->assertStringContainsString('not_configured', (string) $payload['failure_reason']);
+    443▕         $this->assertStringContainsString('GLO_OFFICIAL_ENDPOINT is not set', (string) $payload['failure_reason']);
+    444▕ 
+    445▕         $state = app(CircuitBreaker::class)->describe('official', BreakerPolicy::fromConfig(app('config')));
+    446▕
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:442
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultFallbackTest > the import service fetches through the ladder and labels from the payload                                                                                                                            
+  Failed asserting that two strings are identical.
+  -'chain'
+  +'fixture'
+  
+
+  at tests/Feature/Glo/GloResultFallbackTest.php:463
+    459▕         ]);
+    460▕ 
+    461▕         $imports = app(GloResultImportService::class);
+    462▕ 
+  ➜ 463▕         $this->assertSame('chain', $imports->provider()->name());
+    464▕     }
+    465▕ 
+    466▕     /**
+    467▕      * A minimal `imported` payload in the provider contract's shape.
+
+  1   tests/Feature/Glo/GloResultFallbackTest.php:463
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultImportTest > import stages pending ingestion and writes no draw result                                                                                                                        DrawResultException   
+  The result ingested from [glo_import:fixture] is malformed: bottom_two is required and is absent for first_prize [042042]. The two-digit prize is a separately drawn number, not the last two digits of the first prize — published draws give first prize 730640 with a bottom two of 28, 287184 with 48, and 074646 with 58. This platform will not derive it: deriving it would settle the two-digit market against a number the GLO never drew..
+
+  at app/Exceptions/DrawResultException.php:77
+     73▕      * @param  array<string, scalar|null>  $context
+     74▕      */
+     75▕     public static function malformed(string $source, string $reason, array $context = []): self
+     76▕     {
+  ➜  77▕         return new self(
+     78▕             sprintf('The result ingested from [%s] is malformed: %s.', $source, $reason),
+     79▕             self::CODE_MALFORMED,
+     80▕             $context + ['source' => $source, 'reason' => $reason],
+     81▕         );
+
+  1   app/Exceptions/DrawResultException.php:77
+  2   app/Services/Draw/DrawResultIngestionService.php:282
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultImportTest > import without an actor stages an unattributable record                                                                                                                          DrawResultException   
+  The result ingested from [glo_import:fixture] is malformed: bottom_two is required and is absent for first_prize [042042]. The two-digit prize is a separately drawn number, not the last two digits of the first prize — published draws give first prize 730640 with a bottom two of 28, 287184 with 48, and 074646 with 58. This platform will not derive it: deriving it would settle the two-digit market against a number the GLO never drew..
+
+  at app/Exceptions/DrawResultException.php:77
+     73▕      * @param  array<string, scalar|null>  $context
+     74▕      */
+     75▕     public static function malformed(string $source, string $reason, array $context = []): self
+     76▕     {
+  ➜  77▕         return new self(
+     78▕             sprintf('The result ingested from [%s] is malformed: %s.', $source, $reason),
+     79▕             self::CODE_MALFORMED,
+     80▕             $context + ['source' => $source, 'reason' => $reason],
+     81▕         );
+
+  1   app/Exceptions/DrawResultException.php:77
+  2   app/Services/Draw/DrawResultIngestionService.php:282
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultImportTest > import into a published draw is refused by the lifecycle guard                                                                                                                   DrawResultException   
+  Draw-result row #0 is result_published and cannot be ingested a result.
+
+  at app/Exceptions/DrawResultException.php:129
+    125▕      * @param  array<string, scalar|null>  $context
+    126▕      */
+    127▕     public static function confirmationForbidden(int $resultId, string $status, string $attemptedStep, array $context = []): self
+    128▕     {
+  ➜ 129▕         return new self(
+    130▕             sprintf(
+    131▕                 'Draw-result row #%d is %s and cannot be %s.',
+    132▕                 $resultId,
+    133▕                 $status,
+
+  1   app/Exceptions/DrawResultException.php:129
+  2   app/Services/Draw/DrawResultIngestionService.php:90
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultImportTest > import of a payload without a fingerprint fails closed                                                                                                                       MassAssignmentException   
+  Add fillable property [draw_number, payload] to allow mass assignment on [App\Models\GloResultImport].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+4 vendor frames [22m
+  5   app/Services/Lottery/GloResultImportService.php:279
+  6   app/Services/Lottery/GloResultImportService.php:209
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultImportTest > import is idempotent on same fingerprint                                                                                                                                         DrawResultException   
+  The result ingested from [glo_import:fixture] is malformed: bottom_two is required and is absent for first_prize [042042]. The two-digit prize is a separately drawn number, not the last two digits of the first prize — published draws give first prize 730640 with a bottom two of 28, 287184 with 48, and 074646 with 58. This platform will not derive it: deriving it would settle the two-digit market against a number the GLO never drew..
+
+  at app/Exceptions/DrawResultException.php:77
+     73▕      * @param  array<string, scalar|null>  $context
+     74▕      */
+     75▕     public static function malformed(string $source, string $reason, array $context = []): self
+     76▕     {
+  ➜  77▕         return new self(
+     78▕             sprintf('The result ingested from [%s] is malformed: %s.', $source, $reason),
+     79▕             self::CODE_MALFORMED,
+     80▕             $context + ['source' => $source, 'reason' => $reason],
+     81▕         );
+
+  1   app/Exceptions/DrawResultException.php:77
+  2   app/Services/Draw/DrawResultIngestionService.php:282
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultImportTest > import unknown draw number records failure without result                                                                                                                    MassAssignmentException   
+  Add fillable property [draw_number, payload] to allow mass assignment on [App\Models\GloResultImport].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+4 vendor frames [22m
+  5   app/Services/Lottery/GloResultImportService.php:279
+  6   app/Services/Lottery/GloResultImportService.php:187
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultImportTest > import latest without matching draw records provenance only                                                                                                                  MassAssignmentException   
+  Add fillable property [draw_number, payload] to allow mass assignment on [App\Models\GloResultImport].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+4 vendor frames [22m
+  5   app/Services/Lottery/GloResultImportService.php:279
+  6   app/Services/Lottery/GloResultImportService.php:156
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloResultImportTest > import official mode not configured writes provenance not results                                                                                                            MassAssignmentException   
+  Add fillable property [draw_number, payload] to allow mass assignment on [App\Models\GloResultImport].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+4 vendor frames [22m
+  5   app/Services/Lottery/GloResultImportService.php:279
+  6   app/Services/Lottery/GloResultImportService.php:187
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloWriteBoundaryTest > the importer writes no draw result and sets no published at                                                                                                                 MassAssignmentException   
+  Add fillable property [draw_number, payload] to allow mass assignment on [App\Models\GloResultImport].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+4 vendor frames [22m
+  5   app/Services/Lottery/GloResultImportService.php:279
+  6   app/Services/Lottery/GloResultImportService.php:187
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloWriteBoundaryTest > the full gated journey requires two operators                                                                                                                               MassAssignmentException   
+  Add fillable property [draw_number, payload] to allow mass assignment on [App\Models\GloResultImport].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+4 vendor frames [22m
+  5   app/Services/Lottery/GloResultImportService.php:279
+  6   app/Services/Lottery/GloResultImportService.php:187
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloWriteBoundaryTest > the source lane is written only by the confirming operator                                                                                                                  MassAssignmentException   
+  Add fillable property [draw_number, payload] to allow mass assignment on [App\Models\GloResultImport].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+4 vendor frames [22m
+  5   app/Services/Lottery/GloResultImportService.php:279
+  6   app/Services/Lottery/GloResultImportService.php:187
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloWriteBoundaryTest > an independent bottom two is accepted and stored verbatim                                                                                                                            ErrorException   
+  Undefined array key "first_prize"
+
+  at tests/Feature/Glo/GloWriteBoundaryTest.php:355
+    351▕         // would have passed while reading nothing.
+    352▕         $stored = $this->ingestion->currentIngestion((int) $this->draw->getKey());
+    353▕ 
+    354▕         $this->assertIsArray($stored);
+  ➜ 355▕         $this->assertSame('287184', $stored['first_prize']);
+    356▕         $this->assertSame('48', $stored['bottom_two'], 'the announced value, not substr(287184, -2) = 84');
+    357▕         $this->assertSame(DrawConfirmationStatus::Pending->value, $stored['status']);
+    358▕ 
+    359▕         $this->confirmation->confirm(
+
+
+  Tests:    25 failed, 1 skipped, 394 passed (2805 assertions)
+  Duration: 122.03s
+

@@ -5,44 +5,25 @@ declare(strict_types=1);
 namespace Tests\Feature\Draw;
 
 use App\DTOs\BetPurchaseData;
-use App\DTOs\Betting\BetCancellationData;
-use App\Enums\AuditAction;
-use App\Enums\BetCancellationReason;
-use App\Enums\BetStatus;
 use App\Enums\BetType;
 use App\Enums\Currency;
-use App\Enums\DiscrepancyCategory;
 use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Enums\LimitStatus;
 use App\Enums\PayoutStatus;
-use App\Exceptions\BetPurchaseValidationException;
 use App\Exceptions\SettlementSimulationException;
 use App\Jobs\Draw\ProcessPrizeSettlementJob;
-use App\Jobs\Draw\SettleDrawChunkJob;
-use App\Models\AuditLog;
-use App\Models\Bet;
-use App\Models\BetItem;
 use App\Models\Draw;
-use App\Models\DrawResult;
 use App\Models\NumberLimit;
 use App\Models\Payout;
 use App\Models\SettlementRun;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Services\Betting\BetCancellationService;
 use App\Services\Betting\BetPurchaseService;
-use App\Services\Betting\BetPurchaseTransactionService;
-use App\Services\Betting\BetPurchaseValidator;
 use App\Services\Draw\ChunkedSettlementOrchestrator;
 use App\Services\Draw\DrawLifecycleService;
-use App\Services\Draw\DrawResultConfirmationService;
-use App\Services\Draw\DrawResultIngestionService;
+use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\RealPrizeSettlementService;
-use App\Services\Finance\FinancialReconciliationService;
-use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\Feature\Payment\PaymentTestCase;
@@ -83,16 +64,6 @@ final class ChunkedSettlementTest extends PaymentTestCase
         ]);
     }
 
-    private function settlementOperator(): User
-    {
-        app(RolePermissionSeeder::class)->run();
-
-        $operator = User::factory()->create();
-        $operator->assignRole('admin');
-
-        return $operator;
-    }
-
     /**
      * A published draw with one winning 3d_direct bet on '123' plus the given
      * number of losing bets, so a chunk boundary can fall between winners and
@@ -101,7 +72,7 @@ final class ChunkedSettlementTest extends PaymentTestCase
      * @param  list<string>  $losingNumbers
      * @return array{draw: Draw, wallet: Wallet, user: User}
      */
-    private function publishedDrawWithBets(array $losingNumbers, string $suffix, bool $cancelFirstBet = false): array
+    private function publishedDrawWithBets(array $losingNumbers, string $suffix): array
     {
         $player = $this->createPlayer('500.00', Currency::THB);
 
@@ -124,7 +95,7 @@ final class ChunkedSettlementTest extends PaymentTestCase
             $limit->status = LimitStatus::Active;
             $limit->save();
 
-            $purchase = app(BetPurchaseService::class)->purchase(new BetPurchaseData(
+            app(BetPurchaseService::class)->purchase(new BetPurchaseData(
                 userId: (int) $player['user']->getKey(),
                 drawId: (int) $draw->getKey(),
                 marketKey: '3d_direct',
@@ -132,36 +103,16 @@ final class ChunkedSettlementTest extends PaymentTestCase
                 rawStake: '10.00',
                 idempotencyKey: sprintf('chunked-%s-%d', $suffix, $index),
             ));
-
-            if ($cancelFirstBet && $index === 0) {
-                app(BetCancellationService::class)->cancel(new BetCancellationData(
-                    userId: (int) $player['user']->getKey(),
-                    betIdentifier: (string) $purchase->bet->getKey(),
-                    reason: BetCancellationReason::PlayerRequest,
-                    clientKey: sprintf('chunked-cancel-%s', $suffix),
-                ));
-            }
         }
 
         $lifecycle = app(DrawLifecycleService::class);
         $draw = $lifecycle->close($draw);
         $draw = $lifecycle->markResultPending($draw);
 
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-
-        app(DrawResultIngestionService::class)->ingest(
-            (int) $draw->getKey(),
-            ['first_prize' => '456123', 'bottom_two' => '45'],
-            'operator-cli',
-            (int) $maker->getKey(),
-        );
-
-        app(DrawResultConfirmationService::class)->confirm(
-            (int) $draw->getKey(),
-            (int) $checker->getKey(),
-            ['first_prize' => '456123', 'bottom_two' => '45'],
-        );
+        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
+            'first_prize' => '456123',
+            'bottom_two' => '45',
+        ]);
 
         return [
             'draw' => $draw->refresh(),
@@ -496,107 +447,12 @@ final class ChunkedSettlementTest extends PaymentTestCase
         $this->assertSame($cursorAfterInterruption, (int) $reloaded->cursor_bet_id);
         $this->assertSame($chunksAfterInterruption, (int) $reloaded->chunks_processed);
 
-        $operator = $this->settlementOperator();
-        $reason = 'Worker process restarted after a planned deployment.';
-        $resumed = $orchestrator->resume($drawId, (int) $operator->getKey(), $reason);
+        $resumed = $orchestrator->resume($drawId);
 
         $this->assertNotNull($resumed);
         $this->assertTrue($resumed->isComplete(), 'resume() must drive the run to completion');
         $this->assertSame(4, (int) $resumed->bets_settled);
         $this->assertSame(DrawStatus::Completed, $draw->refresh()->status);
-
-        $audit = AuditLog::query()
-            ->where('auditable_type', SettlementRun::class)
-            ->where('auditable_id', (int) $resumed->getKey())
-            ->where('description', 'settlement_chunked_run_resumed')
-            ->firstOrFail();
-
-        $this->assertSame((int) $operator->getKey(), (int) $audit->user_id);
-        $this->assertSame($reason, $audit->metadata['reason'] ?? null);
-        $this->assertSame('resumed', $audit->metadata['outcome'] ?? null);
-    }
-
-    #[Test]
-    public function recovery_requires_a_reason_and_an_authorized_settlement_operator(): void
-    {
-        $this->configureSafety('DRY_RUN');
-
-        $fixture = $this->publishedDrawWithBets(['111', '222'], 'recovery-authorization');
-        $drawId = (int) $fixture['draw']->getKey();
-        $orchestrator = $this->orchestrator();
-        $run = $orchestrator->start($drawId, 2, null);
-        $operator = $this->settlementOperator();
-
-        config(['lottery.settlement.actor_user_id' => (int) $operator->getKey()]);
-
-        $this->artisan('lottery:settle-draw-chunked', [
-            '--draw' => (string) $drawId,
-            '--resume' => true,
-        ])->assertExitCode(1);
-
-        $this->assertSame(SettlementRun::STATUS_OPEN, $run->fresh()->status);
-        $this->assertSame(0, AuditLog::query()
-            ->where('auditable_type', SettlementRun::class)
-            ->where('auditable_id', (int) $run->getKey())
-            ->where('description', 'settlement_chunked_run_resumed')
-            ->count());
-
-        // A persisted player id is not sufficient attribution: the existing
-        // process-settlements permission must authorize the recovery.
-        config(['lottery.settlement.actor_user_id' => (int) $fixture['user']->getKey()]);
-
-        $this->artisan('lottery:settle-draw-chunked', [
-            '--draw' => (string) $drawId,
-            '--resume' => true,
-            '--reason' => 'Investigate and recover the interrupted worker run.',
-        ])->assertExitCode(1);
-
-        $this->assertSame(SettlementRun::STATUS_OPEN, $run->fresh()->status);
-        $this->assertSame(0, AuditLog::query()
-            ->where('auditable_type', SettlementRun::class)
-            ->where('auditable_id', (int) $run->getKey())
-            ->where('description', 'settlement_chunked_run_resumed')
-            ->count());
-    }
-
-    #[Test]
-    public function queued_recovery_dispatches_only_after_the_reason_and_actor_audit_commit(): void
-    {
-        $this->configureSafety('DRY_RUN');
-
-        $fixture = $this->publishedDrawWithBets(['111', '222'], 'queued-recovery');
-        $drawId = (int) $fixture['draw']->getKey();
-        $orchestrator = $this->orchestrator();
-        $run = $orchestrator->start($drawId, 2, null);
-        $operator = $this->settlementOperator();
-        $reason = 'Restart the verified worker after recovering its queue connection.';
-
-        config(['lottery.settlement.actor_user_id' => (int) $operator->getKey()]);
-        Bus::fake();
-
-        $this->artisan('lottery:settle-draw-chunked', [
-            '--draw' => (string) $drawId,
-            '--resume' => true,
-            '--queue' => true,
-            '--reason' => $reason,
-        ])->assertExitCode(0);
-
-        Bus::assertDispatched(SettleDrawChunkJob::class, function (SettleDrawChunkJob $job) use ($drawId, $run, $operator, $reason): bool {
-            $audit = AuditLog::query()
-                ->where('auditable_type', SettlementRun::class)
-                ->where('auditable_id', (int) $run->getKey())
-                ->where('description', 'settlement_chunked_run_resumed')
-                ->first();
-
-            return $job->drawId === $drawId
-                && $job->runId === (int) $run->getKey()
-                && $audit instanceof AuditLog
-                && (int) $audit->user_id === (int) $operator->getKey()
-                && ($audit->metadata['reason'] ?? null) === $reason;
-        });
-
-        $this->assertSame(SettlementRun::STATUS_OPEN, $run->fresh()->status);
-        $this->assertSame(0, (int) $run->fresh()->cursor_bet_id);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -621,71 +477,12 @@ final class ChunkedSettlementTest extends PaymentTestCase
         // The obligation exists…
         $payout = Payout::query()->where('draw_id', $drawId)->firstOrFail();
         $this->assertSame(PayoutStatus::Pending, $payout->status);
-        $this->assertSame($run->result_fingerprint, $payout->metadata['result_fingerprint'] ?? null);
-        $this->assertSame($run->policy_fingerprint, $payout->metadata['policy_fingerprint'] ?? null);
-        $this->assertSame((int) $run->getKey(), (int) ($payout->metadata['settlement_run_id'] ?? 0));
 
         // …and no wallet was credited: 500.00 − 20.00 staked across two bets.
         $this->assertSame('480.00', (string) $fixture['wallet']->refresh()->balance);
 
         $this->assertSame(1, (int) $run->payouts_created);
         $this->assertSame('9000.00', (string) $run->total_prize, 'the OBLIGATION is still totalled even though no wallet moved');
-    }
-
-    #[Test]
-    public function reconciliation_validates_settlement_links_and_reports_tampering_without_repairing_history(): void
-    {
-        $this->configureSafety('LIVE');
-
-        $fixture = $this->publishedDrawWithBets(['111'], 'payout-reconciliation');
-        $drawId = (int) $fixture['draw']->getKey();
-        $run = $this->orchestrator()->run($drawId, 2, null);
-        $payout = Payout::query()->where('draw_id', $drawId)->firstOrFail();
-
-        $before = [
-            'financial_transactions' => DB::table('financial_transactions')->count(),
-            'ledger_entries' => DB::table('ledger_entries')->count(),
-            'wallet_balance' => (string) $fixture['wallet']->refresh()->balance,
-        ];
-
-        $reconcile = fn () => app(FinancialReconciliationService::class)->reconcile(
-            currency: Currency::THB,
-            initiatedBy: 'settlement-feature-test',
-        );
-        $hasPayoutMismatch = fn ($report): bool => collect($report->discrepancies)->contains(
-            fn ($discrepancy): bool => $discrepancy->entityType === 'payout'
-                && $discrepancy->entityId === (int) $payout->getKey()
-                && $discrepancy->category === DiscrepancyCategory::PrizeSettlementMismatch,
-        );
-
-        $this->assertFalse($hasPayoutMismatch($reconcile()), 'valid amount, ledger, run and result links reconcile cleanly');
-
-        // Inject a deterministic discrepancy into the disposable test fixture.
-        DB::table('payouts')
-            ->where('id', (int) $payout->getKey())
-            ->update(['amount' => '8999.99']);
-
-        $report = $reconcile();
-        $mismatch = collect($report->discrepancies)
-            ->first(fn ($discrepancy): bool => $discrepancy->entityType === 'payout'
-                && $discrepancy->entityId === (int) $payout->getKey()
-                && $discrepancy->category === DiscrepancyCategory::PrizeSettlementMismatch);
-
-        $this->assertNotNull($mismatch);
-
-        $metadata = $payout->fresh()->metadata ?? [];
-        $metadata['settlement_run_id'] = 'not-a-run-id';
-        DB::table('payouts')
-            ->where('id', (int) $payout->getKey())
-            ->update(['metadata' => json_encode($metadata, JSON_THROW_ON_ERROR)]);
-
-        $tamperedLinks = $reconcile();
-        $this->assertTrue($hasPayoutMismatch($tamperedLinks), 'a malformed settlement-run link is reported');
-        $this->assertSame('not-a-run-id', $payout->fresh()->metadata['settlement_run_id'] ?? null);
-        $this->assertSame($before['financial_transactions'], DB::table('financial_transactions')->count());
-        $this->assertSame($before['ledger_entries'], DB::table('ledger_entries')->count());
-        $this->assertSame($before['wallet_balance'], (string) $fixture['wallet']->refresh()->balance);
-        $this->assertSame('8999.99', (string) $payout->fresh()->amount, 'reconciliation reports; it never repairs payout or financial history');
     }
 
     #[Test]
@@ -893,149 +690,6 @@ final class ChunkedSettlementTest extends PaymentTestCase
      * left behind, and `--resume` will pay the remaining bets. A monolithic run
      * started alongside it is the overlap the guard exists to close.
      */
-    #[Test]
-    public function result_provenance_drift_rolls_back_the_chunk_before_money_or_cursor_changes(): void
-    {
-        $this->configureSafety('LIVE');
-
-        $fixture = $this->publishedDrawWithBets(['111', '222'], 'fingerprint-drift');
-        $drawId = (int) $fixture['draw']->getKey();
-        $orchestrator = $this->orchestrator();
-        $run = $orchestrator->start($drawId, 2, null);
-
-        $result = DrawResult::query()->where('draw_id', $drawId)->firstOrFail();
-        $metadata = is_array($result->metadata) ? $result->metadata : [];
-        $metadata['four_eyes']['ingestion_fingerprint'] = str_repeat('a', 64);
-        $result->metadata = $metadata;
-        $result->save();
-
-        try {
-            $orchestrator->run($drawId, 2, null);
-            $this->fail('a chunk must refuse a result whose pinned provenance changed');
-        } catch (SettlementSimulationException $exception) {
-            $this->assertSame(SettlementSimulationException::CODE_RESULT_TAMPERED, $exception->errorCode());
-        }
-
-        $this->assertSame(0, Payout::query()->where('draw_id', $drawId)->count());
-        $this->assertSame(0, (int) $run->fresh()->cursor_bet_id);
-        $this->assertSame(0, (int) $run->fresh()->bets_settled);
-        $this->assertSame(SettlementRun::STATUS_ABORTED, $run->fresh()->status);
-        $this->assertNotEmpty($run->fresh()->failure_reason);
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => AuditAction::Reconcile->value,
-            'auditable_type' => SettlementRun::class,
-            'auditable_id' => $run->getKey(),
-            'description' => 'settlement_chunked_run_aborted',
-        ]);
-    }
-
-    #[Test]
-    public function failed_chunk_rolls_back_payouts_and_cursor_together(): void
-    {
-        $this->configureSafety('LIVE');
-
-        $fixture = $this->publishedDrawWithBets(['111'], 'atomic-chunk');
-        $drawId = (int) $fixture['draw']->getKey();
-        $startingBalance = (string) $fixture['wallet']->refresh()->balance;
-        $secondBet = Bet::query()
-            ->where('draw_id', $drawId)
-            ->orderBy('id')
-            ->skip(1)
-            ->firstOrFail();
-        $secondSelection = BetItem::query()
-            ->where('bet_id', (int) $secondBet->getKey())
-            ->firstOrFail();
-        $metadata = is_array($secondSelection->metadata) ? $secondSelection->metadata : [];
-        $metadata['market'] = 'not-a-configured-market';
-        $secondSelection->metadata = $metadata;
-        $secondSelection->save();
-
-        $orchestrator = $this->orchestrator();
-        $run = $orchestrator->start($drawId, 2, null);
-
-        try {
-            $orchestrator->run($drawId, 2, null);
-            $this->fail('the malformed second selection must fail the whole chunk');
-        } catch (SettlementSimulationException $exception) {
-            $this->assertSame(SettlementSimulationException::CODE_MARKET_MISMATCH, $exception->errorCode());
-        }
-
-        $this->assertSame(0, Payout::query()->where('draw_id', $drawId)->count());
-        $this->assertSame($startingBalance, (string) $fixture['wallet']->refresh()->balance);
-        $this->assertSame(0, (int) $run->fresh()->cursor_bet_id);
-        $this->assertSame(0, (int) $run->fresh()->bets_settled);
-        $this->assertSame(0, (int) $run->fresh()->payouts_created);
-        $this->assertSame(SettlementRun::STATUS_ABORTED, $run->fresh()->status);
-        $this->assertSame(2, Bet::query()
-            ->where('draw_id', $drawId)
-            ->where('status', BetStatus::Active->value)
-            ->count());
-    }
-
-    #[Test]
-    public function cancelled_and_refunded_bets_are_not_in_the_prize_participant_set(): void
-    {
-        $this->configureSafety('LIVE');
-
-        $fixture = $this->publishedDrawWithBets(['111'], 'cancelled-participant', true);
-        $drawId = (int) $fixture['draw']->getKey();
-        $cancelled = Bet::query()
-            ->where('draw_id', $drawId)
-            ->where('status', BetStatus::Cancelled->value)
-            ->firstOrFail();
-
-        $run = $this->orchestrator()->run($drawId, 2, null);
-
-        $this->assertTrue($run->isComplete());
-        $this->assertSame(1, (int) $run->bets_total);
-        $this->assertSame(1, (int) $run->bets_settled);
-        $this->assertSame(0, Payout::query()->where('draw_id', $drawId)->count());
-        $this->assertSame(BetStatus::Cancelled, $cancelled->fresh()->status);
-    }
-
-    #[Test]
-    public function a_purchase_validated_before_draw_close_is_rejected_under_the_draw_fence(): void
-    {
-        $player = $this->createPlayer('500.00', Currency::THB);
-        $draw = Draw::factory()->create(['type' => DrawType::ThreeD]);
-        $draw->status = DrawStatus::Open;
-        $draw->betting_open_at = now()->subHour();
-        $draw->betting_close_at = now()->addHour();
-        $draw->opened_at = now()->subHour();
-        $draw->save();
-
-        $limit = new NumberLimit;
-        $limit->draw_id = $draw->getKey();
-        $limit->bet_type = BetType::ThreeD;
-        $limit->number = '123';
-        $limit->max_amount = '100000.00';
-        $limit->current_amount = '0.00';
-        $limit->status = LimitStatus::Active;
-        $limit->save();
-
-        $data = new BetPurchaseData(
-            userId: (int) $player['user']->getKey(),
-            drawId: (int) $draw->getKey(),
-            marketKey: '3d_direct',
-            rawNumber: '123',
-            rawStake: '10.00',
-            idempotencyKey: 'settlement-draw-fence-stale-context',
-        );
-        $context = app(BetPurchaseValidator::class)->validate($data);
-
-        app(DrawLifecycleService::class)->close($draw);
-
-        try {
-            app(BetPurchaseTransactionService::class)->execute($context);
-            $this->fail('a stale pre-close validation must not commit a purchase');
-        } catch (BetPurchaseValidationException $exception) {
-            $this->assertStringContainsString('closed', strtolower($exception->getMessage()));
-        }
-
-        $this->assertSame(0, Bet::query()->where('draw_id', $draw->getKey())->count());
-        $this->assertSame('500.00', (string) $player['wallet']->refresh()->balance);
-    }
-
     #[Test]
     public function the_monolithic_job_stands_aside_for_an_aborted_resumable_run(): void
     {

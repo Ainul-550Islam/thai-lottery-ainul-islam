@@ -1,0 +1,407 @@
+
+   FAIL  Tests\Feature\Draw\ChunkedSettlementTest
+  ⨯ finalize refuses while bets remain past the cursor                                                                                                                                                                                             4.34s  
+  ⨯ the draw stays published until the run is finalized                                                                                                                                                                                            0.27s  
+  ⨯ re running a chunk does not pay a bet twice                                                                                                                                                                                                    0.23s  
+  ⨯ a completed run cannot settle the draw a second time                                                                                                                                                                                           0.22s  
+  ⨯ the monolithic path refuses while a chunked run is in flight                                                                                                                                                                                   0.22s  
+  ⨯ only one run can exist for a draw                                                                                                                                                                                                              0.22s  
+  ⨯ totals accumulate exactly across chunks                                                                                                                                                                                                        0.23s  
+  ⨯ an interrupted run resumes from its cursor and finishes                                                                                                                                                                                        0.23s  
+  ⨯ recovery requires a reason and an authorized settlement operator                                                                                                                                                                               0.25s  
+  ⨯ queued recovery dispatches only after the reason and actor audit commit                                                                                                                                                                        0.24s  
+  ⨯ the chunked path pays only once and only under live                                                                                                                                                                                            0.24s  
+  ⨯ reconciliation validates settlement links and reports tampering without repairing history                                                                                                                                                      0.23s  
+  ⨯ a run opened under dry run keeps dry run even if config changes mid run                                                                                                                                                                        0.23s  
+  ✓ a run cannot be opened for a draw that is not published                                                                                                                                                                                        0.23s  
+  ✓ the orchestrator clamps the configured chunk size                                                                                                                                                                                              0.21s  
+  ⨯ the safety mode is read at open and not per chunk                                                                                                                                                                                              0.22s  
+  ⨯ percent complete reports progress and is null without a denominator                                                                                                                                                                            0.24s  
+  ⨯ the monolithic job stands aside while a chunked run owns the draw                                                                                                                                                                              0.23s  
+  ⨯ result provenance drift rolls back the chunk before money or cursor changes                                                                                                                                                                    0.22s  
+  ⨯ failed chunk rolls back payouts and cursor together                                                                                                                                                                                            0.23s  
+  ⨯ cancelled and refunded bets are not in the prize participant set                                                                                                                                                                               0.22s  
+  ⨯ a purchase validated before draw close is rejected under the draw fence                                                                                                                                                                        0.23s  
+  ⨯ the monolithic job stands aside for an aborted resumable run                                                                                                                                                                                   0.21s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > finalize refuses while bets remain past the cursor                                                                                                                                          Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > the draw stays published until the run is finalized                                                                                                                                         Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > re running a chunk does not pay a bet twice                                                                                                                                                 Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > a completed run cannot settle the draw a second time                                                                                                                                        Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > the monolithic path refuses while a chunked run is in flight                                                                                                                                Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > only one run can exist for a draw                                                                                                                                                           Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > totals accumulate exactly across chunks                                                                                                                                                     Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > an interrupted run resumes from its cursor and finishes                                                                                                                                     Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > recovery requires a reason and an authorized settlement operator                                                                                                                            Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > queued recovery dispatches only after the reason and actor audit commit                                                                                                                     Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > the chunked path pays only once and only under live                                                                                                                                         Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > reconciliation validates settlement links and reports tampering without repairing history                                                                                                   Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > a run opened under dry run keeps dry run even if config changes mid run                                                                                                                     Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > the safety mode is read at open and not per chunk                                                                                                                                           Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > percent complete reports progress and is null without a denominator                                                                                                                         Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > the monolithic job stands aside while a chunked run owns the draw                                                                                                                           Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > result provenance drift rolls back the chunk before money or cursor changes                                                                                                                 Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > failed chunk rolls back payouts and cursor together                                                                                                                                         Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > cancelled and refunded bets are not in the prize participant set                                                                                                                            Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > a purchase validated before draw close is rejected under the draw fence                                                                                                                     Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > the monolithic job stands aside for an aborted resumable run                                                                                                                                Error   
+  Undefined constant App\Enums\DrawStatus::Selling
+
+  at app/Services/Betting/BetPurchaseTransactionService.php:137
+    133▕         }
+    134▕ 
+    135▕         $closeAt = $draw->betting_close_at;
+    136▕ 
+  ➜ 137▕         $stateRefuses = ! in_array($draw->status, [DrawStatus::Open, DrawStatus::Selling], true)
+    138▕             || ($closeAt !== null && $closeAt->isPast());
+    139▕ 
+    140▕         if (! $stateRefuses) {
+    141▕             return;
+
+  1   app/Services/Betting/BetPurchaseTransactionService.php:137
+  2   app/Services/Betting/BetPurchaseTransactionService.php:178
+
+
+  Tests:    21 failed, 2 passed (5 assertions)
+  Duration: 9.43s
+
