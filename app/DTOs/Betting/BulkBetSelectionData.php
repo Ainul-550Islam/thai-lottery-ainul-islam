@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs\Betting;
 
+use App\Enums\BetMarket;
+
 /**
  * One sanitised selection inside a bulk purchase request.
  *
@@ -32,7 +34,10 @@ final readonly class BulkBetSelectionData
         // `potentialPayout` is deliberately accepted only as a discarded
         // legacy input: payout authority remains server-side in the purchase
         // pipeline and is never taken from the client/test payload.
-        $this->marketKey = $marketKey !== '' ? $marketKey : (string) ($market ?? '');
+        // Normalised HERE, once, so every lane that reads a selection — quote,
+        // purchase, validation, risk — sees the canonical market key and none of
+        // them has to remember the older public names.
+        $this->marketKey = BetMarket::canonicalKey($marketKey !== '' ? $marketKey : (string) ($market ?? ''));
         $this->number = $number;
         $this->stake = $stake;
     }

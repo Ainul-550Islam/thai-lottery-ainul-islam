@@ -16,6 +16,9 @@
             <a href="{{ route('player.draws') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_draws') }}</a>
             <a href="{{ route('player.bets') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_bets') }}</a>
             <a href="{{ route('player.wallet') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_wallet') }}</a>
+            @if ((bool) config('conversions.enabled', true))
+                <a href="{{ route('player.wallet.conversion') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">{{ __('wallet_conversion.nav_convert') }}</a>
+            @endif
             <a href="{{ route('player.deposit') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-400 bg-amber-950/30 border border-amber-500/20 transition">{{ __('player.nav_deposit') }}</a>
             <a href="{{ route('glo-l6.index') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">{{ __('player.nav_glo_l6') }}</a>
             <a href="{{ route('player.profile') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_profile') }}</a>

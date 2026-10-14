@@ -4,9 +4,11 @@ use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\EnsureDrawIsOpen;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\EnsureWalletConversionEnabled;
 use App\Http\Middleware\EnsureWalletIsActive;
 use App\Http\Middleware\GloEnsurePermission;
 use App\Http\Middleware\PublicLegalHeaders;
+use App\Http\Middleware\RequireConversionIdempotencyKey;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\VerifyWebhookSignature;
@@ -141,6 +143,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'glo.permission' => GloEnsurePermission::class,
             // Safe public-cache headers for /about, /vision, /terms only (guest GETs).
             'public.legal' => PublicLegalHeaders::class,
+            // Cash <-> Win conversion lane. `conversion.enabled` reads the feature and
+            // per-direction switches before a controller is reached; `conversion.idempotency`
+            // guarantees a money-moving request carries a key. The engine re-checks both —
+            // these are the cheap gates, not the authoritative ones.
+            'conversion.enabled' => EnsureWalletConversionEnabled::class,
+            'conversion.idempotency' => RequireConversionIdempotencyKey::class,
         ]);
 
         // Applied globally: security headers, and a correlation id pinned on the way in and

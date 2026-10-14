@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Admin;
 
 use App\Models\User;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 
 /**
  * WHY THIS EXISTS
@@ -135,6 +136,17 @@ final class AdminAccess
      *
      * super-admin is allowed everything, mirroring the Gate::before rule the rest of
      * the application already relies on.
+     *
+     * A PERMISSION THAT DOES NOT EXIST IS A DENIAL, NOT A CRASH
+     * Spatie's hasPermissionTo() throws PermissionDoesNotExist when the catalogue
+     * has never been seeded. That exception used to travel straight out of every
+     * policy built on this method, so an unseeded or partially restored database
+     * turned ordinary authorisation into a 500 — and, worse, into a 500 raised
+     * while deciding whether a MEMBER may perform an operator action, which is a
+     * question whose safe answer is always no. Access decisions read configuration
+     * they did not create, so they must fail closed: an unknown permission denies,
+     * and the seeding problem is diagnosed by the health checks and the deploy
+     * assertion that exist for it, not by a stack trace in a member's browser.
      */
     public static function allows(?User $user, string $permission): bool
     {
@@ -150,7 +162,11 @@ final class AdminAccess
             return true;
         }
 
-        return $user->hasPermissionTo($permission, 'web');
+        try {
+            return $user->hasPermissionTo($permission, 'web');
+        } catch (PermissionDoesNotExist) {
+            return false;
+        }
     }
 
     /**

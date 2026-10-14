@@ -4,33 +4,38 @@ declare(strict_types=1);
 
 namespace App\Jobs\Draw;
 
-use App\Enums\QueueName;
-use App\Exceptions\DrawLifecycleException;
-use App\Exceptions\FinancialException;
-use App\Exceptions\SettlementSimulationException;
-use App\Models\SettlementRun;
+use App\Models\Bet;
 use App\Services\Draw\ChunkedSettlementOrchestrator;
+use App\Services\Draw\RealPrizeSettlementService;
+use App\Services\Draw\SelectionSettlementResolver;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
-use Throwable;
 
 /**
- * Process one durable SettlementRun cursor range, then queue the next one.
+ * Settlement of ONE bounded range of bet ids, in its own transaction.
  *
- * The service commits money and cursor/totals in one transaction. Transient
- * failures leave the run cursor unchanged while the queue performs its bounded
- * retries. Only terminal failure after retries, or a non-retryable domain
- * refusal, moves the run to its audited resumable-aborted state.
+ * TRANSACTION BOUNDARY IS THE WHOLE POINT
+ * Each instance opens its own transaction and touches only its own id range.
+ * A failure rolls back this chunk and nothing else; the other chunks keep their
+ * committed work. Compare the inline path, where a single constraint violation
+ * at bet 90,000 rolls back 89,999 already-computed payouts.
+ *
+ * IDEMPOTENT BY CONSTRUCTION
+ * Payout credits go through WalletService with the per-bet idempotency key
+ * `payout:{drawId}:{betId}`, so replaying a chunk (a retry, a manual re-run, a
+ * double dispatch) cannot pay twice. `tries` is bounded and the job is NOT
+ * released indefinitely, because an infinite retry on a money job is its own
+ * hazard: a permanently failing chunk must surface as a failed batch.
  */
 final class SettleDrawChunkJob implements ShouldQueue
 {
+    use Batchable;
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
@@ -39,6 +44,10 @@ final class SettleDrawChunkJob implements ShouldQueue
     public int $tries = 3;
 
     /**
+     * Backoff in seconds. A lock wait or deadlock is transient; retrying after
+     * 5s/30s/120s lets the competing transaction finish rather than immediately
+     * re-colliding.
+     *
      * @var list<int>
      */
     public array $backoff = [5, 30, 120];
@@ -49,142 +58,98 @@ final class SettleDrawChunkJob implements ShouldQueue
 
     public function __construct(
         public readonly int $drawId,
-        public readonly int $runId,
-        public readonly ?int $expectedCursorBetId = null,
-    ) {
-        $this->onQueue((string) config('lottery.settlement.queue', QueueName::FinancialCritical->value));
-        $this->afterCommit();
-    }
+        public readonly string $batchId,
+        public readonly int $chunkIndex,
+        public readonly int $fromBetId,
+        public readonly int $toBetId,
+        public readonly string $resultFingerprint,
+    ) {}
 
     /**
-     * Prevent overlapping deliveries where the configured lock backend supports
-     * it. The database draw/run row locks remain the cross-host correctness guard.
-     *
      * @return list<object>
      */
     public function middleware(): array
     {
+        // Two chunks must never contend for the same bet rows. The id ranges are
+        // already disjoint, so this guards against a duplicated dispatch of the
+        // SAME chunk rather than against its neighbours.
         return [
-            (new WithoutOverlapping("settlement-run:{$this->runId}"))
+            (new WithoutOverlapping("settle-draw:{$this->drawId}:chunk:{$this->chunkIndex}"))
                 ->expireAfter(300),
         ];
     }
 
-    public function handle(ChunkedSettlementOrchestrator $orchestrator): void
-    {
-        $run = SettlementRun::query()
-            ->whereKey($this->runId)
-            ->where('draw_id', $this->drawId)
-            ->first();
-
-        if (! $run instanceof SettlementRun
-            || $run->isComplete()
-            || $run->status !== SettlementRun::STATUS_OPEN) {
-            // An aborted run is resumable only through the reasoned, authorized
-            // operator recovery path. A queued duplicate must never reopen it.
+    public function handle(
+        RealPrizeSettlementService $settlement,
+        SelectionSettlementResolver $resolver,
+    ): void {
+        if ($this->batch()?->cancelled()) {
             return;
         }
 
-        if ($this->expectedCursorBetId !== null
-            && (int) $run->cursor_bet_id !== $this->expectedCursorBetId) {
-            // Each delivery owns one expected cursor. Duplicate or delayed jobs
-            // from an earlier checkpoint are harmless no-ops and cannot fan out
-            // another chain of next-chunk jobs.
-            return;
-        }
+        $settled = 0;
+        $skipped = 0;
 
-        try {
-            $run = $orchestrator->runChunk($run);
-
-            if ($orchestrator->hasMoreWork($run)) {
-                self::dispatch($this->drawId, $this->runId, (int) $run->cursor_bet_id)
-                    ->onQueue((string) config('lottery.settlement.queue', 'settlement'));
-            } else {
-                $run = $orchestrator->finalize($run);
-            }
-
-            Log::info('settlement.chunk_job_progress', [
-                'draw_id' => $this->drawId,
-                'run_id' => $this->runId,
-                'status' => $run->status,
-                'cursor_bet_id' => (int) $run->cursor_bet_id,
-                'bets_settled' => (int) $run->bets_settled,
-                'bets_total' => (int) $run->bets_total,
-                'chunks_processed' => (int) $run->chunks_processed,
-            ]);
-        } catch (Throwable $exception) {
-            $errorCode = method_exists($exception, 'errorCode')
-                ? (string) $exception->errorCode()
-                : ($exception instanceof QueryException
-                    ? (string) ($exception->errorInfo[0] ?? 'database_error')
-                    : 'unclassified');
-
-            Log::error('settlement.chunk_job_failed', [
-                'draw_id' => $this->drawId,
-                'run_id' => $this->runId,
-                'error_class' => $exception::class,
-                'error_code' => $errorCode,
-                'attempt' => $this->attempts(),
-                'retryable' => ! $this->isTerminalFailure($exception),
-            ]);
-
-            if ($this->isTerminalFailure($exception)) {
-                $this->fail($exception);
-
-                return;
-            }
-
-            throw $exception;
-        }
-    }
-
-    /**
-     * Laravel invokes this after the queue exhausts retries or fail() is called.
-     */
-    public function failed(?Throwable $exception): void
-    {
-        $run = SettlementRun::query()
-            ->whereKey($this->runId)
+        Bet::query()
             ->where('draw_id', $this->drawId)
-            ->first();
+            ->whereNull('deleted_at')
+            ->whereBetween('id', [$this->fromBetId, $this->toBetId])
+            ->whereIn('status', ChunkedSettlementOrchestrator::settleableStatuses())
+            ->orderBy('id')
+            // chunkById inside the range keeps memory flat even when the chunk
+            // size is misconfigured upward: the page size, not the range size,
+            // bounds resident models.
+            ->chunkById(200, function ($bets) use ($settlement, $resolver, &$settled, &$skipped): void {
+                foreach ($bets as $bet) {
+                    // Re-assert the fingerprint per row. The result row is
+                    // immutable once published, but if that ever changed, a
+                    // settlement computed against a different number than the
+                    // one frozen into the batch plan would be a silent
+                    // mispayout. Cheap to check; catastrophic to omit.
+                    if (! $this->fingerprintStillMatches()) {
+                        throw new \RuntimeException(sprintf(
+                            'Draw %d result fingerprint changed mid-settlement (expected %s); aborting chunk %d.',
+                            $this->drawId,
+                            $this->resultFingerprint,
+                            $this->chunkIndex,
+                        ));
+                    }
 
-        $failure = $exception ?? new RuntimeException('The settlement queue job failed without an exception.');
+                    $settled += $resolver->settleOneBet($settlement, $bet, $this->drawId) ? 1 : 0;
+                }
+            });
 
-        if ($run instanceof SettlementRun && ! $run->isComplete()) {
-            app(ChunkedSettlementOrchestrator::class)->abort($run, $failure);
-        }
-
-        $errorCode = method_exists($failure, 'errorCode')
-            ? (string) $failure->errorCode()
-            : ($failure instanceof QueryException
-                ? (string) ($failure->errorInfo[0] ?? 'database_error')
-                : 'unclassified');
-
-        Log::critical('settlement.chunk_job_terminal_failure', [
+        Log::info('settlement.chunk_complete', [
             'draw_id' => $this->drawId,
-            'run_id' => $this->runId,
-            'error_class' => $failure::class,
-            'error_code' => $errorCode,
-            'attempt' => $this->attempts(),
+            'batch_id' => $this->batchId,
+            'chunk_index' => $this->chunkIndex,
+            'from_bet_id' => $this->fromBetId,
+            'to_bet_id' => $this->toBetId,
+            'settled' => $settled,
+            'skipped' => $skipped,
         ]);
     }
 
-    private function isTerminalFailure(Throwable $exception): bool
+    private function fingerprintStillMatches(): bool
     {
-        return $exception instanceof SettlementSimulationException
-            || $exception instanceof DrawLifecycleException
-            || $exception instanceof FinancialException;
+        $fingerprint = \App\Models\DrawResult::query()
+            ->where('draw_id', $this->drawId)
+            ->value('result_fingerprint');
+
+        return is_string($fingerprint)
+            && hash_equals($this->resultFingerprint, $fingerprint);
     }
 
     /**
-     * @return list<string>
+     * @return array<string, mixed>
      */
     public function tags(): array
     {
         return [
             'settlement',
             'draw:'.$this->drawId,
-            'run:'.$this->runId,
+            'batch:'.$this->batchId,
+            'chunk:'.$this->chunkIndex,
         ];
     }
 }

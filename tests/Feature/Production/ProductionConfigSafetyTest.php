@@ -511,7 +511,6 @@ final class ProductionConfigSafetyTest extends TestCase
             // safe until it SAYS it is on the official source.
             'glo.official_source.mode' => 'official',
             'glo.sources.fall_through_to_fixture' => false,
-            'glo.sources.priority' => ['official'],
         ]);
     }
 }

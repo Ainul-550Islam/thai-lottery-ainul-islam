@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\TicketController;
 use App\Http\Controllers\Api\V1\TicketOwnershipController;
 use App\Http\Controllers\Api\V1\TicketProductController;
 use App\Http\Controllers\Api\V1\TicketVerificationController;
+use App\Http\Controllers\Api\V1\WalletConversionController;
 use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\WeeklyLotteryController;
 use App\Http\Controllers\Api\V1\WithdrawalController;
@@ -519,6 +520,39 @@ Route::prefix('v1')
         // Wallet balance and transaction history.
         Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
         Route::get('/wallet/transactions', [WalletController::class, 'transactions'])->name('wallet.transactions');
+
+        /*
+        |----------------------------------------------------------------------
+        | Cash <-> Win conversion
+        |----------------------------------------------------------------------
+        | Authenticated member endpoints. Everything that identifies the member,
+        | the wallets or the price is derived server-side; the client supplies a
+        | direction, an amount and — for anything that moves money — an
+        | idempotency key.
+        |
+        | The reversal endpoint is grouped here rather than in an operator-only
+        | block because it authenticates the same way every other v1 endpoint
+        | does; whether the CALLER may reverse a given conversion is decided by
+        | WalletConversionPolicy at the controller, which is the first place both
+        | the actor and the target row are known. A member who calls it receives
+        | a 403 from the policy, not a 404 from a route that pretends not to
+        | exist — the endpoint's existence is not a secret, and hiding it would
+        | make an operator's integration impossible to debug.
+        */
+        Route::get('/wallet/conversions/summary', [WalletConversionController::class, 'summary'])->name('wallet.conversions.summary');
+        Route::get('/wallet/conversions', [WalletConversionController::class, 'index'])->name('wallet.conversions.index');
+        Route::post('/wallet/conversions/quote', [WalletConversionController::class, 'quote'])
+            ->middleware('throttle:conversion')
+            ->name('wallet.conversions.quote');
+        Route::post('/wallet/conversions', [WalletConversionController::class, 'store'])
+            ->middleware(['conversion.enabled', 'conversion.idempotency', 'throttle:conversion'])
+            ->name('wallet.conversions.store');
+        Route::get('/wallet/conversions/{reference}', [WalletConversionController::class, 'show'])
+            ->where('reference', '[A-Za-z0-9_-]{1,64}')
+            ->name('wallet.conversions.show');
+        Route::post('/wallet/conversions/{reference}/reverse', [WalletConversionController::class, 'reverse'])
+            ->where('reference', '[A-Za-z0-9_-]{1,64}')
+            ->name('wallet.conversions.reverse');
 
         // Profile and password.
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

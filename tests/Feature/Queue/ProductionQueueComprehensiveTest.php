@@ -31,6 +31,7 @@ use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Betting\BetPurchaseService;
 use App\Services\Draw\DrawLifecycleService;
+use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\RealPrizeSettlementService;
 use App\Services\Finance\FinancialStateTransitionService;
 use App\Services\Finance\Money;
@@ -321,11 +322,10 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $lifecycle = app(DrawLifecycleService::class);
         $draw = $lifecycle->close($draw);
         $draw = $lifecycle->markResultPending($draw);
-        $published = $this->publishTrustedManualResult($draw, [
+        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
             'first_prize' => '456123',
             'bottom_two' => '45',
         ]);
-        $draw = $published['draw'];
 
         $job = new ProcessPrizeSettlementJob((int) $draw->getKey());
 

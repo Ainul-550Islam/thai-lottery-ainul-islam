@@ -52,9 +52,18 @@ class BkashGateway extends AbstractPaymentGateway
         return GatewayIntegrationStatus::FullyImplemented;
     }
 
+    /**
+     * The currencies this rail actually settles in — BDT by default, and the
+     * list is operator-configurable so widening it is a config change, not a
+     * code change. Claiming support for a currency the merchant account cannot
+     * receive would create a deposit that is initiated and can never be paid.
+     */
     public function supportsCurrency(Currency $currency): bool
     {
-        return $currency === Currency::BDT;
+        $supported = $this->config->get('payment.gateways.bkash.supported_currencies', ['BDT']);
+        $supported = is_array($supported) ? $supported : [(string) $supported];
+
+        return in_array($currency->value, array_map('strtoupper', array_map('strval', $supported)), true);
     }
 
     public function initiateDeposit(Deposit $deposit, array $options = []): GatewayDepositResponse

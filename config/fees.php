@@ -64,6 +64,39 @@ return [
     'rule_version' => (string) env('FEES_RULE_VERSION', '2'),
 
     /*
+    |--------------------------------------------------------------------------
+    | Live conversion rules (the runtime half of display == execution)
+    |--------------------------------------------------------------------------
+    |
+    | The two Cash <-> Win rows below are the first fee rows on this platform that
+    | describe a lane the engine actually charges for. For those rows the value
+    | written beside them is documentation, and the rate that runs is the one
+    | named by the row's `execution` path — here.
+    |
+    | WHY THE VALUE IS A WHOLE PERCENT
+    | `execution` paths are read by two callers with one convention: the public
+    | fee page (FeesPageService::resolveRate) and the conversion engine
+    | (ConversionFeeCalculator::effectiveRate). Both treat the value as a whole
+    | percent ('1.00' = 1%) and divide by 100 with bcdiv, so both land on exactly
+    | the same fraction with no rounding. Changing the number here changes what
+    | the page shows AND what the engine charges, in the same commit — there is
+    | no second place to update, which is the only arrangement in which the two
+    | can be proven equal rather than hoped to be.
+    |
+    | WHY IT IS NOT ZERO BY DEFAULT
+    | A missing live rule must never be read as "free". The fallback chain is
+    | explicit: an unreadable live path falls back to the row's static rate, and
+    | a row with neither is reported as NOT_CONFIGURED and the conversion is
+    | refused (ConversionPolicyGuard) rather than executed at 0%.
+    |
+    */
+
+    'conversion' => [
+        'cash_to_win_percentage' => (string) env('FEES_CONVERSION_CASH_TO_WIN_PERCENTAGE', '1.00'),
+        'win_to_cash_percentage' => (string) env('FEES_CONVERSION_WIN_TO_CASH_PERCENTAGE', '1.00'),
+    ],
+
+    /*
     |----------------------------------------------------------------------
     | Public groups (ordered page sections)
     |----------------------------------------------------------------------
@@ -239,7 +272,7 @@ return [
             'provider' => null,
             'description_key' => 'account_services.fees_description_cash_to_win',
             'description' => 'Conversion fee when moving balance from cash to win wallet.',
-            'execution' => null,
+            'execution' => 'fees.conversion.cash_to_win_percentage',
         ],
 
         'win_to_cash' => [
@@ -259,7 +292,7 @@ return [
             'provider' => null,
             'description_key' => 'account_services.fees_description_win_to_cash',
             'description' => 'Conversion fee when moving balance from win to cash wallet.',
-            'execution' => null,
+            'execution' => 'fees.conversion.win_to_cash_percentage',
         ],
 
         'personal_to_agent' => [
