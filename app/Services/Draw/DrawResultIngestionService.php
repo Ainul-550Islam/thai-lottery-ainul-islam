@@ -77,6 +77,14 @@ class DrawResultIngestionService
      */
     public function ingest(int $drawId, array $payload, string $source, ?int $actorUserId = null): array
     {
+        // Zero or negative is not a user id. Recording it would write a dangling
+        // audit row (user_id 0 breaks the foreign key), and attributing the result
+        // to it would make the maker look identified when they are not. Treat it as
+        // unattributed, which confirmation already refuses.
+        if ($actorUserId !== null && $actorUserId < 1) {
+            $actorUserId = null;
+        }
+
         return DB::transaction(function () use ($drawId, $payload, $source, $actorUserId): array {
             $draw = Draw::query()->lockForUpdate()->find($drawId);
 

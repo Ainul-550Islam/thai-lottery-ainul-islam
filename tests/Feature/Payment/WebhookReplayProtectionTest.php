@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Payment;
 
+use App\Models\Deposit;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\PaymentMethod;
@@ -47,6 +48,12 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
     {
         $timestamp = time();
 
+        // Stripe reports amount_total in the currency's smallest unit (satang). The gateway
+        // rejects any event whose amount differs from the deposit it settles, so the
+        // amount is read from the deposit itself rather than hard-coded.
+        $depositAmount = (string) Deposit::query()->where('reference_number', $reference)->value('amount');
+        $amountTotal = (int) bcmul($depositAmount, '100', 0);
+
         $payload = [
             'id' => $eventId,
             'type' => 'checkout.session.completed',
@@ -54,7 +61,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 'object' => [
                     'id' => 'cs_test_'.$eventId,
                     'client_reference_id' => $reference,
-                    'amount_total' => 100000,
+                    'amount_total' => $amountTotal,
                     'currency' => 'thb',
                 ],
             ],
@@ -395,9 +402,16 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 "VerifyWebhookSignature must be on {$name}: a guard that is not attached to a route protects nothing",
             );
 
-            $this->assertContains(
-                ThrottleRequests::class,
+            // The alias carries its limiter as a parameter ("...ThrottleRequests:webhook"),
+            // so the class is compared before the colon rather than the whole string.
+            $throttleEntries = array_filter(
                 $middleware,
+                static fn (mixed $entry): bool => is_string($entry)
+                    && explode(':', $entry, 2)[0] === ThrottleRequests::class,
+            );
+
+            $this->assertNotEmpty(
+                $throttleEntries,
                 "the flood limiter must still be on {$name}",
             );
         }

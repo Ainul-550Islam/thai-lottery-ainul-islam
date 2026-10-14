@@ -137,11 +137,12 @@ class GloResultImportService
         $providerDraw = is_string($providerDrawValue) ? trim($providerDrawValue) : '';
 
         if ($providerDraw !== '') {
+            // The draws table has no uuid column (the per-game tables do, the
+            // draws table does not), so draw_number is the only identity this
+            // lookup can match. A uuid fallback here queried a column that does
+            // not exist and failed on every import that reached this line.
             $draw = Draw::query()
                 ->where('draw_number', $providerDraw)
-                // Fall back to uuid: draw_number is not the only identity a
-                // provider may echo back.
-                ->orWhere('uuid', $providerDraw)
                 ->first();
         }
 
@@ -322,7 +323,8 @@ class GloResultImportService
             // Store only the bounded/redacted reason and provider fingerprint;
             // the authoritative result table remains untouched.
             $payload['status'] = 'refused';
-            $payload['failure_reason'] = $exception->getMessage();
+            // Prefixed so the stored record says what happened, not only why.
+            $payload['failure_reason'] = 'refused: '.$exception->getMessage();
             $import = $this->recordImport($drawId, $provider, $payload, $actor);
 
             return [

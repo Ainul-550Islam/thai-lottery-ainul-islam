@@ -1,0 +1,67 @@
+
+   FAIL  Tests\Feature\Glo\GloWriteBoundaryTest
+  ✓ the ingesting operator cannot confirm their own result                                                                                                                                                                                         4.39s  
+  ✓ a different operator can confirm and that publishes                                                                                                                                                                                            0.30s  
+  ✓ replayed confirmation does not duplicate result or winning numbers                                                                                                                                                                             0.24s  
+  ✓ an unattributable ingestion cannot be confirmed by anyone                                                                                                                                                                                      0.24s  
+  ✓ zero or malformed maker identity cannot be confirmed                                                                                                                                                                                           0.27s  
+  ✓ null zero malformed and unknown checker ids are refused                                                                                                                                                                                        0.24s  
+  ✓ pending ingestion cannot be published through the low level writer                                                                                                                                                                             0.24s  
+  ✓ confirmed record without persisted confirmation timestamp cannot publish                                                                                                                                                                       0.25s  
+  ✓ unknown provenance cannot publish                                                                                                                                                                                                              0.24s  
+  ✓ fixture provenance is refused in production                                                                                                                                                                                                    0.23s  
+  ✓ legacy unknown provenance has a stable refusal code                                                                                                                                                                                            0.20s  
+  ✓ legacy publication api fails closed without checker context                                                                                                                                                                                    0.21s  
+  ✓ the importer writes no draw result and sets no published at                                                                                                                                                                                    0.26s  
+  ✓ the full gated journey requires two operators                                                                                                                                                                                                  0.26s  
+  ✓ matching documented official import is source verified after confirmation                                                                                                                                                                      0.25s  
+  ✓ provider fingerprint mismatch in staged lane cannot publish                                                                                                                                                                                    0.25s  
+  ✓ imported second and third prizes are persisted only after confirmation                                                                                                                                                                         0.24s  
+  ✓ the source lane is written only by the confirming operator                                                                                                                                                                                     0.24s  
+  ✓ a lane less confirmation publishes without a source lane                                                                                                                                                                                       0.23s  
+  ⨯ an independent bottom two is accepted and stored verbatim                                                                                                                                                                                      0.22s  
+  ✓ a payload without a bottom two is refused rather than derived                                                                                                                                                                                  0.21s  
+  ✓ a confirmation that does not state the bottom two is refused                                                                                                                                                                                   0.21s  
+
+   PASS  Tests\Feature\Glo\GloResultImportTest
+  ✓ fixture provider is configured when directory exists                                                                                                                                                                                           0.25s  
+  ✓ fixture fetch returns imported with six digit first                                                                                                                                                                                            0.21s  
+  ✓ fixture unknown draw number fails honestly                                                                                                                                                                                                     0.20s  
+  ✓ fixture missing directory reports not configured                                                                                                                                                                                               0.20s  
+  ✓ official provider not configured in fixture mode                                                                                                                                                                                               0.22s  
+  ✓ official provider http error is a countable failure                                                                                                                                                                                            0.24s  
+  ✓ official provider network failure is failed and breakable                                                                                                                                                                                      0.21s  
+  ✓ provider fingerprint changes when separately drawn bottom two changes                                                                                                                                                                          0.21s  
+  ✓ changed provider prize list replaces the pending payload fingerprint                                                                                                                                                                           0.23s  
+  ✓ official provider only uses documented endpoints                                                                                                                                                                                               0.24s  
+  ✓ import stages pending ingestion and writes no draw result                                                                                                                                                                                      0.21s  
+  ✓ import without a persisted maker is refused before staging                                                                                                                                                                                     0.21s  
+  ✓ import into a published draw is refused by the lifecycle guard                                                                                                                                                                                 0.23s  
+  ✓ import with missing independent bottom two is recorded as refused                                                                                                                                                                              0.22s  
+  ✓ import of a payload without a fingerprint fails closed                                                                                                                                                                                         0.21s  
+  ✓ import persists only bounded redacted provenance                                                                                                                                                                                               0.21s  
+  ✓ import is idempotent on same fingerprint                                                                                                                                                                                                       0.21s  
+  ✓ import unknown draw number records failure without result                                                                                                                                                                                      0.23s  
+  ✓ import latest without matching draw records provenance only                                                                                                                                                                                    0.21s  
+  ✓ import official network failure writes failed provenance not results                                                                                                                                                                           0.21s  
+  ✓ fixture payload second and third are six digit strings                                                                                                                                                                                         0.21s  
+  ✓ fixture n3 numbers are three digit strings                                                                                                                                                                                                     0.20s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Glo\GloWriteBoundaryTest > an independent bottom two is accepted and stored verbatim                                                                                                                            ErrorException   
+  Undefined array key "first_prize"
+
+  at tests/Feature/Glo/GloWriteBoundaryTest.php:712
+    708▕         // would have passed while reading nothing.
+    709▕         $stored = $this->ingestion->currentIngestion((int) $this->draw->getKey());
+    710▕ 
+    711▕         $this->assertIsArray($stored);
+  ➜ 712▕         $this->assertSame('287184', $stored['first_prize']);
+    713▕         $this->assertSame('48', $stored['bottom_two'], 'the announced value, not substr(287184, -2) = 84');
+    714▕         $this->assertSame(DrawConfirmationStatus::Pending->value, $stored['status']);
+    715▕ 
+    716▕         $this->confirmation->confirm(
+
+
+  Tests:    1 failed, 43 passed (197 assertions)
+  Duration: 14.23s
+

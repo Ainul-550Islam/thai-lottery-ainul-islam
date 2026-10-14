@@ -7,8 +7,11 @@ namespace App\Services\Betting;
 use App\DTOs\BetPurchaseContext;
 use App\DTOs\BetPurchaseResult;
 use App\Exceptions\BetPurchaseConcurrencyException;
+use App\Enums\BetValidationCode;
 use App\Exceptions\BetPurchaseException;
+use App\Exceptions\BetPurchaseValidationException;
 use App\Models\Bet;
+use App\Models\Draw;
 use App\Services\Agent\AgentCommissionAccrualService;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\QueryException;
@@ -111,6 +114,45 @@ final class BetPurchaseTransactionService
     }
 
     /**
+     * Re-check, under a shared draw lock, that the draw still accepts bets.
+     *
+     * Mirrors the validator's status check, which ran earlier without a lock. The
+     * outcome of that earlier check is not trusted once a lock is taken.
+     *
+     * @throws BetPurchaseValidationException
+     */
+    private function assertDrawStillAcceptsBets(BetPurchaseContext $context): void
+    {
+        if ($this->config->get('lottery.betting.require_open_draw') !== true) {
+            return;
+        }
+
+        $drawId = $context->data->drawId;
+
+        $draw = Draw::query()->whereKey($drawId)->sharedLock()->first();
+
+        if (! $draw instanceof Draw) {
+            throw BetPurchaseValidationException::refused(
+                BetValidationCode::DrawNotFound,
+                sprintf('Draw %d no longer exists, so the purchase cannot be placed.', $drawId),
+                ['draw_id' => $drawId],
+            );
+        }
+
+        if (! $draw->canAcceptBets()) {
+            throw BetPurchaseValidationException::refused(
+                BetValidationCode::DrawClosed,
+                sprintf(
+                    'Draw %s closed after this purchase was validated (status %s); it is not accepting bets, so nothing was charged.',
+                    (string) $draw->draw_number,
+                    (string) $draw->status->value,
+                ),
+                ['draw_id' => $drawId, 'draw_number' => $draw->draw_number],
+            );
+        }
+    }
+
+    /**
      * The purchase body. Runs entirely inside the transaction.
      *
      * @throws BetPurchaseConcurrencyException
@@ -118,7 +160,18 @@ final class BetPurchaseTransactionService
      */
     private function purchase(BetPurchaseContext $context): BetPurchaseResult
     {
-        // 1. Wallet row lock. First lock on every path.
+        // 0. The draw fence. A purchase is validated BEFORE any lock, so the draw may
+        //    have closed between validation and now. Re-check it here, under a shared
+        //    lock held to the end of this transaction: a close or a settlement that
+        //    takes the draw exclusively waits for in-flight purchases, and a purchase
+        //    that starts after a close is refused. Nothing is charged.
+        //
+        //    This is taken BEFORE the wallet lock on purpose. Settlement locks the draw
+        //    and then pays wallets; taking the wallet first here would give the two
+        //    paths opposite lock orders, and that is a deadlock.
+        $this->assertDrawStillAcceptsBets($context);
+
+        // 1. Wallet row lock. First lock on every path after the draw fence.
         $wallet = $this->wallets->lockForDebit($context->walletId(), $context->currency());
 
         // 2. Idempotency, re-checked while holding the lock.

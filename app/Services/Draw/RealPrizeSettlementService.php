@@ -346,6 +346,18 @@ class RealPrizeSettlementService
      * finished — a silent under-settlement, which is the one failure mode that
      * pays some players and strands others.
      *
+     * $provenance is written onto every payout this chunk creates, so each payout
+     * can be traced to the settlement run and the pinned result that produced it.
+     *
+     * $checkpoint runs INSIDE this chunk's transaction, after every bet in the
+     * chunk has been paid and before the commit. The orchestrator uses it to move
+     * the run's cursor and totals in the SAME transaction as the money. If the
+     * checkpoint throws, the chunk rolls back whole, payouts included, so the
+     * cursor can never run ahead of the money or behind it.
+     *
+     * @param  array<string, scalar|null>  $provenance
+     * @param  (\Closure(array<string, mixed>): void)|null  $checkpoint
+     *
      * @return array{
      *     bets_seen: int,
      *     bets_settled: int,
@@ -371,6 +383,8 @@ class RealPrizeSettlementService
         int $limit,
         string $safetyMode,
         ?Currency $currencySoFar = null,
+        array $provenance = [],
+        ?\Closure $checkpoint = null,
     ): array {
         $drawId = (int) $draw->getKey();
         $limit = max(1, $limit);
@@ -383,7 +397,7 @@ class RealPrizeSettlementService
             throw SettlementSimulationException::alreadyRunning($drawId, DB::transactionLevel());
         }
 
-        return DB::transaction(function () use ($draw, $drawId, $result, $afterBetId, $limit, $safetyMode, $currencySoFar): array {
+        return DB::transaction(function () use ($draw, $drawId, $result, $afterBetId, $limit, $safetyMode, $currencySoFar, $provenance, $checkpoint): array {
             $bets = $this->lockedBetsAfter($drawId, $afterBetId, $limit);
 
             $stats = [
@@ -452,7 +466,7 @@ class RealPrizeSettlementService
                 if ($betHasWinner && bccomp($betPrize, '0.00', 2) > 0) {
                     $currency = $stats['currency'] instanceof Currency ? $stats['currency'] : $this->defaultCurrency();
 
-                    $payout = $this->payWinningBet($bet, $betPrize, $currency, $safetyMode);
+                    $payout = $this->payWinningBet($bet, $betPrize, $currency, $safetyMode, $provenance);
 
                     $this->writeBet($bet, true, $betPrize, $payout);
                     $stats['payouts_created']++;
@@ -461,6 +475,11 @@ class RealPrizeSettlementService
                 }
 
                 $stats['last_bet_id'] = (int) $bet->getKey();
+            }
+
+            if ($checkpoint !== null) {
+                // Inside the transaction: a failure here rolls back the payouts above.
+                $checkpoint($stats);
             }
 
             return $stats;
@@ -525,6 +544,7 @@ class RealPrizeSettlementService
         return Bet::query()
             ->with(['ticket', 'user'])
             ->where('draw_id', $drawId)
+            ->prizeParticipant()
             ->whereNull('deleted_at')
             ->where('id', '>', $afterBetId)
             ->orderBy('id')
@@ -727,7 +747,7 @@ class RealPrizeSettlementService
      *
      * @throws \App\Exceptions\FinancialException
      */
-    private function payWinningBet(Bet $bet, string $prize, Currency $currency, string $safetyMode): Payout
+    private function payWinningBet(Bet $bet, string $prize, Currency $currency, string $safetyMode, array $provenance = []): Payout
     {
         $betId = (int) $bet->getKey();
         $drawId = (int) $bet->draw_id;
@@ -756,6 +776,9 @@ class RealPrizeSettlementService
                 'safety_mode' => $safetyMode,
                 'needs_approval' => $needsApproval,
                 'dry_run' => $safetyMode === self::SAFETY_DRY_RUN,
+                // Set only by the chunked path: the run, and the pinned result and
+                // policy it was opened against. Empty for the monolithic path.
+                ...$provenance,
             ],
         ]);
         $payout->status = PayoutStatus::Pending;
@@ -1068,6 +1091,7 @@ class RealPrizeSettlementService
         return Bet::query()
             ->with(['ticket', 'user'])
             ->where('draw_id', $drawId)
+            ->prizeParticipant()
             ->whereNull('deleted_at')
             ->orderBy('id')
             ->lockForUpdate()

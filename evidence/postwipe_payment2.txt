@@ -1,0 +1,251 @@
+
+   PASS  Tests\Feature\Payment\BankTransferConfigurationTest
+  ✓ fails closed when settlement details are not configured                                                                                                                                                                                                                                          2.36s  
+  ✓ fails closed when settlement details are only partially configured                                                                                                                                                                                                                               0.11s  
+  ✓ renders exactly the operator configured settlement details                                                                                                                                                                                                                                       0.11s  
+  ✓ the fabricated bank identity appears nowhere in the repository                                                                                                                                                                                                                                   0.14s  
+  ✓ thai lottery official company is also banned                                                                                                                                                                                                                                                     0.11s  
+  ✓ gateway supports thb currency for manual settlement                                                                                                                                                                                                                                              0.11s  
+
+   PASS  Tests\Feature\Payment\DuplicateWalletCreditPreventionTest
+  ✓ simultaneous or repeated webhooks cannot double credit wallet                                                                                                                                                                                                                                    0.31s  
+
+   PASS  Tests\Feature\Payment\DuplicateWebhookIdempotencyTest
+  ✓ new event id for already confirmed deposit is safely idempotent                                                                                                                                                                                                                                  0.41s  
+
+   PASS  Tests\Feature\Payment\ExpiredPaymentTest
+  ✓ expired deposit webhook transitions deposit to failed with expiry reason                                                                                                                                                                                                                         0.30s  
+
+   PASS  Tests\Feature\Payment\FailedPaymentStateTest
+  ✓ failed deposit webhook transitions deposit to failed without wallet credit                                                                                                                                                                                                                       0.23s  
+
+   FAIL  Tests\Feature\Payment\FixturePublicationSafetyTest
+  ⨯ fixture sources default to disabled in configuration                                                                                                                                                                                                                                             0.09s  
+  ✓ fixture provider never evaluates to official source                                                                                                                                                                                                                                              0.10s  
+  ✓ fixtures are hard stopped in production environment                                                                                                                                                                                                                                              0.11s  
+
+   PASS  Tests\Feature\Payment\InvalidWebhookSignatureTest
+  ✓ invalid stripe signature is rejected with 403                                                                                                                                                                                                                                                    0.25s  
+  ✓ missing signature header is rejected with 403                                                                                                                                                                                                                                                    0.20s  
+  ✓ expired stripe timestamp is rejected due to replay window                                                                                                                                                                                                                                        0.21s  
+
+   PASS  Tests\Feature\Payment\PaymentCallbackServiceTest
+  ✓ resolves by payment reference and reports the internal state                                                                                                                                                                                                                                     0.10s  
+  ✓ resolves by deposit reference and by gateway session reference                                                                                                                                                                                                                                   0.11s  
+  ✓ captured is the only state reported as paid                                                                                                                                                                                                                                                      0.09s  
+  ✓ state vocabulary covers failed cancelled and refunded                                                                                                                                                                                                                                            0.09s  
+  ✓ another players reference is reported as not found                                                                                                                                                                                                                                               0.08s  
+  ✓ unknown references are reported as not found                                                                                                                                                                                                                                                     0.08s  
+  ✓ the projection is read only and changes nothing                                                                                                                                                                                                                                                  0.08s  
+
+   PASS  Tests\Feature\Payment\PaymentGatewayManagerTest
+  ✓ resolves a bound driver and refuses unknown names                                                                                                                                                                                                                                                0.08s  
+  ✓ is enabled reflects the enabled flag and defaults closed                                                                                                                                                                                                                                         0.07s  
+  ✓ deposit driver refuses a disabled gateway with a stable code                                                                                                                                                                                                                                     0.07s  
+  ✓ deposit driver refuses a non deposit capable gateway                                                                                                                                                                                                                                             0.07s  
+  ✓ withdrawal driver refuses a non withdrawal capable gateway                                                                                                                                                                                                                                       0.08s  
+  ✓ deposit driver resolves an enabled deposit capable gateway                                                                                                                                                                                                                                       0.07s  
+  ✓ bank transfer resolves through the guard when enabled                                                                                                                                                                                                                                            0.07s  
+  ✓ bank transfer deposit capability stays off without settlement details                                                                                                                                                                                                                            0.07s  
+
+   PASS  Tests\Feature\Payment\PaymentInitiationServiceTest
+  ✓ happy path creates deposit and payment with provider reference                                                                                                                                                                                                                                   0.10s  
+  ✓ disabled gateway is refused before any record exists                                                                                                                                                                                                                                             0.07s  
+  ✓ method outside the allowed list is refused before any record exists                                                                                                                                                                                                                              0.07s  
+  ✓ unsupported currency is refused before any record exists                                                                                                                                                                                                                                         0.07s  
+  ✓ replaying the same idempotency key returns the same deposit and payment                                                                                                                                                                                                                          0.08s  
+
+   PASS  Tests\Feature\Payment\PaymentLedgerBalanceTest
+  ✓ deposit and refund postings maintain strict double entry balance                                                                                                                                                                                                                                 0.25s  
+
+   PASS  Tests\Feature\Payment\PaymentWebhookSignatureVerificationTest
+  ✓ stripe webhook signature is verified using timestamped hmac                                                                                                                                                                                                                                      0.24s  
+  ✓ bkash webhook signature is verified correctly                                                                                                                                                                                                                                                    0.23s  
+  ✓ crypto webhook signature is verified correctly                                                                                                                                                                                                                                                   0.22s  
+
+   FAIL  Tests\Feature\Payment\PlayerDepositApiTest
+  ⨯ authenticated player can initiate stripe deposit                                                                                                                                                                                                                                                 0.29s  
+  ✓ player can view their own deposit                                                                                                                                                                                                                                                                0.21s  
+  ✓ player cannot view another players deposit                                                                                                                                                                                                                                                       0.22s  
+  ⨯ configured cash in fee is calculated server side exactly once                                                                                                                                                                                                                                    0.28s  
+  ⨯ client supplied fee fields are completely ignored                                                                                                                                                                                                                                                0.22s  
+  ⨯ default zero percent deposit fee keeps the deposit free                                                                                                                                                                                                                                          0.28s  
+  ⨯ an idempotent replay charges the fee exactly once                                                                                                                                                                                                                                                0.28s  
+  ✓ the public fees page agrees with what the deposit engine charges                                                                                                                                                                                                                                 0.21s  
+
+   PASS  Tests\Feature\Payment\PromptPayIntegrationTest
+  ✓ promptpay is not a selectable payment method                                                                                                                                                                                                                                                     0.07s  
+  ✓ promptpay has no bound driver                                                                                                                                                                                                                                                                    0.08s  
+  ✓ promptpay never appears in the deposit or withdrawal allowed lists                                                                                                                                                                                                                               0.07s  
+  ✓ the web deposit form rejects promptpay                                                                                                                                                                                                                                                           0.09s  
+  ✓ the orphaned operator contract is documented in config                                                                                                                                                                                                                                           0.07s  
+  ✓ the execution hub refuses the promptpay channel instead of aliasing it                                                                                                                                                                                                                           0.08s  
+  ✓ the manager names the unbuilt rail rather than calling it unsupported                                                                                                                                                                                                                            0.07s  
+
+   PASS  Tests\Feature\Payment\PublicPaymentCapabilityParityTest
+  ✓ globally disabled deposits fail closed                                                                                                                                                                                                                                                           0.21s  
+  ✓ unconfigured gateway is not advertised                                                                                                                                                                                                                                                           0.21s  
+  ✓ bank transfer requires valid settlement instructions                                                                                                                                                                                                                                             0.21s  
+  ✓ all advertised methods match gateway manager deposit capability                                                                                                                                                                                                                                  0.23s  
+
+   PASS  Tests\Feature\Payment\StripeGatewayCallbackUrlTest
+  ✓ cancel url is the cancel path not the failure path                                                                                                                                                                                                                                               0.09s  
+  ✓ missing secret key fails closed without calling stripe                                                                                                                                                                                                                                           0.09s  
+
+   PASS  Tests\Feature\Payment\SuccessfulDepositCompletionTest
+  ✓ successful deposit webhook advances deposit credits wallet and updates payment                                                                                                                                                                                                                   0.27s  
+
+   PASS  Tests\Feature\Payment\WebhookReplayGuardRetentionTest
+  ✓ it removes only rows whose own horizon has passed                                                                                                                                                                                                                                                0.23s  
+  ✓ it never removes a row that has no horizon                                                                                                                                                                                                                                                       0.21s  
+  ✓ a dry run reports the same count and writes nothing                                                                                                                                                                                                                                              0.21s  
+  ✓ it reports nothing to do when every row is still live                                                                                                                                                                                                                                            0.20s  
+  ✓ it is idempotent                                                                                                                                                                                                                                                                                 0.21s  
+  ✓ it sweeps more than one chunk                                                                                                                                                                                                                                                                    0.23s  
+  ✓ the guard row records a future horizon when the middleware claims a delivery                                                                                                                                                                                                                     0.23s  
+
+   PASS  Tests\Feature\Payment\WebhookReplayProtectionTest
+  ✓ the same signed webhook delivered twice is processed once                                                                                                                                                                                                                                        0.24s  
+  ✓ replay is idempotent even when the cache is cleared between deliveries                                                                                                                                                                                                                           0.23s  
+  ✓ the guard records the replay durably                                                                                                                                                                                                                                                             0.23s  
+  ✓ a different payload is not treated as a replay                                                                                                                                                                                                                                                   0.22s  
+  ✓ two gateways with identical bytes do not shadow each other                                                                                                                                                                                                                                       0.22s  
+  ✓ replay protection can be switched off by configuration                                                                                                                                                                                                                                           0.23s  
+  ✓ a refused delivery is not remembered so a retry still reaches the driver                                                                                                                                                                                                                         0.22s  
+  ✓ an accepted delivery records observation                                                                                                                                                                                                                                                         0.21s  
+  ✓ the replay guard is attached to every webhook route                                                                                                                                                                                                                                              0.21s  
+  ✓ a rotated signature over a known body is recorded but not refused                                                                                                                                                                                                                                0.24s  
+  ✓ identical webhook event id is cached and ignored on replay                                                                                                                                                                                                                                       0.27s  
+  ✓ an unsigned webhook is still refused by the driver                                                                                                                                                                                                                                               0.25s  
+
+   PASS  Tests\Feature\Payment\WithdrawalCompletionTest
+  ✓ withdrawal webhook completes payout consumes hold and debits wallet                                                                                                                                                                                                                              0.23s  
+
+   FAIL  Tests\Feature\Payment\WithdrawalDestinationValidationTest
+  ⨯ bank transfer withdrawal requires canonical bank and account                                                                                                                                                                                                                                     0.22s  
+  ✓ bank transfer rejects unsupported bank                                                                                                                                                                                                                                                           0.21s  
+  ✓ bkash requires mobile format and prohibits bank name                                                                                                                                                                                                                                             0.21s  
+  ✓ crypto requires valid address and prohibits bank name                                                                                                                                                                                                                                            0.22s  
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Payment\FixturePublicationSafetyTest > fixture sources default to disabled in configuration                                                                                                                                                                                        
+  Failed asserting that true is false.
+
+  at tests/Feature/Payment/FixturePublicationSafetyTest.php:22
+     18▕ final class FixturePublicationSafetyTest extends TestCase
+     19▕ {
+     20▕     public function test_fixture_sources_default_to_disabled_in_configuration(): void
+     21▕     {
+  ➜  22▕         $this->assertFalse((bool) config('national_lottery.sources.fixture.enabled', true));
+     23▕         $this->assertFalse((bool) config('weekly_lottery.sources.fixture.enabled', true));
+     24▕         $this->assertFalse((bool) config('bingo_lottery.sources.fixture.enabled', true));
+     25▕         $this->assertFalse((bool) config('pcso_lottery.sources.fixture.enabled', true));
+     26▕     }
+
+  1   tests/Feature/Payment/FixturePublicationSafetyTest.php:22
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Payment\PlayerDepositApiTest > authenticated player can initiate stripe deposit                                                                                                                                                                                                    
+  Expected response status code [201] but received 503.
+Failed asserting that 503 is identical to 201.
+
+  at tests/Feature/Payment/PlayerDepositApiTest.php:31
+     27▕             'method' => 'stripe',
+     28▕             'currency' => 'THB',
+     29▕         ]);
+     30▕ 
+  ➜  31▕         $response->assertStatus(201);
+     32▕         $response->assertJsonPath('success', true);
+     33▕         $response->assertJsonPath('data.deposit.amount', '500.00');
+     34▕         $response->assertJsonPath('data.deposit.status', 'pending');
+     35▕         $response->assertJsonPath('data.deposit.currency', 'THB');
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Payment\PlayerDepositApiTest > configured cash in fee is calculated server side exactly once                                                                                                                                                                                       
+  Expected response status code [201] but received 503.
+Failed asserting that 503 is identical to 201.
+
+  at tests/Feature/Payment/PlayerDepositApiTest.php:91
+     87▕             'method' => 'stripe',
+     88▕             'currency' => 'THB',
+     89▕         ]);
+     90▕ 
+  ➜  91▕         $response->assertStatus(201);
+     92▕ 
+     93▕         // Exactly ONE deposit row and ONE payment aggregate for the request.
+     94▕         $this->assertSame(
+     95▕             1,
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Payment\PlayerDepositApiTest > client supplied fee fields are completely ignored                                                                                                                                                                                                   
+  Expected response status code [201] but received 422.
+Failed asserting that 422 is identical to 201.
+
+  at tests/Feature/Payment/PlayerDepositApiTest.php:137
+    133▕             'net_amount' => '499.99',
+    134▕             'fee_percentage' => '0.00',
+    135▕         ]);
+    136▕ 
+  ➜ 137▕         $response->assertStatus(201);
+    138▕ 
+    139▕         $deposit = Deposit::query()->where('user_id', $player['user']->id)->firstOrFail();
+    140▕         $this->assertStoredMoneySame('10.00', (string) $deposit->fee, 'The deposit fee must be the canonical server-computed 2.00%');
+    141▕         $this->assertStoredMoneySame('490.00', (string) $deposit->net_amount);
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Payment\PlayerDepositApiTest > default zero percent deposit fee keeps the deposit free                                                                                                                                                                                             
+  Expected response status code [201] but received 503.
+Failed asserting that 503 is identical to 201.
+
+  at tests/Feature/Payment/PlayerDepositApiTest.php:154
+    150▕         $this->postJson('/api/v1/deposits', [
+    151▕             'amount' => '500.00',
+    152▕             'method' => 'stripe',
+    153▕             'currency' => 'THB',
+  ➜ 154▕         ])->assertStatus(201);
+    155▕ 
+    156▕         $deposit = Deposit::query()->where('user_id', $player['user']->id)->firstOrFail();
+    157▕         $this->assertStoredMoneySame('0.00', (string) $deposit->fee);
+    158▕         $this->assertStoredMoneySame('500.00', (string) $deposit->net_amount);
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Payment\PlayerDepositApiTest > an idempotent replay charges the fee exactly once                                                                                                                                                                                                   
+  Expected response status code [201] but received 503.
+Failed asserting that 503 is identical to 201.
+
+  at tests/Feature/Payment/PlayerDepositApiTest.php:177
+    173▕             'method' => 'stripe',
+    174▕             'currency' => 'THB',
+    175▕             'idempotency_key' => $key,
+    176▕         ]);
+  ➜ 177▕         $first->assertStatus(201);
+    178▕ 
+    179▕         $replay = $this->postJson('/api/v1/deposits', [
+    180▕             'amount' => '500.00',
+    181▕             'method' => 'stripe',
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Payment\WithdrawalDestinationValidationTest > bank transfer withdrawal requires canonical bank and account                                                                                                                                                                         
+  Session has unexpected errors: 
+
+{
+    "default": [
+        "The selected method is invalid."
+    ]
+}
+Failed asserting that true is false.
+
+  at tests/Feature/Payment/WithdrawalDestinationValidationTest.php:47
+     43▕             'account_name' => 'John Doe',
+     44▕             'idempotency_key' => 'wd-test-bank-valid-01',
+     45▕         ]);
+     46▕ 
+  ➜  47▕         $response->assertSessionHasNoErrors();
+     48▕         $response->assertRedirect('/withdraw');
+     49▕ 
+     50▕         $this->assertDatabaseHas('withdrawals', [
+     51▕             'user_id' => $player['user']->id,
+
+
+  Tests:    7 failed, 79 passed (353 assertions)
+  Duration: 16.99s
+

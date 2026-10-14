@@ -26,6 +26,8 @@
 /.env
 /.env.*
 !/.env.example
+!/.env.ci
+!/.env.production.example
 /phpunit.xml.bak
 
 # PROMPT 6: Rust build artefacts. Cargo.lock IS committed (cargo --locked

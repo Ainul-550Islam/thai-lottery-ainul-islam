@@ -14,6 +14,7 @@ use App\Services\Finance\Money;
 use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WalletService as CanonicalWalletService;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * Wallet Service Facade / Delegation Layer.
@@ -21,6 +22,13 @@ use Illuminate\Contracts\Container\Container;
  * Provides convenient high-level API over the canonical double-entry
  * App\Services\Finance\WalletService engine while maintaining exact decimal
  * arithmetic, concurrency locking, and double-entry ledger postings.
+ *
+ * The canonical engine is strict: it takes a resolved Wallet model, an exact
+ * Money value and a FinancialTransactionType enum. This facade is the
+ * convenience boundary, so it is the one place that turns the looser inputs
+ * (a wallet id, a decimal string, a free-text label) into those types. Doing
+ * the conversion here, rather than in every caller, is what keeps the strict
+ * engine from being reachable through a TypeError on ordinary input.
  */
 class WalletService
 {
@@ -56,33 +64,63 @@ class WalletService
     /**
      * Credit a wallet with an exact decimal amount and ledger entry.
      *
-     * A string $type is passed through to the canonical engine, which resolves
-     * a genuine transaction type by name and records anything else as a
-     * description against an Adjustment. It is never blanket-assumed to be a
-     * Deposit here: "Initial funds" on the ledger as a Deposit would assert
+     * A string $type that names a genuine transaction type (e.g. "deposit") is
+     * used as that type. Any other string is a human description: it is recorded
+     * as the description against an Adjustment. It is never blanket-assumed to be
+     * a Deposit, because "Initial funds" on the ledger as a Deposit would assert
      * that external money arrived when the caller held only a sentence.
+     *
+     * A plain string in the $options position is shorthand for the description.
+     *
+     * @param  array<string, mixed>|string  $options
      */
     public function credit(
         Wallet|int $wallet,
         Money|string $amount,
         string|FinancialTransactionType $type = FinancialTransactionType::Deposit,
         ?string $idempotencyKey = null,
-        array $options = [],
+        array|string $options = [],
     ): FinancialTransaction {
-        return $this->canonical->credit($wallet, $amount, $type, $idempotencyKey, $options);
+        $wallet = $this->resolveWallet($wallet);
+        [$resolvedType, $options] = $this->resolveType($type, $this->normaliseOptions($options));
+
+        return $this->canonical->credit(
+            $wallet,
+            $this->resolveAmount($amount, $wallet),
+            $resolvedType,
+            $idempotencyKey,
+            $options,
+        );
     }
 
     /**
      * Debit a wallet with an exact decimal amount and ledger entry.
+     *
+     * Type resolution follows credit(). A free-text label is recorded as the
+     * description against an Adjustment rather than being assumed to be a
+     * Withdrawal.
+     *
+     * A plain string in the $options position is shorthand for the description.
+     *
+     * @param  array<string, mixed>|string  $options
      */
     public function debit(
         Wallet|int $wallet,
         Money|string $amount,
         string|FinancialTransactionType $type = FinancialTransactionType::Withdrawal,
         ?string $idempotencyKey = null,
-        array $options = [],
+        array|string $options = [],
     ): FinancialTransaction {
-        return $this->canonical->debit($wallet, $amount, $type, $idempotencyKey, $options);
+        $wallet = $this->resolveWallet($wallet);
+        [$resolvedType, $options] = $this->resolveType($type, $this->normaliseOptions($options));
+
+        return $this->canonical->debit(
+            $wallet,
+            $this->resolveAmount($amount, $wallet),
+            $resolvedType,
+            $idempotencyKey,
+            $options,
+        );
     }
 
     /**
@@ -103,5 +141,69 @@ class WalletService
         $moneyObj = is_string($amount) ? Money::of($amount, $wallet->currency) : $amount;
 
         return $this->canonical->unlockFunds($wallet, $moneyObj);
+    }
+
+    /**
+     * Accept either a loaded wallet or its primary key.
+     *
+     * @throws ModelNotFoundException when an id does not name a wallet
+     */
+    private function resolveWallet(Wallet|int $wallet): Wallet
+    {
+        if ($wallet instanceof Wallet) {
+            return $wallet;
+        }
+
+        return Wallet::query()->findOrFail($wallet);
+    }
+
+    /**
+     * Turn a decimal string into exact Money in the wallet's own currency.
+     * A Money instance is passed through unchanged.
+     */
+    private function resolveAmount(Money|string $amount, Wallet $wallet): Money
+    {
+        return $amount instanceof Money
+            ? $amount
+            : Money::of($amount, $wallet->currency);
+    }
+
+    /**
+     * @param  array<string, mixed>|string  $options
+     * @return array<string, mixed>
+     */
+    private function normaliseOptions(array|string $options): array
+    {
+        if (is_string($options)) {
+            return ['description' => trim($options)];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Map a caller's type onto the canonical enum.
+     *
+     * @param  array<string, mixed>  $options
+     * @return array{0: FinancialTransactionType, 1: array<string, mixed>}
+     */
+    private function resolveType(string|FinancialTransactionType $type, array $options): array
+    {
+        if ($type instanceof FinancialTransactionType) {
+            return [$type, $options];
+        }
+
+        $genuine = FinancialTransactionType::tryFrom(strtolower(trim($type)));
+
+        if ($genuine !== null) {
+            return [$genuine, $options];
+        }
+
+        // A free-text label: keep it as the human description on an adjustment.
+        if (! isset($options['description']) || ! is_string($options['description'])) {
+            $options['description'] = trim($type);
+        }
+
+        return [FinancialTransactionType::Adjustment, $options];
     }
 }

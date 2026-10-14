@@ -23,6 +23,16 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
 
         Config::set('payment.withdrawal.enabled', true);
         Config::set('payment.withdrawal.allowed_methods', ['bank_transfer', 'bkash', 'nagad', 'crypto']);
+        // Bank transfer fails closed unless enabled with operator settlement
+        // details (BankTransferGateway). Enable it here for this fixture only;
+        // the shipped default stays disabled.
+        Config::set('payment.gateways.bank_transfer.enabled', true);
+        Config::set('payment.gateways.bank_transfer.settlement', [
+            'bank_name' => 'Test Settlement Bank',
+            'account_number' => '0000000000',
+            'account_name' => 'Test Operator',
+            'instructions' => null,
+        ]);
         Config::set('payment.supported_banks', [
             'BBL' => 'Bangkok Bank',
             'KBANK' => 'Kasikornbank',

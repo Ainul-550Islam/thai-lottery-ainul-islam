@@ -39,6 +39,7 @@ enum DiscrepancyCategory: string
     case NegativeAvailableBalance = 'negative_available_balance';
     case BetPurchaseMismatch = 'bet_purchase_mismatch';
     case CommissionMismatch = 'commission_mismatch';
+    case PrizeSettlementMismatch = 'prize_settlement_mismatch';
 
     public function label(): string
     {
@@ -58,6 +59,7 @@ enum DiscrepancyCategory: string
             self::NegativeAvailableBalance => 'Negative Available Balance',
             self::BetPurchaseMismatch => 'Bet Purchase Without Debit',
             self::CommissionMismatch => 'Commission Without Payment',
+            self::PrizeSettlementMismatch => 'Prize Settlement Mismatch',
         };
     }
 
@@ -83,6 +85,7 @@ enum DiscrepancyCategory: string
             self::NegativeAvailableBalance => 'Wallet spendable balance is negative or locked funds exceed balance.',
             self::BetPurchaseMismatch => 'An active bet has no matching bet-debit financial transaction.',
             self::CommissionMismatch => 'A paid agent commission has no matching financial transaction.',
+            self::PrizeSettlementMismatch => 'A settlement payout disagrees with its bet, its settlement run, or the run\'s pinned provenance.',
         };
     }
 

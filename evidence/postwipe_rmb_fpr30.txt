@@ -1,0 +1,103 @@
+
+   FAIL  Tests\Feature\RealMoneyBusinessReadinessTest
+  ✓ glo l6 proportional prize calculation and stamp duty                                                                                                                                                                                           4.31s  
+  ⨯ glo prize claim lifecycle and approval                                                                                                                                                                                                         0.33s  
+  ✓ multi currency wallet reservation and consumption                                                                                                                                                                                              0.12s  
+  ✓ financial reconciliation engine runs without anomalies                                                                                                                                                                                         0.09s  
+  ✓ payment gateway manager capabilities                                                                                                                                                                                                           0.09s  
+  ✓ withdrawal disbursement failure restores balance                                                                                                                                                                                               0.10s  
+  ✓ responsible gaming limits decrease immediate and increase cooling off                                                                                                                                                                          0.08s  
+  ⨯ bulk bet slip cart partial success and replay idempotency                                                                                                                                                                                      0.09s  
+
+   FAIL  Tests\Feature\FinalProductionReadinessTest
+  ✓ public routes render in en and th                                                                                                                                                                                                              0.32s  
+  ✓ member routes require authentication                                                                                                                                                                                                           0.15s  
+  ✓ result publication and provenance integrity                                                                                                                                                                                                    0.09s  
+  ✓ wallet isolation and balance immutability                                                                                                                                                                                                      0.10s  
+  ✓ payment gateway capability matrix                                                                                                                                                                                                              0.08s  
+  ✓ payment webhook replay protection                                                                                                                                                                                                              0.09s  
+  ⨯ bulk bet placement with idempotency                                                                                                                                                                                                            0.09s  
+  ✓ glo l6 proportional prize calculation                                                                                                                                                                                                          0.07s  
+  ✓ responsible gaming and self exclusion                                                                                                                                                                                                          0.08s  
+  ✓ agent commission settlement                                                                                                                                                                                                                    0.09s  
+  ✓ privacy and legal content versioning                                                                                                                                                                                                           0.07s  
+  ⨯ system health and readiness                                                                                                                                                                                                                    0.07s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\RealMoneyBusinessReadinessTest > glo prize claim lifecycle and approval                                                                                                                                      GloClaimException   
+  Claim refused: no matching GLO ticket.
+
+  at app/Exceptions/GloClaimException.php:16
+     12▕ class GloClaimException extends Exception
+     13▕ {
+     14▕     public static function ticketNotFound(): self
+     15▕     {
+  ➜  16▕         return new self('Claim refused: no matching GLO ticket.', 404);
+     17▕     }
+     18▕ 
+     19▕     public static function notAWinner(): self
+     20▕     {
+
+  1   app/Exceptions/GloClaimException.php:16
+  2   app/Services/Lottery/GloPrizeClaimService.php:462
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\RealMoneyBusinessReadinessTest > bulk bet slip cart partial success and replay idempotency                                                                                                                                       
+  Failed asserting that two strings are equal.
+  -'100.00'
+  +'0.00'
+  
+
+  at tests/Feature/RealMoneyBusinessReadinessTest.php:258
+    254▕         ];
+    255▕ 
+    256▕         // Quote
+    257▕         $quote = $bulkBetService->quote($draw->id, $selections);
+  ➜ 258▕         $this->assertEquals('100.00', $quote->totalStake);
+    259▕         $this->assertCount(2, $quote->items);
+    260▕ 
+    261▕         // Purchase with idempotency key
+    262▕         $clientKey = 'SLIP-' . uniqid();
+
+  1   tests/Feature/RealMoneyBusinessReadinessTest.php:258
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalProductionReadinessTest > bulk bet placement with idempotency                                                                                                                                                               
+  Failed asserting that 0 matches expected 1.
+
+  at tests/Feature/FinalProductionReadinessTest.php:254
+    250▕ 
+    251▕         $clientKey = 'SLIP-RELEASE-' . uniqid();
+    252▕         $result = $bulkBetService->purchase($user->id, $draw->id, $selections, $clientKey);
+    253▕ 
+  ➜ 254▕         $this->assertEquals(1, $result['purchased']);
+    255▕         $this->assertEquals('100.00', $result['total_charged']);
+    256▕         $this->assertEquals('900.00', (string) $wallet->fresh()->balance);
+    257▕ 
+    258▕         // Replay
+
+  1   tests/Feature/FinalProductionReadinessTest.php:254
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalProductionReadinessTest > system health and readiness                                                                                                                                                                       
+  Failed asserting that two strings are equal.
+  -'UP'
+  +'healthy'
+  
+
+  at tests/Feature/FinalProductionReadinessTest.php:369
+    365▕     {
+    366▕         $healthService = app(HealthCheckService::class);
+    367▕ 
+    368▕         $live = $healthService->isLive();
+  ➜ 369▕         $this->assertEquals('UP', $live['status']);
+    370▕ 
+    371▕         $ready = $healthService->isReady();
+    372▕         $this->assertTrue($ready['ready']);
+    373▕         $this->assertTrue($ready['database']);
+
+  1   tests/Feature/FinalProductionReadinessTest.php:369
+
+
+  Tests:    4 failed, 16 passed (110 assertions)
+  Duration: 6.56s
+

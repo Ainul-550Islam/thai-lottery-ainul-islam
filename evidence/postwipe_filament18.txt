@@ -1,0 +1,80 @@
+
+   FAIL  Tests\Feature\Filament\DrawResourceTest
+  ✓ list page renders for an admin                                                                                                                                                                                                                 4.19s  
+  ✓ view page renders for an admin                                                                                                                                                                                                                 0.42s  
+  ✓ create page renders for an admin                                                                                                                                                                                                               0.32s  
+  ✓ edit page renders for an admin                                                                                                                                                                                                                 0.33s  
+  ✓ auditor may view but not create                                                                                                                                                                                                                0.27s  
+  ✓ player cannot reach the resource                                                                                                                                                                                                               0.27s  
+  ✓ stage result is offered only while awaiting numbers and confirm only after staging                                                                                                                                                             0.34s  
+  ✓ open is offered only on a scheduled draw                                                                                                                                                                                                       0.37s  
+  ✓ close is offered only on an open draw                                                                                                                                                                                                          0.36s  
+  ✓ settle is offered only after a result is published                                                                                                                                                                                             0.39s  
+  ✓ cancel is not offered once a result is published                                                                                                                                                                                               0.37s  
+  ✓ opening a draw from the table transitions it                                                                                                                                                                                                   0.53s  
+  ⨯ publishing writes the result through the domain service                                                                                                                                                                                        0.53s  
+  ⨯ the staging operator cannot confirm their own result from the screen                                                                                                                                                                           0.57s  
+  ⨯ publishing rejects a malformed first prize                                                                                                                                                                                                     0.90s  
+  ✓ cancelling requires a reason                                                                                                                                                                                                                   0.49s  
+  ✓ an auditor is offered no lifecycle buttons                                                                                                                                                                                                     0.26s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Filament\DrawResourceTest > publishing writes the result through the domain service                                                                                                                              ViewException   
+  Svg by name "o-user-check" from set "heroicons" not found. (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php)
+
+  at vendor/blade-ui-kit/blade-icons/src/Exceptions/SvgNotFound.php:13
+      9▕ final class SvgNotFound extends Exception
+     10▕ {
+     11▕     public static function missing(string $set, string $name): self
+     12▕     {
+  ➜  13▕         return new self("Svg by name \"$name\" from set \"$set\" not found.");
+     14▕     }
+     15▕ }
+     16▕
+
+      [2m+40 vendor frames [22m
+  41  storage/framework/views/351caae4e542a0a1842469c26a843819.php:56
+      [2m+8 vendor frames [22m
+  50  storage/framework/views/09c486fec99008a6171e046132f2bdda.php:323
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Filament\DrawResourceTest > the staging operator cannot confirm their own result from the screen                                                                                                                 ViewException   
+  Svg by name "o-user-check" from set "heroicons" not found. (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php)
+
+  at vendor/blade-ui-kit/blade-icons/src/Exceptions/SvgNotFound.php:13
+      9▕ final class SvgNotFound extends Exception
+     10▕ {
+     11▕     public static function missing(string $set, string $name): self
+     12▕     {
+  ➜  13▕         return new self("Svg by name \"$name\" from set \"$set\" not found.");
+     14▕     }
+     15▕ }
+     16▕
+
+      [2m+40 vendor frames [22m
+  41  storage/framework/views/351caae4e542a0a1842469c26a843819.php:56
+      [2m+8 vendor frames [22m
+  50  storage/framework/views/09c486fec99008a6171e046132f2bdda.php:323
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Filament\DrawResourceTest > publishing rejects a malformed first prize                                                                                                                                           ViewException   
+  Svg by name "o-user-check" from set "heroicons" not found. (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php) (View: /home/user/repo/vendor/filament/support/resources/views/components/icon.blade.php)
+
+  at vendor/blade-ui-kit/blade-icons/src/Exceptions/SvgNotFound.php:13
+      9▕ final class SvgNotFound extends Exception
+     10▕ {
+     11▕     public static function missing(string $set, string $name): self
+     12▕     {
+  ➜  13▕         return new self("Svg by name \"$name\" from set \"$set\" not found.");
+     14▕     }
+     15▕ }
+     16▕
+
+      [2m+40 vendor frames [22m
+  41  storage/framework/views/351caae4e542a0a1842469c26a843819.php:56
+      [2m+8 vendor frames [22m
+  50  storage/framework/views/09c486fec99008a6171e046132f2bdda.php:323
+
+
+  Tests:    3 failed, 14 passed (93 assertions)
+  Duration: 10.95s
+

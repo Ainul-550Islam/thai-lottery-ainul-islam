@@ -1,0 +1,196 @@
+
+   FAIL  Tests\Feature\FinalProductionReadinessTest
+  ✓ public routes render in en and th                                                                                                                                                                                                                                                                4.42s  
+  ✓ member routes require authentication                                                                                                                                                                                                                                                             0.12s  
+  ✓ result publication and provenance integrity                                                                                                                                                                                                                                                      0.12s  
+  ✓ wallet isolation and balance immutability                                                                                                                                                                                                                                                        0.36s  
+  ✓ payment gateway capability matrix                                                                                                                                                                                                                                                                0.11s  
+  ✓ payment webhook replay protection                                                                                                                                                                                                                                                                0.12s  
+  ⨯ bulk bet placement with idempotency                                                                                                                                                                                                                                                              0.15s  
+  ✓ glo l6 proportional prize calculation                                                                                                                                                                                                                                                            0.11s  
+  ✓ responsible gaming and self exclusion                                                                                                                                                                                                                                                            0.11s  
+  ⨯ agent commission settlement                                                                                                                                                                                                                                                                      0.13s  
+  ✓ privacy and legal content versioning                                                                                                                                                                                                                                                             0.11s  
+  ⨯ system health and readiness                                                                                                                                                                                                                                                                      0.11s  
+
+   FAIL  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest
+  ⨯ p0 01 glo l6 official ticket business flow                                                                                                                                                                                                                                                       0.13s  
+  ⨯ p0 02 glo proportional payout and direct wallet settlement                                                                                                                                                                                                                                       0.11s  
+  ⨯ p0 03 payment hub deposit and withdrawal execution                                                                                                                                                                                                                                               0.12s  
+  ✓ p0 04 wallet canonical double entry and single source                                                                                                                                                                                                                                            0.12s  
+  ✓ p0 05 health route mismatch resolution                                                                                                                                                                                                                                                           0.12s  
+  ⨯ p0 06 financial idempotency protection                                                                                                                                                                                                                                                           0.13s  
+  ✓ p0 07 cross currency wallet isolation                                                                                                                                                                                                                                                            0.12s  
+  ✓ p0 08 responsible gaming canonical enforcement                                                                                                                                                                                                                                                   0.11s  
+  ✓ p0 09 result provenance validation                                                                                                                                                                                                                                                               0.12s  
+  ✓ p0 10 multi lane historical data integrity                                                                                                                                                                                                                                                       0.11s  
+  ⨯ p1 14 kyc document storage and verification                                                                                                                                                                                                                                                      0.11s  
+  ✓ p1 20 prize claim lifecycle state machine                                                                                                                                                                                                                                                        0.11s  
+  ⨯ p2 22 agent and draw reconciliation                                                                                                                                                                                                                                                              0.13s  
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalProductionReadinessTest > bulk bet placement with idempotency                                                                                                                                                                                                                 
+  Failed asserting that 0 matches expected 1.
+
+  at tests/Feature/FinalProductionReadinessTest.php:254
+    250▕ 
+    251▕         $clientKey = 'SLIP-RELEASE-' . uniqid();
+    252▕         $result = $bulkBetService->purchase($user->id, $draw->id, $selections, $clientKey);
+    253▕ 
+  ➜ 254▕         $this->assertEquals(1, $result['purchased']);
+    255▕         $this->assertEquals('100.00', $result['total_charged']);
+    256▕         $this->assertEquals('900.00', (string) $wallet->fresh()->balance);
+    257▕ 
+    258▕         // Replay
+
+  1   tests/Feature/FinalProductionReadinessTest.php:254
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalProductionReadinessTest > agent commission settlement                                                                                                                                                                                                                         
+  App\Enums\CommissionStatus Enum (Paid, 'paid') does not match expected type "string".
+
+  at tests/Feature/FinalProductionReadinessTest.php:339
+    335▕         $result = $settlementService->settleForDraw((int) $draw->id);
+    336▕ 
+    337▕         $this->assertEquals(1, $result->commissionsSettled);
+    338▕         $this->assertEquals('50.00', $result->totalCommissionPaid);
+  ➜ 339▕         $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status);
+    340▕     }
+    341▕ 
+    342▕     /**
+    343▕      * 11. Date-Stable Legal & Privacy Content.
+
+  1   tests/Feature/FinalProductionReadinessTest.php:339
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalProductionReadinessTest > system health and readiness                                                                                                                                                                                                                         
+  Failed asserting that two strings are equal.
+  -'UP'
+  +'healthy'
+  
+
+  at tests/Feature/FinalProductionReadinessTest.php:368
+    364▕     {
+    365▕         $healthService = app(HealthCheckService::class);
+    366▕ 
+    367▕         $live = $healthService->isLive();
+  ➜ 368▕         $this->assertEquals('UP', $live['status']);
+    369▕ 
+    370▕         $ready = $healthService->isReady();
+    371▕         $this->assertTrue($ready['ready']);
+    372▕         $this->assertTrue($ready['database']);
+
+  1   tests/Feature/FinalProductionReadinessTest.php:368
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 01 glo l6 official ticket business flow                                                                                                                                                                                                
+  Failed asserting that two strings are identical.
+  -'80.00'
+  +''
+  
+
+  at tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:143
+    139▕         );
+    140▕ 
+    141▕         $this->assertInstanceOf(GloTicket::class, $ticket);
+    142▕         $this->assertSame('592742', $ticket->ticket_number);
+  ➜ 143▕         $this->assertSame('80.00', (string) $ticket->price);
+    144▕ 
+    145▕         // 3. Balance debited by exactly 80.00 THB
+    146▕         $wallet->refresh();
+    147▕         $this->assertSame('920.00', (string) $wallet->balance);
+
+  1   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:143
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 02 glo proportional payout and direct wallet settlement                                                                                                                                                            GloClaimException   
+  Claimant identity must be fully KYC verified prior to prize disbursement.
+
+  at app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:379
+    375▕             }
+    376▕ 
+    377▕             // 2. Verify KYC Standing
+    378▕             if (! $claimant->kycStatus()->isVerified()) {
+  ➜ 379▕                 throw new GloClaimException('Claimant identity must be fully KYC verified prior to prize disbursement.');
+    380▕             }
+    381▕ 
+    382▕             // 3. Verify Claim Window (2 Years from Draw Date)
+    383▕             $deadline = $draw->scheduled_at->copy()->addYears(self::CLAIM_WINDOW_YEARS)->endOfDay();
+
+  1   app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:379
+      [2m+1 vendor frames [22m
+  3   app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:355
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 03 payment hub deposit and withdrawal execution                                                                                                                                                             InvalidArgumentException   
+  The account has no wallet for the requested currency.
+
+  at app/Services/Payment/ProductionPaymentExecutionHubService.php:59
+     55▕             ->where('currency', $currency->value)
+     56▕             ->first();
+     57▕ 
+     58▕         if (! $wallet instanceof Wallet) {
+  ➜  59▕             throw new InvalidArgumentException('The account has no wallet for the requested currency.');
+     60▕         }
+     61▕ 
+     62▕         $result = $this->initiations->initiateDeposit(
+     63▕             wallet: $wallet,
+
+  1   app/Services/Payment/ProductionPaymentExecutionHubService.php:59
+  2   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:237
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 06 financial idempotency protection                                                                                                                                                                                                    
+  Failed asserting that actual size 0 matches expected size 1.
+
+  at tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:339
+    335▕ 
+    336▕         $r1 = $bulkService->placeBulkBet($user, $draw, $items, $key);
+    337▕         $r2 = $bulkService->placeBulkBet($user, $draw, $items, $key);
+    338▕ 
+  ➜ 339▕         $this->assertCount(1, $r1->bets);
+    340▕         $this->assertCount(1, $r2->bets);
+    341▕ 
+    342▕         $wallet->refresh();
+    343▕         $this->assertSame('400.00', (string) $wallet->balance); // Debited once only
+
+  1   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:339
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p1 14 kyc document storage and verification                                                                                                                                                                     MassAssignmentException   
+  Add fillable property [kyc_status] to allow mass assignment on [App\Models\User].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+2 vendor frames [22m
+  3   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:439
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p2 22 agent and draw reconciliation                                                                                                                                                                                               Error   
+  Object of class App\Enums\CommissionStatus could not be converted to string
+
+  at tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:539
+    535▕ 
+    536▕         $comm->refresh();
+    537▕         $agent->refresh();
+    538▕ 
+  ➜ 539▕         $this->assertSame('paid', (string) $comm->status);
+    540▕         $this->assertSame('500.00', (string) $agent->total_commission_paid);
+    541▕     }
+    542▕ }
+    543▕
+
+  1   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:539
+
+
+  Tests:    9 failed, 16 passed (110 assertions)
+  Duration: 7.55s
+

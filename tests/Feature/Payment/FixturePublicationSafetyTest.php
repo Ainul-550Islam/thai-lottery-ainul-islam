@@ -19,10 +19,38 @@ final class FixturePublicationSafetyTest extends TestCase
 {
     public function test_fixture_sources_default_to_disabled_in_configuration(): void
     {
-        $this->assertFalse((bool) config('national_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('weekly_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('bingo_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('pcso_lottery.sources.fixture.enabled', true));
+        // phpunit.xml turns fixtures on for the test run because other suites
+        // need them, so the runtime config cannot show the shipped default.
+        // Check the shipped environment templates instead: a stock deployment
+        // copies .env.example or .env.production.example.
+        $keys = [
+            'NATIONAL_LOTTERY_FIXTURE_ENABLED',
+            'WEEKLY_LOTTERY_FIXTURE_ENABLED',
+            'BINGO_LOTTERY_FIXTURE_ENABLED',
+            'PCSO_LOTTERY_FIXTURE_ENABLED',
+        ];
+
+        foreach (['.env.example', '.env.production.example'] as $template) {
+            $contents = (string) file_get_contents(base_path($template));
+
+            foreach ($keys as $key) {
+                $this->assertMatchesRegularExpression(
+                    '/^'.$key.'=false\s*$/m',
+                    $contents,
+                    "{$template} must ship {$key}=false",
+                );
+            }
+        }
+
+        // The config fallback must also be false when the variable is absent.
+        foreach (['national_lottery', 'weekly_lottery', 'bingo_lottery', 'pcso_lottery'] as $file) {
+            $source = (string) file_get_contents(config_path($file.'.php'));
+            $this->assertMatchesRegularExpression(
+                "/env\\('[A-Z_]+_FIXTURE_ENABLED',\\s*false\\)/",
+                $source,
+                "config/{$file}.php must default the fixture flag to false",
+            );
+        }
     }
 
     public function test_fixture_provider_never_evaluates_to_official_source(): void

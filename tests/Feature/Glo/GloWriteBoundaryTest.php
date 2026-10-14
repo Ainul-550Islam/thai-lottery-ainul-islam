@@ -73,7 +73,9 @@ class GloWriteBoundaryTest extends TestCase
         // would fail the second half of every test here. ResultPending is the
         // real state a GLO result is processed in.
         $this->draw = Draw::factory()->create([
-            'draw_number' => 'GLO-WRITE-BOUNDARY',
+            // The fixture provider only answers for its own draw number; a
+            // different number is refused as a mismatch before any gate runs.
+            'draw_number' => 'GLO-2026-09-16',
             'status' => DrawStatus::Drawing,
             'scheduled_at' => now()->subDays(1),
         ]);
@@ -703,14 +705,15 @@ class GloWriteBoundaryTest extends TestCase
         );
 
         // Staged, not published: the write boundary is unaffected by any of this.
-        // Asserted on the shape currentIngestion() actually returns — the flat
-        // result row — rather than a nested `payload`, which is how this test
-        // would have passed while reading nothing.
+        // Asserted on the shape currentIngestion() actually returns: the raw
+        // staged record, with status at the top level and the announced values
+        // under `payload`. Keys are read directly, so a missing key fails loudly
+        // rather than comparing against an empty default.
         $stored = $this->ingestion->currentIngestion((int) $this->draw->getKey());
 
         $this->assertIsArray($stored);
-        $this->assertSame('287184', $stored['first_prize']);
-        $this->assertSame('48', $stored['bottom_two'], 'the announced value, not substr(287184, -2) = 84');
+        $this->assertSame('287184', $stored['payload']['first_prize']);
+        $this->assertSame('48', $stored['payload']['bottom_two'], 'the announced value, not substr(287184, -2) = 84');
         $this->assertSame(DrawConfirmationStatus::Pending->value, $stored['status']);
 
         $this->confirmation->confirm(

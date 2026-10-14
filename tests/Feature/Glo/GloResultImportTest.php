@@ -256,7 +256,8 @@ class GloResultImportTest extends TestCase
         $this->assertSame((string) $this->draw->draw_number, $outcome['import']->upstream_draw_id);
         $this->assertSame('042042', $outcome['import']->payload_summary['first_prize']);
         $this->assertSame('58', $outcome['import']->payload_summary['bottom_two']);
-        $this->assertSame(1, $outcome['import']->payload_summary['second_prize_count']);
+        // resources/glo/fixtures/lottery_result.json lists five second prizes.
+        $this->assertSame(5, $outcome['import']->payload_summary['second_prize_count']);
         $this->assertSame('fixture', $outcome['import']->payload_summary['source_attempts'][0]['source']);
         $this->assertNotNull($outcome['import']->result_fingerprint);
         $this->assertArrayNotHasKey('payload', $outcome['import']->getAttributes());

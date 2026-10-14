@@ -226,6 +226,18 @@ class Bet extends Model
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
+    /**
+     * Bets that take part in a prize settlement.
+     *
+     * Cancelled and refunded slips are not participants: their stake went back
+     * and they cannot win. BOTH settlement paths use this scope, so the monolithic
+     * and chunked totals count the same set of slips.
+     */
+    public function scopePrizeParticipant(Builder $query): Builder
+    {
+        return $query->whereNotIn('status', [BetStatus::Cancelled->value, BetStatus::Refunded->value]);
+    }
+
     public function scopeForDraw(Builder $query, int $drawId): Builder
     {
         return $query->where('draw_id', $drawId);

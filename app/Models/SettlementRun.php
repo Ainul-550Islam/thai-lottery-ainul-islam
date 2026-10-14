@@ -39,6 +39,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $completed_at
  * @property int|null $started_by
  * @property string|null $failure_reason
+ * @property string|null $result_fingerprint
+ * @property string|null $policy_fingerprint
  */
 class SettlementRun extends Model
 {
@@ -75,6 +77,8 @@ class SettlementRun extends Model
         'completed_at',
         'started_by',
         'failure_reason',
+        'result_fingerprint',
+        'policy_fingerprint',
     ];
 
     /**

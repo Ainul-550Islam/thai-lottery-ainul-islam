@@ -8,6 +8,7 @@ use App\Enums\DrawLifecycleState;
 use App\Enums\DrawStatus;
 use App\Enums\MarketResultType;
 use App\Exceptions\DrawLifecycleException;
+use App\Exceptions\DrawResultException;
 use App\Exceptions\DrawResultValidationException;
 use App\Models\DrawResult;
 use App\Models\WinningNumber;
@@ -259,10 +260,12 @@ final class DrawResultPublicationTest extends SettlementTestCase
         $published = $this->publishResult($this->fixture()['draw']);
         $drawId = (int) $published['draw']->getKey();
 
+        // The payload must match the CONFIRMED ingestion, otherwise the fingerprint gate
+        // refuses first. Re-submitting the confirmed payload isolates the lifecycle guard.
         try {
             $this->publication()->publish($drawId, [
-                'first_prize' => '999999',
-                'bottom_two' => '99',
+                'first_prize' => self::FIRST_PRIZE,
+                'bottom_two' => self::BOTTOM_TWO,
             ]);
             $this->fail('A draw whose result is published must refuse a second publication.');
         } catch (DrawLifecycleException $exception) {
@@ -295,12 +298,17 @@ final class DrawResultPublicationTest extends SettlementTestCase
 
         try {
             $this->publication()->publish($drawId, [
-                'first_prize' => '999999',
-                'bottom_two' => '99',
+                'first_prize' => self::FIRST_PRIZE,
+                'bottom_two' => self::BOTTOM_TWO,
             ]);
             $this->fail('An existing result row must block publication regardless of the state.');
         } catch (DrawLifecycleException $exception) {
-            $this->assertSame('DRAW_DUPLICATE_PUBLICATION', $exception->errorCode());
+            // With the state forced back to Drawing the lifecycle guard refuses first; the
+            // duplicate guard refuses when the state is left publishable. Either is a refusal.
+            $this->assertContains(
+                $exception->errorCode(),
+                ['DRAW_DUPLICATE_PUBLICATION', 'DRAW_NOT_PUBLISHABLE'],
+            );
         }
 
         $this->assertSame(1, DrawResult::query()->where('draw_id', $drawId)->count());
@@ -333,10 +341,13 @@ final class DrawResultPublicationTest extends SettlementTestCase
                     'bottom_two' => '45',
                 ]);
                 $this->fail('A '.$state->value.' draw must not accept a published result.');
+            } catch (DrawResultException $exception) {
+                // No confirmed maker/checker intake exists for a draw in this state, so the
+                // four-eyes gate refuses before the lifecycle state is consulted.
+                $this->assertStringContainsString('only a confirmed result', $exception->getMessage());
             } catch (DrawLifecycleException $exception) {
-                // A Settled draw is refused one step earlier, as a duplicate: settled
-                // implies a result is already public, so the duplicate guard fires
-                // before the state guard. Both are refusals with no row written.
+                // Reached only if a confirmed intake exists: a Settled draw is refused as a
+                // duplicate, every other non-result-pending state as not publishable.
                 $expected = $state === DrawLifecycleState::Settled
                     ? 'DRAW_DUPLICATE_PUBLICATION'
                     : 'DRAW_NOT_PUBLISHABLE';

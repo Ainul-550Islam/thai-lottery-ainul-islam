@@ -1,0 +1,64 @@
+
+   FAIL  Tests\Feature\Draw\ChunkedSettlementTest
+  ✓ finalize refuses while bets remain past the cursor                                                                                                                                                                                             4.25s  
+  ✓ the draw stays published until the run is finalized                                                                                                                                                                                            0.40s  
+  ✓ re running a chunk does not pay a bet twice                                                                                                                                                                                                    0.32s  
+  ✓ a completed run cannot settle the draw a second time                                                                                                                                                                                           0.31s  
+  ✓ the monolithic path refuses while a chunked run is in flight                                                                                                                                                                                   0.35s  
+  ✓ only one run can exist for a draw                                                                                                                                                                                                              0.28s  
+  ✓ totals accumulate exactly across chunks                                                                                                                                                                                                        0.34s  
+  ✓ an interrupted run resumes from its cursor and finishes                                                                                                                                                                                        0.40s  
+  ✓ recovery requires a reason and an authorized settlement operator                                                                                                                                                                               0.38s  
+  ✓ queued recovery dispatches only after the reason and actor audit commit                                                                                                                                                                        0.37s  
+  ✓ the chunked path pays only once and only under live                                                                                                                                                                                            0.31s  
+  ⨯ reconciliation validates settlement links and reports tampering without repairing history                                                                                                                                                      0.35s  
+  ✓ a run opened under dry run keeps dry run even if config changes mid run                                                                                                                                                                        0.33s  
+  ✓ a run cannot be opened for a draw that is not published                                                                                                                                                                                        0.23s  
+  ✓ the orchestrator clamps the configured chunk size                                                                                                                                                                                              0.19s  
+  ✓ the safety mode is read at open and not per chunk                                                                                                                                                                                              0.58s  
+  ✓ percent complete reports progress and is null without a denominator                                                                                                                                                                            0.38s  
+  ✓ the monolithic job stands aside while a chunked run owns the draw                                                                                                                                                                              0.35s  
+  ✓ result provenance drift rolls back the chunk before money or cursor changes                                                                                                                                                                    0.32s  
+  ✓ failed chunk rolls back payouts and cursor together                                                                                                                                                                                            0.33s  
+  ✓ cancelled and refunded bets are not in the prize participant set                                                                                                                                                                               0.32s  
+  ⨯ a purchase validated before draw close is rejected under the draw fence                                                                                                                                                                        0.23s  
+  ✓ the monolithic job stands aside for an aborted resumable run                                                                                                                                                                                   0.33s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > reconciliation validates settlement links and reports tampering without repairing history                                                                                                           
+  Failed asserting that null is not null.
+
+  at tests/Feature/Draw/ChunkedSettlementTest.php:674
+    670▕             ->first(fn ($discrepancy): bool => $discrepancy->entityType === 'payout'
+    671▕                 && $discrepancy->entityId === (int) $payout->getKey()
+    672▕                 && $discrepancy->category === DiscrepancyCategory::PrizeSettlementMismatch);
+    673▕ 
+  ➜ 674▕         $this->assertNotNull($mismatch);
+    675▕ 
+    676▕         $metadata = $payout->fresh()->metadata ?? [];
+    677▕         $metadata['settlement_run_id'] = 'not-a-run-id';
+    678▕         DB::table('payouts')
+
+  1   tests/Feature/Draw/ChunkedSettlementTest.php:674
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Draw\ChunkedSettlementTest > a purchase validated before draw close is rejected under the draw fence                                                                                                                 TypeError   
+  App\Exceptions\BetDomainException::__construct(): Argument #1 ($message) must be of type string, App\Enums\BetValidationCode given, called in /home/user/repo/app/Services/Betting/BetPurchaseTransactionService.php on line 147
+
+  at app/Exceptions/BetDomainException.php:47
+     43▕ {
+     44▕     /**
+     45▕      * @param  array<string, scalar|null>  $context
+     46▕      */
+  ➜  47▕     public function __construct(
+     48▕         string $message,
+     49▕         private readonly ?string $errorCode = null,
+     50▕         private readonly array $context = [],
+     51▕         ?Throwable $previous = null,
+
+  1   app/Exceptions/BetDomainException.php:47
+  2   app/Services/Betting/BetPurchaseTransactionService.php:147
+
+
+  Tests:    2 failed, 21 passed (114 assertions)
+  Duration: 11.66s
+

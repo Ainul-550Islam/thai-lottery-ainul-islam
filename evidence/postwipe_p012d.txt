@@ -1,0 +1,36 @@
+
+   FAIL  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest
+  ✓ p0 01 glo l6 official ticket business flow                                                                                                                                                                                                                                                       4.37s  
+  ✓ p0 02 glo proportional payout and direct wallet settlement                                                                                                                                                                                                                                       0.30s  
+  ⨯ p0 03 payment hub deposit and withdrawal execution                                                                                                                                                                                                                                               0.22s  
+  ✓ p0 04 wallet canonical double entry and single source                                                                                                                                                                                                                                            0.22s  
+  ✓ p0 05 health route mismatch resolution                                                                                                                                                                                                                                                           0.21s  
+  ✓ p0 06 financial idempotency protection                                                                                                                                                                                                                                                           0.26s  
+  ✓ p0 07 cross currency wallet isolation                                                                                                                                                                                                                                                            0.22s  
+  ✓ p0 08 responsible gaming canonical enforcement                                                                                                                                                                                                                                                   0.20s  
+  ✓ p0 09 result provenance validation                                                                                                                                                                                                                                                               0.21s  
+  ✓ p0 10 multi lane historical data integrity                                                                                                                                                                                                                                                       0.21s  
+  ✓ p1 14 kyc document storage and verification                                                                                                                                                                                                                                                      0.20s  
+  ✓ p1 20 prize claim lifecycle state machine                                                                                                                                                                                                                                                        0.20s  
+  ✓ p2 22 agent and draw reconciliation                                                                                                                                                                                                                                                              0.41s  
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 03 payment hub deposit and withdrawal execution                                                                                                                                                                                Error   
+  Class "Tests\Feature\Http" not found
+
+  at tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:276
+    272▕             'payment.gateways.bank_transfer.settlement.account_number' => '998-112-334',
+    273▕             'payment.gateways.bank_transfer.settlement.account_name' => 'Thai Lottery Co., Ltd.',
+    274▕         ]);
+    275▕ 
+  ➜ 276▕         Http::fake([
+    277▕             'api.stripe.com/*' => Http::response([
+    278▕                 'id' => 'cs_test_HUB2500',
+    279▕                 'url' => 'https://checkout.stripe.com/pay/cs_test_HUB2500',
+    280▕             ], 200),
+
+  1   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:276
+
+
+  Tests:    1 failed, 12 passed (35 assertions)
+  Duration: 7.26s
+

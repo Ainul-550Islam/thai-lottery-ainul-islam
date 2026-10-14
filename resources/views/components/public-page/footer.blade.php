@@ -69,6 +69,22 @@
             </div>
         </div>
 
+        @php
+            // Only https links on each platform's own domain (SocialLinkService). Unset or invalid links are omitted.
+            $socialLinks = array_filter([
+                'YouTube' => \App\Services\Web\SocialLinkService::url('youtube'),
+                'Facebook' => \App\Services\Web\SocialLinkService::url('facebook'),
+                'TikTok' => \App\Services\Web\SocialLinkService::url('tiktok'),
+            ]);
+        @endphp
+        @if ($socialLinks !== [])
+            <nav aria-label="Social media" class="flex flex-wrap justify-center sm:justify-start gap-4">
+                @foreach ($socialLinks as $label => $url)
+                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition">{{ $label }}</a>
+                @endforeach
+            </nav>
+        @endif
+
         <!-- Legal Disclaimer & Copyright -->
         <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
             <p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl">

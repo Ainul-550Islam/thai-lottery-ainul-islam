@@ -29,6 +29,10 @@ final class WalletResource extends JsonResource
             'type' => $wallet->type?->value,
             'status' => $wallet->status?->value,
             'balance' => (string) $wallet->balance,
+            // `locked_balance` is the canonical name for funds held against
+            // pending withdrawals. `reserved_balance` is kept, with the same
+            // value, so existing API clients do not break.
+            'locked_balance' => (string) $wallet->locked_balance,
             'reserved_balance' => (string) $wallet->locked_balance,
             'available_balance' => (string) $wallet->getAvailableBalance(),
             'can_transact' => $wallet->canTransact(),

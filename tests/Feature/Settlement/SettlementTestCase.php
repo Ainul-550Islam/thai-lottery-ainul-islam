@@ -214,7 +214,10 @@ abstract class SettlementTestCase extends TestCase
     ): array {
         $draw = $this->advanceToResultPending($draw);
 
-        $published = $this->publication()->publish((int) $draw->getKey(), [
+        // Publication only accepts a CONFIRMED result: a persisted Pending intake from
+        // one operator, confirmed by a different operator, then published. Calling the
+        // publisher directly skips that maker/checker gate and is refused.
+        $published = $this->publishTrustedManualResult($draw, [
             'first_prize' => $firstPrize,
             'bottom_two' => $bottomTwo,
         ]);
@@ -480,10 +483,16 @@ abstract class SettlementTestCase extends TestCase
      */
     protected function requiresRealConcurrency(): void
     {
-        if (DB::connection()->getDriverName() === 'sqlite') {
+        // Only an in-memory SQLite database is private to a single process. The suite's
+        // file-backed test database is shared by every child process, so it is a valid
+        // concurrency arena and the test must run there rather than being skipped.
+        $connection = DB::connection();
+
+        if ($connection->getDriverName() === 'sqlite'
+            && in_array((string) $connection->getDatabaseName(), [':memory:', ''], true)) {
             $this->markTestSkipped(
-                'Real multi-process concurrency requires a shared server with row locks; '
-                .'SQLite in memory gives each process its own database.'
+                'Real multi-process concurrency needs a store shared between processes; '
+                .'SQLite in memory gives each process its own private database.'
             );
         }
     }

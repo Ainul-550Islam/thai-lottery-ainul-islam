@@ -107,6 +107,7 @@ class FinancialReconciliationService
         $this->checkDuplicateProviderReferences($currency, $from, $to, $discrepancies);
         $this->checkDomainAccountingCompleteness($currency, $from, $to, $discrepancies);
         $this->checkPrizeAccounting($currency, $discrepancies);
+        $this->checkSettlementLinks($currency, $discrepancies);
         $this->checkLedgerJournalIntegrity($currency, $from, $to, $discrepancies);
         $this->checkWalletHoldInvariants($currency, $discrepancies);
         $this->checkCurrencyBoundaries($currency, $from, $to, $discrepancies);
@@ -155,6 +156,16 @@ class FinancialReconciliationService
         $this->recordAudit($report);
 
         return $report;
+    }
+
+    /**
+     * Scheduled or system-initiated reconciliation over a period. Thin
+     * wrapper over reconcile(): same checks, same audit row, with the audit
+     * label fixed to "system" so the record shows no operator acted.
+     */
+    public function reconcileSystem(?Carbon $from = null, ?Carbon $to = null): FinancialReconciliationReport
+    {
+        return $this->reconcile($from, $to, null, 'system');
     }
 
     /**
@@ -632,6 +643,103 @@ class FinancialReconciliationService
                 details: ['payout_ids' => $ids],
             );
         }
+    }
+
+    /**
+     * Every draw-settlement payout must agree with the bet it pays and with the
+     * settlement run that created it.
+     *
+     *  - the payout amount equals the bet's recorded prize (actual_payout);
+     *  - a settlement_run_id, if present, is a positive integer naming a run that
+     *    belongs to the same draw;
+     *  - the run's pinned result and policy fingerprints match the payout's copies.
+     *
+     * Reported, never repaired: a mismatch is evidence for an operator to examine,
+     * and the payout and ledger history are left exactly as they are.
+     *
+     * @param  list<ReconciliationDiscrepancy>  $discrepancies
+     */
+    private function checkSettlementLinks(Currency $currency, array &$discrepancies): void
+    {
+        DB::table('payouts')
+            ->where('currency', $currency->value)
+            ->whereNull('deleted_at')
+            ->chunkById(500, function ($payouts) use ($currency, &$discrepancies): void {
+                foreach ($payouts as $payout) {
+                    $metadata = is_string($payout->metadata)
+                        ? json_decode($payout->metadata, true)
+                        : $payout->metadata;
+
+                    if (! is_array($metadata) || ($metadata['source'] ?? null) !== 'draw_settlement') {
+                        continue;
+                    }
+
+                    $problems = [];
+
+                    $bet = $payout->bet_id !== null
+                        ? DB::table('bets')->where('id', (int) $payout->bet_id)->first(['actual_payout'])
+                        : null;
+
+                    if ($bet !== null && $bet->actual_payout !== null
+                        && bccomp((string) $payout->amount, (string) $bet->actual_payout, 2) !== 0) {
+                        $problems[] = sprintf(
+                            'amount %s differs from the bet\'s recorded prize %s',
+                            (string) $payout->amount,
+                            (string) $bet->actual_payout,
+                        );
+                    }
+
+                    if (array_key_exists('settlement_run_id', $metadata)) {
+                        $runId = $metadata['settlement_run_id'];
+
+                        if (! (is_int($runId) && $runId > 0) && ! (is_string($runId) && ctype_digit($runId) && (int) $runId > 0)) {
+                            $problems[] = 'settlement_run_id is malformed';
+                        } else {
+                            $run = DB::table('settlement_runs')
+                                ->where('id', (int) $runId)
+                                ->first(['draw_id', 'result_fingerprint', 'policy_fingerprint']);
+
+                            if ($run === null) {
+                                $problems[] = sprintf('settlement_run_id %d names no settlement run', (int) $runId);
+                            } else {
+                                if ((int) $run->draw_id !== (int) $payout->draw_id) {
+                                    $problems[] = 'the settlement run belongs to a different draw';
+                                }
+
+                                foreach (['result_fingerprint', 'policy_fingerprint'] as $pin) {
+                                    if ($run->{$pin} !== null
+                                        && array_key_exists($pin, $metadata)
+                                        && ! hash_equals((string) $run->{$pin}, (string) $metadata[$pin])) {
+                                        $problems[] = sprintf('%s differs from the settlement run that paid it', $pin);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if ($problems === []) {
+                        continue;
+                    }
+
+                    $discrepancies[] = new ReconciliationDiscrepancy(
+                        entityType: 'payout',
+                        entityId: (int) $payout->id,
+                        referenceNumber: (string) $payout->reference_number,
+                        category: DiscrepancyCategory::PrizeSettlementMismatch,
+                        severity: DiscrepancySeverity::Critical,
+                        expectedAmount: $bet !== null && $bet->actual_payout !== null ? (string) $bet->actual_payout : null,
+                        actualAmount: (string) $payout->amount,
+                        difference: null,
+                        currency: $currency->value,
+                        description: 'Settlement payout disagrees with its settlement record: '.implode('; ', $problems).'. Reported only; nothing was repaired.',
+                        details: [
+                            'draw_id' => (int) $payout->draw_id,
+                            'bet_id' => $payout->bet_id !== null ? (int) $payout->bet_id : null,
+                            'problems' => $problems,
+                        ],
+                    );
+                }
+            });
     }
 
     // ------------------------------------------------------------------

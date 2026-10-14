@@ -210,6 +210,10 @@ abstract class TestCase extends BaseTestCase
 
         (new LedgerAccountSeeder)->run();
         (new RolePermissionSeeder)->run();
+
+        // Real-money gate: tests exercise the money paths, so the gate is open here.
+        // RealMoneyGateTest closes it and proves the refusals. Production defaults stay closed.
+        config(['real_money.enabled' => true]);
     }
 
     /**

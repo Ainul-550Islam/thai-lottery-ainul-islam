@@ -33,8 +33,10 @@ class GloConsoleCommandsTest extends TestCase
             'draw_number' => 'GLO-2026-09-16',
             'status' => 'result_published',
             'scheduled_at' => now()->subDays(3),
-            'result_published_at' => now()->subDays(2),
         ]);
+        // Publication timestamps are engine-owned and deliberately not
+        // mass-assignable, so the fixture sets it explicitly.
+        $this->draw->forceFill(['result_published_at' => now()->subDays(2)])->save();
 
         config(['glo.official_source.mode' => 'fixture']);
     }
@@ -111,10 +113,8 @@ class GloConsoleCommandsTest extends TestCase
         // written over a draw that already published (or settled) it. The
         // importer now honours that guard instead of writing draw_results
         // directly, so the draw is moved to the state a real import happens in.
-        $this->draw->update([
-            'status' => DrawStatus::Drawing,
-            'result_published_at' => null,
-        ]);
+        $this->draw->update(['status' => DrawStatus::Drawing]);
+        $this->draw->forceFill(['result_published_at' => null])->save();
 
         $operator = User::factory()->create();
         $operator->assignRole('super-admin');

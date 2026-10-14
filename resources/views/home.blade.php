@@ -252,6 +252,23 @@
             LIVE DRAW {{ $liveDraw['status'] ?? 'UNAVAILABLE' }}
         </p>
 
+        @if (($liveDraw['status'] ?? null) === 'CONFIGURED' && ! empty($liveDraw['embed_url']))
+            {{-- Only an authorised, allowlisted YouTube URL reaches this branch (YouTubeEmbedUrl). --}}
+            <div class="mt-4 aspect-video w-full max-w-3xl" data-live-frame-host>
+                <iframe src="{{ $liveDraw['embed_url'] }}"
+                        title="{{ $text['live_title'] ?? __('Live draw') }}"
+                        class="h-full w-full border-0"
+                        loading="lazy"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                        allow="encrypted-media; picture-in-picture; fullscreen"
+                        allowfullscreen></iframe>
+            </div>
+            <p class="mt-2 text-sm">
+                <a class="underline text-sky-300" href="{{ $liveDraw['embed_url'] }}" rel="noopener noreferrer" target="_blank">{{ __('Open live stream') }}</a>
+            </p>
+        @endif
+
         @if (! empty($liveDraw['message']))
             <p class="mt-2 text-slate-300">{{ $liveDraw['message'] }}</p>
         @endif
