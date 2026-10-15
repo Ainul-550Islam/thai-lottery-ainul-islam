@@ -96,7 +96,7 @@ class DrawResultIngestionService
             }
 
             $canonical = $this->canonicalize($drawId, $payload, $source);
-            $fingerprint = self::fingerprintFor($canonical);
+            $fingerprint = $this->fingerprintFor($canonical);
 
             $existing = $this->currentRecord($draw);
 
@@ -193,16 +193,14 @@ class DrawResultIngestionService
     }
 
     /**
-     * Validate + canonicalize the two settlement inputs the result pipeline
-     * requires: first_prize (6 digits) and bottom_two (2 digits). The two are
-     * INDEPENDENT draws and both must be stated; neither is derived from the
-     * other. For a provider import, validated second/third prize lists and the
-     * source lane are also retained on the Pending card and included in its
-     * fingerprint, but they do not alter these two market-driving inputs.
+     * Validate + canonicalize the operator/feed payload into the ONLY two
+     * numbers the result pipeline trusts: first_prize (6 digits) and
+     * bottom_two (2 digits). The two are INDEPENDENT draws and both must be
+     * stated; neither is derived from the other.
      *
      * @param  array<string, mixed>  $payload
      *
-     * @return array<string, mixed>
+     * @return array{first_prize: string, bottom_two: string}
      *
      * @throws DrawResultException
      */
@@ -312,31 +310,6 @@ class DrawResultIngestionService
             'bottom_two' => $claimedBottomTwo,
         ];
 
-        // Provider prize lists are staged as part of the same canonical payload
-        // and fingerprint, then handed to the sole writer only after confirmation.
-        // The import adapter is the only caller that supplies these fields; a
-        // manual operator entry cannot smuggle arbitrary result columns through
-        // this path. Preserve the existing GLO list cardinalities and digit widths.
-        if (str_starts_with($source, 'glo_import:')) {
-            foreach (['second_prize' => 5, 'third_prize' => 10] as $field => $maximum) {
-                if (! array_key_exists($field, $payload)) {
-                    throw DrawResultException::malformed(
-                        $source,
-                        sprintf('provider field [%s] is missing from the imported result', $field),
-                        ['draw_id' => $drawId, 'field' => $field],
-                    );
-                }
-
-                $canonical[$field] = $this->canonicalPrizeList(
-                    $drawId,
-                    $source,
-                    $field,
-                    $payload[$field],
-                    $maximum,
-                );
-            }
-        }
-
         // ── OPTIONAL SOURCE-LANE PASSTHROUGH ──────────────────────────────
         //
         // A feed may carry more than the two canonical numbers: the remaining
@@ -348,17 +321,17 @@ class DrawResultIngestionService
         // result display (GloPublicResultService, ResultsPageService,
         // GloPublicPrizeSummaryService) and by GloN3TicketChecker.
         //
-        // Carrying the lane here and letting only the publication service write
-        // it after the persisted confirmation stamp keeps the write boundary
-        // intact: it reaches draw_results only after a SECOND operator confirms,
-        // never at intake time. Previously this data was written by the importer
+        // Carrying the lane here, and writing it from the confirmation service,
+        // is what keeps the write boundary intact: the lane reaches the
+        // draw_results row at the moment a SECOND operator confirms, never at
+        // intake time. Previously this data was written by the importer
         // directly, which is how an unconfirmed feed payload could reach a
         // published row.
         //
-        // These supplemental categories do not replace the first_prize and
-        // bottom_two inputs used by the core market resolver. They remain part
-        // of the canonical staged payload, however, so any changed provider tier
-        // or n3 list produces a different fingerprint and must be reviewed again.
+        // The values are preserved verbatim and influence nothing that is
+        // settled: first_prize and bottom_two above are the only fields
+        // canonicalisation produces, and the fingerprint below is computed over
+        // those two alone.
         $lane = $this->sourceLane($payload);
 
         if ($lane !== null) {
@@ -398,58 +371,18 @@ class DrawResultIngestionService
             $lane['import_fingerprint'] = (string) $payload['provider_fingerprint'];
         }
 
-        if (isset($payload['upstream_draw_id']) && is_scalar($payload['upstream_draw_id'])) {
-            $lane['upstream_draw_id'] = (string) $payload['upstream_draw_id'];
-        }
-
         return $lane === [] ? null : $lane;
     }
 
     /**
-     * Validate and preserve one provider prize list in provider order.
+     * sha256 over the canonical pair: stable across identical re-ingests,
+     * different the moment any digit moves.
      *
-     * @return list<string>
-     *
-     * @throws DrawResultException
+     * @param  array{first_prize: string, bottom_two: string}  $canonical
      */
-    private function canonicalPrizeList(
-        int $drawId,
-        string $source,
-        string $field,
-        mixed $values,
-        int $maximum,
-    ): array {
-        if (! is_array($values) || ! array_is_list($values) || count($values) > $maximum) {
-            throw DrawResultException::malformed(
-                $source,
-                sprintf('provider field [%s] must be a list of at most %d six-digit prizes', $field, $maximum),
-                ['draw_id' => $drawId, 'field' => $field],
-            );
-        }
-
-        foreach ($values as $value) {
-            if (! is_string($value) || preg_match('/\\A[0-9]{6}\\z/D', $value) !== 1) {
-                throw DrawResultException::malformed(
-                    $source,
-                    sprintf('provider field [%s] contains a value that is not exactly six digits', $field),
-                    ['draw_id' => $drawId, 'field' => $field],
-                );
-            }
-        }
-
-        return array_values($values);
-    }
-
-    /**
-     * Hash the complete canonical payload, including provider lanes and prize
-     * lists. A change to any staged tier therefore replaces a Pending record
-     * instead of incorrectly returning an idempotent replay of the old result.
-     *
-     * @param  array<string, mixed>  $canonical
-     */
-    public static function fingerprintFor(array $canonical): string
+    private function fingerprintFor(array $canonical): string
     {
-        return hash('sha256', json_encode($canonical, JSON_THROW_ON_ERROR));
+        return hash('sha256', $canonical['first_prize'].':'.$canonical['bottom_two']);
     }
 
     /**

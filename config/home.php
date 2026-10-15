@@ -5,11 +5,10 @@
 | Public Home page configuration
 |--------------------------------------------------------------------------
 |
-| Support contact, app links and public campaigns are configuration or
-| verified release artifacts — never invented in Blade. Empty store links
-| render honest NOT_CONFIGURED states. A local Android URL is derived only
-| from the signed APK and its matching checksum manifest. Never put secrets,
-| PII or admin metrics in this file.
+| Support contact, app links and public campaigns are CONFIG only — never
+| invented in Blade. Null / empty values render honest NOT_CONFIGURED or
+| "No active promotions" states. Never put secrets, PII or admin metrics
+| in this file.
 |
 */
 

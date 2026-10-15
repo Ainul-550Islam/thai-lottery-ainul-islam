@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Web;
 
-use App\Services\Media\AndroidApkReleaseService;
 use App\Services\Media\PublicAppLinkService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -26,13 +25,6 @@ class AppLinksTest extends TestCase
             'home.app_links.ios' => null,
             'home.app_links.pwa' => null,
         ]);
-        $this->app->instance(
-            AndroidApkReleaseService::class,
-            new AndroidApkReleaseService(
-                sys_get_temp_dir().'/thai-lottery-unconfigured-app.apk',
-                sys_get_temp_dir().'/thai-lottery-unconfigured-app.manifest.json',
-            ),
-        );
 
         $links = $this->app->make(PublicAppLinkService::class)->links();
 

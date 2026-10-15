@@ -678,10 +678,6 @@ Route::get('/download-app', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('download-app');
 
-Route::get('/app/thai-apk.apk', [PublicDownloadAppController::class, 'downloadAndroidApk'])
-    ->middleware('public.legal')
-    ->name('download.android-apk');
-
 Route::get('/app', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('app');

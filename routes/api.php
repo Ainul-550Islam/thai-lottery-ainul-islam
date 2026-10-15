@@ -64,25 +64,47 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Versioned API routes and security boundaries
+| API Routes
 |--------------------------------------------------------------------------
 |
-| This file contains public probes, explicitly public read-only endpoints,
-| authenticated player surfaces, administrative routes and the inbound payment
-| webhook. The route's middleware is the first authorization/rate-limit layer;
-| controllers and domain services remain responsible for ownership checks,
-| provider-specific signature verification and transaction-safe money changes.
+| Phase 4.4 establishes the project's first HTTP surface. Phase 1 left this
+| file as a placeholder, so there was no existing route convention to
+| preserve and this file defines it: everything lives under an explicit
+| /api/v1 prefix with named routes, so a future v2 can be added beside it
+| without renaming or breaking v1.
 |
-| Most player endpoints require auth:sanctum and the active-account middleware.
-| Public endpoints are explicitly placed in named throttle groups. Administrative
-| endpoints use their own authorization checks. Payment webhooks are intentionally
-| unauthenticated by user credentials: each gateway validates its own signature
-| and event semantics in the webhook controller, while webhook.signature records
-| accepted-delivery telemetry only; it is not the verifier or a replay barrier.
+| WHY EVERY ROUTE IS AUTHENTICATED
+| There is no public endpoint here. Not a price list, not a draw list, not a
+| market list. Every route in this file sits behind auth:sanctum, so an
+| unauthenticated request cannot reach a controller at all - it is stopped by
+| middleware before any application code runs.
 |
-| Health/readiness probes remain public for orchestration. Do not add a new
-| financial route without reviewing its ownership derivation, permissions,
-| idempotency, limiter and transaction boundary together.
+| THE MIDDLEWARE STACK, AND WHY EACH LAYER IS PRESENT
+| - auth:sanctum: establishes WHO the caller is. Sanctum is already installed,
+|   the personal_access_tokens migration already exists, and App\Models\User
+|   already uses HasApiTokens - so this is the project's existing mechanism,
+|   not a new one.
+| - active: the existing EnsureUserIsActive middleware. Authentication proves
+|   identity; it does not prove the account is permitted to trade. A suspended
+|   player holding a still-valid token is stopped here.
+| - throttle:api: a per-caller ceiling on the whole surface.
+| - throttle:bet: an additional, much tighter ceiling on the purchase route
+|   only. Both limiters are configured from config/security.php, which already
+|   declared these values and noted that "Named limiters are registered from
+|   these values in a later phase" - Phase 4.4 is that phase, and they are
+|   registered in AppServiceProvider.
+|
+| WHAT IS DELIBERATELY NOT HERE
+| No payment gateway route, no webhook route, no draw-result or settlement
+| route, no payout route, no agent route, no admin route. Those belong to
+| later phases and adding an empty stub for them now would imply a contract
+| this phase cannot honour.
+|
+| The `wallet.active` middleware is also deliberately not applied to the
+| purchase route. Wallet state is checked inside the Phase 4.3 purchase, under
+| the wallet's own row lock, and that is the check that actually decides the
+| outcome. A second check out here would be a weaker duplicate of a financial
+| rule this phase must not duplicate.
 |
 */
 
@@ -100,15 +122,21 @@ Route::get('/v1/live', [HealthController::class, 'live'])->name('api.v1.live');
 
 /*
 |--------------------------------------------------------------------------
-| Authentication
+| Authentication (added after Phase 5.1)
 |--------------------------------------------------------------------------
 |
-| Login is a public credential-issuance route protected by throttle:login;
-| account eligibility and credentials are verified in the controller. The
-| authenticated /me and /logout endpoints require Sanctum and a general API
-| limit. /me additionally requires an active account, while logout remains
-| available to an authenticated suspended user so a token can be revoked.
-| Public data routes are declared separately under their own rate limiters.
+| Phase 4.4 stated that every route on this surface is authenticated, and it was
+| right to - but it left no route that could ISSUE a credential, so no client
+| could reach any endpoint at all. The token surface below is the minimum that
+| makes the existing surface usable, built on the Sanctum installation the
+| project already had.
+|
+| /auth/login is the ONE public route in this file. It carries `throttle:login`,
+| a limiter registered in AppServiceProvider from the login ceilings that
+| config/security.php already declared and keyed, per that config, on the
+| submitted identifier AND the client IP - so neither an account nor an address
+| can be attacked freely. It does NOT carry `active`: that middleware requires an
+| authenticated user, and account status is checked inside the controller.
 |
 */
 Route::prefix('v1/auth')
@@ -692,28 +720,35 @@ Route::prefix('v1/payments')
 | Payment webhooks — the one public inbound money surface
 |--------------------------------------------------------------------------
 |
-| MIDDLEWARE ORDER IS THE DESIGN. `webhook.signature` is an observation layer,
-| not a cryptographic verifier and not a pre-controller replay blocker. It
-| durably counts accepted deliveries in `webhook_replay_guards`.
+| MIDDLEWARE ORDER IS THE DESIGN, AND `webhook.signature` WAS MISSING FROM IT.
+|
+| `webhook.signature` was registered as an alias in bootstrap/app.php and
+| applied to NO route — dead security code, which is worse than none, because a
+| reviewer who finds it concludes this surface is guarded and stops reading.
+| It is attached here now, and it is no longer the signature verifier it once
+| pretended to be: it is the DURABLE REPLAY GUARD
+| (App\Http\Middleware\VerifyWebhookSignature writes webhook_replay_guards).
 |
 | The order is deliberate:
 |
 |   1. throttle:webhook    cheap refusal of a flood before any DB work.
-|   2. controller          per-provider cryptographic signature verification,
-|                          state-machine/idempotency checks and application.
-|   3. webhook.signature   after an accepted response, persist delivery
-|                          telemetry; invalid or failed requests are not saved.
+|   2. webhook.signature   durable replay refusal, ONE unique-index insert, and
+|                          a timestamp window when the provider's protocol
+|                          actually carries a timestamp.
+|   3. controller          per-provider cryptographic signature verification,
+|                          then persistence, then async application.
 |
-| Signature verification stays in the gateway/controller path because providers
-| sign differently (Stripe signs "<timestamp>.<body>"; bKash, Nagad and Crypto
-| use provider-specific formats). The middleware does not duplicate algorithms.
-| Payment correctness relies on transactional state transitions and
-| idempotency—not on the observation table rejecting a request.
+| Replay is refused at step 2 because it is cheap and unambiguous. Signature
+| verification stays at step 3 because each provider signs differently (Stripe
+| signs "<timestamp>.<body>"; bKash, Nagad, Crypto and Bank Transfer sign the raw
+| body) and duplicating that here would create a second definition of "valid
+| signature" that could drift from the first — the exact failure mode behind the
+| GLO write-boundary regression.
 |
-| The payment service also has a cache event-id replay check, but a file cache is
-| node-local. Production must use the shared Redis cache configured in Compose;
-| the financial state machine and idempotency keys remain the authoritative
-| protections against duplicate credits.
+| Replay protection previously existed only as a cache entry keyed on event id.
+| With CACHE_STORE=file that is atomic on one machine and meaningless across two,
+| so the same signed webhook delivered to two containers was "first seen" on
+| both. The guard table makes the database the authority.
 |
 */
 Route::prefix('v1/payments/webhook')
@@ -853,10 +888,10 @@ Route::prefix('v1/ticket-ownership')
 |--------------------------------------------------------------------------
 |
 | The controlled result pipeline surface: public read of a published
-| result (operators may read the authorized shape), authorized Pending-card
-| review of the full checker payload, operator staging (MAKER, never publishes),
-| second-pair confirmation (CHECKER), and a final publication gesture. The latter
-| re-derives its numbers from the CONFIRMED ingestion card — the HTTP layer can never offer publication
+| result (operators may read the authorized shape), operator staging
+| (MAKER, never publishes), second-pair confirmation (CHECKER), and the
+| final publication gesture, which re-derives its numbers from the
+| CONFIRMED ingestion card — the HTTP layer can never offer publication
 | numbers the checkers never saw.
 |
 */
@@ -865,7 +900,6 @@ Route::prefix('v1/draws/{draw}/result')
     ->middleware(['auth:sanctum', 'active', 'throttle:api'])
     ->group(function (): void {
         Route::get('/', [DrawResultController::class, 'show'])->name('show');
-        Route::get('/pending', [DrawResultController::class, 'showPending'])->name('pending');
         Route::post('/ingest', [DrawResultController::class, 'storeIngest'])->name('ingest');
         Route::post('/confirm', [DrawResultController::class, 'storeConfirmation'])->name('confirm');
         Route::post('/publish', [DrawResultController::class, 'storePublication'])->name('publish');

@@ -40,8 +40,6 @@ class DrawResultException extends RuntimeException
 
     public const CODE_MISMATCH_CONFIRMED = 'RESULT_MISMATCH_CONFIRMED';
 
-    public const CODE_PROVENANCE_FORBIDDEN = 'RESULT_PROVENANCE_FORBIDDEN';
-
     /**
      * @param  array<string, scalar|null>  $context
      */
@@ -70,7 +68,7 @@ class DrawResultException extends RuntimeException
 
     /**
      * The ingested payload violates the result format contract (six-digit
-     * first prize and independently stated two-digit bottom-two).
+     * first prize, two-digit bottom-two agreeing with the first prize).
      *
      * @param  array<string, scalar|null>  $context
      */
@@ -186,30 +184,6 @@ class DrawResultException extends RuntimeException
                 'field' => $field,
                 'stored_value' => $stored,
                 'claimed_value' => $driven,
-            ],
-        );
-    }
-
-    /**
-     * The persisted ingestion provenance is missing, unknown, or forbidden in
-     * the current environment. The context contains identifiers and the
-     * normalized provenance label only; it never contains the source payload.
-     *
-     * @param  array<string, scalar|null>  $context
-     */
-    public static function provenanceForbidden(
-        int $drawId,
-        string $provenance,
-        string $reason,
-        array $context = [],
-    ): self {
-        return new self(
-            sprintf('The result for draw #%d cannot be published: %s.', $drawId, $reason),
-            self::CODE_PROVENANCE_FORBIDDEN,
-            $context + [
-                'draw_id' => $drawId,
-                'provenance' => $provenance,
-                'reason' => $reason,
             ],
         );
     }

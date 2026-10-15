@@ -1,11 +1,15 @@
 <?php
 
 use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\AuthenticateBoundSession;
+use App\Http\Middleware\BotDetectionMiddleware;
+use App\Http\Middleware\ConfiguredIpAccessMiddleware;
 use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\EnsureDrawIsOpen;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureWalletIsActive;
 use App\Http\Middleware\GloEnsurePermission;
+use App\Http\Middleware\HoneypotMiddleware;
 use App\Http\Middleware\PublicLegalHeaders;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
@@ -17,6 +21,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Log;
@@ -27,9 +32,13 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
+    // Part 53: the broadcasting auth endpoint is an implicit guard
+    // consumer — it authorizes private channels from the session user.
+    // It must pass the same auth + password-binding checks as every
+    // other authenticated web surface, not only the `web` group.
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['middleware' => ['web', 'auth', 'auth.session']])
     ->withCommands([
         // Registered explicitly rather than relying on discovery, so the console
         // surface of this application is something you can read in one place.
@@ -129,11 +138,65 @@ return Application::configure(basePath: dirname(__DIR__))
             ->appendOutputTo(storage_path('logs/webhook-replay-guard-purge.log'))
             ->description('Delete webhook replay-guard rows whose retention horizon has passed');
 
+        // ---------------------------------------------------------------------
+        // Part 62/63 guards: settlement invariants and readiness
+        // ---------------------------------------------------------------------
+        //
+        // WHAT THIS FIXES
+        // Parts 62 and 63 built a settlement-invariant guard and a readiness
+        // report, and Part 63's own schedule measurement showed that neither was
+        // scheduled: 38 application commands were registered and most were never
+        // run, including `settlement:verify-guards`, which
+        // config/operations-readiness.php lists as required. A guard nobody runs
+        // is indistinguishable from a guard that does not exist.
+        //
+        // Both are read-only. Neither repairs a result, reverses a payout, moves
+        // an exclusion or changes a provider — they record and report, so running
+        // them unattended cannot cause harm, and NOT running them is what causes
+        // harm: a divergence found late is still a divergence.
+        //
+        // Neither is gated on lottery.automation.enabled. That flag is the draw
+        // automation kill switch; settlement verification is not draw automation.
+        //
+        // WHAT THIS STILL DOES NOT PROVE
+        // Registering a schedule entry is not evidence that the deployed host
+        // runs `schedule:run`. Until cron is verified in the deployed
+        // environment, these two commands run only where that is true.
+        $schedule->command('settlement:verify-guards')
+            ->dailyAt('04:05')
+            ->withoutOverlapping(30)
+            ->onOneServer()
+            ->timezone(config('app.timezone', 'UTC'))
+            ->appendOutputTo(storage_path('logs/settlement-guards.log'))
+            ->description('Check published results, paid payouts and draw counters still agree');
+
+        $schedule->command('operations:readiness-report')
+            ->dailyAt('04:20')
+            ->withoutOverlapping(15)
+            ->onOneServer()
+            ->timezone(config('app.timezone', 'UTC'))
+            ->appendOutputTo(storage_path('logs/operations-readiness.log'))
+            ->description('Report which provider lanes are configured and which commands are scheduled');
+
     })
     ->withMiddleware(function (Middleware $middleware): void {
+        // Replace the framework proxy middleware in-place, before IP consumers.
+        // The app policy has explicit peers only; no Host/platform wildcard fallback.
+        $middleware->replace(
+            TrustProxies::class,
+            App\Http\Middleware\TrustProxies::class,
+        );
+
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
+            // Opt-in observation only until CAPTCHA/enforcement integration is complete.
+            'bot' => BotDetectionMiddleware::class,
+            'honeypot' => HoneypotMiddleware::class,
+            'ip-access' => ConfiguredIpAccessMiddleware::class,
             'admin.auth' => Authenticate::class,
+            // Part 52: fail closed on sessions with no password binding
+            // (legacy pre-binding sessions) instead of adopting them.
+            'auth.session' => AuthenticateBoundSession::class,
             'wallet.active' => EnsureWalletIsActive::class,
             'draw.open' => EnsureDrawIsOpen::class,
             'webhook.signature' => VerifyWebhookSignature::class,
@@ -251,6 +314,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // none, because a reviewer who finds it stops looking. The file is deleted
         // and the list is carried HERE, where it is actually applied.
         $exceptions->dontFlash([
+            '_hp_token',
+            'captcha_token',
+            'captcha_answer',
+            'cf-turnstile-response',
+            'h-captcha-response',
+            'g-recaptcha-response',
             'current_password',
             'password',
             'password_confirmation',

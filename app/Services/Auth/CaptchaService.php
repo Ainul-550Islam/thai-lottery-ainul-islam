@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Auth;
 
+use App\Services\Auth\Captcha\ExternalCaptchaChallengeService;
+use Illuminate\Cache\DatabaseStore;
+use Illuminate\Cache\RedisStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use LogicException;
+use Throwable;
 
 /*
  * PROMPT 3 — server-authoritative CAPTCHA.
@@ -16,6 +21,10 @@ use Illuminate\Support\Str;
  * challenge is issued and ONLY the hash ever exists server-side in the
  * session; the plaintext answer exists solely inside the challenge
  * string shown to the human.
+ *
+ * The following storage/cooldown guarantees describe the local/fixed drivers.
+ * External drivers use the session-bound adapter plus provider validation;
+ * they do not reuse the local failure budget. Existing route throttles remain.
  *
  * GUARANTEES:
  * - one-time use: a consumed token can never verify again (replay
@@ -28,8 +37,8 @@ use Illuminate\Support\Str;
  *   accepted as proof — only the answer to the issued challenge.
  *
  * The driver is configurable. 'local' is the production driver; a
- * different driver name swaps the challenge generator only — the
- * verification contract stays identical.
+ * fixed driver is for deterministic probes. External drivers now delegate
+ * through the session-bound adapter; unknown drivers fail closed.
  */
 final class CaptchaService
 {
@@ -40,10 +49,24 @@ final class CaptchaService
     /**
      * Issue (or reissue) a challenge for a form render.
      *
-     * @return array{token: string, question: string}
+     * @return array<string, mixed>
      */
-    public function issue(Request $request): array
+    public function issue(Request $request, string $purpose = 'login'): array
     {
+        $driver = (string) config('auth_security.captcha.driver', 'local');
+        if (in_array($driver, ['turnstile', 'hcaptcha'], true)) {
+            try {
+                $widget = $this->external()->issue($request, $driver, $purpose);
+
+                return [...$widget, 'driver' => $driver, 'token' => $widget['nonce']];
+            } catch (Throwable) {
+                return ['driver' => 'unavailable'];
+            }
+        }
+        if (! in_array($driver, ['local', 'fixed'], true)) {
+            return ['driver' => 'unavailable'];
+        }
+
         [$question, $answer] = $this->challenge();
 
         $token = Str::random(48);
@@ -93,12 +116,28 @@ final class CaptchaService
      * retried; counts failures; enforces the cool-down when the
      * per-session failure budget is exhausted.
      */
-    public function verify(Request $request, ?string $token, ?string $answer): bool
+    public function verify(Request $request, ?string $token, ?string $answer, string $purpose = 'login'): bool
     {
         if (! $this->isEnabled()) {
             // Disabled by configuration only — a client boolean is
             // never consulted, and never proves anything.
             return true;
+        }
+
+        $driver = (string) config('auth_security.captcha.driver', 'local');
+        if (in_array($driver, ['turnstile', 'hcaptcha'], true)) {
+            try {
+                return $this->external()->verify(
+                    $request, $driver, $purpose, $token,
+                    $request->input($driver === 'turnstile' ? 'cf-turnstile-response' : 'h-captcha-response'),
+                )->isVerified();
+            } catch (Throwable) {
+                // Generic auth error; do not leak vendor/config/cache internals.
+                return false;
+            }
+        }
+        if (! in_array($driver, ['local', 'fixed'], true)) {
+            return false;
         }
 
         $state = $this->sessionState($request);
@@ -150,6 +189,35 @@ final class CaptchaService
         $request->session()->put(self::SESSION_KEY.'.blocked_until', 0);
 
         return true;
+    }
+
+    /** Shared form rules; native provider response fields are not aliases. */
+    public function validationRules(string $purpose): array
+    {
+        $required = $this->isEnabled() && (bool) config('auth_security.captcha.'.$purpose, true);
+        $driver = (string) config('auth_security.captcha.driver', 'local');
+        $external = in_array($driver, ['turnstile', 'hcaptcha'], true);
+
+        return [
+            'captcha_token' => [$required ? 'required' : 'nullable', 'string', 'max:128'],
+            'captcha_answer' => $external ? ['prohibited'] : [$required ? 'required' : 'nullable', 'string', 'max:64'],
+            'cf-turnstile-response' => $driver === 'turnstile'
+                ? [$required ? 'required' : 'nullable', 'string', 'max:2048'] : ['prohibited'],
+            'h-captcha-response' => $driver === 'hcaptcha'
+                ? [$required ? 'required' : 'nullable', 'string', 'max:8192'] : ['prohibited'],
+        ];
+    }
+
+    private function external(): ExternalCaptchaChallengeService
+    {
+        // Reject known process-local/non-shared stores outside isolated tests.
+        // Operators must still verify actual DB/Redis topology and retention.
+        $store = app('cache')->store()->getStore();
+        if (! app()->environment('testing') && ! $store instanceof DatabaseStore && ! $store instanceof RedisStore) {
+            throw new LogicException('External CAPTCHA requires a shared claim store.');
+        }
+
+        return app(ExternalCaptchaChallengeService::class);
     }
 
     /**

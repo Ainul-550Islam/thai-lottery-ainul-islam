@@ -28,16 +28,17 @@ RUN apk add --no-cache \
         libzip-dev \
         oniguruma-dev \
         icu-dev \
+        postgresql-dev \
         nodejs \
         npm
 
 RUN docker-php-ext-install -j"$(nproc)" \
         bcmath \
         intl \
-        mbstring \
         opcache \
         pcntl \
         pdo_mysql \
+        pdo_pgsql \
         zip
 
 # Redis for cache/queue/locks. phpredis rather than predis: it is a C
@@ -81,6 +82,7 @@ RUN apk add --no-cache \
         icu-libs \
         libzip \
         oniguruma \
+        postgresql-libs \
         tini \
     # No gcc, no $PHPIZE_DEPS, no make, no git. If a future step needs to
     # compile, it belongs in the build stage.
@@ -92,9 +94,6 @@ COPY --from=build /usr/local/bin/docker-php-entrypoint /usr/local/bin/
 
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-app.ini
 COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/zz-app.conf
-COPY docker/php/laravel-entrypoint.sh /usr/local/bin/laravel-entrypoint
-
-RUN chmod 0555 /usr/local/bin/laravel-entrypoint
 
 RUN addgroup -g 10001 -S app \
     && adduser -u 10001 -S app -G app -h /var/www/html -s /sbin/nologin
@@ -119,13 +118,10 @@ USER app
 # tini reaps zombies: php-fpm spawns and reaps children, but a worker that
 # double-forks (or a crashed Horizon supervisor) can orphan processes and fill
 # the PID table of the container.
-ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/laravel-entrypoint"]
+ENTRYPOINT ["/sbin/tini", "--", "docker-php-entrypoint"]
 CMD ["php-fpm", "--nodaemonize"]
 
 EXPOSE 9000
 
-# The official PHP image does not provide php-fpm-healthcheck. Probe the FPM
-# TCP listener directly so the health check uses only tools guaranteed in this
-# runtime image.
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 --start-period=30s \
-    CMD php -r '$socket = @fsockopen("127.0.0.1", 9000); if ($socket === false) { exit(1); } fclose($socket);'
+    CMD php-fpm-healthcheck || exit 1

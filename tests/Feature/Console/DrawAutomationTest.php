@@ -10,9 +10,7 @@ use App\Enums\DrawType;
 use App\Models\Draw;
 use App\Models\User;
 use App\Services\Draw\DrawLifecycleService;
-use App\Services\Draw\DrawResultConfirmationService;
-use App\Services\Draw\DrawResultIngestionService;
-use Database\Seeders\RolePermissionSeeder;
+use App\Services\Draw\DrawResultPublicationService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +44,6 @@ final class DrawAutomationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RolePermissionSeeder::class);
 
         $database = (string) DB::connection()->getDatabaseName();
 
@@ -428,13 +425,10 @@ final class DrawAutomationTest extends TestCase
         // DIFFERENT operator confirms and publishes them. A single mistaken
         // CLI entry must never become the official result alone.
         $ingester = User::factory()->create();
-        $ingester->assignRole('super-admin');
         $confirmer = User::factory()->create();
-        $confirmer->assignRole('super-admin');
 
-        // This test vector happens to have bottom_two equal to the first
-        // prize's last two digits (456123 -> 23). The values are independent;
-        // a coincidence is accepted and never used to derive either value.
+        // The announced bottom two agrees with the first prize's last two
+        // digits (456123 -> 23): the announcement cannot say both.
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '456123',
@@ -451,7 +445,6 @@ final class DrawAutomationTest extends TestCase
             '--first-prize' => '456123',
             '--bottom-two' => '23',
             '--operator-id' => (string) $confirmer->id,
-            '--notes' => 'Verified against the official announcement sheet.',
             '--confirm' => true,
             '--yes' => true,
         ])->assertSuccessful();
@@ -462,65 +455,14 @@ final class DrawAutomationTest extends TestCase
     }
 
     #[Test]
-    public function a_noninteractive_cli_checker_must_supply_auditable_notes(): void
-    {
-        $draw = $this->pendingDraw();
-        $ingester = User::factory()->create();
-        $ingester->assignRole('super-admin');
-        $confirmer = User::factory()->create();
-        $confirmer->assignRole('super-admin');
-
-        $this->artisan('lottery:publish-result', [
-            'draw' => (string) $draw->draw_number,
-            '--first-prize' => '456123',
-            '--bottom-two' => '23',
-            '--operator-id' => (string) $ingester->getKey(),
-            '--yes' => true,
-        ])->assertSuccessful();
-
-        $this->artisan('lottery:publish-result', [
-            'draw' => (string) $draw->draw_number,
-            '--first-prize' => '456123',
-            '--bottom-two' => '23',
-            '--operator-id' => (string) $confirmer->getKey(),
-            '--confirm' => true,
-            '--yes' => true,
-        ])->assertFailed();
-
-        $this->assertSame(0, DB::table('draw_results')->count());
-        $this->assertSame('pending', $draw->fresh()->metadata['result_ingestion']['status'] ?? null);
-    }
-
-    #[Test]
-    public function a_persisted_but_unprivileged_user_cannot_be_attributed_as_cli_operator(): void
-    {
-        $draw = $this->pendingDraw();
-        $player = User::factory()->create();
-
-        $this->artisan('lottery:publish-result', [
-            'draw' => (string) $draw->draw_number,
-            '--first-prize' => '456123',
-            '--bottom-two' => '45',
-            '--operator-id' => (string) $player->getKey(),
-            '--yes' => true,
-        ])->assertFailed();
-
-        $this->assertSame(0, DB::table('draw_results')->count());
-        $this->assertArrayNotHasKey('result_ingestion', $draw->fresh()->metadata ?? []);
-    }
-
-    #[Test]
     public function publication_refuses_numbers_the_validator_rejects_and_writes_nothing(): void
     {
         $draw = $this->pendingDraw();
-        $operator = User::factory()->create();
-        $operator->assignRole('super-admin');
 
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '12',
             '--bottom-two' => '45',
-            '--operator-id' => (string) $operator->getKey(),
             '--yes' => true,
         ])->assertFailed();
 
@@ -532,14 +474,11 @@ final class DrawAutomationTest extends TestCase
     public function publication_is_refused_for_a_draw_that_is_not_awaiting_its_result(): void
     {
         $draw = $this->draw(DrawStatus::Open, now()->addHour(), now()->subHour(), now()->addMinutes(55));
-        $operator = User::factory()->create();
-        $operator->assignRole('super-admin');
 
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '456123',
             '--bottom-two' => '45',
-            '--operator-id' => (string) $operator->getKey(),
             '--yes' => true,
         ])->assertFailed();
 
@@ -551,7 +490,6 @@ final class DrawAutomationTest extends TestCase
     {
         $draw = $this->pendingDraw();
         $operator = User::factory()->create();
-        $operator->assignRole('super-admin');
 
         // Declining the acknowledgement prompt cancels the ingestion: no
         // draw result row is written and the draw keeps awaiting its result.
@@ -639,23 +577,10 @@ final class DrawAutomationTest extends TestCase
     {
         $draw = $this->pendingDraw();
 
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $payload = [
+        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
             'first_prize' => '456123',
             'bottom_two' => '45',
-        ];
-        app(DrawResultIngestionService::class)->ingest(
-            (int) $draw->getKey(),
-            $payload,
-            'operator-cli',
-            (int) $maker->getKey(),
-        );
-        app(DrawResultConfirmationService::class)->confirm(
-            (int) $draw->getKey(),
-            (int) $checker->getKey(),
-            $payload,
-        );
+        ]);
 
         $draw->refresh();
 

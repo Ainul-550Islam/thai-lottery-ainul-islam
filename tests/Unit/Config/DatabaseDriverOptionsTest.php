@@ -211,11 +211,6 @@ final class DatabaseDriverOptionsTest extends TestCase
         // and must carry the path itself. A typo inside the guard satisfied the
         // old string match and cannot satisfy this one, because the guard is
         // evaluated here.
-        if (! class_exists(Mysql::class)) {
-            $this->markTestSkipped(
-                'The mysql PDO driver is not installed, so PHP exposes no SSL CA or certificate attribute ids to compare.',
-            );
-        }
         //
         // ====================================================================
         // THE ID IN THIS ASSERTION WAS WRONG, AND BEING WRONG WAS DANGEROUS

@@ -27,7 +27,7 @@ use Filament\Tables\Table;
  * Every button here delegates to the Phase 5.1 service that owns the rule:
  *
  *   open / close / cancel      -> DrawLifecycleService
- *   stage official numbers     -> DrawResultIngestionService (Pending only)
+ *   publish official numbers   -> DrawResultPublicationService
  *   settle                     -> DrawSettlementSimulationService
  *
  * The panel never writes draws.status, never writes a timestamp and never computes a

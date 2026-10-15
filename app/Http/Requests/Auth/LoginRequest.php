@@ -28,15 +28,11 @@ final class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        $captchaEnabled = app(CaptchaService::class)->isEnabled()
-            && (bool) config('auth_security.captcha.login', true);
-
         return [
             'login' => ['required', 'string', 'max:255', new AccountIdentifierRule],
             'password' => ['required', 'string', 'max:255'],
             'remember' => ['nullable', 'boolean'],
-            'captcha_token' => [$captchaEnabled ? 'required' : 'nullable', 'string', 'max:128'],
-            'captcha_answer' => [$captchaEnabled ? 'required' : 'nullable', 'string', 'max:64'],
+            ...app(CaptchaService::class)->validationRules('login'),
         ];
     }
 

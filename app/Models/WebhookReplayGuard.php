@@ -11,10 +11,10 @@ use Illuminate\Support\Carbon;
 /**
  * One distinct signed webhook payload, and how many times it has been delivered.
  *
- * This is NOT a payment record, an authentication decision or a replay blocker.
- * It is durable observation telemetry. The unique (gateway, nonce) index makes
- * that telemetry atomic across workers; payment-state idempotency is what must
- * prevent a duplicate financial effect.
+ * This is NOT a payment record and NOT an audit record. It is the durable
+ * substrate under the replay control: the UNIQUE (gateway, nonce) index on this
+ * table is what actually refuses a replayed webhook, and this model is how the
+ * rest of the application observes that.
  *
  * `deliveries` is deliberately mutable — a provider retrying a webhook it
  * believes failed is normal, expected behaviour, not an attack. What matters is

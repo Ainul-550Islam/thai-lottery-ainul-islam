@@ -55,8 +55,7 @@
                 <p class="terms-eyebrow">04 · LEGAL AGREEMENT</p>
                 <h1 id="terms-title">{{ $terms['title'] ?? 'Terms of Use' }}</h1>
                 <p>{{ $terms['meta_description'] ?? 'Versioned public terms governing use of this platform.' }}</p>
-                <p class="terms-identity-note">This is an independent platform, not the official GLO website. We do not claim government ownership, official agency status, licensing, or endorsement.</p>
-                <p class="terms-identity-note">{{ __('public_pages.terms_disclaimer_text') }}</p>
+                <p class="terms-identity-note">This page uses the independent platform’s approved public legal content. This site is an independent platform and not the official GLO website; we do not claim government ownership, official agency status, licensing, or endorsement.</p>
             </div>
             <div class="terms-document" aria-hidden="true">
                 <div class="terms-document__sheet">

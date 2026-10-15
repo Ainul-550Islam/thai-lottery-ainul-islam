@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Auth;
 
 use App\Rules\StrongPasswordRule;
+use App\Services\Auth\CaptchaService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -81,6 +82,7 @@ final class RegisterMemberRequest extends FormRequest
             ],
 
             'terms' => ['required', 'accepted'],
+            ...app(CaptchaService::class)->validationRules('register'),
         ];
     }
 
@@ -90,6 +92,7 @@ final class RegisterMemberRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'captcha_answer' => __('public_pages.captcha_label'),
             'referral_id' => __('public_pages.register_referral'),
             'mobile' => __('public_pages.register_mobile'),
             'first_name' => __('public_pages.register_first_name'),

@@ -1,0 +1,202 @@
+[
+  {
+    "id": "F01",
+    "severity": "P0",
+    "status": "Reproduced",
+    "title": "Frontend production build ভাঙা",
+    "evidence": "resources/css/app.css:1–8; package.json (tailwindcss ^3.4.17); postcss.config.js:1–6; evidence/frontend-build.log",
+    "impact": "npm run build exits 1: postcss-import Tailwind JS-কে CSS হিসেবে পড়ছে; deployable assets তৈরি হয়নি।",
+    "fix": "Tailwind v3 হলে @tailwind base/components/utilities ব্যবহার করুন, অথবা সম্পূর্ণ v4 toolchain migration করুন; অর্ধেক v3/v4 নয়।",
+    "acceptance": "Clean npm ci এবং npm run build exit 0; সব Vite entry manifest-এ থাকবে।"
+  },
+  {
+    "id": "F02",
+    "severity": "P0",
+    "status": "Static confirmed",
+    "title": "PHP requirement ও CI runtime mismatch",
+    "evidence": "composer.json:15,18; .github/workflows/ci.yml:19,392,482; .github/workflows/security.yml:20,81",
+    "impact": "Project PHP ^8.4; CI PHP 8.3। config.platform 8.4.1 বাস্তব runtime upgrade করে না; check-platform-reqs/boot ব্যর্থ হওয়ার শর্ত তৈরি।",
+    "fix": "সব CI job ও production image-এ একই supported PHP 8.4+; Laravel 12 অনুযায়ী documentation।",
+    "acceptance": "composer validate, install, check-platform-reqs এবং artisan about একই runtime-এ pass।"
+  },
+  {
+    "id": "F03",
+    "severity": "P0",
+    "status": "Static confirmed",
+    "title": "Fresh CI checkout-এ dependencies-এর আগে artisan",
+    "evidence": " .github/workflows/ci.yml:503–516; artisan:9",
+    "impact": "Prepare controlled Laravel environment step-এ key:generate আগে; পরের step-এ composer install। Fresh checkout-এ vendor/autoload.php নেই।",
+    "fix": "Composer install আগে করুন; .env/key এবং application bootstrap পরে।",
+    "acceptance": "Empty runner থেকে full-runtime-release job সম্পূর্ণ pass।"
+  },
+  {
+    "id": "F04",
+    "severity": "P1",
+    "status": "Reproduced grep match",
+    "title": "Secret scanner নিজের script-কেই secret ভাবে",
+    "evidence": ".github/workflows/security.yml:55–63",
+    "impact": "grep BEGIN RSA PRIVATE KEY নিজের workflow line 60-এ match করে; secret ছাড়াও job fail। এটি credential leak পাওয়া গেছে—এমন প্রমাণ নয়।",
+    "fix": "Gitleaks/সমমানের scanner ও history scan ব্যবহার করুন; অথবা anchored PEM header pattern এবং scan script exclusion।",
+    "acceptance": "Secret-free fixture pass; seeded fake private-key fixture fail; own workflow false-positive নয়।"
+  },
+  {
+    "id": "F05",
+    "severity": "P1",
+    "status": "Tool-reported",
+    "title": "NPM dependency advisory gate fail",
+    "evidence": "package-lock.json; evidence/npm-audit.json",
+    "impact": "npm audit reports 8 affected package entries: 6 high, 2 moderate। মূলত build-tool dependency chain; 8 independent exploitable production flaws নয়।",
+    "fix": "Advisory triage করে compatible updates/overrides দিন; force update অন্ধভাবে নয়।",
+    "acceptance": "npm audit --audit-level=high pass অথবা time-bound documented exception + threat assessment।"
+  },
+  {
+    "id": "F06",
+    "severity": "P0",
+    "status": "Static contract contradiction + offline proof",
+    "title": "Webhook middleware/driver signature protocol মেলে না",
+    "evidence": "routes/api.php:754–761; app/Http/Middleware/VerifyWebhookSignature.php:111–158; config/payment.php:262–272; app/Services/Payment/Drivers/StripeGateway.php:130–179; BkashGateway.php:129–147; NagadGateway.php:113–133; CryptoGateway.php:77–95",
+    "impact": "Middleware X-Timestamp + bare HMAC(timestamp.body) চায়; Stripe driver Stripe-Signature t=...,v1=... parse করে। bKash/Nagad/Crypto driver body-only HMAC চায়। Default enabled signature verification-এ একই header দুই algorithm satisfy করে না।",
+    "fix": "Provider-native verifier এক জায়গায় রাখুন; verified event envelope downstream দিন। Security disable করে workaround নয়।",
+    "acceptance": "প্রত্যেক enabled provider-এর native signed fixture actual HTTP route দিয়ে 2xx; altered body/signature reject; duplicate financially no-op।"
+  },
+  {
+    "id": "F07",
+    "severity": "P1",
+    "status": "Static confirmed; production effect conditional",
+    "title": "Webhook nonce durable-table দাবির সঙ্গে implementation অমিল",
+    "evidence": "app/Http/Middleware/VerifyWebhookSignature.php:165–197,200–231; routes/api.php:723–750; .env.example:44",
+    "impact": "Active middleware Cache::add ব্যবহার করে; receipt best-effort। Route comments durable unique guard দাবি করে। File cache হলে multiple instance shared নয়; handler fail হলেও nonce claim release হয় না, একই retry 409 হতে পারে। Compose Redis ব্যবহার করে—তাই সব deployment vulnerable বলা হচ্ছে না।",
+    "fix": "Durable inbox/event ID + pending/applied/failed state; retries resume; Redis shared configuration enforce; comments সংশোধন।",
+    "acceptance": "Two instances, cache flush, handler crash ও identical retry test; একবার credit, recoverable delivery।"
+  },
+  {
+    "id": "F08",
+    "severity": "P0",
+    "status": "Static confirmed",
+    "title": "Crypto integration বাস্তব payment execution নয়",
+    "evidence": "app/Services/Payment/Drivers/CryptoGateway.php:45–74",
+    "impact": "FullyImplemented status কিন্তু deposit local random invoice বানিয়ে নিজের success URL দেয়; withdrawal random CRYPTO-TX reference দিয়ে pending, provider/network call নেই। Pending মানে paid নয়; তবু advertised capability বাস্তব নয়।",
+    "fix": "Live method disable করুন যতক্ষণ provider invoice/address/network/confirmation/payout integration ও reconciliation নেই।",
+    "acceptance": "Provider sandbox invoice lookup ও transaction hash independently verify; failed/pending/confirmed lifecycle।"
+  },
+  {
+    "id": "F09",
+    "severity": "P1",
+    "status": "Static confirmed",
+    "title": "bKash/Nagad automated withdrawal অসম্পূর্ণ",
+    "evidence": "app/Services/Payment/Drivers/BkashGateway.php:120–126; NagadGateway.php:104–110; StripeGateway.php:130–133",
+    "impact": "bKash ও Nagad pending + local reference ফেরায়; metadata-তে extra/manual disbursement দরকার। Stripe Connect payout unconfigured। Manual workflow ব্যবসার বিকল্প হতে পারে, instant payout নয়।",
+    "fix": "Capability matrix-এ manual বনাম automatic স্পষ্ট করুন; dual-control transfer evidence ও reconciliation; approved B2C integration ছাড়া instant দাবি নয়।",
+    "acceptance": "Approved withdrawal → provider evidence → one completion; failed transfer reservation release; retry no double payout।"
+  },
+  {
+    "id": "F10",
+    "severity": "P1",
+    "status": "Static confirmed",
+    "title": "Deposit idempotency external provider পর্যন্ত যায় না",
+    "evidence": "app/Services/Finance/DepositService.php:106–113; app/Services/Payment/PaymentInitiationService.php:72–98,123–132; StripeGateway.php:101–103",
+    "impact": "Existing deposit replay হলেও driver initiateDeposit আবার চলে। Stripe request-এ Idempotency-Key নেই। দ্বিতীয় checkout তৈরি/ deposit provider_reference বদলানোর risk; database idempotency ≠ provider idempotency।",
+    "fix": "Existing payment intent early-return; deterministic provider idempotency key; external call transactional outbox/controlled state machine।",
+    "acceptance": "এক key 10 বার submit: 1 deposit, 1 payment, 1 provider checkout; same key different payload reject।"
+  },
+  {
+    "id": "F11",
+    "severity": "P1",
+    "status": "Static confirmed",
+    "title": "Currency validation normalized payload-এর বদলে raw top-level field দেখে",
+    "evidence": "app/Services/Payment/PaymentWebhookService.php:180–210; app/Services/Payment/Drivers/StripeGateway.php:190–239",
+    "impact": "Stripe currency data.object.currency-তে; rawData[currency] নেই বলে currency mismatch guard skip হয়। F06 ঠিক করার পরে এই guard defect-ও ঠিক করতে হবে; live exploitation প্রমাণিত নয়।",
+    "fix": "Parsed currency required এবং deposit/payment currency-এর সঙ্গে unconditional compare; unknown currency reject, silent THB fallback নয়।",
+    "acceptance": "Valid signature + equal numeric amount + wrong nested currency: zero financial writes।"
+  },
+  {
+    "id": "F12",
+    "severity": "P1",
+    "status": "Static confirmed",
+    "title": "Out-of-order failure captured payment downgrade করতে পারে",
+    "evidence": "app/Services/Payment/PaymentWebhookService.php:341–364",
+    "impact": "Payment status unconditional Failed করা হয়; deposit canCancel() check পরে। Confirmed deposit থেকে late failure এলে payment/deposit status diverge হওয়ার branch আছে।",
+    "fix": "Monotonic payment state machine; terminal-success থেকে stale failure ignore/audit; true refund separate reversal path।",
+    "acceptance": "Success → stale failure → duplicate success: stable captured/confirmed state, single ledger credit।"
+  },
+  {
+    "id": "F13",
+    "severity": "P1",
+    "status": "Static confirmed",
+    "title": "Deposit RG check wallet currency পাঠায় না",
+    "evidence": "app/Services/Finance/DepositService.php:89–98; app/Services/ResponsibleGaming/ResponsibleGamingEnforcementService.php:68–85",
+    "impact": "assertDepositAllowed default THB; DepositService amount currency না পাঠানোয় BDT/USD deposit-এ THB binding/volume দেখা হতে পারে। Multi-currency configuration আছে।",
+    "fix": "Explicit $amount->currency()->value দিন; per-currency RG policies test করুন।",
+    "acceptance": "BDT/USD deposit respective limit অতিক্রম করলে reject; THB balance/limit-এর ওপর নির্ভর নয়।"
+  },
+  {
+    "id": "F14",
+    "severity": "P1",
+    "status": "Static risk; concurrency reproduction pending",
+    "title": "Responsible-gaming limit check transaction/lock-এর বাইরে",
+    "evidence": "app/Services/Finance/DepositService.php:89–101; app/Services/Betting/BetPurchaseService.php:110–116,174–181; app/Services/Betting/BetPurchaseTransactionService.php:119–145",
+    "impact": "দুই simultaneous request একই headroom পড়ে approve হতে পারে; wallet lock balance protect করে, আগের aggregate RG decision নয়। Examined transaction body-তে RG recheck নেই।",
+    "fix": "Per-user/currency limit reservation/lock এবং same transaction-এ aggregate recheck; exclusion activation race-ও test।",
+    "acceptance": "Limit 100, simultaneous distinct-key requests 60+60: total accepted <=100; production MySQL/Redis test।"
+  },
+  {
+    "id": "F15",
+    "severity": "P0",
+    "status": "Static dependency mismatch",
+    "title": "Production Compose Horizon/Reverb চালায় কিন্তু package নেই",
+    "evidence": "docker-compose.production.yml:214–219,252–259; composer.json; composer.lock",
+    "impact": "php artisan horizon এবং reverb:start commands configured; laravel/horizon ও laravel/reverb neither required nor locked। App green হলেও queue/websocket services প্রস্তুত নয়।",
+    "fix": "Compatible packages/config install করুন অথবা declared supported queue:work/broadcast architecture ব্যবহার করুন।",
+    "acceptance": "Container boot + artisan list + actual queued settlement + broadcast delivery; crash recovery।"
+  },
+  {
+    "id": "F16",
+    "severity": "P2",
+    "status": "Static confirmed",
+    "title": "Production environment template missing, runbook stale",
+    "evidence": "composer.json post-root-package-install; deployment/CUTOVER-CHECKLIST.md:15–18; README.md; absent .env.production.example",
+    "impact": "Install instructions যে production template নাম দেয় তা tracked নয়। Runbook PHP8.2+/Laravel11 বলে, composer PHP8.4/Laravel12; README এক heading।",
+    "fix": "Secret-free production key list, version-pinned deployment instructions, tested rollback/restore runbook।",
+    "acceptance": "Fresh operator শুধু documented instructions দিয়ে staging deploy করতে পারবেন; real secrets repo-তে নয়।"
+  },
+  {
+    "id": "F17",
+    "severity": "P2",
+    "status": "Static confirmed",
+    "title": "Download checksum ও tracking endpoints intentionally unimplemented",
+    "evidence": "app/Http/Controllers/PublicDownloadAppController.php:49–66; routes/api.php:1008–1015",
+    "impact": "Public API explicitly 501 NOT_CONFIGURED; download page থাকলেই signed installable APK feature complete নয়। Competitor APK link দেখা, binary install/validate করা হয়নি।",
+    "fix": "Signed artifact, version/hash manifest, verified distribution অথবা unavailable UI; tracking consent policy।",
+    "acceptance": "Valid/invalid checksum tests; downloaded file signature+hash; unavailable endpoint UI hides gracefully।"
+  },
+  {
+    "id": "F18",
+    "severity": "P2",
+    "status": "Static confirmed; live reachability NOT established",
+    "title": "Orphan React prototypes financial success fabricate করে",
+    "evidence": "resources/js/components/ThaiLotteryBetting.tsx:131–149; WalletManagement.tsx:21–25,72–86; PlayerDashboard.tsx:71–75; DepositPortal.tsx:29–33; WithdrawalPortal.tsx:25",
+    "impact": "Failed bet request catch-এও success; wallet local balance mutation। কিন্তু JS/TS compatibility adapters redirect করে, component import/createRoot পাওয়া যায়নি; canonical Blade routes-এর live exploit হিসেবে গণনা নয়।",
+    "fix": "Prototype সরিয়ে আলাদা demo package করুন; CI fake financial success guard; canonical page-এ server-authoritative result only।",
+    "acceptance": "Import graph/reachable bundles check; failed payment/bet never success, no optimistic money mutation।"
+  },
+  {
+    "id": "F19",
+    "severity": "P1",
+    "status": "Scope verified, runtime unverified",
+    "title": "Browser smoke শুধু public entry পর্যন্ত",
+    "evidence": "tests/browser/public-smoke.spec.mjs:6–37; playwright.config.mjs; .github/workflows/ci.yml:555–565",
+    "impact": "Desktop/mobile config আছে, কিন্তু test journeys 9 public/auth entry page + focus। Authenticated deposit→bet→settlement→withdraw browser scenario এতে নেই। PHP tests আছে; সেগুলো absent দাবি নয়।",
+    "fix": "Seeded test-user authenticated E2E; provider sandbox callbacks; RBAC, IDOR, blocked-user and dispute flows।",
+    "acceptance": "Browser CI traces, DB/ledger assertions, expected error states; no real customer fund use।"
+  },
+  {
+    "id": "F20",
+    "severity": "P2",
+    "status": "Static confirmed",
+    "title": "Competitor-advertised fee providers আপনার executable lane নয়",
+    "evidence": "config/payment.php:96–118; competitor fees.php evidence",
+    "impact": "Skrill/Neteller/PayPal/Perfect Money method=null/live=false। Public fee schedule আছে, gateway execution নেই। Competitor page-এর লেখা তাদের live functionality প্রমাণ করে না।",
+    "fix": "Target market-এ দরকার হলে lawful merchant support/adapter; না হলে UI-তে unavailable এবং clear product scope।",
+    "acceptance": "Enabled provider list equals executable & approved provider list; disabled provider rejects before persistence।"
+  }
+]

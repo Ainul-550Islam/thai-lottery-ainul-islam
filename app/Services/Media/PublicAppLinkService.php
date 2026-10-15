@@ -23,37 +23,21 @@ namespace App\Services\Media;
  * returning NOT_CONFIGURED for a perfectly valid https URL.
  *
  * The real risk here is the rendered href, so that is what is checked:
- *   - https only for external destinations; dangerous schemes are rejected,
+ *   - https only; javascript:, data:, file:, vbscript: and about: rejected,
  *   - a resolvable public host; localhost, 127.0.0.1, *.local and *.internal
- *     are rejected,
- *   - protocol-relative URLs are rejected,
- *   - empty and whitespace-only values are dropped rather than rendered,
- *   - the in-app APK route is exposed only after its generated manifest and
- *     APK checksum have been verified by AndroidApkReleaseService.
+ *     rejected so an operator cannot publish an unreachable or SSRF-shaped
+ *     link,
+ *   - protocol relative '//evil.test' rejected,
+ *   - empty and whitespace only values dropped rather than rendered.
  * Anything that fails returns null, and a card with no surviving link reports
  * NOT_CONFIGURED instead of showing a fabricated store button.
  */
-final class PublicAppLinkService
+class PublicAppLinkService
 {
-    private const LOCAL_ANDROID_APK_URL = '/app/thai-apk.apk';
-
-    public function __construct(private readonly AndroidApkReleaseService $androidApkRelease) {}
-
     /**
      * @return array{
      *     status: string,
      *     android: string|null,
-     *     android_build: array{
-     *         status: string,
-     *         version: string,
-     *         package_name: string,
-     *         web_app_url: string,
-     *         file: string,
-     *         sha256: string,
-     *         size_bytes: int,
-     *         built_at: string,
-     *         source_commit: string
-     *     }|null,
      *     ios: string|null,
      *     pwa: string|null,
      *     message: string,
@@ -61,24 +45,15 @@ final class PublicAppLinkService
      */
     public function links(): array
     {
-        $configuredAndroid = config('home.app_links.android');
-        $androidBuild = null;
-
-        if ($this->isBlank($configuredAndroid) || $this->isLocalAndroidApkUrl($configuredAndroid)) {
-            $androidBuild = $this->androidApkRelease->metadata();
-            $android = $androidBuild !== null ? self::LOCAL_ANDROID_APK_URL : null;
-        } else {
-            $android = $this->validateAndroidUrl($configuredAndroid);
-        }
-
+        $android = $this->validateAndroidUrl(config('home.app_links.android'));
         $ios = $this->validateIosUrl(config('home.app_links.ios'));
         $pwa = $this->validatePwaUrl(config('home.app_links.pwa'));
+
         $any = $android !== null || $ios !== null || $pwa !== null;
 
         return [
             'status' => $any ? 'CONFIGURED' : 'NOT_CONFIGURED',
             'android' => $android,
-            'android_build' => $androidBuild,
             'ios' => $ios,
             'pwa' => $pwa,
             'message' => $any ? '' : 'App download links are not configured.',
@@ -87,12 +62,6 @@ final class PublicAppLinkService
 
     public function validateAndroidUrl(mixed $value): ?string
     {
-        if (is_string($value) && trim($value) === self::LOCAL_ANDROID_APK_URL) {
-            return $this->androidApkRelease->metadata() !== null
-                ? self::LOCAL_ANDROID_APK_URL
-                : null;
-        }
-
         return $this->safeUrl($value);
     }
 
@@ -112,22 +81,12 @@ final class PublicAppLinkService
             return null;
         }
 
-        // PWA manifests/installers are typically site-relative (/manifest.webmanifest) or local HTTPS.
+        // PWA manifests/installers are typically site-relative (/manifest.webmanifest) or local HTTPS
         if (str_starts_with($trimmed, '/') && ! str_starts_with($trimmed, '/\\')) {
             return $trimmed;
         }
 
         return $this->safeUrl($trimmed);
-    }
-
-    private function isBlank(mixed $value): bool
-    {
-        return $value === null || (is_string($value) && trim($value) === '');
-    }
-
-    private function isLocalAndroidApkUrl(mixed $value): bool
-    {
-        return is_string($value) && trim($value) === self::LOCAL_ANDROID_APK_URL;
     }
 
     private function safeUrl(mixed $value): ?string
@@ -141,7 +100,7 @@ final class PublicAppLinkService
             return null;
         }
 
-        // Reject dangerous schemes.
+        // Reject dangerous schemes
         if (preg_match('#^(javascript|data|file|vbscript|about):#i', $trimmed) === 1) {
             return null;
         }
@@ -157,11 +116,7 @@ final class PublicAppLinkService
         }
 
         $host = strtolower($parsed['host'] ?? '');
-        if ($host === ''
-            || $host === 'localhost'
-            || $host === '127.0.0.1'
-            || str_ends_with($host, '.local')
-            || str_ends_with($host, '.internal')) {
+        if ($host === '' || $host === 'localhost' || $host === '127.0.0.1' || str_ends_with($host, '.local') || str_ends_with($host, '.internal')) {
             return null;
         }
 

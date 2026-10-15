@@ -45,20 +45,13 @@
             Tests\TestCase migrates it once per process if it is empty.
         -->
         <env name="DB_CONNECTION" value="sqlite"/>
-        <!--
-            SQLite has no row-level SELECT ... FOR UPDATE; DEFERRED transactions can
-            deadlock when two readers both upgrade to writers. IMMEDIATE reserves the
-            single SQLite writer slot at transaction start, faithfully serializing the
-            file-backed concurrency probes instead of producing an impossible lock-upgrade
-            race. Production database settings are unchanged.
-        -->
-        <env name="DB_TRANSACTION_MODE" value="IMMEDIATE"/>
         <!-- Give the disposable SQLite test store a bounded wait for concurrent test writers. -->
         <env name="DB_BUSY_TIMEOUT" value="15000"/>
         <env name="DB_DATABASE" value="database/thai_lottery_test"/>
         <env name="DB_FOREIGN_KEYS" value="true"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="SESSION_DRIVER" value="array"/>
+        <!-- Password logout policy requires transactional database-backed sessions. -->
+        <env name="SESSION_DRIVER" value="database"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="BROADCAST_CONNECTION" value="log"/>
         <!-- `array` is not a configured disk in config/filesystems.php; using it made any

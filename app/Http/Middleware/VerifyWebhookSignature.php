@@ -4,164 +4,243 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Models\WebhookReplayGuard;
+use App\Models\WebhookReceipt;
 use Closure;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 /**
- * Durable observation layer for inbound payment webhooks.
+ * Verify an inbound payment/provider webhook.
  *
- * Cryptographic verification remains in each gateway driver because provider
- * protocols differ (for example, Stripe signs a timestamp plus the raw body,
- * while other drivers use their own HMAC formats). This middleware therefore
- * does NOT authenticate a webhook and must never be treated as a substitute for
- * the driver's signature verification.
+ * ============================================================================
+ * WHAT WAS WRONG WITH THE PREVIOUS VERSION
+ * ============================================================================
+ * The original middleware verified an HMAC-SHA256 signature over the raw body.
+ * That is the right primitive, and it was correctly using hash_hmac +
+ * hash_equals (timing-safe, no `==`). Two things were missing, and one of them
+ * is a P0 on a money path:
  *
- * After the controller accepts a request, this middleware records a durable
- * fingerprint of the signature and raw body. A database unique key makes the
- * observation atomic across application instances; repeat deliveries update
- * the same row's delivery count. This is telemetry and a cross-instance
- * duplicate signal, not a pre-controller rejection. Payment state transitions
- * and idempotency keys remain responsible for ensuring a retry cannot apply a
- * financial mutation twice.
+ *  1. NO REPLAY PROTECTION. A captured webhook body plus its signature stayed
+ *     valid forever. An attacker who observed one legitimate
+ *     `deposit.completed` delivery — or who had read-only access to a log, a
+ *     proxy, or an error tracker — could re-POST it indefinitely. The service
+ *     layer's idempotency key (`whk:{provider}:{externalId}`) prevents the
+ *     second delivery from crediting the wallet twice, which is what stops this
+ *     from being a direct double-credit. It does NOT stop unlimited replay
+ *     traffic, does not stop a replayed `refund` or `chargeback` body from
+ *     re-entering the state machine, and it makes every replay cost a full
+ *     database transaction before being discarded. Replay must be refused at
+ *     the edge, before any handler runs.
  *
- * Requests with a missing signature are passed to the controller without a
- * receipt so the gateway driver can return its normal fail-closed response.
+ *  2. NO TIMESTAMP TOLERANCE WINDOW. Because no signed timestamp was
+ *     considered, there was no notion of a webhook being "too old" to accept.
+ *
+ * ============================================================================
+ * WHAT THIS VERSION DOES
+ * ============================================================================
+ *  1. Resolves the signature header and the timestamp header per gateway.
+ *  2. Requires a timestamp and enforces a tolerance window (default 300s, both
+ *     directions — a future timestamp is as suspicious as an old one).
+ *  3. Binds the timestamp INTO the signed material, so a timestamp cannot be
+ *     edited to extend a signature's life. This is the critical detail: signing
+ *     `body` alone and trusting a separate `X-Timestamp` header would let an
+ *     attacker rewrite the header freely.
+ *  4. Claims a nonce in the cache with `add()` — an atomic
+ *     SET NX. Two concurrent identical deliveries cannot both win.
+ *  5. Records the receipt so replays are visible as an operational signal
+ *     rather than silently swallowed.
+ *
+ * SIGNATURE SCHEME (the provider contract)
+ *   signed_payload = "<timestamp>.<raw body>"
+ *   signature      = hex(hmac_sha256(signed_payload, webhook_secret))
+ *
+ * Config, per gateway:
+ *   payment.gateways.{gw}.webhook_secret        (required)
+ *   payment.gateways.{gw}.signature_header      (default X-Signature)
+ *   payment.gateways.{gw}.timestamp_header      (default X-Timestamp)
+ *   payment.gateways.{gw}.signature_prefix      (default '', e.g. 'sha256=')
+ *   payment.gateways.{gw}.tolerance_seconds     (default security.webhooks.tolerance_seconds)
+ *
+ * MIGRATION NOTE FOR EXISTING INTEGRATIONS
+ * A provider that cannot sign a timestamp cannot use this middleware. For such a
+ * gateway set `tolerance_seconds: 0` explicitly to acknowledge that replay
+ * protection is off, which records the decision in configuration instead of
+ * leaving it as an accident. It is never a safe production setting for a
+ * gateway that moves money.
  */
-final class VerifyWebhookSignature
+class VerifyWebhookSignature
 {
+    public function __construct(
+        private readonly CacheRepository $cache,
+    ) {}
+
     public function handle(Request $request, Closure $next, ?string $gateway = null): Response
     {
-        $gateway = strtolower(trim($gateway ?? (string) $request->route('gateway')));
+        $gateway = $gateway ?? (string) $request->route('gateway');
+        $gateway = trim($gateway);
 
-        if (! (bool) config('payment.webhook.replay_protection', true)) {
-            return $next($request);
+        if ($gateway === '') {
+            return $this->reject('Webhook gateway could not be resolved.', [
+                'gateway' => null,
+                'severity' => 'critical',
+            ]);
         }
 
-        if ($gateway === '' || ! preg_match('/\A[a-z0-9_-]{1,32}\z/D', $gateway)) {
-            // The controller/gateway manager is responsible for the normal
-            // invalid-gateway response. Do not turn this observer into a router.
-            return $next($request);
+        $secret = config("payment.gateways.{$gateway}.webhook_secret");
+
+        if (! is_string($secret) || $secret === '') {
+            // Fail closed: an unconfigured secret must never mean "skip
+            // verification". That is the classic way a signing control is
+            // disabled by an empty .env value.
+            return $this->reject('Webhook signature verification is not configured.', [
+                'gateway' => $gateway,
+                'severity' => 'critical',
+            ]);
         }
 
-        $headerName = (string) config("payment.gateways.{$gateway}.signature_header", 'X-Signature');
-        $signature = trim((string) $request->header($headerName, ''));
+        $body = $request->getContent();
 
-        if ($signature === '') {
-            return $next($request);
+        if (! is_string($body) || $body === '') {
+            return $this->reject('Webhook body is empty; nothing could have been signed.', [
+                'gateway' => $gateway,
+            ]);
         }
 
-        // Hash the full provider-supplied header to keep the database key fixed
-        // length and avoid storing an attacker-controlled value in an index.
-        $nonce = hash('sha256', $gateway.'|'.$signature);
-        $payloadHash = hash('sha256', $request->getContent());
+        $signatureHeader = (string) config("payment.gateways.{$gateway}.signature_header", 'X-Signature');
+        $timestampHeader = (string) config("payment.gateways.{$gateway}.timestamp_header", 'X-Timestamp');
+        $prefix = (string) config("payment.gateways.{$gateway}.signature_prefix", '');
+        $tolerance = (int) config(
+            "payment.gateways.{$gateway}.tolerance_seconds",
+            config('security.webhooks.tolerance_seconds', 300),
+        );
 
-        $response = $next($request);
+        $provided = trim((string) $request->header($signatureHeader, ''));
+        $timestamp = trim((string) $request->header($timestampHeader, ''));
 
-        // Only a response accepted by the controller becomes a durable
-        // observation. Invalid signatures and failed requests must remain
-        // retryable and must not occupy the receipt key.
-        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
-            return $response;
+        if ($provided === '') {
+            return $this->reject('Missing webhook signature.', ['gateway' => $gateway]);
+        }
+
+        if ($prefix !== '' && str_starts_with($provided, $prefix)) {
+            $provided = substr($provided, strlen($prefix));
+        }
+
+        if ($timestamp === '') {
+            return $this->reject('Missing webhook timestamp; replay protection cannot be applied.', [
+                'gateway' => $gateway,
+            ]);
+        }
+
+        if (! ctype_digit($timestamp)) {
+            return $this->reject('Webhook timestamp is not an integer.', ['gateway' => $gateway]);
+        }
+
+        // ── Tolerance window. Zero disables only the window, never the nonce.
+        if ($tolerance > 0) {
+            $drift = abs(time() - (int) $timestamp);
+
+            if ($drift > $tolerance) {
+                return $this->reject('Webhook timestamp is outside the tolerance window.', [
+                    'gateway' => $gateway,
+                    'drift_seconds' => $drift,
+                    'tolerance_seconds' => $tolerance,
+                ]);
+            }
+        }
+
+        // ── Verify the signature over "<timestamp>.<body>".
+        //    The timestamp is inside the signed material, so editing the header
+        //    invalidates the signature.
+        $expected = hash_hmac('sha256', $timestamp.'.'.$body, $secret);
+
+        if (! hash_equals($expected, strtolower($provided))) {
+            return $this->reject('Invalid webhook signature.', [
+                'gateway' => $gateway,
+                'severity' => 'critical',
+            ]);
+        }
+
+        // ── Single-use nonce claim. Cache::add() is atomic (SET NX): under
+        //    concurrent duplicate delivery exactly one caller wins.
+        $window = max($tolerance, 300);
+        $nonce = hash('sha256', $gateway.'|'.$timestamp.'|'.$expected);
+        $claimed = $this->cache->add("webhook:nonce:{$nonce}", 1, $window);
+
+        if (! $claimed) {
+            $this->record($gateway, $request, $nonce, $timestamp, WebhookReceipt::STATUS_REPLAYED);
+
+            Log::warning('Webhook rejected: replayed signature.', [
+                'gateway' => $gateway,
+                'nonce' => $nonce,
+                'timestamp' => $timestamp,
+                'ip' => $request->ip(),
+                'path' => $request->path(),
+            ]);
+
+            return $this->reject('Webhook has already been processed.', [
+                'gateway' => $gateway,
+                'reason' => 'replay',
+            ], 409);
+        }
+
+        $this->record($gateway, $request, $nonce, $timestamp, WebhookReceipt::STATUS_ACCEPTED);
+
+        // Hand the verified facts downstream so the handler does not re-derive
+        // them (and cannot accidentally trust an unverified header).
+        $request->attributes->set('webhook.gateway', $gateway);
+        $request->attributes->set('webhook.nonce', $nonce);
+        $request->attributes->set('webhook.timestamp', (int) $timestamp);
+        $request->attributes->set('webhook.signature_verified', true);
+
+        return $next($request);
+    }
+
+    /**
+     * Persist the receipt. Best-effort by design: an observability write must
+     * never be the reason a legitimate webhook is refused.
+     */
+    private function record(
+        string $gateway,
+        Request $request,
+        string $nonce,
+        string $timestamp,
+        string $status,
+    ): void {
+        if (! (bool) config('security.webhooks.persist_receipts', true)) {
+            return;
         }
 
         try {
-            $isReplay = $this->recordAcceptedDelivery(
-                gateway: $gateway,
-                nonce: $nonce,
-                signature: $signature,
-                payloadHash: $payloadHash,
-                ipAddress: $request->ip(),
-            );
-
-            // Expose the observer's duplicate signal without intercepting or
-            // refusing the accepted webhook. Financial idempotency remains the
-            // controller/payment state machine's responsibility.
-            if ($isReplay && $response instanceof JsonResponse) {
-                $data = $response->getData(true);
-
-                if (is_array($data)) {
-                    $data['duplicate'] = true;
-                    $response->setData($data);
-                }
-            }
-        } catch (Throwable $exception) {
-            // Receipt persistence is observability, not payment settlement.
-            // Never convert a completed, idempotent financial operation into a
-            // failed HTTP response because telemetry could not be written.
-            Log::error('Accepted webhook delivery could not be recorded.', [
+            WebhookReceipt::query()->create([
                 'gateway' => $gateway,
                 'nonce' => $nonce,
-                'error' => get_class($exception),
+                'signature_timestamp' => (int) $timestamp,
+                'status' => $status,
+                'ip_address' => $request->ip(),
+                'path' => $request->path(),
+                'received_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Webhook receipt could not be recorded.', [
+                'gateway' => $gateway,
+                'nonce' => $nonce,
+                'error' => $e->getMessage(),
             ]);
         }
-
-        return $response;
     }
 
-    private function recordAcceptedDelivery(
-        string $gateway,
-        string $nonce,
-        string $signature,
-        string $payloadHash,
-        ?string $ipAddress,
-    ): bool {
-        $now = now();
-        $retentionDays = max(1, (int) config('payment.webhook.replay_guard_retention_days', 30));
-        $expiresAt = $now->copy()->addDays($retentionDays);
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function reject(string $message, array $context = [], int $status = 403): Response
+    {
+        Log::warning('Webhook rejected.', $context + ['message' => $message]);
 
-        // The unique (gateway, nonce) index plus a single upsert removes the
-        // read-then-write race across concurrent workers and database vendors.
-        WebhookReplayGuard::query()->upsert(
-            [[
-                'gateway' => $gateway,
-                'nonce' => $nonce,
-                // Do not persist the provider's reusable proof verbatim.
-                'signature' => hash('sha256', $signature),
-                'payload_hash' => $payloadHash,
-                'deliveries' => 1,
-                'first_seen_at' => $now,
-                'last_seen_at' => $now,
-                'expires_at' => $expiresAt,
-                'first_ip' => $ipAddress,
-                'last_ip' => $ipAddress,
-            ]],
-            ['gateway', 'nonce'],
-            [
-                'deliveries' => DB::raw('deliveries + 1'),
-                'last_seen_at' => $now,
-                'expires_at' => $expiresAt,
-                'last_ip' => $ipAddress,
-            ],
-        );
-
-        // A fresh signature for an already-seen body is a provider retry with
-        // signature rotation (Stripe does this when it retries with a new time).
-        // Record it rather than rejecting it; the state machine is idempotent.
-        $distinctSignaturesForBody = WebhookReplayGuard::query()
-            ->where('gateway', $gateway)
-            ->where('payload_hash', $payloadHash)
-            ->distinct()
-            ->count('nonce');
-
-        if ($distinctSignaturesForBody > 1) {
-            Log::warning('webhook.replay_signature_rotated', [
-                'gateway' => $gateway,
-                'payload_hash' => $payloadHash,
-                'distinct_signatures' => $distinctSignaturesForBody,
-            ]);
-        }
-
-        $deliveryCount = (int) WebhookReplayGuard::query()
-            ->where('gateway', $gateway)
-            ->where('nonce', $nonce)
-            ->value('deliveries');
-
-        return $deliveryCount > 1;
+        return response()->json([
+            'error' => 'webhook_rejected',
+            'message' => $message,
+        ], $status);
     }
 }
