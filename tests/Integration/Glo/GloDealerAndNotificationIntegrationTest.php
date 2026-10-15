@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Services\Lottery\GloDealerChangeRequestService;
 use App\Services\Lottery\GloDealerService;
 use App\Services\Lottery\GloResultNotificationService;
+use App\Services\Lottery\GloResultTrustPolicy;
 use App\Services\Lottery\GloSalesPointService;
 use App\Services\Lottery\GloSavedTicketService;
 use Database\Seeders\RolePermissionSeeder;
@@ -28,6 +29,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Tests\Feature\Glo\Concerns\CreatesTrustedGloResult;
 use Tests\TestCase;
 
 /**
@@ -36,6 +38,7 @@ use Tests\TestCase;
  */
 class GloDealerAndNotificationIntegrationTest extends TestCase
 {
+    use CreatesTrustedGloResult;
     use DatabaseTruncation;
 
     private User $dealerUser;
@@ -115,14 +118,28 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
         // 4. Result publishes on a parallel draw path: reassign association for
         //    notification by planting a saved ticket on the result draw (post-draw
         //    save is forbidden — this models the same ticket that was saved pre-draw).
-        DrawResult::create([
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
+        $result = DrawResult::create([
             'draw_id' => $this->resultDraw->getKey(),
             'first_prize' => '042042',
             'second_prize' => [],
             'third_prize' => [],
             'published_at' => now(),
-            'metadata' => ['glo' => ['import_fingerprint' => 'fp-integration-1', 'import_provider' => 'fixture']],
+            'metadata' => $this->trustedFixtureResultMetadata(
+                $this->resultDraw,
+                $maker,
+                $checker,
+                '042042',
+                '58',
+                [],
+                [],
+                [],
+                [],
+                'glo-integration-result-1',
+            ),
         ]);
+        $this->linkTrustedDrawResult($this->resultDraw, $result);
 
         $resultTicket = Ticket::create([
             'ticket_number' => 'TK-INTEGRATION-042042',
@@ -151,7 +168,11 @@ class GloDealerAndNotificationIntegrationTest extends TestCase
         $this->assertSame(1, $first['notified']);
         $this->assertSame(1, $second['replayed']);
         $this->assertSame(1, GloNotificationDelivery::query()->count());
-        $this->assertSame('fp-integration-1', $first['result_version']);
+        $result = DrawResult::query()->where('draw_id', $this->resultDraw->getKey())->firstOrFail();
+        $resultVersion = app(GloResultTrustPolicy::class)
+            ->resultFingerprint($result, $this->resultDraw->fresh());
+        $this->assertNotNull($resultVersion);
+        $this->assertSame($resultVersion, $first['result_version']);
 
         // 6. Audit trail exists for location, request, notification.
         $this->assertDatabaseHas('audit_logs', ['description' => 'glo_daily_sales_location_updated']);

@@ -9,8 +9,10 @@ use App\Enums\GloSourceState;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Models\User;
+use App\Services\Lottery\GloResultTrustPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Tests\Feature\Glo\Concerns\CreatesTrustedGloResult;
 use Tests\TestCase;
 
 /**
@@ -20,7 +22,14 @@ use Tests\TestCase;
  */
 final class PublicResultsAnonymousTest extends TestCase
 {
+    use CreatesTrustedGloResult;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutVite();
+    }
 
     public function test_home_is_public_without_login(): void
     {
@@ -33,7 +42,7 @@ final class PublicResultsAnonymousTest extends TestCase
     {
         $response = $this->get('/results');
         $response->assertOk();
-        $response->assertSee('Published lottery results', false);
+        $response->assertSee('Public Results Hub', false);
     }
 
     public function test_results_page_never_labels_fixture_as_official(): void
@@ -44,14 +53,16 @@ final class PublicResultsAnonymousTest extends TestCase
             'status' => DrawStatus::ResultPublished,
             'draw_number' => 'fixture-pub-1',
         ]);
-        DrawResult::query()->create([
+        $result = DrawResult::query()->create([
             'draw_id' => $draw->getKey(),
             'first_prize' => '123456',
-            'second_prize' => ['654321'],
-            'third_prize' => ['111111', '222222', '333333'],
-            'consolation_prizes' => ['1001', '1002', '2001'],
-            'metadata' => ['glo' => ['import_provider' => 'fixture']],
+            'second_prize' => [],
+            'third_prize' => [],
+            'consolation_prizes' => [],
+            'published_at' => now(),
+            'metadata' => $this->trustedFixtureMetadata($draw, '123456', 'fixture-pub-import'),
         ]);
+        $this->linkTrustedDrawResult($draw, $result);
 
         $response = $this->get('/results');
         $response->assertOk();
@@ -68,12 +79,7 @@ final class PublicResultsAnonymousTest extends TestCase
         $this->assertTrue(in_array($guest->status(), [302, 401, 403], true), 'guest metrics must not be 200');
 
         $player = User::factory()->create();
-        $login = $this->post('/login', [
-            'login' => $player->email,
-            'password' => 'password',
-        ]);
-        $login->assertSessionHasNoErrors();
-        $this->assertAuthenticatedAs($player);
+        $this->actingAs($player);
 
         $asPlayer = $this->get('/metrics');
         $this->assertTrue(in_array($asPlayer->status(), [403, 404], true), 'non-staff metrics must not be 200, got '.$asPlayer->status());
@@ -108,17 +114,16 @@ final class PublicResultsAnonymousTest extends TestCase
             'status' => DrawStatus::ResultPublished,
             'draw_number' => 'fp-100',
         ]);
-        DrawResult::query()->create([
+        $result = DrawResult::query()->create([
             'draw_id' => $draw->getKey(),
             'first_prize' => '100100',
             'second_prize' => [],
             'third_prize' => [],
             'consolation_prizes' => [],
-            'metadata' => ['glo' => [
-                'import_fingerprint' => 'fp-v1-abc',
-                'import_provider' => 'fixture',
-            ]],
+            'published_at' => now(),
+            'metadata' => $this->trustedFixtureMetadata($draw, '100100', 'fixture-import-fp-v1-abc'),
         ]);
+        $this->linkTrustedDrawResult($draw, $result);
 
         $this->artisan('glo:publish-public-result', ['--draw' => (string) $draw->getKey()])
             ->assertSuccessful();
@@ -137,19 +142,51 @@ final class PublicResultsAnonymousTest extends TestCase
             'draw_number' => 'ver-1',
             'scheduled_at' => now()->subDay(),
         ]);
-        DrawResult::query()->create([
+        $metadata = $this->trustedFixtureMetadata($draw, '555555', 'fixture-ver-import');
+        $result = DrawResult::query()->create([
             'draw_id' => $draw->getKey(),
             'first_prize' => '555555',
             'second_prize' => [],
             'third_prize' => [],
             'consolation_prizes' => [],
-            'metadata' => ['glo' => ['import_fingerprint' => 'ver-fp-1']],
+            'published_at' => now(),
+            'metadata' => $metadata,
         ]);
+        $this->linkTrustedDrawResult($draw, $result);
+        $expectedFingerprint = app(GloResultTrustPolicy::class)
+            ->resultFingerprint($result->fresh(), $draw->fresh());
+        $this->assertNotNull($expectedFingerprint);
 
         $response = $this->get('/results');
         $response->assertOk();
         $content = (string) $response->getContent();
-        $this->assertStringContainsString('ver-fp-1', $content);
+        $this->assertStringContainsString($expectedFingerprint, $content);
         $this->assertStringContainsString('555555', $content);
+    }
+
+    /**
+     * Build a persisted fixture publication stamp for the public projection
+     * tests. The fixture is valid only in non-production and remains explicitly
+     * labeled FIXTURE_ONLY.
+     *
+     * @return array<string, mixed>
+     */
+    private function trustedFixtureMetadata(Draw $draw, string $firstPrize, string $reference): array
+    {
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
+
+        return $this->trustedFixtureResultMetadata(
+            $draw,
+            $maker,
+            $checker,
+            $firstPrize,
+            '58',
+            [],
+            [],
+            [],
+            [],
+            $reference,
+        );
     }
 }

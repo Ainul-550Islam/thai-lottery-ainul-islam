@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Home;
 
+use App\Enums\GloSourceState;
 use App\Services\Lottery\GloPublicHomeService;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Provides latest verified public draw results for the Home feed while preserving leading zeros.
@@ -23,17 +23,30 @@ class HomeResultFeedService
     public function getLatestResultsFeed(): array
     {
         try {
-            return Cache::remember('home.result_feed.all', 60, function (): array {
+            return (function (): array {
                 $currentGlo = $this->gloHome->currentResultCard();
                 $lanes = $this->laneResults->lanes();
+                $laneRows = is_array($lanes['lanes'] ?? null) ? $lanes['lanes'] : [];
+                $hasLaneResult = count(array_filter(
+                    $laneRows,
+                    static fn (mixed $lane): bool => is_array($lane) && ($lane['available'] ?? false) === true,
+                )) > 0;
+                $hasGloResult = ($currentGlo['has_result'] ?? false) === true;
+                $officialGlo = $hasGloResult
+                    && ($currentGlo['source_state'] ?? null) === GloSourceState::OfficialSourceVerified->value;
 
                 return [
-                    'status' => 'VERIFIED',
+                    // Only an official, provenance-verified GLO publication
+                    // earns the VERIFIED label; fixture/internal data remain
+                    // available but are never promoted to official output.
+                    'status' => $officialGlo
+                        ? 'VERIFIED'
+                        : (($hasGloResult || $hasLaneResult) ? 'AVAILABLE' : 'UNAVAILABLE'),
                     'primary_glo' => $currentGlo,
                     'lanes' => $lanes,
                     'verified_at' => now()->toIso8601String(),
                 ];
-            });
+            })();
         } catch (\Throwable $e) {
             report($e);
 

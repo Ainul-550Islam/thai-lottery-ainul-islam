@@ -4,88 +4,187 @@ declare(strict_types=1);
 
 namespace App\Jobs\Draw;
 
-use App\Exceptions\LegacyChunkedSettlementUnavailable;
-use Illuminate\Bus\Batchable;
+use App\Enums\QueueName;
+use App\Exceptions\DrawLifecycleException;
+use App\Exceptions\FinancialException;
+use App\Exceptions\SettlementSimulationException;
+use App\Models\SettlementRun;
+use App\Services\Draw\ChunkedSettlementOrchestrator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
-use InvalidArgumentException;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 /**
- * Loadable legacy queue payload with an explicitly unavailable money handler.
+ * Process one durable SettlementRun cursor range, then queue the next one.
  *
- * This is not a settlement implementation. The previous class could not even
- * compose: its promoted readonly batchId conflicted with Batchable's mutable
- * framework-owned batchId. It also called an absent per-bet method and queried
- * an unsupported result-fingerprint column. Those execution paths are retired,
- * not replaced with payout automation or a successful no-op.
- *
- * Plan correlation and Laravel batch membership are different identities.
- * Keep the existing six constructor parameter names for current producers,
- * but store the producer's batchId argument as immutable planId. Batchable alone
- * owns batchId; Laravel may assign the real queue batch id through withBatchId.
+ * The service commits money and cursor/totals in one transaction. Transient
+ * failures leave the run cursor unchanged while the queue performs its bounded
+ * retries. Only terminal failure after retries, or a non-retryable domain
+ * refusal, moves the run to its audited resumable-aborted state.
  */
 final class SettleDrawChunkJob implements ShouldQueue
 {
-    use Batchable;
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
     use SerializesModels;
 
-    /** A permanent capability refusal must not churn through transient retries. */
-    public int $tries = 1;
+    public int $tries = 3;
 
-    public int $maxExceptions = 1;
+    /**
+     * @var list<int>
+     */
+    public array $backoff = [5, 30, 120];
 
-    public int $timeout = 30;
+    public int $timeout = 120;
 
     public bool $failOnTimeout = true;
 
-    public readonly string $planId;
-
     public function __construct(
         public readonly int $drawId,
-        string $batchId,
-        public readonly int $chunkIndex,
-        public readonly int $fromBetId,
-        public readonly int $toBetId,
-        public readonly string $resultFingerprint,
+        public readonly int $runId,
+        public readonly ?int $expectedCursorBetId = null,
     ) {
-        if ($drawId < 1 || $chunkIndex < 0 || $fromBetId < 1 || $toBetId < $fromBetId
-            || preg_match('/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/D', $batchId) !== 1
-            || preg_match('/^[a-fA-F0-9]{64}$/D', $resultFingerprint) !== 1) {
-            throw new InvalidArgumentException('Invalid legacy chunk metadata. No execution is available.');
-        }
-
-        $this->planId = $batchId;
+        $this->onQueue((string) config('lottery.settlement.queue', QueueName::FinancialCritical->value));
+        $this->afterCommit();
     }
 
-    /** @return list<object> */
+    /**
+     * Prevent overlapping deliveries where the configured lock backend supports
+     * it. The database draw/run row locks remain the cross-host correctness guard.
+     *
+     * @return list<object>
+     */
     public function middleware(): array
     {
         return [
-            (new WithoutOverlapping("settle-draw:{$this->drawId}:chunk:{$this->chunkIndex}"))
+            (new WithoutOverlapping("settlement-run:{$this->runId}"))
                 ->expireAfter(300),
         ];
     }
 
-    /** No injected money service, lookup, config promotion or success branch. */
-    public function handle(): never
+    public function handle(ChunkedSettlementOrchestrator $orchestrator): void
     {
-        throw new LegacyChunkedSettlementUnavailable;
+        $run = SettlementRun::query()
+            ->whereKey($this->runId)
+            ->where('draw_id', $this->drawId)
+            ->first();
+
+        if (! $run instanceof SettlementRun
+            || $run->isComplete()
+            || $run->status !== SettlementRun::STATUS_OPEN) {
+            // An aborted run is resumable only through the reasoned, authorized
+            // operator recovery path. A queued duplicate must never reopen it.
+            return;
+        }
+
+        if ($this->expectedCursorBetId !== null
+            && (int) $run->cursor_bet_id !== $this->expectedCursorBetId) {
+            // Each delivery owns one expected cursor. Duplicate or delayed jobs
+            // from an earlier checkpoint are harmless no-ops and cannot fan out
+            // another chain of next-chunk jobs.
+            return;
+        }
+
+        try {
+            $run = $orchestrator->runChunk($run);
+
+            if ($orchestrator->hasMoreWork($run)) {
+                self::dispatch($this->drawId, $this->runId, (int) $run->cursor_bet_id)
+                    ->onQueue((string) config('lottery.settlement.queue', 'settlement'));
+            } else {
+                $run = $orchestrator->finalize($run);
+            }
+
+            Log::info('settlement.chunk_job_progress', [
+                'draw_id' => $this->drawId,
+                'run_id' => $this->runId,
+                'status' => $run->status,
+                'cursor_bet_id' => (int) $run->cursor_bet_id,
+                'bets_settled' => (int) $run->bets_settled,
+                'bets_total' => (int) $run->bets_total,
+                'chunks_processed' => (int) $run->chunks_processed,
+            ]);
+        } catch (Throwable $exception) {
+            $errorCode = method_exists($exception, 'errorCode')
+                ? (string) $exception->errorCode()
+                : ($exception instanceof QueryException
+                    ? (string) ($exception->errorInfo[0] ?? 'database_error')
+                    : 'unclassified');
+
+            Log::error('settlement.chunk_job_failed', [
+                'draw_id' => $this->drawId,
+                'run_id' => $this->runId,
+                'error_class' => $exception::class,
+                'error_code' => $errorCode,
+                'attempt' => $this->attempts(),
+                'retryable' => ! $this->isTerminalFailure($exception),
+            ]);
+
+            if ($this->isTerminalFailure($exception)) {
+                $this->fail($exception);
+
+                return;
+            }
+
+            throw $exception;
+        }
     }
 
-    /** Diagnostics intentionally omit plan ids, batch ids and fingerprints. */
+    /**
+     * Laravel invokes this after the queue exhausts retries or fail() is called.
+     */
+    public function failed(?Throwable $exception): void
+    {
+        $run = SettlementRun::query()
+            ->whereKey($this->runId)
+            ->where('draw_id', $this->drawId)
+            ->first();
+
+        $failure = $exception ?? new RuntimeException('The settlement queue job failed without an exception.');
+
+        if ($run instanceof SettlementRun && ! $run->isComplete()) {
+            app(ChunkedSettlementOrchestrator::class)->abort($run, $failure);
+        }
+
+        $errorCode = method_exists($failure, 'errorCode')
+            ? (string) $failure->errorCode()
+            : ($failure instanceof QueryException
+                ? (string) ($failure->errorInfo[0] ?? 'database_error')
+                : 'unclassified');
+
+        Log::critical('settlement.chunk_job_terminal_failure', [
+            'draw_id' => $this->drawId,
+            'run_id' => $this->runId,
+            'error_class' => $failure::class,
+            'error_code' => $errorCode,
+            'attempt' => $this->attempts(),
+        ]);
+    }
+
+    private function isTerminalFailure(Throwable $exception): bool
+    {
+        return $exception instanceof SettlementSimulationException
+            || $exception instanceof DrawLifecycleException
+            || $exception instanceof FinancialException;
+    }
+
+    /**
+     * @return list<string>
+     */
     public function tags(): array
     {
         return [
-            'legacy-chunked-execution-disabled',
+            'settlement',
             'draw:'.$this->drawId,
-            'chunk-index:'.$this->chunkIndex,
+            'run:'.$this->runId,
         ];
     }
 }

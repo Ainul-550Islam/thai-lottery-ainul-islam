@@ -31,7 +31,7 @@
             <div class="space-y-3">
                 <h4 class="font-bold text-white text-xs uppercase tracking-wider">Lottery Lanes</h4>
                 <ul class="space-y-2">
-                    <li><a href="{{ route('national-lottery.index') }}" class="hover:text-emerald-400 transition">Thai National Lottery</a></li>
+                    <li><a href="{{ route('national-lottery.index') }}" class="hover:text-emerald-400 transition">Government Lottery (GLO)</a></li>
                     <li><a href="{{ route('weekly-lottery.index') }}" class="hover:text-emerald-400 transition">Weekly Lottery</a></li>
                     <li><a href="{{ route('bingo-lottery.index') }}" class="hover:text-emerald-400 transition">Mega Lottery</a></li>
                     <li><a href="{{ route('pcso-lottery.index') }}" class="hover:text-emerald-400 transition">PCSO Lottery</a></li>

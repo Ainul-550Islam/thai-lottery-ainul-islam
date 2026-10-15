@@ -6,6 +6,7 @@ namespace Tests\Feature\Glo;
 
 use App\Enums\DrawStatus;
 use App\Models\Draw;
+use App\Models\User;
 use App\Services\Lottery\GloL6SalesService;
 use App\Services\Lottery\GloN3SaleService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
@@ -115,8 +116,12 @@ class GloConsoleCommandsTest extends TestCase
             'result_published_at' => null,
         ]);
 
+        $operator = User::factory()->create();
+        $operator->assignRole('super-admin');
+
         $this->artisan('glo:import-result', [
             '--draw' => 'GLO-2026-09-16',
+            '--actor' => $operator->email,
             '--json' => true,
         ])->assertExitCode(0);
 
@@ -145,12 +150,18 @@ class GloConsoleCommandsTest extends TestCase
         $this->artisan('glo:import-result')->assertExitCode(1);
     }
 
-    public function test_import_result_latest_fixture(): void
+    public function test_import_result_latest_refuses_to_stage_without_attributable_maker(): void
     {
         $this->artisan('glo:import-result', [
             '--latest' => true,
             '--json' => true,
-        ])->assertExitCode(0);
+        ])->assertExitCode(1);
+
+        $this->assertDatabaseCount('draw_results', 0);
+        $this->assertDatabaseHas('glo_result_imports', [
+            'draw_id' => $this->draw->getKey(),
+            'status' => 'refused',
+        ]);
     }
 
     public function test_reconcile_sales_requires_draw(): void

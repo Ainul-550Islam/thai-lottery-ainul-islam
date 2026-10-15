@@ -10,7 +10,6 @@ use App\Enums\WalletStatus;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Agent\AgentReferralService;
-use App\Support\NationalIdentity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -73,21 +72,6 @@ final class RegistrationService
             //    pre-checks are UX only.
             $this->assertAvailable($email, $mobile, $username);
 
-            // Optional identity fields. The IC number is normalised, then only
-            // its keyed hash is used for the duplicate check.
-            $nationalId = NationalIdentity::normalise(
-                isset($validated['national_id']) ? (string) $validated['national_id'] : null
-            );
-            $nationalIdHash = $nationalId !== null ? NationalIdentity::hash($nationalId) : null;
-            if ($nationalIdHash !== null && User::query()->where('national_id_hash', $nationalIdHash)->exists()) {
-                throw ValidationException::withMessages([
-                    'national_id' => __('public_pages.register_error_national_id_taken'),
-                ]);
-            }
-            $wechatId = isset($validated['wechat_id']) && trim((string) $validated['wechat_id']) !== ''
-                ? trim((string) $validated['wechat_id'])
-                : null;
-
             $user = new User;
             $user->fill([
                 'name' => trim($firstName.' '.$lastName),
@@ -100,8 +84,6 @@ final class RegistrationService
                 'city' => $validated['city'] ?? null,
                 'country' => $validated['country'] ?? null,
                 'nationality' => $validated['nationality'] ?? null,
-                'national_id' => $nationalId,
-                'wechat_id' => $wechatId,
                 'preferences' => [
                     'terms_accepted_at' => now()->toIso8601String(),
                     'terms_version' => (string) config('auth_security.rule_version', '1'),
@@ -110,7 +92,6 @@ final class RegistrationService
             ]);
             // Lifecycle fields are not mass-assignable — set explicitly.
             $user->status = UserStatus::Active;
-            $user->national_id_hash = $nationalIdHash;
             $user->save();
 
             // 2) Default wallet — the pre-existing explicit side effect,

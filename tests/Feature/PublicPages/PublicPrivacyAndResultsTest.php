@@ -8,9 +8,11 @@ use App\Enums\DrawStatus;
 use App\Enums\GloSourceState;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Models\User;
 use App\Services\PublicPages\ResultsPageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Tests\Feature\Glo\Concerns\CreatesTrustedGloResult;
 use Tests\TestCase;
 
 /**
@@ -21,11 +23,13 @@ use Tests\TestCase;
  */
 final class PublicPrivacyAndResultsTest extends TestCase
 {
+    use CreatesTrustedGloResult;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutVite();
         Cache::flush();
     }
 
@@ -64,22 +68,36 @@ final class PublicPrivacyAndResultsTest extends TestCase
 
     public function test_results_page_serves_verified_and_fixture_rows_with_exact_provenance(): void
     {
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
+
         $draw1 = Draw::factory()->create([
             'status' => DrawStatus::ResultPublished,
             'draw_number' => 'GLO-20260901',
             'scheduled_at' => now()->subDays(10),
         ]);
 
-        DrawResult::factory()->create([
+        $result1 = DrawResult::factory()->create([
             'draw_id' => $draw1->id,
             'first_prize' => '123456',
-            'metadata' => [
-                'glo' => [
-                    'import_provider' => 'official_api',
-                    'import_fingerprint' => 'glo-fp-001',
-                ],
-            ],
+            'published_at' => now(),
+            'metadata' => $this->trustedFixtureResultMetadata(
+                $draw1,
+                $maker,
+                $checker,
+                '123456',
+                '56',
+                [],
+                [],
+                [],
+                [],
+                'glo-official-public-test',
+                null,
+                'official',
+                'official',
+            ),
         ]);
+        $this->linkTrustedDrawResult($draw1, $result1);
 
         $draw2 = Draw::factory()->create([
             'status' => DrawStatus::Completed,
@@ -87,16 +105,24 @@ final class PublicPrivacyAndResultsTest extends TestCase
             'scheduled_at' => now()->subDays(25),
         ]);
 
-        DrawResult::factory()->create([
+        $result2 = DrawResult::factory()->create([
             'draw_id' => $draw2->id,
             'first_prize' => '654321',
-            'metadata' => [
-                'glo' => [
-                    'import_provider' => 'fixture',
-                    'import_fingerprint' => 'glo-fixture-002',
-                ],
-            ],
+            'published_at' => now(),
+            'metadata' => $this->trustedFixtureResultMetadata(
+                $draw2,
+                $maker,
+                $checker,
+                '654321',
+                '21',
+                [],
+                [],
+                [],
+                [],
+                'glo-fixture-public-test',
+            ),
         ]);
+        $this->linkTrustedDrawResult($draw2, $result2);
 
         $draw3 = Draw::factory()->create([
             'status' => DrawStatus::Completed,
@@ -128,9 +154,8 @@ final class PublicPrivacyAndResultsTest extends TestCase
         $this->assertStringContainsString(GloSourceState::FixtureOnly->value, $content);
         $this->assertStringContainsString('654321', $content);
 
-        // Unknown provider degrades safely to UNAVAILABLE, never official
-        $this->assertStringContainsString(GloSourceState::Unavailable->value, $content);
-        $this->assertStringContainsString('999888', $content);
+        // Unknown provenance is omitted entirely; its prize number never reaches the public page.
+        $this->assertStringNotContainsString('999888', $content);
 
         // No demo ticket 000001 in consumer copy
         $this->assertStringNotContainsString('/api/v1/glo/results/check/000001', $content);

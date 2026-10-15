@@ -14,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Tests\Feature\Glo\Concerns\CreatesTrustedGloResult;
 use Tests\TestCase;
 
 /**
@@ -25,6 +26,7 @@ use Tests\TestCase;
  */
 final class HomePagePublicExperienceTest extends TestCase
 {
+    use CreatesTrustedGloResult;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -164,17 +166,25 @@ final class HomePagePublicExperienceTest extends TestCase
             'draw_number' => 'home-lead-1',
             'scheduled_at' => now()->subDay(),
         ]);
-        DrawResult::query()->create([
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
+        $result = DrawResult::query()->create([
             'draw_id' => $draw->getKey(),
             'first_prize' => '012345',
             'second_prize' => ['654321'],
             'third_prize' => [],
             'consolation_prizes' => [],
-            'metadata' => ['glo' => [
-                'import_fingerprint' => 'home-fp-1',
-                'import_provider' => 'fixture',
-            ]],
+            'published_at' => now(),
+            'metadata' => $this->trustedFixtureResultMetadata(
+                $draw,
+                $maker,
+                $checker,
+                '012345',
+                '45',
+                ['654321'],
+            ),
         ]);
+        $this->linkTrustedDrawResult($draw, $result);
 
         $content = (string) $this->get('/')->assertOk()->getContent();
         $this->assertStringContainsString('012345', $content);
@@ -272,6 +282,13 @@ final class HomePagePublicExperienceTest extends TestCase
 
     public function test_app_links_not_configured_renders_no_fake_store_button(): void
     {
+        config([
+            'home.app_links.android' => 'javascript:alert(1)',
+            'home.app_links.ios' => null,
+            'home.app_links.pwa' => null,
+        ]);
+        Cache::flush();
+
         $content = (string) $this->get('/')->assertOk()->getContent();
         $this->assertStringContainsString('App download links are not configured', $content);
         $this->assertStringNotContainsString('play.google.com', $content);

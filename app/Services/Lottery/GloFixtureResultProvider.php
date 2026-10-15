@@ -158,12 +158,24 @@ class GloFixtureResultProvider implements GloResultProvider
             }
         }
 
+        $tiers = [
+            'fourth' => $this->digitList($body['fourth'] ?? [], 6),
+            'fifth' => $this->digitList($body['fifth'] ?? [], 6),
+            'front_three' => $this->digitList($body['front_three'] ?? [], 3),
+            'last_three' => $this->digitList($body['last_three'] ?? [], 3),
+            'last_two' => $this->digitList($body['last_two'] ?? [], 2),
+        ];
+
+        // Bind every staged GLO value, especially the independently drawn
+        // bottom-two prize represented by tiers.last_two. A change in any tier
+        // or n3 list is not an identical provider replay.
         $fingerprint = hash('sha256', json_encode([
             $draw,
             $first,
             $seconds,
             $thirds,
             $n3,
+            $tiers,
         ], JSON_THROW_ON_ERROR));
 
         return [
@@ -175,13 +187,7 @@ class GloFixtureResultProvider implements GloResultProvider
             'second_prize' => $seconds,
             'third_prize' => $thirds,
             'n3' => $n3,
-            'tiers' => [
-                'fourth' => $this->digitList($body['fourth'] ?? [], 6),
-                'fifth' => $this->digitList($body['fifth'] ?? [], 6),
-                'front_three' => $this->digitList($body['front_three'] ?? [], 3),
-                'last_three' => $this->digitList($body['last_three'] ?? [], 3),
-                'last_two' => $this->digitList($body['last_two'] ?? [], 2),
-            ],
+            'tiers' => $tiers,
             'failure_reason' => null,
             'fingerprint' => $fingerprint,
         ];

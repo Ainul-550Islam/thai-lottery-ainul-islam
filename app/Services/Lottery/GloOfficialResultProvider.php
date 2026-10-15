@@ -16,8 +16,9 @@ use Throwable;
  *   {base}/api/lottery/getLatestLottery
  *   {base}/api/checking/getLotteryResult
  *
- * When mode is not 'official', or the HTTP attempt fails / times out, the
- * provider returns status=not_configured with an honest failure_reason.
+ * When mode is not 'official' or the base URL is absent, the provider returns
+ * status=not_configured. Once an HTTP attempt starts, transport/HTTP/schema
+ * failures return status=failed so the provider circuit breaker can count them.
  * It NEVER invents draw numbers or prizes.
  *
  * Note: the sandbox typically cannot reach glo.or.th; tests use the fixture
@@ -84,7 +85,7 @@ class GloOfficialResultProvider implements GloResultProvider
             ]);
 
             if (! $response->successful()) {
-                $empty['status'] = 'not_configured';
+                $empty['status'] = 'failed';
                 $empty['failure_reason'] = sprintf('HTTP %d from documented endpoint', $response->status());
 
                 return $empty;
@@ -101,13 +102,16 @@ class GloOfficialResultProvider implements GloResultProvider
 
             return $this->mapDocumentedPayload($body, $endpoint, $drawNumber);
         } catch (Throwable $e) {
-            // Honest NOT_CONFIGURED when unreachable (sandbox / network policy).
-            Log::info('glo.official_result.not_configured', [
-                'endpoint' => $endpoint,
-                'reason' => $e->getMessage(),
+            // The source was configured and a request was attempted. Treat the
+            // transport failure as a breaker-counting failure, but do not persist
+            // raw exception text because HTTP clients may include credentials or
+            // query parameters in it.
+            Log::warning('glo.official_result.request_failed', [
+                'endpoint_path' => parse_url($endpoint, PHP_URL_PATH) ?: null,
+                'exception' => get_class($e),
             ]);
-            $empty['status'] = 'not_configured';
-            $empty['failure_reason'] = 'unreachable: '.$e->getMessage();
+            $empty['status'] = 'failed';
+            $empty['failure_reason'] = 'unreachable: '.get_class($e);
 
             return $empty;
         }
@@ -145,11 +149,25 @@ class GloOfficialResultProvider implements GloResultProvider
             ];
         }
 
+        $n3 = $this->n3From($body);
+        $tiers = [
+            'fourth' => $this->digitList($body['fourth'] ?? [], 6),
+            'fifth' => $this->digitList($body['fifth'] ?? [], 6),
+            'front_three' => $this->digitList($body['front_three'] ?? [], 3),
+            'last_three' => $this->digitList($body['last_three'] ?? [], 3),
+            'last_two' => $this->digitList($body['last_two'] ?? [], 2),
+        ];
+
+        // Bind every value that may later be published or used by GLO ticket
+        // checks. In particular, a changed last_two, tier or n3 list must not be
+        // mistaken for an idempotent replay of the same provider result.
         $fingerprint = hash('sha256', json_encode([
             $draw,
             $first,
             $seconds,
             $thirds,
+            $n3,
+            $tiers,
         ], JSON_THROW_ON_ERROR));
 
         return [
@@ -160,14 +178,8 @@ class GloOfficialResultProvider implements GloResultProvider
             'first_prize' => $first,
             'second_prize' => $seconds,
             'third_prize' => $thirds,
-            'n3' => $this->n3From($body),
-            'tiers' => [
-                'fourth' => $this->digitList($body['fourth'] ?? [], 6),
-                'fifth' => $this->digitList($body['fifth'] ?? [], 6),
-                'front_three' => $this->digitList($body['front_three'] ?? [], 3),
-                'last_three' => $this->digitList($body['last_three'] ?? [], 3),
-                'last_two' => $this->digitList($body['last_two'] ?? [], 2),
-            ],
+            'n3' => $n3,
+            'tiers' => $tiers,
             'failure_reason' => null,
             'fingerprint' => $fingerprint,
         ];

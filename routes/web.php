@@ -678,6 +678,10 @@ Route::get('/download-app', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('download-app');
 
+Route::get('/app/thai-apk.apk', [PublicDownloadAppController::class, 'downloadAndroidApk'])
+    ->middleware('public.legal')
+    ->name('download.android-apk');
+
 Route::get('/app', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('app');
@@ -728,10 +732,9 @@ Route::middleware('auth')->group(function (): void {
 
 // User-facing locale switch route (session & cookie persistence)
 Route::get('/locale/{locale}', function (string $locale) {
-    $supported = \App\Support\SupportedLocale::normalise($locale);
-    if ($supported !== null) {
-        session(['locale' => $supported]);
-        cookie()->queue(cookie('locale', $supported, 60 * 24 * 365));
+    if (in_array($locale, ['en', 'th'], true)) {
+        session(['locale' => $locale]);
+        cookie()->queue(cookie('locale', $locale, 60 * 24 * 365));
     }
 
     return redirect()->back();

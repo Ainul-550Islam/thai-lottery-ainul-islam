@@ -7,6 +7,7 @@ namespace App\Services\Lottery;
 use App\Enums\AuditAction;
 use App\Enums\ResultSourceType;
 use App\Enums\RiskLevel;
+use App\Exceptions\DrawResultException;
 use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\DrawResult;
@@ -25,11 +26,8 @@ use Illuminate\Support\Str;
  * ============================================================================
  *
  * WHAT THIS FILE DID WRONG
- * The restored/synced version of this file wrote `draw_results` directly:
- *
- *     $result = DrawResult::create($attributes);   // <-- write-boundary breach
- *
- * with the attributes including `'published_at' => $result->published_at ?? now()`.
+ * The restored/synced version wrote the authoritative draw_results row directly
+ * and set published_at at import time, crossing the result write boundary.
  * That is three separate violations of the platform's financial-integrity
  * contract, and together they are the single most severe defect found in this
  * audit:
@@ -81,25 +79,22 @@ use Illuminate\Support\Str;
  * into publication is DrawResultConfirmationService::confirm(), which is the
  * second pair of eyes.
  *
- * Providers: GloFixtureResultProvider (fixture mode) and
- * GloOfficialResultProvider (documented public endpoints only), selected by
- * config('glo.official_source.mode'). See GloResultProviderChain for the
- * multi-provider fallback ladder.
+ * GloResultProviderChain selects the configured ordered source ladder. The
+ * chain uses GloOfficialResultProvider for documented public endpoints and
+ * GloFixtureResultProvider only when fixture mode or an explicitly permitted
+ * fixture fallback is configured.
  */
 class GloResultImportService
 {
     public function __construct(
         private readonly DatabaseManager $db,
-        private readonly GloFixtureResultProvider $fixtureProvider,
-        private readonly GloOfficialResultProvider $officialProvider,
+        private readonly GloResultProviderChain $providerChain,
         private readonly DrawResultIngestionService $ingestion,
     ) {}
 
     public function provider(): GloResultProvider
     {
-        $mode = (string) config('glo.official_source.mode', 'fixture');
-
-        return $mode === 'official' ? $this->officialProvider : $this->fixtureProvider;
+        return $this->providerChain;
     }
 
     /**
@@ -138,7 +133,8 @@ class GloResultImportService
         $payload = $provider->fetch(null);
 
         $draw = null;
-        $providerDraw = (string) ($payload['draw_number'] ?? '');
+        $providerDrawValue = $payload['draw_number'] ?? null;
+        $providerDraw = is_string($providerDrawValue) ? trim($providerDrawValue) : '';
 
         if ($providerDraw !== '') {
             $draw = Draw::query()
@@ -152,7 +148,29 @@ class GloResultImportService
         if ($draw === null) {
             // Provenance-only row (draw_id null). No result is written because
             // there is no draw to attach it to — and inventing one would be
-            // worse than filing nothing.
+            // worse than filing nothing. An exact replay of the same upstream
+            // fingerprint reuses its existing provenance row.
+            $fingerprint = $payload['fingerprint'] ?? null;
+
+            if ((string) ($payload['status'] ?? '') === 'imported'
+                && is_string($fingerprint)
+                && preg_match('/\A[a-f0-9]{64}\z/iD', $fingerprint) === 1) {
+                $existing = GloResultImport::query()
+                    ->whereNull('draw_id')
+                    ->where('result_fingerprint', strtolower($fingerprint))
+                    ->where('status', 'imported')
+                    ->first();
+
+                if ($existing instanceof GloResultImport) {
+                    return [
+                        'import' => $existing,
+                        'draw_result' => null,
+                        'payload' => $payload,
+                        'ingestion' => null,
+                    ];
+                }
+            }
+
             $import = $this->recordImport(null, $provider, $payload, $actor);
 
             return [
@@ -179,6 +197,31 @@ class GloResultImportService
      */
     private function persistPayload(Draw $draw, GloResultProvider $provider, array $payload, ?User $actor): array
     {
+        return $this->db->transaction(function () use ($draw, $provider, $payload, $actor): array {
+            $lockedDraw = Draw::query()->lockForUpdate()->find((int) $draw->getKey());
+
+            if (! $lockedDraw instanceof Draw) {
+                throw new \RuntimeException('The draw was deleted before result import could be recorded.');
+            }
+
+            return $this->persistLockedPayload($lockedDraw, $provider, $payload, $actor);
+        });
+    }
+
+    /**
+     * The caller must hold the draw row lock for the complete idempotency,
+     * ingestion, provenance and audit sequence.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{
+     *     import: GloResultImport,
+     *     draw_result: DrawResult|null,
+     *     payload: array<string, mixed>,
+     *     ingestion: array<string, mixed>|null
+     * }
+     */
+    private function persistLockedPayload(Draw $draw, GloResultProvider $provider, array $payload, ?User $actor): array
+    {
         $drawId = (int) $draw->getKey();
         $status = (string) ($payload['status'] ?? 'failed');
 
@@ -194,18 +237,19 @@ class GloResultImportService
             ];
         }
 
-        $fingerprint = trim((string) ($payload['fingerprint'] ?? ''));
+        $fingerprintValue = $payload['fingerprint'] ?? null;
+        $fingerprint = is_string($fingerprintValue) ? strtolower(trim($fingerprintValue)) : '';
 
-        // ── FAIL CLOSED on a missing fingerprint.
+        // ── FAIL CLOSED on a missing or malformed fingerprint.
         //
         // This guard was deleted in the regression. Without it, a payload whose
         // integrity cannot be pinned by a fingerprint would be persisted, and
         // there would be no way afterwards to prove which bytes were ingested.
-        // `imported` with no fingerprint is a provider contract violation, not a
-        // reason to relax the check.
-        if ($fingerprint === '') {
+        // An absent or malformed fingerprint is a provider contract violation,
+        // not a reason to relax the check.
+        if (preg_match('/\A[a-f0-9]{64}\z/iD', $fingerprint) !== 1) {
             $payload['status'] = 'failed';
-            $payload['failure_reason'] = 'Provider returned an imported payload without a result fingerprint.';
+            $payload['failure_reason'] = 'Provider returned an imported payload without a valid SHA-256 result fingerprint.';
             $import = $this->recordImport($drawId, $provider, $payload, $actor);
 
             return [
@@ -232,26 +276,66 @@ class GloResultImportService
             ];
         }
 
+        $actorId = $actor?->getKey();
+        $makerExists = is_int($actorId)
+            ? $actorId > 0 && User::query()->whereKey($actorId)->exists()
+            : (is_string($actorId) && ctype_digit($actorId)
+                && (int) $actorId > 0 && User::query()->whereKey((int) $actorId)->exists());
+
+        if (! $makerExists || ! $actor?->isActive()) {
+            $payload['status'] = 'refused';
+            $payload['failure_reason'] = 'A persisted active operator is required to attribute the result maker before staging.';
+            $import = $this->recordImport($drawId, $provider, $payload, $actor);
+
+            return [
+                'import' => $import,
+                'draw_result' => null,
+                'payload' => $payload,
+                'ingestion' => null,
+            ];
+        }
+
         // ── Hand the payload to the ONE component allowed to write an ingested
         //    result. It owns the row lock, the lifecycle guard, the canonical
         //    fingerprint and the Pending state. This file does not write
         //    draw_results, does not set published_at, and cannot publish.
-        $ingestion = $this->ingestion->ingest(
-            $drawId,
-            [
-                'first_prize' => (string) ($payload['first_prize'] ?? ''),
-                'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
-                'tiers' => (array) ($payload['tiers'] ?? []),
-                'n3' => (array) ($payload['n3'] ?? []),
-                'provider_fingerprint' => $fingerprint,
-            ],
-            source: sprintf('glo_import:%s', $provider->name()),
-            actorUserId: $actor?->getKey() === null ? null : (int) $actor->getKey(),
-        );
+        try {
+            $ingestion = $this->ingestion->ingest(
+                $drawId,
+                [
+                    'first_prize' => (string) ($payload['first_prize'] ?? ''),
+                    'bottom_two' => $this->announcedBottomTwo($payload),
+                    'second_prize' => (array) ($payload['second_prize'] ?? []),
+                    'third_prize' => (array) ($payload['third_prize'] ?? []),
+                    'tiers' => (array) ($payload['tiers'] ?? []),
+                    'n3' => (array) ($payload['n3'] ?? []),
+                    'provider' => $this->sourceName($provider, $payload),
+                    'provider_fingerprint' => $fingerprint,
+                    'upstream_draw_id' => (string) ($payload['draw_number'] ?? ''),
+                ],
+                source: sprintf('glo_import:%s', $this->sourceName($provider, $payload)),
+                actorUserId: $actor?->getKey() === null ? null : (int) $actor->getKey(),
+            );
+        } catch (DrawResultException $exception) {
+            // A provider response that fails canonicalization or lifecycle
+            // validation is a recorded refusal, never a successful import.
+            // Store only the bounded/redacted reason and provider fingerprint;
+            // the authoritative result table remains untouched.
+            $payload['status'] = 'refused';
+            $payload['failure_reason'] = $exception->getMessage();
+            $import = $this->recordImport($drawId, $provider, $payload, $actor);
+
+            return [
+                'import' => $import,
+                'draw_result' => null,
+                'payload' => $payload,
+                'ingestion' => null,
+            ];
+        }
 
         $import = $this->recordImport($drawId, $provider, $payload, $actor, $ingestion['fingerprint'] ?? null);
 
-        $this->recordAudit($drawId, $provider, $import, $ingestion, $fingerprint, $actor);
+        $this->recordAudit($drawId, $import, $ingestion, $fingerprint, $actor);
 
         return [
             'import' => $import,
@@ -259,6 +343,50 @@ class GloResultImportService
             'payload' => $payload,
             'ingestion' => $ingestion,
         ];
+    }
+
+    /**
+     * Read the separately announced two-digit result from the provider payload.
+     *
+     * The official provider shape carries it as the single `tiers.last_two`
+     * prize. This method accepts an explicit bottom_two string or that exact
+     * one-item official list; it never derives the value from first_prize.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function announcedBottomTwo(array $payload): string
+    {
+        if (array_key_exists('bottom_two', $payload)) {
+            return is_string($payload['bottom_two']) ? trim($payload['bottom_two']) : '';
+        }
+
+        $tiers = $payload['tiers'] ?? null;
+        $lastTwo = is_array($tiers) ? ($tiers['last_two'] ?? null) : null;
+
+        if (! is_array($lastTwo) || count($lastTwo) !== 1 || ! is_string($lastTwo[0] ?? null)) {
+            return '';
+        }
+
+        return trim($lastTwo[0]);
+    }
+
+    /**
+     * Resolve the source label used in provenance and ingestion metadata.
+     *
+     * The chain owns the source label on its returned payload. A direct provider
+     * owns its own label, so a provider cannot spoof another source through JSON.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function sourceName(GloResultProvider $provider, array $payload): string
+    {
+        if ($provider->name() !== 'chain') {
+            return $provider->name();
+        }
+
+        $source = $payload['provider'] ?? null;
+
+        return is_string($source) && trim($source) !== '' ? trim($source) : 'chain';
     }
 
     /**
@@ -276,20 +404,33 @@ class GloResultImportService
         $status = (string) ($payload['status'] ?? 'failed');
         $mode = (string) config('glo.official_source.mode', 'fixture');
 
+        $sourceName = $this->sourceName($provider, $payload);
+        $providerFingerprint = $payload['fingerprint'] ?? null;
+        $providerFingerprint = is_string($providerFingerprint)
+            && preg_match('/\A[a-f0-9]{64}\z/iD', $providerFingerprint) === 1
+                ? strtolower($providerFingerprint)
+                : null;
+        $endpoint = $payload['endpoint'] ?? null;
+        $failureReason = $payload['failure_reason'] ?? null;
+
         return GloResultImport::query()->create([
             'draw_id' => $drawId,
-            'provider' => $provider->name(),
+            'provider' => $sourceName,
             'mode' => $mode,
             'status' => $status,
-            'endpoint' => isset($payload['endpoint']) ? (string) $payload['endpoint'] : null,
-            'draw_number' => isset($payload['draw_number']) ? (string) $payload['draw_number'] : null,
-            'result_fingerprint' => $normalizedFingerprint
-                ?? (isset($payload['fingerprint']) ? (string) $payload['fingerprint'] : null),
-            'failure_reason' => isset($payload['failure_reason']) ? (string) $payload['failure_reason'] : null,
+            'endpoint' => is_string($endpoint) ? mb_substr($this->redactString($endpoint), 0, 255) : null,
+            'upstream_draw_id' => $this->upstreamDrawId($payload),
+            // This stable source fingerprint is the idempotency key. The
+            // ingestion service's separately canonicalized fingerprint is
+            // retained in the bounded summary rather than replacing it.
+            'result_fingerprint' => $providerFingerprint,
+            'payload_summary' => $this->payloadSummary($payload, $normalizedFingerprint),
+            'failure_reason' => is_string($failureReason)
+                ? mb_substr($this->redactString($failureReason), 0, 500)
+                : null,
             'import_reference' => 'glo-'.Str::lower(Str::ulid()->toBase32()),
             'imported_by' => $actor?->getKey(),
             'imported_at' => now(),
-            'payload' => $this->redact($payload),
         ]);
     }
 
@@ -301,7 +442,6 @@ class GloResultImportService
      */
     private function recordAudit(
         int $drawId,
-        GloResultProvider $provider,
         GloResultImport $import,
         array $ingestion,
         string $providerFingerprint,
@@ -316,7 +456,7 @@ class GloResultImportService
             'description' => 'glo_result_ingested_pending_confirmation',
             'metadata' => [
                 'action_type' => 'glo_result_ingested_pending_confirmation',
-                'provider' => $provider->name(),
+                'provider' => (string) $import->provider,
                 'draw_id' => $drawId,
                 'import_reference' => $import->import_reference,
                 'provider_fingerprint' => $providerFingerprint,
@@ -334,25 +474,136 @@ class GloResultImportService
     }
 
     /**
-     * Strip anything credential-shaped before a provider payload is persisted.
+     * Keep the upstream draw identifier inside the model column's fixed width.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function upstreamDrawId(array $payload): ?string
+    {
+        $drawNumber = $payload['draw_number'] ?? null;
+
+        return is_string($drawNumber) && trim($drawNumber) !== ''
+            ? mb_substr(trim($drawNumber), 0, 64)
+            : null;
+    }
+
+    /**
+     * Persist only a bounded digest; never the raw upstream document.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function redact(array $payload): array
+    private function payloadSummary(array $payload, ?string $normalizedFingerprint): array
     {
-        $forbidden = ['authorization', 'api_key', 'apikey', 'secret', 'token', 'password', 'signature'];
+        $firstPrize = $payload['first_prize'] ?? null;
+        $secondPrizes = $payload['second_prize'] ?? null;
+        $thirdPrizes = $payload['third_prize'] ?? null;
+        $providerFingerprint = $payload['fingerprint'] ?? null;
+        $ingestionFingerprint = is_string($normalizedFingerprint)
+            && preg_match('/\A[a-f0-9]{64}\z/iD', $normalizedFingerprint) === 1
+                ? strtolower($normalizedFingerprint)
+                : null;
 
-        $clean = [];
+        $bottomTwo = $this->announcedBottomTwo($payload);
 
-        foreach ($payload as $key => $value) {
-            if (is_string($key) && in_array(strtolower($key), $forbidden, true)) {
+        return [
+            'draw_number' => $this->upstreamDrawId($payload),
+            'first_prize' => is_string($firstPrize) && preg_match('/\A\d{6}\z/D', $firstPrize) === 1
+                ? $firstPrize
+                : null,
+            'bottom_two' => preg_match('/\A\d{2}\z/D', $bottomTwo) === 1 ? $bottomTwo : null,
+            'second_prize_count' => is_array($secondPrizes) ? count($secondPrizes) : 0,
+            'third_prize_count' => is_array($thirdPrizes) ? count($thirdPrizes) : 0,
+            'n3_counts' => $this->countGroups($payload['n3'] ?? null),
+            'tier_counts' => $this->countGroups($payload['tiers'] ?? null),
+            'provider_fingerprint' => is_string($providerFingerprint)
+                && preg_match('/\A[a-f0-9]{64}\z/iD', $providerFingerprint) === 1
+                    ? strtolower($providerFingerprint)
+                    : null,
+            'ingestion_fingerprint' => $ingestionFingerprint,
+            'source_attempts' => $this->sourceAttemptSummary($payload['ladder'] ?? null),
+        ];
+    }
+
+    /**
+     * @return list<array{source: string, outcome: string, reason: string|null}>
+     */
+    private function sourceAttemptSummary(mixed $attempts): array
+    {
+        if (! is_array($attempts)) {
+            return [];
+        }
+
+        $summary = [];
+
+        foreach (array_slice($attempts, 0, 8) as $attempt) {
+            if (! is_array($attempt)) {
                 continue;
             }
 
-            $clean[$key] = is_array($value) ? $this->redact($value) : $value;
+            $source = $attempt['source'] ?? null;
+            $outcome = $attempt['outcome'] ?? null;
+            $reason = $attempt['reason'] ?? null;
+
+            if (! is_string($source) || ! is_string($outcome)) {
+                continue;
+            }
+
+            $summary[] = [
+                'source' => mb_substr($source, 0, 32),
+                'outcome' => mb_substr($outcome, 0, 16),
+                'reason' => is_string($reason)
+                    ? mb_substr($this->redactString($reason), 0, 160)
+                    : null,
+            ];
         }
 
-        return $clean;
+        return $summary;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function countGroups(mixed $groups): array
+    {
+        if (! is_array($groups)) {
+            return [];
+        }
+
+        $counts = [];
+
+        foreach (array_slice($groups, 0, 16, true) as $key => $values) {
+            $name = mb_substr((string) $key, 0, 32);
+
+            if ($name === '') {
+                continue;
+            }
+
+            $counts[$name] = is_array($values) ? count($values) : 0;
+        }
+
+        return $counts;
+    }
+
+    /** Redact credential-shaped query parameters and key/value pairs. */
+    private function redactString(string $value): string
+    {
+        $redacted = preg_replace(
+            '/([?&](?:authorization|access[_-]?token|token|api[_-]?key|client[_-]?secret|secret|password|signature)=)[^&#\\s]*/i',
+            '$1[redacted]',
+            $value,
+        ) ?? $value;
+
+        $redacted = preg_replace(
+            '/\bauthorization\s*[:=]\s*(?:bearer\s+)?[^\s,;&]+/i',
+            'authorization=[redacted]',
+            $redacted,
+        ) ?? $redacted;
+
+        return preg_replace(
+            '/\b(access[_-]?token|token|api[_-]?key|client[_-]?secret|secret|password|signature)\s*[:=]\s*[^\s,;&]+/i',
+            '$1=[redacted]',
+            $redacted,
+        ) ?? $redacted;
     }
 }

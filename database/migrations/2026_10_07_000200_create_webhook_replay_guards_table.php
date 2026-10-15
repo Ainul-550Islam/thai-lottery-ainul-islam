@@ -5,65 +5,24 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Durable replay guard for inbound provider webhooks.
+ * Durable accepted-delivery observation for inbound provider webhooks.
  *
- * ============================================================================
- * WHY THIS TABLE EXISTS
- * ============================================================================
- * Replay protection on the primary webhook lane
- * (POST /api/v1/payments/webhook/{gateway}) was implemented ONLY as a cache
- * entry:
+ * The middleware records a successful controller response and atomically
+ * upserts one telemetry row per gateway/signature digest. A repeat increments
+ * `deliveries`; a new signature over a known body can be observed as a possible
+ * provider retry or signature rotation. This table does not authenticate a
+ * request, reject an HTTP replay, or replace provider-specific signature checks,
+ * transactional payment state transitions, or event idempotency.
  *
- *     PaymentWebhookService::processWebhookPayload()
- *       $cacheKey = 'payment:webhook:seen:'.$gateway.':'.$eventId;
- *       if (! $this->cache->add($cacheKey, true, $cacheTtl)) { ...duplicate... }
+ * The nonce is sha256(gateway + signature-header-value). The raw signature and
+ * raw request body are not stored. A unique (gateway, nonce) index prevents
+ * duplicate observation rows and makes the upsert atomic across workers; the
+ * request still reaches the controller, where the provider verifier and payment
+ * idempotency logic decide what happens.
  *
- * That is a correct *algorithm* and the wrong *substrate*. With the cache on
- * the file driver — which is what .env.example ships (`CACHE_STORE=file`) —
- * `Cache::add` is atomic on ONE machine and meaningless across two. Two app
- * containers behind a load balancer each have their own file cache, so the same
- * signed webhook delivered to both is "first seen" on both. A cache restart or
- * an eviction between two deliveries re-opens the window entirely.
- *
- * The application already knows this in principle: ProductionSafetyServiceProvider
- * refuses to boot production with a file session driver because "file sessions
- * cannot be shared across instances". The same argument applies to a file cache
- * standing in as a security control, and production does not currently refuse it.
- *
- * ============================================================================
- * WHY THE SIGNATURE IS THE REPLAY IDENTITY
- * ============================================================================
- * The nonce is sha256(gateway + signature-header-value) — NOT the event id and
- * NOT a clock reading.
- *
- *   - The signature is already a deterministic function of the exact bytes the
- *     provider sent, signed with the shared secret. Two identical deliveries
- *     therefore produce one identical nonce, and an attacker cannot mint a new
- *     nonce for the same payload without the secret.
- *   - It requires NO cooperation from any provider. Four of the five gateway
- *     drivers (bKash, Nagad, Crypto, Bank Transfer) sign the raw body and carry
- *     no timestamp at all. Keying on a provider-supplied timestamp would mean
- *     the control silently does nothing for four providers out of five. Keying
- *     on the signature works for every one of them, unchanged.
- *   - Keying on the event id — as the cache guard did — is weaker: the event id
- *     comes from the payload, so it is only as trustworthy as the signature over
- *     it, and it is absent entirely when a provider omits the field.
- *
- * ============================================================================
- * UNIQUENESS IS THE CONTROL
- * ============================================================================
- * (gateway, nonce) is UNIQUE. The guard is therefore enforced by the database
- * itself: a second delivery cannot insert, and the refusal is atomic even under
- * concurrent workers on different hosts. There is no read-then-write window to
- * lose, which is the flaw every application-level "have I seen this?" check has.
- *
- * ============================================================================
- * RETENTION
- * ============================================================================
- * The row is kept for replay_guard_retention_days (default 30). Deleting sooner
- * reopens the window; keeping longer costs a few dozen bytes per delivery.
- * `expires_at` is indexed so the pruning command is an indexed range delete
- * rather than a full scan on a table that grows with traffic.
+ * Retention is for operational history and cleanup. Pruning observations does
+ * not reopen a financial replay window because this table is not the financial
+ * replay control. `expires_at` supports indexed retention cleanup.
  */
 return new class extends Migration
 {
@@ -80,10 +39,9 @@ return new class extends Migration
             // sha256(gateway|signature-header-value) — 64 hex chars.
             $table->string('nonce', 64);
 
-            // The raw header value, truncated. Kept so an operator
-            // investigating a replay storm can see WHAT was replayed without
-            // having to reconstruct it. Never a secret: it is the signature the
-            // provider sent us, not the key that produced it.
+            // SHA-256 of the provider signature header. The middleware never
+            // stores the raw proof; this digest supports investigation without
+            // retaining a temporarily replayable authorization value.
             $table->string('signature', 255)->nullable();
 
             /*
@@ -99,10 +57,12 @@ return new class extends Migration
              * identical bodies, e.g. a bank-transfer notification with no
              * per-event identifier of its own.
              *
-             * So this column does not refuse anything on its own. It is how the
-             * middleware DETECTS signature rotation - a known body arriving under
-             * a new nonce - and logs it for an operator. Refusal stays where it
-             * can be justified per delivery, which is the unique index above.
+             * This column does not refuse anything. It lets the middleware
+             * DETECT signature rotation — a known body arriving under a new
+             * nonce — and log it for an operator. Provider verification and the
+             * transactional payment state machine determine acceptance and
+             * financial idempotency; the unique observation index is not a
+             * request-rejection control.
              */
             $table->string('payload_hash', 64)->nullable();
 
@@ -118,7 +78,8 @@ return new class extends Migration
             $table->string('first_ip', 45)->nullable();
             $table->string('last_ip', 45)->nullable();
 
-            // THE CONTROL.
+            // Atomic identity constraint for the observation row; it does not
+            // reject the HTTP request or replace payment idempotency.
             $table->unique(['gateway', 'nonce'], 'webhook_replay_guards_identity_unique');
 
             // Operator triage: "what is being replayed at me right now".

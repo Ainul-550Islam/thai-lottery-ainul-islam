@@ -9,7 +9,6 @@ use App\Http\Middleware\GloEnsurePermission;
 use App\Http\Middleware\PublicLegalHeaders;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
-use App\Http\Middleware\TrackMemberPresence;
 use App\Http\Middleware\VerifyWebhookSignature;
 use App\Http\Responses\ApiResponse;
 use App\Http\Support\BetPurchaseErrorMapper;
@@ -152,8 +151,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
         $middleware->append(CorrelationIdMiddleware::class);
         $middleware->append(SetLocale::class);
-        // Session-based presence for the public "members active" counter (C17).
-        $middleware->appendToGroup('web', TrackMemberPresence::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // ---------------------------------------------------------------------

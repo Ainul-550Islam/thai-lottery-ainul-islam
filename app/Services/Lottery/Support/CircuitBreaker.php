@@ -92,34 +92,52 @@ final class CircuitBreaker
         }
 
         try {
-            $state = $this->state($source);
+            return $this->withMutex($source, $policy, function () use ($source, $policy): bool {
+                $state = $this->state($source, $policy);
 
-            if ($state['state'] === self::STATE_CLOSED) {
-                return true;
-            }
+                if ($state['state'] === self::STATE_CLOSED) {
+                    return true;
+                }
 
-            if ($state['state'] === self::STATE_OPEN) {
-                $openedAt = $state['opened_at'];
+                if ($state['state'] === self::STATE_OPEN) {
+                    $openedAt = $state['opened_at'];
 
-                if ($openedAt !== null && Carbon::parse($openedAt)->addSeconds($policy->cooldownSeconds)->isFuture()) {
+                    if ($openedAt !== null && Carbon::parse($openedAt)->addSeconds($policy->cooldownSeconds)->isFuture()) {
+                        return false;
+                    }
+
+                    // Cooldown elapsed: initialize the bounded half-open probes
+                    // while holding the distributed lock.
+                    $state['state'] = self::STATE_HALF_OPEN;
+                    $state['probes_taken'] = 0;
+                    $state['probe_started_at'] = now()->toIso8601String();
+                } elseif ($state['state'] === self::STATE_HALF_OPEN
+                    && (int) $state['probes_taken'] >= $policy->halfOpenProbes) {
+                    // Recover a half-open slot if the worker that claimed it
+                    // died before recording success or failure. Provider calls
+                    // have bounded timeouts; this lease is deliberately longer
+                    // than the minimum timeout to avoid an early duplicate.
+                    $probeStartedAt = $state['probe_started_at'] ?? null;
+                    $leaseSeconds = max(60, $policy->cooldownSeconds);
+
+                    if (is_string($probeStartedAt)
+                        && Carbon::parse($probeStartedAt)->addSeconds($leaseSeconds)->isFuture()) {
+                        return false;
+                    }
+
+                    $state['probes_taken'] = 0;
+                    $state['probe_started_at'] = now()->toIso8601String();
+                }
+
+                if ((int) $state['probes_taken'] >= $policy->halfOpenProbes) {
                     return false;
                 }
 
-                // Cooldown has elapsed: transition to HALF_OPEN and fall through
-                // to the probe claim below, in the same call, so there is no
-                // window in which the circuit is neither open nor half-open.
-                $state['state'] = self::STATE_HALF_OPEN;
-                $state['probes_taken'] = 0;
-            }
+                $state['probes_taken'] = (int) $state['probes_taken'] + 1;
+                $this->write($source, $state, $policy);
 
-            if ((int) $state['probes_taken'] >= $policy->halfOpenProbes) {
-                return false;
-            }
-
-            $state['probes_taken'] = (int) $state['probes_taken'] + 1;
-            $this->write($source, $state, $policy);
-
-            return true;
+                return true;
+            });
         } catch (\Throwable) {
             // Fail closed toward ATTEMPTING. See the class docblock: an unreadable
             // breaker must not refuse traffic on its own authority.
@@ -134,36 +152,37 @@ final class CircuitBreaker
      * upstream fault, and counting it would open the circuit on a system that was
      * never reachable in the first place.
      */
-    public function recordFailure(string $source, BreakerPolicy $policy): void
+    public function recordFailure(string $source, BreakerPolicy $policy, string $reason = ''): void
     {
         if (! $policy->enabled) {
             return;
         }
 
         try {
-            $state = $this->state($source);
-            $state['failures'] = (int) $state['failures'] + 1;
-            $state['last_failure_at'] = now()->toIso8601String();
-            $state['probes_taken'] = 0;
+            $this->withMutex($source, $policy, function () use ($source, $policy, $reason): void {
+                $state = $this->state($source, $policy);
+                $state['failures'] = (int) $state['failures'] + 1;
+                $state['last_failure_at'] = now()->toIso8601String();
+                $state['last_reason'] = $reason;
+                $state['probes_taken'] = 0;
+                $state['probe_started_at'] = null;
 
-            if ($state['state'] === self::STATE_HALF_OPEN) {
-                // The probe failed. Re-open and restart the cooldown rather than
-                // counting toward the threshold, because the threshold was
-                // already crossed to get here.
-                $state['state'] = self::STATE_OPEN;
-                $state['opened_at'] = now()->toIso8601String();
+                if ($state['state'] === self::STATE_HALF_OPEN) {
+                    // A failed probe re-opens the circuit and restarts cooldown.
+                    $state['state'] = self::STATE_OPEN;
+                    $state['opened_at'] = now()->toIso8601String();
+                    $this->write($source, $state, $policy);
+
+                    return;
+                }
+
+                if ($state['failures'] >= $policy->failureThreshold) {
+                    $state['state'] = self::STATE_OPEN;
+                    $state['opened_at'] = now()->toIso8601String();
+                }
 
                 $this->write($source, $state, $policy);
-
-                return;
-            }
-
-            if ($state['failures'] >= $policy->failureThreshold) {
-                $state['state'] = self::STATE_OPEN;
-                $state['opened_at'] = now()->toIso8601String();
-            }
-
-            $this->write($source, $state, $policy);
+            });
         } catch (\Throwable) {
             // A breaker that cannot record a failure simply stays closed. The
             // fetch path already knows the fetch failed and will report it; the
@@ -181,14 +200,17 @@ final class CircuitBreaker
         }
 
         try {
-            $this->write($source, [
-                'state' => self::STATE_CLOSED,
-                'failures' => 0,
-                'opened_at' => null,
-                'last_success_at' => now()->toIso8601String(),
-                'last_failure_at' => null,
-                'probes_taken' => 0,
-            ], $policy);
+            $this->withMutex($source, $policy, function () use ($source, $policy): void {
+                $this->write($source, [
+                    'state' => self::STATE_CLOSED,
+                    'failures' => 0,
+                    'opened_at' => null,
+                    'last_success_at' => now()->toIso8601String(),
+                    'last_failure_at' => null,
+                    'probes_taken' => 0,
+                    'probe_started_at' => null,
+                ], $policy);
+            });
         } catch (\Throwable) {
             // Nothing to do and nothing to report: the next success will write
             // the closed state again.
@@ -202,7 +224,7 @@ final class CircuitBreaker
      */
     public function describe(string $source, BreakerPolicy $policy): array
     {
-        $state = $this->state($source);
+        $state = $this->state($source, $policy);
 
         $retryAfter = 0;
 
@@ -228,18 +250,20 @@ final class CircuitBreaker
     public function reset(string $source, BreakerPolicy $policy): void
     {
         try {
-            $this->cache->forget($this->key($source, $policy));
+            $this->withMutex($source, $policy, function () use ($source, $policy): void {
+                $this->cache->forget($this->key($source, $policy));
+            });
         } catch (\Throwable) {
             // Nothing to do.
         }
     }
 
     /**
-     * @return array{state: string, failures: int, opened_at: string|null, last_success_at: string|null, last_failure_at: string|null, probes_taken: int}
+     * @return array{state: string, failures: int, opened_at: string|null, last_success_at: string|null, last_failure_at: string|null, probes_taken: int, probe_started_at: string|null}
      */
-    private function state(string $source): array
+    private function state(string $source, BreakerPolicy $policy): array
     {
-        $stored = $this->cache->get($this->key($source, null));
+        $stored = $this->cache->get($this->key($source, $policy));
 
         if (! is_array($stored)) {
             return [
@@ -249,6 +273,7 @@ final class CircuitBreaker
                 'last_success_at' => null,
                 'last_failure_at' => null,
                 'probes_taken' => 0,
+                'probe_started_at' => null,
             ];
         }
 
@@ -259,6 +284,7 @@ final class CircuitBreaker
             'last_success_at' => null,
             'last_failure_at' => null,
             'probes_taken' => 0,
+            'probe_started_at' => null,
         ], $stored);
     }
 
@@ -275,6 +301,29 @@ final class CircuitBreaker
         $ttl = max(60, ($policy->cooldownSeconds * 2) + $policy->windowSeconds);
 
         $this->cache->put($this->key($source, $policy), $state, $ttl);
+    }
+
+    /**
+     * Serialize state transitions across workers so simultaneous probes and
+     * failures cannot overwrite each other's counters. The lock store must be
+     * shared in a multi-instance deployment (Redis in the production Compose
+     * stack); if lock acquisition fails, callers retain the class's documented
+     * fail-open behavior for provider availability.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    private function withMutex(string $source, BreakerPolicy $policy, callable $callback): mixed
+    {
+        $key = 'glo:breaker:mutex:'.sha1($policy->keyPrefix.'|'.$source);
+
+        // Forward the lock operation through the same cache repository used
+        // for state reads/writes. Calling the Cache facade here can resolve a
+        // different store from an already-injected repository after config
+        // changes (notably in tests and per-lane cache bindings).
+        return $this->cache->lock($key, 10)->block(5, $callback);
     }
 
     private function key(string $source, ?BreakerPolicy $policy): string

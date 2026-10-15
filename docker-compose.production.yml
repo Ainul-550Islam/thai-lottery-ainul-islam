@@ -1,65 +1,32 @@
 # =============================================================================
-# Thai Lottery — Production Compose
+# Thai Lottery — production Compose deployment
 # =============================================================================
 #
-# WHY THIS FILE EXISTS
-# The repository contained NO Dockerfile, NO compose file, NO nginx config and
-# NO php-fpm config anywhere — `find . -iname "*docker*"` returned nothing. The
-# only deployment artifact was one supervisord snippet for a single queue worker
-# (deployment/supervisor/thai-lottery-worker.conf). The brief's requirement —
-# "Validate PHP-FPM, Nginx, Redis, PostgreSQL, and Rust Worker Docker
-# configurations for production" — could not be validated because none existed.
+# This deployment intentionally uses MySQL, which is the engine configured by
+# .env.example and used by the application's MySQL-specific reconciliation SQL.
+# CI also runs SQLite; PostgreSQL is not yet an accepted production target.
 #
-# WHAT THIS PROVIDES
-#   nginx        TLS-terminating edge, serves static, proxies to php-fpm
-#   app          php-fpm 8.4 runtime, read-only rootfs, no shell in prod image
-#   horizon      queue workers (settlement / payouts / webhooks / notifications)
-#   scheduler    `schedule:work` — exactly ONE replica, ever
-#   db           PostgreSQL 16 (see the DATABASE MIGRATION NOTE below)
-#   redis        Redis 7, AOF on, used for cache + locks + queues
-#   reverb       WebSocket server (Laravel Reverb) — was BROADCAST_CONNECTION=log
-#   settlement-worker  the Rust hot-path worker
+# Non-negotiable deployment prerequisites:
+#   * secret files stored outside the repository, with their absolute paths
+#     provided as *_SECRET_FILE Compose variables; `redis_acl` must define the
+#     Redis default user with the same password as `redis_password`;
+#   * DB_DATABASE, DB_USERNAME and APP_URL set in the Compose environment;
+#   * TLS certificate contents provisioned out-of-band and rotated safely;
+#   * persistent, backed-up Docker volumes for MySQL, Redis and application data.
 #
-# -----------------------------------------------------------------------------
-# DATABASE MIGRATION NOTE — READ BEFORE FIRST DEPLOY
-# -----------------------------------------------------------------------------
-# The brief targets PostgreSQL. THIS REPOSITORY DOES NOT CURRENTLY RUN ON IT.
-# `config/database.php` declares `'default' => env('DB_CONNECTION', 'pgsql')`
-# while `.env.example` sets `DB_CONNECTION=mysql` and CI runs on sqlite. Three
-# different engines across three surfaces is not a configuration, it is an
-# untested claim. Before PostgreSQL is switched on you MUST:
+# This file does not start Horizon or Reverb because neither package is present
+# in composer.lock. It uses Laravel's built-in queue:work and the log broadcast
+# driver. The Rust worker is intentionally not deployed here: it requires
+# PostgreSQL, whereas this application and this Compose stack use MySQL, and PHP
+# does not dispatch to that worker. Enabling either service before integrating
+# and testing its actual driver would create a misleading, nonfunctional lane.
 #
-#   1. Run the migration suite against PostgreSQL in CI (see
-#      .github/workflows/ci.yml — add a matrix leg with pgsql).
-#   2. Port the raw SQL in FinancialReconciliationService and
-#      PayoutReconciliationService: GROUP_CONCAT is MySQL-only. On PostgreSQL
-#      it is STRING_AGG, and on PostgreSQL the silent-truncation hazard below
-#      does not exist.
-#   3. Re-check every `selectRaw` for backtick quoting and `IFNULL`/`NOW()`
-#      usages.
-#
-# The safest sequence is: SHIP ON MYSQL FIRST (the engine the code and its
-# tests were actually written against), then migrate to PostgreSQL as a
-# deliberate, tested project. Deploying to PostgreSQL because the brief names
-# it, without doing (1)-(3), trades a known-good engine for a guess.
-#
-# -----------------------------------------------------------------------------
-# THE GROUP_CONCAT HAZARD (applies while on MySQL)
-# -----------------------------------------------------------------------------
-# MySQL silently truncates GROUP_CONCAT at `group_concat_max_len` (default
-# 1024 bytes) WITHOUT raising an error. FinancialReconciliationService uses
-# GROUP_CONCAT to compress ledger amounts into strings that are then summed in
-# PHP (see its own note at FinancialReconciliationService.php:1063). Past ~100
-# amounts the concatenated list is cut and the reconciliation reports a
-# discrepancy that does not exist — or, worse, fails to report one that does.
-# The `db` service below sets group_concat_max_len to 1MB at the session level
-# via `command`, and the migration to PostgreSQL removes the class of bug
-# entirely. Setting it in compose is a mitigation, not a fix.
-#
-# SECRETS
-# Every credential is `*_FILE` or an env var with no default. Nothing in this
-# file carries a usable secret, and no service falls back to a placeholder.
-# -----------------------------------------------------------------------------
+# MYSQL GROUP_CONCAT
+# MySQL silently truncates GROUP_CONCAT at 1024 bytes by default. The app uses
+# GROUP_CONCAT in reconciliation queries, so this server setting raises that
+# limit to 1 MiB. This is a mitigation, not a substitute for replacing those
+# queries with bounded, typed aggregation and testing that change.
+# =============================================================================
 
 name: thai-lottery
 
@@ -74,18 +41,33 @@ x-app-image: &app-image
 x-app-env: &app-env
   APP_ENV: production
   APP_DEBUG: "false"
+  APP_URL: "${APP_URL:?APP_URL is required}"
+  APP_TIMEZONE: Asia/Bangkok
+  APP_KEY_FILE: /run/secrets/app_key
   LOG_CHANNEL: stderr
   DB_CONNECTION: mysql
   DB_HOST: db
   DB_PORT: "3306"
+  DB_DATABASE: "${DB_DATABASE:?DB_DATABASE is required}"
+  DB_USERNAME: "${DB_USERNAME:?DB_USERNAME is required}"
+  DB_PASSWORD_FILE: /run/secrets/db_password
+  DB_CHARSET: utf8mb4
+  REDIS_CLIENT: phpredis
   REDIS_HOST: redis
   REDIS_PORT: "6379"
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
   CACHE_STORE: redis
   SESSION_DRIVER: redis
   QUEUE_CONNECTION: redis
-  BROADCAST_CONNECTION: reverb
+  # Laravel Reverb is unavailable until the package is installed and locked.
+  BROADCAST_CONNECTION: log
   SESSION_SECURE_COOKIE: "true"
   SESSION_ENCRYPT: "true"
+
+x-app-secrets: &app-secrets
+  - app_key
+  - db_password
+  - redis_password
 
 x-app-depends: &app-depends
   db:
@@ -96,10 +78,6 @@ x-app-depends: &app-depends
     condition: service_completed_successfully
 
 services:
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # Database
-  # ───────────────────────────────────────────────────────────────────────────
   db:
     image: mysql:8.4
     restart: unless-stopped
@@ -108,15 +86,15 @@ services:
       MYSQL_USER: "${DB_USERNAME:?DB_USERNAME is required}"
       MYSQL_PASSWORD_FILE: /run/secrets/db_password
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
-    command: >
-      --innodb-buffer-pool-size=2G
-      --innodb-flush-log-at-trx-commit=1
-      --innodb-lock-wait-timeout=15
-      --transaction-isolation=READ-COMMITTED
-      --group-concat-max-len=1048576
-      --max-connections=500
-      --slow-query-log=1
-      --long-query-time=1
+    command:
+      - --innodb-buffer-pool-size=2G
+      - --innodb-flush-log-at-trx-commit=1
+      - --innodb-lock-wait-timeout=15
+      - --transaction-isolation=READ-COMMITTED
+      - --group-concat-max-len=1048576
+      - --max-connections=500
+      - --slow-query-log=1
+      - --long-query-time=1
     volumes:
       - db-data:/var/lib/mysql
     secrets:
@@ -128,71 +106,113 @@ services:
       timeout: 5s
       retries: 12
       start_period: 40s
-    networks: [backend]
+    networks:
+      - backend
 
-  # ───────────────────────────────────────────────────────────────────────────
-  # Redis — cache, locks, queues, sessions
-  # ───────────────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: >
-      redis-server
-      --appendonly yes
-      --appendfsync everysec
-      --maxmemory 1gb
-      --maxmemory-policy noeviction
-      --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 1gb
+      - --maxmemory-policy
+      - noeviction
+      - --aclfile
+      - /run/secrets/redis_acl
     volumes:
       - redis-data:/data
+    secrets:
+      - redis_password
+      - redis_acl
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli ping 2>/dev/null | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 12
-    environment:
-      REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
-    networks: [backend]
+    networks:
+      - backend
 
-  # ───────────────────────────────────────────────────────────────────────────
-  # Migrations — one-shot, must complete before the app starts
-  # ───────────────────────────────────────────────────────────────────────────
   migrate:
     <<: *app-image
     restart: "no"
     environment:
       <<: *app-env
-    command: >
-      sh -c "php artisan migrate --force --isolated &&
-             php artisan config:cache &&
-             php artisan route:cache &&
-             php artisan view:cache &&
-             php artisan event:cache"
-    secrets: [app_key, db_password]
+    command:
+      - php
+      - artisan
+      - migrate
+      - --force
+      - --isolated
+    secrets: *app-secrets
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks:
+      - backend
 
-  # ───────────────────────────────────────────────────────────────────────────
-  # Application — php-fpm
-  # ───────────────────────────────────────────────────────────────────────────
   app:
     <<: *app-image
     restart: unless-stopped
     environment:
       <<: *app-env
-    secrets: [app_key, db_password]
+    secrets: *app-secrets
     depends_on: *app-depends
     volumes:
       - app-storage:/var/www/html/storage
-    networks: [backend]
+    networks:
+      - backend
+      - egress
 
-  # ───────────────────────────────────────────────────────────────────────────
-  # Nginx — the only service exposed to the internet
-  # ───────────────────────────────────────────────────────────────────────────
+  worker:
+    <<: *app-image
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    command:
+      - php
+      - artisan
+      - queue:work
+      - redis
+      - --queue=settlement,payouts,webhooks,notifications,default
+      - --sleep=1
+      - --tries=3
+      - --timeout=120
+      - --max-time=3600
+    secrets: *app-secrets
+    depends_on: *app-depends
+    volumes:
+      - app-storage:/var/www/html/storage
+    stop_grace_period: 120s
+    networks:
+      - backend
+      - egress
+
+  scheduler:
+    <<: *app-image
+    container_name: thai-lottery-scheduler
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    command: ["php", "artisan", "schedule:work"]
+    secrets: *app-secrets
+    depends_on: *app-depends
+    volumes:
+      - app-storage:/var/www/html/storage
+    # The explicit name prevents Compose from scaling this service to multiple
+    # replicas. The scheduler must remain a single instance.
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+      - egress
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -203,81 +223,14 @@ services:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./public:/var/www/html/public:ro
       - app-storage:/var/www/html/storage:ro
-      - ./docker/nginx/certs:/etc/nginx/certs:ro
+    secrets:
+      - tls_certificate
+      - tls_private_key
     depends_on:
       - app
-    networks: [backend, edge]
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # Horizon — queue workers (replaces the single supervisord worker)
-  # ───────────────────────────────────────────────────────────────────────────
-  horizon:
-    <<: *app-image
-    restart: unless-stopped
-    environment:
-      <<: *app-env
-    command: ["php", "artisan", "horizon"]
-    secrets: [app_key, db_password]
-    depends_on: *app-depends
-    volumes:
-      - app-storage:/var/www/html/storage
-    # Horizon's own auto-restart on memory/time limits is configured in
-    # config/horizon.php. `restart: unless-stopped` covers the process itself.
-    stop_grace_period: 120s
-    networks: [backend]
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # Scheduler — EXACTLY ONE replica. Two schedulers double-fire every task.
-  # ───────────────────────────────────────────────────────────────────────────
-  scheduler:
-    <<: *app-image
-    restart: unless-stopped
-    environment:
-      <<: *app-env
-    command: ["php", "artisan", "schedule:work"]
-    secrets: [app_key, db_password]
-    depends_on: *app-depends
-    volumes:
-      - app-storage:/var/www/html/storage
-    # Do NOT scale this service.
-    deploy:
-      replicas: 1
-    networks: [backend]
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # Reverb — WebSocket server. Without it, every one of the seven
-  # ShouldBroadcast events in app/Events/ writes to a log file and no client
-  # ever receives a result push.
-  # ───────────────────────────────────────────────────────────────────────────
-  reverb:
-    <<: *app-image
-    restart: unless-stopped
-    environment:
-      <<: *app-env
-      REVERB_SERVER_HOST: 0.0.0.0
-      REVERB_SERVER_PORT: "8080"
-    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
-    secrets: [app_key, db_password]
-    depends_on: *app-depends
-    networks: [backend]
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # Rust settlement worker — the hot path
-  # ───────────────────────────────────────────────────────────────────────────
-  settlement-worker:
-    build:
-      context: .
-      dockerfile: docker/rust/Dockerfile
-    restart: unless-stopped
-    environment:
-      WORKER_BIND: "0.0.0.0:9101"
-      RUST_LOG: "info"
-      DATABASE_URL_FILE: /run/secrets/database_url
-    secrets: [database_url]
-    depends_on:
-      db:
-        condition: service_healthy
-    networks: [backend]
+    networks:
+      - edge
+      - backend
 
 networks:
   edge:
@@ -285,6 +238,8 @@ networks:
   backend:
     driver: bridge
     internal: true
+  egress:
+    driver: bridge
 
 volumes:
   db-data:
@@ -293,10 +248,16 @@ volumes:
 
 secrets:
   app_key:
-    external: true
+    file: ${APP_KEY_SECRET_FILE:?APP_KEY_SECRET_FILE is required}
   db_password:
-    external: true
+    file: ${DB_PASSWORD_SECRET_FILE:?DB_PASSWORD_SECRET_FILE is required}
   db_root_password:
-    external: true
-  database_url:
-    external: true
+    file: ${DB_ROOT_PASSWORD_SECRET_FILE:?DB_ROOT_PASSWORD_SECRET_FILE is required}
+  redis_password:
+    file: ${REDIS_PASSWORD_SECRET_FILE:?REDIS_PASSWORD_SECRET_FILE is required}
+  redis_acl:
+    file: ${REDIS_ACL_SECRET_FILE:?REDIS_ACL_SECRET_FILE is required}
+  tls_certificate:
+    file: ${TLS_CERTIFICATE_SECRET_FILE:?TLS_CERTIFICATE_SECRET_FILE is required}
+  tls_private_key:
+    file: ${TLS_PRIVATE_KEY_SECRET_FILE:?TLS_PRIVATE_KEY_SECRET_FILE is required}

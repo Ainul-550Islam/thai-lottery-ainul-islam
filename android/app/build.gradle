@@ -1,0 +1,132 @@
+import java.net.URI
+import java.util.Locale
+
+plugins {
+    id 'com.android.application'
+}
+
+def configuredWebAppUrl = (System.getenv('ANDROID_APP_URL') ?: project.findProperty('androidAppUrl') ?: '').toString().trim()
+if (configuredWebAppUrl.isEmpty()) {
+    throw new GradleException('Set ANDROID_APP_URL to the deployed public HTTPS site before building the Android app.')
+}
+
+def webAppUri
+try {
+    webAppUri = new URI(configuredWebAppUrl)
+} catch (Exception exception) {
+    throw new GradleException('ANDROID_APP_URL must be a valid absolute HTTPS URL.', exception)
+}
+
+def webAppHost = webAppUri.host == null ? '' : webAppUri.host.toLowerCase(Locale.ROOT)
+if (webAppUri.scheme == null
+    || !webAppUri.scheme.equalsIgnoreCase('https')
+    || webAppHost.isEmpty()
+    || webAppUri.userInfo != null
+    || webAppUri.query != null
+    || webAppUri.fragment != null
+    || webAppHost == 'localhost'
+    || webAppHost == '127.0.0.1'
+    || webAppHost == '::1'
+    || webAppHost.endsWith('.local')
+    || webAppHost.endsWith('.internal')) {
+    throw new GradleException('ANDROID_APP_URL must be a public HTTPS URL without credentials, query strings, or fragments.')
+}
+
+if (configuredWebAppUrl.contains('\n') || configuredWebAppUrl.contains('\r')) {
+    throw new GradleException('ANDROID_APP_URL cannot contain newline characters.')
+}
+
+def javaEscapedWebAppUrl = configuredWebAppUrl
+    .replace('\\', '\\\\')
+    .replace('"', '\\"')
+    .replace('\r', '\\r')
+    .replace('\n', '\\n')
+
+def appVersionName = (project.findProperty('versionName') ?: '1.0.0').toString().trim()
+if (appVersionName.matches(/[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?/) == false) {
+    throw new GradleException('versionName must use a semantic version such as 1.0.0.')
+}
+
+def appVersionCode = (project.findProperty('versionCode') ?: '1').toString().toInteger()
+if (appVersionCode < 1) {
+    throw new GradleException('versionCode must be a positive integer.')
+}
+
+def releaseStorePath = System.getenv('ANDROID_KEYSTORE_PATH')?.trim()
+def releaseStorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+def releaseStoreFile = releaseStorePath ? file(releaseStorePath) : null
+def releaseSigningConfigured = releaseStoreFile != null
+    && releaseStoreFile.isFile()
+    && releaseStorePassword != null
+    && !releaseStorePassword.isEmpty()
+    && releaseKeyAlias != null
+    && !releaseKeyAlias.isEmpty()
+    && releaseKeyPassword != null
+    && !releaseKeyPassword.isEmpty()
+
+android {
+    namespace 'com.ainul550.thailottery'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.ainul550.thailottery'
+        minSdk 23
+        targetSdk 35
+        versionCode appVersionCode
+        versionName appVersionName
+        buildConfigField 'String', 'WEB_APP_URL', '"' + javaEscapedWebAppUrl + '"'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    if (releaseSigningConfigured) {
+        signingConfigs {
+            release {
+                storeFile releaseStoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+
+        release {
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.getByName('release')
+            }
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.register('assertReleaseSigning') {
+    group = 'verification'
+    description = 'Fails closed unless a stable release signing key is configured.'
+    doLast {
+        if (!releaseSigningConfigured) {
+            throw new GradleException('A signed production APK requires ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD. Configure these as protected release secrets.')
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'assembleRelease') {
+        dependsOn tasks.named('assertReleaseSigning')
+    }
+}

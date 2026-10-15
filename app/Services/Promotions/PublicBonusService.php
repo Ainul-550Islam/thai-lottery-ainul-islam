@@ -77,7 +77,9 @@ class PublicBonusService
                 'cta_label' => isset($raw['cta_label']) && is_string($raw['cta_label']) && $raw['cta_label'] !== ''
                     ? $raw['cta_label']
                     : null,
-                'cta_url' => $this->safeCtaUrl($raw['cta_url'] ?? null),
+                'cta_url' => isset($raw['cta_url']) && is_string($raw['cta_url']) && $raw['cta_url'] !== ''
+                    ? $raw['cta_url']
+                    : null,
             ];
 
             if (count($active) >= $max) {
@@ -98,35 +100,6 @@ class PublicBonusService
             'campaigns' => $active,
             'message' => '',
         ];
-    }
-
-    /**
-     * Operator-supplied campaign links are rendered as href values on the public
-     * home page. Only https URLs and single-slash relative paths are allowed.
-     * Anything else (javascript:, data:, protocol-relative //host, plain text,
-     * backslash tricks) is dropped to null so no unsafe link is ever rendered.
-     */
-    private function safeCtaUrl(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $url = trim($value);
-        if ($url === '' || preg_match('/[\x00-\x20\x7F\\\\]/', $url) === 1) {
-            return null;
-        }
-
-        if (str_starts_with($url, '/')) {
-            return str_starts_with($url, '//') ? null : $url;
-        }
-
-        $parts = parse_url($url);
-        if ($parts === false || ! isset($parts['scheme'], $parts['host'])) {
-            return null;
-        }
-
-        return strtolower($parts['scheme']) === 'https' ? $url : null;
     }
 
     private function parseDate(mixed $value): ?Carbon

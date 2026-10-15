@@ -217,6 +217,7 @@ class GloResultFallbackTest extends TestCase
         $this->assertNull($payload['fingerprint']);
         $this->assertStringContainsString('Every result source failed', (string) $payload['failure_reason']);
         $this->assertStringContainsString('official', (string) $payload['failure_reason']);
+        $this->assertStringContainsString('fixture fallback is disabled', (string) $payload['failure_reason']);
     }
 
     #[Test]
@@ -224,6 +225,7 @@ class GloResultFallbackTest extends TestCase
     {
         config([
             'glo.sources.priority' => ['official', 'fixture'],
+            'glo.sources.fall_through_to_fixture' => true,
             'glo.sources.breaker.failure_threshold' => 1,
         ]);
 
@@ -279,10 +281,47 @@ class GloResultFallbackTest extends TestCase
     }
 
     #[Test]
+    public function half_open_probe_limit_allows_one_probe_and_reopens_after_failure(): void
+    {
+        config([
+            'glo.sources.breaker.failure_threshold' => 1,
+            'glo.sources.breaker.cooldown_seconds' => 60,
+            'glo.sources.breaker.half_open_probes' => 1,
+        ]);
+
+        $breaker = app(CircuitBreaker::class);
+        $policy = BreakerPolicy::fromConfig(app('config'));
+
+        $breaker->recordFailure('official', $policy, 'initial timeout');
+        $this->assertSame('open', $breaker->describe('official', $policy)['state']);
+
+        $this->travel(61)->seconds();
+
+        $this->assertTrue($breaker->allows('official', $policy));
+        $this->assertFalse(
+            $breaker->allows('official', $policy),
+            'a second worker must not claim a probe after the configured limit is reached',
+        );
+
+        // If the worker that claimed the first probe died without recording an
+        // outcome, the bounded lease expires and permits a fresh probe.
+        $this->travel(61)->seconds();
+        $this->assertTrue($breaker->allows('official', $policy));
+
+        $breaker->recordFailure('official', $policy, 'probe timeout');
+        $state = $breaker->describe('official', $policy);
+
+        $this->assertSame('open', $state['state']);
+        $this->assertGreaterThan(0, $state['retry_after_seconds']);
+        $this->assertSame(2, $state['failures']);
+    }
+
+    #[Test]
     public function a_successful_probe_after_the_cooldown_closes_the_circuit(): void
     {
         config([
             'glo.sources.priority' => ['official', 'fixture'],
+            'glo.sources.fall_through_to_fixture' => true,
             'glo.sources.breaker.failure_threshold' => 1,
             'glo.sources.breaker.cooldown_seconds' => 60,
         ]);
@@ -359,7 +398,10 @@ class GloResultFallbackTest extends TestCase
     #[Test]
     public function when_every_source_fails_the_answer_contains_no_numbers(): void
     {
-        config(['glo.sources.priority' => ['official', 'fixture']]);
+        config([
+            'glo.sources.priority' => ['official', 'fixture'],
+            'glo.sources.fall_through_to_fixture' => true,
+        ]);
 
         $this->mock(GloOfficialResultProvider::class, function ($mock): void {
             $mock->shouldReceive('name')->andReturn('official');
@@ -405,7 +447,7 @@ class GloResultFallbackTest extends TestCase
         $chain = app(GloResultProviderChain::class);
         $payload = $chain->fetch('DRAW-1');
 
-        $this->assertSame('failed', $payload['status']);
+        $this->assertSame('not_configured', $payload['status']);
         $this->assertSame([], $chain->attempts());
         $this->assertStringContainsString('No result source is configured', (string) $payload['failure_reason']);
     }
@@ -438,7 +480,7 @@ class GloResultFallbackTest extends TestCase
 
         $payload = app(GloResultProviderChain::class)->fetch('DRAW-1');
 
-        $this->assertSame('failed', $payload['status']);
+        $this->assertSame('not_configured', $payload['status']);
         $this->assertStringContainsString('not_configured', (string) $payload['failure_reason']);
         $this->assertStringContainsString('GLO_OFFICIAL_ENDPOINT is not set', (string) $payload['failure_reason']);
 
@@ -448,11 +490,31 @@ class GloResultFallbackTest extends TestCase
     }
 
     #[Test]
-    public function the_import_service_fetches_through_the_ladder_and_labels_from_the_payload(): void
+    public function a_successful_response_for_a_different_draw_is_rejected(): void
     {
-        // The end-to-end property, asserted at the seam that matters: the label
-        // written to the provenance row comes from the PAYLOAD's provider field,
-        // not from the name of the object the service asked.
+        config(['glo.sources.priority' => ['official']]);
+
+        $this->mock(GloOfficialResultProvider::class, function ($mock): void {
+            $mock->shouldReceive('name')->andReturn('official');
+            $mock->shouldReceive('isConfigured')->andReturn(true);
+            $mock->shouldReceive('fetch')->once()->with('DRAW-REQUESTED')->andReturn(
+                $this->payload('imported', 'official', 'DRAW-OTHER'),
+            );
+        });
+
+        $payload = app(GloResultProviderChain::class)->fetch('DRAW-REQUESTED');
+
+        $this->assertSame('failed', $payload['status']);
+        $this->assertNull($payload['first_prize']);
+        $this->assertNull($payload['fingerprint']);
+        $this->assertStringContainsString('invalid draw identity', (string) $payload['failure_reason']);
+    }
+
+    #[Test]
+    public function the_import_service_exposes_the_chain_as_its_provider(): void
+    {
+        // Import behavior and persisted provider attribution are exercised in
+        // GloResultImportTest; this assertion protects the integration seam.
         config([
             'glo.official_source.mode' => 'fixture',
             'glo.sources.priority' => [],

@@ -80,27 +80,6 @@ final class RegisterMemberRequest extends FormRequest
                 'before:'.now()->subYears($minAgeYears)->toDateString(),
             ],
 
-            // Optional identity fields (competitor parity C16). Blank is allowed.
-            'national_id' => [
-                'nullable',
-                'string',
-                'max:40',
-                'regex:/^[A-Za-z0-9\s\-]+$/',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    $normalised = \App\Support\NationalIdentity::normalise(is_string($value) ? $value : null);
-                    if ($normalised !== null && ! \App\Support\NationalIdentity::isValid($normalised)) {
-                        $fail(__('public_pages.register_error_national_id_format'));
-                    }
-                },
-            ],
-            'wechat_id' => [
-                'nullable',
-                'string',
-                'min:6',
-                'max:20',
-                'regex:/^[A-Za-z][A-Za-z0-9_\-]{5,19}$/',
-            ],
-
             'terms' => ['required', 'accepted'],
         ];
     }
@@ -121,8 +100,6 @@ final class RegisterMemberRequest extends FormRequest
             'email' => __('public_pages.register_email'),
             'date_of_birth' => __('public_pages.register_dob'),
             'nationality' => __('public_pages.register_nationality'),
-            'national_id' => __('public_pages.register_national_id'),
-            'wechat_id' => __('public_pages.register_wechat_id'),
             'terms' => __('public_pages.register_terms'),
         ];
     }

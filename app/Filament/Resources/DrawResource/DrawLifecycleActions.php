@@ -7,8 +7,9 @@ namespace App\Filament\Resources\DrawResource;
 use App\Enums\DrawLifecycleState;
 use App\Enums\DrawStatus;
 use App\Models\Draw;
+use App\Models\User;
 use App\Services\Draw\DrawLifecycleService;
-use App\Services\Draw\DrawResultPublicationService;
+use App\Services\Draw\DrawResultIngestionService;
 use App\Services\Draw\DrawSettlementSimulationService;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
@@ -16,6 +17,8 @@ use Filament\Actions as PageActions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions as TableActions;
+use Illuminate\Support\Facades\Auth;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -151,13 +154,13 @@ final class DrawLifecycleActions
                 },
             ],
             [
-                'name' => 'publish',
-                'label' => 'Publish official numbers',
-                'icon' => 'heroicon-o-megaphone',
+                'name' => 'stageResult',
+                'label' => 'Stage official numbers',
+                'icon' => 'heroicon-o-clipboard-document-check',
                 'color' => 'primary',
-                'heading' => 'Publish the official result',
-                'description' => 'Enter the numbers exactly as announced by the Thai Government Lottery Office. This is not reversible: there is no unpublish, and a published draw can no longer be cancelled.',
-                'submitLabel' => 'Publish — this cannot be undone',
+                'heading' => 'Stage the official result for independent review',
+                'description' => 'Enter the numbers exactly as announced by the Thai Government Lottery Office. This only creates a Pending ingestion; a different persisted operator must confirm it before publication.',
+                'submitLabel' => 'Stage for independent review',
                 'form' => [
                     Forms\Components\TextInput::make('first_prize')
                         ->label('First prize')
@@ -176,22 +179,31 @@ final class DrawLifecycleActions
                     && $record->status === DrawStatus::Drawing,
                 'action' => static function (Draw $record, array $data): void {
                     self::run(static function () use ($record, $data): void {
-                        $outcome = app(DrawResultPublicationService::class)->publish((int) $record->getKey(), [
-                            'first_prize' => (string) $data['first_prize'],
-                            'bottom_two' => (string) $data['bottom_two'],
-                        ]);
+                        $actor = Auth::user();
+                        $actorId = $actor instanceof User ? $actor->getKey() : null;
 
-                        $rows = is_array($outcome['winning_numbers'] ?? null) ? count($outcome['winning_numbers']) : 0;
+                        if (! is_int($actorId) || $actorId < 1) {
+                            throw new RuntimeException('A persisted operator identity is required to stage a result.');
+                        }
+
+                        app(DrawResultIngestionService::class)->ingest(
+                            (int) $record->getKey(),
+                            [
+                                'first_prize' => (string) $data['first_prize'],
+                                'bottom_two' => (string) $data['bottom_two'],
+                            ],
+                            'admin-panel',
+                            $actorId,
+                        );
 
                         Notification::make()
                             ->success()
-                            ->title('Result published')
+                            ->title('Result staged for review')
                             ->body(sprintf(
-                                '%s: %s / %s — %d winning number row(s) written. Settlement runs automatically after the configured delay.',
+                                '%s: %s / %s is Pending independent confirmation. No official result was published.',
                                 $record->draw_number,
                                 $data['first_prize'],
                                 $data['bottom_two'],
-                                $rows,
                             ))
                             ->send();
                     });
