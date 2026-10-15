@@ -58,45 +58,6 @@ class Withdrawal extends Model
     /** @use HasFactory<Factory> */
     use HasFactory;
 
-    /**
-     * reference_number is NOT NULL and UNIQUE at the database. A withdrawal created
-     * without one is a programming error that would otherwise surface as a raw SQL
-     * constraint violation, so the model guarantees a unique reference itself.
-     */
-    protected static function booted(): void
-    {
-        static::creating(function (Withdrawal $withdrawal): void {
-            // net_amount is the amount the player receives: amount minus fee. The column is
-            // NOT NULL and CHECK (net_amount >= 0), so it is derived here from the exact
-            // decimal inputs rather than left to every caller to remember.
-            if ($withdrawal->net_amount === null || $withdrawal->net_amount === '') {
-                $amount = (string) ($withdrawal->amount ?? '0');
-                $fee = (string) ($withdrawal->fee ?? '0');
-                $withdrawal->net_amount = bcsub($amount, $fee, 2);
-            }
-
-            if (is_string($withdrawal->reference_number) && trim($withdrawal->reference_number) !== '') {
-                return;
-            }
-
-            for ($attempt = 0; $attempt < 8; $attempt++) {
-                $candidate = substr(sprintf(
-                    'WD-%s-%s',
-                    Carbon::now()->format('Ymd'),
-                    strtoupper(bin2hex(random_bytes(6))),
-                ), 0, 64);
-
-                if (! self::withTrashed()->where('reference_number', $candidate)->exists()) {
-                    $withdrawal->reference_number = $candidate;
-
-                    return;
-                }
-            }
-
-            throw new \RuntimeException('Unable to allocate a unique withdrawal reference number.');
-        });
-    }
-
     use SoftDeletes;
 
     /**

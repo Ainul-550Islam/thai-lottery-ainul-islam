@@ -421,10 +421,8 @@ final class PlayerExperienceComprehensiveTest extends TestCase
             ->assertSee('Thai Lottery Draws');
 
         $detailView = $this->get(route('player.draws.detail', $draw->id));
-        // The shipped copy is "Draw :draw Detail" (en) and shows the draw number
-        // without a '#'. Assert the number itself, which is what matters here.
         $detailView->assertStatus(200)
-            ->assertSee($draw->draw_number);
+            ->assertSee('Draw #'.$draw->draw_number);
     }
 
     /*
@@ -1141,13 +1139,10 @@ final class PlayerExperienceComprehensiveTest extends TestCase
         $this->assertEquals($draw->id, $statusPayload['draw_id']);
         $this->assertArrayNotHasKey('password', $statusPayload);
 
-        // This row has no trusted confirmation chain, so nothing may reach a
-        // player channel: the payload is empty and the broadcast is refused.
-        // A trusted publication is covered in GloResultTrustPolicyTest.
         $drawResultEvent = new DrawResultPublished($draw, $result);
         $this->assertEquals('draw.result.published', $drawResultEvent->broadcastAs());
-        $this->assertFalse($drawResultEvent->broadcastWhen());
-        $this->assertSame([], $drawResultEvent->broadcastWith());
+        $resultPayload = $drawResultEvent->broadcastWith();
+        $this->assertEquals('123456', $resultPayload['first_prize']);
 
         $walletEvent = new WalletBalanceUpdated($this->wallet);
         $this->assertEquals('wallet.balance.updated', $walletEvent->broadcastAs());

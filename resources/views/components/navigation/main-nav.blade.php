@@ -20,11 +20,6 @@
         <a href="{{ route('player.wallet') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('player.wallet') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
             {{ __('player.nav_wallet') }}
         </a>
-        @if ((bool) config('conversions.enabled', true))
-            <a href="{{ route('player.wallet.conversion') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('player.wallet.conversion*') ? 'bg-slate-800 text-amber-300 border border-amber-500/30 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
-                {{ __('wallet_conversion.nav_convert') }}
-            </a>
-        @endif
         <a href="{{ route('glo-l6.index') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('glo-l6.*') ? 'bg-slate-800 text-amber-300 border border-amber-500/30 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
             {{ __('player.nav_glo_l6') }}
         </a>

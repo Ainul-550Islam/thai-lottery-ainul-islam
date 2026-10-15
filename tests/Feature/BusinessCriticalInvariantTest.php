@@ -50,8 +50,8 @@ use App\Services\Finance\FinancialReconciliationService;
 use App\Services\Finance\Money;
 use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WalletReservationService;
-use App\Services\Wallet\WalletService;
-use App\Exceptions\WithdrawalException;
+use App\Services\Finance\WalletService;
+use App\Services\Payment\ProcessPaymentWebhookService;
 use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\Security\SecurityEventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -77,51 +77,32 @@ class BusinessCriticalInvariantTest extends TestCase
     public function test_invariant_1_idempotent_webhook_processing(): void
     {
         $user = User::factory()->create();
-        $wallet = app(WalletService::class)->getOrCreateWallet($user->id, Currency::THB->value);
-        $initialBalance = (string) $wallet->balance;
+        $walletService = app(WalletService::class);
+        $webhookService = app(ProcessPaymentWebhookService::class);
 
-        // A real pending deposit credited through PaymentWebhookService, the
-        // same pipeline production uses.
-        $deposit = new \App\Models\Deposit();
-        $deposit->fill([
-            'reference_number' => 'DP-INV1-'.strtoupper(bin2hex(random_bytes(4))),
-            'user_id' => $user->id,
-            'wallet_id' => $wallet->id,
-            'method' => \App\Enums\PaymentMethod::Stripe,
-            'provider' => \App\Enums\PaymentMethod::Stripe->value,
-            'currency' => $wallet->currency,
+        $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
+        $initialBalance = $wallet->balance;
+
+        $externalId = 'WH-TX-' . uniqid();
+        $payload = [
+            'provider' => 'bkash',
+            'external_id' => $externalId,
             'amount' => '500.00',
-            'fee' => '0.00',
-            'net_amount' => '500.00',
-            'metadata' => [],
-        ]);
-        $deposit->uuid = (string) \Illuminate\Support\Str::uuid();
-        $deposit->status = \App\Enums\DepositStatus::Pending;
-        $deposit->save();
+            'currency' => 'THB',
+            'status' => 'completed',
+            'user_id' => $user->id,
+        ];
 
-        $payload = new \App\DTOs\Payment\WebhookPayload(
-            gateway: 'stripe',
-            eventId: 'evt_inv1_'.uniqid(),
-            eventType: \App\Enums\WebhookEventType::DepositSuccess,
-            providerReference: 'cs_inv1_'.uniqid(),
-            internalReference: $deposit->reference_number,
-            amount: '500.00',
-            currency: Currency::THB,
-            isSuccess: true,
-            rawData: ['status' => 'complete'],
-        );
+        // Process webhook first time
+        $result1 = $webhookService->process('bkash', $payload, $externalId);
+        $this->assertTrue($result1->successful);
+        $this->assertEquals(bcadd((string) $initialBalance, '500.00', 2), (string) $wallet->fresh()->balance);
 
-        $webhooks = app(\App\Services\Payment\PaymentWebhookService::class);
-
-        $result1 = $webhooks->processWebhookPayload($payload);
-        $this->assertTrue($result1->success);
-        $this->assertFalse($result1->replayed);
-        $this->assertSame(bcadd($initialBalance, '500.00', 2), (string) $wallet->fresh()->balance);
-
-        // Same event delivered again: replayed, no second credit.
-        $result2 = $webhooks->processWebhookPayload($payload);
+        // Replay same webhook payload with same external_id
+        $result2 = $webhookService->process('bkash', $payload, $externalId);
+        $this->assertTrue($result2->successful);
         $this->assertTrue($result2->replayed);
-        $this->assertSame(bcadd($initialBalance, '500.00', 2), (string) $wallet->fresh()->balance);
+        $this->assertEquals(bcadd((string) $initialBalance, '500.00', 2), (string) $wallet->fresh()->balance);
     }
 
     /**
@@ -147,10 +128,9 @@ class BusinessCriticalInvariantTest extends TestCase
             'destination_details' => json_encode(['account' => '123456789']),
         ]);
 
-        // Attempting to disburse an already completed withdrawal must throw the domain exception.
-        $this->expectException(WithdrawalException::class);
-        $this->expectExceptionMessage(sprintf('Withdrawal %d has already been completed.', $withdrawal->id));
-        $disbursementService->disburse($withdrawal);
+        // Attempting to disburse an already completed withdrawal must throw or return false
+        $this->expectException(InvalidArgumentException::class);
+        $disbursementService->disburse((int) $withdrawal->id);
     }
 
     /**
@@ -175,10 +155,9 @@ class BusinessCriticalInvariantTest extends TestCase
         $walletService = app(WalletService::class);
 
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
-        // Use the genuine transaction types; a free-text label would be booked as an Adjustment.
-        $walletService->credit($wallet->id, '500.00', FinancialTransactionType::Deposit, 'inv4-wallet-'.$wallet->id.'-credit-1', ['description' => 'Credit 1']);
-        $walletService->credit($wallet->id, '300.00', FinancialTransactionType::Deposit, 'inv4-wallet-'.$wallet->id.'-credit-2', ['description' => 'Credit 2']);
-        $walletService->debit($wallet->id, '200.00', FinancialTransactionType::Withdrawal, 'inv4-wallet-'.$wallet->id.'-debit-1', ['description' => 'Debit 1']);
+        $walletService->credit($wallet->id, '500.00', 'Credit 1');
+        $walletService->credit($wallet->id, '300.00', 'Credit 2');
+        $walletService->debit($wallet->id, '200.00', 'Debit 1');
 
         $totalBalance = (string) $wallet->fresh()->balance;
         $this->assertEquals('600.00', $totalBalance);
@@ -314,7 +293,7 @@ class BusinessCriticalInvariantTest extends TestCase
         $result1 = $settlementService->settleForDraw((int) $draw->id);
         $this->assertEquals(1, $result1->commissionsSettled);
         $this->assertEquals('50.00', $result1->totalCommissionPaid);
-        $this->assertSame(CommissionStatus::Paid, $commission->fresh()->status);
+        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status);
 
         // Settle second time (idempotent replay)
         $result2 = $settlementService->settleForDraw((int) $draw->id);
@@ -356,7 +335,7 @@ class BusinessCriticalInvariantTest extends TestCase
         $result = $settlementService->settleForDraw((int) $draw->id);
 
         $this->assertEquals(0, $result->commissionsSettled);
-        $this->assertSame(CommissionStatus::Cancelled, $commission->fresh()->status);
+        $this->assertEquals(CommissionStatus::Cancelled->value, $commission->fresh()->status);
     }
 
     /**
@@ -394,11 +373,11 @@ class BusinessCriticalInvariantTest extends TestCase
         );
 
         $exclusion = $rgService->request($data);
-        $this->assertSame(SelfExclusionStatus::Requested, $exclusion->status);
+        $this->assertEquals(SelfExclusionStatus::Requested->value, $exclusion->status);
 
         // Activate
         $active = $rgService->activate($exclusion);
-        $this->assertSame(SelfExclusionStatus::Active, $active->status);
+        $this->assertEquals(SelfExclusionStatus::Active->value, $active->status);
         $this->assertTrue($rgService->hasActiveExclusion($user->id));
 
         // Premature expiry rejection
@@ -445,11 +424,11 @@ class BusinessCriticalInvariantTest extends TestCase
 
         // Reserve in THB
         $res = $reservationService->reserve(
-            $user->id,
-            '200.00',
-            Currency::THB->value,
-            'Test reservation',
-            60
+            userId: $user->id,
+            amount: '200.00',
+            currency: Currency::THB->value,
+            reason: 'Test reservation',
+            ttlSeconds: 60
         );
 
         $this->assertNotNull($res);

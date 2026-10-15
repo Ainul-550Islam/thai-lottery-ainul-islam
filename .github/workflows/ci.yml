@@ -154,7 +154,7 @@ jobs:
 
       - name: Application key and route optimisation
         run: |
-          cp .env.ci .env
+          cp .env.example .env 2>/dev/null || true
           php artisan key:generate --force || true
           php artisan optimize:clear
           php artisan config:cache
@@ -503,7 +503,7 @@ jobs:
       - name: Prepare controlled Laravel environment
         run: |
           set -euo pipefail
-          cp .env.ci .env
+          cp .env.example .env
           php artisan key:generate --force
 
       - name: Install and verify Composer dependencies

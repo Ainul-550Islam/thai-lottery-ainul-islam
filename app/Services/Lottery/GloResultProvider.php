@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Lottery;
 
 /**
- * Contract for a GLO result source or ordered source chain.
+ * Contract for a GLO official-result source.
  *
  * Implementations must only ever target DOCUMENTED public catalog endpoints:
  *   POST www.glo.or.th/api/lottery/getLatestLottery

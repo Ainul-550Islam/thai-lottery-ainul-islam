@@ -1,0 +1,931 @@
+{
+  "run": "full-f42",
+  "date": "2026-10-15",
+  "runtime": "PHP 8.4.26 with intl, GD/JPEG, PDO MySQL and PDO SQLite",
+  "database": "file-backed disposable SQLite thai_lottery_test",
+  "tests": 2538,
+  "assertions": 113966,
+  "errors": 0,
+  "failures": 0,
+  "skipped": 0,
+  "skipped_count": 0,
+  "baseline": {
+    "run": "full-f35",
+    "tests": 2299,
+    "assertions": 111903,
+    "errors": 45,
+    "failures": 6,
+    "skipped_count": 2
+  },
+  "previous_full_run": {
+    "run": "full-f41",
+    "tests": 2507,
+    "assertions": 113657,
+    "errors": 15,
+    "failures": 0,
+    "skipped_count": 0
+  },
+  "earlier_full_runs": [
+    {
+      "run": "full-f36",
+      "tests": 2302,
+      "assertions": 112306,
+      "errors": 15,
+      "failures": 0,
+      "skipped_count": 2
+    },
+    {
+      "run": "full-f37",
+      "tests": 2355,
+      "assertions": 112833,
+      "errors": 15,
+      "failures": 0,
+      "skipped_count": 2
+    },
+    {
+      "run": "full-f38",
+      "tests": 2424,
+      "assertions": 113167,
+      "errors": 15,
+      "failures": 0,
+      "skipped_count": 2
+    },
+    {
+      "run": "full-f39",
+      "tests": 2450,
+      "assertions": 113293,
+      "errors": 15,
+      "failures": 0,
+      "skipped_count": 2
+    },
+    {
+      "run": "full-f40",
+      "tests": 2486,
+      "assertions": 113500,
+      "errors": 15,
+      "failures": 0,
+      "skipped_count": 1
+    }
+  ],
+  "new_failing_test_names_vs_full_f41": [],
+  "resolved_original_cursor_failing_names_since_f41": 15,
+  "resolved_since_full_f35_count": 51,
+  "remaining": [],
+  "resolved_since_full_f35": [
+    {
+      "test": "Tests\\Feature\\Betting\\BetPurchaseAtomicityTest::ab2_replays_rather_than_duplicates_two_concurrent_identical_requests",
+      "kind": "failure",
+      "exception_type": "PHPUnit\\Framework\\ExpectationFailedException",
+      "message": "Concurrency probe outcomes: [{\"outcome\":\"refused\",\"exception\":\"Illuminate\\\\Database\\\\QueryException\",\"message\":\"SQLSTATE[HY000]: General error: 5 database is locked (Connection: sqlite, Database: database\\/thai_lottery_test, SQL: update \\\"number_limits\\\" set \\\"current_amount\\\" = 10.00, \\\"current_payout_exposure\\\" = 9000.00, \\\"updated_at\\\" = 2026-10-14 15:40:40 where \\\"id\\\" = 1)\"},{\"outcome\":\"purchased\",\"bet_id\":1,\"ticket_id\":1,\"financial_transaction_id\":1}]",
+      "details": "Tests\\Feature\\Betting\\BetPurchaseAtomicityTest::ab2_replays_rather_than_duplicates_two_concurrent_identical_requests\nConcurrency probe outcomes: [{\"outcome\":\"refused\",\"exception\":\"Illuminate\\\\Database\\\\QueryException\",\"message\":\"SQLSTATE[HY000]: General error: 5 database is locked (Connection: sqlite, Database: database\\/thai_lottery_test, SQL: update \\\"number_limits\\\" set \\\"current_amount\\\" = 10.00, \\\"current_payout_exposure\\\" = 9000.00, \\\"updated_at\\\" = 2026-10-14 15:40:40 where \\\"id\\\" = 1)\"},{\"outcome\":\"purchased\",\"bet_id\":1,\"ticket_id\":1,\"financial_transaction_id\":1}]\nFailed asserting that 1 is identical to 0.\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Betting/BetPurchaseAtomicityTest.php:550",
+      "current_status": "passed",
+      "current_assertions": 12,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_1_idempotent_webhook_processing",
+      "kind": "error",
+      "exception_type": "Illuminate\\Contracts\\Container\\BindingResolutionException",
+      "message": "Illuminate\\Contracts\\Container\\BindingResolutionException: Target class [App\\Services\\Payment\\ProcessPaymentWebhookService] does not exist.",
+      "details": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_1_idempotent_webhook_processing\nIlluminate\\Contracts\\Container\\BindingResolutionException: Target class [App\\Services\\Payment\\ProcessPaymentWebhookService] does not exist.\n\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Container/Container.php:1124\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Container/Container.php:933\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1078\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Container/Container.php:864\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1058\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php:138\n/home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php:81",
+      "current_status": "passed",
+      "current_assertions": 9,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_2_withdrawal_disbursement_terminal_state_safety",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php on line 118",
+      "details": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_2_withdrawal_disbursement_terminal_state_safety\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php on line 118\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php:118",
+      "current_status": "passed",
+      "current_assertions": 6,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_3_financial_reconciliation_engine_auditing",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Finance\\FinancialReconciliationService::reconcileSystem()",
+      "details": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_3_financial_reconciliation_engine_auditing\nError: Call to undefined method App\\Services\\Finance\\FinancialReconciliationService::reconcileSystem()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php:142",
+      "current_status": "passed",
+      "current_assertions": 6,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_4_wallet_ledger_balance_consistency",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php on line 158",
+      "details": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_4_wallet_ledger_balance_consistency\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php on line 158\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php:158",
+      "current_status": "passed",
+      "current_assertions": 12,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_10_agent_commission_settlement_idempotency",
+      "kind": "failure",
+      "exception_type": "PHPUnit\\Framework\\ExpectationFailedException",
+      "message": "App\\Enums\\CommissionStatus Enum (Paid, 'paid') does not match expected type \"string\".",
+      "details": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_10_agent_commission_settlement_idempotency\nApp\\Enums\\CommissionStatus Enum (Paid, 'paid') does not match expected type \"string\".\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php:296",
+      "current_status": "passed",
+      "current_assertions": 8,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_11_agent_commission_cancellation_for_suspended_agent",
+      "kind": "failure",
+      "exception_type": "PHPUnit\\Framework\\ExpectationFailedException",
+      "message": "App\\Enums\\CommissionStatus Enum (Cancelled, 'cancelled') does not match expected type \"string\".",
+      "details": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_11_agent_commission_cancellation_for_suspended_agent\nApp\\Enums\\CommissionStatus Enum (Cancelled, 'cancelled') does not match expected type \"string\".\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php:338",
+      "current_status": "passed",
+      "current_assertions": 4,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_13_self_exclusion_lifecycle",
+      "kind": "failure",
+      "exception_type": "PHPUnit\\Framework\\ExpectationFailedException",
+      "message": "App\\Enums\\SelfExclusionStatus Enum (Requested, 'requested') does not match expected type \"string\".",
+      "details": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_13_self_exclusion_lifecycle\nApp\\Enums\\SelfExclusionStatus Enum (Requested, 'requested') does not match expected type \"string\".\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php:376",
+      "current_status": "passed",
+      "current_assertions": 4,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_15_multi_currency_wallet_isolation",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php on line 419",
+      "details": "Tests\\Feature\\BusinessCriticalInvariantTest::test_invariant_15_multi_currency_wallet_isolation\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php on line 419\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/BusinessCriticalInvariantTest.php:419",
+      "current_status": "passed",
+      "current_assertions": 8,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalProductionReadinessTest::test_wallet_isolation_and_balance_immutability",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php on line 168",
+      "details": "Tests\\Feature\\FinalProductionReadinessTest::test_wallet_isolation_and_balance_immutability\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php on line 168\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php:168",
+      "current_status": "passed",
+      "current_assertions": 4,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalProductionReadinessTest::test_payment_webhook_replay_protection",
+      "kind": "error",
+      "exception_type": "Illuminate\\Contracts\\Container\\BindingResolutionException",
+      "message": "Illuminate\\Contracts\\Container\\BindingResolutionException: Target class [App\\Services\\Payment\\ProcessPaymentWebhookService] does not exist.",
+      "details": "Tests\\Feature\\FinalProductionReadinessTest::test_payment_webhook_replay_protection\nIlluminate\\Contracts\\Container\\BindingResolutionException: Target class [App\\Services\\Payment\\ProcessPaymentWebhookService] does not exist.\n\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Container/Container.php:1124\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Container/Container.php:933\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1078\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Container/Container.php:864\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1058\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php:138\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php:202",
+      "current_status": "passed",
+      "current_assertions": 9,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalProductionReadinessTest::test_bulk_bet_placement_with_idempotency",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php on line 240",
+      "details": "Tests\\Feature\\FinalProductionReadinessTest::test_bulk_bet_placement_with_idempotency\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php on line 240\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php:240",
+      "current_status": "passed",
+      "current_assertions": 12,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalProductionReadinessTest::test_glo_l6_proportional_prize_calculation",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Lottery\\GloStampDutyCalculator::calculateDuty()",
+      "details": "Tests\\Feature\\FinalProductionReadinessTest::test_glo_l6_proportional_prize_calculation\nError: Call to undefined method App\\Services\\Lottery\\GloStampDutyCalculator::calculateDuty()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php:277",
+      "current_status": "passed",
+      "current_assertions": 5,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalProductionReadinessTest::test_agent_commission_settlement",
+      "kind": "failure",
+      "exception_type": "PHPUnit\\Framework\\ExpectationFailedException",
+      "message": "App\\Enums\\CommissionStatus Enum (Paid, 'paid') does not match expected type \"string\".",
+      "details": "Tests\\Feature\\FinalProductionReadinessTest::test_agent_commission_settlement\nApp\\Enums\\CommissionStatus Enum (Paid, 'paid') does not match expected type \"string\".\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php:339",
+      "current_status": "passed",
+      "current_assertions": 8,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalProductionReadinessTest::test_system_health_and_readiness",
+      "kind": "failure",
+      "exception_type": "PHPUnit\\Framework\\ExpectationFailedException",
+      "message": "Failed asserting that two strings are equal.",
+      "details": "Tests\\Feature\\FinalProductionReadinessTest::test_system_health_and_readiness\nFailed asserting that two strings are equal.\n--- Expected\n+++ Actual\n@@ @@\n-'UP'\n+'healthy'\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalProductionReadinessTest.php:368",
+      "current_status": "passed",
+      "current_assertions": 7,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_02_deposit_funding_and_balance_crediting",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Unknown named parameter $referenceType",
+      "details": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_02_deposit_funding_and_balance_crediting\nError: Unknown named parameter $referenceType\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:100",
+      "current_status": "passed",
+      "current_assertions": 10,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_04_bulk_bet_placement_with_idempotency_and_satang_math",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php on line 134",
+      "details": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_04_bulk_bet_placement_with_idempotency_and_satang_math\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php on line 134\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:134",
+      "current_status": "passed",
+      "current_assertions": 14,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_05_proportional_prize_calculation_and_settlement",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Lottery\\GloL6ProportionalPrizeCalculator::calculatePrizePools()",
+      "details": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_05_proportional_prize_calculation_and_settlement\nError: Call to undefined method App\\Services\\Lottery\\GloL6ProportionalPrizeCalculator::calculatePrizePools()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:195",
+      "current_status": "passed",
+      "current_assertions": 6,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_06_withdrawal_request_and_disbursement_lifecycle",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php on line 211",
+      "details": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_06_withdrawal_request_and_disbursement_lifecycle\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php on line 211\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:211",
+      "current_status": "passed",
+      "current_assertions": 17,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_07_agent_referral_and_settlement_journal",
+      "kind": "error",
+      "exception_type": "App\\Exceptions\\FinancialException",
+      "message": "App\\Exceptions\\FinancialException: Agent AGT-cb2a29 (User #2) has no wallet in THB to receive commission.",
+      "details": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_07_agent_referral_and_settlement_journal\nApp\\Exceptions\\FinancialException: Agent AGT-cb2a29 (User #2) has no wallet in THB to receive commission.\n\n/home/user/thai-lottery-ainul-islam/app/Exceptions/FinancialException.php:55\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:153\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:93\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:44\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentSettlementService.php:49\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentSettlementService.php:58\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:280",
+      "current_status": "passed",
+      "current_assertions": 9,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_08_responsible_gaming_and_self_exclusion_safeguards",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Compliance\\SelfExclusionService::isSelfExcluded()",
+      "details": "Tests\\Feature\\FinalWholeSystemNoSkipTest::test_08_responsible_gaming_and_self_exclusion_safeguards\nError: Call to undefined method App\\Services\\Compliance\\SelfExclusionService::isSelfExcluded()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:296",
+      "current_status": "passed",
+      "current_assertions": 4,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_01_glo_l6_official_ticket_business_flow",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 111",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_01_glo_l6_official_ticket_business_flow\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 111\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:111",
+      "current_status": "passed",
+      "current_assertions": 12,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_02_glo_proportional_payout_and_direct_wallet_settlement",
+      "kind": "error",
+      "exception_type": "App\\Exceptions\\GloClaimException",
+      "message": "App\\Exceptions\\GloClaimException: Claimant identity must be fully KYC verified prior to prize disbursement.",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_02_glo_proportional_payout_and_direct_wallet_settlement\nApp\\Exceptions\\GloClaimException: Claimant identity must be fully KYC verified prior to prize disbursement.\n\n/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:379\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35\n/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:355\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:218",
+      "current_status": "passed",
+      "current_assertions": 13,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_03_payment_hub_deposit_and_withdrawal_execution",
+      "kind": "error",
+      "exception_type": "InvalidArgumentException",
+      "message": "InvalidArgumentException: The account has no wallet for the requested currency.",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_03_payment_hub_deposit_and_withdrawal_execution\nInvalidArgumentException: The account has no wallet for the requested currency.\n\n/home/user/thai-lottery-ainul-islam/app/Services/Payment/ProductionPaymentExecutionHubService.php:59\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:237",
+      "current_status": "passed",
+      "current_assertions": 19,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_04_wallet_canonical_double_entry_and_single_source",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 291",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_04_wallet_canonical_double_entry_and_single_source\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 291\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:291",
+      "current_status": "passed",
+      "current_assertions": 8,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_06_financial_idempotency_protection",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 325",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_06_financial_idempotency_protection\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 325\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:325",
+      "current_status": "passed",
+      "current_assertions": 10,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_07_cross_currency_wallet_isolation",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 355",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_07_cross_currency_wallet_isolation\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #2 ($amount) must be of type App\\Services\\Finance\\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 355\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:355",
+      "current_status": "passed",
+      "current_assertions": 7,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_08_responsible_gaming_canonical_enforcement",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Compliance\\SelfExclusionService::isSelfExcluded()",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_08_responsible_gaming_canonical_enforcement\nError: Call to undefined method App\\Services\\Compliance\\SelfExclusionService::isSelfExcluded()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:374",
+      "current_status": "passed",
+      "current_assertions": 4,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p1_14_kyc_document_storage_and_verification",
+      "kind": "error",
+      "exception_type": "Illuminate\\Database\\Eloquent\\MassAssignmentException",
+      "message": "Illuminate\\Database\\Eloquent\\MassAssignmentException: Add fillable property [kyc_status] to allow mass assignment on [App\\Models\\User].",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p1_14_kyc_document_storage_and_verification\nIlluminate\\Database\\Eloquent\\MassAssignmentException: Add fillable property [kyc_status] to allow mass assignment on [App\\Models\\User].\n\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1090\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:439",
+      "current_status": "passed",
+      "current_assertions": 7,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p2_22_agent_and_draw_reconciliation",
+      "kind": "error",
+      "exception_type": "App\\Exceptions\\FinancialException",
+      "message": "App\\Exceptions\\FinancialException: Agent AGT-REC-001 (User #2) has no wallet in THB to receive commission.",
+      "details": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p2_22_agent_and_draw_reconciliation\nApp\\Exceptions\\FinancialException: Agent AGT-REC-001 (User #2) has no wallet in THB to receive commission.\n\n/home/user/thai-lottery-ainul-islam/app/Exceptions/FinancialException.php:55\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:153\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:93\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491\n/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:44\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentSettlementService.php:49\n/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentSettlementService.php:58\n/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:534",
+      "current_status": "passed",
+      "current_assertions": 12,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_glo_l6_proportional_prize_calculation_and_stamp_duty",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Lottery\\GloStampDutyCalculator::calculateDuty()",
+      "details": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_glo_l6_proportional_prize_calculation_and_stamp_duty\nError: Call to undefined method App\\Services\\Lottery\\GloStampDutyCalculator::calculateDuty()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php:67",
+      "current_status": "passed",
+      "current_assertions": 9,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_glo_prize_claim_lifecycle_and_approval",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Lottery\\GloPrizeClaimService::approveClaim()",
+      "details": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_glo_prize_claim_lifecycle_and_approval\nError: Call to undefined method App\\Services\\Lottery\\GloPrizeClaimService::approveClaim()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php:98",
+      "current_status": "passed",
+      "current_assertions": 10,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_multi_currency_wallet_reservation_and_consumption",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php on line 114",
+      "details": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_multi_currency_wallet_reservation_and_consumption\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php on line 114\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php:114",
+      "current_status": "passed",
+      "current_assertions": 18,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_financial_reconciliation_engine_runs_without_anomalies",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Finance\\FinancialReconciliationService::reconcileSystem()",
+      "details": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_financial_reconciliation_engine_runs_without_anomalies\nError: Call to undefined method App\\Services\\Finance\\FinancialReconciliationService::reconcileSystem()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php:145",
+      "current_status": "passed",
+      "current_assertions": 7,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_withdrawal_disbursement_failure_restores_balance",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php on line 181",
+      "details": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_withdrawal_disbursement_failure_restores_balance\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php on line 181\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php:181",
+      "current_status": "passed",
+      "current_assertions": 15,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_bulk_bet_slip_cart_partial_success_and_replay_idempotency",
+      "kind": "error",
+      "exception_type": "TypeError",
+      "message": "TypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php on line 238",
+      "details": "Tests\\Feature\\RealMoneyBusinessReadinessTest::test_bulk_bet_slip_cart_partial_success_and_replay_idempotency\nTypeError: App\\Services\\Finance\\WalletService::credit(): Argument #1 ($wallet) must be of type App\\Models\\Wallet, int given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php on line 238\n\n/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106\n/home/user/thai-lottery-ainul-islam/tests/Feature/RealMoneyBusinessReadinessTest.php:238",
+      "current_status": "passed",
+      "current_assertions": 20,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::finalize_refuses_while_bets_remain_past_the_cursor",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::finalize_refuses_while_bets_remain_past_the_cursor\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:142",
+      "current_status": "passed",
+      "current_assertions": 5,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_draw_stays_published_until_the_run_is_finalized",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_draw_stays_published_until_the_run_is_finalized\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:166",
+      "current_status": "passed",
+      "current_assertions": 5,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::re_running_a_chunk_does_not_pay_a_bet_twice",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::re_running_a_chunk_does_not_pay_a_bet_twice\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:200",
+      "current_status": "passed",
+      "current_assertions": 5,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::a_completed_run_cannot_settle_the_draw_a_second_time",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::run()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::a_completed_run_cannot_settle_the_draw_a_second_time\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::run()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:263",
+      "current_status": "passed",
+      "current_assertions": 6,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_monolithic_path_refuses_while_a_chunked_run_is_in_flight",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_monolithic_path_refuses_while_a_chunked_run_is_in_flight\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:311",
+      "current_status": "passed",
+      "current_assertions": 5,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::only_one_run_can_exist_for_a_draw",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::only_one_run_can_exist_for_a_draw\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:354",
+      "current_status": "passed",
+      "current_assertions": 3,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::totals_accumulate_exactly_across_chunks",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::totals_accumulate_exactly_across_chunks\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:382",
+      "current_status": "passed",
+      "current_assertions": 10,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::an_interrupted_run_resumes_from_its_cursor_and_finishes",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::an_interrupted_run_resumes_from_its_cursor_and_finishes\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:434",
+      "current_status": "passed",
+      "current_assertions": 8,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_chunked_path_pays_only_once_and_only_under_live",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::run()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_chunked_path_pays_only_once_and_only_under_live\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::run()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:472",
+      "current_status": "passed",
+      "current_assertions": 6,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::a_run_opened_under_dry_run_keeps_dry_run_even_if_config_changes_mid_run",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::a_run_opened_under_dry_run_keeps_dry_run_even_if_config_changes_mid_run\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:497",
+      "current_status": "passed",
+      "current_assertions": 4,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_orchestrator_clamps_the_configured_chunk_size",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::defaultChunkSize()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_orchestrator_clamps_the_configured_chunk_size\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::defaultChunkSize()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:555",
+      "current_status": "passed",
+      "current_assertions": 3,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_safety_mode_is_read_at_open_and_not_per_chunk",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_safety_mode_is_read_at_open_and_not_per_chunk\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:580",
+      "current_status": "passed",
+      "current_assertions": 2,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::percent_complete_reports_progress_and_is_null_without_a_denominator",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::percent_complete_reports_progress_and_is_null_without_a_denominator\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:595",
+      "current_status": "passed",
+      "current_assertions": 3,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_monolithic_job_stands_aside_while_a_chunked_run_owns_the_draw",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_monolithic_job_stands_aside_while_a_chunked_run_owns_the_draw\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:645",
+      "current_status": "passed",
+      "current_assertions": 6,
+      "verified_in": "full-f42.junit.xml"
+    },
+    {
+      "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_monolithic_job_stands_aside_for_an_aborted_resumable_run",
+      "kind": "error",
+      "exception_type": "Error",
+      "message": "Error: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()",
+      "details": "Tests\\Feature\\Draw\\ChunkedSettlementTest::the_monolithic_job_stands_aside_for_an_aborted_resumable_run\nError: Call to undefined method App\\Services\\Draw\\ChunkedSettlementOrchestrator::start()\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Draw/ChunkedSettlementTest.php:703",
+      "current_status": "passed",
+      "current_assertions": 3,
+      "verified_in": "full-f42.junit.xml"
+    }
+  ],
+  "changed_area_phpunit": {
+    "tests": 51,
+    "assertions": 315,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "expanded_regression_phpunit": {
+    "tests": 1441,
+    "assertions": 107236,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "original_cursor_acceptance": {
+    "class": "Tests\\Feature\\Draw\\ChunkedSettlementTest",
+    "tests": 16,
+    "assertions": 76,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "original_cursor_test_unchanged": true,
+  "new_manual_checkpoint_groups": [
+    {
+      "class": "Tests\\Feature\\Draw\\ManualSettlementCheckpointSafetyTest",
+      "tests": 20,
+      "assertions": 88,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\Draw\\ManualSettlementCheckpointConcurrencyTest",
+      "tests": 2,
+      "assertions": 46,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\Draw\\ManualSettlementCheckpointMigrationTest",
+      "tests": 2,
+      "assertions": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Unit\\Settlement\\ManualSettlementCheckpointContractTest",
+      "tests": 6,
+      "assertions": 65,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  ],
+  "production_queue_inventory": {
+    "class": "Tests\\Feature\\Production\\QueueDispatchContractTest",
+    "tests": 5,
+    "assertions": 19,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "initial_inventory_regression": {
+    "tests": 2537,
+    "assertions": 113961,
+    "failures": 1,
+    "errors": 0,
+    "evidence": "/home/user/full-f42-prequeue.log",
+    "closure": "Declare the already permanently refusing queued job explicitly deferred; keep stale/ghost/reason checks and add exact runtime refusal assertion. No producer/queue activation added."
+  },
+  "concurrent_manual_repetitions": {
+    "runs": 3,
+    "tests_per_run": 2,
+    "assertions_per_run": 46,
+    "passed_runs": 3,
+    "evidence": "/home/user/manual-concurrency-repeated-f42.log",
+    "counted_as_new_coverage": false
+  },
+  "groups": [
+    {
+      "class": "Tests\\Feature\\Betting\\BetPurchaseAtomicityTest",
+      "previous_errors": 0,
+      "previous_failures": 1,
+      "current_tests": 50,
+      "current_assertions": 208,
+      "current_errors": 0,
+      "current_failures": 0,
+      "current_skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\BusinessCriticalInvariantTest",
+      "previous_errors": 5,
+      "previous_failures": 3,
+      "current_tests": 15,
+      "current_assertions": 81,
+      "current_errors": 0,
+      "current_failures": 0,
+      "current_skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\Draw\\ChunkedSettlementTest",
+      "previous_errors": 15,
+      "previous_failures": 0,
+      "current_tests": 16,
+      "current_assertions": 76,
+      "current_errors": 0,
+      "current_failures": 0,
+      "current_skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\FinalProductionReadinessTest",
+      "previous_errors": 4,
+      "previous_failures": 2,
+      "current_tests": 12,
+      "current_assertions": 127,
+      "current_errors": 0,
+      "current_failures": 0,
+      "current_skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\FinalWholeSystemNoSkipTest",
+      "previous_errors": 6,
+      "previous_failures": 0,
+      "current_tests": 10,
+      "current_assertions": 89,
+      "current_errors": 0,
+      "current_failures": 0,
+      "current_skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\P0P1P2ComprehensiveEnterpriseSuiteTest",
+      "previous_errors": 9,
+      "previous_failures": 0,
+      "current_tests": 13,
+      "current_assertions": 131,
+      "current_errors": 0,
+      "current_failures": 0,
+      "current_skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\RealMoneyBusinessReadinessTest",
+      "previous_errors": 6,
+      "previous_failures": 0,
+      "current_tests": 8,
+      "current_assertions": 90,
+      "current_errors": 0,
+      "current_failures": 0,
+      "current_skipped": 0
+    }
+  ],
+  "skipped_tests": [],
+  "resolved_runtime_skips": [
+    {
+      "test": "Tests\\Feature\\WeeklyLottery\\WeeklyLotteryPublicPageTest::test_51_php_and_the_native_verifier_agree_or_the_test_is_skipped",
+      "reason_from_existing_source": "Existing native Rust verifier binary prerequisite; the binary was not built for this run.",
+      "junit_details": "",
+      "current_status": "passed",
+      "current_assertions": 5,
+      "verified_in": "full-f42.junit.xml",
+      "closure": "Real locked native host executable built; original skip guard/class unchanged."
+    },
+    {
+      "test": "Tests\\Feature\\Settlement\\SettlementSimulationTest::point_20_lets_only_one_of_two_concurrent_settlements_write",
+      "reason_from_existing_source": "Existing requiresRealConcurrency() prerequisite; the SQLite run does not certify this settlement race.",
+      "junit_details": "",
+      "current_status": "passed",
+      "current_assertions": 48,
+      "verified_in": "full-f42.junit.xml",
+      "closure": "Admitted only the shared disposable SQLite file with IMMEDIATE/positive actual timeout; unsupported configurations remain guarded. Real separate-process readiness witness, identical financial rows and write-free replay are asserted."
+    }
+  ],
+  "previous_broad_exception_note": {
+    "test": "Tests\\Feature\\Draw\\ChunkedSettlementTest::a_run_cannot_be_opened_for_a_draw_that_is_not_published",
+    "historical_note": "This unchanged test expects Throwable and can pass on the missing start() method itself. Its pass is not evidence of a working settlement lifecycle refusal.",
+    "current_refusal_proven_by": "Tests\\Feature\\Draw\\ManualSettlementCheckpointSafetyTest::test_unpublished_start_is_a_real_lifecycle_refusal_before_a_run_exists"
+  },
+  "current_manual_backend_scope": "Local code/tests over the existing range payer; manual expected-cursor callbacks make range changes and checkpoint commit atomic. CLI/job/scheduler/gateway/deployment and production LIVE flags are not activated. Fully green local regression is not production certification.",
+  "operational_boundaries": [
+    "Legacy lottery:settle-draw-chunked remains status-only with explicit execution refusal. SettleDrawChunkJob remains permanently unavailable; the old dispatcher settle() refuses.",
+    "Existing per-bet payer/approval/reference helpers are unchanged apart from formatting. The range method gains typed internal before/after callbacks without weakening its owned-transaction guard.",
+    "Old run rows receive nullable snapshot fields, not backfill/activation. Unsupported snapshot versions require manual review.",
+    "No real customer funds, external gateway transfer, scheduler, publication authority, deployment or production mode/threshold change was performed.",
+    "Captured input/result/rule/mode/size and existing output/journal witnesses are rechecked conservatively. No high-throughput/100000-slip-seconds or cross-host/server-row-lock certification is claimed.",
+    "Both runtime skips genuinely remain executing; no original core assertion was removed, renamed, skipped or replaced with fake success."
+  ],
+  "retained_native_php_groups": [
+    {
+      "class": "Tests\\Feature\\WeeklyLottery\\WeeklyNativeVerifierRuntimeTest",
+      "tests": 30,
+      "assertions": 157,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Unit\\Build\\NativeVerifierBuildContractTest",
+      "tests": 6,
+      "assertions": 45,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  ],
+  "complete_weekly_php_group": {
+    "class": "Tests\\Feature\\WeeklyLottery\\WeeklyLotteryPublicPageTest",
+    "tests": 63,
+    "assertions": 542,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "native_rust": {
+    "toolchain": "Rust/Cargo 1.85.1; Clippy 0.1.85",
+    "host": "x86_64-unknown-linux-gnu",
+    "tests": 29,
+    "existing_integrity_tests": 19,
+    "new_cli_tests": 10,
+    "fmt": "pass",
+    "strict_clippy": "pass",
+    "locked_release_build": "pass",
+    "lock_sha256": "afbe3e911b46d630c15b759560e09b78598c369d464de7f6958ee6877d102bbe",
+    "artifact_sha256": "4f6257631324bcccfbad4859df29addef1f05965dbd10923d8b8c797379af9d9",
+    "evidence": "/home/user/native-build-gate-f42.log"
+  },
+  "prior_native_boundary_regressions": {
+    "baseline_tests": 4,
+    "baseline_failures": 2,
+    "resolved": 2,
+    "evidence": "/home/user/native-php-integration-red-f40.log",
+    "closure": "Independently forward each supplied public-key/signature half so native incomplete-material rejection is preserved; do not downgrade to HASH_ONLY."
+  },
+  "retained_preview_groups": [
+    {
+      "class": "Tests\\Feature\\Settlement\\ChunkedSettlementPreviewTest",
+      "tests": 36,
+      "assertions": 300,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\Settlement\\ChunkedSettlementPreviewConcurrencyTest",
+      "tests": 2,
+      "assertions": 51,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\Settlement\\PreviewSettlementCommandTest",
+      "tests": 7,
+      "assertions": 55,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Feature\\Settlement\\SettlementPreviewMigrationTest",
+      "tests": 1,
+      "assertions": 10,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Unit\\Settlement\\ChunkedSettlementPreviewSafetyTest",
+      "tests": 7,
+      "assertions": 101,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  ],
+  "retained_legacy_command_groups": [
+    {
+      "class": "Tests\\Feature\\Settlement\\LegacyChunkedSettlementCommandTest",
+      "tests": 38,
+      "assertions": 220,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Unit\\Settlement\\LegacyChunkedCommandSafetyTest",
+      "tests": 31,
+      "assertions": 114,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  ],
+  "retained_legacy_job_groups": [
+    {
+      "class": "Tests\\Feature\\Settlement\\LegacyChunkedJobRefusalTest",
+      "tests": 7,
+      "assertions": 58,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "class": "Tests\\Unit\\Settlement\\LegacyChunkedJobSafetyTest",
+      "tests": 19,
+      "assertions": 63,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  ],
+  "prior_f39_composition_regression": {
+    "isolated_php_exit_before": 255,
+    "phpunit_tests_before": 1,
+    "phpunit_failures_before": 1,
+    "resolved": 1,
+    "evidence": "/home/user/legacy-job-unit-red-f39.log",
+    "note": "The earlier fifteen backend errors occurred before job loading; this is an additional real composition defect, not one of those fifteen."
+  },
+  "prior_f38_caller_regressions": {
+    "baseline_tests": 3,
+    "baseline_errors": 1,
+    "baseline_failures": 2,
+    "baseline_evidence": "/home/user/legacy-cli-red-f38.log",
+    "resolved_caller_regressions": 3,
+    "note": "These are newly added regressions for the broken legacy CLI, not three of the original fifteen backend errors."
+  },
+  "historical_extra_concurrency_probes": {
+    "f37": {
+      "runs": 3,
+      "tests_per_run": 2,
+      "assertions_per_run": 51,
+      "passed_runs": 3,
+      "evidence": "/home/user/preview-concurrency-repeated-f37.log"
+    },
+    "f36": {
+      "runs": 8,
+      "passed": 8,
+      "tests_per_run": 1,
+      "assertions_per_run": 12,
+      "evidence": "/home/user/concurrency-repeated-f36.log"
+    }
+  },
+  "remaining_scope": "No failing or skipped local test remains in this measured prepared-runtime run. Operational review, hosted CI, deployment/backup/load/cross-host and real-provider/transfer certification are not inferred from local green tests."
+}

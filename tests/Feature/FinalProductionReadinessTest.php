@@ -23,9 +23,6 @@ use App\Enums\PrizeDisbursementStatus;
 use App\Enums\SelfExclusionStatus;
 use App\Enums\TransactionStatus;
 use App\Enums\WithdrawalStatus;
-use App\Enums\BetType;
-use App\Enums\LimitStatus;
-use App\Models\NumberLimit;
 use App\Models\Agent;
 use App\Models\AgentCommission;
 use App\Models\Draw;
@@ -43,17 +40,18 @@ use App\Services\Betting\BulkBetService;
 use App\Services\Compliance\SelfExclusionService;
 use App\Services\Finance\FinancialReconciliationService;
 use App\Services\Finance\WalletReservationService;
-use App\Services\Wallet\WalletService;
+use App\Services\Finance\WalletService;
 use App\Services\Lottery\GloL6ProportionalPrizeCalculator;
 use App\Services\Lottery\GloPrizeClaimService;
 use App\Services\Lottery\GloStampDutyCalculator;
 use App\Services\Monitoring\HealthCheckService;
 use App\Services\Payment\PaymentGatewayManager;
+use App\Services\Payment\ProcessPaymentWebhookService;
 use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\Privacy\PrivacyPolicyService;
 use App\Services\PublicPages\TermsPageService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -63,9 +61,7 @@ use Tests\TestCase;
  */
 class FinalProductionReadinessTest extends TestCase
 {
-    // DatabaseTruncation, not RefreshDatabase: RefreshDatabase wraps each test in an open
-    // transaction, and a bet purchase must own its transaction (see BetPurchaseTransactionService).
-    use DatabaseTruncation;
+    use RefreshDatabase;
 
     /**
      * 1. Public Routes Availability & Multi-Locale Rendering.
@@ -202,54 +198,33 @@ class FinalProductionReadinessTest extends TestCase
     public function test_payment_webhook_replay_protection(): void
     {
         $user = User::factory()->create();
-        $wallet = app(WalletService::class)->getOrCreateWallet($user->id, Currency::THB->value);
-        $initialBalance = (string) $wallet->balance;
+        $walletService = app(WalletService::class);
+        $webhookService = app(ProcessPaymentWebhookService::class);
 
-        // A real pending deposit, so the webhook is credited through the same
-        // pipeline production uses (signature-verified upstream, deposit
-        // resolved by reference, replay cache keyed by event id).
-        $deposit = new \App\Models\Deposit();
-        $deposit->fill([
-            'reference_number' => 'DP-REL-'.strtoupper(bin2hex(random_bytes(4))),
-            'user_id' => $user->id,
-            'wallet_id' => $wallet->id,
-            'method' => \App\Enums\PaymentMethod::Stripe,
-            'provider' => \App\Enums\PaymentMethod::Stripe->value,
-            'currency' => $wallet->currency,
+        $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
+        $initialBalance = $wallet->balance;
+
+        $externalId = 'WH-REL-' . uniqid();
+        $payload = [
+            'provider' => 'nagad',
+            'external_id' => $externalId,
             'amount' => '300.00',
-            'fee' => '0.00',
-            'net_amount' => '300.00',
-            'metadata' => [],
-        ]);
-        $deposit->uuid = (string) \Illuminate\Support\Str::uuid();
-        $deposit->status = \App\Enums\DepositStatus::Pending;
-        $deposit->save();
+            'currency' => 'THB',
+            'status' => 'completed',
+            'user_id' => $user->id,
+        ];
 
-        $payload = new \App\DTOs\Payment\WebhookPayload(
-            gateway: 'stripe',
-            eventId: 'evt_rel_'.uniqid(),
-            eventType: \App\Enums\WebhookEventType::DepositSuccess,
-            providerReference: 'cs_rel_'.uniqid(),
-            internalReference: $deposit->reference_number,
-            amount: '300.00',
-            currency: Currency::THB,
-            isSuccess: true,
-            rawData: ['status' => 'complete'],
-        );
+        // 1st delivery
+        $res1 = $webhookService->process('nagad', $payload, $externalId);
+        $this->assertTrue($res1->successful);
+        $this->assertEquals(bcadd((string) $initialBalance, '300.00', 2), (string) $wallet->fresh()->balance);
 
-        $webhooks = app(\App\Services\Payment\PaymentWebhookService::class);
-
-        // 1st delivery: credited once.
-        $res1 = $webhooks->processWebhookPayload($payload);
-        $this->assertTrue($res1->success);
-        $this->assertFalse($res1->replayed);
-        $this->assertSame('credited', $res1->actionTaken);
-        $this->assertSame(bcadd($initialBalance, '300.00', 2), (string) $wallet->fresh()->balance);
-
-        // 2nd delivery of the same event: replayed, balance unchanged.
-        $res2 = $webhooks->processWebhookPayload($payload);
+        // 2nd delivery (replayed)
+        $res2 = $webhookService->process('nagad', $payload, $externalId);
+        $this->assertTrue($res2->successful);
         $this->assertTrue($res2->replayed);
-        $this->assertSame(bcadd($initialBalance, '300.00', 2), (string) $wallet->fresh()->balance);
+        // Balance must not change on replay
+        $this->assertEquals(bcadd((string) $initialBalance, '300.00', 2), (string) $wallet->fresh()->balance);
     }
 
     /**
@@ -270,10 +245,8 @@ class FinalProductionReadinessTest extends TestCase
         ]);
 
         $selections = [
-            new BulkBetSelectionData(marketKey: '3d_direct', number: '789', stake: '100.00'),
+            new BulkBetSelectionData(marketKey: 'top_3', number: '789', stake: '100.00'),
         ];
-
-        $this->provisionNumberLimit($draw, '3d_direct', '789');
 
         $clientKey = 'SLIP-RELEASE-' . uniqid();
         $result = $bulkBetService->purchase($user->id, $draw->id, $selections, $clientKey);
@@ -363,7 +336,7 @@ class FinalProductionReadinessTest extends TestCase
 
         $this->assertEquals(1, $result->commissionsSettled);
         $this->assertEquals('50.00', $result->totalCommissionPaid);
-        $this->assertSame(CommissionStatus::Paid, $commission->fresh()->status);
+        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status);
     }
 
     /**
@@ -391,38 +364,12 @@ class FinalProductionReadinessTest extends TestCase
     {
         $healthService = app(HealthCheckService::class);
 
-        // The HealthCheckService contract normalises the liveness probe to 'healthy'; the
-        // framework endpoint keeps 'UP' at the lower level.
         $live = $healthService->isLive();
-        $this->assertEquals('healthy', $live['status']);
+        $this->assertEquals('UP', $live['status']);
 
         $ready = $healthService->isReady();
         $this->assertTrue($ready['ready']);
         $this->assertTrue($ready['database']);
         $this->assertTrue($ready['cache']);
-    }
-
-    /**
-     * Provision the number_limits row a number needs before it can be sold. Mirrors the
-     * settlement fixtures: the counters and status are set explicitly, not mass-assigned.
-     */
-    private function provisionNumberLimit(Draw $draw, string $marketKey, string $number): void
-    {
-        $definition = config('lottery.markets.'.$marketKey);
-        $this->assertIsArray($definition, 'Unknown market '.$marketKey);
-
-        $betType = BetType::from((string) $definition['bet_type']);
-        $padded = str_pad($number, (int) $definition['digits'], '0', STR_PAD_LEFT);
-
-        $limit = new NumberLimit();
-        $limit->draw_id = $draw->getKey();
-        $limit->bet_type = $betType;
-        $limit->number = $padded;
-        $limit->max_amount = '1000000.00';
-        $limit->current_amount = '0.00';
-        $limit->maximum_payout_exposure = null;
-        $limit->current_payout_exposure = '0.00';
-        $limit->status = LimitStatus::Active;
-        $limit->save();
     }
 }

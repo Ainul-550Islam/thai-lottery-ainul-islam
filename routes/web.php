@@ -37,8 +37,6 @@ use App\Http\Controllers\Verification\AccountVerificationController as MemberAcc
 use App\Http\Controllers\Web\BetPurchaseController;
 use App\Http\Controllers\Web\PaymentCallbackController;
 use App\Http\Controllers\Web\PlayerWebController;
-use App\Http\Controllers\Wallet\WalletConversionActionController;
-use App\Http\Controllers\Wallet\WalletConversionPageController;
 use App\Http\Controllers\WeeklyLotteryController;
 use Illuminate\Support\Facades\Route;
 
@@ -116,38 +114,6 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/bets', [PlayerWebController::class, 'bets'])->name('player.bets');
 
     Route::get('/wallet', [PlayerWebController::class, 'wallet'])->name('player.wallet');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cash <-> Win wallet conversion
-    |--------------------------------------------------------------------------
-    | Five member routes, in the authenticated group because every one of them is
-    | scoped to the signed-in member: the wallets are derived from the session,
-    | never named by the client.
-    |
-    | `/wallet/convert/preview` is declared BEFORE `/wallet/convert/{reference}`
-    | on purpose. Laravel matches in declaration order, so with the order below
-    | the literal path wins; reversed, `preview` would be captured as a reference
-    | and the member would get "conversion not found" for the live fee preview.
-    |
-    | The two POSTs carry `conversion.idempotency`, which refuses a money-moving
-    | request that arrives without a usable key. `conversion.enabled` gates only
-    | the executing POST: the GET page stays reachable when the lane is closed so
-    | the member sees an explanation and the published fee table rather than a
-    | dead end, and the quote POST is refused by the engine with a message that
-    | says which direction is closed.
-    */
-    Route::get('/wallet/convert', [WalletConversionPageController::class, 'index'])->name('player.wallet.conversion');
-    Route::get('/wallet/convert/preview', [WalletConversionPageController::class, 'preview'])->name('player.wallet.conversion.preview');
-    Route::post('/wallet/convert/quote', [WalletConversionActionController::class, 'quote'])
-        ->middleware('throttle:conversion')
-        ->name('player.wallet.conversion.quote');
-    Route::post('/wallet/convert', [WalletConversionActionController::class, 'store'])
-        ->middleware(['conversion.enabled', 'conversion.idempotency', 'throttle:conversion'])
-        ->name('player.wallet.conversion.store');
-    Route::get('/wallet/convert/{reference}', [WalletConversionPageController::class, 'show'])
-        ->where('reference', '[A-Za-z0-9_-]{1,64}')
-        ->name('player.wallet.conversion.show');
 
     Route::get('/deposit', [PlayerWebController::class, 'deposit'])->name('player.deposit');
     Route::get('/deposit/status/{deposit}', [PlayerWebController::class, 'depositStatus'])
@@ -762,9 +728,10 @@ Route::middleware('auth')->group(function (): void {
 
 // User-facing locale switch route (session & cookie persistence)
 Route::get('/locale/{locale}', function (string $locale) {
-    if (in_array($locale, ['en', 'th'], true)) {
-        session(['locale' => $locale]);
-        cookie()->queue(cookie('locale', $locale, 60 * 24 * 365));
+    $supported = \App\Support\SupportedLocale::normalise($locale);
+    if ($supported !== null) {
+        session(['locale' => $supported]);
+        cookie()->queue(cookie('locale', $supported, 60 * 24 * 365));
     }
 
     return redirect()->back();

@@ -2,35 +2,10 @@
 
 namespace Tests;
 
-use App\DTOs\DrawResultData;
-use App\DTOs\Payment\PaymentWebhookData;
-use App\Enums\BetType;
-use App\Enums\DrawStatus;
-use App\Enums\FinancialTransactionType;
-use App\Enums\KycDocumentType;
-use App\Enums\KycStatus;
-use App\Enums\LimitStatus;
-use App\Models\Draw;
-use App\Models\DrawResult;
-use App\Models\FinancialTransaction;
-use App\Models\KycDocument;
-use App\Models\NumberLimit;
-use App\Models\User;
-use App\Models\Wallet;
-use App\Services\Draw\DrawLifecycleService;
-use App\Services\Draw\DrawResultConfirmationService;
-use App\Services\Draw\DrawResultIngestionService;
-use App\Services\Draw\DrawResultValidator;
-use App\Services\Finance\Money;
-use App\Services\Finance\WalletService;
 use Database\Seeders\LedgerAccountSeeder;
-use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use Illuminate\Http\Testing\FileFactory;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
 
 /**
  * The project test case.
@@ -91,74 +66,6 @@ abstract class TestCase extends BaseTestCase
         return $app;
     }
 
-    /**
-     * Build a published result through the real maker/checker ingestion path.
-     *
-     * Tests that need a result for downstream reads or settlement must not seed a
-     * bare draw_results row: publication now requires a persisted Pending intake,
-     * two different persisted operators, and the independent publisher.
-     *
-     * @param  array{first_prize: string, bottom_two: string}  $numbers
-     * @return array{draw: Draw, result: DrawResult, data: DrawResultData}
-     */
-    protected function publishTrustedManualResult(Draw $draw, array $numbers, string $source = 'operator'): array
-    {
-        $draw = Draw::query()->findOrFail($draw->getKey());
-        $lifecycle = app(DrawLifecycleService::class);
-
-        if ($draw->status === DrawStatus::Open) {
-            $draw = $lifecycle->close($draw, ['source' => 'test-fixture']);
-        }
-
-        if ($draw->status === DrawStatus::Closed) {
-            $draw = $lifecycle->markResultPending($draw, ['source' => 'test-fixture']);
-        }
-
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $drawId = (int) $draw->getKey();
-
-        app(DrawResultIngestionService::class)->ingest(
-            $drawId,
-            $numbers,
-            $source,
-            (int) $maker->getKey(),
-        );
-
-        app(DrawResultConfirmationService::class)->confirm(
-            $drawId,
-            (int) $checker->getKey(),
-            $numbers,
-        );
-
-        return [
-            'draw' => Draw::query()->findOrFail($drawId),
-            'result' => DrawResult::query()->where('draw_id', $drawId)->firstOrFail(),
-            'data' => app(DrawResultValidator::class)->validate($numbers),
-        ];
-    }
-
-    /**
-     * Create an image upload fixture without requiring the GD extension.
-     *
-     * The committed JPEG bytes are genuine images at the stated dimensions, so
-     * Laravel's MIME and image-dimension validation still exercises the normal
-     * upload path instead of bypassing it with a fake MIME type.
-     */
-    protected function fakeImageUpload(string $name, int $width = 640, int $height = 480): UploadedFile
-    {
-        $fixture = match ([$width, $height]) {
-            [900, 600] => base_path('tests/Fixtures/Uploads/test-upload-900x600.jpg'),
-            default => base_path('tests/Fixtures/Uploads/test-upload-640x480.jpg'),
-        };
-
-        if (! is_file($fixture)) {
-            throw new \RuntimeException('The committed upload image fixture is missing.');
-        }
-
-        return (new FileFactory)->createWithContent($name, (string) file_get_contents($fixture));
-    }
-
     private function prepareTestSchema(Application $app): void
     {
         $connection = $app->make('db')->connection();
@@ -199,7 +106,6 @@ abstract class TestCase extends BaseTestCase
         // implicit production fallback. This never runs outside the guarded
         // test database allow-list above.
         (new LedgerAccountSeeder)->run();
-        (new RolePermissionSeeder)->run();
 
         self::$schemaPrepared = true;
     }
@@ -209,159 +115,17 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         (new LedgerAccountSeeder)->run();
-        (new RolePermissionSeeder)->run();
-
-        // Real-money gate: tests exercise the money paths, so the gate is open here.
-        // RealMoneyGateTest closes it and proves the refusals. Production defaults stay closed.
-        config(['real_money.enabled' => true]);
     }
 
     /**
      * RefreshDatabase drops and rebuilds the disposable schema after the
-     * application is created; reseed the deterministic chart and role/permission
-     * prerequisites after that refresh. The allow-list remains the guard against
-     * production writes.
+     * application is created; reseed only the deterministic chart prerequisite
+     * after that refresh. The allow-list remains the guard against production
+     * writes.
      */
     protected function afterRefreshingDatabase()
     {
         (new LedgerAccountSeeder)->run();
-        (new RolePermissionSeeder)->run();
-    }
-
-    /**
-     * Provision one risk-capacity row for an exact sellable market selection.
-     * Risk counters stay explicit here; the model remains guarded in production.
-     */
-    protected function provisionBetLimitForTest(Draw $draw, string $marketKey, string $number): NumberLimit
-    {
-        $market = (array) config('lottery.markets.'.$marketKey, []);
-        $betType = BetType::tryFrom((string) ($market['bet_type'] ?? ''));
-        $digits = (int) ($market['digits'] ?? 0);
-
-        if ($betType === null || $digits < 1 || preg_match('/^\d+$/', $number) !== 1 || strlen($number) > $digits) {
-            throw new \InvalidArgumentException('The test selection does not match a configured market.');
-        }
-
-        $normalizedNumber = str_pad($number, $digits, '0', STR_PAD_LEFT);
-        $limit = NumberLimit::query()
-            ->where('draw_id', (int) $draw->getKey())
-            ->where('bet_type', $betType->value)
-            ->where('number', $normalizedNumber)
-            ->first();
-
-        if ($limit instanceof NumberLimit) {
-            return $limit;
-        }
-
-        $limit = new NumberLimit;
-        $limit->draw_id = (int) $draw->getKey();
-        $limit->bet_type = $betType;
-        $limit->number = $normalizedNumber;
-        $limit->max_amount = '100000.00';
-        $limit->current_amount = '0.00';
-        $limit->maximum_payout_exposure = null;
-        $limit->current_payout_exposure = '0.00';
-        $limit->status = LimitStatus::Active;
-        $limit->save();
-
-        return $limit;
-    }
-
-    /**
-     * Seed verified identity evidence for tests that exercise a KYC-gated flow.
-     */
-    protected function verifyUserKycForTest(User $user): KycDocument
-    {
-        return KycDocument::query()->create([
-            'user_id' => (int) $user->getKey(),
-            'document_type' => KycDocumentType::NationalId,
-            'file_path' => sprintf('kyc_private/test/%d/%s.enc', $user->getKey(), Str::uuid()),
-            'mime_type' => 'application/pdf',
-            'file_size' => 1024,
-            'status' => KycStatus::Verified,
-            'submitted_at' => now(),
-            'verified_at' => now(),
-        ]);
-    }
-
-    /**
-     * Build a valid signed webhook envelope for idempotency tests.
-     *
-     * The helper uses the real canonical bytes and HMAC contract; it does not
-     * bypass signature verification or apply any synthetic wallet mutation.
-     */
-    protected function signedPaymentWebhookForTest(string $providerCode): PaymentWebhookData
-    {
-        $providerCode = strtolower($providerCode);
-        $secret = 'test-webhook-secret-'.Str::uuid();
-        config(["payment.gateways.{$providerCode}.webhook_secret" => $secret]);
-
-        $eventId = $providerCode.'-event-'.Str::uuid();
-        $payload = [
-            'id' => $eventId,
-            'provider' => $providerCode,
-            'event_type' => 'deposit.success',
-            'created_at' => now()->toIso8601String(),
-            'reference' => 'TEST-'.Str::uuid(),
-        ];
-        $signature = 'sha256='.hash_hmac('sha256', PaymentWebhookData::payloadBytes($payload), $secret);
-
-        return PaymentWebhookData::fromInput(
-            providerCode: $providerCode,
-            eventId: $eventId,
-            eventType: 'deposit.success',
-            signature: $signature,
-            receivedAtIso: now()->toIso8601String(),
-            payload: $payload,
-        );
-    }
-
-    /**
-     * Seed a wallet through the production ledger path for test setup.
-     *
-     * These helpers deliberately keep test fixtures on the same exact-money,
-     * typed-wallet API used by the application. Older repository suites passed
-     * wallet IDs and decimal strings directly to WalletService; converting
-     * their setup here avoids weakening the production API while preserving
-     * atomic posting and idempotency behavior.
-     */
-    protected function creditWalletForTest(
-        Wallet $wallet,
-        string $amount,
-        string $description,
-        ?string $idempotencyKey = null,
-        array $additionalOptions = [],
-    ): FinancialTransaction {
-        return app(WalletService::class)->credit(
-            wallet: $wallet,
-            amount: Money::fromDatabase($amount, $wallet->currency),
-            type: FinancialTransactionType::Deposit,
-            idempotencyKey: $idempotencyKey !== null && strlen($idempotencyKey) >= 16
-                ? $idempotencyKey
-                : 'test-credit-'.hash('sha256', $wallet->getKey().':'.($idempotencyKey ?? Str::uuid())),
-            options: array_merge(['description' => $description], $additionalOptions),
-        );
-    }
-
-    /**
-     * Seed a debit through the production ledger path for test setup.
-     */
-    protected function debitWalletForTest(
-        Wallet $wallet,
-        string $amount,
-        string $description,
-        ?string $idempotencyKey = null,
-        array $additionalOptions = [],
-    ): FinancialTransaction {
-        return app(WalletService::class)->debit(
-            wallet: $wallet,
-            amount: Money::fromDatabase($amount, $wallet->currency),
-            type: FinancialTransactionType::Withdrawal,
-            idempotencyKey: $idempotencyKey !== null && strlen($idempotencyKey) >= 16
-                ? $idempotencyKey
-                : 'test-debit-'.hash('sha256', $wallet->getKey().':'.($idempotencyKey ?? Str::uuid())),
-            options: array_merge(['description' => $description], $additionalOptions),
-        );
     }
 
     /**

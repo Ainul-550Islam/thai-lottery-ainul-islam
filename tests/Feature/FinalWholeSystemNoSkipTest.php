@@ -33,8 +33,7 @@ use App\Services\Betting\BulkBetService;
 use App\Services\Compliance\SelfExclusionService;
 use App\Services\Finance\FinancialReconciliationService;
 use App\Services\Finance\WalletReservationService;
-use App\Enums\FinancialTransactionType;
-use App\Services\Wallet\WalletService;
+use App\Services\Finance\WalletService;
 use App\Services\Lottery\GloL6ProportionalPrizeCalculator;
 use App\Services\Monitoring\HealthCheckService;
 use App\Services\Payment\WithdrawalDisbursementService;
@@ -95,19 +94,12 @@ final class FinalWholeSystemNoSkipTest extends TestCase
             'processed_at' => Carbon::now(),
         ]);
 
-        // The canonical signature takes the reference and description as an options map.
         $walletService->credit(
-            $wallet,
-            '5000.00',
-            FinancialTransactionType::Deposit,
-            // A deposit must carry its own idempotency key; a replay of the same deposit is then
-            // recognised rather than credited twice.
-            'deposit-'.$tx->reference_id,
-            [
-                'reference_type' => 'payment_transaction',
-                'reference_id' => (string) $tx->id,
-                'description' => 'PromptPay Wallet Deposit',
-            ],
+            wallet: $wallet,
+            amount: '5000.00',
+            referenceType: 'payment_transaction',
+            referenceId: (string) $tx->id,
+            description: 'PromptPay Wallet Deposit'
         );
 
         $wallet->refresh();
@@ -139,7 +131,7 @@ final class FinalWholeSystemNoSkipTest extends TestCase
         /** @var WalletService $walletService */
         $walletService = $this->app->make(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
-        $walletService->credit($wallet, '1000.00', 'seed', 'phase-test-'.bin2hex(random_bytes(8)), 'Initial balance');
+        $walletService->credit($wallet, '1000.00', 'seed', '1', 'Initial balance');
 
         $draw = Draw::query()->create([
             'draw_number' => 'GLO-20260930-02',
@@ -216,7 +208,7 @@ final class FinalWholeSystemNoSkipTest extends TestCase
         /** @var WalletService $walletService */
         $walletService = $this->app->make(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
-        $walletService->credit($wallet, '3000.00', 'initial', 'phase-test-'.bin2hex(random_bytes(8)), 'Initial balance');
+        $walletService->credit($wallet, '3000.00', 'initial', '1', 'Initial balance');
 
         /** @var WalletReservationService $resService */
         $resService = $this->app->make(WalletReservationService::class);

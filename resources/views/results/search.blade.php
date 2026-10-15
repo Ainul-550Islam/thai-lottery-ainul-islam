@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Search Results — Government Lottery')
+@section('title', 'Search Results — Thai Lottery')
 @section('meta_robots', 'noindex, follow')
 
 @section('content')

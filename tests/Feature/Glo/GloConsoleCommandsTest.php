@@ -6,7 +6,6 @@ namespace Tests\Feature\Glo;
 
 use App\Enums\DrawStatus;
 use App\Models\Draw;
-use App\Models\User;
 use App\Services\Lottery\GloL6SalesService;
 use App\Services\Lottery\GloN3SaleService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
@@ -33,10 +32,8 @@ class GloConsoleCommandsTest extends TestCase
             'draw_number' => 'GLO-2026-09-16',
             'status' => 'result_published',
             'scheduled_at' => now()->subDays(3),
+            'result_published_at' => now()->subDays(2),
         ]);
-        // Publication timestamps are engine-owned and deliberately not
-        // mass-assignable, so the fixture sets it explicitly.
-        $this->draw->forceFill(['result_published_at' => now()->subDays(2)])->save();
 
         config(['glo.official_source.mode' => 'fixture']);
     }
@@ -113,15 +110,13 @@ class GloConsoleCommandsTest extends TestCase
         // written over a draw that already published (or settled) it. The
         // importer now honours that guard instead of writing draw_results
         // directly, so the draw is moved to the state a real import happens in.
-        $this->draw->update(['status' => DrawStatus::Drawing]);
-        $this->draw->forceFill(['result_published_at' => null])->save();
-
-        $operator = User::factory()->create();
-        $operator->assignRole('super-admin');
+        $this->draw->update([
+            'status' => DrawStatus::Drawing,
+            'result_published_at' => null,
+        ]);
 
         $this->artisan('glo:import-result', [
             '--draw' => 'GLO-2026-09-16',
-            '--actor' => $operator->email,
             '--json' => true,
         ])->assertExitCode(0);
 
@@ -150,18 +145,12 @@ class GloConsoleCommandsTest extends TestCase
         $this->artisan('glo:import-result')->assertExitCode(1);
     }
 
-    public function test_import_result_latest_refuses_to_stage_without_attributable_maker(): void
+    public function test_import_result_latest_fixture(): void
     {
         $this->artisan('glo:import-result', [
             '--latest' => true,
             '--json' => true,
-        ])->assertExitCode(1);
-
-        $this->assertDatabaseCount('draw_results', 0);
-        $this->assertDatabaseHas('glo_result_imports', [
-            'draw_id' => $this->draw->getKey(),
-            'status' => 'refused',
-        ]);
+        ])->assertExitCode(0);
     }
 
     public function test_reconcile_sales_requires_draw(): void

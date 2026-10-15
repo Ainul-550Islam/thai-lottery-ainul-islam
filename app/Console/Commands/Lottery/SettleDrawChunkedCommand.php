@@ -82,8 +82,7 @@ final class SettleDrawChunkedCommand extends Command
         {--draw= : The draw to settle, by id or draw number (required unless --all-runs)}
         {--chunk= : Bets per chunk for a NEW run (default: lottery.settlement.chunk_size)}
         {--queue : Open the run and dispatch one job per chunk instead of running here}
-        {--resume : Resume an interrupted run from its cursor (requires --reason)}
-        {--reason= : Why the run is being recovered. Required with --resume and recorded in the audit log}
+        {--resume : Resume an interrupted run from its cursor}
         {--status : Report the run state and write nothing}
         {--all-runs : With --status, list every run that is not complete}
         {--dry-run : Refuse to start a run unless the payout safety mode is not LIVE}';
@@ -202,25 +201,17 @@ final class SettleDrawChunkedCommand extends Command
             $existing = $orchestrator->runFor($drawId);
 
             if ($existing instanceof SettlementRun) {
-                $this->warn('The run is resumable from its cursor; re-run with --resume --reason="..." once the cause is addressed.');
+                $this->warn('The run is resumable from its cursor; re-run with --resume once the cause is addressed.');
                 $this->line($orchestrator->describe($existing));
             }
 
             return self::FAILURE;
         }
 
-        return $this->reportRun($run);
-    }
-
-    /**
-     * Report the outcome of a run this process drove, and say the safety mode aloud.
-     */
-    private function reportRun(SettlementRun $run): int
-    {
-        $this->line(app(ChunkedSettlementOrchestrator::class)->describe($run));
+        $this->line($orchestrator->describe($run));
 
         if (! $run->isComplete()) {
-            $this->warn('The run did not complete. Re-run with --resume --reason="..."; progress is recorded.');
+            $this->warn('The run did not complete. Re-run with --resume; progress is recorded.');
 
             return self::FAILURE;
         }
@@ -249,23 +240,14 @@ final class SettleDrawChunkedCommand extends Command
     }
 
     /**
-     * Resume an interrupted run from its cursor, as an authorized recovery.
-     *
-     * Never opens a run: a resume that silently started a fresh one would hide why
-     * the previous one stopped. Requires a reason, and an operator who holds the
-     * process-settlements permission. The audit entry is written BEFORE any chunk
-     * runs, and before any queued job is dispatched.
+     * Resume an interrupted run. Never opens one: a resume that silently started
+     * a fresh run would hide the reason the previous one stopped.
      */
     private function resume(ChunkedSettlementOrchestrator $orchestrator, int $drawId, ?int $chunkSize): int
     {
-        $reason = $this->option('reason');
-
-        if (! is_string($reason) || trim($reason) === '') {
-            $this->error('--reason= is required with --resume. A recovery is recorded with who made it and why; one without a reason is refused.');
-
-            return self::FAILURE;
-        }
-
+        // runFor() is the pure lookup; resume() on the orchestrator drives the
+        // run to completion, which is what the non-queue branch below wants but
+        // the --queue branch does not. Look up first, then decide.
         $run = $orchestrator->runFor($drawId);
 
         if (! $run instanceof SettlementRun) {
@@ -293,39 +275,15 @@ final class SettleDrawChunkedCommand extends Command
             ));
         }
 
-        $operatorId = $this->actorId();
+        if ((bool) $this->option('queue')) {
+            SettleDrawChunkJob::dispatch($drawId, (int) $run->getKey());
 
-        if ($operatorId === null) {
-            $this->error('No operator identity. Set LOTTERY_SETTLEMENT_ACTOR_ID (or lottery.settlement.actor_user_id) to the user recovering this run.');
+            $this->info(sprintf('Dispatched chunk job for run %d.', (int) $run->getKey()));
 
-            return self::FAILURE;
+            return self::SUCCESS;
         }
 
-        try {
-            if ((bool) $this->option('queue')) {
-                $recovered = $orchestrator->recover($drawId, $operatorId, $reason);
-
-                if ($recovered->isComplete()) {
-                    $this->info('That run is already complete. Nothing was done.');
-
-                    return self::SUCCESS;
-                }
-
-                SettleDrawChunkJob::dispatch($drawId, (int) $recovered->getKey());
-
-                $this->info(sprintf('Recovery recorded and chunk job dispatched for run %d.', (int) $recovered->getKey()));
-
-                return self::SUCCESS;
-            }
-
-            $finished = $orchestrator->resume($drawId, $operatorId, $reason);
-        } catch (Throwable $e) {
-            $this->error(sprintf('%s: %s', $e::class, $e->getMessage()));
-
-            return self::FAILURE;
-        }
-
-        return $this->reportRun($finished);
+        return $this->runToCompletion($orchestrator, $drawId, null);
     }
 
     /**

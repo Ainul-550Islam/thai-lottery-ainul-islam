@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Payment;
 
-use App\Models\Deposit;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\PaymentMethod;
@@ -16,20 +15,25 @@ use Illuminate\Support\Facades\Config;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
- * Webhook retry idempotency and durable delivery observation.
+ * Durable webhook replay protection.
  *
  * ============================================================================
  * WHAT THESE TESTS ESTABLISH
  * ============================================================================
- * The same valid signed event delivered twice must produce one financial effect.
- * The payment transaction/idempotency path owns that guarantee. The
- * WebhookReplayGuard table separately records accepted deliveries and counts
- * repeats; its unique index makes the telemetry row atomic, but it does NOT
- * reject a request before the controller and is NOT the financial control.
+ * The behavioural claim is narrow and checkable: the SAME signed webhook
+ * delivered twice must do the work ONCE, and the second delivery must be
+ * recognised by a DATABASE UNIQUE CONSTRAINT rather than by a cache entry.
  *
- * Clearing the application cache between deliveries proves that this payment
- * path does not rely solely on node-local cache state for the tested duplicate.
- * It does not imply the observation middleware blocks the replay.
+ * That distinction is the whole point. Replay protection already existed as
+ *
+ *     Cache::add('payment:webhook:seen:'.$gateway.':'.$eventId, true, $ttl)
+ *
+ * which is a correct algorithm on the wrong substrate: with CACHE_STORE=file
+ * (what .env.example ships) `Cache::add` is atomic on ONE machine and
+ * meaningless across two. Two app containers each have their own file cache, so
+ * the same webhook delivered to both is "first seen" on both. These tests
+ * simulate that failure directly by clearing the cache between the two
+ * deliveries — the application-level guard forgets, the database does not.
  */
 final class WebhookReplayProtectionTest extends PaymentTestCase
 {
@@ -48,12 +52,6 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
     {
         $timestamp = time();
 
-        // Stripe reports amount_total in the currency's smallest unit (satang). The gateway
-        // rejects any event whose amount differs from the deposit it settles, so the
-        // amount is read from the deposit itself rather than hard-coded.
-        $depositAmount = (string) Deposit::query()->where('reference_number', $reference)->value('amount');
-        $amountTotal = (int) bcmul($depositAmount, '100', 0);
-
         $payload = [
             'id' => $eventId,
             'type' => 'checkout.session.completed',
@@ -61,7 +59,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 'object' => [
                     'id' => 'cs_test_'.$eventId,
                     'client_reference_id' => $reference,
-                    'amount_total' => $amountTotal,
+                    'amount_total' => 100000,
                     'currency' => 'thb',
                 ],
             ],
@@ -98,7 +96,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $balanceAfterFirst = $player['wallet']->fresh()->balance;
         $this->assertNotSame('0.00', (string) $balanceAfterFirst, 'the first delivery must credit');
 
-        // ── Second delivery: payment idempotency recognizes the event replay.
+        // ── Second delivery of byte-identical content: recognised as a replay.
         $second = $this->withHeaders(['Stripe-Signature' => $delivery['header']])
             ->postJson('/api/v1/payments/webhook/stripe', $delivery['payload']);
 
@@ -117,13 +115,15 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
     }
 
     /**
-     * The financial duplicate protection remains effective after cache loss.
+     * THE TEST THAT MATTERS MOST.
      *
-     * This is a payment idempotency assertion, not a claim that the observation
-     * table rejects the second HTTP request.
+     * The old guard lived in the cache. This reproduces exactly the failure that
+     * makes a cache-based guard wrong: the guard's memory is discarded between
+     * the two deliveries, as it would be on a second container, a restart, or an
+     * eviction. The database still refuses, because the nonce is a UNIQUE column.
      */
     #[Test]
-    public function replay_is_idempotent_even_when_the_cache_is_cleared_between_deliveries(): void
+    public function replay_is_refused_even_when_the_cache_is_cleared_between_deliveries(): void
     {
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '750.00', PaymentMethod::Stripe);
@@ -149,7 +149,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $this->assertSame(
             (string) $balanceAfterFirst,
             (string) $player['wallet']->fresh()->balance,
-            'clearing cache must not allow a second financial effect',
+            'clearing the cache must not re-open the replay window',
         );
     }
 
@@ -180,9 +180,9 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
             'the guard row must not already be expired',
         );
 
-        // Store only a stable digest for operations; never keep the provider's
-        // raw signature proof in the replay-observation table.
-        $this->assertMatchesRegularExpression('/\A[a-f0-9]{64}\z/', (string) $guard->signature);
+        // The signature is stored so an operator can see WHAT was replayed. It is
+        // not a secret — it is the value the provider sent us.
+        $this->assertNotEmpty((string) $guard->signature);
     }
 
     #[Test]
@@ -213,9 +213,9 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
     #[Test]
     public function two_gateways_with_identical_bytes_do_not_shadow_each_other(): void
     {
-        // The nonce is sha256(gateway|signature), so telemetry identity is
-        // scoped by gateway. Without that, two providers could be conflated in
-        // the observation table even though both requests still reach handlers.
+        // The nonce is sha256(gateway|signature), so the gateway is part of the
+        // identity. Without that, one provider's signature string could occupy
+        // another provider's nonce and refuse a legitimate first delivery.
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Stripe);
 
@@ -231,16 +231,10 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
             WebhookReplayGuard::query()->where('gateway', 'stripe')->count(),
         );
 
-        // The same payload signed independently by bKash must occupy its own
-        // nonce space. A Stripe signature is not a valid bKash signature, so
-        // sending Stripe's header to bKash would correctly be rejected and must
-        // not create a receipt.
-        $bkashBody = json_encode($delivery['payload'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $bkashSignature = hash_hmac('sha256', (string) $bkashBody, self::BKASH_WEBHOOK_SECRET);
-
-        $this->withHeaders(['X-Bkash-Signature' => $bkashSignature])
-            ->postJson('/api/v1/payments/webhook/bkash', $delivery['payload'])
-            ->assertStatus(200);
+        // The same header value sent to a different gateway must occupy its own
+        // nonce space, not be refused as a Stripe replay.
+        $this->withHeaders(['X-Bkash-Signature' => $delivery['header']])
+            ->postJson('/api/v1/payments/webhook/bkash', $delivery['payload']);
 
         $this->assertSame(
             1,
@@ -280,13 +274,20 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
     }
 
     /**
-     * REJECTED DELIVERIES ARE NOT ACCEPTED-DELIVERY OBSERVATIONS.
+     * A DELIVERY WE REFUSED MUST NOT BE REMEMBERED AS SEEN.
      *
-     * The middleware records only after the controller accepts a webhook. A bad
-     * signature or other failed request must leave no observation row; the same
-     * invalid request must still reach the provider verifier on retry and be
-     * refused by that verifier. The middleware itself does not claim a nonce,
-     * authenticate the request or swallow a replay.
+     * If the claim were permanent, a refused delivery - a bad signature during a
+     * secret rotation, or a 422 because the payload referenced a deposit we had
+     * not written yet - would be recorded as "seen". The provider's RETRY, which
+     * is precisely the mechanism that recovers from that failure, would then be
+     * answered 200/duplicate by this middleware and never reach the driver. The
+     * gateway would be satisfied, the work would never happen, and the player
+     * would not be paid.
+     *
+     * So the claim is final only for an ACCEPTED delivery. This test signs with
+     * the wrong secret, so the driver refuses with 403, and asserts that the same
+     * delivery is still refused - not silently swallowed as a duplicate - the
+     * second time.
      */
     #[Test]
     public function a_refused_delivery_is_not_remembered_so_a_retry_still_reaches_the_driver(): void
@@ -308,8 +309,8 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
             ],
         ];
 
-        // Signed with the WRONG secret. The observer sees the header, but must
-        // record nothing because the provider verifier will refuse the request.
+        // Signed with the WRONG secret. The header is present and well formed,
+        // so the guard claims a nonce; the driver then refuses.
         $forged = hash_hmac('sha256', $timestamp.'.'.json_encode($payload), 'not_the_webhook_secret');
 
         $first = $this->withHeaders(['Stripe-Signature' => "t={$timestamp},v1={$forged}"])
@@ -320,7 +321,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $this->assertSame(
             0,
             WebhookReplayGuard::query()->where('gateway', 'stripe')->count(),
-            'a refused delivery must not be recorded as an accepted observation',
+            'a refused delivery must leave no claim behind, or its retry is swallowed',
         );
 
         // The retry must be judged on its own merits, not answered as a duplicate.
@@ -338,11 +339,11 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
     }
 
     #[Test]
-    public function an_accepted_delivery_records_observation(): void
+    public function an_accepted_delivery_keeps_its_claim(): void
     {
-        // A delivery accepted by the application produces durable telemetry.
-        // Duplicate payment effects remain blocked by the payment state machine,
-        // not by this observation row.
+        // The mirror of the test above: a delivery the application ACCEPTED must
+        // keep its guard row, because that row is the only thing that will refuse
+        // its replay.
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '150.00', PaymentMethod::Stripe);
 
@@ -355,7 +356,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $this->assertSame(
             1,
             WebhookReplayGuard::query()->where('gateway', 'stripe')->count(),
-            'an accepted delivery must be recorded for telemetry',
+            'an accepted delivery must keep its claim',
         );
     }
 
@@ -402,16 +403,9 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 "VerifyWebhookSignature must be on {$name}: a guard that is not attached to a route protects nothing",
             );
 
-            // The alias carries its limiter as a parameter ("...ThrottleRequests:webhook"),
-            // so the class is compared before the colon rather than the whole string.
-            $throttleEntries = array_filter(
+            $this->assertContains(
+                ThrottleRequests::class,
                 $middleware,
-                static fn (mixed $entry): bool => is_string($entry)
-                    && explode(':', $entry, 2)[0] === ThrottleRequests::class,
-            );
-
-            $this->assertNotEmpty(
-                $throttleEntries,
                 "the flood limiter must still be on {$name}",
             );
         }

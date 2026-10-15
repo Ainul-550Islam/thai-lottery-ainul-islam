@@ -584,44 +584,19 @@ final class SettlementSimulationTest extends SettlementTestCase
         ]);
 
         $this->assertSame(1, $this->countOutcome($outcomes, 'settled'), $this->describe($outcomes));
+        $this->assertSame(
+            1,
+            $this->countOutcome($outcomes, 'already_settled'),
+            $this->describe($outcomes),
+        );
+        $this->assertSame(0, $this->countOutcome($outcomes, 'refused'), $this->describe($outcomes));
 
-        if (DB::connection()->getDriverName() === 'sqlite') {
-            // SQLite has no row locks (no SELECT ... FOR UPDATE). When both processes read
-            // the draw before either writes, the loser's read-to-write upgrade is refused by
-            // the database with "database is locked" instead of waiting. That refusal is a
-            // SAFE outcome: the loser writes nothing. Anything else is a defect.
-            $this->assertSame(
-                1,
-                $this->countOutcome($outcomes, 'already_settled') + $this->countOutcome($outcomes, 'refused'),
-                $this->describe($outcomes),
-            );
-
-            foreach ($outcomes as $outcome) {
-                if (($outcome['outcome'] ?? null) === 'refused') {
-                    $this->assertStringContainsString(
-                        'database is locked',
-                        (string) ($outcome['message'] ?? ''),
-                        'Only a database lock may refuse the losing settlement. '.$this->describe($outcomes),
-                    );
-                }
-            }
-        } else {
-            // MySQL/MariaDB serialise the two settlements on the draw row (FOR UPDATE), so the
-            // loser must observe the completed run and report it as already settled.
-            $this->assertSame(
-                1,
-                $this->countOutcome($outcomes, 'already_settled'),
-                $this->describe($outcomes),
-            );
-            $this->assertSame(0, $this->countOutcome($outcomes, 'refused'), $this->describe($outcomes));
-
-            // Both processes report the SAME outcome.
-            $this->assertSame(
-                $outcomes[0]['fingerprint'],
-                $outcomes[1]['fingerprint'],
-                $this->describe($outcomes),
-            );
-        }
+        // Both processes report the SAME outcome.
+        $this->assertSame(
+            $outcomes[0]['fingerprint'],
+            $outcomes[1]['fingerprint'],
+            $this->describe($outcomes),
+        );
 
         // Exactly one audit row, and every selection written exactly once.
         $this->assertSame(
@@ -636,9 +611,7 @@ final class SettlementSimulationTest extends SettlementTestCase
         );
         $this->assertSame(
             '9900.00',
-            // SQLite returns SUM() as a float ("9900") and MySQL as a decimal string
-            // ("9900.00"); both are normalised to the same two-place money string.
-            number_format((float) BetItem::query()->sum('actual_payout'), 2, '.', ''),
+            (string) BetItem::query()->sum('actual_payout'),
             'Each selection is settled exactly once, so the simulated prizes are not doubled. '
             .$this->describe($outcomes),
         );

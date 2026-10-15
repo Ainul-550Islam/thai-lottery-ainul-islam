@@ -33,7 +33,7 @@ final class PublicResultsAnonymousTest extends TestCase
     {
         $response = $this->get('/results');
         $response->assertOk();
-        $response->assertSee('Government Lottery results', false);
+        $response->assertSee('Published lottery results', false);
     }
 
     public function test_results_page_never_labels_fixture_as_official(): void

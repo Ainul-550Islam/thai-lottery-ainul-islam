@@ -56,14 +56,8 @@ class GloPublicResultService
             return GloSourceState::FixtureOnly->value;
         }
 
-        // Admin entry / recovery (no provider, or an explicit internal channel)
-        // is labelled internal. Any other unrecognised provider is Unavailable,
-        // so an unknown source is never presented as reconciled.
-        $internalChannels = ['', 'internal', 'manual', 'admin_entry'];
-
-        if ($draw !== null
-            && in_array(strtolower($provider), $internalChannels, true)
-            && in_array($draw->status, [DrawStatus::ResultPublished, DrawStatus::Completed], true)) {
+        // Admin entry / recovery / import without official provider → internal.
+        if ($draw !== null && in_array($draw->status, [DrawStatus::ResultPublished, DrawStatus::Completed], true)) {
             return GloSourceState::InternalReconciled->value;
         }
 

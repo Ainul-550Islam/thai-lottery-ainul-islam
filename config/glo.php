@@ -506,13 +506,11 @@ return [
         // Cache key parts: product|draw|result_version
         'result_version_source' => 'draw_results.metadata.glo.import_fingerprint',
         'live_draw' => [
-            // Stays NOT_CONFIGURED unless the operator sets GLO_LIVE_DRAW_MODE=configured AND an
-            // authorised YouTube live URL in GLO_LIVE_DRAW_EMBED_URL. The URL is validated by
-            // App\Services\Lottery\YouTubeEmbedUrl; anything else keeps the live draw NOT_CONFIGURED.
-            'mode' => env('GLO_LIVE_DRAW_MODE', 'not_configured'),
-            'provider' => env('GLO_LIVE_DRAW_PROVIDER', 'youtube'),
-            'embed_url' => env('GLO_LIVE_DRAW_EMBED_URL'),
-            'replay_catalog' => env('GLO_LIVE_DRAW_REPLAY_CATALOG', 'not_configured'),
+            // No authorized GLO live stream URL is configured for this project.
+            'mode' => 'not_configured',
+            'provider' => null,
+            'embed_url' => null,
+            'replay_catalog' => 'not_configured',
         ],
         'data_matrix' => [
             // Proprietary GLO Data Matrix encoding is NOT publicly documented.

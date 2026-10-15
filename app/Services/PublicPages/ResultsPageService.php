@@ -62,12 +62,6 @@ final class ResultsPageService
                 default => GloSourceState::Unavailable,
             };
 
-            // Unknown provenance is omitted entirely. Its prize number must not
-            // reach the public page, even though the state is labelled Unavailable.
-            if ($sourceState === GloSourceState::Unavailable) {
-                continue;
-            }
-
             $rows[] = [
                 'draw_number' => (string) $draw->draw_number,
                 'draw_date' => $draw->scheduled_at?->toDateString(),

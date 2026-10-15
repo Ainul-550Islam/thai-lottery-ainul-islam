@@ -10,7 +10,6 @@ use App\Services\Draw\DrawResultConfirmationService;
 use App\Services\Draw\DrawResultIngestionService;
 use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\DrawScheduleService;
-use App\Support\Admin\AdminAccess;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -28,8 +27,7 @@ final class PublishDrawResultCommand extends Command
         {draw : The draw id or draw number}
         {--first-prize= : The official first prize digit string}
         {--bottom-two= : The official bottom-two digit string}
-        {--operator-id= : Existing active draw operator responsible for this action}
-        {--notes= : Required confirmation note when using --confirm}
+        {--operator-id= : Existing operator user id responsible for this action}
         {--confirm : Confirm a previously ingested result instead of ingesting}
         {--yes : Skip the interactive acknowledgement prompt}';
 
@@ -77,29 +75,6 @@ final class PublishDrawResultCommand extends Command
         $firstPrize = trim($firstPrize);
         $bottomTwo = trim($bottomTwo);
         $confirming = (bool) $this->option('confirm');
-        $confirmationNotes = null;
-
-        if ($confirming) {
-            $notesOption = $this->option('notes');
-            $confirmationNotes = is_string($notesOption) ? trim($notesOption) : '';
-
-            if ($confirmationNotes === '' && (bool) $this->option('yes')) {
-                $this->error('--notes= is required with --confirm --yes so the checker act is auditable.');
-
-                return self::FAILURE;
-            }
-
-            if ($confirmationNotes === '') {
-                $confirmationNotes = trim((string) $this->ask('Confirmation notes (5–500 characters)'));
-            }
-
-            if (mb_strlen($confirmationNotes) < 5 || mb_strlen($confirmationNotes) > 500) {
-                $this->error('Confirmation notes must be between 5 and 500 characters.');
-
-                return self::FAILURE;
-            }
-        }
-
         $action = $confirming ? 'CONFIRM AND PUBLISH' : 'INGEST FOR REVIEW';
 
         $this->table(
@@ -131,7 +106,7 @@ final class PublishDrawResultCommand extends Command
                 return $this->ingest($draw, $operatorId, $firstPrize, $bottomTwo);
             }
 
-            return $this->confirmAndPublish($draw, $operatorId, $firstPrize, $bottomTwo, $confirmationNotes);
+            return $this->confirmAndPublish($draw, $operatorId, $firstPrize, $bottomTwo);
         } catch (Throwable $exception) {
             $this->error($exception->getMessage());
 
@@ -181,7 +156,6 @@ final class PublishDrawResultCommand extends Command
         int $operatorId,
         string $firstPrize,
         string $bottomTwo,
-        ?string $confirmationNotes,
     ): int {
         $confirmed = $this->confirmation->confirm(
             (int) $draw->getKey(),
@@ -190,7 +164,6 @@ final class PublishDrawResultCommand extends Command
                 'first_prize' => $firstPrize,
                 'bottom_two' => $bottomTwo,
             ],
-            $confirmationNotes,
         );
 
         $winningNumbers = $this->publication->winningNumbersFor((int) $draw->getKey());
@@ -238,18 +211,9 @@ final class PublishDrawResultCommand extends Command
         }
 
         $operatorId = (int) $candidate;
-        $operator = User::query()->find($operatorId);
 
-        if (! $operator instanceof User || ! $operator->isActive()) {
-            $this->error(sprintf('Operator user %d does not exist or is inactive.', $operatorId));
-
-            return null;
-        }
-
-        if (! AdminAccess::allows($operator, AdminAccess::VIEW_DRAWS)
-            && ! AdminAccess::allows($operator, AdminAccess::MANAGE_DRAWS)
-        ) {
-            $this->error(sprintf('Operator user %d lacks draw permissions.', $operatorId));
+        if (! User::query()->whereKey($operatorId)->exists()) {
+            $this->error(sprintf('Operator user %d does not exist.', $operatorId));
 
             return null;
         }

@@ -42,7 +42,7 @@ use App\Services\Compliance\SelfExclusionService;
 use App\Services\Draw\RealPrizeSettlementService;
 use App\Services\Finance\FinancialReconciliationService;
 use App\Services\Finance\WalletHoldService;
-use App\Services\Wallet\WalletService;
+use App\Services\Finance\WalletService;
 use App\Services\Lottery\GloL6AuthoritativeTicketEngineService;
 use App\Services\Lottery\GloL6ProportionalPrizeCalculator;
 use App\Services\Lottery\GloStampDutyCalculator;
@@ -108,7 +108,7 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         /** @var WalletService $walletService */
         $walletService = $this->app->make(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($player, Currency::THB);
-        $walletService->credit($wallet, '1000.00', 'initial_deposit', 'phase-test-'.bin2hex(random_bytes(8)), 'Initial Deposit');
+        $walletService->credit($wallet, '1000.00', 'initial_deposit', 'DEP-001', 'Initial Deposit');
 
         $draw = Draw::query()->create([
             'draw_number' => 'GLO-20261001-01',
@@ -288,8 +288,8 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $walletService = $this->app->make(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
 
-        $walletService->credit($wallet, '500.00', 'promo', 'phase-test-'.bin2hex(random_bytes(8)), 'Bonus credit');
-        $walletService->debit($wallet, '200.00', 'spend', 'phase-test-'.bin2hex(random_bytes(8)), 'Entry fee');
+        $walletService->credit($wallet, '500.00', 'promo', 'PROMO-1', 'Bonus credit');
+        $walletService->debit($wallet, '200.00', 'spend', 'SPEND-1', 'Entry fee');
 
         $wallet->refresh();
         $this->assertSame('300.00', (string) $wallet->balance);
@@ -322,7 +322,7 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
             'currency' => Currency::THB,
         ]);
 
-        $walletService->credit($wallet, '500.00', 'deposit', 'phase-test-'.bin2hex(random_bytes(8)), 'Seed');
+        $walletService->credit($wallet, '500.00', 'deposit', 'D-1', 'Seed');
 
         /** @var BulkBetService $bulkService */
         $bulkService = $this->app->make(BulkBetService::class);
@@ -352,8 +352,8 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $walletTHB = $walletService->getOrCreateWallet($user, Currency::THB);
         $walletUSD = $walletService->getOrCreateWallet($user, Currency::USD);
 
-        $walletService->credit($walletTHB, '5000.00', 'deposit', 'phase-test-'.bin2hex(random_bytes(8)), 'THB Deposit');
-        $walletService->credit($walletUSD, '100.00', 'deposit', 'phase-test-'.bin2hex(random_bytes(8)), 'USD Deposit');
+        $walletService->credit($walletTHB, '5000.00', 'deposit', 'D-THB', 'THB Deposit');
+        $walletService->credit($walletUSD, '100.00', 'deposit', 'D-USD', 'USD Deposit');
 
         $walletTHB->refresh();
         $walletUSD->refresh();

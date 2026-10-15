@@ -34,9 +34,9 @@ use Illuminate\Http\Request;
  * - ingest: operator staging of an announced result. NEVER finalizes.
  * - confirm: second-pair-of-eyes boundary — a checker who is not the maker
  *   (and whose note + claimed result must be supplied) may confirm.
- * - publish: idempotent status/recovery surface for a Confirmed record. The
- *   confirmation transaction normally publishes immediately; the publication
- *   service independently checks the persisted four-eyes record and provenance.
+ * - publish: after confirmation, the one who promoted the result into
+ *   public truth (the pipeline's own card serves as guarantee: only a
+ *   Confirmed record passes, the service asserts this again).
  */
 final class DrawResultController
 {
@@ -76,93 +76,6 @@ final class DrawResultController
         return ApiResponse::success(
             data: ['result' => $resource->resolve($request)],
             message: 'Draw result retrieved successfully.',
-        );
-    }
-
-    /**
-     * Read the complete Pending card for an authorized checker before attesting.
-     *
-     * This is intentionally separate from show(), which exposes only published
-     * truth. Players receive no indication that a Pending card exists; active
-     * admins may inspect only the canonical, whitelisted payload the maker
-     * staged, including provider prize lists and GLO source-lane data.
-     */
-    public function showPending(string $draw, Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        if ($user === null || ! ($user->isAdmin() || $user->isSuperAdmin())) {
-            abort(403);
-        }
-
-        if (! ctype_digit($draw) || (int) $draw < 1) {
-            return ApiResponse::error(code: 'draw_not_found', message: 'Draw not found.', status: 404);
-        }
-
-        $drawModel = Draw::query()->find((int) $draw);
-
-        if (! $drawModel instanceof Draw) {
-            return ApiResponse::error(code: 'draw_not_found', message: 'Draw not found.', status: 404);
-        }
-
-        $record = $this->ingestion->pendingIngestion((int) $drawModel->getKey());
-
-        if (! is_array($record)) {
-            return ApiResponse::error(
-                code: 'pending_draw_result_not_found',
-                message: 'No Pending result is available for review.',
-                status: 404,
-            );
-        }
-
-        $storedPayload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
-        $reviewPayload = [];
-
-        foreach (['first_prize', 'bottom_two', 'second_prize', 'third_prize'] as $field) {
-            if (! array_key_exists($field, $storedPayload)) {
-                continue;
-            }
-
-            $value = $storedPayload[$field];
-
-            if (is_string($value) || (is_array($value) && array_is_list($value))) {
-                $reviewPayload[$field] = $value;
-            }
-        }
-
-        $sourceLane = is_array($storedPayload['source_lane'] ?? null) ? $storedPayload['source_lane'] : [];
-        $reviewLane = [];
-
-        foreach (['tiers', 'n3'] as $field) {
-            if (isset($sourceLane[$field]) && is_array($sourceLane[$field])) {
-                $reviewLane[$field] = $sourceLane[$field];
-            }
-        }
-
-        foreach (['import_provider', 'import_fingerprint', 'upstream_draw_id'] as $field) {
-            if (isset($sourceLane[$field]) && is_scalar($sourceLane[$field])) {
-                $reviewLane[$field] = (string) $sourceLane[$field];
-            }
-        }
-
-        if ($reviewLane !== []) {
-            $reviewPayload['source_lane'] = $reviewLane;
-        }
-
-        return ApiResponse::success(
-            data: [
-                'ingestion' => [
-                    'draw_id' => (int) $drawModel->getKey(),
-                    'draw_number' => (string) $drawModel->draw_number,
-                    'status' => (string) ($record['status'] ?? ''),
-                    'fingerprint' => (string) ($record['fingerprint'] ?? ''),
-                    'source' => (string) ($record['source'] ?? ''),
-                    'ingested_at' => (string) ($record['ingested_at'] ?? ''),
-                    'maker_user_id' => isset($record['ingested_by']) ? (int) $record['ingested_by'] : null,
-                    'payload' => $reviewPayload,
-                ],
-            ],
-            message: 'Pending draw result retrieved for review.',
         );
     }
 
@@ -226,7 +139,6 @@ final class DrawResultController
                 (int) $draw->getKey(),
                 (int) $user->getAuthIdentifier(),
                 $request->claimedResult(),
-                $request->confirmationNotes(),
             );
         } catch (DrawResultException $e) {
             return ApiResponse::error(
@@ -238,18 +150,18 @@ final class DrawResultController
 
         return ApiResponse::success(
             data: ['confirmation' => $this->summarizeLane($record)],
-            message: 'Draw result confirmed and published to players.',
+            message: 'Draw result confirmed. It is now eligible for publication.',
         );
     }
 
     /**
-     * Report the publication state of a CONFIRMED result, or recover a missing
-     * publication through the guarded writer.
+     * Promote a CONFIRMED result into public truth.
      *
-     * The confirmation service normally performs the publication in its own
-     * transaction. This compatibility route never takes result numbers from
-     * the request; the writer re-reads the persisted confirmation, maker,
-     * checker, fingerprint and provenance under the draw lock.
+     * The publication service re-asserts the confirmation state behind its
+     * row lock; this controller merely names the operator who pressed the
+     * button. Both the controller and the service independently reject a
+     * publication without confirmation, which is how a double pretend-press
+     * is never seen as a success.
      */
     public function storePublication(Request $request): JsonResponse
     {
@@ -265,11 +177,13 @@ final class DrawResultController
             return ApiResponse::error(code: 'draw_not_found', message: 'Draw not found.', status: 404);
         }
 
-        // This recovery surface accepts no result numbers from the request.
-        // It first checks for an existing publication, then reloads the
-        // persisted Confirmed ingestion. DrawResultPublicationService repeats
-        // the maker/checker, timestamp, fingerprint, provenance and lifecycle
-        // checks under the draw lock before it can write anything.
+        // The publication lane does not read the confirmation card itself —
+        // it validates whatever it is given, asserts the draw may publish,
+        // and writes the official result. The maker/checker contract is
+        // therefore completed HERE: the numbers offered to publication are
+        // re-derived from the CONFIRMED ingestion record (never from the
+        // request body), so publication always writes exactly what the
+        // second pair of hands confirmed.
         $status = $this->confirmation->statusOf((int) $draw->getKey());
 
         if ($status !== \App\Enums\DrawConfirmationStatus::Confirmed) {
@@ -325,6 +239,7 @@ final class DrawResultController
         $input = [
             'first_prize' => (string) $payload['first_prize'],
             'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
+            'source' => (string) ($record['source'] ?? ''),
         ];
 
         try {

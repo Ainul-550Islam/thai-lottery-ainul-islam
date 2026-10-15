@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
-use App\DTOs\Lottery\GloStampDutyResult;
 use InvalidArgumentException;
 
 /**
@@ -60,25 +59,6 @@ class GloStampDutyCalculator
         }
 
         return bcadd($quotient, '0.00', 2);
-    }
-
-    /**
-     * Typed projection of one prize: gross, stamp duty, net payout and the
-     * income-tax exemption flag. Built from the same rules as dutyFor() and
-     * netAfterDuty(), so the two shapes cannot disagree.
-     *
-     * @throws InvalidArgumentException
-     */
-    public function calculateDuty(string $grossPrize): GloStampDutyResult
-    {
-        $gross = $this->assertMoney($grossPrize);
-
-        return new GloStampDutyResult(
-            grossPrizeThb: $gross,
-            stampDutyThb: $this->dutyFor($gross),
-            netPayoutThb: $this->netAfterDuty($gross),
-            isIncomeTaxExempt: true,
-        );
     }
 
     /**

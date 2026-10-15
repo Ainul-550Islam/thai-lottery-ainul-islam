@@ -77,10 +77,6 @@ final class HomePagePublicExperienceTest extends TestCase
 
     public function test_current_result_honest_without_verified_row(): void
     {
-        // home.current-result is cached for 60s; clear it so a verified result cached by an
-        // earlier test cannot leak into this one.
-        Cache::flush();
-
         $content = (string) $this->get('/')->assertOk()->getContent();
         $this->assertStringContainsString('No verified result available', $content);
     }

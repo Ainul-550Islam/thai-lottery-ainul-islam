@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\DTOs\Betting\BulkBetSelectionData;
-use App\Enums\DrawStatus;
 use App\Enums\Currency;
 use App\Enums\GloClaimChannel;
 use App\Enums\GloClaimStatus;
@@ -14,9 +13,6 @@ use App\Enums\PaymentChannel;
 use App\Enums\PaymentDirection;
 use App\Enums\PaymentStatus;
 use App\Enums\WithdrawalStatus;
-use App\Enums\BetType;
-use App\Enums\LimitStatus;
-use App\Models\NumberLimit;
 use App\Models\Draw;
 use App\Models\GloPrizeClaim;
 use App\Models\PaymentMethod;
@@ -26,11 +22,8 @@ use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Betting\BulkBetService;
 use App\Services\Finance\FinancialReconciliationService;
-use App\Services\Finance\Money;
-use App\Services\Finance\WithdrawalApprovalService;
-use App\Services\Finance\WithdrawalService;
 use App\Services\Finance\WalletReservationService;
-use App\Services\Wallet\WalletService;
+use App\Services\Finance\WalletService;
 use App\Services\Lottery\GloL6ProportionalPrizeCalculator;
 use App\Services\Lottery\GloPrizeClaimService;
 use App\Services\Lottery\GloStampDutyCalculator;
@@ -38,7 +31,7 @@ use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use App\Services\Security\ResponsibleGamingService;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -46,9 +39,7 @@ use Tests\TestCase;
 
 class RealMoneyBusinessReadinessTest extends TestCase
 {
-    // DatabaseTruncation, not RefreshDatabase: RefreshDatabase wraps each test in an open
-    // transaction, and a bet purchase must own its transaction (see BetPurchaseTransactionService).
-    use DatabaseTruncation;
+    use RefreshDatabase;
 
     /**
      * Test GLO L6 Proportional Prize Pool Calculation and Stamp Duty.
@@ -103,10 +94,8 @@ class RealMoneyBusinessReadinessTest extends TestCase
 
         $this->assertEquals(GloClaimStatus::Pending->value, $claim->claim_status);
 
-        // Approve claim. approve() is the real entry point and accepts a
-        // Pending or Eligible claim after re-checking every payment condition.
-        $approver = User::factory()->create();
-        $approved = $claimService->approve($claim, $approver);
+        // Approve claim
+        $approved = $claimService->approveClaim($claim->id, 'Officer note: Verified authentic ticket');
         $this->assertEquals(GloClaimStatus::Approved->value, $approved->claim_status);
         $this->assertNotNull($approved->approved_at);
     }
@@ -128,23 +117,23 @@ class RealMoneyBusinessReadinessTest extends TestCase
 
         // Create reservation of 250.00 THB
         $reservation = $reservationService->reserve(
-            $user->id,
-            '250.00',
-            Currency::THB->value,
-            'Bet slip reservation',
-            300
+            userId: $user->id,
+            amount: '250.00',
+            currency: Currency::THB->value,
+            reason: 'Bet slip reservation',
+            ttlSeconds: 300
         );
 
         $this->assertNotNull($reservation);
         $this->assertEquals('750.00', $wallet->fresh()->available_balance);
-        $this->assertEquals('250.00', $wallet->fresh()->locked_balance);
+        $this->assertEquals('250.00', $wallet->fresh()->reserved_balance);
 
         // Consume reservation
         $consumed = $reservationService->consume($reservation->id, 'Bet placement #101');
         $this->assertTrue($consumed);
 
         $this->assertEquals('750.00', $wallet->fresh()->balance);
-        $this->assertEquals('0.00', $wallet->fresh()->locked_balance);
+        $this->assertEquals('0.00', $wallet->fresh()->reserved_balance);
     }
 
     /**
@@ -186,34 +175,31 @@ class RealMoneyBusinessReadinessTest extends TestCase
     {
         $user = User::factory()->create();
         $walletService = app(WalletService::class);
+        $disbursementService = app(WithdrawalDisbursementService::class);
 
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
         $walletService->credit($wallet->id, '500.00', 'Initial balance');
 
-        // Real request path: the request is created, approval reserves the
-        // funds into locked_balance, and rejection releases them back.
-        $withdrawal = app(WithdrawalService::class)->request(
-            wallet: $wallet->refresh(),
-            amount: Money::of('200.00', Currency::THB),
-            method: \App\Enums\PaymentMethod::Bkash,
-            options: ['payout_details' => ['phone' => '01711111111']],
-        );
+        $withdrawal = Withdrawal::create([
+            'user_id' => $user->id,
+            'wallet_id' => $wallet->id,
+            'amount' => '200.00',
+            'fee' => '0.00',
+            'currency' => Currency::THB->value,
+            'channel' => 'bank_transfer',
+            'status' => WithdrawalStatus::Pending->value,
+            'destination_details' => json_encode(['account_number' => '1234567890', 'bank' => 'KBANK']),
+        ]);
 
-        app(WithdrawalApprovalService::class)->approve($withdrawal);
+        // Debit wallet for pending withdrawal
+        $walletService->debit($wallet->id, '200.00', 'Withdrawal pending');
+        $this->assertEquals('300.00', $wallet->fresh()->balance);
 
-        // Approval reserves into locked_balance; the total balance is unchanged.
-        $wallet->refresh();
-        $this->assertSame('500.00', $wallet->balance);
-        $this->assertSame('200.00', $wallet->locked_balance);
+        // Fail withdrawal and ensure funds are refunded
+        $disbursementService->rejectWithdrawal($withdrawal->id, 'Invalid bank account number');
 
-        $result = app(WithdrawalApprovalService::class)->reject($withdrawal, 'Invalid bank account number');
-
-        $this->assertSame(WithdrawalStatus::Rejected, $result['withdrawal']->status);
-        $this->assertTrue($result['hold_released']);
-
-        $wallet->refresh();
-        $this->assertSame('500.00', $wallet->balance);
-        $this->assertSame('0.00', $wallet->locked_balance);
+        $this->assertEquals(WithdrawalStatus::Failed->value, $withdrawal->fresh()->status);
+        $this->assertEquals('500.00', $wallet->fresh()->balance);
     }
 
     /**
@@ -251,22 +237,16 @@ class RealMoneyBusinessReadinessTest extends TestCase
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
         $walletService->credit($wallet->id, '500.00', 'Test balance');
 
-        $draw = Draw::factory()->create([
-            'status' => DrawStatus::Open->value,
-            'betting_close_at' => Carbon::now()->addHours(2),
-        ]);
-
-        $this->provisionNumberLimit($draw, '3d_direct', '123');
-        $this->provisionNumberLimit($draw, '2d_bottom', '45');
+        $draw = Draw::factory()->create();
 
         $selections = [
             new BulkBetSelectionData(
-                marketKey: '3d_direct',
+                marketKey: 'top_3',
                 number: '123',
                 stake: '50.00'
             ),
             new BulkBetSelectionData(
-                marketKey: '2d_bottom',
+                marketKey: 'bottom_2',
                 number: '45',
                 stake: '50.00'
             ),
@@ -290,29 +270,5 @@ class RealMoneyBusinessReadinessTest extends TestCase
         $this->assertEquals(2, $replay['requested']);
         $this->assertEquals(2, $replay['replayed']);
         $this->assertEquals('0.00', $replay['total_charged']);
-    }
-
-    /**
-     * Provision the number_limits row a number needs before it can be sold. Mirrors the
-     * settlement fixtures: the counters and status are set explicitly, not mass-assigned.
-     */
-    private function provisionNumberLimit(Draw $draw, string $marketKey, string $number): void
-    {
-        $definition = config('lottery.markets.'.$marketKey);
-        $this->assertIsArray($definition, 'Unknown market '.$marketKey);
-
-        $betType = BetType::from((string) $definition['bet_type']);
-        $padded = str_pad($number, (int) $definition['digits'], '0', STR_PAD_LEFT);
-
-        $limit = new NumberLimit();
-        $limit->draw_id = $draw->getKey();
-        $limit->bet_type = $betType;
-        $limit->number = $padded;
-        $limit->max_amount = '1000000.00';
-        $limit->current_amount = '0.00';
-        $limit->maximum_payout_exposure = null;
-        $limit->current_payout_exposure = '0.00';
-        $limit->status = LimitStatus::Active;
-        $limit->save();
     }
 }

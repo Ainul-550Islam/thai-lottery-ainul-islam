@@ -404,7 +404,9 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         ]);
         $entry->save();
 
-        $this->deleteWithoutForeignKeyChecks('financial_transactions', $tx->id);
+        DB::statement('PRAGMA foreign_keys = OFF');
+        DB::table('financial_transactions')->where('id', $tx->id)->delete();
+        DB::statement('PRAGMA foreign_keys = ON');
 
         $report = $this->reconciliationService->reconcile();
 
@@ -467,7 +469,9 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         ]);
         $entry->save();
 
-        $this->deleteWithoutForeignKeyChecks('financial_transactions', $tx->id);
+        DB::statement('PRAGMA foreign_keys = OFF');
+        DB::table('financial_transactions')->where('id', $tx->id)->delete();
+        DB::statement('PRAGMA foreign_keys = ON');
 
         $report = $this->reconciliationService->reconcile();
 
@@ -589,7 +593,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $player = $this->createReconciledPlayer('500.00', Currency::THB);
 
         // Force negative balance on wallet
-        $this->writeCorruptWallet($player['wallet']->id, ['balance' => '-50.00']);
+        DB::table('wallets')->where('id', $player['wallet']->id)->update(['balance' => '-50.00']);
 
         $report = $this->reconciliationService->reconcile();
 
@@ -677,7 +681,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
     {
         $player = $this->createReconciledPlayer('500.00', Currency::THB);
 
-        $this->writeCorruptWallet($player['wallet']->id, ['balance' => '-10.00']);
+        DB::table('wallets')->where('id', $player['wallet']->id)->update(['balance' => '-10.00']);
 
         $report = $this->reconciliationService->reconcile();
 
@@ -691,7 +695,7 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
     {
         $player = $this->createReconciledPlayer('500.00', Currency::THB);
 
-        $this->writeCorruptWallet($player['wallet']->id, [
+        DB::table('wallets')->where('id', $player['wallet']->id)->update([
             'balance' => '200.00',
             'locked_balance' => '400.00',
         ]);
@@ -971,56 +975,5 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $report = $this->reconciliationService->reconcile();
         $this->assertSame(ReconciliationStatus::Pass, $report->status);
         $this->assertSame('0.00', $report->ledgerDifference);
-    }
-
-    /**
-     * Write a deliberately impossible wallet state, so the detector can be proven to catch it.
-     *
-     * MariaDB enforces wallets_balance_non_negative and wallets_locked_within_balance, which
-     * is correct production behaviour. The constraints are disabled only for this one write,
-     * on this connection, and restored straight after. The detector assertions are unchanged.
-     *
-     * @param  array<string, string>  $values
-     */
-    private function writeCorruptWallet(int $walletId, array $values): void
-    {
-        $mysql = in_array(DB::getDriverName(), ['mysql', 'mariadb'], true);
-
-        if ($mysql) {
-            DB::statement('SET SESSION check_constraint_checks = 0');
-        }
-
-        try {
-            DB::table('wallets')->where('id', $walletId)->update($values);
-        } finally {
-            if ($mysql) {
-                DB::statement('SET SESSION check_constraint_checks = 1');
-            }
-        }
-    }
-
-    /**
-     * Delete a row whose parent link is intentionally broken, so orphan detection can be exercised.
-     * Foreign-key checks are turned off only for this delete, using the statement for the active driver.
-     */
-    private function deleteWithoutForeignKeyChecks(string $table, int $id): void
-    {
-        $driver = DB::getDriverName();
-
-        if ($driver === 'sqlite') {
-            DB::statement('PRAGMA foreign_keys = OFF');
-        } else {
-            DB::statement('SET SESSION foreign_key_checks = 0');
-        }
-
-        try {
-            DB::table($table)->where('id', $id)->delete();
-        } finally {
-            if ($driver === 'sqlite') {
-                DB::statement('PRAGMA foreign_keys = ON');
-            } else {
-                DB::statement('SET SESSION foreign_key_checks = 1');
-            }
-        }
     }
 }

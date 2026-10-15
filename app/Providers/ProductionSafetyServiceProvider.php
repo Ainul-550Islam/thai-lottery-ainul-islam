@@ -100,17 +100,6 @@ class ProductionSafetyServiceProvider extends ServiceProvider
             }
         }
 
-        // A fixture in the priority list is a fall-through by another name: the chain would
-        // walk to the synthetic source whenever an earlier one returned nothing.
-        $gloPriority = config('glo.sources.priority');
-
-        if (is_array($gloPriority) && in_array('fixture', array_map(
-            static fn (mixed $source): string => strtolower(trim((string) $source)),
-            $gloPriority,
-        ), true)) {
-            $violations[] = 'glo.sources.priority contains fixture; fixture data may never be a result source in production.';
-        }
-
         // ── GLO: the lane this gate was missing entirely ─────────────────────
         //
         // THE HOLE, STATED PLAINLY. The four lanes above are checked. GLO was

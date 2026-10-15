@@ -12,7 +12,15 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => (int) env('DB_BUSY_TIMEOUT', 5000),
+            // SQLite has one writer. Acquire its write reservation BEFORE the
+            // purchase reads wallet/idempotency/risk rows. A DEFERRED read
+            // transaction can otherwise fail immediately while upgrading its
+            // stale snapshot, even when the configured busy timeout is long.
+            // PHP ^8.4 + Laravel's SQLiteConnection supports BEGIN IMMEDIATE.
+            'transaction_mode' => 'IMMEDIATE',
+            // A competing writer waits for the first purchase to commit, then
+            // re-reads its idempotency key instead of producing a false refusal.
+            'busy_timeout' => max(0, (int) env('DB_BUSY_TIMEOUT', 15000)),
             'journal_mode' => null,
             'synchronous' => null,
         ],
@@ -33,16 +41,11 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                // PHP 8.5 deprecated the PDO::MYSQL_* class constants in favour of the
-                // dedicated Pdo\Mysql class. Both names resolve to the same integer
-                // attribute id (1008), so preferring the new name preserves the
-                // connection behaviour exactly while removing the deprecation notice.
-                //
-                // The fallback is reached only on PHP 8.2 to 8.4, where Pdo\Mysql does
-                // not exist and the old constant is not deprecated. It is fetched with
-                // constant() rather than written as a compiled constant reference so
-                // that neither class name is compiled in on a PHP version where it is
-                // absent or deprecated, and so that the formatter leaves both alone.
+                // Prefer the dedicated driver's constant when available. The
+                // fallback preserves the same SSL CA attribute id, 1009; it
+                // must never be confused with ATTR_SSL_CERT (1008).
+                // Resolve names dynamically so an unavailable/deprecated
+                // spelling is not compiled into the other branch.
                 (class_exists('Pdo\Mysql')
                     ? constant('Pdo\Mysql::ATTR_SSL_CA')
                     : constant('PDO::MYSQL_ATTR_SSL_CA')) => env('MYSQL_ATTR_SSL_CA'),

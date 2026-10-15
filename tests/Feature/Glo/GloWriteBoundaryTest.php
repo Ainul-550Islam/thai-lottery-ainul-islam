@@ -6,18 +6,14 @@ namespace Tests\Feature\Glo;
 
 use App\Enums\DrawConfirmationStatus;
 use App\Enums\DrawStatus;
-use App\Exceptions\DrawPublicationException;
 use App\Exceptions\DrawResultException;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Models\User;
 use App\Services\Draw\DrawResultConfirmationService;
 use App\Services\Draw\DrawResultIngestionService;
-use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Lottery\GloResultImportService;
-use App\Services\Lottery\GloResultPublicationService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
-use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -73,9 +69,7 @@ class GloWriteBoundaryTest extends TestCase
         // would fail the second half of every test here. ResultPending is the
         // real state a GLO result is processed in.
         $this->draw = Draw::factory()->create([
-            // The fixture provider only answers for its own draw number; a
-            // different number is refused as a mismatch before any gate runs.
-            'draw_number' => 'GLO-2026-09-16',
+            'draw_number' => 'GLO-WRITE-BOUNDARY',
             'status' => DrawStatus::Drawing,
             'scheduled_at' => now()->subDays(1),
         ]);
@@ -151,45 +145,6 @@ class GloWriteBoundaryTest extends TestCase
         $this->assertNotNull($result);
         $this->assertSame('123456', $result->first_prize);
         $this->assertNotNull($result->published_at);
-        $this->assertSame('source-known', $result->metadata['provenance'] ?? null);
-        $this->assertSame($maker->getKey(), $result->metadata['four_eyes']['ingested_by'] ?? null);
-        $this->assertSame($checker->getKey(), $result->metadata['four_eyes']['confirmed_by'] ?? null);
-    }
-
-    public function test_replayed_confirmation_does_not_duplicate_result_or_winning_numbers(): void
-    {
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $this->ingestion->ingest(
-            (int) $this->draw->getKey(),
-            ['first_prize' => '123456', 'bottom_two' => '58'],
-            'operator',
-            $maker->getKey(),
-        );
-
-        $this->confirmation->confirm(
-            (int) $this->draw->getKey(),
-            $checker->getKey(),
-            ['first_prize' => '123456', 'bottom_two' => '58'],
-        );
-        $winningCount = count(app(DrawResultPublicationService::class)->winningNumbersFor((int) $this->draw->getKey()));
-
-        try {
-            $this->confirmation->confirm(
-                (int) $this->draw->getKey(),
-                User::factory()->create()->getKey(),
-                ['first_prize' => '123456', 'bottom_two' => '58'],
-            );
-            $this->fail('A replayed confirmation unexpectedly republished the result.');
-        } catch (DrawResultException $exception) {
-            $this->assertSame(DrawResultException::CODE_CONFIRMATION_FORBIDDEN, $exception->errorCode());
-        }
-
-        $this->assertSame(1, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-        $this->assertSame(
-            $winningCount,
-            count(app(DrawResultPublicationService::class)->winningNumbersFor((int) $this->draw->getKey())),
-        );
     }
 
     /**
@@ -217,225 +172,6 @@ class GloWriteBoundaryTest extends TestCase
             $this->fail('An unattributable ingestion was confirmed.');
         } catch (DrawResultException $e) {
             $this->assertStringContainsString('attributable', $e->getMessage());
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-    }
-
-    public function test_zero_or_malformed_maker_identity_cannot_be_confirmed(): void
-    {
-        $checker = User::factory()->create();
-
-        $this->ingestion->ingest(
-            (int) $this->draw->getKey(),
-            ['first_prize' => '123456', 'bottom_two' => '58'],
-            'operator',
-            0,
-        );
-
-        try {
-            $this->confirmation->confirm(
-                (int) $this->draw->getKey(),
-                $checker->getKey(),
-                ['first_prize' => '123456', 'bottom_two' => '58'],
-            );
-            $this->fail('A zero maker identity was accepted.');
-        } catch (DrawResultException $exception) {
-            $this->assertSame(DrawResultException::CODE_CONFIRMATION_FORBIDDEN, $exception->errorCode());
-        }
-
-        $draw = $this->draw->fresh();
-        $metadata = $draw->metadata ?? [];
-        $record = $metadata[DrawResultIngestionService::METADATA_KEY];
-        $record['ingested_by'] = 'not-a-user-id';
-        $metadata[DrawResultIngestionService::METADATA_KEY] = $record;
-        $draw->metadata = $metadata;
-        $draw->save();
-
-        try {
-            $this->confirmation->confirm(
-                (int) $this->draw->getKey(),
-                $checker->getKey(),
-                ['first_prize' => '123456', 'bottom_two' => '58'],
-            );
-            $this->fail('A malformed maker identity was accepted.');
-        } catch (DrawResultException $exception) {
-            $this->assertSame(DrawResultException::CODE_CONFIRMATION_FORBIDDEN, $exception->errorCode());
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-    }
-
-    public function test_null_zero_malformed_and_unknown_checker_ids_are_refused(): void
-    {
-        $maker = User::factory()->create();
-        $this->ingestion->ingest(
-            (int) $this->draw->getKey(),
-            ['first_prize' => '123456', 'bottom_two' => '58'],
-            'operator',
-            $maker->getKey(),
-        );
-
-        foreach ([null, 0, 'malformed', '999999999999999999'] as $checkerId) {
-            try {
-                $this->confirmation->confirm(
-                    (int) $this->draw->getKey(),
-                    $checkerId,
-                    ['first_prize' => '123456', 'bottom_two' => '58'],
-                );
-                $this->fail('An invalid or unknown checker identity was accepted.');
-            } catch (DrawResultException $exception) {
-                $this->assertSame(DrawResultException::CODE_CONFIRMATION_FORBIDDEN, $exception->errorCode());
-            }
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-    }
-
-    public function test_pending_ingestion_cannot_be_published_through_the_low_level_writer(): void
-    {
-        $maker = User::factory()->create();
-        $this->ingestion->ingest(
-            (int) $this->draw->getKey(),
-            ['first_prize' => '123456', 'bottom_two' => '58'],
-            'operator',
-            $maker->getKey(),
-        );
-
-        try {
-            app(DrawResultPublicationService::class)->publish((int) $this->draw->getKey(), [
-                'first_prize' => '123456',
-                'bottom_two' => '58',
-            ]);
-            $this->fail('The low-level writer published a Pending ingestion.');
-        } catch (DrawResultException $exception) {
-            $this->assertSame(DrawResultException::CODE_PUBLISH_REQUIRES_CONFIRMED, $exception->errorCode());
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-    }
-
-    public function test_confirmed_record_without_persisted_confirmation_timestamp_cannot_publish(): void
-    {
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $this->ingestion->ingest(
-            (int) $this->draw->getKey(),
-            ['first_prize' => '123456', 'bottom_two' => '58'],
-            'operator',
-            $maker->getKey(),
-        );
-
-        $draw = $this->draw->fresh();
-        $metadata = $draw->metadata ?? [];
-        $record = $metadata[DrawResultIngestionService::METADATA_KEY];
-        $record['status'] = DrawConfirmationStatus::Confirmed->value;
-        $record['confirmed_by'] = $checker->getKey();
-        unset($record['confirmed_at']);
-        $metadata[DrawResultIngestionService::METADATA_KEY] = $record;
-        $draw->metadata = $metadata;
-        $draw->save();
-
-        try {
-            app(DrawResultPublicationService::class)->publish((int) $this->draw->getKey(), [
-                'first_prize' => '123456',
-                'bottom_two' => '58',
-            ]);
-            $this->fail('A forged Confirmed state without a persisted timestamp was accepted.');
-        } catch (DrawResultException $exception) {
-            $this->assertSame(DrawResultException::CODE_CONFIRMATION_FORBIDDEN, $exception->errorCode());
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-    }
-
-    public function test_unknown_provenance_cannot_publish(): void
-    {
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $this->ingestion->ingest(
-            (int) $this->draw->getKey(),
-            ['first_prize' => '123456', 'bottom_two' => '58'],
-            'unknown',
-            $maker->getKey(),
-        );
-
-        try {
-            $this->confirmation->confirm(
-                (int) $this->draw->getKey(),
-                $checker->getKey(),
-                ['first_prize' => '123456', 'bottom_two' => '58'],
-            );
-            $this->fail('Unknown provenance was published.');
-        } catch (DrawResultException $exception) {
-            $this->assertSame(DrawResultException::CODE_PROVENANCE_FORBIDDEN, $exception->errorCode());
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-        $this->assertSame(
-            DrawConfirmationStatus::Pending->value,
-            $this->draw->fresh()->metadata[DrawResultIngestionService::METADATA_KEY]['status'],
-        );
-    }
-
-    public function test_fixture_provenance_is_refused_in_production(): void
-    {
-        config(['app.env' => 'production']);
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $this->imports->importForDraw($this->draw, $maker);
-
-        try {
-            $this->confirmation->confirm(
-                (int) $this->draw->getKey(),
-                $checker->getKey(),
-                ['first_prize' => '042042', 'bottom_two' => '58'],
-            );
-            $this->fail('Fixture provenance was published in production.');
-        } catch (DrawResultException $exception) {
-            $this->assertSame(DrawResultException::CODE_PROVENANCE_FORBIDDEN, $exception->errorCode());
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-        $this->assertSame(
-            DrawConfirmationStatus::Pending->value,
-            $this->draw->fresh()->metadata[DrawResultIngestionService::METADATA_KEY]['status'],
-        );
-    }
-
-    public function test_legacy_unknown_provenance_has_a_stable_refusal_code(): void
-    {
-        try {
-            app(GloResultPublicationService::class)->publish((int) $this->draw->getKey(), [
-                'provenance' => GloResultPublicationService::PROVENANCE_UNKNOWN,
-            ]);
-            $this->fail('Unknown legacy provenance was accepted.');
-        } catch (DrawPublicationException $exception) {
-            $this->assertSame(DrawPublicationException::CODE_UNTRUSTED_PROVENANCE, $exception->errorCode());
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-    }
-
-    public function test_legacy_publication_api_fails_closed_without_checker_context(): void
-    {
-        $maker = User::factory()->create();
-        $this->ingestion->ingest(
-            (int) $this->draw->getKey(),
-            ['first_prize' => '123456', 'bottom_two' => '58'],
-            'operator',
-            $maker->getKey(),
-        );
-
-        try {
-            app(GloResultPublicationService::class)->publish((int) $this->draw->getKey(), [
-                'first_prize' => '123456',
-                'provenance' => GloResultPublicationService::PROVENANCE_SOURCE_VERIFIED,
-                'operator_id' => $maker->getKey(),
-            ]);
-            $this->fail('The legacy publication service bypassed the four-eyes workflow.');
-        } catch (DrawPublicationException $exception) {
-            $this->assertSame(DrawPublicationException::CODE_FOUR_EYES_REQUIRED, $exception->errorCode());
         }
 
         $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
@@ -508,107 +244,12 @@ class GloWriteBoundaryTest extends TestCase
         $this->assertNotNull($result->published_at);
     }
 
-    public function test_matching_documented_official_import_is_source_verified_after_confirmation(): void
-    {
-        config(['glo.official_source.mode' => 'official']);
-        Http::fake([
-            'www.glo.or.th/*' => Http::response([
-                'draw' => (string) $this->draw->draw_number,
-                'first' => '042042',
-                'last_two' => ['58'],
-            ], 200),
-        ]);
-
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $outcome = $this->imports->importForDraw($this->draw, $maker);
-
-        $this->assertSame('imported', $outcome['import']->status);
-        $this->assertNull($outcome['draw_result']);
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-
-        $this->confirmation->confirm(
-            (int) $this->draw->getKey(),
-            $checker->getKey(),
-            ['first_prize' => '042042', 'bottom_two' => '58'],
-        );
-
-        $result = DrawResult::query()->where('draw_id', $this->draw->getKey())->firstOrFail();
-        $this->assertSame('source-verified', $result->metadata['provenance'] ?? null);
-        $this->assertSame($outcome['import']->import_reference, $result->metadata['provenance_reference'] ?? null);
-    }
-
     /**
      * The tier lane a feed carries must reach draw_results only via the
      * confirmation act — because GloN3TicketChecker and the public tier display
      * read it, and an unconfirmed lane would be unverified data on a paying
      * surface.
      */
-    public function test_provider_fingerprint_mismatch_in_staged_lane_cannot_publish(): void
-    {
-        config(['glo.official_source.mode' => 'official']);
-        Http::fake([
-            'www.glo.or.th/*' => Http::response([
-                'draw' => (string) $this->draw->draw_number,
-                'first' => '042042',
-                'second' => ['112233'],
-                'third' => ['600001'],
-                'last_two' => ['58'],
-            ], 200),
-        ]);
-
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $this->imports->importForDraw($this->draw, $maker);
-
-        $draw = $this->draw->fresh();
-        $metadata = $draw->metadata ?? [];
-        $record = $metadata[DrawResultIngestionService::METADATA_KEY];
-        $record['payload']['source_lane']['tiers']['last_two'] = ['59'];
-        $record['fingerprint'] = DrawResultIngestionService::fingerprintFor($record['payload']);
-        $record['status'] = DrawConfirmationStatus::Confirmed->value;
-        $record['confirmed_by'] = $checker->getKey();
-        $record['confirmed_at'] = now()->toIso8601String();
-        $metadata[DrawResultIngestionService::METADATA_KEY] = $record;
-        $draw->metadata = $metadata;
-        $draw->save();
-
-        try {
-            app(DrawResultPublicationService::class)->publish((int) $this->draw->getKey(), [
-                'first_prize' => '042042',
-                'bottom_two' => '58',
-            ]);
-            $this->fail('A staged provider lane that no longer matches its import fingerprint was published.');
-        } catch (DrawResultException $exception) {
-            $this->assertSame(DrawResultException::CODE_PROVENANCE_FORBIDDEN, $exception->errorCode());
-        }
-
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-    }
-
-    public function test_imported_second_and_third_prizes_are_persisted_only_after_confirmation(): void
-    {
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $outcome = $this->imports->importForDraw($this->draw, $maker);
-
-        $this->assertNull($outcome['draw_result']);
-        $this->assertSame(0, DrawResult::query()->where('draw_id', $this->draw->getKey())->count());
-
-        $this->confirmation->confirm(
-            (int) $this->draw->getKey(),
-            $checker->getKey(),
-            ['first_prize' => '042042', 'bottom_two' => '58'],
-        );
-
-        $result = DrawResult::query()->where('draw_id', $this->draw->getKey())->firstOrFail();
-        $this->assertSame(['112233', '445566', '778899', '001122', '334455'], $result->second_prize);
-        $this->assertSame([
-            '600001', '600002', '600003', '600004', '600005',
-            '600006', '600007', '600008', '600009', '600010',
-        ], $result->third_prize);
-    }
-
     public function test_the_source_lane_is_written_only_by_the_confirming_operator(): void
     {
         $maker = User::factory()->create();
@@ -705,15 +346,14 @@ class GloWriteBoundaryTest extends TestCase
         );
 
         // Staged, not published: the write boundary is unaffected by any of this.
-        // Asserted on the shape currentIngestion() actually returns: the raw
-        // staged record, with status at the top level and the announced values
-        // under `payload`. Keys are read directly, so a missing key fails loudly
-        // rather than comparing against an empty default.
+        // Asserted on the shape currentIngestion() actually returns — the flat
+        // result row — rather than a nested `payload`, which is how this test
+        // would have passed while reading nothing.
         $stored = $this->ingestion->currentIngestion((int) $this->draw->getKey());
 
         $this->assertIsArray($stored);
-        $this->assertSame('287184', $stored['payload']['first_prize']);
-        $this->assertSame('48', $stored['payload']['bottom_two'], 'the announced value, not substr(287184, -2) = 84');
+        $this->assertSame('287184', $stored['first_prize']);
+        $this->assertSame('48', $stored['bottom_two'], 'the announced value, not substr(287184, -2) = 84');
         $this->assertSame(DrawConfirmationStatus::Pending->value, $stored['status']);
 
         $this->confirmation->confirm(

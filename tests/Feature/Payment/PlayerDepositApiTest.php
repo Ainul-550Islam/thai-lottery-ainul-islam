@@ -11,27 +11,11 @@ use App\Models\Payment;
 use App\Services\Finance\DepositService;
 use App\Services\Finance\Money;
 use App\Services\PublicPages\FeesPageService;
-use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\Test;
 
 final class PlayerDepositApiTest extends PaymentTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // The Stripe driver creates a real Checkout Session over HTTP. Deposit initiation is
-        // exercised here, not the outbound network, so the Stripe endpoint is faked and the
-        // driver receives the same response shape the live API returns.
-        Http::fake([
-            'api.stripe.com/*' => Http::response([
-                'id' => 'cs_test_player_deposit',
-                'url' => 'https://checkout.stripe.com/pay/cs_test_player_deposit',
-            ], 200),
-        ]);
-    }
-
     #[Test]
     public function authenticated_player_can_initiate_stripe_deposit(): void
     {
@@ -139,9 +123,7 @@ final class PlayerDepositApiTest extends PaymentTestCase
         $player = $this->createPlayer('100.00', Currency::THB);
         Sanctum::actingAs($player['user']);
 
-        // Fee, rate and net fields are server-derived. DepositRequest declares each of them
-        // "prohibited", so a request that carries one is refused outright rather than
-        // partially honoured. Nothing is written, and the fee can never be client-asserted.
+        // Smuggled fee/rate/net fields must not change the server's numbers.
         $response = $this->postJson('/api/v1/deposits', [
             'amount' => '500.00',
             'method' => 'stripe',
@@ -152,17 +134,11 @@ final class PlayerDepositApiTest extends PaymentTestCase
             'fee_percentage' => '0.00',
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('success', false);
-        $response->assertJsonPath('error.code', 'validation_failed');
-        $response->assertJsonPath('error.details.fields.fee.0', 'The fee field is prohibited.');
-        $response->assertJsonPath('error.details.fields.net_amount.0', 'The net amount field is prohibited.');
+        $response->assertStatus(201);
 
-        $this->assertSame(
-            0,
-            Deposit::query()->where('user_id', $player['user']->id)->count(),
-            'A refused request must not create a deposit.',
-        );
+        $deposit = Deposit::query()->where('user_id', $player['user']->id)->firstOrFail();
+        $this->assertStoredMoneySame('10.00', (string) $deposit->fee, 'The deposit fee must be the canonical server-computed 2.00%');
+        $this->assertStoredMoneySame('490.00', (string) $deposit->net_amount);
     }
 
     #[Test]

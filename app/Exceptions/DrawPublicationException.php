@@ -21,7 +21,6 @@ use Exception;
  * - DRAW_PUB_ALREADY_RETRACTED asked to retract what isn't up.
  * - DRAW_PUB_UNCERTIFIED      the certification named is not yet Certified
  *                             — the board never eats/drinks anything else.
- * - DRAW_PUB_UNTRUSTED_PROVENANCE an unknown or environment-forbidden source label.
  */
 final class DrawPublicationException extends Exception
 {
@@ -45,8 +44,6 @@ final class DrawPublicationException extends Exception
      */
     public const CODE_FOUR_EYES_REQUIRED = 'DRAW_PUB_FOUR_EYES_REQUIRED';
 
-    public const CODE_UNTRUSTED_PROVENANCE = 'DRAW_PUB_UNTRUSTED_PROVENANCE';
-
     public function __construct(
         string $message,
         private readonly string $errorCode,
@@ -67,20 +64,6 @@ final class DrawPublicationException extends Exception
         return new self(
             sprintf('Draw publication refused (four-eyes): %s', $reason),
             self::CODE_FOUR_EYES_REQUIRED,
-            $context + ['reason' => $reason],
-        );
-    }
-
-    /**
-     * Publication provenance is missing, unknown or disallowed in this environment.
-     *
-     * The context intentionally excludes caller payloads and provider secrets.
-     */
-    public static function untrustedProvenance(string $reason, array $context = []): self
-    {
-        return new self(
-            sprintf('Draw publication refused (provenance): %s', $reason),
-            self::CODE_UNTRUSTED_PROVENANCE,
             $context + ['reason' => $reason],
         );
     }
