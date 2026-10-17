@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Responses\ApiResponse;
-use App\Rules\StrongPasswordRule;
 use App\Models\User;
+use App\Rules\StrongPasswordRule;
+use App\Services\Auth\PasswordChangeService;
+use App\Services\Auth\PasswordSessionBoundary;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * Player Profile and Account Settings API Controller.
@@ -106,10 +106,13 @@ final class ProfileController
             'current_password' => ['required', 'string'],
             // Audit S2: the SAME centralised rule registration and reset
             // use — the API profile surface must not drift weaker.
-            'password' => ['required', 'string', new StrongPasswordRule(), 'confirmed'],
+            'password' => ['required', 'string', new StrongPasswordRule, 'confirmed'],
         ]);
 
-        if (! Hash::check($validated['current_password'], (string) $user->password)) {
+        $sessions = app(PasswordSessionBoundary::class);
+        $sessions->prepare($request, $user);
+
+        if (! app(PasswordChangeService::class)->change($user, $validated['current_password'], $validated['password'])) {
             return ApiResponse::error(
                 code: 'invalid_current_password',
                 message: (string) trans('player.current_password_invalid'),
@@ -117,11 +120,10 @@ final class ProfileController
             );
         }
 
-        $user->password = Hash::make($validated['password']);
-        $user->save();
+        $sessions->finish($request, $user);
 
         return ApiResponse::success(
-            data: [],
+            data: ['reauthentication_required' => true],
             message: (string) trans('player.password_updated'),
         );
     }

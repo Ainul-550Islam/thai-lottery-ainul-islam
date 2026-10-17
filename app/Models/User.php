@@ -99,6 +99,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     {
         return [
             'password' => 'hashed',
+            // Part 57: monotonic credential generation. System-managed — the
+            // three credential writers increment it inside their own
+            // transaction, so it is deliberately NOT in $fillable and can
+            // never be set by a mass-assigned request payload.
+            'credential_epoch' => 'integer',
             'status' => UserStatus::class,
             'kyc_status' => KycStatus::class,
             'date_of_birth' => 'date',

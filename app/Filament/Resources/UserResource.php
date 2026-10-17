@@ -8,12 +8,14 @@ use App\Enums\UserStatus;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\UserAccountActions;
 use App\Models\User;
+use App\Rules\StrongPasswordRule;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -33,9 +35,9 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
  * service is dealt with.
  *
  * PASSWORDS
- * User::casts() declares `'password' => 'hashed'`, so Eloquent hashes on assignment and
- * this resource must NOT call Hash::make itself — doing so would double-hash and lock the
- * account out. The field is optional, is never populated from the stored hash (EditUser
+ * Password replacement delegates to the operator service, which hashes plaintext and
+ * atomically revokes old credentials and reset links. The model's hashed cast recognizes
+ * that hash. The field is optional, is never populated from the stored hash (EditUser
  * strips it before filling) and is dropped from the payload entirely when left blank, so
  * saving a name change cannot silently reset someone's password to an empty string.
  *
@@ -162,13 +164,13 @@ class UserResource extends Resource
                         ->label('Set a new password')
                         ->password()
                         ->revealable()
-                        ->minLength(8)
+                        ->rules([new StrongPasswordRule])
                         ->maxLength(255)
-                        // Hashing is User::casts()['password' => 'hashed']. Calling
-                        // Hash::make here as well would hash the hash.
+                        // The operator service hashes plaintext before persistence.
+                        // No form-side hashing or raw-hash assignment.
                         ->dehydrated(fn (?string $state): bool => filled($state))
                         ->autocomplete('new-password')
-                        ->helperText('Minimum 8 characters. The account holder is not notified — tell them out of band.'),
+                        ->helperText('Uses the shared password policy. Existing credentials and reset links are revoked. The account holder is not notified — tell them out of band.'),
                 ]),
         ]);
     }
@@ -373,7 +375,7 @@ class UserResource extends Resource
     }
 
     /**
-     * @return array<string, \Filament\Resources\Pages\PageRegistration>
+     * @return array<string, PageRegistration>
      */
     public static function getPages(): array
     {

@@ -29,6 +29,10 @@ enum SecurityEventType: string
     case SessionExpired = 'session_expired';
     case SuspiciousAuthentication = 'suspicious_authentication';
     case SecurityChange = 'security_change';
+    case BotSuspected = 'bot_suspected';
+    // Reserved for actual future actions, never emitted by observation-only code.
+    case BotChallenged = 'bot_challenged';
+    case BotBlocked = 'bot_blocked';
 
     /**
      * Riskiness floor of the event for the review sweep's filter:
@@ -37,7 +41,8 @@ enum SecurityEventType: string
     public function defaultFloor(): SecurityRiskLevel
     {
         return match ($this) {
-            self::SuspiciousAuthentication => SecurityRiskLevel::High,
+            self::SuspiciousAuthentication, self::BotBlocked => SecurityRiskLevel::High,
+            self::BotSuspected, self::BotChallenged => SecurityRiskLevel::Medium,
             self::MfaLocked => SecurityRiskLevel::High,
             self::LoginFailed, self::MfaFailed => SecurityRiskLevel::Medium,
             default => SecurityRiskLevel::Low,

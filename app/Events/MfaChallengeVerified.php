@@ -9,9 +9,11 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * MfaChallengeVerified — published EXACTLY ONCE after a valid MFA
- * verification (the service re-delivers only replays of the same
- * verification pronouncement).
+ * Synchronous in-transaction notification for the legacy challenge ledger.
+ * A listener exception or outer rollback can undo database writes; a retry
+ * may dispatch again. This is neither an exactly-once delivery contract nor
+ * fresh enrolled-factor proof. Listeners must not perform irreversible I/O;
+ * future external delivery needs a separately designed durable outbox.
  */
 final class MfaChallengeVerified
 {

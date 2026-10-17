@@ -10,6 +10,7 @@ use App\Enums\UserStatus;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Compliance\AmlRiskAssessmentService;
 use App\Services\Compliance\AmlRiskService;
 use App\Services\Compliance\MoneyFlowAmlObservationService;
 use App\Services\Finance\Money;
@@ -67,7 +68,7 @@ final class MoneyFlowAmlObservationTest extends TestCase
         {
             public function __construct(private readonly ?AmlRiskLevel $level, private readonly bool $throws)
             {
-                parent::__construct(app(\App\Services\Compliance\AmlRiskAssessmentService::class));
+                parent::__construct(app(AmlRiskAssessmentService::class));
             }
 
             public function measure(int $userId): array

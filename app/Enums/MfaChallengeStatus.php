@@ -7,9 +7,10 @@ namespace App\Enums;
 /**
  * MfaChallengeStatus — MFA challenge lifecycle.
  *
- * Pending → Verified | Failed | Expired; Failed ballots five times
- * (per challenge) into Locked — replay-protected by construction:
- * a Verified or terminal challenge never verifies again.
+ * Pending and Failed can be verified, fail again, expire or become Locked.
+ * Failed self-transitions represent another unsuccessful attempt.
+ * Verified, Locked and Expired are terminal lifecycle states; reading a
+ * Verified receipt is not a new verification or fresh authentication proof.
  */
 enum MfaChallengeStatus: string
 {
@@ -26,7 +27,7 @@ enum MfaChallengeStatus: string
     {
         return match ($this) {
             self::Pending => [self::Verified, self::Failed, self::Expired, self::Locked],
-            self::Failed => [self::Expired, self::Locked],
+            self::Failed => [self::Verified, self::Failed, self::Expired, self::Locked],
             self::Verified, self::Expired, self::Locked => [],
         };
     }

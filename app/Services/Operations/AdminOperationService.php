@@ -15,6 +15,7 @@ use App\Listeners\RecordAdminOperationAudit;
 use App\Models\AdminOperation;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Security\PasswordCredentialRevocationService;
 use App\Services\Security\UserSessionSecurityService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -277,7 +278,30 @@ final class AdminOperationService
         $swept = app(UserSessionSecurityService::class)
             ->revokeAllSessionsFor((int) $target->id, 'admin operation '.$operation->id, 'system-admin-op');
 
-        return sprintf('user %d suspended, %d session(s) swept (%s)', $target->id, $swept, $reason);
+        // PART 59 — the queued path ends the sessions too.
+        // The sweep above clears the application's own security-session desk but
+        // leaves the framework `sessions` row that `auth.session` reads, and no
+        // web route re-checks status per request, so a user suspended while
+        // signed in kept working until the session expired. The shared primitive
+        // deletes those rows, clears the remember credential and advances the
+        // credential generation in one statement on the locked row. It is called
+        // rather than reimplemented, and it needs no panel session: authorization
+        // already happened when this operation was approved by the second seat.
+        $revoked = app(PasswordCredentialRevocationService::class)->revokeAll(
+            $target,
+            PasswordCredentialRevocationService::OPERATOR_REVOCATION,
+            'system-admin-op',
+        );
+
+        return sprintf(
+            'user %d suspended, %d session(s) swept, %d database session(s) and %d token(s) revoked, generation %d (%s)',
+            $target->id,
+            $swept,
+            (int) $revoked['database_sessions'],
+            (int) $revoked['api_access_count'],
+            (int) $revoked['credential_epoch'],
+            $reason,
+        );
     }
 
     /**

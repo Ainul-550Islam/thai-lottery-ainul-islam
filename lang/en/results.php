@@ -5,7 +5,11 @@ return [
     'meta_description' => 'Published lottery results from the application public results projection.',
     'title' => 'Public Results Hub',
     'lead' => 'Review published results supplied by the verified public results projection.',
-    'published_results' => 'Published results',
+    // Part 67: named for the product whose numbers this hub publishes. The
+    // page still badges every row with its source state (FIXTURE_ONLY /
+    // OFFICIAL_SOURCE_VERIFIED), so naming the lottery here makes no claim
+    // about where a given row came from.
+    'published_results' => 'Government Lottery results',
     'no_public_data' => 'No public result data is available.',
     'unavailable' => 'Result data is temporarily unavailable.',
     'draw' => 'Draw',
