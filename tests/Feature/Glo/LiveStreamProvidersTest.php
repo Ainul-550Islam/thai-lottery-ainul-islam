@@ -27,6 +27,7 @@ final class LiveStreamProvidersTest extends TestCase
     {
         parent::setUp();
 
+        $this->withoutVite();
         Cache::flush();
     }
 

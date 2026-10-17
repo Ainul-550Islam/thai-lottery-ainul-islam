@@ -137,6 +137,15 @@ final class PlayerWebController
         $openDraw = Draw::query()
             ->where('status', DrawStatus::Open)
             ->with(['result.winningNumbers', 'winningNumbers'])
+            // The draw the player is invited to bet INTO must still
+            // accept bets: an OPEN row whose window is already in the
+            // past or unwindowed is not the live draw, and without this
+            // the dashboard featured exactly such a stale row while a
+            // genuinely open draw existed. betting_close_at is the
+            // canonical window cursor (BetValidationService reads it).
+            ->where('betting_close_at', '>', now())
+            ->orderBy('betting_close_at')
+            ->orderBy('scheduled_at')
             ->first();
 
         $upcomingDraw = $openDraw ?? Draw::query()
@@ -253,9 +262,21 @@ final class PlayerWebController
             ->where('user_id', $user->id)
             ->first();
 
+        // betSlip's open draw is the one selections are placed against
+        // (its id is stamped on the slip container and posted back), so
+        // it must be the currently accepting draw: earliest live window,
+        // the same selection the dashboard countdown features.
         $openDraw = Draw::query()
             ->where('status', DrawStatus::Open)
+            ->where('betting_close_at', '>', now())
+            ->orderBy('betting_close_at')
+            ->orderBy('scheduled_at')
             ->first();
+
+        // Degrade gracefully when nothing is currently accepting bets:
+        // show the next open draw if one is scheduled to open, else the
+        // most recent open one (the read-only surface).
+        $openDraw ??= Draw::query()->where('status', DrawStatus::Open)->orderByDesc('scheduled_at')->first();
 
         $marketOptions = [];
         foreach ((array) config('lottery.markets', []) as $key => $market) {

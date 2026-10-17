@@ -51,8 +51,14 @@ class WithdrawalDisbursementService
      * @throws WithdrawalException
      * @throws FinancialException
      */
-    public function disburse(Withdrawal $withdrawal, array $options = []): GatewayWithdrawalResponse
+    public function disburse(Withdrawal|int $withdrawal, array $options = []): GatewayWithdrawalResponse
     {
+        // Enterprise slip callers carry the withdrawal id; resolve it to the
+        // model the lane works with. An unknown id fails loud on the query.
+        if (is_int($withdrawal)) {
+            $withdrawal = Withdrawal::query()->findOrFail($withdrawal);
+        }
+
         // -------------------------------------------------------------
         // PHASE 1: DB Transaction - State Preparation & Mark Processing
         // -------------------------------------------------------------
@@ -255,6 +261,54 @@ class WithdrawalDisbursementService
             }
 
             return $gatewayResponse;
+        });
+    }
+
+    /**
+     * Enterprise rejection lane: fail a withdrawal and restore the money.
+     *
+     * The enterprise slip flow debits the wallet when the withdrawal goes
+     * pending (balance already reduced) and seats NO hold reservation, so
+     * the canonical markFailed() — which only releases a reservation —
+     * would strand the debit. Here the rejection refunds exactly the
+     * debited amount back to the wallet and marks the withdrawal Failed,
+     * atomically.
+     */
+    public function rejectWithdrawal(int $withdrawalId, string $reason): Withdrawal
+    {
+        $withdrawal = Withdrawal::query()->findOrFail($withdrawalId);
+
+        return DB::transaction(function () use ($withdrawal, $reason): Withdrawal {
+            $current = $withdrawal->fresh() ?? $withdrawal;
+
+            if ($current->status === WithdrawalStatus::Failed) {
+                return $current;
+            }
+
+            $wallet = \App\Models\Wallet::query()->findOrFail((int) $current->wallet_id);
+
+            // The enterprise lane debits the wallet when the withdrawal
+            // goes pending and seats no reservation: the rejection refunds
+            // the full request amount. (Ledger type Adjustment: this enum
+            // has no Refund case; a rejection refund is a balance adjustment
+            // restoring the pending debit, not a bet refund or a payout.)
+            app(\App\Services\Finance\WalletService::class)->credit(
+                $wallet,
+                \App\Services\Finance\Money::of((string) $current->amount, $current->currency),
+                \App\Enums\FinancialTransactionType::Adjustment,
+                'wdreject'.sha1('wd-reject|'.(int) $current->getKey().'|'.(string) $current->reference_number),
+                [
+                    'description' => 'Withdrawal '.$current->reference_number.' rejected: '.$reason,
+                    'reference_type' => Withdrawal::class,
+                    'reference_id' => (int) $current->getKey(),
+                ],
+            );
+
+            $current->status = WithdrawalStatus::Failed;
+            $current->rejection_reason = $reason;
+            $current->save();
+
+            return $current;
         });
     }
 

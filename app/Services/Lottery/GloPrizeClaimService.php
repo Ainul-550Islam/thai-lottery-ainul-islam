@@ -300,6 +300,47 @@ class GloPrizeClaimService
     }
 
     /**
+     * Enterprise approval lane: approve a claim by ID with an officer note.
+     *
+     * The canonical approve() requires the full fail-closed revalidation
+     * (ticket, published result, final settlement, age) because it moves a
+     * claim toward money. Claims born through the enterprise lane are
+     * DOCUMENT claims — created directly from an evidenced branch
+     * submission with gross/duty/net already stamped on the row — and carry
+     * no ticket_id/draw_id for that revalidation to read. For those, the
+     * approval is the officer's recorded attestation: the note is mandatory
+     * (an approval without a stated basis is not an approval), the claim
+     * must stand at Pending, and approved_at is stamped. Claims WITH a
+     * ticket keep the canonical lane untouched.
+     */
+    public function approveClaim(int $claimId, string $officerNote): GloPrizeClaim
+    {
+        if (trim($officerNote) === '') {
+            throw new \InvalidArgumentException('An officer note is required to approve a prize claim.');
+        }
+
+        $claim = GloPrizeClaim::query()->findOrFail($claimId);
+
+        if ((int) $claim->ticket_id !== 0 || (int) $claim->draw_id !== 0) {
+            throw new \InvalidArgumentException('Claims linked to a ticket must be approved through the canonical approve() lane.');
+        }
+
+        if ($claim->status !== GloClaimStatus::Pending) {
+            throw new \InvalidArgumentException('Only a pending prize claim can be approved.');
+        }
+
+        $claim->status = GloClaimStatus::Approved;
+        $claim->approved_at = now();
+
+        $metadata = is_array($claim->audit_metadata) ? $claim->audit_metadata : [];
+        $metadata['approval_officer_note'] = $officerNote;
+        $claim->audit_metadata = $metadata;
+        $claim->save();
+
+        return $claim;
+    }
+
+    /**
      * Execute payment for an APPROVED claim. Single writer of Paid status.
      * Concurrency: lockForUpdate + unique payment_transaction_reference; the
      * second worker sees ALREADY_PAID.

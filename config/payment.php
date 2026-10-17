@@ -266,6 +266,10 @@ return [
             'secret' => env('STRIPE_SECRET'),
             'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
             'signature_header' => 'Stripe-Signature',
+            // Stripe embeds the signed timestamp in the signature header
+            // itself (`t=<unix>,v1=<hex>`); the replay guard reads it from
+            // there. Providers with a bare HMAC header carry no timestamp.
+            'signature_timestamp' => 'embedded',
             'currency' => env('FINANCE_DEFAULT_CURRENCY', 'THB'),
             'supported_currencies' => ['THB', 'USD'],
             'supports_deposit' => true,

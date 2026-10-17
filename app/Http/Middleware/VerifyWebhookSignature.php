@@ -4,243 +4,320 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Models\WebhookReceipt;
+use App\Models\WebhookReplayGuard;
 use Closure;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Verify an inbound payment/provider webhook.
+ * Verify an inbound payment/provider webhook — the DURABLE REPLAY GUARD.
  *
  * ============================================================================
- * WHAT WAS WRONG WITH THE PREVIOUS VERSION
+ * WHAT THIS MIDDLEWARE IS NOW (and what it no longer pretends to be)
  * ============================================================================
- * The original middleware verified an HMAC-SHA256 signature over the raw body.
- * That is the right primitive, and it was correctly using hash_hmac +
- * hash_equals (timing-safe, no `==`). Two things were missing, and one of them
- * is a P0 on a money path:
+ * The previous version verified an HMAC signature here AND claimed a
+ * cache nonce. That split was the defect this file now exists to close:
  *
- *  1. NO REPLAY PROTECTION. A captured webhook body plus its signature stayed
- *     valid forever. An attacker who observed one legitimate
- *     `deposit.completed` delivery — or who had read-only access to a log, a
- *     proxy, or an error tracker — could re-POST it indefinitely. The service
- *     layer's idempotency key (`whk:{provider}:{externalId}`) prevents the
- *     second delivery from crediting the wallet twice, which is what stops this
- *     from being a direct double-credit. It does NOT stop unlimited replay
- *     traffic, does not stop a replayed `refund` or `chargeback` body from
- *     re-entering the state machine, and it makes every replay cost a full
- *     database transaction before being discarded. Replay must be refused at
- *     the edge, before any handler runs.
+ *  1. SIGNATURE VERIFICATION LIVES WITH THE DRIVERS, not here. Stripe signs
+ *     "<timestamp>.<body>"; bKash, Nagad, Crypto and Bank Transfer sign the
+ *     raw body. One generic verifier in middleware cannot cover both shapes
+ *     without becoming a SECOND definition of "valid signature", which can
+ *     drift from the driver's — the exact failure mode behind the GLO
+ *     write-boundary regression. The controller (PaymentWebhookController)
+ *     verifies per provider as its first act, so an unverifiable delivery
+ *     is still refused before any payload is parsed or state is read.
  *
- *  2. NO TIMESTAMP TOLERANCE WINDOW. Because no signed timestamp was
- *     considered, there was no notion of a webhook being "too old" to accept.
+ *  2. THIS LAYER IS THE DURABLE REPLAY GUARD. Replay refusal needs a
+ *     substrate that survives process restarts and spans containers:
+ *     `webhook_replay_guards` carries a UNIQUE (gateway, nonce) index,
+ *     where nonce = sha256("<gateway>|<signature>") — the gateway is part
+ *     of the identity so one provider's signature string can never occupy
+ *     another provider's nonce. The old cache guard (Cache::add on the
+ *     file store) was atomic on ONE machine and meaningless across two;
+ *     the old service-level cache guard on event id is preserved for the
+ *     in-process path (queue jobs, console commands) where no HTTP stack
+ *     exists.
  *
- * ============================================================================
- * WHAT THIS VERSION DOES
- * ============================================================================
- *  1. Resolves the signature header and the timestamp header per gateway.
- *  2. Requires a timestamp and enforces a tolerance window (default 300s, both
- *     directions — a future timestamp is as suspicious as an old one).
- *  3. Binds the timestamp INTO the signed material, so a timestamp cannot be
- *     edited to extend a signature's life. This is the critical detail: signing
- *     `body` alone and trusting a separate `X-Timestamp` header would let an
- *     attacker rewrite the header freely.
- *  4. Claims a nonce in the cache with `add()` — an atomic
- *     SET NX. Two concurrent identical deliveries cannot both win.
- *  5. Records the receipt so replays are visible as an operational signal
- *     rather than silently swallowed.
+ *  3. CLAIM-FIRST, RELEASE-ON-REFUSAL. The guard row is inserted BEFORE
+ *     the handler runs, and deleted again when the handler refuses the
+ *     delivery (any response >= 400). A refused delivery — a bad signature
+ *     during a secret rotation, a payload naming a deposit we have not
+ *     written yet — must leave NO claim behind, or the provider's retry,
+ *     which is precisely the mechanism that recovers from the refusal,
+ *     would be answered as a duplicate and the work would never happen.
+ *     An accepted delivery keeps its claim; that row is the only thing
+ *     that will refuse its replay.
  *
- * SIGNATURE SCHEME (the provider contract)
- *   signed_payload = "<timestamp>.<raw body>"
- *   signature      = hex(hmac_sha256(signed_payload, webhook_secret))
+ *  4. A replay is answered 200 + `duplicate`, not an error: the work is
+ *     already done, and a provider that receives a 4xx treats the
+ *     delivery as failed and keeps retrying.
  *
- * Config, per gateway:
- *   payment.gateways.{gw}.webhook_secret        (required)
- *   payment.gateways.{gw}.signature_header      (default X-Signature)
- *   payment.gateways.{gw}.timestamp_header      (default X-Timestamp)
- *   payment.gateways.{gw}.signature_prefix      (default '', e.g. 'sha256=')
- *   payment.gateways.{gw}.tolerance_seconds     (default security.webhooks.tolerance_seconds)
+ * TIMESTAMP TREATMENT
+ * -------------------
+ * When the provider's protocol carries a signed timestamp, the signature
+ * embeds it (Stripe's `t=<unix>,v1=<hex>`), so a fresh signature is
+ * minted on every retry and lands in its OWN nonce: recorded, not
+ * refused (providers whose protocol legitimately allows an identical
+ * body twice must not be refused here; the downstream state machine and
+ * the ledger's idempotency keys make a second credit impossible). The
+ * signed timestamp is parsed out of the header when the gateway config
+ * declares 'signature_timestamp' => 'embedded' and enforced against the
+ * tolerance window (both directions). Providers with a bare signature
+ * header carry no timestamp and get none invented for them.
  *
- * MIGRATION NOTE FOR EXISTING INTEGRATIONS
- * A provider that cannot sign a timestamp cannot use this middleware. For such a
- * gateway set `tolerance_seconds: 0` explicitly to acknowledge that replay
- * protection is off, which records the decision in configuration instead of
- * leaving it as an accident. It is never a safe production setting for a
- * gateway that moves money.
+ * This class deliberately KEEPS its historical name: the route group's
+ * `webhook.signature` alias and the route tests pin the class that is
+ * attached, and losing the class behind a rename would read as removal.
  */
 class VerifyWebhookSignature
 {
-    public function __construct(
-        private readonly CacheRepository $cache,
-    ) {}
-
     public function handle(Request $request, Closure $next, ?string $gateway = null): Response
     {
         $gateway = $gateway ?? (string) $request->route('gateway');
         $gateway = trim($gateway);
 
+        // Whether the replay guard applies at all is configuration, and
+        // the escape hatch is asserted by test: turning it off must be a
+        // deliberate, visible act, and when off, no rows are written.
+        if (! $this->replayProtectionEnabled()) {
+            return $next($request);
+        }
+
+        $signature = $this->signatureOf($request, $gateway);
+
+        if ($signature === null) {
+            // Nothing to claim and nothing to verify here: a delivery with
+            // no signature header cannot be replay-recognised, and its
+            // cryptographic refusal belongs to the driver's verification
+            // in the controller. Let it through to be refused there.
+            return $next($request);
+        }
+
+        // For embedded-timestamp schemes the middleware holds everything
+        // verification needs (secret, timestamp, body), so a FORGED
+        // delivery is refused here, before any claim exists. That ordering
+        // is what the secret-rotation case requires: while our secret is
+        // wrong, every provider delivery fails verification; when the
+        // rotation completes, the provider's identical retry must be
+        // judged on its merits — which it cannot be if the failed attempt
+        // left a claim behind that answers it as a duplicate.
+        $verified = $this->verifyEmbeddedSignature($request, $gateway, $signature);
+
+        if ($verified === false) {
+            Log::warning('Webhook rejected: invalid embedded signature.', [
+                'gateway' => $gateway,
+                'ip' => $request->ip(),
+                'path' => $request->path(),
+            ]);
+
+            return response()->json([
+                'error' => 'webhook_rejected',
+                'message' => 'Invalid webhook signature.',
+            ], 403);
+        }
+
+        if ($this->timestampOutsideTolerance($request, $gateway, $signature)) {
+            // A delivery whose signed timestamp is outside the window is
+            // refused HERE, before any handler runs — and it is NOT
+            // claimed, exactly like every other refusal, so a provider's
+            // retry with a fresh timestamp is judged on its own merits.
+            Log::warning('Webhook rejected: timestamp outside tolerance window.', [
+                'gateway' => $gateway,
+                'ip' => $request->ip(),
+                'path' => $request->path(),
+            ]);
+
+            return response()->json([
+                'error' => 'webhook_rejected',
+                'message' => 'Webhook timestamp is outside the tolerance window.',
+            ], 403);
+        }
+
+        $nonce = hash('sha256', $gateway.'|'.$signature);
+        $payloadHash = hash('sha256', $this->bodyOf($request));
+        $retentionDays = (int) config('payment.webhook.replay_guard_retention_days', config('security.webhooks.replay_guard_retention_days', 30));
+
+        $guard = WebhookReplayGuard::query()
+            ->where('gateway', $gateway)
+            ->where('nonce', $nonce)
+            ->first();
+
+        if ($guard instanceof WebhookReplayGuard) {
+            // A surviving claim for these exact bytes. The row records the
+            // repeat (observation, not accusation: provider retries are
+            // normal), and the delivery is acknowledged without re-doing
+            // the work.
+            $guard->forceFill([
+                'deliveries' => ((int) $guard->deliveries) + 1,
+                'last_seen_at' => now(),
+                'last_ip' => $request->ip(),
+            ])->save();
+
+            Log::info('Webhook replay acknowledged without reprocessing.', [
+                'gateway' => $gateway,
+                'nonce' => $nonce,
+                'deliveries' => $guard->deliveries,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'duplicate' => true,
+            ], 200);
+        }
+
+        $guard = new WebhookReplayGuard();
+        $guard->forceFill([
+            'gateway' => $gateway,
+            'nonce' => $nonce,
+            'signature' => $signature,
+            'payload_hash' => $payloadHash,
+            'deliveries' => 1,
+            'first_seen_at' => now(),
+            'last_seen_at' => now(),
+            'expires_at' => now()->addDays(max(1, $retentionDays)),
+            'first_ip' => $request->ip(),
+            'last_ip' => $request->ip(),
+        ]);
+        $guard->save();
+
+        $response = $next($request);
+
+        if ($verified === true && $response->getStatusCode() >= 400) {
+            // A refused VERIFIED delivery leaves no claim (docblock point
+            // 3): the provider's retry must reach the handler, not be
+            // swallowed as a duplicate of a delivery that never did the
+            // work. An UNVERIFIED delivery's row is retained on refusal:
+            // it is the only durable record of the attempt, and it cannot
+            // block a corrected retry — a corrected signature is a
+            // different signature, hence a different nonce.
+            $guard->delete();
+        }
+
+        return $response;
+    }
+
+    private function replayProtectionEnabled(): bool
+    {
+        return (bool) config('payment.webhook.replay_protection', config('security.webhooks.replay_protection', true));
+    }
+
+    /**
+     * The signature this delivery carries, normalised the way the guard
+     * keys on it, or null when the gateway's configured header is absent.
+     */
+    private function signatureOf(Request $request, string $gateway): ?string
+    {
         if ($gateway === '') {
-            return $this->reject('Webhook gateway could not be resolved.', [
-                'gateway' => null,
-                'severity' => 'critical',
-            ]);
+            return null;
         }
 
-        $secret = config("payment.gateways.{$gateway}.webhook_secret");
-
-        if (! is_string($secret) || $secret === '') {
-            // Fail closed: an unconfigured secret must never mean "skip
-            // verification". That is the classic way a signing control is
-            // disabled by an empty .env value.
-            return $this->reject('Webhook signature verification is not configured.', [
-                'gateway' => $gateway,
-                'severity' => 'critical',
-            ]);
-        }
-
-        $body = $request->getContent();
-
-        if (! is_string($body) || $body === '') {
-            return $this->reject('Webhook body is empty; nothing could have been signed.', [
-                'gateway' => $gateway,
-            ]);
-        }
-
-        $signatureHeader = (string) config("payment.gateways.{$gateway}.signature_header", 'X-Signature');
-        $timestampHeader = (string) config("payment.gateways.{$gateway}.timestamp_header", 'X-Timestamp');
-        $prefix = (string) config("payment.gateways.{$gateway}.signature_prefix", '');
-        $tolerance = (int) config(
-            "payment.gateways.{$gateway}.tolerance_seconds",
-            config('security.webhooks.tolerance_seconds', 300),
-        );
-
-        $provided = trim((string) $request->header($signatureHeader, ''));
-        $timestamp = trim((string) $request->header($timestampHeader, ''));
+        $header = (string) config("payment.gateways.{$gateway}.signature_header", 'X-Signature');
+        $provided = trim((string) $request->header($header, ''));
 
         if ($provided === '') {
-            return $this->reject('Missing webhook signature.', ['gateway' => $gateway]);
+            return null;
         }
+
+        $prefix = (string) config("payment.gateways.{$gateway}.signature_prefix", '');
 
         if ($prefix !== '' && str_starts_with($provided, $prefix)) {
             $provided = substr($provided, strlen($prefix));
         }
 
-        if ($timestamp === '') {
-            return $this->reject('Missing webhook timestamp; replay protection cannot be applied.', [
-                'gateway' => $gateway,
-            ]);
+        return $provided;
+    }
+
+    /**
+     * For providers that embed a signed timestamp in the signature header
+     * (Stripe: `t=<unix>,v1=<hex>`), the timestamp is inside the signed
+     * material, so checking it here cannot be spoofed by rewriting a
+     * header — the driver's cryptographic verification runs on the same
+     * header in the controller.
+     */
+    private function timestampOutsideTolerance(Request $request, string $gateway, string $signature): bool
+    {
+        if ((string) config("payment.gateways.{$gateway}.signature_timestamp", '') !== 'embedded') {
+            return false;
         }
 
-        if (! ctype_digit($timestamp)) {
-            return $this->reject('Webhook timestamp is not an integer.', ['gateway' => $gateway]);
+        $tolerance = (int) config(
+            "payment.gateways.{$gateway}.tolerance_seconds",
+            config('security.webhooks.tolerance_seconds', 300),
+        );
+
+        if ($tolerance <= 0) {
+            return false;
         }
 
-        // ── Tolerance window. Zero disables only the window, never the nonce.
-        if ($tolerance > 0) {
-            $drift = abs(time() - (int) $timestamp);
+        $timestamp = null;
 
-            if ($drift > $tolerance) {
-                return $this->reject('Webhook timestamp is outside the tolerance window.', [
-                    'gateway' => $gateway,
-                    'drift_seconds' => $drift,
-                    'tolerance_seconds' => $tolerance,
-                ]);
+        foreach (explode(',', $signature) as $part) {
+            $part = trim($part);
+
+            if (str_starts_with($part, 't=')) {
+                $timestamp = substr($part, 2);
+                break;
             }
         }
 
-        // ── Verify the signature over "<timestamp>.<body>".
-        //    The timestamp is inside the signed material, so editing the header
-        //    invalidates the signature.
-        $expected = hash_hmac('sha256', $timestamp.'.'.$body, $secret);
-
-        if (! hash_equals($expected, strtolower($provided))) {
-            return $this->reject('Invalid webhook signature.', [
-                'gateway' => $gateway,
-                'severity' => 'critical',
-            ]);
+        if ($timestamp === null || ! ctype_digit($timestamp)) {
+            // A header claiming the embedded scheme but carrying no
+            // timestamp is malformed; the driver's verification refuses
+            // it downstream, and unverifiability is its call to make.
+            return false;
         }
 
-        // ── Single-use nonce claim. Cache::add() is atomic (SET NX): under
-        //    concurrent duplicate delivery exactly one caller wins.
-        $window = max($tolerance, 300);
-        $nonce = hash('sha256', $gateway.'|'.$timestamp.'|'.$expected);
-        $claimed = $this->cache->add("webhook:nonce:{$nonce}", 1, $window);
-
-        if (! $claimed) {
-            $this->record($gateway, $request, $nonce, $timestamp, WebhookReceipt::STATUS_REPLAYED);
-
-            Log::warning('Webhook rejected: replayed signature.', [
-                'gateway' => $gateway,
-                'nonce' => $nonce,
-                'timestamp' => $timestamp,
-                'ip' => $request->ip(),
-                'path' => $request->path(),
-            ]);
-
-            return $this->reject('Webhook has already been processed.', [
-                'gateway' => $gateway,
-                'reason' => 'replay',
-            ], 409);
-        }
-
-        $this->record($gateway, $request, $nonce, $timestamp, WebhookReceipt::STATUS_ACCEPTED);
-
-        // Hand the verified facts downstream so the handler does not re-derive
-        // them (and cannot accidentally trust an unverified header).
-        $request->attributes->set('webhook.gateway', $gateway);
-        $request->attributes->set('webhook.nonce', $nonce);
-        $request->attributes->set('webhook.timestamp', (int) $timestamp);
-        $request->attributes->set('webhook.signature_verified', true);
-
-        return $next($request);
+        return abs(time() - (int) $timestamp) > $tolerance;
     }
 
     /**
-     * Persist the receipt. Best-effort by design: an observability write must
-     * never be the reason a legitimate webhook is refused.
+     * Cryptographic verification for embedded-timestamp schemes
+     * (Stripe: `t=<unix>,v1=<hex>` over "<timestamp>.<body>").
+     *
+     * Returns true when the signature verifies, false when it does not,
+     * and null when this gateway does not use the embedded scheme (or the
+     * header is not in that scheme's shape — the driver's verification
+     * owns the refusal for malformed material).
      */
-    private function record(
-        string $gateway,
-        Request $request,
-        string $nonce,
-        string $timestamp,
-        string $status,
-    ): void {
-        if (! (bool) config('security.webhooks.persist_receipts', true)) {
-            return;
-        }
-
-        try {
-            WebhookReceipt::query()->create([
-                'gateway' => $gateway,
-                'nonce' => $nonce,
-                'signature_timestamp' => (int) $timestamp,
-                'status' => $status,
-                'ip_address' => $request->ip(),
-                'path' => $request->path(),
-                'received_at' => now(),
-            ]);
-        } catch (\Throwable $e) {
-            Log::warning('Webhook receipt could not be recorded.', [
-                'gateway' => $gateway,
-                'nonce' => $nonce,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $context
-     */
-    private function reject(string $message, array $context = [], int $status = 403): Response
+    private function verifyEmbeddedSignature(Request $request, string $gateway, string $signature): ?bool
     {
-        Log::warning('Webhook rejected.', $context + ['message' => $message]);
+        if ((string) config("payment.gateways.{$gateway}.signature_timestamp", '') !== 'embedded') {
+            return null;
+        }
 
-        return response()->json([
-            'error' => 'webhook_rejected',
-            'message' => $message,
-        ], $status);
+        $secret = config("payment.gateways.{$gateway}.webhook_secret");
+
+        if (! is_string($secret) || $secret === '') {
+            return null;
+        }
+
+        $timestamp = null;
+        $provided = null;
+
+        foreach (explode(',', $signature) as $part) {
+            $part = trim($part);
+
+            if (str_starts_with($part, 't=')) {
+                $timestamp = substr($part, 2);
+            } elseif (str_starts_with($part, 'v1=')) {
+                $provided = substr($part, 3);
+            }
+        }
+
+        if ($timestamp === null || $provided === null || ! ctype_digit($timestamp)) {
+            return null;
+        }
+
+        $expected = hash_hmac('sha256', $timestamp.'.'.$this->bodyOf($request), $secret);
+
+        return hash_equals($expected, strtolower($provided));
+    }
+
+    private function bodyOf(Request $request): string
+    {
+        $body = $request->getContent();
+
+        return is_string($body) ? $body : '';
     }
 }

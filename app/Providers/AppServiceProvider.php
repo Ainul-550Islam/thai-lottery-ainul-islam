@@ -37,6 +37,22 @@ class AppServiceProvider extends ServiceProvider
         // binding the versioned pronouncements would silently never happen.
         $this->app->bind(ResponsibleGamingLimitService::class);
 
+        // The Cash <-> Win conversion lane: four callers (member web portal,
+        // member API, admin panel, console) meet one engine through one
+        // contract, so no caller can reimplement "just the transfer" and
+        // bypass the policy gate, the quote arithmetic, the idempotency
+        // behaviour or the ledger postings. The policy object is bound just
+        // as tightly: the page that asks "could this member convert anything
+        // at all?" must get the same verdict the engine would give.
+        $this->app->bind(
+            \App\Contracts\Wallet\WalletConversionServiceContract::class,
+            \App\Services\Wallet\Conversion\WalletConversionService::class,
+        );
+        $this->app->bind(
+            \App\Contracts\Wallet\ConversionPolicyContract::class,
+            \App\Services\Wallet\Conversion\ConversionPolicy::class,
+        );
+
         // Laravel 12 removed the old named-limiter probe; keep the adapter
         // available for the existing security contract without changing the
         // framework limiter semantics.

@@ -57,13 +57,43 @@ final class WalletReservationService
      * @throws WalletReservationException
      */
     public function reserve(
-        WalletReservationData|int $userIdOrData,
+        WalletReservationData|int|Wallet|null $userIdOrData = null,
         ?string $amount = null,
         ?string $currency = null,
         ?string $reason = null,
-        int $ttlSeconds = 300
+        int $ttlSeconds = 300,
+        ?int $userId = null,
     ): array|WalletReservation {
-        if ($userIdOrData instanceof WalletReservationData) {
+        // Enterprise named-parameter lane: reserve(userId: ..., amount: ...,
+        // currency: ..., reason: ..., ttlSeconds: ...) — the user id arrives
+        // in $userIdOrData positionally in the canonical lane; the named
+        // $userId form is folded onto it here.
+        if ($userIdOrData === null && $userId !== null) {
+            $userIdOrData = $userId;
+        }
+
+        if ($userIdOrData === null) {
+            throw new \InvalidArgumentException('A user id (or WalletReservationData) is required to reserve funds.');
+        }
+
+        if ($userIdOrData instanceof Wallet) {
+            // Wallet-model lane: reserve against this exact wallet (its
+            // currency wins over the string argument, which in this lane
+            // carries the caller's purpose word, e.g. 'withdrawal').
+            $wallet = $userIdOrData;
+            $currencyEnum = $wallet->currency;
+            $currencyCode = $currencyEnum instanceof \BackedEnum ? strtoupper($currencyEnum->value) : strtoupper((string) $currencyEnum);
+            $data = new WalletReservationData(
+                walletId: (int) $wallet->id,
+                amount: (string) $amount,
+                currency: $currencyCode,
+                reference: $reason ?? 'resv_'.bin2hex(random_bytes(8)),
+                purpose: LedgerEntryPurpose::Reservation,
+                expiresAt: Carbon::now()->addSeconds($ttlSeconds)->toIso8601String(),
+                description: 'Wallet reservation',
+            );
+            $returnArray = false;
+        } elseif ($userIdOrData instanceof WalletReservationData) {
             $data = $userIdOrData;
             $returnArray = true;
         } else {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\PublicPages;
 
 use App\Services\Account\PublicAccountInfoService;
+use App\Services\Media\AndroidApkReleaseService;
 use App\Services\Media\PublicAppLinkService;
 use App\Services\Pricing\LottoDiscountService;
 use Illuminate\Support\Facades\Cache;
@@ -29,6 +30,7 @@ final class PublicPageDataService
         private readonly PublicAccountInfoService $accountInfo,
         private readonly LottoDiscountService $discounts,
         private readonly PublicAppLinkService $appLinks,
+        private readonly AndroidApkReleaseService $androidApk,
     ) {}
 
     /**
@@ -164,6 +166,10 @@ final class PublicPageDataService
                 'meta_title' => $this->text()->line('download_meta_title', $locale),
                 'meta_description' => $this->text()->line('download_meta_description', $locale),
                 'links' => $this->appLinks->links(),
+                // Fail-closed release evidence: null unless the deployed binary
+                // matches its manifest (AndroidApkReleaseService). The page and
+                // the in-site download stay closed until then.
+                'apk' => $this->androidApk->metadata(),
             ];
         }, $locale);
     }

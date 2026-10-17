@@ -12,10 +12,8 @@ use App\Exceptions\BetPurchaseIdempotencyException;
 use App\Exceptions\BetPurchaseValidationException;
 use App\Models\Bet;
 use App\Models\User;
-use App\Services\Compliance\MoneyFlowAmlObservationService;
 use App\Services\Finance\Money;
 use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
-use App\Services\ResponsibleGaming\SelfExclusionReleaseGate;
 
 /**
  * The one public entry point for buying a bet.
@@ -179,19 +177,6 @@ final class BetPurchaseService
         $player = User::query()->find($data->userId);
 
         if ($player instanceof User) {
-            // Part 64 — self-exclusion release gate. In the shipped `log`
-            // mode this records the decision and returns; only `enforce`
-            // refuses. It reads the request and the clock, not the status
-            // label, so it also covers the activation gap the existing
-            // gate is fail-open in. See SelfExclusionReleaseGate.
-            app(SelfExclusionReleaseGate::class)->assertMayPlay($player);
-
-            // Part 61 — AML money-flow observation for stakes (log mode by default).
-            app(MoneyFlowAmlObservationService::class)->observe(
-                $player,
-                MoneyFlowAmlObservationService::FLOW_BET,
-                ['amount' => (string) $data->rawStake, 'draw_id' => $data->drawId],
-            );
             app(ResponsibleGamingEnforcementService::class)
                 ->assertBetAllowed($player, $data->rawStake);
         }

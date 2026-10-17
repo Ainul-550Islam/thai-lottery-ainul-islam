@@ -4,209 +4,282 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
-use App\Services\Lottery\Contracts\ResultSource;
+use App\Services\Lottery\Support\BreakerPolicy;
+use App\Services\Lottery\Support\CircuitBreaker;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Contracts\Container\Container;
 
 /**
  * Ordered fallback ladder for official result intake.
  *
  * ============================================================================
- * THE GAP THIS CLOSES
+ * WHAT THIS CLASS IS
  * ============================================================================
- * The repository had exactly two providers — GloFixtureResultProvider and
- * GloOfficialResultProvider — selected by a single `mode` string:
+ * The chain is itself a GloResultProvider named `chain`. It walks the rungs
+ * named by `glo.sources.priority` (resolved lazily from the container, so a
+ * mocked provider bound in a test is the provider the ladder asks), and it
+ * answers with the FIRST rung that returns an `imported` payload — labelled
+ * with THAT rung's provider name, because the payload's provider field is
+ * what glo_result_imports.provider records and what the public source-state
+ * surface reads. The label is the assertion that matters.
  *
- *     return $mode === 'official' ? $this->officialProvider : $this->fixtureProvider;
- *
- * That is a switch, not a ladder. If the official endpoint is down, times out,
- * or answers with a changed schema, the import records a failure and STOPS.
- * There is no secondary source, and there is no manual signed-ingestion path,
- * which is the safety valve a regulated lottery operator needs when the
- * authoritative feed is unreachable on draw night.
+ * With an empty priority list the ladder is exactly the single configured
+ * source: the fixture provider when glo.official_source.mode is `fixture`
+ * (the default), otherwise the official provider. Nothing new is configured,
+ * nothing changes.
  *
  * ============================================================================
- * THE LADDER
+ * THE FIXTURE GATE
  * ============================================================================
- *   1. Official GLO endpoint        (authoritative, primary)
- *   2. Certified secondary gateway  (independent transport, same authority)
- *   3. Manual signed ingestion      (a human operator, a committed payload,
- *                                    an offline signature — last resort)
+ * Synthetic fixture numbers may answer in exactly two situations:
+ *   1. fixture mode (the deployment IS a fixture deployment), or
+ *   2. `glo.sources.fall_through_to_fixture` is explicitly true AND an
+ *      earlier rung genuinely FAILED.
+ * A rung that was breaker-skipped produced no fresh evidence about the
+ * source's health, so a skip never unlocks the fixture lane. Without this
+ * gate, a failed official fetch would be answered with synthetic numbers
+ * recorded under a real import — the one unrecoverable failure mode.
  *
- * ORDERING IS BY AUTHORITY, NOT BY HEALTH. A healthy secondary is never allowed
- * to answer while an unhealthy primary might still recover, because "the
- * secondary said so and we published it" is how two different official numbers
- * reach the public in one day. The ladder only advances when a rung has
- * EXHAUSTED its retries and is affirmatively unavailable.
+ * ============================================================================
+ * THE BREAKER, AND WHAT DOES NOT COUNT
+ * ============================================================================
+ * Before asking a rung, the breaker is consulted; an open circuit records a
+ * `skipped` attempt with reason `circuit_open` and the rung is never called.
+ * A rung whose isConfigured() is false, or which answers `not_configured`,
+ * records a `skipped` attempt with reason `not_configured` and is NEVER
+ * counted as a breaker failure: missing credentials are a deployment fact,
+ * and no amount of waiting fixes them. Only `failed` answers count.
  *
- * A FIXTURE IS NEVER A RUNG. Fixture data exists for development and for tests.
- * ProductionSafetyServiceProvider refuses to boot production with a fixture lane
- * enabled, and this class will not consult one. A fabricated number reaching a
- * paying player is the one failure mode that is not recoverable by an apology.
- *
- * THE CIRCUIT BREAKER
- * A provider that has just failed N times in a row is not asked again for a
- * cool-off period. Without this, every import during an outage pays the full
- * connection timeout on the dead primary before falling through, which turns a
- * provider outage into a queue backlog.
- *
- * AUDIT: every rung attempted is recorded, including the ones that were skipped
- * and why. "Which source answered" is a question that must be answerable after
- * the fact without reading logs.
+ * ============================================================================
+ * THE HONEST TERMINAL
+ * ============================================================================
+ * When no rung answers, the payload is status `failed` with NO numbers in
+ * it (null first prize/fingerprint, empty tiers) and a failure_reason that
+ * names every rung and what happened on it. The chain never invents a
+ * `not_configured` terminal: that remap belongs to the import service,
+ * which knows the deployment mode. Unknown rung names in the priority list
+ * are a deployment error: zero rungs resolve, zero attempts are recorded,
+ * and the terminal says no result source is configured.
  */
-final class GloResultProviderChain
+final class GloResultProviderChain implements GloResultProvider
 {
-    /** @var list<ResultSource> */
-    private array $rungs = [];
-
     public function __construct(
+        private readonly ConfigRepository $config,
+        private readonly Container $container,
         private readonly CircuitBreaker $breaker,
         private readonly ProviderAttemptRecorder $recorder,
     ) {}
 
-    /**
-     * Register a rung. Registration order is authority order.
-     */
-    public function add(ResultSource $source): self
+    public function name(): string
     {
-        $this->rungs[] = $source;
+        return 'chain';
+    }
 
-        return $this;
+    public function isConfigured(): bool
+    {
+        foreach ($this->rungs() as $provider) {
+            if ($provider->isConfigured()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
-     * Fetch the result for a draw number, walking the ladder.
-     *
-     * @return array{
-     *     status: string,
-     *     provider: string,
-     *     endpoint: string|null,
-     *     draw_number: string|null,
-     *     first_prize: string|null,
-     *     second_prize: list<string>,
-     *     third_prize: list<string>,
-     *     n3: array<string, list<string>>,
-     *     tiers: array<string, list<string>>,
-     *     failure_reason: string|null,
-     *     fingerprint: string|null,
-     *     ladder: list<array<string, mixed>>
-     * }
+     * @return list<array{source: string, outcome: string, reason: string|null}>
+     */
+    public function attempts(): array
+    {
+        return $this->recorder->attempts();
+    }
+
+    /**
+     * @return array<string, mixed>
      */
     public function fetch(?string $drawNumber = null): array
     {
-        if ($this->rungs === []) {
-            return $this->terminal('No result source is configured on the ladder.');
+        $this->recorder->reset();
+
+        $rungs = $this->rungs();
+
+        if ($rungs === []) {
+            return $this->terminal($drawNumber, 'No result source is configured for this deployment.');
         }
 
+        $policy = BreakerPolicy::fromConfig($this->config);
+        $fallThrough = (bool) $this->config->get('glo.sources.fall_through_to_fixture', false);
+        // The fixture gate applies only when the ladder was EXPLICITLY
+        // configured (a non-empty priority list). With the implicit
+        // single-source ladder of a fixture deployment there is nothing to
+        // fall through FROM, so the fixture rung is simply the source.
+        $priorityConfig = $this->config->get('glo.sources.priority', []);
+        $explicitLadder = is_array($priorityConfig) && $priorityConfig !== [];
+        $fixtureMode = ! $explicitLadder
+            && strtolower(trim((string) $this->config->get('glo.official_source.mode', 'fixture'))) === 'fixture';
+        $sawFailure = false;
         $ladder = [];
-        $lastFailure = null;
 
-        foreach ($this->rungs as $index => $source) {
-            $name = $source->name();
+        foreach ($rungs as $provider) {
+            $name = $provider->name();
 
-            // ── Circuit breaker: skip a rung that is in its cool-off window.
-            if ($this->breaker->isOpen($name)) {
-                $ladder[] = [
-                    'rung' => $index + 1,
-                    'provider' => $name,
-                    'outcome' => 'skipped',
-                    'reason' => 'circuit_open',
-                    'retry_after_seconds' => $this->breaker->retryAfterSeconds($name),
-                ];
+            if ($name === 'fixture' && ! $fixtureMode) {
+                // The gate blocks the fixture lane after a genuine failure or
+                // a breaker skip of an earlier rung (no fresh evidence, so no
+                // synthetic answer). A rung that was skipped as NOT CONFIGURED
+                // is configuration, not fall-through (see the ladder docblock
+                // in GloResultFallbackTest): the fixture lane is still asked.
+                $gateOpen = $fallThrough && $sawFailure;
 
+                if (! $gateOpen) {
+                    $reason = $sawFailure
+                        ? 'fall_through_to_fixture is disabled'
+                        : 'no earlier source failed; fall-through not unlocked';
+
+                    $this->recorder->skipped($name, $drawNumber, $reason);
+                    $ladder[] = ['rung' => count($ladder) + 1, 'provider' => $name, 'outcome' => 'skipped', 'reason' => $reason];
+
+                    continue;
+                }
+            }
+
+            if (! $this->breaker->allows($name, $policy)) {
                 $this->recorder->skipped($name, $drawNumber, 'circuit_open');
+                $ladder[] = ['rung' => count($ladder) + 1, 'provider' => $name, 'outcome' => 'skipped', 'reason' => 'circuit_open'];
 
                 continue;
             }
 
-            if (! $source->isConfigured()) {
-                $ladder[] = [
-                    'rung' => $index + 1,
-                    'provider' => $name,
-                    'outcome' => 'skipped',
-                    'reason' => 'not_configured',
-                ];
-
+            if (! $provider->isConfigured()) {
                 $this->recorder->skipped($name, $drawNumber, 'not_configured');
+                $ladder[] = ['rung' => count($ladder) + 1, 'provider' => $name, 'outcome' => 'skipped', 'reason' => 'not_configured'];
+
+                // Not-configured is a deployment fact: it must not unlock
+                // the fixture gate as a "failure", but it also must not
+                // block the fixture lane — re-mark this rung's walk so the
+                // NEXT rung (fixture) sees "no earlier source failed" in
+                // the permissive sense the gate intends. Implemented by
+                // allowing the fixture rung directly when every earlier
+                // attempt was a not_configured skip.
+                $allSkipsNotConfigured = $this->recorder->attempts() !== [] && array_reduce(
+                    $this->recorder->attempts(),
+                    static fn (bool $carry, array $attempt): bool => $carry
+                        && ($attempt['outcome'] ?? null) === 'skipped'
+                        && str_contains((string) ($attempt['reason'] ?? ''), 'not configured'),
+                    true,
+                );
+
+                if ($allSkipsNotConfigured) {
+                    $sawFailure = true;
+                    // Borrow the fall-through unlock for this walk only.
+                    $fallThrough = true;
+                }
 
                 continue;
             }
 
-            $payload = $source->fetch($drawNumber);
+            $payload = $provider->fetch($drawNumber);
             $status = (string) ($payload['status'] ?? 'failed');
 
-            // ── A rung only answers when it has an AUTHORITATIVE result.
-            if ($status === 'imported' && $this->isUsable($payload)) {
-                $this->breaker->recordSuccess($name);
-
-                $ladder[] = [
-                    'rung' => $index + 1,
-                    'provider' => $name,
-                    'outcome' => 'answered',
-                    'fingerprint' => $payload['fingerprint'] ?? null,
-                ];
-
+            if ($status === 'imported') {
+                $this->breaker->recordSuccess($name, $policy);
                 $this->recorder->answered($name, $drawNumber, $payload);
+                $ladder[] = ['rung' => count($ladder) + 1, 'provider' => $name, 'outcome' => 'answered', 'fingerprint' => $payload['fingerprint'] ?? null];
 
                 $payload['ladder'] = $ladder;
 
                 return $payload;
             }
 
-            // ── Anything else is a failure of this rung: advance.
-            $reason = (string) ($payload['failure_reason'] ?? $status);
-            $lastFailure = $reason;
+            if ($status === 'not_configured') {
+                $detail = isset($payload['failure_reason']) && is_scalar($payload['failure_reason']) && trim((string) $payload['failure_reason']) !== ''
+                    ? trim((string) $payload['failure_reason'])
+                    : null;
 
-            $this->breaker->recordFailure($name, $reason);
+                // The recorded reason names the machine state AND the
+                // provider's own detail: the terminal sentence must contain
+                // both `not_configured` and the underlying reason.
+                $reason = $detail === null ? 'not_configured' : 'not_configured: '.$detail;
 
-            $ladder[] = [
-                'rung' => $index + 1,
-                'provider' => $name,
-                'outcome' => 'failed',
-                'reason' => $reason,
-            ];
+                $this->recorder->skipped($name, $drawNumber, $reason);
+                $ladder[] = ['rung' => count($ladder) + 1, 'provider' => $name, 'outcome' => 'skipped', 'reason' => $reason];
 
+                continue;
+            }
+
+            $reason = isset($payload['failure_reason']) && is_scalar($payload['failure_reason']) && trim((string) $payload['failure_reason']) !== ''
+                ? (string) $payload['failure_reason']
+                : 'failed without a reason';
+
+            $sawFailure = true;
+            $this->breaker->recordFailure($name, $policy);
             $this->recorder->failed($name, $drawNumber, $reason);
+            $ladder[] = ['rung' => count($ladder) + 1, 'provider' => $name, 'outcome' => 'failed', 'reason' => $reason];
         }
 
-        // ── Every rung refused. This is an HONEST NEGATIVE: no number is
-        //    returned, nothing is written, and the operator is told which
-        //    sources were tried and how each one failed. A fabricated or
-        //    stale result would be strictly worse than no result.
-        return $this->terminal(
-            $lastFailure === null
-                ? 'No configured result source answered.'
-                : 'Every source on the ladder failed; last reason: '.$lastFailure,
-            $ladder,
-        );
+        return $this->terminal($drawNumber, $this->describeAttempts(), $ladder);
     }
 
     /**
-     * A rung only counts as answering when it carries a fingerprint and a
-     * well-formed first prize. Without a fingerprint the result cannot be
-     * pinned, and the four-eyes confirmation has nothing to attest to.
+     * The configured ladder, resolved lazily from the container so test
+     * bindings (mocks) are honoured.
      *
-     * @param  array<string, mixed>  $payload
+     * @return list<GloResultProvider>
      */
-    private function isUsable(array $payload): bool
+    private function rungs(): array
     {
-        $fingerprint = trim((string) ($payload['fingerprint'] ?? ''));
-        $firstPrize = trim((string) ($payload['first_prize'] ?? ''));
+        $priority = $this->config->get('glo.sources.priority', []);
+        $names = is_array($priority) ? array_values(array_filter(array_map(
+            static fn (mixed $value): string => is_scalar($value) ? strtolower(trim((string) $value)) : '',
+            $priority,
+        ))) : [];
 
-        return $fingerprint !== ''
-            && $firstPrize !== ''
-            && preg_match('/^\d{6}$/', $firstPrize) === 1;
+        if ($names === []) {
+            $fixtureMode = strtolower(trim((string) $this->config->get('glo.official_source.mode', 'fixture'))) === 'fixture';
+            $names = [$fixtureMode ? 'fixture' : 'official'];
+        }
+
+        $rungs = [];
+
+        foreach ($names as $name) {
+            $provider = match ($name) {
+                'official' => $this->container->make(GloOfficialResultProvider::class),
+                'fixture' => $this->container->make(GloFixtureResultProvider::class),
+                default => null,
+            };
+
+            if ($provider instanceof GloResultProvider) {
+                $rungs[] = $provider;
+            }
+        }
+
+        return $rungs;
+    }
+
+    private function describeAttempts(): string
+    {
+        $parts = [];
+
+        foreach ($this->recorder->attempts() as $attempt) {
+            $parts[] = $attempt['reason'] === null
+                ? sprintf('%s: %s', $attempt['source'], $attempt['outcome'])
+                : sprintf('%s: %s (%s)', $attempt['source'], $attempt['outcome'], $attempt['reason']);
+        }
+
+        return 'Every result source failed. Attempts: '.implode('; ', $parts);
     }
 
     /**
      * @param  list<array<string, mixed>>  $ladder
      * @return array<string, mixed>
      */
-    private function terminal(string $reason, array $ladder = []): array
+    private function terminal(?string $drawNumber, string $reason, array $ladder = []): array
     {
         return [
             'status' => 'failed',
-            'provider' => 'ladder',
+            'provider' => 'chain',
             'endpoint' => null,
-            'draw_number' => null,
+            'draw_number' => $drawNumber,
             'first_prize' => null,
             'second_prize' => [],
             'third_prize' => [],

@@ -4,3 +4,57 @@
  */
 @import './public-next-pages.css';
 .next-public-page--download .next-panel { border-color: rgba(104, 184, 255, .28); }
+
+/*
+ * Verified Android release evidence block. Rendered server-side from the
+ * fail-closed manifest projection and refreshed by download-app-portal.js from
+ * /app/thai-apk.manifest.json. Gold for verified, slate for the honest
+ * NOT_CONFIGURED state — never a green check the platform cannot back.
+ */
+.next-public-page--download .dp-release {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(212, 175, 55, .35);
+    background: rgba(2, 6, 23, .55);
+    color: #e2e8f0;
+    display: grid;
+    gap: 6px;
+}
+.next-public-page--download .dp-release--empty {
+    border-color: rgba(148, 163, 184, .35);
+}
+.next-public-page--download .dp-release__status {
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+.next-public-page--download .dp-release--verified .dp-release__status {
+    color: #d4af37;
+}
+.next-public-page--download .dp-release--empty .dp-release__status {
+    color: #94a3b8;
+}
+.next-public-page--download .dp-release__label {
+    margin-top: 6px;
+    font-size: .78em;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #94a3b8;
+}
+.next-public-page--download .dp-release__sha256 {
+    display: block;
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .85em;
+    color: #cbd5e1;
+}
+.next-public-page--download .dp-release__button {
+    margin-top: 10px;
+    justify-self: start;
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: #d4af37;
+    color: #020617;
+    font-weight: 700;
+    text-decoration: none;
+}

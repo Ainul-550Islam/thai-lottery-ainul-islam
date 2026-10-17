@@ -12,7 +12,14 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
+            // BEGIN IMMEDIATE reserves the writer before any transactional
+            // read, so two writers serialise at BEGIN instead of discovering
+            // each other at COMMIT (the deferred-upgrade deadlock the
+            // money lanes cannot afford). The busy timeout is bounded and
+            // env-tunable; Laravel applies it as PRAGMA busy_timeout on
+            // connect. SqliteLockingConfigurationTest pins both.
+            'transaction_mode' => 'IMMEDIATE',
+            'busy_timeout' => (int) env('DB_BUSY_TIMEOUT', 15000),
             'journal_mode' => null,
             'synchronous' => null,
         ],

@@ -13,15 +13,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check test runtime
+        run: php scripts/check-test-runtime.php
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           # intl is required by filament/support (a transitive composer
           # requirement) and by the Filament resource render assertions. It is
           # already present on the runner image; naming it here makes that a
           # declared dependency rather than a lucky default.
-          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd, pdo_mysql
           coverage: none
 
       - name: Setup Node
@@ -33,8 +36,27 @@ jobs:
       - name: Validate composer.json
         run: composer validate --no-check-publish
 
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Build Weekly native verifier
+        run: bash scripts/build-weekly-native-verifier.sh
+
+      - name: Prepare controlled Laravel environment
+        run: |
+          cp .env.ci .env
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Application key and route optimisation
+        run: |
+          cp .env.ci .env
+          php artisan key:generate --force || true
 
       - name: Install front-end dependencies
         run: npm ci
@@ -152,10 +174,6 @@ jobs:
           done < <(find app/Models -name '*.php' -print0)
           exit $fail
 
-      - name: Application key and route optimisation
-        run: |
-          cp .env.example .env 2>/dev/null || true
-          php artisan key:generate --force || true
           php artisan optimize:clear
           php artisan config:cache
           # Fail if config:cache did not produce a bootstrap cache
@@ -389,8 +407,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd, pdo_mysql
           coverage: none
 
       - name: Setup Node
@@ -426,6 +444,19 @@ jobs:
           cargo check --locked
           cargo test --locked
           cargo build --release --locked
+
+      - name: Isolated environment for cross-language contracts
+        run: |
+          set -euo pipefail
+          cp .env.ci .env
+
+      - name: Build Weekly native verifier
+        run: bash scripts/build-weekly-native-verifier.sh
+
+      - name: Cross-language Weekly verifier runtime contract
+        run: |
+          set -euo pipefail
+          vendor/bin/phpunit --colors=never tests/Feature/WeeklyLottery/WeeklyNativeVerifierRuntimeTest.php tests/Feature/WeeklyLottery/WeeklyLotteryPublicPageTest.php
 
   full-runtime-release:
     name: Full runtime release candidate
@@ -479,8 +510,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring, dom, fileinfo, mysqlnd, pdo_mysql, bcmath, sodium, zip, intl, redis
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, mysqlnd, pdo_mysql, bcmath, sodium, zip, intl, redis, gd, sqlite3, pdo_sqlite
           coverage: none
 
       - name: Setup Node
@@ -494,17 +525,20 @@ jobs:
         with:
           components: rustfmt
 
+      - name: Build Weekly native verifier
+        run: bash scripts/build-weekly-native-verifier.sh
+
       - name: Install database client
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install --yes mysql-client
 
+
       - name: Prepare controlled Laravel environment
         run: |
           set -euo pipefail
-          cp .env.example .env
-          php artisan key:generate --force
+          cp .env.ci .env
 
       - name: Install and verify Composer dependencies
         run: |
@@ -514,6 +548,11 @@ jobs:
           composer check-platform-reqs
           composer audit --no-interaction
           composer dump-autoload --optimize
+
+      - name: Generate application key
+        run: |
+          set -euo pipefail
+          php artisan key:generate --force
 
       - name: Install, audit, and build frontend
         run: |

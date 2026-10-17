@@ -246,19 +246,23 @@ class GloResultFallbackTest extends TestCase
         $this->mock(GloFixtureResultProvider::class, function ($mock): void {
             $mock->shouldReceive('name')->andReturn('fixture');
             $mock->shouldReceive('isConfigured')->andReturn(true);
-            $mock->shouldReceive('fetch')->times(2)->andReturn($this->payload('imported', 'fixture', 'DRAW-1'));
+            // NEVER — the fixture gate: with fall-through off, synthetic data
+            // must not answer for a failed/breaker-skipped official fetch, so
+            // the ladder's answer here is an honest failure, not the fixture.
+            $mock->shouldReceive('fetch')->never();
         });
 
         $chain = app(GloResultProviderChain::class);
 
-        // One failure trips the breaker (threshold 1). The first fetch falls
-        // through to fixture, and the SECOND is the one that proves the point.
+        // One failure trips the breaker (threshold 1). The fixture gate refuses
+        // the synthetic lane on both fetches, and the SECOND fetch is the one
+        // that proves the breaker — not the fixture — is what answers.
         $first = $chain->fetch('DRAW-1');
-        $this->assertSame('fixture', $first['provider']);
+        $this->assertSame('failed', $first['status']);
         $this->assertSame(1, $officialCalls);
 
         $second = $chain->fetch('DRAW-1');
-        $this->assertSame('fixture', $second['provider']);
+        $this->assertSame('failed', $second['status']);
 
         // THE ASSERTION THAT MATTERS: the official provider was called ONCE in
         // total. The breach was that each fetch paid a full request timeout
@@ -299,15 +303,18 @@ class GloResultFallbackTest extends TestCase
         $this->mock(GloFixtureResultProvider::class, function ($mock): void {
             $mock->shouldReceive('name')->andReturn('fixture');
             $mock->shouldReceive('isConfigured')->andReturn(true);
-            $mock->shouldReceive('fetch')->once()->andReturn($this->payload('imported', 'fixture', 'DRAW-1'));
+            // NEVER — the fixture gate: a failed official fetch must not be
+            // answered with synthetic numbers while fall-through is off.
+            $mock->shouldReceive('fetch')->never();
         });
 
         $breaker = app(CircuitBreaker::class);
         $policy = BreakerPolicy::fromConfig(app('config'));
         $chain = app(GloResultProviderChain::class);
 
-        // Trip it (threshold 1).
-        $this->assertSame('fixture', $chain->fetch('DRAW-1')['provider']);
+        // Trip it (threshold 1). The tripping fetch is an honest failure: the
+        // fixture lane is gated off, so nothing answers in official's place.
+        $this->assertSame('failed', $chain->fetch('DRAW-1')['status']);
         $this->assertSame('open', $breaker->describe('official', $policy)['state']);
 
         // Travel past the cooldown. Config is time-independent, so the clock is
@@ -359,7 +366,14 @@ class GloResultFallbackTest extends TestCase
     #[Test]
     public function when_every_source_fails_the_answer_contains_no_numbers(): void
     {
-        config(['glo.sources.priority' => ['official', 'fixture']]);
+        // Fall-through is explicitly permitted here so BOTH rungs are really
+        // asked and really fail — the assertions below are about what an
+        // exhausted ladder answers, which requires the fixture rung to have
+        // been consulted rather than gated off.
+        config([
+            'glo.sources.priority' => ['official', 'fixture'],
+            'glo.sources.fall_through_to_fixture' => true,
+        ]);
 
         $this->mock(GloOfficialResultProvider::class, function ($mock): void {
             $mock->shouldReceive('name')->andReturn('official');

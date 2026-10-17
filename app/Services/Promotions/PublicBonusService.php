@@ -77,9 +77,7 @@ class PublicBonusService
                 'cta_label' => isset($raw['cta_label']) && is_string($raw['cta_label']) && $raw['cta_label'] !== ''
                     ? $raw['cta_label']
                     : null,
-                'cta_url' => isset($raw['cta_url']) && is_string($raw['cta_url']) && $raw['cta_url'] !== ''
-                    ? $raw['cta_url']
-                    : null,
+                'cta_url' => $this->safeCtaUrl($raw['cta_url'] ?? null),
             ];
 
             if (count($active) >= $max) {
@@ -100,6 +98,51 @@ class PublicBonusService
             'campaigns' => $active,
             'message' => '',
         ];
+    }
+
+    /**
+     * A campaign CTA is rendered as a link href on a public page, so the
+     * configured value is only admited in two shapes: an https:// URL with
+     * a host, or a root-relative path. Everything else — script schemes in
+     * any case, data URIs, plain http, protocol-relative or backslash
+     * tricks, embedded whitespace/control bytes, hostless or unparseable
+     * values — is dropped to null rather than escaped later and trusted.
+     * Surrounding whitespace is trimmed before the judgement, and the
+     * trimmed value is what is kept.
+     */
+    private function safeCtaUrl(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $url = trim($value);
+
+        if ($url === '' || preg_match('/[\s\x00-\x20\x7f]/', $url)) {
+            return null;
+        }
+
+        if (str_starts_with($url, '/')) {
+            // Root-relative path; '//host' (protocol-relative) and
+            // '/\host' (backslash trick) are not paths, they are hosts in
+            // disguise.
+            if (str_starts_with($url, '//') || str_starts_with($url, '/\\')) {
+                return null;
+            }
+
+            return $url;
+        }
+
+        $parts = parse_url($url);
+
+        if ($parts === false
+            || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
+            || ! isset($parts['host'])
+            || (string) $parts['host'] === '') {
+            return null;
+        }
+
+        return $url;
     }
 
     private function parseDate(mixed $value): ?Carbon

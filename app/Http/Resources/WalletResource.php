@@ -29,6 +29,10 @@ final class WalletResource extends JsonResource
             'type' => $wallet->type?->value,
             'status' => $wallet->status?->value,
             'balance' => (string) $wallet->balance,
+            // The holds bucket's storage name. `reserved_balance` below is
+            // the same derived accessor the Wallet model exposes; both keys
+            // name one value, so no client can read them apart.
+            'locked_balance' => (string) $wallet->locked_balance,
             'reserved_balance' => (string) $wallet->locked_balance,
             'available_balance' => (string) $wallet->getAvailableBalance(),
             'can_transact' => $wallet->canTransact(),

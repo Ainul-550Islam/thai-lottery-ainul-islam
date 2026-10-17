@@ -98,6 +98,48 @@ class GloL6ProportionalPrizeCalculator
      *     digits: int
      * }>
      */
+    /**
+     * Enterprise pool summary: allocate $prizePoolAllocationPercent of
+     * $totalRevenue into per-tier prize pools, with the stamp-duty total
+     * the full first-prize pool would carry. Tier shares follow the
+     * official ladder amounts in config('glo.prizes') — each tier's pool is
+     * its proportional share of the allocated pool by ladder weight
+     * (amount × winners), so the pools always sum to the allocation.
+     *
+     * @return array<string, string>
+     */
+    public function calculatePrizePools(string $totalRevenue, string $prizePoolAllocationPercent): array
+    {
+        $pool = bcmul($totalRevenue, bcdiv($prizePoolAllocationPercent, '100', 6), 2);
+
+        $prizes = (array) $this->config->get('glo.prizes', []);
+
+        $weights = [];
+        $totalWeight = '0.00';
+
+        foreach ($prizes as $tierKey => $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $weight = bcmul(bcadd((string) ($entry['amount'] ?? '0.00'), '0.00', 2), (string) (int) ($entry['winners'] ?? 0), 2);
+            $weights[(string) $tierKey] = $weight;
+            $totalWeight = bcadd($totalWeight, $weight, 2);
+        }
+
+        $result = ['total_prize_pool' => $pool];
+
+        foreach ($weights as $tierKey => $weight) {
+            $share = bccomp($totalWeight, '0.00', 2) > 0 ? bcdiv($weight, $totalWeight, 8) : '0';
+            $result[$tierKey === 'first' ? 'first_prize_pool' : $tierKey.'_pool'] = bcmul($pool, $share, 2);
+        }
+
+        $duty = app(GloStampDutyCalculator::class);
+        $result['stamp_duty_total'] = $duty->dutyFor($result['first_prize_pool'] ?? '0.00');
+
+        return $result;
+    }
+
     public function calculateForSales(string $salesThb, int $soldTickets, ?int $unitsFull = null): array
     {
         $full = $unitsFull ?? (int) ($this->config->get('glo.l6.full_sale_units', 1000000));

@@ -54,6 +54,12 @@ final class PlayerFrontendModulesTest extends TestCase
         parent::setUp();
 
         $this->player = User::factory()->create(['status' => UserStatus::Active]);
+
+        // The bet page renders its market vocabulary and the slip's item
+        // ceiling beside the open draw they apply to; without an open draw
+        // the builder renders nothing. Every sibling suite that requests
+        // player.bet seeds one the same way.
+        \App\Models\Draw::factory()->create(['status' => \App\Enums\DrawStatus::Open]);
     }
 
     public function test_every_registered_module_contains_real_code(): void

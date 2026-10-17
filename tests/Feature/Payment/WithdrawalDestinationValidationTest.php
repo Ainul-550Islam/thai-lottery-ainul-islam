@@ -22,6 +22,11 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
         parent::setUp();
 
         Config::set('payment.withdrawal.enabled', true);
+        // The bank-transfer rail is opt-in (its gateway fails closed
+        // without operator settlement details); the controller only
+        // offers methods whose gateway is enabled and withdrawal-capable,
+        // so this suite must opt the rail in explicitly.
+        Config::set('payment.gateways.bank_transfer.enabled', true);
         Config::set('payment.withdrawal.allowed_methods', ['bank_transfer', 'bkash', 'nagad', 'crypto']);
         Config::set('payment.supported_banks', [
             'BBL' => 'Bangkok Bank',

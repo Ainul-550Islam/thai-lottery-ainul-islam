@@ -114,6 +114,13 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // The shared regression suite exercises money paths end to end, so it
+        // runs with the real-money launch gate OPEN (as RealMoneyGateTest's
+        // docblock states); that suite closes it deliberately per-test and
+        // proves each refusal. Set as config, not env, so the shipped
+        // env-default-closed assertion in config/real_money.php stays live.
+        config(['real_money.enabled' => true]);
+
         (new LedgerAccountSeeder)->run();
     }
 

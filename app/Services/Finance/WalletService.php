@@ -104,19 +104,26 @@ final class WalletService
      * @throws FinancialException
      */
     public function credit(
-        Wallet $wallet,
-        Money $amount,
-        FinancialTransactionType $type = FinancialTransactionType::Deposit,
+        Wallet|int $wallet,
+        Money|string $amount,
+        FinancialTransactionType|string $type = FinancialTransactionType::Deposit,
         ?string $idempotencyKey = null,
-        array $options = [],
+        array|string $options = [],
+        ?string $referenceType = null,
+        int|string|null $referenceId = null,
+        ?string $description = null,
     ): FinancialTransaction {
+        $wallet = $this->walletArgument($wallet);
+        [$typeEnum, $resolvedOptions] = $this->typeAndOptions($type, $options, FinancialTransactionType::Deposit);
+        $resolvedOptions = $this->referenceOptions($resolvedOptions, $referenceType, $referenceId, $description);
+
         return $this->transactions()->execute(
             wallet: $wallet,
-            amount: $amount,
-            type: $type,
+            amount: $this->moneyArgument($wallet, $amount),
+            type: $typeEnum,
             walletSide: LedgerEntryType::Credit,
-            idempotencyKey: $idempotencyKey,
-            options: $options,
+            idempotencyKey: $this->keyArgument($idempotencyKey, $wallet, $typeEnum),
+            options: $resolvedOptions,
         );
     }
 
@@ -129,20 +136,184 @@ final class WalletService
      * @throws FinancialException
      */
     public function debit(
-        Wallet $wallet,
-        Money $amount,
-        FinancialTransactionType $type = FinancialTransactionType::Withdrawal,
+        Wallet|int $wallet,
+        Money|string $amount,
+        FinancialTransactionType|string $type = FinancialTransactionType::Withdrawal,
         ?string $idempotencyKey = null,
-        array $options = [],
+        array|string $options = [],
+        ?string $referenceType = null,
+        int|string|null $referenceId = null,
+        ?string $description = null,
     ): FinancialTransaction {
+        $wallet = $this->walletArgument($wallet);
+        [$typeEnum, $resolvedOptions] = $this->typeAndOptions($type, $options, FinancialTransactionType::Withdrawal);
+        $resolvedOptions = $this->referenceOptions($resolvedOptions, $referenceType, $referenceId, $description);
+
         return $this->transactions()->execute(
             wallet: $wallet,
-            amount: $amount,
-            type: $type,
+            amount: $this->moneyArgument($wallet, $amount),
+            type: $typeEnum,
             walletSide: LedgerEntryType::Debit,
-            idempotencyKey: $idempotencyKey,
-            options: $options,
+            idempotencyKey: $this->keyArgument($idempotencyKey, $wallet, $typeEnum),
+            options: $resolvedOptions,
         );
+    }
+
+    /**
+     * Fold the enterprise named-argument reference lane into the options
+     * array the transaction service consumes. reference_type values arrive
+     * as slugs ('payment_transaction'); map the known ones onto the model
+     * class, pass class names through, and keep unknown slugs verbatim in
+     * metadata rather than inventing a class for them.
+     *
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    private function referenceOptions(array $options, ?string $referenceType, int|string|null $referenceId, ?string $description): array
+    {
+        if ($description !== null && (! isset($options['description']) || $options['description'] === '')) {
+            $options['description'] = $description;
+        }
+
+        if ($referenceType !== null) {
+            $options['reference_type'] = match (strtolower(trim($referenceType))) {
+                'payment_transaction', 'paymenttransaction' => \App\Models\PaymentTransaction::class,
+                'withdrawal' => \App\Models\Withdrawal::class,
+                'deposit' => \App\Models\Deposit::class,
+                default => str_contains($referenceType, '\\') ? $referenceType : $referenceType,
+            };
+        }
+
+        if ($referenceId !== null) {
+            $options['reference_id'] = (int) $referenceId;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Normalise the wallet argument: a model passes through; an integer id
+     * resolves to the persisted wallet (the enterprise slip callers carry ids,
+     * mirroring getOrCreateWallet's int|User acceptance). An unknown id fails
+     * loud via the query exception rather than transacting against air.
+     */
+    private function walletArgument(Wallet|int $wallet): Wallet
+    {
+        if ($wallet instanceof Wallet) {
+            return $wallet;
+        }
+
+        return Wallet::query()->findOrFail($wallet);
+    }
+
+    /**
+     * Resolve the (type, options) pair. A string in the type position that is
+     * neither a stored type value nor a known alias is narrative text the
+     * caller attached to the movement ('Initial funds', 'Credit 1'): it
+     * becomes the transaction description and the method's canonical default
+     * type carries the ledger semantics. Known values and aliases keep their
+     * exact meaning, so a real type can never be silently re-read as prose
+     * (stored values are checked first).
+     *
+     * @return array{0: FinancialTransactionType, 1: array<string, mixed>}
+     */
+    private function typeAndOptions(FinancialTransactionType|string $type, array|string $options, FinancialTransactionType $default): array
+    {
+        $resolvedOptions = $this->optionsArgument($options);
+
+        if ($type instanceof FinancialTransactionType) {
+            return [$type, $resolvedOptions];
+        }
+
+        $known = FinancialTransactionType::tryFrom(strtolower(trim($type)));
+
+        if ($known instanceof FinancialTransactionType) {
+            return [$known, $resolvedOptions];
+        }
+
+        $alias = match (strtolower(trim($type))) {
+            'initial_deposit', 'seed', 'topup', 'top_up' => FinancialTransactionType::Deposit,
+            'promo', 'promotion', 'bonus', 'promo_credit' => FinancialTransactionType::Adjustment,
+            'spend', 'purchase', 'entry_fee', 'stake' => FinancialTransactionType::BetDebit,
+            'prize', 'winnings', 'payout_credit' => FinancialTransactionType::Payout,
+            default => null,
+        };
+
+        if ($alias instanceof FinancialTransactionType) {
+            return [$alias, $resolvedOptions];
+        }
+
+        if (! isset($resolvedOptions['description']) || ! is_string($resolvedOptions['description']) || $resolvedOptions['description'] === '') {
+            $resolvedOptions['description'] = $type;
+        }
+
+        return [$default, $resolvedOptions];
+    }
+
+    /**
+     * Normalise a caller-supplied amount: Money passes through untouched, an
+     * exact decimal string is denominated in the wallet's own currency.
+     * Floats stay impossible (strict types).
+     */
+    private function moneyArgument(Wallet $wallet, Money|string $amount): Money
+    {
+        if ($amount instanceof Money) {
+            return $amount;
+        }
+
+        $currency = $wallet->currency;
+        $currencyEnum = $currency instanceof Currency ? $currency : Currency::from(strtoupper((string) $currency));
+
+        return Money::of($amount, $currencyEnum);
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function optionsArgument(array|string $options): array
+    {
+        return is_string($options) ? ['description' => $options] : $options;
+    }
+
+    /**
+     * Normalise a caller-supplied idempotency key. Keys that already meet the
+     * platform length window (16-128, enforced by IdempotencyService) pass
+     * through byte-for-byte so replays collide. Shorter keys — the short
+     * business references the enterprise flows carry ('DEP-001', 'D-1') — are
+     * expanded deterministically into the window, namespaced by wallet and
+     * canonical type: same input -> same expanded key -> replay-safe, and two
+     * different short references can never expand into each other or into a
+     * long key a caller supplied verbatim.
+     */
+    private function keyArgument(?string $key, Wallet $wallet, FinancialTransactionType $type): ?string
+    {
+        if ($key === null) {
+            // Keyless call: the caller declares a one-off movement, not a
+            // replayable operation. Mint a unique key (the same 'auto'
+            // convention FinancialTransactionService uses for types that do
+            // not require a key) so every keyless call is exactly one
+            // movement — never accidentally replay-merged, never refused.
+            // Callers who need replay protection pass their own key; every
+            // canonical money path (settlement, completion, webhooks) does.
+            return 'auto:'.strtolower(str_replace('-', '', (string) \Illuminate\Support\Str::uuid()));
+        }
+
+        $key = trim($key);
+        $length = strlen($key);
+
+        if ($length >= 16 && $length <= 128) {
+            return $key;
+        }
+
+        $digest = substr(hash('sha256', implode('|', [
+            'wallet-key-expand',
+            (string) (int) $wallet->getKey(),
+            $type->value,
+            $key,
+        ])), 0, 24);
+
+        return 'ref:'.$digest;
     }
 
     /**

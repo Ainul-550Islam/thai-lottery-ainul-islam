@@ -57,6 +57,17 @@ return [
         // Surfaces that carry a CAPTCHA gate.
         'login' => (bool) env('AUTH_CAPTCHA_LOGIN', true),
         'password_reset' => (bool) env('AUTH_CAPTCHA_PASSWORD_RESET', true),
+        // External driver credentials (empty until an operator contracts a
+        // provider; the local driver needs none). The readiness report reads
+        // these keys, so an empty value is a declared-but-unconfigured lane.
+        'turnstile' => [
+            'site_key' => env('CAPTCHA_TURNSTILE_SITE_KEY'),
+            'secret_key' => env('CAPTCHA_TURNSTILE_SECRET_KEY'),
+        ],
+        'hcaptcha' => [
+            'site_key' => env('CAPTCHA_HCAPTCHA_SITE_KEY'),
+            'secret_key' => env('CAPTCHA_HCAPTCHA_SECRET_KEY'),
+        ],
     ],
 
     /*

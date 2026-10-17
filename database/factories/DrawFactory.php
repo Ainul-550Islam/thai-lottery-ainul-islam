@@ -31,6 +31,17 @@ class DrawFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => DrawStatus::Open,
             'opened_at' => now(),
+            // A draw cannot be open with no betting window: the canonical
+            // opener always derives betting_close_at with the draw (the
+            // window ends at the draw or at the configured minutes-before
+            // cut-off). A state that produced an unwindowed open draw let
+            // the dashboard's countdown target render EMPTY — an open draw
+            // whose betting_close_at is null is not a state the platform
+            // itself can ever be in.
+            'betting_close_at' => ($attributes['scheduled_at'] ?? null) instanceof \DateTimeInterface
+                ? \Illuminate\Support\Carbon::instance($attributes['scheduled_at'])
+                    ->subMinutes(max(0, (int) config('lottery.closing.minutes_before_draw', 5)))
+                : now()->addMinutes(55),
         ]);
     }
 

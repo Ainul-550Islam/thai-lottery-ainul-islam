@@ -110,10 +110,13 @@ class GloConsoleCommandsTest extends TestCase
         // written over a draw that already published (or settled) it. The
         // importer now honours that guard instead of writing draw_results
         // directly, so the draw is moved to the state a real import happens in.
-        $this->draw->update([
-            'status' => DrawStatus::Drawing,
-            'result_published_at' => null,
-        ]);
+        // forceFill: `result_published_at` is a lifecycle column that is
+        // deliberately NOT mass-assignable on Draw (the same reason the
+        // trusted-result helper assigns it directly). The status update goes
+        // through the normal guarded path; only clearing the publication
+        // stamp needs the explicit assignment.
+        $this->draw->update(['status' => DrawStatus::Drawing]);
+        $this->draw->forceFill(['result_published_at' => null])->save();
 
         $this->artisan('glo:import-result', [
             '--draw' => 'GLO-2026-09-16',

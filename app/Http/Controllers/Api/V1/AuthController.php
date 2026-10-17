@@ -13,7 +13,6 @@ use App\Http\Responses\ApiResponse;
 use App\Http\Support\AuthAuditRecorder;
 use App\Http\Support\BetPurchaseErrorMapper;
 use App\Models\User;
-use App\Services\Auth\ApiLoginTokenService;
 use App\Services\Security\AuthenticationSecurityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,8 +36,8 @@ use Illuminate\Support\Facades\Hash;
  * The distinction is recorded in the audit trail, where operators can read it and an
  * attacker cannot.
  *
- * A dummy password check runs when no account matched. Uniform response shape is not
- * a timing-indistinguishability guarantee.
+ * A password check runs even when no account matched, so the response time does not reveal
+ * whether the identifier exists.
  *
  * WHAT THIS CONTROLLER DOES NOT DO
  * No registration, no password reset, no verification, no role assignment, no session
@@ -83,7 +82,8 @@ final class AuthController
             ->first();
 
         if ($user === null) {
-            // Retain the existing dummy-check path; do not claim identical timing.
+            // A dummy verification against a real bcrypt hash, so a request for an unknown
+            // account costs the same time as one for a known account.
             Hash::check($request->passwordValue(), '$2y$12$H1t0eB4uKk3dTGqAgqR7ge0k1nBqvNqvZ0h1s2p3q4r5s6t7u8v9w');
 
             $this->audit->recordFailure($request, $identifier, 'no_such_account');
@@ -122,18 +122,17 @@ final class AuthController
 
         $device = $request->deviceName();
 
-        $token = app(ApiLoginTokenService::class)->issue($user, $request->passwordValue(), $device, $request->ip());
-        if ($token === null) {
-            $this->audit->recordFailure($request, $identifier, 'credentials_changed', (int) $user->getKey());
-            $failedAttempt = AuthenticationAttemptData::fromInput([
-                'user_id' => (int) $user->getKey(), 'method' => AuthenticationMethod::Password,
-                'identifier' => $identifier, 'ip_address' => $request->ip(), 'user_agent' => $request->userAgent(),
-            ]);
-            $gate->record($failedAttempt, 'failed', 'credentials_changed');
-            $gate->loginFailed((int) $user->getKey(), $failedAttempt);
+        // One token per device name: issuing a second token for the same device would leave
+        // an orphaned credential alive that the user cannot see or revoke.
+        $user->tokens()->where('name', $device)->delete();
 
-            return $this->refused();
-        }
+        $token = $user->createToken($device);
+
+        // Login telemetry lives on the user row and is assigned explicitly - these columns
+        // are deliberately not fillable.
+        $user->last_login_at = now();
+        $user->last_login_ip = $request->ip();
+        $user->save();
 
         $this->audit->recordLogin($request, $user, $device);
 

@@ -40,6 +40,41 @@ return [
         'sandbox' => env('NAGAD_SANDBOX', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | External CAPTCHA providers (Cloudflare Turnstile / hCaptcha)
+    |--------------------------------------------------------------------------
+    |
+    | Read by App\Services\Auth\Captcha\ExternalCaptchaVerifier and
+    | ExternalCaptchaChallengeService as services.captcha.{provider}.*.
+    | This block was missing entirely, so the verifier's per-purpose
+    | Turnstile action lookup (services.captcha.turnstile.actions.*) could
+    | never resolve: every Turnstile verification failed closed as
+    | PROVIDER_CONFIGURATION_INVALID before any provider call. The action
+    | names are the ones the widget rendering and the verifier both bind
+    | the provider's answer to, per purpose.
+    */
+    'captcha' => [
+        'turnstile' => [
+            'secret' => env('CAPTCHA_TURNSTILE_SECRET_KEY'),
+            'site_key' => env('CAPTCHA_TURNSTILE_SITE_KEY'),
+            'allowed_hostnames' => array_values(array_filter(array_map(
+                'trim',
+                explode(',', (string) env('CAPTCHA_TURNSTILE_ALLOWED_HOSTNAMES', '')),
+            ))),
+            'actions' => [
+                'login' => 'login',
+                'register' => 'register',
+                'password_reset' => 'password_reset',
+            ],
+        ],
+
+        'hcaptcha' => [
+            'secret' => env('CAPTCHA_HCAPTCHA_SECRET_KEY'),
+            'site_key' => env('CAPTCHA_HCAPTCHA_SITE_KEY'),
+        ],
+    ],
+
     'crypto' => [
         'api_key' => env('CRYPTO_GATEWAY_API_KEY'),
         'webhook_secret' => env('CRYPTO_GATEWAY_WEBHOOK_SECRET'),

@@ -42,6 +42,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $phone_verified_at
  * @property Carbon|null $last_login_at
+ * @property Carbon|null $last_seen_at
  * @property string|null $last_login_ip
  * @property array<string, mixed>|null $preferences
  * @property Carbon|null $created_at
@@ -99,10 +100,6 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     {
         return [
             'password' => 'hashed',
-            // Part 57: monotonic credential generation. System-managed — the
-            // three credential writers increment it inside their own
-            // transaction, so it is deliberately NOT in $fillable and can
-            // never be set by a mass-assigned request payload.
             'credential_epoch' => 'integer',
             'status' => UserStatus::class,
             'kyc_status' => KycStatus::class,
@@ -110,6 +107,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'last_seen_at' => 'datetime',
             'preferences' => 'array',
         ];
     }

@@ -84,10 +84,25 @@ final class WalletHoldService
      */
     public function hold(
         Wallet $wallet,
-        Money $amount,
-        WalletHoldType $type = WalletHoldType::Withdrawal,
-        array $context = [],
+        Money|string $amount,
+        WalletHoldType|string $type = WalletHoldType::Withdrawal,
+        array|string $context = [],
     ): Wallet {
+        // Acceptance-shaped callers pass a decimal-string amount, a string
+        // hold type and a string reference: normalise to the canonical types
+        // before the body below (the reference becomes hold context).
+        if (is_string($amount)) {
+            $walletCurrency = $wallet->currency;
+            $amount = Money::of($amount, $walletCurrency instanceof Currency ? $walletCurrency : Currency::from(strtoupper((string) $walletCurrency)));
+        }
+
+        if (is_string($type)) {
+            $type = WalletHoldType::fromReason($type);
+        }
+
+        if (is_string($context)) {
+            $context = ['reference' => $context];
+        }
         $amount->assertPositive('amount to hold');
 
         return $this->withinTransaction(function () use ($wallet, $amount, $type): Wallet {

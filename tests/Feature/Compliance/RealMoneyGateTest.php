@@ -54,7 +54,7 @@ final class RealMoneyGateTest extends TestCase
     {
         $user = User::factory()->create();
         $wallet = app(WalletService::class)->getOrCreateWallet($user, Currency::THB);
-        app(WalletService::class)->credit($wallet, '500.00', 'seed', 'gate-seed-0000000001', 'Seed');
+        app(WalletService::class)->credit($wallet, '500.00', \App\Enums\FinancialTransactionType::Deposit, 'gate-seed-0000000001', ['description' => 'Seed']);
 
         config(['real_money.enabled' => false]);
 

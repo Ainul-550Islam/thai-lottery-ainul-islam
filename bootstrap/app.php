@@ -13,6 +13,7 @@ use App\Http\Middleware\HoneypotMiddleware;
 use App\Http\Middleware\PublicLegalHeaders;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\TrackMemberPresence;
 use App\Http\Middleware\VerifyWebhookSignature;
 use App\Http\Responses\ApiResponse;
 use App\Http\Support\BetPurchaseErrorMapper;
@@ -199,6 +200,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.session' => AuthenticateBoundSession::class,
             'wallet.active' => EnsureWalletIsActive::class,
             'draw.open' => EnsureDrawIsOpen::class,
+            // The Cash <-> Win conversion lane: a closed lane answers before a
+            // controller can run, and every money-moving write must carry an
+            // idempotency key so a retry cannot convert or reverse twice.
+            'conversion.enabled' => \App\Http\Middleware\EnsureWalletConversionEnabled::class,
+            'conversion.idempotency' => \App\Http\Middleware\RequireConversionIdempotencyKey::class,
             'webhook.signature' => VerifyWebhookSignature::class,
             'throttle' => ThrottleRequests::class,
             'glo.permission' => GloEnsurePermission::class,
@@ -214,6 +220,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
         $middleware->append(CorrelationIdMiddleware::class);
         $middleware->append(SetLocale::class);
+
+        // Member presence (web group only): records last_seen_at for
+        // logged-in members, cache-locked to one write per member per
+        // minute, so the public "members active" counter reads real
+        // session activity. Guests are ignored by the middleware itself.
+        $middleware->appendToGroup('web', TrackMemberPresence::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // ---------------------------------------------------------------------

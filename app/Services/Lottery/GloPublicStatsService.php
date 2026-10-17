@@ -21,6 +21,44 @@ use Illuminate\Support\Facades\Cache;
 class GloPublicStatsService
 {
     /**
+     * The "members active" window, in minutes: a member counts as active
+     * when their last authenticated activity (users.last_seen_at, written
+     * by TrackMemberPresence) falls inside this window.
+     */
+    public const ACTIVE_WINDOW_MINUTES = 15;
+
+    /**
+     * Members whose last authenticated activity falls inside the active
+     * window. Soft-deleted members never count (the query excludes them
+     * explicitly rather than relying on the global scope, because this
+     * count is published and must mean the same thing in every caller).
+     */
+    public function activeMembersNow(): int
+    {
+        return (int) User::query()
+            ->whereNull('deleted_at')
+            ->whereNotNull('last_seen_at')
+            ->where('last_seen_at', '>=', Carbon::now()->subMinutes(self::ACTIVE_WINDOW_MINUTES))
+            ->count();
+    }
+
+    /**
+     * The live active-members metric. Computed on EVERY call and never
+     * read from the stats cache: a counter whose whole meaning is "right
+     * now" must not be frozen for the stats TTL.
+     *
+     * @return array{key: string, label: string, value: string, available: bool}
+     */
+    private function liveActiveMembersMetric(): array
+    {
+        return [
+            'key' => 'active_members',
+            'label' => sprintf('Members active in the last %d minutes', self::ACTIVE_WINDOW_MINUTES),
+            'value' => (string) $this->activeMembersNow(),
+            'available' => true,
+        ];
+    }
+    /**
      * @return array{
      *     status: string,
      *     generated_at: string,
@@ -79,6 +117,20 @@ class GloPublicStatsService
                     'message' => null,
                 ];
             });
+
+            // The active-members metric is LIVE: it replaces (or appends)
+            // whatever the cached payload carried, computed at read time.
+            $live = $this->liveActiveMembersMetric();
+            $metrics = [];
+
+            foreach ($payload['metrics'] as $metric) {
+                if (($metric['key'] ?? null) !== 'active_members') {
+                    $metrics[] = $metric;
+                }
+            }
+
+            $metrics[] = $live;
+            $payload['metrics'] = $metrics;
 
             return $payload;
         } catch (\Throwable $e) {

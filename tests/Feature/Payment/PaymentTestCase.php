@@ -47,6 +47,16 @@ abstract class PaymentTestCase extends TestCase
 
     protected function configureGatewaySecrets(): void
     {
+        // The Payment suites run the real gateway drivers, which speak
+        // HTTP to their providers. Without this fake every provider call
+        // in a test would leave the sandbox (blocked) or pick up whatever
+        // stub a tty test happened to install last. An empty fake makes
+        // every provider answer a successful, bodiless response — the
+        // same shape NonMonetarySettlementTest installs explicitly.
+        // Suites that care about the provider's answer bytes install
+        // their own Http::fake([...]) on top of this one.
+        \Illuminate\Support\Facades\Http::fake();
+
         Config::set('payment.webhook.verify_signature', true);
         Config::set('payment.webhook.max_age_seconds', 300);
 

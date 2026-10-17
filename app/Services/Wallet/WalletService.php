@@ -69,7 +69,16 @@ class WalletService
         ?string $idempotencyKey = null,
         array $options = [],
     ): FinancialTransaction {
-        return $this->canonical->credit($wallet, $amount, $type, $idempotencyKey, $options);
+        $resolved = $this->resolveWallet($wallet);
+        [$resolvedType, $options] = $this->resolveType($type, $options);
+
+        return $this->canonical->credit(
+            $resolved,
+            $amount instanceof Money ? $amount : Money::of($amount, $this->walletCurrency($resolved)),
+            $resolvedType,
+            $idempotencyKey,
+            $options,
+        );
     }
 
     /**
@@ -82,7 +91,16 @@ class WalletService
         ?string $idempotencyKey = null,
         array $options = [],
     ): FinancialTransaction {
-        return $this->canonical->debit($wallet, $amount, $type, $idempotencyKey, $options);
+        $resolved = $this->resolveWallet($wallet);
+        [$resolvedType, $options] = $this->resolveType($type, $options);
+
+        return $this->canonical->debit(
+            $resolved,
+            $amount instanceof Money ? $amount : Money::of($amount, $this->walletCurrency($resolved)),
+            $resolvedType,
+            $idempotencyKey,
+            $options,
+        );
     }
 
     /**
@@ -103,5 +121,51 @@ class WalletService
         $moneyObj = is_string($amount) ? Money::of($amount, $wallet->currency) : $amount;
 
         return $this->canonical->unlockFunds($wallet, $moneyObj);
+    }
+
+    /**
+     * The facade accepts a wallet id anywhere the canonical engine requires
+     * the model; resolving here keeps that convenience in one place.
+     */
+    private function resolveWallet(Wallet|int $wallet): Wallet
+    {
+        if ($wallet instanceof Wallet) {
+            return $wallet;
+        }
+
+        return Wallet::query()->findOrFail($wallet);
+    }
+
+    private function walletCurrency(Wallet $wallet): Currency
+    {
+        $currency = $wallet->currency;
+
+        return $currency instanceof Currency ? $currency : Currency::from(strtoupper((string) $currency));
+    }
+
+    /**
+     * A string type that names a genuine transaction type resolves to it;
+     * anything else (a caller's sentence, e.g. "Initial funds") is recorded
+     * as the description of an Adjustment, exactly as this facade's contract
+     * documents — never blanket-assumed to be a Deposit.
+     *
+     * @param  array<string, mixed>  $options
+     * @return array{0: FinancialTransactionType, 1: array<string, mixed>}
+     */
+    private function resolveType(string|FinancialTransactionType $type, array $options): array
+    {
+        if ($type instanceof FinancialTransactionType) {
+            return [$type, $options];
+        }
+
+        $resolved = FinancialTransactionType::tryFrom(strtolower(trim($type)));
+
+        if ($resolved !== null) {
+            return [$resolved, $options];
+        }
+
+        $options['description'] = $options['description'] ?? $type;
+
+        return [FinancialTransactionType::Adjustment, $options];
     }
 }

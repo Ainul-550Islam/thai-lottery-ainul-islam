@@ -5,60 +5,50 @@ declare(strict_types=1);
 namespace App\Services\Bot\Signals;
 
 use App\Services\Bot\Contracts\BotSignal;
+use App\Services\Bot\DeviceFingerprintService;
+use App\Services\Bot\DTOs\SignalResult;
+use Illuminate\Contracts\Config\Repository;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Carbon;
+use InvalidArgumentException;
 
-/**
- * Class DeviceReuseSignal
- *
- * Checks if the same device token is linked across multiple distinct account logins in rapid succession.
- */
-class DeviceReuseSignal implements BotSignal
+/** Count distinct accounts with successful/trusted evidence, never guessed login IDs. */
+final class DeviceReuseSignal implements BotSignal
 {
-    private const MAX_ACCOUNTS_PER_DEVICE = 3;
+    public function __construct(
+        private readonly Repository $config,
+        private readonly ConnectionInterface $database,
+        private readonly DeviceFingerprintService $fingerprints,
+    ) {}
 
-    public function getKey(): string
+    public function score(Request $request): SignalResult
     {
-        return 'device_reuse';
-    }
-
-    public function getWeight(): int
-    {
-        return 20;
-    }
-
-    public function evaluate(Request $request, array $context = []): array
-    {
-        $deviceToken = $context['device_token'] ?? $request->header('X-Device-Token');
-
-        if (!$deviceToken) {
-            return [
-                'score' => 0.00,
-                'reason_code' => null,
-                'metadata' => [],
-            ];
+        $maximum = $this->config->get('bot.device_reuse.max_accounts', 3);
+        $days = $this->config->get('bot.device_reuse.lookback_days', 30);
+        if (! is_int($maximum) || $maximum < 1 || $maximum > 100 || ! is_int($days) || $days < 1 || $days > 365) {
+            throw new InvalidArgumentException('Invalid device-reuse configuration.');
         }
+        // Derive server-side; never use an X-Device-Fingerprint/client form value.
+        $fingerprint = $this->fingerprints->fingerprint($request);
+        $now = Carbon::now();
+        $attempts = $this->database->table('authentication_attempts')
+            ->select('user_id')
+            ->where('device_fingerprint', $fingerprint)
+            ->whereNotNull('user_id')
+            ->where('outcome', 'succeeded')
+            ->whereBetween('attempted_at', [$now->copy()->subDays($days), $now]);
+        $trusted = $this->database->table('trusted_devices')
+            ->select('user_id')
+            ->where('device_fingerprint', $fingerprint)
+            ->whereNotNull('user_id')
+            ->where('trust_status', 'trusted')
+            ->whereNull('revoked_at')
+            ->where('registered_at', '<=', $now);
+        // UNION (not UNION ALL) deduplicates the same account across both tables.
+        $count = $attempts->union($trusted)->limit($maximum + 1)->get()->count();
+        $breached = $count > $maximum;
 
-        $cacheKey = "bot:device_accounts:{$deviceToken}";
-
-        try {
-            $accountCount = (int) Redis::scard($cacheKey);
-
-            if ($accountCount > self::MAX_ACCOUNTS_PER_DEVICE) {
-                return [
-                    'score' => 0.80,
-                    'reason_code' => 'EXCESSIVE_DEVICE_ACCOUNT_SHARING',
-                    'metadata' => ['distinct_accounts' => $accountCount],
-                ];
-            }
-        } catch (\Throwable) {
-            // Fail open
-        }
-
-        return [
-            'score' => 0.00,
-            'reason_code' => null,
-            'metadata' => [],
-        ];
+        return new SignalResult('device_reuse', $breached ? 100 : 0, $breached ? ['DEVICE_SHARED_ACCOUNTS'] : []);
     }
 }

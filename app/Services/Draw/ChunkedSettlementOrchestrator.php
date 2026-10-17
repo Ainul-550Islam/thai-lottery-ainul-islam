@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace App\Services\Draw;
 
 use App\Enums\BetStatus;
+use App\Enums\Currency;
+use App\Exceptions\ChunkedSettlementException;
+use App\Exceptions\SettlementRunMovedException;
 use App\Jobs\Draw\FinalizeDrawSettlementJob;
 use App\Jobs\Draw\SettleDrawChunkJob;
 use App\Models\Bet;
 use App\Models\Draw;
+use App\Models\SettlementRun;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -88,7 +93,317 @@ final class ChunkedSettlementOrchestrator
 {
     public function __construct(
         private readonly DrawLifecycleService $lifecycle,
+        private readonly ?RealPrizeSettlementService $settlement = null,
     ) {}
+
+    private function settlement(): RealPrizeSettlementService
+    {
+        return $this->settlement ?? app(RealPrizeSettlementService::class);
+    }
+
+    /**
+     * The configured chunk size, clamped to the range where chunking is
+     * meaningful: below 50 the run is thousands of tiny transactions, above
+     * 5000 the "chunk" is the monolithic transaction wearing a cursor.
+     */
+    public function defaultChunkSize(): int
+    {
+        return max(50, min(5000, (int) config('lottery.settlement.chunk_size', 500)));
+    }
+
+    /**
+     * The run recorded for a draw, if one was ever opened.
+     */
+    public function runFor(int $drawId): ?SettlementRun
+    {
+        $run = SettlementRun::query()->where('draw_id', $drawId)->first();
+
+        return $run instanceof SettlementRun ? $run : null;
+    }
+
+    /**
+     * Bets of the run's draw still past its cursor.
+     */
+    public function remainingBets(SettlementRun $run): int
+    {
+        if (! $run->exists) {
+            return max(0, (int) $run->bets_total - (int) $run->bets_settled);
+        }
+
+        return Bet::query()
+            ->where('draw_id', (int) $run->draw_id)
+            ->whereNull('deleted_at')
+            ->where('id', '>', (int) $run->cursor_bet_id)
+            ->count();
+    }
+
+    public function hasMoreWork(SettlementRun $run): bool
+    {
+        return ! $run->isComplete() && $this->remainingBets($run) > 0;
+    }
+
+    /**
+     * Open the (single) chunked run for a draw, or return the one that
+     * already exists. The draw is validated BEFORE the row is created, so a
+     * refused start leaves no trace that could later be read as "a run was
+     * started". The safety mode and chunk size are recorded at open and
+     * never re-read for this run.
+     */
+    public function start(int $drawId, ?int $chunkSize = null, ?int $startedBy = null): SettlementRun
+    {
+        $existing = $this->runFor($drawId);
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $draw = Draw::query()->find($drawId);
+
+        if (! $draw instanceof Draw) {
+            throw ChunkedSettlementException::runNotFound($drawId);
+        }
+
+        // Throws for an unpublished or tampered draw, before any row exists.
+        $this->settlement()->assertChunkable($draw);
+
+        $snapshot = app(ManualSettlementSnapshot::class);
+        $result = $draw->result ?? null;
+
+        $run = new SettlementRun;
+        $run->forceFill([
+            'draw_id' => $drawId,
+            'status' => SettlementRun::STATUS_OPEN,
+            'chunk_size' => $chunkSize ?? $this->defaultChunkSize(),
+            'cursor_bet_id' => 0,
+            'bets_total' => $this->countParticipants($drawId),
+            'bets_settled' => 0,
+            'selections_evaluated' => 0,
+            'selections_written' => 0,
+            'winning_selections' => 0,
+            'payouts_created' => 0,
+            'total_stake' => '0.00',
+            'total_prize' => '0.00',
+            'currency' => null,
+            'mode' => RealPrizeSettlementService::MODE,
+            'safety_mode' => $this->settlement()->safetyMode(),
+            'chunks_processed' => 0,
+            'started_at' => now(),
+            'last_chunk_at' => null,
+            'completed_at' => null,
+            'started_by' => $startedBy,
+            'failure_reason' => null,
+            'result_fingerprint' => $result !== null && isset($result->result_fingerprint)
+                ? (string) $result->result_fingerprint
+                : null,
+            'policy_fingerprint' => $snapshot->fingerprint(),
+        ]);
+        $run->save();
+
+        return $run;
+    }
+
+    /**
+     * Settle the next chunk of a run through the same money logic the
+     * monolithic path uses (RealPrizeSettlementService::settleBetRange), then
+     * record progress. Totals accumulate as exact decimal strings and count
+     * each bet once: a re-run chunk finds the cursor already advanced and
+     * processes nothing twice.
+     */
+    public function runChunk(SettlementRun $run): SettlementRun
+    {
+        if ($run->isComplete()) {
+            return $run;
+        }
+
+        $fresh = SettlementRun::query()->find((int) $run->getKey());
+
+        if ($fresh instanceof SettlementRun && (int) $fresh->cursor_bet_id !== (int) $run->cursor_bet_id) {
+            throw new SettlementRunMovedException(sprintf(
+                'Settlement run %d was advanced by another worker (cursor %d, expected %d); this chunk moved no money.',
+                (int) $run->getKey(),
+                (int) $fresh->cursor_bet_id,
+                (int) $run->cursor_bet_id,
+            ));
+        }
+
+        if ($fresh instanceof SettlementRun) {
+            $run->setRawAttributes($fresh->getAttributes(), true);
+            $run->exists = true;
+        }
+
+        $draw = Draw::query()->find((int) $run->draw_id);
+
+        if (! $draw instanceof Draw) {
+            throw ChunkedSettlementException::runNotFound((int) $run->draw_id);
+        }
+
+        $result = $this->settlement()->publishedResultFor($draw);
+        $currency = is_string($run->currency) && $run->currency !== ''
+            ? Currency::tryFrom($run->currency)
+            : null;
+
+        $stats = $this->settlement()->settleBetRange(
+            $draw,
+            $result,
+            (int) $run->cursor_bet_id,
+            max(1, (int) $run->chunk_size),
+            is_string($run->safety_mode) && $run->safety_mode !== ''
+                ? $run->safety_mode
+                : $this->settlement()->safetyMode(),
+            $currency,
+        );
+
+        DB::transaction(function () use ($run, $stats): void {
+            $locked = SettlementRun::query()->lockForUpdate()->find((int) $run->getKey());
+
+            if (! $locked instanceof SettlementRun) {
+                return;
+            }
+
+            $locked->cursor_bet_id = (int) $stats['last_bet_id'];
+            $locked->bets_settled = (int) $locked->bets_settled + (int) $stats['bets_settled'];
+            $locked->selections_evaluated = (int) $locked->selections_evaluated + (int) $stats['selections_evaluated'];
+            $locked->selections_written = (int) $locked->selections_written + (int) $stats['selections_written'];
+            $locked->winning_selections = (int) $locked->winning_selections + (int) $stats['winning_selections'];
+            $locked->payouts_created = (int) $locked->payouts_created + (int) $stats['payouts_created'];
+            $locked->total_stake = bcadd((string) $locked->total_stake, (string) $stats['total_stake_delta'], 2);
+            $locked->total_prize = bcadd((string) $locked->total_prize, (string) $stats['total_prize_delta'], 2);
+
+            if ($stats['currency'] instanceof Currency) {
+                $locked->currency = $stats['currency']->value;
+            }
+
+            if ((int) $stats['bets_seen'] > 0) {
+                $locked->chunks_processed = (int) $locked->chunks_processed + 1;
+                $locked->last_chunk_at = now();
+            }
+
+            $locked->save();
+            $run->setRawAttributes($locked->getAttributes(), true);
+            $run->exists = true;
+        });
+
+        return $run;
+    }
+
+    /**
+     * Close a run: refuse while bets remain past the cursor, otherwise
+     * transition the draw once and mark the run completed. Idempotent — a
+     * completed run finalizes to itself.
+     */
+    public function finalize(SettlementRun $run): SettlementRun
+    {
+        $remaining = $this->remainingBets($run);
+
+        if ($remaining > 0) {
+            throw ChunkedSettlementException::cannotFinalize((int) $run->getKey(), $remaining);
+        }
+
+        if ($run->isComplete()) {
+            return $run;
+        }
+
+        $draw = Draw::query()->find((int) $run->draw_id);
+
+        if (! $draw instanceof Draw) {
+            throw ChunkedSettlementException::runNotFound((int) $run->draw_id);
+        }
+
+        $this->settlement()->finalizeChunkedSettlement($draw, $run->totals());
+
+        $run->status = SettlementRun::STATUS_COMPLETED;
+        $run->completed_at = now();
+        $run->save();
+
+        return $run;
+    }
+
+    /**
+     * Close a draw settled by the batch plan (no run row): refuse while any
+     * bet is still in an unsettled state, otherwise transition once.
+     */
+    public function finalizeDraw(Draw $draw, string $batchId): Draw
+    {
+        $remaining = Bet::query()
+            ->where('draw_id', (int) $draw->getKey())
+            ->whereNull('deleted_at')
+            ->where('status', BetStatus::Accepted->value)
+            ->count();
+
+        if ($remaining > 0) {
+            throw new ChunkedSettlementException(
+                sprintf('Draw %d cannot finalize batch %s: %d bet(s) are still unsettled.', (int) $draw->getKey(), $batchId, $remaining),
+                ChunkedSettlementException::CANNOT_FINALIZE,
+                ['draw_id' => (int) $draw->getKey(), 'remaining_bets' => $remaining],
+            );
+        }
+
+        return $this->settlement()->finalizeChunkedSettlement($draw, ['batch_id' => $batchId]);
+    }
+
+    /**
+     * Open (or reuse) the run for a draw and drive it to completion.
+     */
+    public function run(int $drawId, ?int $chunkSize = null, ?int $startedBy = null): SettlementRun
+    {
+        $run = $this->start($drawId, $chunkSize, $startedBy);
+
+        while ($this->hasMoreWork($run)) {
+            $run = $this->runChunk($run);
+        }
+
+        return $this->finalize($run);
+    }
+
+    /**
+     * Drive an existing run to completion. Never opens one: a resume that
+     * silently started a fresh run would hide why the previous one stopped.
+     */
+    public function resume(int $drawId): ?SettlementRun
+    {
+        $run = $this->runFor($drawId);
+
+        if ($run === null) {
+            return null;
+        }
+
+        if ($run->isComplete()) {
+            return $run;
+        }
+
+        if ((string) $run->status === SettlementRun::STATUS_ABORTED) {
+            $run->status = SettlementRun::STATUS_OPEN;
+            $run->failure_reason = null;
+            $run->save();
+        }
+
+        while ($this->hasMoreWork($run)) {
+            $run = $this->runChunk($run);
+        }
+
+        return $this->finalize($run);
+    }
+
+    /**
+     * One-line operator summary of a run.
+     */
+    public function describe(SettlementRun $run): string
+    {
+        return sprintf(
+            'run=%d draw=%d status=%s mode=%s safety=%s chunk=%d bets=%d/%d cursor=%d prize=%s %s',
+            (int) $run->getKey(),
+            (int) $run->draw_id,
+            (string) $run->status,
+            (string) $run->mode,
+            (string) ($run->safety_mode ?? 'unknown'),
+            (int) $run->chunk_size,
+            (int) $run->bets_settled,
+            (int) $run->bets_total,
+            (int) $run->cursor_bet_id,
+            (string) $run->total_prize,
+            (string) ($run->currency ?? ''),
+        );
+    }
 
     /**
      * Threshold above which settlement is chunked instead of run inline.

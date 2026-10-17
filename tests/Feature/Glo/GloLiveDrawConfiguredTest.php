@@ -27,6 +27,7 @@ final class GloLiveDrawConfiguredTest extends TestCase
     {
         parent::setUp();
 
+        $this->withoutVite();
         Cache::flush();
     }
 

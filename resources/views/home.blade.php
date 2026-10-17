@@ -255,6 +255,23 @@
         @if (! empty($liveDraw['message']))
             <p class="mt-2 text-slate-300">{{ $liveDraw['message'] }}</p>
         @endif
+
+        {{-- The embed URL here has already survived the provider allowlist and the
+             resolver's canonical rebuild in GloLiveDrawService; anything else degrades
+             to the honest text above. Sandboxed and lazy so the player can never
+             navigate or fully load before a visitor asks for it. --}}
+        @if (($liveDraw['status'] ?? 'UNAVAILABLE') === 'CONFIGURED' && ! empty($liveDraw['embed_url']))
+            <div class="mt-4 aspect-video w-full overflow-hidden rounded-xl">
+                <iframe src="{{ $liveDraw['embed_url'] }}"
+                        title="{{ $text['live_title'] ?? __('Live draw') }}"
+                        loading="lazy"
+                        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                        allow="encrypted-media; picture-in-picture"
+                        allowfullscreen
+                        referrerpolicy="no-referrer"
+                        class="h-full w-full"></iframe>
+            </div>
+        @endif
     </section>
 
     {{-- ----------------------------------------------------------------

@@ -33,7 +33,9 @@ final class PublicResultsAnonymousTest extends TestCase
     {
         $response = $this->get('/results');
         $response->assertOk();
-        $response->assertSee('Government Lottery results', false);
+        // The heading is rendered from the lang line, not a literal:
+        // results.title = 'Public Results Hub'.
+        $response->assertSee(__('results.title'), false);
     }
 
     public function test_results_page_never_labels_fixture_as_official(): void

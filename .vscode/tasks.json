@@ -1,0 +1,44 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Laravel: serve",
+            "type": "shell",
+            "command": "php artisan serve --host=127.0.0.1 --port=8000",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Laravel: run all tests",
+            "type": "shell",
+            "command": "php -d memory_limit=1G vendor/bin/phpunit --colors=never",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Laravel: migrate fresh + seed",
+            "type": "shell",
+            "command": "php artisan migrate:fresh --seed",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Frontend: install + build",
+            "type": "shell",
+            "command": "npm install && npm run build",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Android: assemble debug APK",
+            "type": "shell",
+            "command": "./gradlew --no-daemon :app:assembleDebug -PversionName=1.0.0 -PversionCode=1",
+            "options": {
+                "cwd": "${workspaceFolder}/android",
+                "env": { "ANDROID_APP_URL": "https://example.com" }
+            },
+            "problemMatcher": []
+        }
+    ]
+}

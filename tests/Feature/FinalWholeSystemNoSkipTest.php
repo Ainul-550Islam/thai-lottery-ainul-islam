@@ -38,7 +38,7 @@ use App\Services\Lottery\GloL6ProportionalPrizeCalculator;
 use App\Services\Monitoring\HealthCheckService;
 use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -52,7 +52,10 @@ use Tests\TestCase;
  */
 final class FinalWholeSystemNoSkipTest extends TestCase
 {
-    use RefreshDatabase;
+    // DatabaseTruncation, NOT RefreshDatabase: the bet-purchase pipeline
+    // refuses to run inside somebody else's transaction, and
+    // RefreshDatabase wraps every test in one.
+    use DatabaseTruncation;
 
     public function test_01_user_registration_and_wallet_initialization(): void
     {
@@ -143,15 +146,23 @@ final class FinalWholeSystemNoSkipTest extends TestCase
         /** @var BulkBetService $betService */
         $betService = $this->app->make(BulkBetService::class);
 
+        // Draws acquire per-number capacity rows through the canonical
+        // provisioning service; a bare draw cannot reserve against limits
+        // that do not exist.
+        $this->app->make(\App\Services\Risk\NumberLimitProvisioningService::class)->provision($draw);
+
         $items = [
+            // Canonical market keys (config/lottery.php): 'two_digit_top' /
+            // 'three_digit_top' name the same 2d_top / 3d_direct markets in
+            // the platform's own vocabulary.
             new BulkBetSelectionData(
-                market: 'two_digit_top',
+                market: '2d_top',
                 number: '42',
                 stake: '50.00',
                 potentialPayout: '4500.00'
             ),
             new BulkBetSelectionData(
-                market: 'three_digit_top',
+                market: '3d_direct',
                 number: '742',
                 stake: '100.00',
                 potentialPayout: '90000.00'
@@ -212,9 +223,17 @@ final class FinalWholeSystemNoSkipTest extends TestCase
 
         /** @var WalletReservationService $resService */
         $resService = $this->app->make(WalletReservationService::class);
+        // The reservation is seated by hand here (the approval lane's own
+        // step), so the withdrawal row below is seated APPROVED to pair
+        // with it: a Pending row would make disburse() approve — and
+        // approve() seats a SECOND reservation — while completion consumes
+        // exactly one.
         $res = $resService->reserve($wallet, '1000.00', 'withdrawal', 'WD-TEST-001');
 
-        $withdrawal = Withdrawal::query()->create([
+        // `requested_at` is not mass-assignable on Withdrawal (the service
+        // layer writes lifecycle timestamps), so the hand-made row is seated
+        // with forceFill rather than widening the model's guard.
+        $withdrawal = (new Withdrawal())->forceFill([
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'reference_number' => 'WD-TEST-001',
@@ -224,23 +243,40 @@ final class FinalWholeSystemNoSkipTest extends TestCase
             'currency' => Currency::THB,
             'method' => 'bank_transfer',
             'destination_details' => ['bank_name' => 'SCB', 'account_number' => '1234567890'],
-            'status' => WithdrawalStatus::PENDING,
+            'status' => WithdrawalStatus::Approved,
             'requested_at' => Carbon::now(),
         ]);
+        $withdrawal->save();
 
         $wallet->refresh();
         $this->assertSame('3000.00', (string) $wallet->balance);
         $this->assertSame('1000.00', (string) $wallet->locked_balance);
         $this->assertSame('2000.00', (string) $wallet->getAvailableBalance());
 
+        // bank_transfer payout is an opt-in rail (config/payment.php), and
+        // the disbursement lane refuses a still-PENDING withdrawal while
+        // manual approval is required — switched off for this automated run.
+        config([
+            'payment.gateways.bank_transfer.enabled' => true,
+            'finance.withdrawal.require_manual_approval' => false,
+        ]);
+
         /** @var WithdrawalDisbursementService $disbService */
         $disbService = $this->app->make(WithdrawalDisbursementService::class);
         $disbService->disburse($withdrawal);
 
+        // bank_transfer is the manual-wire lane: disburse() dispatches the
+        // instruction and leaves the withdrawal Processing, awaiting the
+        // payout confirmation. The confirmation step is the canonical
+        // completion service — the same verb the withdrawal-success
+        // webhook calls — driven explicitly here.
+        $this->app->make(\App\Services\Finance\WithdrawalCompletionService::class)
+            ->complete($withdrawal->fresh());
+
         $withdrawal->refresh();
         $wallet->refresh();
 
-        $this->assertSame(WithdrawalStatus::COMPLETED, $withdrawal->status);
+        $this->assertSame(WithdrawalStatus::Completed, $withdrawal->status);
         $this->assertSame('2000.00', (string) $wallet->balance);
         $this->assertSame('0.00', (string) $wallet->locked_balance);
     }
@@ -275,6 +311,10 @@ final class FinalWholeSystemNoSkipTest extends TestCase
             'currency' => Currency::THB,
         ]);
 
+        // The settlement engine credits the agent's canonical THB wallet
+        // (created the platform way); the original setup never created one.
+        $this->app->make(WalletService::class)->getOrCreateWallet($agentUser, Currency::THB);
+
         /** @var AgentSettlementService $settleService */
         $settleService = $this->app->make(AgentSettlementService::class);
         $settleService->settleDrawCommissions($draw);
@@ -282,7 +322,8 @@ final class FinalWholeSystemNoSkipTest extends TestCase
         $comm->refresh();
         $agent->refresh();
 
-        $this->assertSame('paid', (string) $comm->status);
+        // `status` is enum-cast (CommissionStatus): compare the stored VALUE.
+        $this->assertSame('paid', $comm->status->value);
         $this->assertSame('50.00', (string) $agent->total_commission_paid);
     }
 

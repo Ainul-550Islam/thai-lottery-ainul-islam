@@ -32,7 +32,7 @@ return [
     'verify_meta_title' => 'Prize verification — check a lottery ticket',
     'verify_meta_description' => 'Check a six-digit number, a ticket reference, or a scanned barcode against published draw results. GLO-compatible verification; not an official Government Lottery Office service.',
     'discount_meta_title' => 'Lotto discounts and payout rates',
-    'discount_meta_description' => 'Published discount rules and direct/reverse payout rates for operator markets. Government Lottery Office ticket prices are fixed by law and never discounted.',
+    'discount_meta_description' => 'Published discount rules and direct/reverse payout rates for operator markets. Tickets issued by the office keep their printed face price; discounts apply only to operator markets.',
 
     // -- Verification page: form -------------------------------------------
     'verify_heading' => 'Prize verification',
@@ -153,7 +153,7 @@ return [
     'discount_no_limit' => 'No limit',
 
     'immutable_heading' => 'Fixed-price products',
-    'immutable_notice' => 'Government Lottery Office ticket prices are fixed by law. No discount rule, account grade, promotion, or affiliate arrangement can change them.',
+    'immutable_notice' => 'Tickets issued by the office keep their printed face price here. No discount rule, account grade, promotion, or affiliate arrangement on this platform changes them.',
     'immutable_badge' => 'Fixed price',
     'immutable_price' => 'Price',
 

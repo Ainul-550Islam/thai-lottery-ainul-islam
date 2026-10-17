@@ -10,7 +10,6 @@ use App\Enums\UserStatus;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Services\Compliance\AmlRiskAssessmentService;
 use App\Services\Compliance\AmlRiskService;
 use App\Services\Compliance\MoneyFlowAmlObservationService;
 use App\Services\Finance\Money;
@@ -51,6 +50,9 @@ final class MoneyFlowAmlObservationTest extends TestCase
         parent::setUp();
         $this->seed(LedgerAccountSeeder::class);
         config(['aml.freshness_seconds' => 0]);
+        // Suite convention (see Tests\TestCase): money paths run with the
+        // real-money launch gate open; RealMoneyGateTest closes it on purpose.
+        config(['real_money.enabled' => true]);
     }
 
     private function account(): User
@@ -68,7 +70,7 @@ final class MoneyFlowAmlObservationTest extends TestCase
         {
             public function __construct(private readonly ?AmlRiskLevel $level, private readonly bool $throws)
             {
-                parent::__construct(app(AmlRiskAssessmentService::class));
+                parent::__construct(app(\App\Services\Compliance\AmlRiskAssessmentService::class));
             }
 
             public function measure(int $userId): array

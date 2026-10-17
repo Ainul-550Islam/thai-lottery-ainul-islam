@@ -7,6 +7,7 @@ namespace App\Services\Lottery;
 use App\Enums\AuditAction;
 use App\Enums\ResultSourceType;
 use App\Enums\RiskLevel;
+use App\Exceptions\DrawResultException;
 use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\DrawResult;
@@ -81,25 +82,73 @@ use Illuminate\Support\Str;
  * into publication is DrawResultConfirmationService::confirm(), which is the
  * second pair of eyes.
  *
- * Providers: GloFixtureResultProvider (fixture mode) and
- * GloOfficialResultProvider (documented public endpoints only), selected by
- * config('glo.official_source.mode'). See GloResultProviderChain for the
- * multi-provider fallback ladder.
+ * Fetching goes through GloResultProviderChain — the ordered fallback
+ * ladder over the fixture and official providers (documented public
+ * endpoints only) — and the provenance label is always the payload's own
+ * `provider` field: the source that ANSWERED, never the object asked.
  */
 class GloResultImportService
 {
     public function __construct(
         private readonly DatabaseManager $db,
-        private readonly GloFixtureResultProvider $fixtureProvider,
-        private readonly GloOfficialResultProvider $officialProvider,
+        private readonly GloResultProviderChain $chain,
         private readonly DrawResultIngestionService $ingestion,
     ) {}
 
     public function provider(): GloResultProvider
     {
-        $mode = (string) config('glo.official_source.mode', 'fixture');
+        return $this->chain;
+    }
 
-        return $mode === 'official' ? $this->officialProvider : $this->fixtureProvider;
+    /**
+     * Fetch through the ladder, applying the ONE remap the chain must not
+     * make: when the deployment runs in official mode with no configured
+     * priority ladder and EVERY attempt ended `not_configured`, the honest
+     * answer for the import is `not_configured` (a deployment fact), not
+     * `failed` (an outage that would page an operator). The chain's own
+     * terminal vocabulary is always `failed`; this translation belongs to
+     * the importer, which knows the mode.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchPayload(?string $drawNumber): array
+    {
+        $payload = $this->chain->fetch($drawNumber);
+
+        if (($payload['status'] ?? null) !== 'failed') {
+            return $payload;
+        }
+
+        $priority = config('glo.sources.priority', []);
+        $officialMode = strtolower(trim((string) config('glo.official_source.mode', 'fixture'))) === 'official';
+
+        if (! $officialMode || ! is_array($priority) || $priority !== []) {
+            return $payload;
+        }
+
+        $attempts = $this->chain->attempts();
+
+        if ($attempts === []) {
+            return $payload;
+        }
+
+        foreach ($attempts as $attempt) {
+            // A not_configured attempt is recorded either as the canonical
+            // 'not configured' sentence or with its machine-code prefix
+            // ('not_configured: <provider detail>'). Both are the deployment
+            // fact this remap recognises; anything else (a genuine failure,
+            // a circuit skip) blocks the remap.
+            $reason = (string) ($attempt['reason'] ?? '');
+
+            if (($attempt['outcome'] ?? null) !== 'skipped'
+                || ! (str_contains($reason, 'not configured') || str_contains($reason, 'not_configured'))) {
+                return $payload;
+            }
+        }
+
+        $payload['status'] = 'not_configured';
+
+        return $payload;
     }
 
     /**
@@ -114,11 +163,10 @@ class GloResultImportService
      */
     public function importForDraw(Draw $draw, ?User $actor = null, ?string $drawNumberOverride = null): array
     {
-        $provider = $this->provider();
         $drawNumber = $drawNumberOverride ?? (string) $draw->draw_number;
-        $payload = $provider->fetch($drawNumber);
+        $payload = $this->fetchPayload($drawNumber);
 
-        return $this->persistPayload($draw, $provider, $payload, $actor);
+        return $this->persistPayload($draw, $payload, $actor);
     }
 
     /**
@@ -134,8 +182,7 @@ class GloResultImportService
      */
     public function importLatest(?User $actor = null): array
     {
-        $provider = $this->provider();
-        $payload = $provider->fetch(null);
+        $payload = $this->fetchPayload(null);
 
         $draw = null;
         $providerDraw = (string) ($payload['draw_number'] ?? '');
@@ -153,7 +200,7 @@ class GloResultImportService
             // Provenance-only row (draw_id null). No result is written because
             // there is no draw to attach it to — and inventing one would be
             // worse than filing nothing.
-            $import = $this->recordImport(null, $provider, $payload, $actor);
+            $import = $this->recordImport(null, $payload, $actor);
 
             return [
                 'import' => $import,
@@ -163,7 +210,7 @@ class GloResultImportService
             ];
         }
 
-        return $this->persistPayload($draw, $provider, $payload, $actor);
+        return $this->persistPayload($draw, $payload, $actor);
     }
 
     /**
@@ -177,14 +224,15 @@ class GloResultImportService
      *     ingestion: array<string, mixed>|null
      * }
      */
-    private function persistPayload(Draw $draw, GloResultProvider $provider, array $payload, ?User $actor): array
+    private function persistPayload(Draw $draw, array $payload, ?User $actor): array
     {
         $drawId = (int) $draw->getKey();
         $status = (string) ($payload['status'] ?? 'failed');
+        $providerLabel = $this->providerLabel($payload);
 
         // ── Not an imported payload: record the honest negative, write nothing.
         if ($status !== 'imported') {
-            $import = $this->recordImport($drawId, $provider, $payload, $actor);
+            $import = $this->recordImport($drawId, $payload, $actor);
 
             return [
                 'import' => $import,
@@ -205,8 +253,8 @@ class GloResultImportService
         // reason to relax the check.
         if ($fingerprint === '') {
             $payload['status'] = 'failed';
-            $payload['failure_reason'] = 'Provider returned an imported payload without a result fingerprint.';
-            $import = $this->recordImport($drawId, $provider, $payload, $actor);
+            $payload['failure_reason'] = 'Provider returned an imported payload without a result fingerprint; refusing to stage a provider payload with no result fingerprint to pin.';
+            $import = $this->recordImport($drawId, $payload, $actor);
 
             return [
                 'import' => $import,
@@ -216,42 +264,83 @@ class GloResultImportService
             ];
         }
 
-        // ── Idempotent replay: same draw + same fingerprint already filed.
-        $existing = GloResultImport::query()
-            ->where('draw_id', $drawId)
-            ->where('result_fingerprint', $fingerprint)
-            ->where('status', 'imported')
-            ->first();
+        // ── Idempotent replay: the canonical fingerprint of the numbers this
+        //    payload carries already matches the currently staged ingestion.
+        //    The comparison is over the CANONICAL pair (first prize + the
+        //    independent bottom two), never the provider's own fingerprint:
+        //    two providers can fingerprint the same numbers differently, and
+        //    what must not be staged twice is the RESULT.
+        $bottomTwo = $this->bottomTwoOf($payload);
+        $canonicalFingerprint = DrawResultIngestionService::fingerprintFor([
+            'first_prize' => (string) ($payload['first_prize'] ?? ''),
+            'bottom_two' => $bottomTwo,
+        ]);
+        $current = $this->ingestion->currentIngestion($drawId);
 
-        if ($existing instanceof GloResultImport) {
-            return [
-                'import' => $existing,
-                'draw_result' => null,
-                'payload' => $payload,
-                'ingestion' => $this->ingestion->currentIngestion($drawId),
-            ];
+        if (is_array($current)
+            && DrawResultIngestionService::fingerprintFor([
+                'first_prize' => (string) ($current['first_prize'] ?? ''),
+                'bottom_two' => (string) ($current['bottom_two'] ?? ''),
+            ]) === $canonicalFingerprint) {
+            $existing = GloResultImport::query()
+                ->where('draw_id', $drawId)
+                ->where('status', 'imported')
+                ->latest('id')
+                ->first();
+
+            if ($existing instanceof GloResultImport) {
+                return [
+                    'import' => $existing,
+                    'draw_result' => null,
+                    'payload' => $payload,
+                    'ingestion' => $current,
+                ];
+            }
         }
 
         // ── Hand the payload to the ONE component allowed to write an ingested
         //    result. It owns the row lock, the lifecycle guard, the canonical
         //    fingerprint and the Pending state. This file does not write
         //    draw_results, does not set published_at, and cannot publish.
-        $ingestion = $this->ingestion->ingest(
-            $drawId,
-            [
-                'first_prize' => (string) ($payload['first_prize'] ?? ''),
-                'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
-                'tiers' => (array) ($payload['tiers'] ?? []),
-                'n3' => (array) ($payload['n3'] ?? []),
-                'provider_fingerprint' => $fingerprint,
-            ],
-            source: sprintf('glo_import:%s', $provider->name()),
-            actorUserId: $actor?->getKey() === null ? null : (int) $actor->getKey(),
-        );
+        //
+        //    A lifecycle refusal (the draw already published, or is otherwise
+        //    past input) is an EXPECTED operator outcome, so it is filed as a
+        //    `refused` provenance row rather than raised. Any other domain
+        //    failure is a real error and propagates.
+        try {
+            $ingestion = $this->ingestion->ingest(
+                $drawId,
+                [
+                    'first_prize' => (string) ($payload['first_prize'] ?? ''),
+                    'bottom_two' => $bottomTwo,
+                    'tiers' => (array) ($payload['tiers'] ?? []),
+                    'n3' => (array) ($payload['n3'] ?? []),
+                    'provider' => $providerLabel,
+                    'provider_fingerprint' => $fingerprint,
+                ],
+                source: sprintf('glo_import:%s', $providerLabel),
+                actorUserId: $actor?->getKey() === null ? null : (int) $actor->getKey(),
+            );
+        } catch (DrawResultException $exception) {
+            if ($exception->errorCode() !== DrawResultException::CODE_CONFIRMATION_FORBIDDEN) {
+                throw $exception;
+            }
 
-        $import = $this->recordImport($drawId, $provider, $payload, $actor, $ingestion['fingerprint'] ?? null);
+            $payload['status'] = 'refused';
+            $payload['failure_reason'] = 'Import refused: '.$exception->getMessage();
+            $import = $this->recordImport($drawId, $payload, $actor);
 
-        $this->recordAudit($drawId, $provider, $import, $ingestion, $fingerprint, $actor);
+            return [
+                'import' => $import,
+                'draw_result' => null,
+                'payload' => $payload,
+                'ingestion' => null,
+            ];
+        }
+
+        $import = $this->recordImport($drawId, $payload, $actor, $ingestion['fingerprint'] ?? null);
+
+        $this->recordAudit($drawId, $import, $ingestion, $fingerprint, $actor);
 
         return [
             'import' => $import,
@@ -262,35 +351,93 @@ class GloResultImportService
     }
 
     /**
+     * The provenance label: the provider that ANSWERED, from the payload
+     * itself, falling back to the chain's name when a payload omits it.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function providerLabel(array $payload): string
+    {
+        $provider = $payload['provider'] ?? null;
+
+        return is_string($provider) && trim($provider) !== '' ? trim($provider) : $this->chain->name();
+    }
+
+    /**
+     * The independent bottom-two prize: the payload's `tiers.last_two[0]`,
+     * with a flat `bottom_two` as fallback. NEVER derived from the first
+     * prize — they are independent draws, and deriving one from the other
+     * would fabricate a number.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function bottomTwoOf(array $payload): string
+    {
+        $tiers = is_array($payload['tiers'] ?? null) ? $payload['tiers'] : [];
+        $lastTwo = is_array($tiers['last_two'] ?? null) ? $tiers['last_two'] : [];
+
+        if (isset($lastTwo[0]) && is_scalar($lastTwo[0]) && (string) $lastTwo[0] !== '') {
+            return (string) $lastTwo[0];
+        }
+
+        return isset($payload['bottom_two']) && is_scalar($payload['bottom_two'])
+            ? (string) $payload['bottom_two']
+            : '';
+    }
+
+    /**
      * Write the intake provenance row.
      *
      * @param  array<string, mixed>  $payload
      */
     private function recordImport(
         ?int $drawId,
-        GloResultProvider $provider,
         array $payload,
         ?User $actor,
         ?string $normalizedFingerprint = null,
     ): GloResultImport {
         $status = (string) ($payload['status'] ?? 'failed');
         $mode = (string) config('glo.official_source.mode', 'fixture');
+        $payloadFingerprint = isset($payload['fingerprint']) && is_scalar($payload['fingerprint'])
+            ? trim((string) $payload['fingerprint'])
+            : '';
 
         return GloResultImport::query()->create([
             'draw_id' => $drawId,
-            'provider' => $provider->name(),
+            'provider' => $this->providerLabel($payload),
             'mode' => $mode,
             'status' => $status,
-            'endpoint' => isset($payload['endpoint']) ? (string) $payload['endpoint'] : null,
-            'draw_number' => isset($payload['draw_number']) ? (string) $payload['draw_number'] : null,
+            'endpoint' => isset($payload['endpoint']) && is_scalar($payload['endpoint']) ? (string) $payload['endpoint'] : null,
+            'upstream_draw_id' => isset($payload['draw_number']) && is_scalar($payload['draw_number']) ? (string) $payload['draw_number'] : null,
             'result_fingerprint' => $normalizedFingerprint
-                ?? (isset($payload['fingerprint']) ? (string) $payload['fingerprint'] : null),
-            'failure_reason' => isset($payload['failure_reason']) ? (string) $payload['failure_reason'] : null,
+                ?? ($payloadFingerprint !== '' ? $payloadFingerprint : null),
+            'failure_reason' => isset($payload['failure_reason']) && is_scalar($payload['failure_reason']) ? (string) $payload['failure_reason'] : null,
             'import_reference' => 'glo-'.Str::lower(Str::ulid()->toBase32()),
             'imported_by' => $actor?->getKey(),
             'imported_at' => now(),
-            'payload' => $this->redact($payload),
+            'payload_summary' => $this->payloadSummary($payload),
         ]);
+    }
+
+    /**
+     * A bounded digest of the payload for the provenance row. The full
+     * payload is deliberately NOT persisted (payload_summary is the schema),
+     * and no credential-shaped key is carried into it.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function payloadSummary(array $payload): array
+    {
+        return [
+            'status' => (string) ($payload['status'] ?? 'failed'),
+            'draw_number' => isset($payload['draw_number']) && is_scalar($payload['draw_number']) ? (string) $payload['draw_number'] : null,
+            'first_prize' => isset($payload['first_prize']) && is_scalar($payload['first_prize']) ? (string) $payload['first_prize'] : null,
+            'bottom_two' => $this->bottomTwoOf($payload),
+            'second_prize_count' => is_array($payload['second_prize'] ?? null) ? count($payload['second_prize']) : 0,
+            'third_prize_count' => is_array($payload['third_prize'] ?? null) ? count($payload['third_prize']) : 0,
+            'provider_fingerprint' => isset($payload['fingerprint']) && is_scalar($payload['fingerprint']) ? (string) $payload['fingerprint'] : null,
+        ];
     }
 
     /**
@@ -301,7 +448,6 @@ class GloResultImportService
      */
     private function recordAudit(
         int $drawId,
-        GloResultProvider $provider,
         GloResultImport $import,
         array $ingestion,
         string $providerFingerprint,
@@ -316,7 +462,7 @@ class GloResultImportService
             'description' => 'glo_result_ingested_pending_confirmation',
             'metadata' => [
                 'action_type' => 'glo_result_ingested_pending_confirmation',
-                'provider' => $provider->name(),
+                'provider' => $import->provider,
                 'draw_id' => $drawId,
                 'import_reference' => $import->import_reference,
                 'provider_fingerprint' => $providerFingerprint,

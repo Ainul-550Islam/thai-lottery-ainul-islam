@@ -68,6 +68,36 @@ class GloTicket extends Model
         $this->created_at = $value;
     }
 
+    /*
+     * Legacy accessors mirroring the setters above. The purchase facts are
+     * deliberately stored under `metadata` (glo_tickets has no price/currency/
+     * status/purchased_at columns), so reads must resolve from the same place
+     * writes went: without these accessors `$ticket->price` read back as null.
+     */
+    public function getPriceAttribute(mixed $value = null): mixed
+    {
+        return $value ?? ($this->metadata['price'] ?? $this->legacyMetadata['price'] ?? null);
+    }
+
+    public function getCurrencyAttribute(mixed $value = null): mixed
+    {
+        $raw = $value ?? ($this->metadata['currency'] ?? $this->legacyMetadata['currency'] ?? null);
+
+        return $raw instanceof \BackedEnum ? $raw->value : $raw;
+    }
+
+    public function getStatusAttribute(mixed $value = null): mixed
+    {
+        $raw = $value ?? ($this->metadata['status'] ?? $this->legacyMetadata['status'] ?? null);
+
+        return $raw instanceof \BackedEnum ? $raw->value : $raw;
+    }
+
+    public function getPurchasedAtAttribute(mixed $value = null): mixed
+    {
+        return $value ?? $this->created_at;
+    }
+
     protected array $legacyMetadata = [];
 
     protected static function booted(): void

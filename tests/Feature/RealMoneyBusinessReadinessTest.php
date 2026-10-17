@@ -31,7 +31,7 @@ use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use App\Services\Security\ResponsibleGamingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +39,11 @@ use Tests\TestCase;
 
 class RealMoneyBusinessReadinessTest extends TestCase
 {
-    use RefreshDatabase;
+    // DatabaseTruncation, NOT RefreshDatabase: the bet-purchase pipeline
+    // refuses to run inside somebody else's transaction, and
+    // RefreshDatabase wraps every test in one. The green purchase suites
+    // use DatabaseTruncation for exactly this reason.
+    use DatabaseTruncation;
 
     /**
      * Test GLO L6 Proportional Prize Pool Calculation and Stamp Duty.
@@ -181,6 +185,10 @@ class RealMoneyBusinessReadinessTest extends TestCase
         $walletService->credit($wallet->id, '500.00', 'Initial balance');
 
         $withdrawal = Withdrawal::create([
+            // reference_number / net_amount are NOT NULL schema identity on
+            // withdrawals; the original row omitted both.
+            'reference_number' => 'WD-RMR-FAIL-001',
+            'net_amount' => '200.00',
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'amount' => '200.00',
@@ -198,7 +206,8 @@ class RealMoneyBusinessReadinessTest extends TestCase
         // Fail withdrawal and ensure funds are refunded
         $disbursementService->rejectWithdrawal($withdrawal->id, 'Invalid bank account number');
 
-        $this->assertEquals(WithdrawalStatus::Failed->value, $withdrawal->fresh()->status);
+        // `status` is enum-cast (WithdrawalStatus): compare the stored VALUE.
+        $this->assertEquals(WithdrawalStatus::Failed->value, $withdrawal->fresh()->status->value);
         $this->assertEquals('500.00', $wallet->fresh()->balance);
     }
 
@@ -237,16 +246,26 @@ class RealMoneyBusinessReadinessTest extends TestCase
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
         $walletService->credit($wallet->id, '500.00', 'Test balance');
 
-        $draw = Draw::factory()->create();
+        // The purchase pipeline only accepts bets on an OPEN draw; the
+        // factory's default state is `scheduled`.
+        $draw = Draw::factory()->create(['status' => \App\Enums\DrawStatus::OPEN]);
+
+        // Draws acquire per-number capacity rows through the canonical
+        // provisioning service; a bare draw cannot reserve against limits
+        // that do not exist.
+        $this->app->make(\App\Services\Risk\NumberLimitProvisioningService::class)->provision($draw);
 
         $selections = [
+            // Canonical market keys (config/lottery.php): the enterprise slip
+            // labels 'top_3'/'bottom_2' name the same 3d_direct / 2d_bottom
+            // markets in the platform's own vocabulary.
             new BulkBetSelectionData(
-                marketKey: 'top_3',
+                marketKey: '3d_direct',
                 number: '123',
                 stake: '50.00'
             ),
             new BulkBetSelectionData(
-                marketKey: 'bottom_2',
+                marketKey: '2d_bottom',
                 number: '45',
                 stake: '50.00'
             ),

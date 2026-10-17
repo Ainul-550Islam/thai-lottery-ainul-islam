@@ -26,6 +26,30 @@ class SelfExclusionService
         return $this->engine->request($data);
     }
 
+    /**
+     * Acceptance-name aliases: the enterprise callers seat an exclusion with
+     * exclude() and read it back with isSelfExcluded(). Both delegate to the
+     * canonical engine; exclude() activates immediately because the engine's
+     * seated-request default effective window starts at the request moment,
+     * so an exclusion the player asks for gates from now, not from a later
+     * batch activation.
+     */
+    public function exclude(SelfExclusionData $data): SelfExclusion
+    {
+        $exclusion = $this->engine->request($data);
+
+        if ($exclusion->status !== \App\Enums\SelfExclusionStatus::Active) {
+            $exclusion = $this->engine->activate($exclusion);
+        }
+
+        return $exclusion;
+    }
+
+    public function isSelfExcluded(int $userId): bool
+    {
+        return $this->engine->hasActiveExclusion($userId);
+    }
+
     public function activate(int|SelfExclusion $exclusion): SelfExclusion
     {
         return $this->engine->activate($exclusion);

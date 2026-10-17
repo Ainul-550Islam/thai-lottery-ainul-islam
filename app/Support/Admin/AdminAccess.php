@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Admin;
 
 use App\Models\User;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 
 /**
  * WHY THIS EXISTS
@@ -150,7 +151,14 @@ final class AdminAccess
             return true;
         }
 
-        return $user->hasPermissionTo($permission, 'web');
+        try {
+            return $user->hasPermissionTo($permission, 'web');
+        } catch (PermissionDoesNotExist) {
+            // A permission that has not been seeded cannot be held. Answering
+            // false — rather than throwing — keeps an unseeded catalogue a
+            // closed door instead of a 500 on authorization checks.
+            return false;
+        }
     }
 
     /**

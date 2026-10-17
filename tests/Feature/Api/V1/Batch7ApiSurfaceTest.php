@@ -234,6 +234,10 @@ final class Batch7ApiSurfaceTest extends TestCase
 
         $staged = $this->apiAs($this->adminToken, 'POST', '/api/v1/draws/'.$draw->id.'/result/ingest', [
                 'first_prize' => '123456',
+                // The bottom two is a separately drawn number and the
+                // platform never derives it from the first prize, so an
+                // announcement must state it (IngestDrawResultRequest).
+                'bottom_two' => '78',
                 'source' => 'manual',
             ]);
         $staged->assertStatus(201);
@@ -245,6 +249,8 @@ final class Batch7ApiSurfaceTest extends TestCase
         // A checker (a different operator) confirms.
         $confirmed = $this->apiAs($this->admin2Token, 'POST', '/api/v1/draws/'.$draw->id.'/result/confirm', [
                 'first_prize' => '123456',
+                // The checker attests to BOTH numbers (ConfirmDrawResultRequest).
+                'bottom_two' => '78',
                 'notes' => 'Verified against the physical announcement sheet.',
             ]);
         $confirmed->assertStatus(200);

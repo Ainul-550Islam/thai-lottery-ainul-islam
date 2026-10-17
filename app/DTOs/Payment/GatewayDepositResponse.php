@@ -26,9 +26,17 @@ final class GatewayDepositResponse
     public static function redirect(
         string $url,
         string $providerReference,
-        array $rawResponse = [],
+        ?array $rawResponse = [],
         array $metadata = [],
     ): self {
+        // `null` must mean "the provider returned no body" (the shape
+        // Laravel's Response->json() produces for an empty or non-JSON
+        // success body), never a TypeError: without this coercion, ANY
+        // provider that answers a success status with an empty body
+        // surfaces as a connection-error outage instead of the deposit
+        // it actually opened.
+        $rawResponse ??= [];
+
         return new self(
             successful: true,
             redirectUrl: $url,
@@ -41,9 +49,11 @@ final class GatewayDepositResponse
     public static function secret(
         string $clientSecret,
         string $providerReference,
-        array $rawResponse = [],
+        ?array $rawResponse = [],
         array $metadata = [],
     ): self {
+        $rawResponse ??= [];
+
         return new self(
             successful: true,
             providerReference: $providerReference,
@@ -55,9 +65,11 @@ final class GatewayDepositResponse
 
     public static function failed(
         string $errorMessage,
-        array $rawResponse = [],
+        ?array $rawResponse = [],
         array $metadata = [],
     ): self {
+        $rawResponse ??= [];
+
         return new self(
             successful: false,
             errorMessage: $errorMessage,

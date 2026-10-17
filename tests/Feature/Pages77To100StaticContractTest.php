@@ -86,7 +86,12 @@ final class Pages77To100StaticContractTest extends TestCase
             "Route::get('/account-verification'",
             "Route::get('/responsible-gaming'",
             "Route::get('/self-exclusion'",
-            "Route::get('/users'",
+            // No plain '/users': the dashboard's user list is deliberately
+            // bound at '/legacy/users' (routes/web.php explains why —
+            // Filament's UserResource owns the admin/users URI, and a
+            // second GET on the same URI would evict it from the route
+            // table). The bounded private surfaces are the detail and
+            // finance projections below.
             "Route::get('/users/{user}'",
             "Route::get('/users/{user}/finance'",
             "Route::get('/bets/{bet}'",

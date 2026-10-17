@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Serve Laravel (php artisan serve)",
+            "type": "php",
+            "request": "launch",
+            "program": "${workspaceFolder}/artisan",
+            "args": ["serve", "--host=127.0.0.1", "--port=8000"],
+            "cwd": "${workspaceFolder}",
+            "port": 9003,
+            "serverReadyAction": {
+                "pattern": "Server running on \\[http://([^:]+:[0-9]+)",
+                "uriFormat": "http://%s",
+                "action": "openExternally"
+            }
+        },
+        {
+            "name": "Listen for Xdebug",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "pathMappings": {
+                "/var/www/html": "${workspaceFolder}"
+            }
+        }
+    ]
+}

@@ -105,7 +105,11 @@ class GloImportResult extends Command
             }
         }
 
-        return $report['status'] === 'imported' ? self::SUCCESS : self::FAILURE;
+        // `refused` (a draw already published/settled refusing the import via
+        // the lifecycle guard) is a correct, expected outcome — the command
+        // did its job and filed the refusal — so it exits 0 like `imported`.
+        // `failed`/`not_configured` remain failures.
+        return in_array($report['status'], ['imported', 'refused'], true) ? self::SUCCESS : self::FAILURE;
     }
 
     private function resolveActor(): ?User

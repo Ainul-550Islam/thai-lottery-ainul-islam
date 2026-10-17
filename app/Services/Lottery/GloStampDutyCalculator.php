@@ -62,6 +62,33 @@ class GloStampDutyCalculator
     }
 
     /**
+     * Enterprise report shape: the duty computation as a small readonly
+     * report — duty, net payout and the income-tax-exempt fact — for callers
+     * that carry the tax answer as an object rather than three strings.
+     */
+    public function calculateDuty(string $grossPrize): object
+    {
+        $breakdown = $this->breakdown($grossPrize);
+
+        return new class($breakdown)
+        {
+            /** @param array{gross_prize: string, stamp_duty: string, net_prize: string, income_tax: string, rule: string} $breakdown */
+            public function __construct(array $breakdown)
+            {
+                $this->grossThb = $breakdown['gross_prize'];
+                $this->stampDutyThb = $breakdown['stamp_duty'];
+                $this->netPayoutThb = $breakdown['net_prize'];
+                $this->isIncomeTaxExempt = $breakdown['income_tax'] === '0.00';
+            }
+
+            public readonly string $grossThb;
+            public readonly string $stampDutyThb;
+            public readonly string $netPayoutThb;
+            public readonly bool $isIncomeTaxExempt;
+        };
+    }
+
+    /**
      * Net prize after stamp duty (income tax exempt — no further deduction).
      *
      * @throws InvalidArgumentException

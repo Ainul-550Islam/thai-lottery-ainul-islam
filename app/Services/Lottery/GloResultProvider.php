@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
+use App\Services\Lottery\Contracts\ResultSource;
+
 /**
  * Contract for a GLO official-result source.
+ *
+ * Extends the ladder rung contract (Contracts\ResultSource) so every official
+ * source is also directly consumable by GloResultProviderChain without
+ * adaptation.
  *
  * Implementations must only ever target DOCUMENTED public catalog endpoints:
  *   POST www.glo.or.th/api/lottery/getLatestLottery
@@ -15,8 +21,10 @@ namespace App\Services\Lottery;
  * source cannot produce a result, implementors return a structured
  * NOT_CONFIGURED / failed payload — never a fabricated number.
  */
-interface GloResultProvider
+interface GloResultProvider extends ResultSource
 {
+    // name(), isConfigured() and fetch() are inherited from ResultSource and
+    // re-documented here; implementations must satisfy both contracts at once.
     public function name(): string;
 
     /**

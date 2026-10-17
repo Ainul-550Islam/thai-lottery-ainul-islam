@@ -181,7 +181,28 @@ class DrawResultIngestionService
     {
         $draw = Draw::query()->find($drawId);
 
-        return $draw instanceof Draw ? $this->currentRecord($draw) : null;
+        if (! $draw instanceof Draw) {
+            return null;
+        }
+
+        $record = $this->currentRecord($draw);
+
+        if (! is_array($record)) {
+            return null;
+        }
+
+        // Callers (the GLO import service's idempotency check) read the staged
+        // numbers flat — first_prize / bottom_two — while other callers read
+        // the raw record (status, fingerprint, payload). Return both: the raw
+        // record with the flattened canonical pair merged over it, minus the
+        // transient no_op flag that only resultRow() answers carry.
+        $payload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
+        $flat = [
+            'first_prize' => isset($payload['first_prize']) && is_scalar($payload['first_prize']) ? (string) $payload['first_prize'] : null,
+            'bottom_two' => isset($payload['bottom_two']) && is_scalar($payload['bottom_two']) ? (string) $payload['bottom_two'] : null,
+        ];
+
+        return array_merge($record, $flat);
     }
 
     /**
@@ -378,11 +399,25 @@ class DrawResultIngestionService
      * sha256 over the canonical pair: stable across identical re-ingests,
      * different the moment any digit moves.
      *
-     * @param  array{first_prize: string, bottom_two: string}  $canonical
+     * Public and static because the fingerprint is the shared identity of a
+     * staged result: the GLO import service compares a provider payload
+     * against the currently staged ingestion with exactly this function, and
+     * the trust-policy tests pin a confirmed result to it. Missing or
+     * non-scalar keys degrade to an empty component rather than throwing —
+     * fingerprinting a partial payload must fail closed downstream, not crash.
+     *
+     * @param  array<string, mixed>  $canonical
      */
-    private function fingerprintFor(array $canonical): string
+    public static function fingerprintFor(array $canonical): string
     {
-        return hash('sha256', $canonical['first_prize'].':'.$canonical['bottom_two']);
+        $first = isset($canonical['first_prize']) && is_scalar($canonical['first_prize'])
+            ? (string) $canonical['first_prize']
+            : '';
+        $bottom = isset($canonical['bottom_two']) && is_scalar($canonical['bottom_two'])
+            ? (string) $canonical['bottom_two']
+            : '';
+
+        return hash('sha256', $first.':'.$bottom);
     }
 
     /**

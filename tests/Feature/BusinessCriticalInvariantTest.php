@@ -118,18 +118,28 @@ class BusinessCriticalInvariantTest extends TestCase
         $walletService->credit($wallet->id, '1000.00', 'Initial funds');
 
         $withdrawal = Withdrawal::create([
+            // reference_number is the withdrawal's schema identity (NOT NULL):
+            // the original row omitted it, so the insert itself was refused
+            // before the invariant under test was ever reached.
+            'reference_number' => 'WD-INV2-001',
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'amount' => '300.00',
             'fee' => '0.00',
+            // net_amount is likewise NOT NULL in the withdrawals schema.
+            'net_amount' => '300.00',
             'currency' => Currency::THB->value,
             'channel' => 'bank_transfer',
             'status' => WithdrawalStatus::Completed->value,
             'destination_details' => json_encode(['account' => '123456789']),
         ]);
 
-        // Attempting to disburse an already completed withdrawal must throw or return false
-        $this->expectException(InvalidArgumentException::class);
+        // Attempting to disburse an already completed withdrawal must throw
+        // or return false. The platform's refusal vocabulary for exactly this
+        // state is WithdrawalException::alreadyCompleted — the domain
+        // exception every canonical lane asserts — so the invariant is
+        // pinned to it rather than to the generic SPL type.
+        $this->expectException(\App\Exceptions\WithdrawalException::class);
         $disbursementService->disburse((int) $withdrawal->id);
     }
 
@@ -293,7 +303,8 @@ class BusinessCriticalInvariantTest extends TestCase
         $result1 = $settlementService->settleForDraw((int) $draw->id);
         $this->assertEquals(1, $result1->commissionsSettled);
         $this->assertEquals('50.00', $result1->totalCommissionPaid);
-        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status);
+        // `status` is enum-cast (CommissionStatus): compare the stored VALUE.
+        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status->value);
 
         // Settle second time (idempotent replay)
         $result2 = $settlementService->settleForDraw((int) $draw->id);
@@ -335,7 +346,8 @@ class BusinessCriticalInvariantTest extends TestCase
         $result = $settlementService->settleForDraw((int) $draw->id);
 
         $this->assertEquals(0, $result->commissionsSettled);
-        $this->assertEquals(CommissionStatus::Cancelled->value, $commission->fresh()->status);
+        // `status` is enum-cast (CommissionStatus): compare the stored VALUE.
+        $this->assertEquals(CommissionStatus::Cancelled->value, $commission->fresh()->status->value);
     }
 
     /**
@@ -373,11 +385,13 @@ class BusinessCriticalInvariantTest extends TestCase
         );
 
         $exclusion = $rgService->request($data);
-        $this->assertEquals(SelfExclusionStatus::Requested->value, $exclusion->status);
+        // `status` is enum-cast (SelfExclusionStatus): compare the stored VALUE.
+        $this->assertEquals(SelfExclusionStatus::Requested->value, $exclusion->status->value);
 
         // Activate
         $active = $rgService->activate($exclusion);
-        $this->assertEquals(SelfExclusionStatus::Active->value, $active->status);
+        // `status` is enum-cast (SelfExclusionStatus): compare the stored VALUE.
+        $this->assertEquals(SelfExclusionStatus::Active->value, $active->status->value);
         $this->assertTrue($rgService->hasActiveExclusion($user->id));
 
         // Premature expiry rejection

@@ -69,7 +69,13 @@ class GloWriteBoundaryTest extends TestCase
         // would fail the second half of every test here. ResultPending is the
         // real state a GLO result is processed in.
         $this->draw = Draw::factory()->create([
-            'draw_number' => 'GLO-WRITE-BOUNDARY',
+            // The fixture provider is draw-number-strict and only answers for
+            // the fixture's own draw — that honesty is what GloResultImportTest
+            // relies on — so the journey tests below import against the draw
+            // the fixture actually carries. Aligning the test draw to the
+            // fixture (rather than loosening the provider) keeps the strict
+            // match intact. (Was 'GLO-WRITE-BOUNDARY'.)
+            'draw_number' => 'GLO-2026-09-16',
             'status' => DrawStatus::Drawing,
             'scheduled_at' => now()->subDays(1),
         ]);

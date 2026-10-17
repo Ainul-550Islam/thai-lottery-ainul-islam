@@ -17,11 +17,11 @@
                     {{ trans('home.app.subtitle') }}
                 </p>
                 <div class="flex flex-wrap items-center gap-4 pt-2">
-                    <a href="{{ $appLinks['ios'] ?? route('public.download') }}" class="tl-btn-primary px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                    <a href="{{ $appLinks['ios'] ?? route('download') }}" class="tl-btn-primary px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2">
                         <span>🍏</span>
                         <span>{{ trans('home.app.ios_btn') }}</span>
                     </a>
-                    <a href="{{ $appLinks['android'] ?? route('public.download') }}" class="px-6 py-3.5 rounded-xl bg-[#1C170E] border border-[#D4AF37]/40 text-xs font-black text-white hover:border-[#D4AF37] transition-all flex items-center gap-2">
+                    <a href="{{ $appLinks['android'] ?? route('download') }}" class="px-6 py-3.5 rounded-xl bg-[#1C170E] border border-[#D4AF37]/40 text-xs font-black text-white hover:border-[#D4AF37] transition-all flex items-center gap-2">
                         <span>🤖</span>
                         <span>{{ trans('home.app.android_btn') }}</span>
                     </a>

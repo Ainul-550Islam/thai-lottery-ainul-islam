@@ -20,13 +20,13 @@
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
                     <span class="px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        GLO Official
+                        GLO Format
                     </span>
                     <span class="text-xs font-mono text-slate-400 font-bold">1st &amp; 16th</span>
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-black text-white group-hover:text-emerald-400 transition">Government Lottery L6</h3>
+                    <h3 class="text-lg font-black text-white group-hover:text-emerald-400 transition">GLO Format L6</h3>
                     <p class="text-xs text-slate-400 mt-1">6-digit national lottery with full proportional prize structure.</p>
                 </div>
 

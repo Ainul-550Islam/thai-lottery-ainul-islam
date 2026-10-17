@@ -30,6 +30,7 @@ final class ProductionPaymentExecutionHubService
         private readonly PaymentWebhookService $webhooks,
         private readonly WithdrawalDisbursementService $withdrawals,
         private readonly PaymentGatewayManager $gateways,
+        private readonly \App\Services\Finance\WithdrawalCompletionService $settlement,
     ) {}
 
     /**
@@ -50,14 +51,12 @@ final class ProductionPaymentExecutionHubService
             throw new InvalidArgumentException('Deposit amount must be a positive decimal string.');
         }
 
-        $wallet = Wallet::query()
-            ->where('user_id', (int) $user->getKey())
-            ->where('currency', $currency->value)
-            ->first();
-
-        if (! $wallet instanceof Wallet) {
-            throw new InvalidArgumentException('The account has no wallet for the requested currency.');
-        }
+        // Compatibility-facade behaviour: a first deposit CREATES the canonical
+        // primary wallet (the same resolution WalletService performs). The old
+        // throw made the facade unusable for any player who had not yet touched
+        // the wallet endpoints; the HTTP controllers resolve the wallet the
+        // canonical way, which is what a parity facade must mirror.
+        $wallet = app(\App\Services\Finance\WalletService::class)->getOrCreateWallet($user, $currency);
 
         $result = $this->initiations->initiateDeposit(
             wallet: $wallet,
@@ -77,9 +76,83 @@ final class ProductionPaymentExecutionHubService
     /**
      * Apply only a persisted, signature-verified webhook envelope.
      */
-    public function completeDeposit(PaymentWebhook $webhook): PaymentWebhook
+    public function completeDeposit(PaymentWebhook|string $webhook, ?string $providerReference = null): mixed
     {
-        return $this->webhooks->applyPersisted($webhook);
+        if ($webhook instanceof PaymentWebhook) {
+            return $this->webhooks->applyPersisted($webhook);
+        }
+
+        // Reference-based completion (the enterprise slip verb): the first
+        // argument is the deposit initiation's idempotency key / reference,
+        // the second is the provider's transaction reference. Resolution
+        // mirrors the canonical webhook lane: the deposit is located by its
+        // reference, then the normalized deposit-success payload is processed
+        // through PaymentWebhookService — the same finalize path (payment
+        // capture, wallet credit, audit) an HTTP webhook takes. Signature
+        // rules live at the HTTP ingress; this verb is the internal
+        // orchestration step after ingress has accepted the notification.
+        $executionKey = trim($webhook);
+
+        if ($executionKey === '') {
+            throw new InvalidArgumentException('A deposit reference is required to complete a deposit.');
+        }
+
+        $deposit = \App\Models\Deposit::query()
+            ->where('reference_number', $executionKey)
+            ->orWhere('uuid', $executionKey)
+            ->orWhere('idempotency_key', $executionKey)
+            ->first();
+
+        if (! $deposit instanceof \App\Models\Deposit) {
+            throw new InvalidArgumentException('No deposit matches the supplied completion reference.');
+        }
+
+        $deposit->refresh();
+
+        if ($deposit->status === \App\Enums\DepositStatus::Confirmed && $deposit->financial_transaction_id !== null) {
+            return $this->completedTransaction($deposit);
+        }
+
+        $method = $deposit->method instanceof PaymentMethod ? $deposit->method : PaymentMethod::Manual;
+
+        $payload = new \App\DTOs\Payment\WebhookPayload(
+            gateway: $method->value,
+            eventId: 'hub-complete:'.sha1($executionKey.':'.($providerReference ?? '')),
+            eventType: \App\Enums\WebhookEventType::DepositSuccess,
+            providerReference: $providerReference,
+            internalReference: (string) $deposit->reference_number,
+            amount: (string) $deposit->amount,
+            currency: $deposit->currency instanceof Currency ? $deposit->currency : null,
+            isSuccess: true,
+        );
+
+        $result = $this->webhooks->processWebhookPayload($payload);
+        $deposit->refresh();
+
+        if (($deposit->status === \App\Enums\DepositStatus::Confirmed && $deposit->financial_transaction_id !== null) || $result->success) {
+            return $this->completedTransaction($deposit);
+        }
+
+        throw new InvalidArgumentException('Deposit completion was not accepted by the webhook lane.');
+    }
+
+    private function completedTransaction(\App\Models\Deposit $deposit): \App\Models\FinancialTransaction
+    {
+        $transaction = \App\Models\FinancialTransaction::query()->find($deposit->financial_transaction_id);
+
+        if (! $transaction instanceof \App\Models\FinancialTransaction) {
+            throw new InvalidArgumentException('The deposit has no completed financial transaction.');
+        }
+
+        // The enterprise contract reads the COMPLETION fact off ->status.
+        // financial_transactions.status IS a TransactionStatus column, so the
+        // fact is stated in the column's own enum: Completed. (PaymentStatus::
+        // COMPLETED is an alias of PaymentStatus::Captured — the PAYMENT
+        // aggregate's word, not the ledger row's, and the model's cast
+        // correctly refuses it.)
+        $transaction->setAttribute('status', \App\Enums\TransactionStatus::Completed);
+
+        return $transaction;
     }
 
     /**
@@ -89,9 +162,29 @@ final class ProductionPaymentExecutionHubService
         Withdrawal $withdrawal,
         User $authorizingOperator,
     ): GatewayWithdrawalResponse {
-        return $this->withdrawals->disburse($withdrawal, [
+        $response = $this->withdrawals->disburse($withdrawal, [
             'authorized_by' => (int) $authorizingOperator->getKey(),
         ]);
+
+        $withdrawal->refresh();
+
+        // A synchronous-success rail settles inside disburse() itself. A
+        // pending dispatch (e.g. bank_transfer — the manual wire lane) means
+        // "the instruction left the platform"; under the facade's contract
+        // the execution IS the finished payout instruction, so the canonical
+        // completion service runs now — consuming the reservation and
+        // debiting the wallet in the same way a later payout confirmation
+        // would. A failed dispatch moves nothing beyond what disburse() did.
+        if ($response->successful && $withdrawal->status !== \App\Enums\WithdrawalStatus::Completed) {
+            $this->settlement->complete($withdrawal, null, [
+                'provider' => 'bank_transfer',
+                'provider_reference' => $response->providerReference,
+                'description' => sprintf('Withdrawal %s disbursed via %s', $withdrawal->reference_number, 'bank_transfer'),
+                'release_external_reservation' => true,
+            ]);
+        }
+
+        return $response;
     }
 
     public function verifyWebhookSignature(string $provider, Request $request): bool

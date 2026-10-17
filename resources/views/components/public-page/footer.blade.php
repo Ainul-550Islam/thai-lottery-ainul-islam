@@ -89,7 +89,23 @@
                 during a total outage. A status claim must come from a health
                 check or not be made at all.
             --}}
+            {{-- Validated social links: an operator-configured URL renders only
+                 when it is an https link on that platform's own domain
+                 (SocialLinkService); off-domain or malformed values render
+                 nothing at all rather than a link to a third-party site. --}}
             <div class="flex items-center space-x-4 shrink-0 text-[11px]">
+                @php($socialFacebook = \App\Services\Web\SocialLinkService::url('facebook'))
+                @if ($socialFacebook !== null)
+                    <a href="{{ $socialFacebook }}" target="_blank" rel="noopener noreferrer" class="hover:text-amber-300 transition">Facebook</a>
+                @endif
+                @php($socialYouTube = \App\Services\Web\SocialLinkService::url('youtube'))
+                @if ($socialYouTube !== null)
+                    <a href="{{ $socialYouTube }}" target="_blank" rel="noopener noreferrer" class="hover:text-amber-300 transition">YouTube</a>
+                @endif
+                @php($socialTikTok = \App\Services\Web\SocialLinkService::url('tiktok'))
+                @if ($socialTikTok !== null)
+                    <a href="{{ $socialTikTok }}" target="_blank" rel="noopener noreferrer" class="hover:text-amber-300 transition">TikTok</a>
+                @endif
                 <span class="text-slate-600">v{{ config('app.version', '1.0.0') }}</span>
             </div>
         </div>

@@ -18,6 +18,7 @@ use App\Models\Withdrawal;
 use App\Services\Account\AccountVerificationService;
 use App\Services\Account\AccountVerificationDocumentService;
 use App\Services\Finance\FinancialReconciliationService;
+use App\Services\Lottery\GloResultImportService;
 use App\Services\Finance\Money;
 use App\Support\Admin\AdminAccess;
 use Carbon\Carbon;
@@ -40,7 +41,19 @@ final class LottoFinExecutiveDashboardController extends Controller
         private readonly FinancialReconciliationService $reconciliationService,
         private readonly AccountVerificationService $accountVerification,
         private readonly AccountVerificationDocumentService $documents,
+        private readonly GloResultImportService $resultImports,
     ) {
+    }
+
+    /**
+     * The import lane the result-imports panel reports on: the provider the
+     * canonical importer would fetch through, named by the provider itself.
+     * Read-only — importing stays an operator command / scheduled job, never
+     * a side effect of opening a dashboard panel.
+     */
+    private function resultImportProviderLabel(): string
+    {
+        return $this->resultImports->provider()->name();
     }
 
     public function index(Request $request, ?string $reference = null): View
@@ -61,6 +74,7 @@ final class LottoFinExecutiveDashboardController extends Controller
         };
 
         return view('admin.dashboard', [
+            'resultImportProvider' => $panel === 'imports' ? $this->resultImportProviderLabel() : null,
             'panel' => $panel,
             'kpis' => $panel === 'dashboard' ? $this->calculateExecutiveKpis() : [],
             'transactions' => $panel === 'dashboard' ? $this->fetchFinancialFeed() : [],

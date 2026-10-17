@@ -418,11 +418,15 @@ final class PlayerExperienceComprehensiveTest extends TestCase
 
         $drawsView = $this->get(route('player.draws'));
         $drawsView->assertStatus(200)
-            ->assertSee('Thai Lottery Draws');
+            // The page title is rendered from the lang line, not a literal:
+            // player.draws_title = 'Thai Lottery Draws & Results'.
+            ->assertSee(__('player.draws_title'));
 
         $detailView = $this->get(route('player.draws.detail', $draw->id));
         $detailView->assertStatus(200)
-            ->assertSee('Draw #'.$draw->draw_number);
+            // The detail heading is the draw number itself (the 'Draw #'
+            // prefix this asserted belonged to an older template).
+            ->assertSee($draw->draw_number);
     }
 
     /*

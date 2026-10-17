@@ -19,10 +19,54 @@ final class FixturePublicationSafetyTest extends TestCase
 {
     public function test_fixture_sources_default_to_disabled_in_configuration(): void
     {
-        $this->assertFalse((bool) config('national_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('weekly_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('bingo_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('pcso_lottery.sources.fixture.enabled', true));
+        // phpunit.xml force-enables every fixture lane for the suites that
+        // exercise them, so "the default" can only be read with those
+        // variables absent. Clear them, rebuild the application so the
+        // config files re-read env(), and restore everything afterwards
+        // so no later suite inherits the cleared state.
+        $keys = [
+            'NATIONAL_LOTTERY_FIXTURE_ENABLED',
+            'WEEKLY_LOTTERY_FIXTURE_ENABLED',
+            'BINGO_LOTTERY_FIXTURE_ENABLED',
+            'PCSO_LOTTERY_FIXTURE_ENABLED',
+        ];
+
+        $saved = [];
+
+        foreach ($keys as $key) {
+            $saved[$key] = [$_ENV[$key] ?? null, $_SERVER[$key] ?? null, getenv($key)];
+            unset($_ENV[$key], $_SERVER[$key]);
+            putenv($key);
+        }
+
+        try {
+            $this->refreshApplication();
+
+            $this->assertFalse((bool) config('national_lottery.sources.fixture.enabled', true));
+            $this->assertFalse((bool) config('weekly_lottery.sources.fixture.enabled', true));
+            $this->assertFalse((bool) config('bingo_lottery.sources.fixture.enabled', true));
+            $this->assertFalse((bool) config('pcso_lottery.sources.fixture.enabled', true));
+        } finally {
+            foreach ($keys as $key) {
+                [$env, $server, $put] = $saved[$key];
+
+                if ($env === null) {
+                    unset($_ENV[$key]);
+                } else {
+                    $_ENV[$key] = $env;
+                }
+
+                if ($server === null) {
+                    unset($_SERVER[$key]);
+                } else {
+                    $_SERVER[$key] = $server;
+                }
+
+                $put === false ? putenv($key) : putenv("{$key}={$put}");
+            }
+
+            $this->refreshApplication();
+        }
     }
 
     public function test_fixture_provider_never_evaluates_to_official_source(): void

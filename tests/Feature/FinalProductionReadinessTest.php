@@ -51,7 +51,7 @@ use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\Privacy\PrivacyPolicyService;
 use App\Services\PublicPages\TermsPageService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -61,7 +61,20 @@ use Tests\TestCase;
  */
 class FinalProductionReadinessTest extends TestCase
 {
-    use RefreshDatabase;
+    // DatabaseTruncation, NOT RefreshDatabase: the bet-purchase pipeline
+    // refuses to run inside somebody else's transaction, and
+    // RefreshDatabase wraps every test in one.
+    use DatabaseTruncation;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // No compiled front-end build exists in the test sandbox; the public
+        // page tests assert routing/rendering, not asset output. This is the
+        // same accommodation the Home suites make.
+        $this->withoutVite();
+    }
 
     /**
      * 1. Public Routes Availability & Multi-Locale Rendering.
@@ -244,8 +257,15 @@ class FinalProductionReadinessTest extends TestCase
             'betting_close_at' => Carbon::now()->addHours(2),
         ]);
 
+        // Draws acquire per-number capacity rows through the canonical
+        // provisioning service; a bare draw cannot reserve against limits
+        // that do not exist.
+        $this->app->make(\App\Services\Risk\NumberLimitProvisioningService::class)->provision($draw);
+
         $selections = [
-            new BulkBetSelectionData(marketKey: 'top_3', number: '789', stake: '100.00'),
+            // Canonical market key: 'top_3' names the same 3d_direct market
+            // in the platform's own vocabulary (config/lottery.php).
+            new BulkBetSelectionData(marketKey: '3d_direct', number: '789', stake: '100.00'),
         ];
 
         $clientKey = 'SLIP-RELEASE-' . uniqid();
@@ -336,7 +356,8 @@ class FinalProductionReadinessTest extends TestCase
 
         $this->assertEquals(1, $result->commissionsSettled);
         $this->assertEquals('50.00', $result->totalCommissionPaid);
-        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status);
+        // `status` is enum-cast (CommissionStatus): compare the stored VALUE.
+        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status->value);
     }
 
     /**
@@ -365,7 +386,10 @@ class FinalProductionReadinessTest extends TestCase
         $healthService = app(HealthCheckService::class);
 
         $live = $healthService->isLive();
-        $this->assertEquals('UP', $live['status']);
+        // The service's public contract normalizes the probe's UP to
+        // 'healthy' (HealthEndpointTest asserts the same); the raw 'UP'
+        // vocabulary belongs to the lower-level framework probe.
+        $this->assertEquals('healthy', $live['status']);
 
         $ready = $healthService->isReady();
         $this->assertTrue($ready['ready']);

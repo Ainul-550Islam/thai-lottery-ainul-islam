@@ -22,6 +22,7 @@ use App\Http\Controllers\NationalLotteryController;
 use App\Http\Controllers\NotificationCenterController;
 use App\Http\Controllers\PcsoLotteryController;
 use App\Http\Controllers\Player\PlayerSecuritySettingsController;
+use App\Http\Controllers\PublicAndroidApkController;
 use App\Http\Controllers\PublicDownloadAppController;
 use App\Http\Controllers\PublicFaqController;
 use App\Http\Controllers\PublicGradeController;
@@ -114,6 +115,30 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/bets', [PlayerWebController::class, 'bets'])->name('player.bets');
 
     Route::get('/wallet', [PlayerWebController::class, 'wallet'])->name('player.wallet');
+
+    /*
+    | Cash <-> Win wallet conversion (the priced conversion lane).
+    |
+    | The page renders even when the lane is closed, with the controls replaced
+    | by an explanation — see WalletConversionPageController. The quote round-trip
+    | moves nothing; the execute POST is the money-moving write and therefore
+    | carries the idempotency middleware, which refuses a keyless request before
+    | a controller can run.
+    */
+    Route::middleware('conversion.enabled')->group(function (): void {
+        Route::get('/wallet/convert', [\App\Http\Controllers\Wallet\WalletConversionPageController::class, 'index'])
+            ->name('player.wallet.conversion');
+        Route::get('/wallet/convert/preview', [\App\Http\Controllers\Wallet\WalletConversionPageController::class, 'preview'])
+            ->name('player.wallet.conversion.preview');
+        Route::post('/wallet/convert/quote', [\App\Http\Controllers\Wallet\WalletConversionActionController::class, 'quote'])
+            ->name('player.wallet.conversion.quote');
+        Route::post('/wallet/convert', [\App\Http\Controllers\Wallet\WalletConversionActionController::class, 'store'])
+            ->middleware('conversion.idempotency')
+            ->name('player.wallet.conversion.store');
+        Route::get('/wallet/convert/{reference}', [\App\Http\Controllers\Wallet\WalletConversionPageController::class, 'show'])
+            ->where('reference', '[A-Za-z0-9_\-]{1,64}')
+            ->name('player.wallet.conversion.show');
+    });
 
     Route::get('/deposit', [PlayerWebController::class, 'deposit'])->name('player.deposit');
     Route::get('/deposit/status/{deposit}', [PlayerWebController::class, 'depositStatus'])
@@ -682,6 +707,26 @@ Route::get('/app', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('app');
 
+/*
+|--------------------------------------------------------------------------
+| Signed Android APK artifact (FINAL: fail-closed release distribution)
+|--------------------------------------------------------------------------
+|
+| Serves the deployed release binary at the exact path android/README.md
+| documents. Nothing is served unless AndroidApkReleaseService verifies that
+| app/thai-apk.apk and app/thai-apk.manifest.json agree on package identity,
+| version, destination URL, archive structure, byte length, and SHA-256.
+| Missing, malformed, or tampered artifacts answer 404 - never a fallback.
+|
+*/
+Route::get('/app/thai-apk.apk', [PublicAndroidApkController::class, 'apk'])
+    ->middleware('public.legal')
+    ->name('app.thai-apk');
+
+Route::get('/app/thai-apk.manifest.json', [PublicAndroidApkController::class, 'manifest'])
+    ->middleware('public.legal')
+    ->name('app.thai-apk.manifest');
+
 // XML sitemap (FINAL AUDIT #15): canonical public URLs only — no auth,
 // admin, API, search-form, payment-return or legacy .php duplicates.
 // Read-only and cacheable.
@@ -728,7 +773,9 @@ Route::middleware('auth')->group(function (): void {
 
 // User-facing locale switch route (session & cookie persistence)
 Route::get('/locale/{locale}', function (string $locale) {
-    if (in_array($locale, ['en', 'th'], true)) {
+    // Validated through SupportedLocale, the single source of truth the
+    // SetLocale middleware also uses.
+    if (\App\Support\SupportedLocale::isSupported($locale)) {
         session(['locale' => $locale]);
         cookie()->queue(cookie('locale', $locale, 60 * 24 * 365));
     }

@@ -15,6 +15,8 @@ use App\Exceptions\WithdrawalException;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
+use App\Services\Compliance\MoneyFlowAmlObservationService;
+use App\Services\Compliance\RealMoneyGate;
 use App\Services\Compliance\WithdrawalKycGateService as ComplianceKycGate;
 use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use Illuminate\Database\QueryException;
@@ -82,6 +84,14 @@ final class WithdrawalService
         ?string $idempotencyKey = null,
         array $options = [],
     ): Withdrawal {
+        // REAL-MONEY LAUNCH GATE: a closed gate refuses the request before
+        // anything is recorded or moved. The import of RealMoneyGate has
+        // been here since the gate shipped; this call is what makes it a
+        // gate rather than a decoration. Tests\TestCase opens the gate for
+        // the money suites; RealMoneyGateTest closes it deliberately and
+        // proves this refusal moves nothing.
+        app(RealMoneyGate::class)->assertOpen('withdrawal');
+
         $amount->assertPositive('withdrawal amount');
         Money::assertExactArithmeticIsAvailable();
 
@@ -178,6 +188,28 @@ final class WithdrawalService
                 }
 
                 throw $exception;
+            }
+
+            // AML OBSERVATION (Part 61): the withdrawal flow really calls
+            // the observation, inside the same transaction, so an accepted
+            // request and its observation commit or roll back together.
+            // In the default `log` mode this records and never refuses; in
+            // `enforce` mode a Critical verdict throws and the request is
+            // rolled back with it — which is the point of enforce mode.
+            /** @var User|null $owner */
+            $owner = User::query()->find((int) $lockedWallet->user_id);
+
+            if ($owner instanceof User) {
+                app(MoneyFlowAmlObservationService::class)->observe(
+                    $owner,
+                    MoneyFlowAmlObservationService::FLOW_WITHDRAWAL,
+                    [
+                        'amount' => $amount->toString(),
+                        'currency' => $amount->currency()->value,
+                        'withdrawal_id' => (int) $withdrawal->getKey(),
+                        'reference_number' => (string) $withdrawal->reference_number,
+                    ],
+                );
             }
 
             return $withdrawal;

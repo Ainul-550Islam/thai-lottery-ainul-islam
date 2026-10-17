@@ -141,6 +141,20 @@ final class WithdrawalCompletionService
             // 4. Consume it. Releases exactly the request amount, never more.
             $unlockedWallet = $this->holds->consume($wallet, $amount);
 
+            // A caller may have seated an ADDITIONAL reservation against the
+            // same wallet outside the approval lane (the enterprise slip
+            // flow reserves at request time, before approval reserved again).
+            // When it declares so, give that duplicate back: completion owns
+            // exactly one reservation, and a second one left locked after
+            // the debit would strand money with no owner.
+            if (($options['release_external_reservation'] ?? false) === true) {
+                $stillHeld = $this->holds->heldAmount($unlockedWallet);
+
+                if ($stillHeld->isGreaterThanOrEqualTo($amount)) {
+                    $unlockedWallet = $this->holds->release($unlockedWallet, $amount);
+                }
+            }
+
             // 5. Debit through the engine. Posts the balanced double entry.
             $key = $idempotencyKey ?? $this->idempotencyKeyFor($current);
 

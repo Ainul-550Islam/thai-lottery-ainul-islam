@@ -59,6 +59,20 @@ return [
 
     'currency' => (string) env('FEES_CURRENCY', 'THB'),
 
+    /*
+    |----------------------------------------------------------------------
+    | Wallet conversion execution tariff (live)
+    |----------------------------------------------------------------------
+    | Whole-percent strings naming what the conversion engine ACTUALLY
+    | charges. The public rows in 'categories' mirror these paths through
+    | their 'execution' key, so the fee the page publishes and the fee the
+    | engine charges are one number read two ways (display == execution).
+    */
+    'conversion' => [
+        'cash_to_win_percentage' => (string) env('FEES_CONVERSION_CASH_TO_WIN_PERCENTAGE', '1.00'),
+        'win_to_cash_percentage' => (string) env('FEES_CONVERSION_WIN_TO_CASH_PERCENTAGE', '1.00'),
+    ],
+
     // Bumped whenever a fee row's economic meaning changes ('2' = provider
     // rows + grouped public schedule restructure).
     'rule_version' => (string) env('FEES_RULE_VERSION', '2'),
@@ -239,7 +253,7 @@ return [
             'provider' => null,
             'description_key' => 'account_services.fees_description_cash_to_win',
             'description' => 'Conversion fee when moving balance from cash to win wallet.',
-            'execution' => null,
+            'execution' => 'fees.conversion.cash_to_win_percentage',
         ],
 
         'win_to_cash' => [
@@ -259,7 +273,7 @@ return [
             'provider' => null,
             'description_key' => 'account_services.fees_description_win_to_cash',
             'description' => 'Conversion fee when moving balance from win to cash wallet.',
-            'execution' => null,
+            'execution' => 'fees.conversion.win_to_cash_percentage',
         ],
 
         'personal_to_agent' => [

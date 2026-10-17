@@ -44,6 +44,52 @@ class BulkBetService
     }
 
     /**
+     * Acceptance-name alias of purchase(): the enterprise callers pass the
+     * User model and the Draw model rather than ids. The slip semantics are
+     * identical (per-item derived keys, per-item isolation); the result is
+     * wrapped so callers can read the placed bets as a collection.
+     *
+     * @param  list<\App\DTOs\Betting\BulkBetSelectionData>  $selections
+     */
+    public function placeBulkBet(\App\Models\User $user, \App\Models\Draw $draw, array $selections, string $clientKey): object
+    {
+        $report = $this->purchase((int) $user->getKey(), (int) $draw->getKey(), $selections, $clientKey);
+
+        $bets = [];
+
+        foreach ($report['items'] as $item) {
+            if ($item['bet_id'] !== null) {
+                $bet = \App\Models\Bet::query()->find($item['bet_id']);
+
+                if ($bet instanceof \App\Models\Bet) {
+                    $bets[] = $bet;
+                }
+            }
+        }
+
+        return new class($report, $bets)
+        {
+            /**
+             * @param  array<string, mixed>  $report
+             * @param  list<\App\Models\Bet>  $bets
+             */
+            public function __construct(
+                public readonly array $report,
+                public readonly array $bets,
+            ) {}
+
+            /** Total stake across the placed (and replayed) bets. */
+            public function __get(string $name): mixed
+            {
+                return $this->report['total_charged'] ?? match ($name) {
+                    'totalStake' => '0.00',
+                    default => null,
+                };
+            }
+        };
+    }
+
+    /**
      * Quote a slip: per-item computation + aggregate totals, no money.
      *
      * @param  list<\App\DTOs\Betting\BulkBetSelectionData>  $selections

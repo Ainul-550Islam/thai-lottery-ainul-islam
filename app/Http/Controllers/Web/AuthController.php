@@ -9,33 +9,16 @@ use App\Enums\UserStatus;
 use App\Enums\WalletStatus;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Rules\StrongPasswordRule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
  * Web session authentication controller for players.
- *
- * Part 68 — STATUS: LEGACY AND UNROUTED. Nothing in routes/*.php maps to this
- * class (`grep -rn "Web\\AuthController" app/ routes/ tests/` finds only the
- * comment in RegistrationService that says it was extracted from here). The
- * live registration door is MemberAuthController::register, which carries
- * `throttle:register`, `ip-access`, `honeypot:register` and `bot`.
- *
- * It is deliberately NOT deleted: removing a class is a consolidation decision
- * that needs sign-off, and leaving it in place costs nothing while it stays
- * unrouted. What has changed is that it can no longer be a weak door if it is
- * ever routed: the password rule is the centralised StrongPasswordRule.
- *
- * It is still NOT equivalent to the routed path — it writes the user row and
- * the hash itself instead of going through RegistrationService, and it has no
- * throttle, honeypot, bot or CAPTCHA middleware of its own. Do not route it
- * as-is; route MemberAuthController, or migrate this body to RegistrationService
- * first.
  */
 final class AuthController
 {
@@ -73,13 +56,7 @@ final class AuthController
             'username' => ['required', 'string', 'min:3', 'max:30', 'unique:users,username', 'alpha_dash'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
-            // Part 68: this surface used a weaker local policy than every other
-            // registration form. `Password::min(8)->letters()->numbers()` ignores
-            // `config('auth_security.passwords.*')` and the common-password
-            // denylist that StrongPasswordRule applies, so an operator tightening
-            // the central policy would have tightened everywhere except here.
-            // The rule is now the same object the routed surfaces use.
-            'password' => ['required', 'string', 'max:255', 'confirmed', new StrongPasswordRule],
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'terms' => ['required', 'accepted'],
         ]);
 

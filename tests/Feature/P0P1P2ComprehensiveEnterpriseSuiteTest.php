@@ -52,10 +52,11 @@ use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use App\Services\Security\KycVerificationService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -91,7 +92,14 @@ use Tests\TestCase;
  */
 final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
 {
-    use RefreshDatabase;
+    // DatabaseTruncation, NOT RefreshDatabase: RefreshDatabase wraps every
+    // test in an outer transaction, and the bet-purchase pipeline refuses to
+    // run inside somebody else's transaction ("a bet purchase must own its
+    // own database transaction") — so under RefreshDatabase no purchase in
+    // this suite could ever execute. The green purchase suites
+    // (BetPurchaseAtomicityTest et al.) use DatabaseTruncation for exactly
+    // this reason; tables are truncated between tests instead.
+    use DatabaseTruncation;
 
     // =========================================================================
     // P0: BUSINESS-CRITICAL & ARCHITECTURAL VERIFICATION
@@ -149,9 +157,32 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
 
     public function test_p0_02_glo_proportional_payout_and_direct_wallet_settlement(): void
     {
+        // The 2,985,000.00 net first prize legitimately exceeds the default
+        // 1,000,000.00 per-wallet ceiling (config/finance.php
+        // FINANCE_MAX_WALLET_BALANCE): that ceiling is an operator safety cap,
+        // not a prize rule, so the test raises it the way an operator would
+        // rather than asking the engine to bypass it.
+        config(['finance.wallet.max_balance' => '10000000.00']);
+
         $player = User::factory()->create([
             'kyc_status' => KycStatus::VERIFIED,
             'date_of_birth' => '1995-05-15',
+        ]);
+
+        // Identity verification is evidenced by a VERIFIED KYC document: the
+        // User::kycStatus() method derives standing from KYC documents and a
+        // bare `kyc_status` column value is not evidence. The original setup
+        // set only the column, so the engine (correctly) refused to disburse;
+        // the verified document the flow would actually hold is created here.
+        KycDocument::query()->create([
+            'user_id' => $player->id,
+            'document_type' => KycDocumentType::NATIONAL_ID,
+            'file_path' => 'kyc_private/' . $player->id . '/verified.enc',
+            'mime_type' => 'application/pdf',
+            'file_size' => 102400,
+            'status' => KycStatus::VERIFIED,
+            'submitted_at' => Carbon::now()->subDays(2),
+            'verified_at' => Carbon::now()->subDay(),
         ]);
         $operator = User::factory()->create(['status' => 'active']);
 
@@ -227,6 +258,35 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
 
     public function test_p0_03_payment_hub_deposit_and_withdrawal_execution(): void
     {
+        // bKash is an opt-in, BDT-only rail (config/payment.php): the original
+        // setup left it disabled and asked it for THB, which the capability
+        // gate correctly refuses. The rail is enabled here and the run is
+        // denominated in BDT, the currency the rail actually settles — every
+        // amount in this test is currency-agnostic arithmetic (2500 deposit,
+        // 1000 withdrawal, 1500 remaining).
+        config([
+            'payment.gateways.bkash.enabled' => true,
+            'payment.gateways.bkash.app_key' => 'bkash_app_key',
+            'payment.gateways.bkash.app_secret' => 'mock_bkash_webhook_secret_12345',
+            'payment.gateways.bkash.webhook_secret' => 'mock_bkash_webhook_secret_12345',
+            'payment.gateways.bkash.username' => 'bkash_user',
+            'payment.gateways.bkash.password' => 'bkash_password',
+            'payment.deposit.allowed_methods' => ['bkash'],
+        ]);
+
+        // The gateway performs two real HTTPS calls (token grant, checkout
+        // create); fake both at the documented response shapes, the same way
+        // the gateway's own unit tests do. Nothing else about the run is
+        // simulated: initiation, deposit row, webhook completion, wallet
+        // credit, hold and disbursement are all the production code path.
+        Http::fake([
+            '*/tokenized/checkout/token/grant' => Http::response(['id_token' => 'mock_bkash_token_123'], 200),
+            '*/tokenized/checkout/create' => Http::response([
+                'paymentID' => 'TRX_BKASH_HUB_001',
+                'bkashURL' => 'https://sandbox.bkash.com/checkout/TRX_BKASH_HUB_001',
+            ], 200),
+        ]);
+
         $user = User::factory()->create();
         $operator = User::factory()->create();
 
@@ -237,7 +297,7 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $depositInit = $paymentHub->initiateDeposit($user, [
             'amount' => '2500.00',
             'channel' => 'bkash',
-            'currency' => 'THB',
+            'currency' => 'BDT',
         ], 'IDEM-DEP-BKASH-001');
 
         $this->assertNotEmpty($depositInit['redirect_url']);
@@ -245,38 +305,61 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
 
         // Inbound Deposit webhook execution
         $completedTx = $paymentHub->completeDeposit('IDEM-DEP-BKASH-001', 'BKASH-TRX-882711');
-        $this->assertSame(PaymentStatus::COMPLETED, $completedTx->status);
+        // financial_transactions.status is a TransactionStatus column; the
+        // completion fact is asserted in that enum's own vocabulary.
+        // (PaymentStatus::COMPLETED is an alias of PaymentStatus::Captured —
+        // the PAYMENT aggregate's word, not the ledger row's.)
+        $this->assertSame(\App\Enums\TransactionStatus::Completed, $completedTx->status);
 
         /** @var WalletService $walletService */
         $walletService = $this->app->make(WalletService::class);
-        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
+        $wallet = $walletService->getOrCreateWallet($user, Currency::BDT);
         $this->assertSame('2500.00', (string) $wallet->balance);
 
         // Outbound Withdrawal Disbursement
-        $withdrawal = Withdrawal::query()->create([
+        // The row is seated APPROVED with the reservation below: in the
+        // canonical lifecycle approve() is the step that seats the hold, so
+        // "hand-made hold + Pending row" would double-reserve (approve would
+        // stack a second hold, and completion consumes exactly one).
+        // `requested_at` is also deliberately not mass-assignable on
+        // Withdrawal — the lifecycle timestamp is written by the service
+        // layer — so the hand-made row uses forceFill, the codebase's
+        // explicit assignment escape hatch, instead of widening the guard.
+        $withdrawal = (new Withdrawal())->forceFill([
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'reference_number' => 'WD-HUB-001',
             'amount' => '1000.00',
             'fee' => '0.00',
             'net_amount' => '1000.00',
-            'currency' => Currency::THB,
+            'currency' => Currency::BDT,
             'method' => 'bank_transfer',
             'destination_details' => ['bank' => 'Bangkok Bank', 'account' => '998-112-334'],
-            'status' => WithdrawalStatus::PENDING,
+            'status' => WithdrawalStatus::Approved,
             'requested_at' => Carbon::now(),
         ]);
+        $withdrawal->save();
 
         // Hold balance for withdrawal
         /** @var WalletHoldService $holdService */
         $holdService = $this->app->make(WalletHoldService::class);
         $holdService->hold($wallet, '1000.00', 'withdrawal', 'WD-HUB-001');
 
+        // The disbursement lane refuses a still-PENDING withdrawal while
+        // manual approval is required (config/finance.php
+        // finance.withdrawal.require_manual_approval = true); this row is
+        // already Approved, and bank_transfer payout is an opt-in rail (same
+        // enabled-flag family WithdrawalDestinationValidationTest sets).
+        config([
+            'finance.withdrawal.require_manual_approval' => false,
+            'payment.gateways.bank_transfer.enabled' => true,
+        ]);
+
         $paymentHub->disburseWithdrawal($withdrawal, $operator);
 
         $withdrawal->refresh();
         $wallet->refresh();
-        $this->assertSame(WithdrawalStatus::COMPLETED, $withdrawal->status);
+        $this->assertSame(WithdrawalStatus::Completed, $withdrawal->status);
         $this->assertSame('1500.00', (string) $wallet->balance);
         $this->assertSame('0.00', (string) $wallet->locked_balance);
     }
@@ -324,11 +407,21 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
 
         $walletService->credit($wallet, '500.00', 'deposit', 'D-1', 'Seed');
 
+        // The purchase pipeline reserves capacity against a per-draw number
+        // limit row; draws acquire those rows through the canonical
+        // provisioning service (the same step draw opening performs). The
+        // original setup created the draw bare, so the pipeline correctly
+        // refused to reserve against a limit that does not exist.
+        $this->app->make(\App\Services\Risk\NumberLimitProvisioningService::class)->provision($draw);
+
         /** @var BulkBetService $bulkService */
         $bulkService = $this->app->make(BulkBetService::class);
 
         $items = [
-            new BulkBetSelectionData(market: 'two_digit_top', number: '19', stake: '100.00', potentialPayout: '9000.00'),
+            // Market key: the canonical name the purchase pipeline declares is
+            // `2d_top` (the enterprise slip label was `two_digit_top`); this is
+            // the same two-digit-top market, named the platform way.
+            new BulkBetSelectionData(market: '2d_top', number: '19', stake: '100.00', potentialPayout: '9000.00'),
         ];
 
         $key = 'UNIQUE-SLIP-TOKEN-001';
@@ -436,7 +529,11 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $this->assertSame(KycStatus::PENDING, $doc->status);
 
         $doc->update(['status' => KycStatus::VERIFIED, 'verified_at' => Carbon::now()]);
-        $user->update(['kyc_status' => KycStatus::VERIFIED]);
+        // `kyc_status` is deliberately NOT mass-assignable on User: standing is
+        // derived from KYC documents (User::kycStatus()), so writing the column
+        // alone proves nothing. forceFill performs the same explicit assignment
+        // the codebase already uses for lifecycle columns.
+        $user->forceFill(['kyc_status' => KycStatus::VERIFIED])->save();
 
         $this->assertSame(KycStatus::VERIFIED, $user->fresh()->kyc_status);
     }
@@ -529,6 +626,11 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
             'currency' => Currency::THB,
         ]);
 
+        // The settlement engine credits the agent's canonical THB wallet
+        // (created the platform way). The original setup never created one,
+        // so the engine correctly refused to pay; the wallet is created here.
+        $this->app->make(WalletService::class)->getOrCreateWallet($agentUser, Currency::THB);
+
         /** @var AgentSettlementService $settleService */
         $settleService = $this->app->make(AgentSettlementService::class);
         $settleService->settleDrawCommissions($draw);
@@ -536,7 +638,9 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $comm->refresh();
         $agent->refresh();
 
-        $this->assertSame('paid', (string) $comm->status);
+        // `status` is enum-cast on AgentCommission (CommissionStatus): the
+        // stored VALUE is what the assertion compares.
+        $this->assertSame('paid', $comm->status->value);
         $this->assertSame('500.00', (string) $agent->total_commission_paid);
     }
 }

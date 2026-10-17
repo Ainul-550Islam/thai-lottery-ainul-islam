@@ -87,6 +87,16 @@ class FinancialReconciliationService
      * @param  Currency|null  $currency  currency to reconcile; null = platform default
      * @param  string|null  $initiatedBy  operator/actor label for the audit row
      */
+    /**
+     * Enterprise-name alias of reconcile(): the invariant suites ask for a
+     * whole-system reconciliation over an explicit period. Same engine, same
+     * report — the alias exists so callers name the scope they mean.
+     */
+    public function reconcileSystem(Carbon $from, Carbon $to): FinancialReconciliationReport
+    {
+        return $this->reconcile($from, $to);
+    }
+
     public function reconcile(
         ?Carbon $from = null,
         ?Carbon $to = null,

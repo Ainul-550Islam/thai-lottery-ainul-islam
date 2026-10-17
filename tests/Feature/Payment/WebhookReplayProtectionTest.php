@@ -48,7 +48,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
     /**
      * @return array{payload: array<string, mixed>, header: string}
      */
-    private function signedStripeDelivery(string $reference, string $eventId): array
+    private function signedStripeDelivery(string $reference, string $eventId, string $amount = '1000.00'): array
     {
         $timestamp = time();
 
@@ -59,7 +59,13 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 'object' => [
                     'id' => 'cs_test_'.$eventId,
                     'client_reference_id' => $reference,
-                    'amount_total' => 100000,
+                    // Stripe reports the smallest currency unit. This must
+                    // be the DEPOSIT's amount: the handler refuses an
+                    // amount mismatch (correctly — it is a money check),
+                    // so a helper that always signed for 1000.00 made
+                    // every differently-sized deposit fail for a reason
+                    // unrelated to replay protection.
+                    'amount_total' => (int) bcmul($amount, '100', 0),
                     'currency' => 'thb',
                 ],
             ],
@@ -128,7 +134,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '750.00', PaymentMethod::Stripe);
 
-        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_replay_002');
+        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_replay_002', '750.00');
 
         $this->withHeaders(['Stripe-Signature' => $delivery['header']])
             ->postJson('/api/v1/payments/webhook/stripe', $delivery['payload'])
@@ -159,7 +165,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '300.00', PaymentMethod::Stripe);
 
-        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_replay_003');
+        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_replay_003', '300.00');
 
         $this->withHeaders(['Stripe-Signature' => $delivery['header']])
             ->postJson('/api/v1/payments/webhook/stripe', $delivery['payload'])
@@ -192,8 +198,8 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $depositA = $this->createPendingDeposit($player['wallet'], '100.00', PaymentMethod::Stripe);
         $depositB = $this->createPendingDeposit($player['wallet'], '200.00', PaymentMethod::Stripe);
 
-        $deliveryA = $this->signedStripeDelivery($depositA->reference_number, 'evt_distinct_a');
-        $deliveryB = $this->signedStripeDelivery($depositB->reference_number, 'evt_distinct_b');
+        $deliveryA = $this->signedStripeDelivery($depositA->reference_number, 'evt_distinct_a', '100.00');
+        $deliveryB = $this->signedStripeDelivery($depositB->reference_number, 'evt_distinct_b', '200.00');
 
         $this->withHeaders(['Stripe-Signature' => $deliveryA['header']])
             ->postJson('/api/v1/payments/webhook/stripe', $deliveryA['payload'])
@@ -219,7 +225,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Stripe);
 
-        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_shared_bytes');
+        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_shared_bytes', '400.00');
 
         // Stripe, under Stripe's header.
         $this->withHeaders(['Stripe-Signature' => $delivery['header']])
@@ -256,7 +262,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '250.00', PaymentMethod::Stripe);
 
-        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_guard_off');
+        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_guard_off', '250.00');
 
         $this->withHeaders(['Stripe-Signature' => $delivery['header']])
             ->postJson('/api/v1/payments/webhook/stripe', $delivery['payload'])
@@ -347,7 +353,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '150.00', PaymentMethod::Stripe);
 
-        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_keeps_claim');
+        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_keeps_claim', '150.00');
 
         $this->withHeaders(['Stripe-Signature' => $delivery['header']])
             ->postJson('/api/v1/payments/webhook/stripe', $delivery['payload'])
@@ -403,9 +409,14 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 "VerifyWebhookSignature must be on {$name}: a guard that is not attached to a route protects nothing",
             );
 
-            $this->assertContains(
-                ThrottleRequests::class,
-                $middleware,
+            // gatherRouteMiddleware() returns parameterised entries
+            // ("ThrottleRequests:webhook"), so pin the class part.
+            $this->assertNotEmpty(
+                array_filter(
+                    $middleware,
+                    static fn (string $entry): bool => $entry === ThrottleRequests::class
+                        || str_starts_with($entry, ThrottleRequests::class.':'),
+                ),
                 "the flood limiter must still be on {$name}",
             );
         }
@@ -541,7 +552,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
         $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '100.00', PaymentMethod::Stripe);
 
-        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_unsigned');
+        $delivery = $this->signedStripeDelivery($deposit->reference_number, 'evt_unsigned', '100.00');
 
         $response = $this->postJson('/api/v1/payments/webhook/stripe', $delivery['payload']);
 
