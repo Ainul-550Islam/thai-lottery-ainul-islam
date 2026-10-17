@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-horizon
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}-horizon
+spec:
+  replicas: {{ .Values.horizon.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Release.Name }}-horizon
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Release.Name }}-horizon
+    spec:
+      containers:
+        - name: horizon
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["php", "artisan", "horizon"]
+          resources:
+            {{- toYaml .Values.horizon.resources | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-config
+            - secretRef:
+                name: {{ .Release.Name }}-secrets

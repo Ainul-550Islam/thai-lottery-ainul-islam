@@ -4,110 +4,57 @@ declare(strict_types=1);
 
 namespace App\Services\Bot;
 
-use App\Services\Bot\DTOs\BotDecisionData;
-use App\Services\Bot\DTOs\SignalResult;
-use App\Services\Bot\Enums\BotDecision;
-use Illuminate\Contracts\Config\Repository;
-use InvalidArgumentException;
+use App\Enums\BotDecision;
 
-/** No request, database, cache, log, CAPTCHA or money side effects. */
-final class BotScoreCalculator
+/**
+ * Class BotScoreCalculator
+ *
+ * Computes normalized weighted aggregate bot score and maps to policy decisions.
+ */
+class BotScoreCalculator
 {
-    public function __construct(private readonly Repository $config) {}
-
-    /** @param iterable<SignalResult> $signals */
-    public function calculate(iterable $signals): BotDecisionData
+    /**
+     * Compute weighted score (0 to 100) from evaluated signals.
+     *
+     * @param array<string, array{score: float, weight: int, reason_code: string|null, metadata: array<string, mixed>}> $signalResults
+     * @return array{score: int, decision: BotDecision, reason_codes: array<int, string>}
+     */
+    public function calculate(array $signalResults): array
     {
-        $mode = $this->mode($this->config->get('bot.mode', 'log'));
-        $enabled = $this->config->get('bot.enabled', true);
-        if (! is_bool($enabled)) {
-            throw new InvalidArgumentException('bot.enabled must be boolean.');
-        }
+        $totalWeight = 0;
+        $weightedSum = 0.0;
+        $reasonCodes = [];
 
-        $challenge = $this->integer($this->config->get('bot.thresholds.challenge', 40), 1, 100);
-        $block = $this->integer($this->config->get('bot.thresholds.block', 80), 1, 100);
-        if ($challenge >= $block) {
-            throw new InvalidArgumentException('Challenge threshold must be below block threshold.');
-        }
+        foreach ($signalResults as $result) {
+            $weight = $result['weight'];
+            $score = $result['score'];
 
-        if (! $enabled) {
-            return new BotDecisionData(0, BotDecision::Allow, [], BotDecision::Allow, 0, $mode);
-        }
+            $totalWeight += $weight;
+            $weightedSum += ($score * $weight);
 
-        $score = 0;
-        $enforcementScore = 0;
-        $reasons = [];
-        $seen = [];
-        foreach ($signals as $result) {
-            if (! $result instanceof SignalResult) {
-                throw new InvalidArgumentException('Expected a SignalResult.');
-            }
-            if (isset($seen[$result->signal])) {
-                throw new InvalidArgumentException('A signal cannot be counted twice.');
-            }
-            $seen[$result->signal] = true;
-
-            $settings = $this->config->get('bot.signals.'.$result->signal);
-            if (! is_array($settings)) {
-                throw new InvalidArgumentException('Bot signal is not configured.');
-            }
-            $signalMode = $this->mode($settings['mode'] ?? 'log');
-            if (! is_bool($settings['enabled'] ?? null)) {
-                throw new InvalidArgumentException('Signal enabled flag must be boolean.');
-            }
-            $weight = $this->integer($settings['weight'] ?? null, 0, 100);
-            if (! $settings['enabled']) {
-                continue;
-            }
-
-            // Integer half-up rounding; strength=100 contributes the configured weight.
-            $points = intdiv($weight * $result->strength + 50, 100);
-            if ($points === 0) {
-                continue;
-            }
-            $score = min(100, $score + $points);
-            if ($signalMode === 'enforce') {
-                $enforcementScore = min(100, $enforcementScore + $points);
-            }
-            foreach ($result->reasons as $reason) {
-                $reasons[$reason] = true;
+            if ($result['reason_code'] !== null && $score > 0.40) {
+                $reasonCodes[] = $result['reason_code'];
             }
         }
 
-        return new BotDecisionData(
-            $score,
-            $mode === 'enforce' ? $this->decision($enforcementScore, $challenge, $block) : BotDecision::Allow,
-            array_keys($reasons),
-            $this->decision($score, $challenge, $block),
-            $enforcementScore,
-            $mode,
-        );
-    }
+        $finalScore = $totalWeight > 0
+            ? (int) round(($weightedSum / $totalWeight) * 100)
+            : 0;
 
-    private function decision(int $score, int $challenge, int $block): BotDecision
-    {
-        return match (true) {
-            $score >= $block => BotDecision::Block,
-            $score >= $challenge => BotDecision::Challenge,
-            default => BotDecision::Allow,
+        $challengeThreshold = (int) config('bot.challenge_threshold', 45);
+        $blockThreshold = (int) config('bot.block_threshold', 80);
+
+        $decision = match (true) {
+            $finalScore >= $blockThreshold => BotDecision::BLOCK,
+            $finalScore >= $challengeThreshold => BotDecision::CHALLENGE,
+            $finalScore >= 30 => BotDecision::THROTTLE,
+            default => BotDecision::ALLOW,
         };
-    }
 
-    private function mode(mixed $mode): string
-    {
-        if (! is_string($mode) || ! in_array($mode, ['log', 'enforce'], true)) {
-            throw new InvalidArgumentException('Bot mode must be log or enforce.');
-        }
-
-        return $mode;
-    }
-
-    private function integer(mixed $value, int $minimum, int $maximum): int
-    {
-        if (! is_int($value) || $value < $minimum || $value > $maximum) {
-            throw new InvalidArgumentException('Invalid bot weight or threshold.');
-        }
-
-        return $value;
+        return [
+            'score' => min(100, max(0, $finalScore)),
+            'decision' => $decision,
+            'reason_codes' => array_values(array_unique($reasonCodes)),
+        ];
     }
 }

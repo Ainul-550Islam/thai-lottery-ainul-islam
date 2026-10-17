@@ -1,0 +1,9 @@
+apiVersion: v2
+name: thai-lottery-ledger
+description: Production Helm chart for Thai Lottery Financial Ledger, GLO Result Settlement & Security Suite
+type: application
+version: 1.0.0
+appVersion: "2026.10.16"
+maintainers:
+  - name: Ainul Islam
+    email: ainul@thai-lottery.internal

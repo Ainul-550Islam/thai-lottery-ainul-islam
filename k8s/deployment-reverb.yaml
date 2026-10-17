@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fintech-reverb-deployment
+  namespace: fintech-production
+  labels:
+    app: fintech-reverb
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: fintech-reverb
+  template:
+    metadata:
+      labels:
+        app: fintech-reverb
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: reverb-server
+          image: ghcr.io/ainul-550islam/thai-lottery-app:latest
+          command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+          ports:
+            - containerPort: 8080
+              name: ws
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          envFrom:
+            - configMapRef:
+                name: fintech-config
+            - secretRef:
+                name: fintech-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fintech-reverb-service
+  namespace: fintech-production
+spec:
+  type: ClusterIP
+  selector:
+    app: fintech-reverb
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: ws

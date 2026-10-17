@@ -4,125 +4,83 @@ declare(strict_types=1);
 
 namespace App\Services\Bot;
 
+use App\DTOs\Security\BotDecisionData;
+use App\Events\BotBlocked;
+use App\Events\BotSuspected;
 use App\Services\Bot\Contracts\BotSignal;
-use App\Services\Bot\DTOs\BotDecisionData;
-use App\Services\Bot\DTOs\SignalResult;
-use App\Services\Bot\Enums\BotDecision;
-use Illuminate\Contracts\Config\Repository;
+use App\Services\Bot\Signals\DeviceReuseSignal;
+use App\Services\Bot\Signals\FailedAuthenticationSignal;
+use App\Services\Bot\Signals\FormTimingSignal;
+use App\Services\Bot\Signals\HeaderConsistencySignal;
+use App\Services\Bot\Signals\RequestVelocitySignal;
+use App\Services\Bot\Signals\UserAgentSignal;
 use Illuminate\Http\Request;
-use InvalidArgumentException;
-use LogicException;
-use Psr\Log\LoggerInterface;
-use RuntimeException;
-use Throwable;
-use WeakMap;
+use Illuminate\Support\Str;
 
 /**
- * Explicit composition root: supply configured signal-name => BotSignal pairs.
- * Register this as a singleton/scoped service when wiring route middleware.
- * WeakMap prevents duplicate token consumption/rate hits within the SAME service
- * instance and Request object, without retaining long-lived worker requests.
- * Not a middleware, financial gate, CAPTCHA verifier or durable SecurityEvent store.
+ * Class BotDetectionService
+ *
+ * Orchestrator service evaluating composable signals to make canonical bot abuse decisions.
  */
-final class BotDetectionService
+class BotDetectionService
 {
-    /** @var WeakMap<Request, BotDecisionData> */
-    private WeakMap $decisions;
+    /** @var array<int, BotSignal> */
+    private array $signals;
 
-    /** @param array<string, BotSignal> $signals */
     public function __construct(
-        private readonly Repository $config,
-        private readonly BotScoreCalculator $calculator,
-        private readonly LoggerInterface $logger,
-        private readonly array $signals,
+        private readonly BotScoreCalculator $scoreCalculator,
+        private readonly DeviceFingerprintService $fingerprintService
     ) {
-        foreach ($signals as $name => $signal) {
-            if (! is_string($name) || ! $signal instanceof BotSignal) {
-                throw new InvalidArgumentException('Bot signals must be keyed BotSignal instances.');
-            }
-            new SignalResult($name, 0);
-        }
-        $this->decisions = new WeakMap;
+        $this->signals = [
+            new UserAgentSignal(),
+            new HeaderConsistencySignal(),
+            new RequestVelocitySignal(),
+            new FormTimingSignal(),
+            new FailedAuthenticationSignal(),
+            new DeviceReuseSignal(),
+        ];
     }
 
-    public function detect(Request $request): BotDecisionData
+    /**
+     * Analyze request and return an explainable BotDecisionData object.
+     */
+    public function analyze(Request $request, array $context = []): BotDecisionData
     {
-        if (isset($this->decisions[$request])) {
-            return $this->decisions[$request];
-        }
-        // Validate global config even when disabled; do not call any signal then.
-        $empty = $this->calculator->calculate([]);
-        if ($this->config->get('bot.enabled', true) === false) {
-            return $this->decisions[$request] = $empty;
-        }
-        $configured = $this->config->get('bot.signals');
-        if (! is_array($configured) || $configured === []) {
-            throw new InvalidArgumentException('A configured bot signal registry is required.');
-        }
-        $zeroes = [];
-        foreach ($configured as $name => $settings) {
-            if (! is_string($name) || ! is_array($settings)) {
-                throw new InvalidArgumentException('Invalid bot signal registry.');
-            }
-            $zeroes[] = new SignalResult($name, 0);
-            if (($settings['enabled'] ?? null) === true && ! isset($this->signals[$name])) {
-                throw new InvalidArgumentException('An enabled bot signal has no implementation.');
-            }
-        }
-        // Validate weights/modes before stateful signals mutate session/cache.
-        $this->calculator->calculate($zeroes);
-        $results = [];
-        $unavailable = [];
-        foreach ($configured as $name => $settings) {
-            if (! $settings['enabled']) {
-                continue;
-            }
-            try {
-                $result = $this->signals[$name]->score($request);
-                if ($result->signal !== $name) {
-                    throw new LogicException('Signal result does not match its registered identity.');
-                }
-                $results[] = $result;
-            } catch (LogicException $error) {
-                // Configuration/programming errors must never be disguised as low risk.
-                throw $error;
-            } catch (Throwable $error) {
-                if ($empty->mode === 'enforce' && ($settings['mode'] ?? 'log') === 'enforce') {
-                    // Future middleware must map this to service-unavailable, not a bot verdict.
-                    throw new RuntimeException('Bot evidence unavailable; enforcement assessment aborted.', 0, $error);
-                }
-                // Observation failure is explicit, not a fabricated high score or block.
-                $unavailable[] = $name;
-            }
-        }
-        $decision = $this->calculator->calculate($results);
-        if ($unavailable !== []) {
-            $decision = $this->withReason($decision, 'BOT_SIGNAL_UNAVAILABLE');
-        }
-        if ($decision->assessedDecision !== BotDecision::Allow || $unavailable !== []) {
-            try {
-                // No IP, fingerprint, submitted identifier, token, UA or exception message.
-                $this->logger->info('bot.assessment', $decision->toArray() + ['unavailable_signals' => $unavailable]);
-            } catch (Throwable $error) {
-                if ($empty->mode === 'enforce') {
-                    throw new RuntimeException('Bot observability unavailable.', 0, $error);
-                }
-                $decision = $this->withReason($decision, 'BOT_OBSERVABILITY_UNAVAILABLE');
-            }
+        $correlationId = (string) Str::uuid();
+        $deviceToken = $this->fingerprintService->generateToken($request);
+        $context['device_token'] = $deviceToken;
+
+        $signalResults = [];
+        foreach ($this->signals as $signal) {
+            $eval = $signal->evaluate($request, $context);
+            $signalResults[$signal->getKey()] = [
+                'score' => $eval['score'],
+                'weight' => $signal->getWeight(),
+                'reason_code' => $eval['reason_code'],
+                'metadata' => $eval['metadata'],
+            ];
         }
 
-        return $this->decisions[$request] = $decision;
-    }
+        $calculated = $this->scoreCalculator->calculate($signalResults);
 
-    private function withReason(BotDecisionData $decision, string $reason): BotDecisionData
-    {
-        return new BotDecisionData(
-            $decision->score,
-            $decision->decision,
-            array_values(array_unique([...$decision->reasons, $reason])),
-            $decision->assessedDecision,
-            $decision->enforcementScore,
-            $decision->mode,
+        $decisionData = new BotDecisionData(
+            score: $calculated['score'],
+            decision: $calculated['decision'],
+            reasonCodes: $calculated['reason_codes'],
+            policyVersion: (string) config('bot.policy_version', '1.0.0'),
+            correlationId: $correlationId,
+            signalDetails: $signalResults
         );
+
+        $clientIp = $request->ip() ?? '127.0.0.1';
+        $userId = $request->user()?->id ? (string) $request->user()->id : null;
+
+        if ($decisionData->decision->isBlocked()) {
+            event(new BotBlocked($clientIp, $userId, $request->path(), $decisionData));
+        } elseif ($decisionData->score >= 45) {
+            event(new BotSuspected($clientIp, $userId, $request->path(), $decisionData));
+        }
+
+        return $decisionData;
     }
 }

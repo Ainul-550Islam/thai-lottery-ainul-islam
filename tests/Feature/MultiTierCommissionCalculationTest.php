@@ -1,0 +1,107 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature;
+
+use App\Models\Agent;
+use App\Models\AgentHierarchy;
+use App\Models\CommissionLedger;
+use App\Models\CommissionRule;
+use App\Models\Draw;
+use App\Models\LotteryEntry;
+use App\Models\Wallet;
+use App\Services\Commission\MultiTierCommissionDistributionService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+class MultiTierCommissionCalculationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private MultiTierCommissionDistributionService $commissionService;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->commissionService = app(MultiTierCommissionDistributionService::class);
+    }
+
+    public function test_multi_tier_commission_distributes_upward_accurately(): void
+    {
+        // 1. Create Agents (L1 Master, L2 Direct)
+        $masterUserId = Str::uuid()->toString();
+        $directUserId = Str::uuid()->toString();
+
+        $masterAgent = Agent::create([
+            'id' => Str::uuid()->toString(),
+            'user_id' => $masterUserId,
+            'agent_code' => 'AGT-MASTER-01',
+            'tier_level' => 1,
+            'direct_commission_rate' => '10.00',
+            'status' => 'ACTIVE',
+        ]);
+        Wallet::create(['id' => Str::uuid()->toString(), 'user_id' => $masterUserId, 'type' => 'commission', 'currency' => 'THB', 'status' => 'active']);
+
+        $directAgent = Agent::create([
+            'id' => Str::uuid()->toString(),
+            'user_id' => $directUserId,
+            'agent_code' => 'AGT-DIRECT-01',
+            'parent_agent_id' => $masterAgent->id,
+            'tier_level' => 2,
+            'direct_commission_rate' => '5.00',
+            'status' => 'ACTIVE',
+        ]);
+        Wallet::create(['id' => Str::uuid()->toString(), 'user_id' => $directUserId, 'type' => 'commission', 'currency' => 'THB', 'status' => 'active']);
+
+        // 2. Closure Table setup for hierarchy
+        AgentHierarchy::create(['id' => Str::uuid()->toString(), 'ancestor_id' => $directAgent->id, 'descendant_id' => $directAgent->id, 'depth' => 0]);
+        AgentHierarchy::create(['id' => Str::uuid()->toString(), 'ancestor_id' => $masterAgent->id, 'descendant_id' => $directAgent->id, 'depth' => 1]);
+
+        // 3. Rules
+        CommissionRule::create(['id' => Str::uuid()->toString(), 'game_type' => 'ALL', 'tier_level' => 1, 'override_percentage' => '2.00', 'is_active' => true]);
+
+        // 4. Create Draw and Ticket Entry (1000 THB stake)
+        $draw = Draw::create([
+            'id' => Str::uuid()->toString(),
+            'draw_code' => 'COMM-DRAW-01',
+            'game_type' => 'THAI_6D',
+            'draw_date' => now(),
+            'betting_starts_at' => now()->subDay(),
+            'betting_ends_at' => now()->addDay(),
+            'status' => 'OPEN',
+        ]);
+
+        $entry = LotteryEntry::create([
+            'id' => Str::uuid()->toString(),
+            'draw_id' => $draw->id,
+            'user_id' => Str::uuid()->toString(),
+            'agent_id' => $directAgent->id,
+            'voucher_number' => 'VCH-COMM-001',
+            'ticket_number' => '123456',
+            'bet_type' => 'DIRECT_6D',
+            'stake_amount' => '1000.0000',
+            'status' => 'PENDING',
+            'idempotency_key' => 'IDEM-COMM-TEST-001',
+        ]);
+
+        // Execute Distribution
+        $records = $this->commissionService->distributeForEntry($entry->id);
+
+        $this->assertCount(2, $records);
+
+        // Direct Agent gets 5% of 1000 = 50 THB
+        $directLedger = CommissionLedger::where('agent_id', $directAgent->id)->first();
+        $this->assertEquals('50.0000', $directLedger->commission_amount);
+
+        // Master Agent gets 2% override of 1000 = 20 THB
+        $masterLedger = CommissionLedger::where('agent_id', $masterAgent->id)->first();
+        $this->assertEquals('20.0000', $masterLedger->commission_amount);
+
+        // Wallets credited
+        $this->assertEquals('50.0000', Wallet::where('user_id', $directUserId)->where('type', 'commission')->value('balance'));
+        $this->assertEquals('20.0000', Wallet::where('user_id', $masterUserId)->where('type', 'commission')->value('balance'));
+    }
+}

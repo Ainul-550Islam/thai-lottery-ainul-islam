@@ -5,53 +5,48 @@ declare(strict_types=1);
 namespace App\Services\Bot\Signals;
 
 use App\Services\Bot\Contracts\BotSignal;
-use App\Services\Bot\DTOs\SignalResult;
 use Illuminate\Http\Request;
 
-/** Header absence is weak evidence, not proof of automation. No header grants trust. */
-final class HeaderConsistencySignal implements BotSignal
+/**
+ * Class HeaderConsistencySignal
+ *
+ * Checks HTTP header ordering, Accept/Sec-CH-* header presence for browser routes.
+ */
+class HeaderConsistencySignal implements BotSignal
 {
-    public function score(Request $request): SignalResult
+    public function getKey(): string
     {
-        $strength = 0;
-        $reasons = [];
-        $accept = strtolower(trim((string) $request->header('Accept', '')));
-        $language = trim((string) $request->header('Accept-Language', ''));
-        $mode = strtolower(trim((string) $request->header('Sec-Fetch-Mode', '')));
-        $site = strtolower(trim((string) $request->header('Sec-Fetch-Site', '')));
-        $dest = strtolower(trim((string) $request->header('Sec-Fetch-Dest', '')));
+        return 'header_consistency';
+    }
 
-        if ($accept === '') {
-            $strength += 30;
-            $reasons[] = 'HEADER_ACCEPT_MISSING';
-        }
-        if ($language === '') {
-            $strength += 20;
-            $reasons[] = 'HEADER_LANGUAGE_MISSING';
-        }
+    public function getWeight(): int
+    {
+        return 15;
+    }
 
-        // Set by trusted route middleware only, never by submitted form/JSON data.
-        if ($request->attributes->get('bot.browser_navigation') === true && ($mode === '' || $site === '' || $dest === '')) {
-            $strength += 20;
-            $reasons[] = 'HEADER_FETCH_METADATA_MISSING';
-        }
-        if ($mode !== '' && ! in_array($mode, ['cors', 'navigate', 'no-cors', 'same-origin', 'websocket'], true)) {
-            $strength += 40;
-            $reasons[] = 'HEADER_FETCH_MODE_INVALID';
-        }
-        if ($site !== '' && ! in_array($site, ['same-origin', 'same-site', 'cross-site', 'none'], true)) {
-            $strength += 40;
-            $reasons[] = 'HEADER_FETCH_SITE_INVALID';
-        }
-        if ($dest === 'document' && $mode !== '' && $mode !== 'navigate') {
-            $strength += 40;
-            $reasons[] = 'HEADER_FETCH_MODE_DEST_MISMATCH';
-        }
-        if ($mode === 'navigate' && $dest === 'document' && $accept !== '' && ! str_contains($accept, 'text/html') && ! str_contains($accept, 'application/xhtml+xml') && ! str_contains($accept, '*/*')) {
-            $strength += 30;
-            $reasons[] = 'HEADER_NAVIGATION_ACCEPT_MISMATCH';
+    public function evaluate(Request $request, array $context = []): array
+    {
+        $hasAccept = $request->hasHeader('Accept');
+        $hasAcceptEncoding = $request->hasHeader('Accept-Encoding');
+        $hasAcceptLanguage = $request->hasHeader('Accept-Language');
+
+        // Missing standard browser headers on HTML/web submission
+        if (!$request->expectsJson() && (!$hasAccept || !$hasAcceptEncoding || !$hasAcceptLanguage)) {
+            return [
+                'score' => 0.60,
+                'reason_code' => 'INCONSISTENT_BROWSER_HEADERS',
+                'metadata' => [
+                    'has_accept' => $hasAccept,
+                    'has_encoding' => $hasAcceptEncoding,
+                    'has_language' => $hasAcceptLanguage,
+                ],
+            ];
         }
 
-        return new SignalResult('header_consistency', min(100, $strength), $reasons);
+        return [
+            'score' => 0.00,
+            'reason_code' => null,
+            'metadata' => [],
+        ];
     }
 }

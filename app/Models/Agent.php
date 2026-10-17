@@ -1,103 +1,57 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-use App\Enums\AgentStatus;
-use App\Enums\Currency;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Agent extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasUuids;
+
+    protected $table = 'agents';
 
     protected $fillable = [
-        'agent_code',
         'user_id',
+        'agent_code',
         'parent_agent_id',
+        'tier_level',
+        'lineage_path',
         'status',
-        'currency',
-        'commission_rate',
-        'total_referrals',
-        'total_commission_earned',
-        'total_commission_paid',
-        'approved_at',
-        'suspended_at',
-        'suspension_reason',
-        'metadata',
+        'direct_commission_rate',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'status' => AgentStatus::class,
-            'currency' => Currency::class,
-            'commission_rate' => 'decimal:4',
-            'total_referrals' => 'integer',
-            'total_commission_earned' => 'decimal:2',
-            'total_commission_paid' => 'decimal:2',
-            'approved_at' => 'datetime',
-            'suspended_at' => 'datetime',
-            'metadata' => 'array',
-        ];
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
+    protected $casts = [
+        'tier_level' => 'integer',
+        'direct_commission_rate' => 'string',
+    ];
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Agent::class, 'parent_agent_id');
+        return $this->belongsTo(Agent::class, 'parent_agent_id', 'id');
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(Agent::class, 'parent_agent_id');
+        return $this->hasMany(Agent::class, 'parent_agent_id', 'id');
     }
 
-    public function commissions(): HasMany
+    public function commissionLedgers(): HasMany
     {
-        return $this->hasMany(AgentCommission::class);
+        return $this->hasMany(CommissionLedger::class, 'agent_id', 'id');
     }
 
-    public function isActive(): bool
+    public function ancestors(): HasMany
     {
-        return $this->status === AgentStatus::Active;
+        return $this->hasMany(AgentHierarchy::class, 'descendant_id', 'id');
     }
 
-    /**
-     * Whether this agent may take on new referred players right now. Mirrors
-     * the status ladder's own rule: only a fully Active agent can absorb new
-     * referrals; Inactive/Suspended/Terminated agents are closed for intake.
-     */
-    public function canAcceptPlayers(): bool
+    public function descendants(): HasMany
     {
-        if (! $this->status->canAcceptPlayers()) {
-            return false;
-        }
-
-        // Server-computed owner standing: a suspended/closed owner never
-        // accepts new players even if the agent row itself is still Active.
-        $owner = $this->user;
-        if ($owner === null) {
-            return false;
-        }
-
-        return $owner->isActive();
-    }
-
-    public function canEarnCommission(): bool
-    {
-        return $this->status->canOperate();
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('status', AgentStatus::Active);
+        return $this->hasMany(AgentHierarchy::class, 'ancestor_id', 'id');
     }
 }
