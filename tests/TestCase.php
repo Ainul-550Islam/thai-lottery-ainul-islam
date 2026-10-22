@@ -114,27 +114,14 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Feature tests exercise server-rendered behavior; compiled asset
+        // availability is covered by deployment/build tests, not each request.
+        $this->withoutVite();
+
+        // Test flows run with the launch gate explicitly open; gate-specific tests close it.
+        config(['real_money.enabled' => true]);
+
         (new LedgerAccountSeeder)->run();
-    }
-
-    /**
-     * DatabaseTruncation commits its rows and only clears tables BEFORE each
-     * test. Without clearing after the class, committed rows leak into the next
-     * RefreshDatabase suite (for example a fixed username collides). Clearing
-     * after each such test keeps the suites independent. The seeded chart is
-     * re-created by setUp() on the next test.
-     */
-    protected function tearDown(): void
-    {
-        if (in_array(
-            \Illuminate\Foundation\Testing\DatabaseTruncation::class,
-            class_uses_recursive($this),
-            true,
-        )) {
-            $this->truncateDatabaseTables();
-        }
-
-        parent::tearDown();
     }
 
     /**

@@ -4,7 +4,6 @@ import './auth-portal';
 import './svgbet-slip';
 import './svgdeposit';
 import './svgwithdraw';
-import './confirm-actions';
 
 // Global application bootstrap and live notification dispatchers
 window.addEventListener('DOMContentLoaded', () => {

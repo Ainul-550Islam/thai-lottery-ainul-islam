@@ -14,6 +14,7 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
+use RuntimeException;
 
 /** Composite subnet/UA/language rate evidence across paths, not an IP-only firewall. */
 final class RequestRateSignal implements BotSignal
@@ -34,7 +35,7 @@ final class RequestRateSignal implements BotSignal
         }
         $store = $this->cache->getStore();
         if (! $store instanceof LockProvider) {
-            throw new \RuntimeException('Bot rate evidence requires a lock-capable cache store.');
+            throw new RuntimeException('Bot rate evidence requires a lock-capable cache store.');
         }
         $key = 'bot:rate:v1:'.$this->fingerprints->fingerprint($request);
         // Use a shared Redis/database store in production, not process-local ArrayStore.
@@ -42,18 +43,18 @@ final class RequestRateSignal implements BotSignal
         $result = $store->lock($key.':lock', 10)->get(function () use ($key, $seconds, $maximum): SignalResult {
             $previous = $this->cache->get($key, []);
             if (! is_array($previous)) {
-                throw new \RuntimeException('Bot rate cache state is corrupt.');
+                throw new RuntimeException('Bot rate cache state is corrupt.');
             }
             $timestamps = $this->window->append($previous, Carbon::now()->getTimestamp(), $seconds, $maximum + 1);
             if (! $this->cache->put($key, $timestamps, $seconds)) {
-                throw new \RuntimeException('Bot rate cache could not persist evidence.');
+                throw new RuntimeException('Bot rate cache could not persist evidence.');
             }
             $breached = count($timestamps) > $maximum;
 
             return new SignalResult('request_rate', $breached ? 100 : 0, $breached ? ['REQUEST_RATE_EXCEEDED'] : []);
         });
         if (! $result instanceof SignalResult) {
-            throw new \RuntimeException('Bot rate evidence lock is busy.');
+            throw new RuntimeException('Bot rate evidence lock is busy.');
         }
 
         return $result;

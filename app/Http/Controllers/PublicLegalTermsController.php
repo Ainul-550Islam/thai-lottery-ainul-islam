@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Services\Legal\LegalDocumentService;
 use App\Services\PublicPages\PublicPageDataService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -13,26 +12,24 @@ use Illuminate\Http\Request;
 /**
  * Public Terms compatibility controller.
  *
- * Web rendering is owned by PublicPagesController. The read APIs expose the
- * same current versioned document; acceptance is handled by the authenticated
- * legal-consent controller, and no PDF is generated without a verified exporter.
+ * Web rendering is owned by PublicPagesController. These API methods reuse
+ * the same canonical Terms data source and fail closed where a real consent
+ * ledger or PDF export service is not configured.
  */
 final class PublicLegalTermsController extends Controller
 {
-    public function __construct(
-        private readonly PublicPageDataService $pages,
-        private readonly LegalDocumentService $legalDocuments,
-    ) {
+    public function __construct(private readonly PublicPageDataService $pages)
+    {
     }
 
     public function index(Request $request): View
     {
-        $locale = $this->locale($request);
-        $terms = $this->legalDocuments->currentData('terms', $locale);
-        $meta = $this->legalMeta($this->pages->meta('terms', $locale), $terms);
+        $locale = (string) app()->getLocale();
+        $terms = $this->pages->terms($locale);
+        $meta = $this->pages->meta('terms', $locale);
 
         return view('terms.index', [
-            'terms' => $terms + $meta,
+            'terms' => $terms,
             'meta' => $meta,
         ]);
     }
@@ -40,13 +37,12 @@ final class PublicLegalTermsController extends Controller
     public function getTermsApi(Request $request): JsonResponse
     {
         $locale = $this->locale($request);
-        $terms = $this->legalDocuments->currentData('terms', $locale);
-        $meta = $this->legalMeta($this->pages->meta('terms', $locale), $terms);
+        $terms = $this->pages->terms($locale);
 
         return response()->json([
             'success' => true,
             'data' => $terms,
-            'meta' => $meta + [
+            'meta' => $this->pages->meta('terms', $locale) + [
                 'generated_at' => now()->toIso8601String(),
             ],
         ]);
@@ -56,7 +52,7 @@ final class PublicLegalTermsController extends Controller
     {
         $locale = $this->locale($request);
         $query = trim((string) $request->query('q', ''));
-        $terms = $this->legalDocuments->currentData('terms', $locale);
+        $terms = $this->pages->terms($locale);
         $sections = is_array($terms['sections'] ?? null) ? $terms['sections'] : [];
 
         if ($query === '') {
@@ -81,6 +77,15 @@ final class PublicLegalTermsController extends Controller
         ]);
     }
 
+    public function acceptTermsApi(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'state' => 'NOT_CONFIGURED',
+            'message' => 'Terms consent recording is not configured for this environment.',
+        ], 501);
+    }
+
     public function downloadTermsApi(Request $request): JsonResponse
     {
         return response()->json([
@@ -88,24 +93,6 @@ final class PublicLegalTermsController extends Controller
             'state' => 'NOT_CONFIGURED',
             'message' => 'A verified Terms PDF export is not configured for this environment. Use the browser print or save control.',
         ], 501);
-    }
-
-    /**
-     * @param array<string, string> $meta
-     * @param array<string, mixed> $data
-     * @return array<string, string>
-     */
-    private function legalMeta(array $meta, array $data): array
-    {
-        $title = (string) ($data['meta_title'] ?? $meta['title'] ?? '');
-        $description = (string) ($data['meta_description'] ?? $meta['description'] ?? '');
-
-        return array_replace($meta, [
-            'title' => $title,
-            'description' => $description,
-            'og_title' => $title,
-            'og_description' => $description,
-        ]);
     }
 
     private function locale(Request $request): string

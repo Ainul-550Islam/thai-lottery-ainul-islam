@@ -5,7 +5,7 @@
 @section('content')
     <main class="mx-auto max-w-3xl px-4 py-16" role="main">
         <section class="rounded-2xl border border-sky-500/30 bg-slate-950 p-8 text-slate-100">
-            <h1 class="text-2xl font-bold">Secure withdrawal access</h1>
+            <h1 class="text-2xl font-bold">Withdrawal access</h1>
             <p class="mt-3 text-sm text-slate-300">
                 Withdrawable balance, destinations, fees, approval, and settlement status are supplied only by the authenticated withdrawal service.
             </p>

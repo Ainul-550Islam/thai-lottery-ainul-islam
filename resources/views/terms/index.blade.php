@@ -56,6 +56,9 @@
                 <h1 id="terms-title">{{ $terms['title'] ?? 'Terms of Use' }}</h1>
                 <p>{{ $terms['meta_description'] ?? 'Versioned public terms governing use of this platform.' }}</p>
                 <p class="terms-identity-note">This page uses the independent platform’s approved public legal content. This site is an independent platform and not the official GLO website; we do not claim government ownership, official agency status, licensing, or endorsement.</p>
+                @if (($terms['locale'] ?? app()->getLocale()) === 'bn')
+                    <p class="terms-identity-note" role="note"><strong>{{ trans('public_pages.terms_language_notice_title') }}:</strong> {{ trans('public_pages.terms_language_notice') }}</p>
+                @endif
             </div>
             <div class="terms-document" aria-hidden="true">
                 <div class="terms-document__sheet">
@@ -174,7 +177,7 @@
                 <div>
                     <p class="terms-eyebrow">CONFIGURED REFERENCE</p>
                     <h2 id="terms-facts-title">Values used in this document</h2>
-                    <p>These values are rendered from the approved legal and GLO-compatible configuration source. They are not replaced with decorative marketing claims.</p>
+                    <p>These values are rendered from approved legal and product configuration sources. They are not replaced with decorative marketing claims.</p>
                 </div>
                 <dl class="terms-facts__grid">
                     @foreach ([

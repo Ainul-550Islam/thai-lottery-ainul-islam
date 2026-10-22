@@ -4,13 +4,13 @@
             🎉 Congratulations!
         </span>
         <h1 style="font-size: 26px; font-weight: 900; color: #ffffff; margin-top: 12px; margin-bottom: 4px;">
-            You Won a Lottery Prize!
+            Prize Status Update
         </h1>
-        <p style="color: #94a3b8; font-size: 14px; margin: 0;">Your winning ticket has been validated and settled.</p>
+        <p style="color: #94a3b8; font-size: 14px; margin: 0;">Review the recorded ticket and disbursement status in your account.</p>
     </div>
 
     <div style="background-color: #020617; border-radius: 12px; padding: 24px; border: 1px solid #334155; margin-bottom: 24px; text-align: center;">
-        <span style="color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">Total Prize Amount</span>
+        <span style="color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">Recorded Prize Amount</span>
         <div style="font-size: 36px; font-weight: 900; color: #10b981; font-family: monospace; margin-top: 4px; margin-bottom: 12px;">
             {{ isset($prize_amount) ? \App\Support\Admin\AdminFormat::money($prize_amount, $currency ?? null) : '—' }}
         </div>
@@ -32,16 +32,16 @@
     </div>
 
     <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px; text-align: center;">
-        The prize amount has been credited directly to your primary wallet balance and is ready for withdrawal or future draws.
+        Check your account for the current payout and wallet status. This notification does not itself confirm that funds are available for withdrawal.
     </p>
 
     <div style="text-align: center;">
-        <a href="{{ url('/player/payouts') }}" style="display: inline-block; padding: 12px 28px; background-color: #059669; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
-            Claim &amp; View Payouts
+        <a href="{{ url('/bets') }}" style="display: inline-block; padding: 12px 28px; background-color: #059669; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+            Review My Bets
         </a>
     </div>
 
     <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #1e293b; text-align: center; font-size: 11px; color: #64748b;">
-        &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery') }}. Licensed official draw results.
+        &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery') }}. Independent platform; not operated or endorsed by a government lottery authority.
     </div>
 </div>

@@ -62,9 +62,9 @@
                                 </span>
                             </td>
                             <td class="py-3.5 px-4 text-right">
-                                <a href="#" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg border border-slate-700 transition">
-                                    Investigate
-                                </a>
+                                <span class="px-3 py-1.5 bg-slate-900 text-slate-500 text-xs font-bold rounded-lg border border-slate-800" title="Case review is not configured on this surface" aria-label="Case review unavailable">
+                                    Review unavailable
+                                </span>
                             </td>
                         </tr>
                     @empty

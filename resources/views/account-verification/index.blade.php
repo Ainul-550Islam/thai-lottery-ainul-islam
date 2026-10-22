@@ -69,7 +69,7 @@
                 {{ __('account_services.verification_heading') }}
             </h2>
             <p class="mt-2 text-sm text-slate-400">
-                {{ __('account_services.verification_lead') }}
+                {{ __('account_services.member_verification_lead') }}
             </p>
         </div>
 
@@ -97,7 +97,7 @@
 
             <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                 <div class="flex justify-between sm:justify-start sm:gap-4">
-                    <dt class="text-slate-400">{{ __('account_services.verification_account_number') }}</dt>
+                    <dt class="text-slate-400">{{ __('account_services.member_verification_account_number') }}</dt>
                     <dd class="font-mono font-semibold text-slate-100" data-av-account-number>{{ $account['account_number'] ?? __('account_services.not_recorded') }}</dd>
                 </div>
                 <div class="flex justify-between sm:justify-start sm:gap-4">
@@ -146,7 +146,7 @@
                     @csrf
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                            <label for="country_code" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.verification_country_code') }}</label>
+                            <label for="country_code" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.member_verification_country_code') }}</label>
                             <select id="country_code" name="country_code" class="block w-full px-4 py-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl sm:text-sm">
                                 @foreach ($countryCodes as $code)
                                     <option value="{{ $code }}" @selected($code === $defaultCountryCode)>{{ $code }}</option>
@@ -154,14 +154,14 @@
                             </select>
                         </div>
                         <div>
-                            <label for="mobile" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.verification_mobile') }}</label>
+                            <label for="mobile" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.member_verification_mobile') }}</label>
                             <input id="mobile" name="mobile" type="text" inputmode="numeric" value="{{ old('mobile') }}" aria-describedby="av-mobile-hint" @if ($errors->has('mobile')) aria-invalid="true" @endif class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('mobile') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}" placeholder="812345678">
                             <p id="av-mobile-hint" class="mt-1 text-xs text-slate-500">{{ __('account_services.verification_mobile_hint') }}</p>
                             @if ($errors->has('mobile'))<p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('mobile') }}</p>@endif
                         </div>
                     </div>
                     <div>
-                        <label for="document_type" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.verification_document_type') }}</label>
+                        <label for="document_type" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.member_verification_document_type') }}</label>
                         <select id="document_type" name="document_type" required aria-required="true" @if ($errors->has('document_type')) aria-invalid="true" @endif class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('document_type') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100' }}">
                             <option value="">{{ __('account_services.verification_select_type') }}</option>
                             @foreach ($documentTypes as $type)
@@ -172,19 +172,19 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                            <label for="document" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.verification_document_front') }} @if ($requireBack)<span class="text-rose-400" aria-hidden="true">*</span>@endif</label>
+                            <label for="document" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.member_verification_document_front') }} @if ($requireBack)<span class="text-rose-400" aria-hidden="true">*</span>@endif</label>
                             <input id="document" name="document" type="file" required aria-required="true" accept=".pdf,.jpg,.jpeg,.png,.webp" aria-describedby="av-front-hint" @if ($errors->has('document')) aria-invalid="true" @endif class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('document') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100' }}">
                             <p id="av-front-hint" class="mt-1 text-xs text-slate-500">{{ __('account_services.verification_upload_hint', ['kb' => $maxFileKb]) }}</p>
                             @if ($errors->has('document'))<p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('document') }}</p>@endif
                         </div>
                         <div>
-                            <label for="document_back" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.verification_document_back') }} @if ($requireBack)<span class="text-rose-400" aria-hidden="true">*</span>@endif</label>
+                            <label for="document_back" class="block text-sm font-medium text-slate-300 mb-1">{{ __('account_services.member_verification_document_back') }} @if ($requireBack)<span class="text-rose-400" aria-hidden="true">*</span>@endif</label>
                             <input id="document_back" name="document_back" type="file" {{ $requireBack ? 'required aria-required="true"' : '' }} accept=".pdf,.jpg,.jpeg,.png,.webp" aria-describedby="av-back-hint" @if ($errors->has('document_back')) aria-invalid="true" @endif class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('document_back') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100' }}">
                             <p id="av-back-hint" class="mt-1 text-xs text-slate-500">{{ __('account_services.verification_upload_hint', ['kb' => $maxFileKb]) }}</p>
                             @if ($errors->has('document_back'))<p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('document_back') }}</p>@endif
                         </div>
                     </div>
-                    <div><button type="submit" class="w-full sm:w-auto flex justify-center py-3 px-6 border border-transparent text-sm font-bold rounded-xl text-slate-950 bg-gradient-to-r from-amber-400 via-emerald-400 to-emerald-500 hover:from-amber-500 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg transition duration-200">{{ __('account_services.verification_submit') }}</button></div>
+                    <div><button type="submit" class="w-full sm:w-auto flex justify-center py-3 px-6 border border-transparent text-sm font-bold rounded-xl text-slate-950 bg-gradient-to-r from-amber-400 via-emerald-400 to-emerald-500 hover:from-amber-500 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg transition duration-200">{{ __('account_services.member_verification_submit') }}</button></div>
                 </form>
             @endif
         </section>

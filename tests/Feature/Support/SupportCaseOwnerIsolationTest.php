@@ -108,4 +108,29 @@ final class SupportCaseOwnerIsolationTest extends TestCase
         self::assertArrayNotHasKey('sender_user_id', $array);
         self::assertArrayNotHasKey('internal', $array);
     }
+
+    public function test_support_case_state_labels_are_localized_in_thai_and_bangla(): void
+    {
+        $owner = User::factory()->create();
+        $case = SupportCase::factory()->create([
+            'owner_user_id' => $owner->getKey(),
+            'category' => 'payment',
+            'priority' => SupportCase::PRIORITY_HIGH,
+            'status' => SupportCase::STATUS_IN_PROGRESS,
+        ]);
+
+        $this->actingAs($owner)
+            ->get(route('support.show', ['reference' => $case->public_reference]).'?lang=th')
+            ->assertOk()
+            ->assertSee('กำลังดำเนินการ')
+            ->assertSee('สูง')
+            ->assertSee('การชำระเงิน');
+
+        $this->actingAs($owner)
+            ->get(route('support.show', ['reference' => $case->public_reference]).'?lang=bn')
+            ->assertOk()
+            ->assertSee('চলমান')
+            ->assertSee('উচ্চ')
+            ->assertSee('পেমেন্ট');
+    }
 }

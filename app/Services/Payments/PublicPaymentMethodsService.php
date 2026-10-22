@@ -62,14 +62,24 @@ class PublicPaymentMethodsService
 
             try {
                 $driver = $manager->driver($case);
-                $currencies = array_values(array_map('strval', (array) $driver->supportedCurrencies()));
+                $currencies = [];
+                foreach ($case->supportedCurrencies() as $currency) {
+                    if ($driver->supportsCurrency($currency)) {
+                        $currencies[] = $currency->value;
+                    }
+                }
             } catch (\Throwable) {
-                $currencies = ['THB'];
+                // A currency-query failure is not evidence of a THB settlement path.
+                continue;
+            }
+
+            if ($currencies === []) {
+                continue;
             }
 
             $methods[] = [
                 'code' => $code,
-                'label' => $case->label(),
+                'label' => (string) trans('home.payment_method_'.$code, [], app()->getLocale()),
                 'status' => 'AVAILABLE',
                 'currencies' => $currencies,
             ];

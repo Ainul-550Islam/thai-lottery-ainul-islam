@@ -5,18 +5,15 @@ use App\Http\Middleware\AuthenticateBoundSession;
 use App\Http\Middleware\BotDetectionMiddleware;
 use App\Http\Middleware\ConfiguredIpAccessMiddleware;
 use App\Http\Middleware\CorrelationIdMiddleware;
-use App\Http\Middleware\EnsureAdult;
 use App\Http\Middleware\EnsureDrawIsOpen;
 use App\Http\Middleware\EnsureUserIsActive;
-use App\Http\Middleware\EnsureWalletConversionEnabled;
 use App\Http\Middleware\EnsureWalletIsActive;
 use App\Http\Middleware\GloEnsurePermission;
 use App\Http\Middleware\HoneypotMiddleware;
 use App\Http\Middleware\PublicLegalHeaders;
-use App\Http\Middleware\RequireConversionIdempotencyKey;
-use App\Http\Middleware\RequireCurrentLegalConsent;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\TrackMemberPresence;
 use App\Http\Middleware\VerifyWebhookSignature;
 use App\Http\Responses\ApiResponse;
 use App\Http\Support\BetPurchaseErrorMapper;
@@ -191,17 +188,16 @@ return Application::configure(basePath: dirname(__DIR__))
             App\Http\Middleware\TrustProxies::class,
         );
 
+        // Record only authenticated member activity, throttled to one write per minute.
+        $middleware->web(append: [TrackMemberPresence::class]);
+
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
-            'adult' => EnsureAdult::class,
-            'legal.current' => RequireCurrentLegalConsent::class,
             // Opt-in observation only until CAPTCHA/enforcement integration is complete.
             'bot' => BotDetectionMiddleware::class,
             'honeypot' => HoneypotMiddleware::class,
             'ip-access' => ConfiguredIpAccessMiddleware::class,
             'admin.auth' => Authenticate::class,
-            'conversion.enabled' => EnsureWalletConversionEnabled::class,
-            'conversion.idempotency' => RequireConversionIdempotencyKey::class,
             // Part 52: fail closed on sessions with no password binding
             // (legacy pre-binding sessions) instead of adopting them.
             'auth.session' => AuthenticateBoundSession::class,
@@ -222,9 +218,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
         $middleware->append(CorrelationIdMiddleware::class);
         $middleware->append(SetLocale::class);
-        // Records member presence for the public active-members counter (web only;
-        // guests are ignored inside the middleware).
-        $middleware->appendToGroup('web', \App\Http\Middleware\TrackMemberPresence::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // ---------------------------------------------------------------------

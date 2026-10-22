@@ -197,8 +197,22 @@ final class PrizeVerificationAndDiscountTest extends TestCase
             $this->assertStringNotContainsStringIgnoringCase($forbiddenClaim, $html);
         }
 
-        $this->assertStringContainsString('GLO-compatible', $html);
+        $this->assertStringContainsString('Independent platform notice', $html);
+        $this->assertStringNotContainsString('GLO-compatible', $html);
         $this->assertStringContainsString(e(trans('prize_discount.not_official_notice')), $html);
+    }
+
+    public function test_prize_verification_static_interface_renders_in_thai_and_bangla(): void
+    {
+        $this->get('/prize-verification?lang=th')
+            ->assertOk()
+            ->assertSee('ระบบตรวจสอบผลสาธารณะ')
+            ->assertSee('ข้อมูลเจ้าของ');
+
+        $this->get('/prize-verification?lang=bn')
+            ->assertOk()
+            ->assertSee('প্রকাশ্য ফল যাচাই')
+            ->assertSee('মালিকের তথ্য');
     }
 
     /** 5 */

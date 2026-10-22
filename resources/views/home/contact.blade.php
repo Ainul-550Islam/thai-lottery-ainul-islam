@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $home['text']['footer_contact'] ?? 'Contact')
+@section('title', trans('home.footer_contact'))
 
 @section('content')
     <div class="home-page home-page--narrow">

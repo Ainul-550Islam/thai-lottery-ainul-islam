@@ -17,9 +17,7 @@
 #   scheduler    `schedule:work` — exactly ONE replica, ever
 #   db           PostgreSQL 16 (see the DATABASE MIGRATION NOTE below)
 #   redis        Redis 7, AOF on, used for cache + locks + queues
-#   reverb       WebSocket server (Laravel Reverb). The package is not in composer.lock yet, so
-#                this container idles with a logged reason instead of crash-looping, and
-#                BROADCAST_CONNECTION stays on log (see the app-env note below).
+#   reverb       WebSocket server (Laravel Reverb) — was BROADCAST_CONNECTION=log
 #   settlement-worker  the Rust hot-path worker
 #
 # -----------------------------------------------------------------------------
@@ -85,13 +83,7 @@ x-app-env: &app-env
   CACHE_STORE: redis
   SESSION_DRIVER: redis
   QUEUE_CONNECTION: redis
-  # Kept on `log` until laravel/reverb is in composer.lock. With `reverb` set and the package
-  # absent, Broadcast::connection() throws for every one of the seven ShouldBroadcast events
-  # (measured: RuntimeException: Failed to create broadcaster for connection "reverb" with error:
-  # Class "Pusher\Pusher" not found), and the failure lands in failed_jobs per money hop.
-  # Flip this line only together with the dependency; tests/Feature/Infra/ReleaseSpecContractTest.php
-  # resolves every driver named in this file and fails when one cannot be built.
-  BROADCAST_CONNECTION: log
+  BROADCAST_CONNECTION: reverb
   SESSION_SECURE_COOKIE: "true"
   SESSION_ENCRYPT: "true"
 
@@ -264,18 +256,7 @@ services:
       <<: *app-env
       REVERB_SERVER_HOST: 0.0.0.0
       REVERB_SERVER_PORT: "8080"
-    # The command is checked before it is run: `php artisan reverb:start` does not exist until
-    # laravel/reverb is installed, and `restart: unless-stopped` on a command that cannot be
-    # found is a permanent crash loop. nginx has an `upstream reverb` block, so the container
-    # has to keep existing (compose DNS) even while it idles - that is why this waits instead of
-    # exiting. Installing the package makes the guard pass with no further edit to this file.
-    command: ["sh", "-c",
-      "if php artisan list 2>/dev/null | grep -q reverb:start; then
-         exec php artisan reverb:start --host=0.0.0.0 --port=8080
-       else
-         echo 'laravel/reverb is not installed: idling (config/broadcasting.php, Phase 8 note)'
-         while :; do sleep 3600; done
-       fi"]
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
     secrets: [app_key, db_password]
     depends_on: *app-depends
     networks: [backend]

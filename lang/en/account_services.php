@@ -15,7 +15,7 @@ return [
     // Browser payment-return pages (FINAL AUDIT #2). The landing route is
     // context only; the state shown is always the internal payment status.
     'payment_callback_title' => 'Payment Status',
-    'payment_callback_lead' => 'The status below is read from your payment record. It updates automatically once the payment provider confirms.',
+    'payment_callback_lead' => 'The status below is read from your payment record when this page loads. Refresh this page to see a newer recorded state.'
     'payment_callback_state_label' => 'Payment status',
     'payment_callback_reference_label' => 'Reference',
     'payment_callback_amount_label' => 'Amount',
@@ -25,12 +25,12 @@ return [
     'payment_callback_state_cancelled' => 'Cancelled',
     'payment_callback_state_updated' => 'Updated',
     'payment_callback_success_lead' => 'This payment is confirmed and your wallet has been credited.',
-    'payment_callback_pending_lead' => 'The payment provider has not confirmed this payment yet. Your wallet is credited automatically once it does — nothing further is needed from you.',
-    'payment_callback_failure_lead' => 'The payment did not complete. No funds have moved; you can start a new deposit whenever you are ready.',
-    'payment_callback_cancel_lead' => 'You cancelled this checkout. No funds have moved.',
+    'payment_callback_pending_lead' => 'The payment provider has not confirmed this payment in the record shown. A wallet credit is posted only after a verified confirmation is processed. Refresh to check for an updated state before starting another deposit.'
+    'payment_callback_failure_lead' => 'The payment record is marked failed. Check your provider account for any charge before trying again; this page shows no confirmed wallet credit.'
+    'payment_callback_cancel_lead' => 'The checkout is marked cancelled. If you see a charge at the provider, contact support before trying again.'
     'payment_callback_updated_lead' => 'This payment was processed and later updated (for example a refund or dispute). Contact support for the details.',
     'payment_callback_not_found' => 'Payment reference not found',
-    'payment_callback_not_found_lead' => 'We could not match this reference to a payment on your account. If you just completed a payment, check your wallet in a few moments — confirmation can take a little time.',
+    'payment_callback_not_found_lead' => 'We could not match this reference to a payment on your account. If you just paid, check your wallet and payment history; contact support if the record remains missing.'
     'payment_callback_back_to_wallet' => 'Go to wallet',
     'payment_callback_back_to_deposit' => 'New deposit',
     'payment_callback_disclaimer' => 'This page never confirms payments by itself: wallet balances only change after the payment provider verifies the transaction.',
@@ -122,6 +122,7 @@ return [
     'verification_status_PENDING' => 'Pending',
     'verification_status_UNDER_REVIEW' => 'Under review',
     'verification_status_APPROVED' => 'Approved',
+    'verification_status_VERIFIED' => 'Verified',
     'verification_status_REJECTED' => 'Rejected',
     'verification_status_EXPIRED' => 'Expired',
     'verification_account_number' => 'Account number',
@@ -215,9 +216,9 @@ return [
 
     // -------------------------------------- PROMPT 3: member verification page
     'verification_heading' => 'Account Verification',
-    'verification_lead' => 'Verify your identity to unlock the full member experience.',
+    'member_verification_lead' => 'Submit the requested identity information for an account review. Document upload verification is not government e-KYC or an official GLO e-service.',
     'verification_account_section' => 'Account Details',
-    'verification_account_number' => 'Account No.',
+    'member_verification_account_number' => 'Account No.',
     'verification_account_name' => 'Name',
     'verification_account_email' => 'Email Address',
     'verification_account_join' => 'Join Date',
@@ -225,19 +226,19 @@ return [
     'verification_account_status' => 'Status',
     'verification_method_note' => 'Verification method',
     'verification_verify_now' => 'Verify Now',
-    'verification_country_code' => 'Country Code',
-    'verification_mobile' => 'Mobile Number',
+    'member_verification_country_code' => 'Country Code',
+    'member_verification_mobile' => 'Mobile Number',
     'verification_mobile_hint' => 'Digits only, 5-15 numbers.',
-    'verification_document_type' => 'Document Type',
+    'member_verification_document_type' => 'Document Type',
     'verification_select_type' => 'Select document type',
-    'verification_document_front' => 'Front Part of the Document',
-    'verification_document_back' => 'Back Part of the Document',
+    'member_verification_document_front' => 'Front Part of the Document',
+    'member_verification_document_back' => 'Back Part of the Document',
     'verification_upload_hint' => 'PDF, JPG, PNG or WEBP up to :kb KB.',
-    'verification_submit' => 'Submit',
+    'member_verification_submit' => 'Submit',
     'verification_history' => 'Submission History',
     'verification_documents' => 'Submitted Documents',
     'verification_download' => 'Download',
-    'verification_open_request' => 'A verification request is already open. Our team will review it shortly.',
+    'verification_open_request' => 'A verification request is already open. You can check its recorded status and history on this page.',
     'verification_decision_recorded' => 'The verification decision has been recorded.',
     'verification_error_country' => 'This country code is not supported.',
     'verification_error_back_required' => 'The back part of the document is required.',

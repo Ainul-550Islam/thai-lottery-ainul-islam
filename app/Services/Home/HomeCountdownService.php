@@ -4,29 +4,24 @@ declare(strict_types=1);
 
 namespace App\Services\Home;
 
-use App\Enums\DrawStatus;
-use App\Models\Draw;
+use App\Services\Lottery\GloNextDrawService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use DateTimeZone;
-use Illuminate\Support\Facades\Cache;
 
 /**
- * Calculates authoritative next draw countdown and schedule targets.
- * Never relies on client-side hardcoded date arrays.
+ * Compatibility adapter for the Home countdown contract.
+ *
+ * GloNextDrawService is the single source of the next draw target, including
+ * open/closed future draws and its configured calendar fallback. This adapter
+ * adds the legacy countdown fields without inventing schedule data or implying
+ * betting is open from the amount of time remaining.
  */
 class HomeCountdownService
 {
-    private const DEFAULT_TIMEZONE = 'Asia/Bangkok';
+    public function __construct(private readonly GloNextDrawService $nextDraw) {}
 
     /**
-     * Compute next scheduled draw target information.
-     *
-     * @return array<string, mixed>
-     */
-    /**
-     * Compatibility name retained for callers of the original home contract.
-     * The authoritative calculation remains getNextDrawTarget().
+     * Compatibility name retained for callers of the original Home contract.
      *
      * @return array<string, mixed>
      */
@@ -35,52 +30,49 @@ class HomeCountdownService
         return $this->getNextDrawTarget();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getNextDrawTarget(): array
     {
         try {
-            return Cache::remember('home.countdown.next_draw', 30, function (): array {
-                $tz = new DateTimeZone(self::DEFAULT_TIMEZONE);
-                $now = CarbonImmutable::now($tz);
+            $source = $this->nextDraw->nextDraw();
+            $targetIso = $source['scheduled_at_iso'] ?? null;
+            $hasNextDraw = is_string($targetIso) && $targetIso !== '';
+            $timezone = (string) ($source['timezone'] ?? GloNextDrawService::TIMEZONE);
 
-                $draw = Draw::query()
-                    ->where('status', DrawStatus::Scheduled->value)
-                    ->where('scheduled_at', '>', $now)
-                    ->orderBy('scheduled_at')
-                    ->first();
-
-                if (! $draw instanceof Draw || ! $draw->scheduled_at instanceof CarbonInterface) {
-                    return [
-                        'status' => 'NO_SCHEDULED_DRAW',
-                        'has_next_draw' => false,
-                        'draw_number' => null,
-                        'draw_name' => null,
-                        'scheduled_at_iso' => null,
-                        'scheduled_at_formatted' => null,
-                        'remaining_seconds' => 0,
-                        'timezone' => self::DEFAULT_TIMEZONE,
-                        'is_open_for_betting' => false,
-                    ];
-                }
-
-                $target = CarbonImmutable::parse($draw->scheduled_at, $tz);
-                $remaining = max(0, $now->diffInSeconds($target, false));
-
+            if (! $hasNextDraw) {
                 return [
-                    'status' => 'SCHEDULED',
-                    'has_next_draw' => true,
-                    'draw_number' => (string) ($draw->draw_number ?? 'GLO-'.ltrim($target->format('d/m/Y'), '0')),
-                    // draw_name is the HUMAN label for the draw and draw_number
-                    // is its canonical identifier. Only the identifier was ever
-                    // returned, so every consumer that wanted something to print
-                    // had to render the reference string itself.
-                    'draw_name' => (string) ($draw->name ?? $target->format('j F Y')),
-                    'scheduled_at_iso' => $target->toIso8601String(),
-                    'scheduled_at_formatted' => $target->format('d F Y, H:i').' GMT+7',
-                    'remaining_seconds' => (int) $remaining,
-                    'timezone' => self::DEFAULT_TIMEZONE,
-                    'is_open_for_betting' => $remaining > 300,
+                    'status' => (string) ($source['status'] ?? 'UNAVAILABLE'),
+                    'has_next_draw' => false,
+                    'draw_number' => null,
+                    'draw_name' => null,
+                    'scheduled_at_iso' => null,
+                    'scheduled_at_formatted' => null,
+                    'remaining_seconds' => 0,
+                    'timezone' => $timezone,
+                    'is_open_for_betting' => false,
+                    'message' => $source['message'] ?? 'No upcoming draw is scheduled.',
                 ];
-            });
+            }
+
+            $target = CarbonImmutable::parse($targetIso)->setTimezone($timezone);
+            $now = CarbonImmutable::now($timezone);
+            $remaining = max(0, (int) $now->diffInSeconds($target, false));
+            $drawStatus = (string) ($source['draw_status'] ?? '');
+
+            return [
+                'status' => (string) ($source['status'] ?? 'AVAILABLE'),
+                'has_next_draw' => true,
+                'draw_number' => isset($source['draw_number']) ? (string) $source['draw_number'] : null,
+                'draw_name' => isset($source['draw_name']) ? (string) $source['draw_name'] : null,
+                'scheduled_at_iso' => $target->toIso8601String(),
+                'scheduled_at_formatted' => $source['scheduled_at_display'] ?? $target->format('j M Y, H:i T'),
+                'remaining_seconds' => $remaining,
+                'timezone' => $timezone,
+                'is_open_for_betting' => $drawStatus === 'open',
+                'message' => $source['message'] ?? null,
+            ];
         } catch (\Throwable $e) {
             report($e);
 
@@ -92,8 +84,9 @@ class HomeCountdownService
                 'scheduled_at_iso' => null,
                 'scheduled_at_formatted' => null,
                 'remaining_seconds' => 0,
-                'timezone' => self::DEFAULT_TIMEZONE,
+                'timezone' => GloNextDrawService::TIMEZONE,
                 'is_open_for_betting' => false,
+                'message' => 'Next draw temporarily unavailable.',
             ];
         }
     }

@@ -25,6 +25,7 @@ use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\RealPrizeSettlementService;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use Tests\Feature\Payment\PaymentTestCase;
 
 /**
@@ -146,7 +147,7 @@ final class ChunkedSettlementTest extends PaymentTestCase
         // Nothing has been processed, so four bets remain.
         $this->assertSame(4, $orchestrator->remainingBets($run));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('cannot finalize');
 
         $orchestrator->finalize($run);

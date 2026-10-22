@@ -5,6 +5,12 @@
 @section('robots', 'noindex, nofollow')
 
 @section('content')
+@php
+    $stateKey = 'state_'.strtolower((string) $state);
+    $stateLabel = trans()->has('notifications.'.$stateKey)
+        ? trans('notifications.'.$stateKey)
+        : trans('notifications.unknown_value');
+@endphp
 <main class="next-shell next-content" id="notifications-main" tabindex="-1" aria-labelledby="notifications-title">
     <a class="pp-skip-link" href="#notifications-main">{{ trans('public_pages.skip_to_content') }}</a>
     <header class="next-page-header">
@@ -33,7 +39,7 @@
     <section class="next-panel" aria-labelledby="notification-list-title">
         <div class="next-panel-header">
             <h2 id="notification-list-title">{{ trans('notifications.records') }}</h2>
-            <span>{{ $state }}</span>
+            <span>{{ $stateLabel }}</span>
         </div>
         <div class="next-table-wrap">
             <table class="next-table">
@@ -49,15 +55,27 @@
                 </thead>
                 <tbody>
                     @forelse ($records as $record)
+                        @php
+                            $eventType = (string) ($record['type'] ?? '');
+                            $eventKey = 'event_'.$eventType;
+                            $eventLabel = $eventType !== '' && trans()->has('notifications.'.$eventKey)
+                                ? trans('notifications.'.$eventKey)
+                                : trans('notifications.unknown_value');
+                            $status = (string) ($record['status'] ?? '');
+                            $statusKey = 'status_'.$status;
+                            $statusLabel = $status !== '' && trans()->has('notifications.'.$statusKey)
+                                ? trans('notifications.'.$statusKey)
+                                : trans('notifications.unknown_value');
+                        @endphp
                         <tr>
-                            <td>{{ $record['type'] ?? trans('notifications.no_data') }}</td>
+                            <td>{{ $eventLabel }}</td>
                             <td>{{ $record['subject'] ?? trans('notifications.no_data') }}</td>
-                            <td>{{ $record['status'] ?? trans('notifications.no_data') }}</td>
+                            <td>{{ $statusLabel }}</td>
                             <td>{{ $record['created_at'] ?? trans('notifications.no_data') }}</td>
                             <td>{{ $record['read_at'] ?? trans('notifications.unread') }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" role="status">{{ trans('notifications.no_records') }} · {{ $state }}</td></tr>
+                        <tr><td colspan="5" role="status">{{ trans('notifications.no_records') }} · {{ $stateLabel }}</td></tr>
                     @endforelse
                 </tbody>
             </table>

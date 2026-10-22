@@ -70,11 +70,5 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('access-admin', function ($user): bool {
             return AdminAccess::canAccessPanel($user);
         });
-
-        // Publishing a Terms or Privacy Notice is a controlled system-setting
-        // action. The API route also requires an active authenticated operator.
-        Gate::define('manage-legal-documents', function ($user): bool {
-            return AdminAccess::allows($user, AdminAccess::MANAGE_SYSTEM_SETTINGS);
-        });
     }
 }

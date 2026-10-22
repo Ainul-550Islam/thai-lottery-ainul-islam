@@ -6,6 +6,7 @@ namespace App\Services\Bot;
 
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 /**
  * Pseudonymous risk hint, NOT a unique person identifier or authentication proof.
@@ -23,7 +24,7 @@ final class DeviceFingerprintService
             $key = base64_decode(substr($key, 7), true);
         }
         if (! is_string($key) || strlen($key) < 32) {
-            throw new \RuntimeException('Configure a dedicated fingerprint HMAC key of at least 32 bytes.');
+            throw new RuntimeException('Configure a dedicated fingerprint HMAC key of at least 32 bytes.');
         }
 
         $parts = [
@@ -51,7 +52,7 @@ final class DeviceFingerprintService
     {
         $packed = $ip === null ? false : @inet_pton($ip);
         if ($packed === false) {
-            throw new \RuntimeException('Cannot fingerprint a request without a valid client IP.');
+            throw new RuntimeException('Cannot fingerprint a request without a valid client IP.');
         }
 
         // Normalize IPv4-mapped IPv6 before applying the same IPv4 /24 policy.

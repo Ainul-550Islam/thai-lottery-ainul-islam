@@ -49,6 +49,13 @@
     $appLinks = $home['app_links'] ?? [];
     $trust = $home['trust'] ?? [];
     $navigation = $home['navigation'] ?? [];
+    $sectionStatusLabels = [
+        'AVAILABLE' => trans('home.section_status.available'),
+        'UNAVAILABLE' => trans('home.section_status.unavailable'),
+        'CATALOGUE_ONLY' => trans('home.section_status.catalogue_only'),
+        'CONFIGURED' => trans('home.section_status.configured'),
+        'NOT_CONFIGURED' => trans('home.section_status.not_configured'),
+    ];
 
     // The countdown target: the live countdown service first, then the next
     // scheduled draw, then the published official calendar. One of these is
@@ -65,19 +72,11 @@
 
     {{-- ----------------------------------------------------------------
          Section navigation. Links come from HomePageDataService::navigation(),
-         which resolves each route defensively, so an unregistered route
-         degrades to "#" instead of throwing a RouteNotFoundException.
+         which resolves each route defensively and omits unregistered routes,
+         so the page never publishes empty placeholder destinations.
     ----------------------------------------------------------------- --}}
     <nav class="home-nav flex flex-wrap items-center gap-3 border-b border-slate-800 pb-4"
-         aria-label="{{ __('Primary') }}">
-        <button type="button"
-                id="btn-open-mobile-menu"
-                class="home-nav__toggle sm:hidden rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
-                aria-controls="mobile-menu-drawer"
-                aria-expanded="false">
-            {{ __('Menu') }}
-        </button>
-
+         aria-label="{{ trans('home.navigation_label') }}">
         @foreach ($navigation as $item)
             <a href="{{ $item['url'] }}"
                class="home-nav__link rounded-lg px-3 py-2 text-sm font-semibold transition-colors {{ $item['active'] ? 'bg-amber-400/15 text-amber-200' : 'text-slate-300 hover:text-amber-200' }}"
@@ -86,19 +85,6 @@
             </a>
         @endforeach
     </nav>
-
-    <div id="mobile-menu-drawer"
-         class="home-nav__drawer hidden"
-         role="dialog"
-         aria-modal="true"
-         aria-label="{{ __('Menu') }}">
-        <button type="button" id="btn-close-mobile-menu" class="home-nav__close">{{ __('Close') }}</button>
-        <ul>
-            @foreach ($navigation as $item)
-                <li><a href="{{ $item['url'] }}">{{ $item['label'] }}</a></li>
-            @endforeach
-        </ul>
-    </div>
 
     {{-- ----------------------------------------------------------------
          Hero
@@ -111,13 +97,13 @@
 
         <div class="mt-6 flex flex-wrap gap-3">
             <a href="{{ route('results.index') }}" class="home-btn rounded-lg bg-amber-400 px-4 py-2 font-bold text-slate-950">
-                {{ $text['cta_results'] ?? __('Results') }}
+                {{ $text['cta_results'] ?? trans('home.cta_results') }}
             </a>
             <a href="{{ route('ticket-check') }}" class="home-btn rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">
-                {{ $text['cta_check'] ?? __('Check ticket') }}
+                {{ $text['cta_check'] ?? trans('home.cta_check') }}
             </a>
             <a href="{{ route('sales-points') }}" class="home-btn rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200">
-                {{ $text['cta_sales'] ?? __('Sales points') }}
+                {{ $text['cta_sales'] ?? trans('home.sales_title') }}
             </a>
         </div>
     </section>
@@ -128,34 +114,46 @@
     <section id="current-result" aria-labelledby="current-result-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
             <h2 id="current-result-title" class="text-2xl font-bold text-white">
-                {{ $text['current_result_title'] ?? __('Latest verified result') }}
+                {{ $text['current_result_title'] ?? trans('home.current_result_title') }}
             </h2>
             <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
                   data-status="{{ $currentResult['status'] ?? 'UNAVAILABLE' }}">
-                {{ $currentResult['status'] ?? 'UNAVAILABLE' }}
+                {{ match ($currentResult['status'] ?? 'UNAVAILABLE') {
+                    'VERIFIED' => trans('home.result_status_verified'),
+                    'AVAILABLE' => trans('home.result_status_available'),
+                    'NO_VERIFIED_RESULT' => trans('home.result_status_missing'),
+                    default => trans('home.result_status_unavailable'),
+                } }}
             </span>
         </div>
 
         @if (($currentResult['has_result'] ?? false) === true)
             <dl class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['draw_label'] ?? __('Draw') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['draw_label'] ?? trans('home.draw_label') }}</dt>
                     <dd class="text-lg font-semibold text-white">{{ $currentResult['draw_number'] ?? '—' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['source_label'] ?? __('Source') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['source_label'] ?? trans('home.source_label') }}</dt>
                     <dd class="text-lg font-semibold text-white" data-source-state="{{ $currentResult['source_state'] ?? 'UNAVAILABLE' }}">
-                        {{ $currentResult['source_state'] ?? 'UNAVAILABLE' }}
+                        {{ match ($currentResult['source_state'] ?? 'UNAVAILABLE') {
+                    'OFFICIAL_SOURCE_VERIFIED' => trans('home.source_status_verified'),
+                    'OFFICIAL_SOURCE_CONFIGURED' => trans('home.source_status_configured'),
+                    'INTERNAL_RECONCILED' => trans('home.source_status_reconciled'),
+                    'FIXTURE_ONLY' => trans('home.source_status_fixture'),
+                    'NOT_CONFIGURED' => trans('home.source_status_not_configured'),
+                    default => trans('home.source_status_unavailable'),
+                } }}
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_1st_label'] ?? __('First prize') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_1st_label'] ?? trans('home.prize_1st_label') }}</dt>
                     {{-- Printed as the stored string: a six digit number with a
                          leading zero must never be cast to int for display. --}}
                     <dd class="font-mono text-3xl font-black tracking-[0.3em] text-amber-300">{{ $currentResult['first_prize'] ?? '—' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_2nd_label'] ?? __('Second prize') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_2nd_label'] ?? trans('home.prize_2nd_label') }}</dt>
                     <dd class="font-mono text-lg text-slate-100">
                         @forelse (($currentResult['second_prize'] ?? []) as $value)
                             <span class="mr-2 inline-block">{{ $value }}</span>
@@ -165,7 +163,7 @@
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_last2_label'] ?? __('Last two digits') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['prize_last2_label'] ?? trans('home.prize_last2_label') }}</dt>
                     <dd class="font-mono text-lg text-slate-100">
                         @forelse (($currentResult['last_two'] ?? []) as $value)
                             <span class="mr-2 inline-block">{{ $value }}</span>
@@ -175,13 +173,13 @@
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ __('Result version') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ trans('home.result_version_label') }}</dt>
                     <dd class="text-lg text-slate-100">{{ $currentResult['result_version'] ?? '—' }}</dd>
                 </div>
             </dl>
         @else
             <p class="mt-4 text-slate-300">
-                {{ $currentResult['message'] ?? ($text['current_result_none'] ?? 'No verified result available') }}
+                {{ ($currentResult['status'] ?? '') === 'NO_VERIFIED_RESULT' ? trans('home.current_result_none') : trans('home.current_result_unavailable') }}
             </p>
         @endif
     </section>
@@ -196,11 +194,11 @@
     <section id="next-draw" aria-labelledby="next-draw-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
             <h2 id="next-draw-title" class="text-2xl font-bold text-white">
-                {{ $text['next_draw_title'] ?? __('Next draw') }}
+                {{ $text['next_draw_title'] ?? trans('home.next_draw_title') }}
             </h2>
             <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
                   data-status="{{ $nextDraw['status'] ?? 'UNAVAILABLE' }}">
-                {{ $nextDraw['status'] ?? 'UNAVAILABLE' }}
+                {{ ($nextDraw['status'] ?? '') === 'AVAILABLE' ? trans('home.countdown.status_available') : trans('home.countdown.status_unavailable') }}
             </span>
         </div>
 
@@ -208,66 +206,78 @@
             <p class="mt-4 text-slate-300">
                 <time datetime="{{ $countdownTarget }}">{{ $countdownDisplay ?? $countdownTarget }}</time>
                 <span class="ml-2 text-xs uppercase tracking-widest text-slate-400">
-                    {{ $text['timezone_label'] ?? __('Timezone') }}: {{ $countdownZone }}
+                    {{ trans('home.timezone_label') }}: {{ $countdownZone }}
                 </span>
             </p>
 
             <p class="visually-hidden">
-                {{ $text['time_remaining_label'] ?? __('Time remaining') }}:
-                {{ __('the draw is scheduled for') }}
+                {{ trans('home.time_remaining_label') }}:
+                {{ trans('home.scheduled_draw_for') }}
                 {{ $countdownDisplay ?? $countdownTarget }} ({{ $countdownZone }}).
             </p>
 
             <div class="mt-4 flex flex-wrap items-center gap-4"
                  data-home-countdown
                  data-target="{{ $countdownTarget }}"
+                 data-reached-label="{{ trans('home.countdown.reached') }}"
                  data-timezone="{{ $countdownZone }}"
                  role="timer"
                  aria-live="polite"
                  aria-atomic="true">
-                <span class="home-countdown__cell"><strong id="cd-days">--</strong> <small>{{ __('days') }}</small></span>
-                <span class="home-countdown__cell"><strong id="cd-hours">--</strong> <small>{{ __('hours') }}</small></span>
-                <span class="home-countdown__cell"><strong id="cd-minutes">--</strong> <small>{{ __('minutes') }}</small></span>
-                <span class="home-countdown__cell"><strong id="cd-seconds">--</strong> <small>{{ __('seconds') }}</small></span>
+                <span class="home-countdown__cell"><strong id="cd-days">--</strong> <small>{{ trans('home.countdown.days') }}</small></span>
+                <span class="home-countdown__cell"><strong id="cd-hours">--</strong> <small>{{ trans('home.countdown.hours') }}</small></span>
+                <span class="home-countdown__cell"><strong id="cd-minutes">--</strong> <small>{{ trans('home.countdown.minutes') }}</small></span>
+                <span class="home-countdown__cell"><strong id="cd-seconds">--</strong> <small>{{ trans('home.countdown.seconds') }}</small></span>
             </div>
         @else
-            <p class="mt-4 text-slate-300">{{ $nextDraw['message'] ?? ($text['next_draw_none'] ?? __('No scheduled draw.')) }}</p>
+            <p class="mt-4 text-slate-300">{{ trans('home.next_draw_unavailable') }}</p>
         @endif
     </section>
 
     {{-- ----------------------------------------------------------------
-         Live draw.
-
-         No embed is ever rendered from an unverified source: when no authorised
-         stream is configured the card states that plainly. There is deliberately
-         no <iframe> fallback to a third party player.
+         Live draw. Provider URLs are normalized by LiveStreamEmbedResolver;
+         only an allowlisted, canonical embed URL is allowed into this iframe.
+         An absent/invalid provider remains an explicit NOT_CONFIGURED state.
     ----------------------------------------------------------------- --}}
-    <section id="live-draw" aria-labelledby="live-draw-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-        <h2 id="live-draw-title" class="text-2xl font-bold text-white">
-            {{ $text['live_title'] ?? __('Live draw') }}
-        </h2>
+    <section id="live-draw" aria-labelledby="live-draw-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6"
+             data-home-live-draw
+             data-live-status="{{ $liveDraw['live_status'] ?? 'not_configured' }}"
+             data-replay-status="{{ $liveDraw['replay_status'] ?? 'not_configured' }}">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id="live-draw-title" class="text-2xl font-bold text-white">
+                {{ $text['live_title'] ?? trans('home.live_title') }}
+            </h2>
+            <span class="home-badge rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-200"
+                  data-live-status="{{ $liveDraw['status'] ?? 'UNAVAILABLE' }}">
+                {{ match ($liveDraw['status'] ?? 'UNAVAILABLE') {
+                    'CONFIGURED' => trans('home.live_status_configured'),
+                    'NOT_CONFIGURED' => trans('home.live_status_not_configured'),
+                    default => trans('home.live_status_unavailable'),
+                } }}
+            </span>
+        </div>
 
-        <p class="mt-3 font-mono text-sm font-bold tracking-widest text-slate-200"
-           data-live-status="{{ $liveDraw['status'] ?? 'UNAVAILABLE' }}">
-            LIVE DRAW {{ $liveDraw['status'] ?? 'UNAVAILABLE' }}
-        </p>
-
-        @if (! empty($liveDraw['message']))
-            <p class="mt-2 text-slate-300">{{ $liveDraw['message'] }}</p>
+        @if (($liveDraw['live_status'] ?? 'not_configured') === 'configured' && is_string($liveDraw['embed_url'] ?? null))
+            <div class="mt-5 aspect-video overflow-hidden rounded-xl border border-slate-700 bg-black" data-live-frame-host>
+                <iframe
+                    class="h-full w-full"
+                    src="{{ $liveDraw['embed_url'] }}"
+                    title="{{ trans('home.live_iframe_title', ['provider' => $liveDraw['provider'] ?? trans('home.stream_provider_unspecified')]) }}"
+                    loading="lazy"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    allowfullscreen></iframe>
+            </div>
+            <p class="mt-3 text-xs text-slate-400">{{ trans('home.stream_provider_label') }}: {{ $liveDraw['provider'] ?? trans('home.stream_provider_unspecified') }}. {{ trans('home.stream_url_disclaimer') }}</p>
+        @else
+            <p class="mt-4 text-slate-300" role="status">{{ ($liveDraw['live_status'] ?? '') === 'not_configured' ? trans('home.live_not_configured') : trans('home.live_unavailable') }}@if (($liveDraw['live_status'] ?? '') === 'not_configured') <span class="sr-only">LIVE DRAW NOT_CONFIGURED</span>@endif</p>
         @endif
 
-        @if (($liveDraw['live_status'] ?? '') === 'configured' && ! empty($liveDraw['embed_url']))
-            {{-- Only the operator-validated embed from GloLiveDrawService is rendered, inside a sandbox. --}}
-            <div class="mt-4 aspect-video w-full overflow-hidden rounded-xl border border-slate-800 bg-black">
-                <iframe class="h-full w-full"
-                        src="{{ $liveDraw['embed_url'] }}"
-                        title="{{ $text['live_title'] ?? __('Live draw') }}"
-                        loading="lazy"
-                        referrerpolicy="strict-origin-when-cross-origin"
-                        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-                        allow="autoplay; encrypted-media; picture-in-picture"
-                        allowfullscreen></iframe>
-            </div>
+        @if (($liveDraw['replay_status'] ?? 'not_configured') === 'configured')
+            <p class="mt-2 text-xs text-slate-400">{{ trans('home.replay_catalogue_status') }}</p>
+        @else
+            <p class="mt-2 text-xs text-slate-400">{{ trans('home.replay_not_configured') }}</p>
         @endif
     </section>
 
@@ -276,18 +286,25 @@
     ----------------------------------------------------------------- --}}
     <section id="lane-results" aria-labelledby="lane-results-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <h2 id="lane-results-title" class="text-2xl font-bold text-white">
-            {{ $text['lane_results_title'] ?? __('Latest Official Lottery Results') }}
+            {{ $text['lane_results_title'] ?? trans('home.lane_results_title') }}
         </h2>
 
         <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             @foreach (($laneResults['lanes'] ?? []) as $lane)
+                @php
+                    $laneDateDisplay = match (app()->getLocale()) {
+                        'th' => $lane['date_display_th'] ?? $lane['date_iso'] ?? null,
+                        'bn' => $lane['date_display_bn'] ?? $lane['date_iso'] ?? null,
+                        default => $lane['date_display_en'] ?? $lane['date_iso'] ?? null,
+                    };
+                @endphp
                 <article class="home-lane rounded-xl border border-slate-800 bg-slate-950/50 p-4">
                     <div class="flex items-baseline justify-between gap-3">
                         <h3 class="text-lg font-bold text-white">
                             <a href="{{ $lane['route'] }}" class="hover:text-amber-200">{{ trans($lane['title_key']) }}</a>
                         </h3>
                         <span class="text-[11px] font-bold tracking-widest text-slate-400" data-status="{{ $lane['status'] }}">
-                            {{ $lane['status'] }}
+                            {{ $sectionStatusLabels[($lane['available'] ?? false) ? 'AVAILABLE' : 'UNAVAILABLE'] }}
                         </span>
                     </div>
 
@@ -295,7 +312,7 @@
                         <p class="mt-1 text-xs text-slate-400">
                             {{ $lane['reference'] }}
                             @if (! empty($lane['date_iso']))
-                                · <time datetime="{{ $lane['date_iso'] }}">{{ $lane['date_display_en'] ?? $lane['date_iso'] }}</time>
+                                · <time datetime="{{ $lane['date_iso'] }}">{{ $laneDateDisplay ?? $lane['date_iso'] }}</time>
                             @endif
                         </p>
 
@@ -310,7 +327,7 @@
                             @endforeach
                         </dl>
                     @else
-                        <p class="mt-3 text-sm text-slate-400">{{ $text['lane_results_none'] ?? __('No published result yet.') }}</p>
+                        <p class="mt-3 text-sm text-slate-400">{{ $text['lane_results_none'] ?? trans('home.lane_results_none') }}</p>
                     @endif
                 </article>
             @endforeach
@@ -322,13 +339,13 @@
          into the JSON API.
     ----------------------------------------------------------------- --}}
     <section id="check" aria-labelledby="check-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-        <h2 id="check-title" class="text-2xl font-bold text-white">{{ $text['check_title'] ?? __('Check your ticket') }}</h2>
+        <h2 id="check-title" class="text-2xl font-bold text-white">{{ $text['check_title'] ?? trans('home.check_title') }}</h2>
         <p class="mt-2 text-slate-300">{{ $text['check_help'] ?? '' }}</p>
 
         <form action="{{ route('ticket-check') }}" method="GET" class="mt-4 flex flex-wrap items-end gap-3">
             <div class="flex flex-col gap-1">
                 <label for="home-check-number" class="text-xs uppercase tracking-widest text-slate-400">
-                    {{ $text['check_label'] ?? __('Ticket number') }}
+                    {{ $text['check_label'] ?? trans('home.check_label') }}
                 </label>
                 <input id="home-check-number"
                        name="number"
@@ -341,7 +358,7 @@
                        class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-lg tracking-[0.3em] text-white">
             </div>
             <button type="submit" class="rounded-lg bg-amber-400 px-4 py-2 font-bold text-slate-950">
-                {{ $text['check_button'] ?? __('Check') }}
+                {{ $text['check_button'] ?? trans('home.check_button') }}
             </button>
         </form>
     </section>
@@ -350,10 +367,10 @@
          Sales points CTA
     ----------------------------------------------------------------- --}}
     <section id="sales-points" aria-labelledby="sales-points-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-        <h2 id="sales-points-title" class="text-2xl font-bold text-white">{{ $text['sales_title'] ?? __('Sales points') }}</h2>
+        <h2 id="sales-points-title" class="text-2xl font-bold text-white">{{ $text['sales_title'] ?? trans('home.sales_title') }}</h2>
         <p class="mt-2 text-slate-300">{{ $text['sales_help'] ?? '' }}</p>
         <a href="{{ route('sales-points') }}" class="mt-4 inline-block rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">
-            {{ $text['cta_sales'] ?? __('Search sales points') }}
+            {{ $text['cta_sales'] ?? trans('home.sales_search_button') }}
         </a>
     </section>
 
@@ -363,34 +380,42 @@
     ----------------------------------------------------------------- --}}
     <section id="products" aria-labelledby="products-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 id="products-title" class="text-2xl font-bold text-white">{{ $text['products_title'] ?? __('Products') }}</h2>
+            <h2 id="products-title" class="text-2xl font-bold text-white">{{ $text['products_title'] ?? trans('home.products_title') }}</h2>
             <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
                   data-status="{{ $productSummary['status'] ?? 'UNAVAILABLE' }}">
-                {{ $productSummary['status'] ?? 'UNAVAILABLE' }}
+                {{ $sectionStatusLabels[$productSummary['status'] ?? 'UNAVAILABLE'] ?? $sectionStatusLabels['UNAVAILABLE'] }}
             </span>
         </div>
 
         <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             @forelse (($productSummary['products'] ?? []) as $product)
                 <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-                    <h3 class="text-lg font-bold text-white">{{ $product['name'] }}</h3>
+                    <h3 class="text-lg font-bold text-white">{{ match ($product['code'] ?? '') {
+                        'L6' => trans('home.product_l6_name'),
+                        'N3' => trans('home.product_n3_name'),
+                        default => $product['name'] ?? $product['code'] ?? trans('home.product_name_generic'),
+                    } }}</h3>
                     <p class="mt-1 text-xs uppercase tracking-widest text-slate-500">{{ $product['code'] }}</p>
                     <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
                         <div>
-                            <dt class="text-slate-400">{{ __('Ticket price') }}</dt>
+                            <dt class="text-slate-400">{{ trans('home.ticket_price_label') }}</dt>
                             <dd class="font-mono text-amber-200">{{ $product['ticket_price'] }} {{ $product['currency'] }}</dd>
                         </div>
                         <div>
-                            <dt class="text-slate-400">{{ __('Digits') }}</dt>
+                            <dt class="text-slate-400">{{ trans('home.digits_label') }}</dt>
                             <dd class="font-mono text-slate-100">{{ $product['digits'] }}</dd>
                         </div>
                     </dl>
                     @if (! empty($product['notes']))
-                        <p class="mt-3 text-xs text-slate-400">{{ $product['notes'] }}</p>
+                        <p class="mt-3 text-xs text-slate-400">{{ match ($product['code'] ?? '') {
+                            'L6' => trans('home.product_l6_note'),
+                            'N3' => trans('home.product_n3_note'),
+                            default => $product['notes'],
+                        } }}</p>
                     @endif
                 </article>
             @empty
-                <p class="text-slate-300">{{ $productSummary['message'] ?? __('No products are published.') }}</p>
+                <p class="text-slate-300">{{ trans('home.no_products_published') }}</p>
             @endforelse
         </div>
     </section>
@@ -401,23 +426,23 @@
     ----------------------------------------------------------------- --}}
     <section id="prize" aria-labelledby="prize-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 id="prize-title" class="text-2xl font-bold text-white">{{ $text['prize_title'] ?? __('Prize highlight') }}</h2>
+            <h2 id="prize-title" class="text-2xl font-bold text-white">{{ $text['prize_title'] ?? trans('home.prize_title') }}</h2>
             <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
                   data-status="{{ $prize['status'] ?? 'UNAVAILABLE' }}">
-                {{ $prize['status'] ?? 'UNAVAILABLE' }}
+                {{ $sectionStatusLabels[$prize['status'] ?? 'UNAVAILABLE'] ?? $sectionStatusLabels['UNAVAILABLE'] }}
             </span>
         </div>
 
         @if (! empty($prize['amount']))
-            <p class="mt-4 text-sm uppercase tracking-widest text-slate-400">{{ $prize['label'] ?? __('Prize') }}</p>
+            <p class="mt-4 text-sm uppercase tracking-widest text-slate-400">{{ trans('home.prize_1st_label') }}</p>
             <p class="font-mono text-4xl font-black text-amber-300">{{ $prize['amount'] }}</p>
             @if (! empty($prize['draw_number']))
-                <p class="mt-2 text-sm text-slate-400">{{ $text['draw_label'] ?? __('Draw') }}: {{ $prize['draw_number'] }}</p>
+                <p class="mt-2 text-sm text-slate-400">{{ $text['draw_label'] ?? trans('home.draw_label') }}: {{ $prize['draw_number'] }}</p>
             @endif
         @endif
 
         @if (! empty($prize['message']))
-            <p class="mt-3 text-slate-300">{{ $prize['message'] }}</p>
+            <p class="mt-3 text-slate-300">{{ trans('home.prize_unavailable') }}</p>
         @endif
     </section>
 
@@ -427,10 +452,10 @@
     ----------------------------------------------------------------- --}}
     <section id="stats" aria-labelledby="stats-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 id="stats-title" class="text-2xl font-bold text-white">{{ $text['stats_title'] ?? __('Platform statistics') }}</h2>
+            <h2 id="stats-title" class="text-2xl font-bold text-white">{{ $text['stats_title'] ?? trans('home.stats_title') }}</h2>
             <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
                   data-status="{{ $stats['status'] ?? 'UNAVAILABLE' }}">
-                {{ $stats['status'] ?? 'UNAVAILABLE' }}
+                {{ $sectionStatusLabels[$stats['status'] ?? 'UNAVAILABLE'] ?? $sectionStatusLabels['UNAVAILABLE'] }}
             </span>
         </div>
 
@@ -443,15 +468,15 @@
                     </dd>
                 </div>
             @empty
-                <p class="text-slate-300">{{ $stats['message'] ?? ($text['stats_unavailable'] ?? __('Statistics are unavailable.')) }}</p>
+                <p class="text-slate-300">{{ trans('home.stats_unavailable') }}</p>
             @endforelse
         </dl>
 
         @if (! empty($stats['generated_at']))
             <p class="mt-3 text-xs text-slate-500">
-                {{ $text['generated_label'] ?? __('Generated') }}:
+                {{ $text['generated_label'] ?? trans('home.generated_label') }}:
                 <time datetime="{{ $stats['generated_at'] }}">{{ $stats['generated_at'] }}</time>
-                · {{ $text['stats_database'] ?? __('Source: application database') }}
+                · {{ $text['stats_database'] ?? trans('home.stats_database') }}
             </p>
         @endif
     </section>
@@ -460,7 +485,7 @@
          Campaigns. Config driven, window filtered, escaped on output.
     ----------------------------------------------------------------- --}}
     <section id="bonuses" aria-labelledby="bonuses-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-        <h2 id="bonuses-title" class="text-2xl font-bold text-white">{{ $text['bonuses_title'] ?? __('Promotions') }}</h2>
+        <h2 id="bonuses-title" class="text-2xl font-bold text-white">{{ $text['bonuses_title'] ?? trans('home.bonuses_title') }}</h2>
 
         @php($campaigns = $bonuses['campaigns'] ?? [])
 
@@ -487,9 +512,29 @@
             </ul>
         @else
             <p class="mt-4 text-slate-300">
-                {{ ($bonuses['message'] ?? '') !== '' ? $bonuses['message'] : ($text['bonuses_empty'] ?? 'No active promotions') }}
+                {{ trans('home.bonuses_empty') }}
             </p>
         @endif
+
+        <div class="mt-6 border-t border-slate-800 pt-5" aria-labelledby="program-info-title">
+            <h3 id="program-info-title" class="text-lg font-bold text-white">{{ trans('home.program_info_title') }}</h3>
+            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                    <h4 class="font-bold text-white">{{ trans('home.referral_info_title') }}</h4>
+                    <p class="mt-2 text-sm text-slate-300">{{ trans('home.referral_info_body') }}</p>
+                    @guest
+                        <a class="mt-3 inline-block text-sm font-bold text-amber-200" href="{{ route('register') }}">{{ trans('home.referral_info_link') }}</a>
+                    @else
+                        <p class="mt-3 text-xs text-slate-400">{{ trans('home.referral_info_existing_account') }}</p>
+                    @endguest
+                </article>
+                <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                    <h4 class="font-bold text-white">{{ trans('home.affiliate_info_title') }}</h4>
+                    <p class="mt-2 text-sm text-slate-300">{{ trans('home.affiliate_info_body') }}</p>
+                    <a class="mt-3 inline-block text-sm font-bold text-amber-200" href="{{ route('discounts') }}#affiliate-commissions">{{ trans('home.affiliate_info_link') }}</a>
+                </article>
+            </div>
+        </div>
     </section>
 
     {{-- ----------------------------------------------------------------
@@ -498,10 +543,10 @@
     ----------------------------------------------------------------- --}}
     <section id="payments" aria-labelledby="payments-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 id="payments-title" class="text-2xl font-bold text-white">{{ $text['payments_title'] ?? __('Payment methods') }}</h2>
+            <h2 id="payments-title" class="text-2xl font-bold text-white">{{ $text['payments_title'] ?? trans('home.payments_title') }}</h2>
             <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
                   data-status="{{ $payments['status'] ?? 'UNAVAILABLE' }}">
-                {{ $payments['status'] ?? 'UNAVAILABLE' }}
+                {{ $sectionStatusLabels[$payments['status'] ?? 'UNAVAILABLE'] ?? $sectionStatusLabels['UNAVAILABLE'] }}
             </span>
         </div>
 
@@ -512,7 +557,7 @@
                 @foreach ($methods as $method)
                     <li class="rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3" data-method="{{ $method['code'] }}">
                         <span class="font-bold text-white">{{ $method['label'] }}</span>
-                        <span class="ml-2 text-[11px] font-bold tracking-widest text-slate-400">{{ $method['status'] }}</span>
+                        <span class="ml-2 text-[11px] font-bold tracking-widest text-slate-400" data-status="{{ $method['status'] }}">{{ $sectionStatusLabels[$method['status'] ?? 'UNAVAILABLE'] ?? $sectionStatusLabels['UNAVAILABLE'] }}</span>
                         @if (! empty($method['currencies']))
                             <span class="ml-2 text-xs text-slate-500">{{ implode(', ', $method['currencies']) }}</span>
                         @endif
@@ -521,7 +566,7 @@
             </ul>
         @else
             <p class="mt-4 text-slate-300">
-                {{ ($payments['message'] ?? '') !== '' ? $payments['message'] : ($text['payments_empty'] ?? __('No payment methods are publicly available yet.')) }}
+                {{ trans('home.payments_empty') }}
             </p>
         @endif
     </section>
@@ -531,41 +576,41 @@
     ----------------------------------------------------------------- --}}
     <section id="support" aria-labelledby="support-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 id="support-title" class="text-2xl font-bold text-white">{{ $text['support_title'] ?? __('Support') }}</h2>
+            <h2 id="support-title" class="text-2xl font-bold text-white">{{ $text['support_title'] ?? trans('home.support_title') }}</h2>
             <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
                   data-status="{{ $support['status'] ?? 'UNAVAILABLE' }}">
-                {{ $support['status'] ?? 'UNAVAILABLE' }}
+                {{ $sectionStatusLabels[$support['status'] ?? 'UNAVAILABLE'] ?? $sectionStatusLabels['UNAVAILABLE'] }}
             </span>
         </div>
 
         <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             @if (! empty($support['email']))
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['email_label'] ?? __('Email') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['email_label'] ?? trans('home.email_label') }}</dt>
                     <dd class="text-slate-100">{{ $support['email'] }}</dd>
                 </div>
             @endif
             @if (! empty($support['phone']))
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['phone_label'] ?? __('Phone') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['phone_label'] ?? trans('home.phone_label') }}</dt>
                     <dd class="text-slate-100">{{ $support['phone'] }}</dd>
                 </div>
             @endif
             @if (! empty($support['hours']))
                 <div>
-                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['hours_label'] ?? __('Hours') }}</dt>
+                    <dt class="text-xs uppercase tracking-widest text-slate-400">{{ $text['hours_label'] ?? trans('home.hours_label') }}</dt>
                     <dd class="text-slate-100">{{ $support['hours'] }}</dd>
                 </div>
             @endif
         </dl>
 
         @if (! empty($support['message']))
-            <p class="mt-3 text-slate-300">{{ $support['message'] }}</p>
+            <p class="mt-3 text-slate-300">{{ trans('home.support_help') }}</p>
         @endif
 
         @if (! empty($support['route_url']))
             <a href="{{ $support['route_url'] }}" class="mt-4 inline-block rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200">
-                {{ $text['support_contact'] ?? __('Contact us') }}
+                {{ $text['support_contact'] ?? trans('home.support_contact') }}
             </a>
         @endif
     </section>
@@ -576,27 +621,27 @@
     ----------------------------------------------------------------- --}}
     <section id="app-links" aria-labelledby="app-links-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 id="app-links-title" class="text-2xl font-bold text-white">{{ $text['app_title'] ?? __('Mobile app') }}</h2>
+            <h2 id="app-links-title" class="text-2xl font-bold text-white">{{ $text['app_title'] ?? trans('home.app_title') }}</h2>
             <span class="home-status rounded-full border border-slate-700 px-3 py-1 text-xs font-bold tracking-widest text-slate-300"
                   data-status="{{ $appLinks['status'] ?? 'UNAVAILABLE' }}">
-                {{ $appLinks['status'] ?? 'UNAVAILABLE' }}
+                {{ $sectionStatusLabels[$appLinks['status'] ?? 'UNAVAILABLE'] ?? $sectionStatusLabels['UNAVAILABLE'] }}
             </span>
         </div>
 
         @if (($appLinks['status'] ?? '') === 'CONFIGURED')
             <ul class="mt-4 flex flex-wrap gap-3">
                 @if (! empty($appLinks['android']))
-                    <li><a href="{{ $appLinks['android'] }}" rel="noopener noreferrer" class="rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">{{ __('Android download') }}</a></li>
+                    <li><a href="{{ $appLinks['android'] }}" rel="noopener noreferrer" class="rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">{{ trans('home.app.android_btn') }}</a></li>
                 @endif
                 @if (! empty($appLinks['ios']))
-                    <li><a href="{{ $appLinks['ios'] }}" rel="noopener noreferrer" class="rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">{{ __('iOS download') }}</a></li>
+                    <li><a href="{{ $appLinks['ios'] }}" rel="noopener noreferrer" class="rounded-lg border border-amber-400/60 px-4 py-2 font-bold text-amber-200">{{ trans('home.app.ios_btn') }}</a></li>
                 @endif
                 @if (! empty($appLinks['pwa']))
-                    <li><a href="{{ $appLinks['pwa'] }}" rel="noopener noreferrer" class="rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200">{{ __('Install web app') }}</a></li>
+                    <li><a href="{{ $appLinks['pwa'] }}" rel="noopener noreferrer" class="rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200">{{ trans('home.app.pwa_btn') }}</a></li>
                 @endif
             </ul>
         @else
-            <p class="mt-4 text-slate-300">{{ $appLinks['message'] ?? 'App download links are not configured.' }}</p>
+            <p class="mt-4 text-slate-300">{{ trans('home.app_links_unavailable') }}</p>
         @endif
     </section>
 
@@ -605,19 +650,21 @@
          implements and tests. No certification is claimed.
     ----------------------------------------------------------------- --}}
     <section id="trust" aria-labelledby="trust-title" class="home-section rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-        <h2 id="trust-title" class="text-2xl font-bold text-white">{{ $text['trust_title'] ?? __('How this platform protects you') }}</h2>
+        <h2 id="trust-title" class="text-2xl font-bold text-white">{{ $text['trust_title'] ?? trans('home.trust_title') }}</h2>
 
-        <ul class="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
-            @foreach (($trust['bullets'] ?? []) as $bullet)
-                <li class="flex gap-2 text-slate-300">
-                    <span aria-hidden="true" class="text-amber-300">&bull;</span>
-                    <span>{{ $bullet }}</span>
-                </li>
-            @endforeach
-        </ul>
+        @if (! empty($trust['bullets']))
+            <ul class="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
+                @foreach ($trust['bullets'] as $bullet)
+                    <li class="flex gap-2 text-slate-300">
+                        <span aria-hidden="true" class="text-amber-300">&bull;</span>
+                        <span>{{ $bullet }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
 
         <p class="mt-5 text-xs leading-relaxed text-slate-500">
-            {{ __('Draw rules and prize tables follow Government Lottery Office publications; this site is not the official GLO website and is not affiliated with it.') }}
+            {{ $text['independent_disclaimer'] ?? trans('home.independent_disclaimer') }}
         </p>
     </section>
 

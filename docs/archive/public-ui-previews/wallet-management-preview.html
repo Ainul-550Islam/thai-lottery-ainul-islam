@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Management | FortuneLotto</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --wm-bg-page: #0d121b;
+            --wm-bg-header: #101622;
+            --wm-bg-card: #131a27;
+            --wm-bg-subcard: #172132;
+            --wm-border-main: #1f2b3e;
+            --wm-gold-main: #f59e0b;
+            --wm-green-main: #10b981;
+            --wm-cyan-main: #06b6d4;
+            --wm-text-main: #f1f5f9;
+            --wm-text-muted: #8e9bb0;
+        }
+        body {
+            background-color: var(--wm-bg-page);
+            color: #f1f5f9;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .wm-window-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px 0 20px;
+        }
+        .wm-traffic-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .wm-dot-red { background: #ef4444; }
+        .wm-dot-yellow { background: #f59e0b; }
+        .wm-dot-green { background: #10b981; }
+        .wm-header {
+            background-color: var(--wm-bg-header);
+            border-bottom: 1px solid var(--wm-border-main);
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .wm-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.5rem 0.25rem;
+            position: relative;
+        }
+        .wm-nav-link.active {
+            color: #f59e0b;
+            font-weight: 700;
+        }
+        .wm-nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -16px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #f59e0b;
+            border-radius: 9999px;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);
+        }
+        .wm-main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .wm-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
+        @media (max-width: 1024px) {
+            .wm-stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .wm-stat-card {
+            background: var(--wm-bg-card);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .wm-stat-card-cyan {
+            border: 1.5px solid #06b6d4;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.25);
+        }
+        .wm-stat-card-gold {
+            border: 1.5px solid #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+        }
+        .wm-stat-card-green {
+            border: 1.5px solid #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+        }
+        .wm-payments-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            background: var(--wm-bg-card);
+            border: 1px solid var(--wm-border-main);
+            border-radius: 1.25rem;
+            padding: 1rem 1.25rem;
+        }
+        .wm-gateway-btn {
+            background: var(--wm-bg-subcard);
+            border: 1px solid var(--wm-border-main);
+            border-radius: 0.75rem;
+            padding: 0.5rem 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.2rem;
+            cursor: pointer;
+            min-width: 76px;
+            height: 56px;
+        }
+        .wm-gateway-btn.active {
+            border: 1.5px solid #f59e0b;
+            background: #1b2433;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+        }
+        .wm-table-card {
+            background: var(--wm-bg-card);
+            border: 1px solid var(--wm-border-main);
+            border-radius: 1.25rem;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .wm-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .wm-table th {
+            background: #0f1622;
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--wm-border-main);
+        }
+        .wm-table td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #162030;
+            color: #cbd5e1;
+        }
+        .wm-pill-completed {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid #10b981;
+            color: #34d399;
+            font-size: 0.6875rem;
+            font-weight: 800;
+            padding: 0.2rem 0.65rem;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .wm-pill-processing {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid #f59e0b;
+            color: #fbbf24;
+            font-size: 0.6875rem;
+            font-weight: 800;
+            padding: 0.2rem 0.65rem;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .wm-proceed-btn {
+            background: linear-gradient(90deg, #f59e0b 0%, #10b981 100%);
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 800;
+            color: #0b1017;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+    </style>
+</head>
+<body class="wm-body">
+
+    <!-- macOS traffic dots -->
+    <div class="wm-window-bar">
+        <span class="wm-traffic-dot wm-dot-red"></span>
+        <span class="wm-traffic-dot wm-dot-yellow"></span>
+        <span class="wm-traffic-dot wm-dot-green"></span>
+    </div>
+
+    <!-- TOP HEADER -->
+    <header class="wm-header">
+        <div class="flex items-center gap-10">
+            <a href="#wallet" class="flex items-center gap-2 text-amber-500 font-black text-xl">
+                <span>🪷</span>
+                <span>FortuneLotto</span>
+            </a>
+
+            <nav class="flex items-center gap-6">
+                <a href="/dashboard" class="wm-nav-link"><span>⊞</span><span>Dashboard</span></a>
+                <a href="#tickets" class="wm-nav-link"><span>🎫</span><span>My Tickets</span></a>
+                <a href="#wallet" class="wm-nav-link active"><span>👛</span><span>Wallet</span></a>
+                <a href="/betting" class="wm-nav-link"><span>🌐</span><span>Lottery</span></a>
+                <a href="/player/security" class="wm-nav-link"><span>👤</span><span>Profile</span></a>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 text-sm font-bold text-white">
+                <div class="w-8 h-8 rounded-full overflow-hidden border border-amber-500">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+                <span>Arjun J.</span>
+                <span class="text-xs text-slate-500">▼</span>
+            </div>
+
+            <a href="/player/security" class="flex items-center gap-1 text-slate-400 hover:text-white text-sm font-semibold">
+                <span>⚙</span><span>Settings</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="wm-main">
+        <!-- TITLE -->
+        <div>
+            <h1 class="text-2xl font-black text-amber-500">Wallet Management</h1>
+            <span class="text-xs font-semibold text-slate-400">Overview</span>
+        </div>
+
+        <!-- 3 OVERVIEW STAT CARDS -->
+        <div class="wm-stat-grid">
+            <!-- Card 1 -->
+            <div class="wm-stat-card wm-stat-card-cyan">
+                <div>
+                    <span class="text-xs font-bold text-slate-300 block">Available Balance</span>
+                    <div id="availableBalanceDisplay" class="text-2xl font-black text-white font-mono my-1">
+                        5,450.00 THB
+                    </div>
+                    <span class="text-[11px] text-slate-400">Primary Funds for Play</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-cyan-500/15 border border-cyan-500 flex items-center justify-center text-cyan-400 text-xl">
+                    👛
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="wm-stat-card wm-stat-card-gold">
+                <div>
+                    <span class="text-xs font-bold text-slate-300 block">Locked In-Play</span>
+                    <div class="text-2xl font-black text-white font-mono my-1">
+                        250.00 THB
+                    </div>
+                    <span class="text-[11px] text-slate-400">Active Tickets in Draws</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500 flex items-center justify-center text-amber-400 text-xl">
+                    🔒
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="wm-stat-card wm-stat-card-green">
+                <div>
+                    <span class="text-xs font-bold text-slate-300 block">Lifetime Winnings</span>
+                    <div class="text-2xl font-black text-white font-mono my-1">
+                        94,800.00 THB
+                    </div>
+                    <span class="text-[11px] text-slate-400">Total Prize Money Won</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500 flex items-center justify-center text-emerald-400 text-xl">
+                    🏆
+                </div>
+            </div>
+        </div>
+
+        <!-- DEPOSIT & WITHDRAW SECTION -->
+        <div class="space-y-4">
+            <h2 class="text-lg font-extrabold text-white">Deposit &amp; Withdraw</h2>
+
+            <div class="flex gap-6 border-b border-[#1f2b3e] pb-2 text-sm font-bold">
+                <button type="button" class="text-amber-500 pb-1 border-b-2 border-amber-500" id="depositTabBtn">Deposit</button>
+                <button type="button" class="text-slate-400 pb-1 hover:text-white" id="withdrawTabBtn">Withdraw</button>
+            </div>
+
+            <div class="wm-payments-bar">
+                <!-- Gateways -->
+                <div class="flex items-center gap-3">
+                    <button type="button" class="wm-gateway-btn active">
+                        <span class="text-indigo-400 font-extrabold text-sm">stripe</span>
+                        <span class="text-[10px] text-slate-400">Stripe</span>
+                    </button>
+                    <button type="button" class="wm-gateway-btn">
+                        <span class="text-pink-500 font-extrabold text-sm">🦩</span>
+                        <span class="text-[10px] text-slate-400">bKash</span>
+                    </button>
+                    <button type="button" class="wm-gateway-btn">
+                        <span class="text-amber-500 font-extrabold text-sm">🔥</span>
+                        <span class="text-[10px] text-slate-400">Nagad</span>
+                    </button>
+                    <button type="button" class="wm-gateway-btn">
+                        <span class="text-emerald-400 font-extrabold text-sm">₮</span>
+                        <span class="text-[10px] text-slate-400">USDT (TRC-20)</span>
+                    </button>
+                    <button type="button" class="wm-gateway-btn">
+                        <span class="text-blue-400 font-extrabold text-sm">🏛</span>
+                        <span class="text-[10px] text-slate-400">Thai Bank Wire</span>
+                    </button>
+                </div>
+
+                <!-- Amounts -->
+                <div>
+                    <span class="text-[11px] text-slate-400 font-semibold block mb-1">Amount</span>
+                    <div class="flex gap-2">
+                        <button type="button" class="px-3 py-1.5 rounded-lg bg-[#172132] border border-amber-500 text-white text-xs font-bold">+500 THB</button>
+                        <button type="button" class="px-3 py-1.5 rounded-lg bg-[#172132] border border-[#1f2b3e] text-slate-300 text-xs font-bold hover:bg-[#1e2c42]">+1000 THB</button>
+                    </div>
+                </div>
+
+                <!-- Method Select -->
+                <div>
+                    <span class="text-[11px] text-slate-400 font-semibold block mb-1">Payment Method</span>
+                    <select class="bg-[#172132] border border-[#1f2b3e] rounded-xl px-4 py-2 text-xs font-bold text-white outline-none cursor-pointer">
+                        <option value="USDT">USDT</option>
+                        <option value="Card">Credit Card</option>
+                        <option value="PromptPay">PromptPay</option>
+                    </select>
+                </div>
+
+                <!-- Proceed Button -->
+                <div>
+                    <span class="text-[11px] text-slate-400 font-semibold block mb-1">Proceed to Deposit</span>
+                    <button type="button" onclick="alert('Deposit request for 500 THB processed.');" class="wm-proceed-btn">
+                        Proceed to Deposit
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECENT TRANSACTIONS TABLE -->
+        <div class="space-y-4">
+            <h2 class="text-lg font-extrabold text-white">Recent Transactions</h2>
+
+            <div class="wm-table-card">
+                <table class="wm-table">
+                    <thead>
+                        <tr>
+                            <th>Ref ID</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Amount (THB)</th>
+                            <th>Fee</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-mono font-bold text-slate-200">TX-29831</td>
+                            <td class="text-slate-400">26 Oct 2023 14:35</td>
+                            <td class="text-emerald-400 font-bold">+ Deposit</td>
+                            <td>USDT Wallet Top-up</td>
+                            <td class="font-mono font-bold text-white">1,750.00</td>
+                            <td class="font-mono text-slate-400">8.75</td>
+                            <td><span class="wm-pill-completed">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-mono font-bold text-slate-200">TX-29832</td>
+                            <td class="text-slate-400">26 Oct 2023 14:35</td>
+                            <td class="text-amber-400 font-bold">- Bet Wager</td>
+                            <td>Draw #94 Entry</td>
+                            <td class="font-mono font-bold text-white">700.00</td>
+                            <td class="font-mono text-slate-400">0.75</td>
+                            <td><span class="wm-pill-processing">Processing</span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-mono font-bold text-slate-200">TX-29831</td>
+                            <td class="text-slate-400">26 Oct 2023 14:35</td>
+                            <td class="text-emerald-400 font-bold">+ Prize Payout</td>
+                            <td>Draw #93 Winnings</td>
+                            <td class="font-mono font-bold text-white">94,800.00</td>
+                            <td class="font-mono text-slate-400">8.75</td>
+                            <td><span class="wm-pill-completed">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-mono font-bold text-slate-200">TX-29834</td>
+                            <td class="text-slate-400">26 Oct 2023 14:35</td>
+                            <td class="text-amber-400 font-bold">- Bet Wager</td>
+                            <td>Draw #93 Entry</td>
+                            <td class="font-mono font-bold text-white">300.00</td>
+                            <td class="font-mono text-slate-400">0.75</td>
+                            <td><span class="wm-pill-completed">Completed</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="flex items-center justify-between text-xs text-slate-400 pt-2">
+                <span>Showing 1-10 of 312</span>
+                <div class="flex items-center gap-1.5">
+                    <button class="px-2.5 py-1 rounded bg-[#172132] border border-[#1f2b3e] hover:text-white">Prev</button>
+                    <button class="px-2.5 py-1 rounded bg-blue-600 text-white font-bold">1</button>
+                    <button class="px-2.5 py-1 rounded bg-[#172132] border border-[#1f2b3e] hover:text-white">2</button>
+                    <button class="px-2.5 py-1 rounded bg-[#172132] border border-[#1f2b3e] hover:text-white">3</button>
+                    <span>...</span>
+                    <button class="px-2.5 py-1 rounded bg-[#172132] border border-[#1f2b3e] hover:text-white">32</button>
+                    <button class="px-2.5 py-1 rounded bg-[#172132] border border-[#1f2b3e] hover:text-white">Next</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

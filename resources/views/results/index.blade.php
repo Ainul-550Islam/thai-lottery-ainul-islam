@@ -2,6 +2,11 @@
 
 @section('title', __('results.meta_title'))
 @section('meta_description', __('results.meta_description'))
+@section('meta_canonical', route('results.index'))
+@section('meta_og_title', __('results.meta_title'))
+@section('meta_og_description', __('results.meta_description'))
+@section('meta_og_type', 'website')
+@section('meta_og_url', route('results.index'))
 
 @section('content')
 <main class="min-h-screen bg-[#0B0904] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8" data-results-hub>
@@ -34,7 +39,7 @@
             <section aria-labelledby="results-list-title">
                 <h2 id="results-list-title" class="mb-5 text-2xl font-black text-[#F5E6B8]">{{ __('results.published_results') }}</h2>
                 <div class="overflow-x-auto rounded-3xl border border-[#D4AF37]/20 bg-[#141007] shadow-2xl">
-                    <table class="min-w-[860px] w-full text-left text-sm">
+                    <table class="min-w-[980px] w-full text-left text-sm">
                         <caption class="sr-only">{{ __('results.published_results') }}</caption>
                         <thead class="border-b border-white/10 text-xs uppercase tracking-wider text-gray-400">
                             <tr>
@@ -43,6 +48,7 @@
                                 <th scope="col" class="px-5 py-4">{{ __('results.first_prize') }}</th>
                                 <th scope="col" class="px-5 py-4">{{ __('results.second_prize') }}</th>
                                 <th scope="col" class="px-5 py-4">{{ __('results.third_prize') }}</th>
+                                <th scope="col" class="px-5 py-4">{{ __('results.other_prizes') }}</th>
                                 <th scope="col" class="px-5 py-4">{{ __('results.source') }}</th>
                             </tr>
                         </thead>
@@ -70,6 +76,7 @@
                                     <td class="px-5 py-4 font-mono text-[#F5E6B8]">{{ $row['first_prize'] ?: __('results.no_prize_data') }}</td>
                                     <td class="px-5 py-4 font-mono text-gray-200">{{ $list($row['second_prize'] ?? null) }}</td>
                                     <td class="px-5 py-4 font-mono text-gray-200">{{ $list($row['third_prize'] ?? null) }}</td>
+                                    <td class="px-5 py-4 font-mono text-gray-200">{{ $list($row['consolation_prizes'] ?? null) }}</td>
                                     <td class="px-5 py-4">
                                         <span class="inline-flex rounded-full border border-[#D4AF37]/30 px-3 py-1 text-xs font-semibold text-[#F5E6B8]" data-source-state="{{ $source }}" aria-label="{{ __('results.source') }}: {{ $sourceLabel }}">
                                             {{ $sourceLabel }}

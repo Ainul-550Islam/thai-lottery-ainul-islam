@@ -10,198 +10,32 @@
     "zero_dispatch_after": 11
   },
   "closed_by_scheduler": [
-    {
-      "job": "ExpireSelfExclusionsJob",
-      "cadence": "everyFiveMinutes",
-      "name": "player-protection-self-exclusion-expiry",
-      "impact_if_never_run": "Self-exclusions never lapse. Regulatory breach in both directions."
-    },
-    {
-      "job": "EnforceResponsibleGamingLimitsJob",
-      "cadence": "everyFiveMinutes",
-      "name": "player-protection-limit-enforcement",
-      "impact_if_never_run": "Deposit, loss and session limits are recorded but never enforced."
-    },
-    {
-      "job": "DeliverDueRealityChecksJob",
-      "cadence": "everyMinute",
-      "name": "player-protection-reality-checks",
-      "impact_if_never_run": "Mandated session-time prompts are never shown."
-    },
-    {
-      "job": "ReviewPlayerProtectionCasesJob",
-      "cadence": "hourlyAt(25)",
-      "name": "player-protection-case-review",
-      "impact_if_never_run": "Escalated protection cases queue up unreviewed."
-    },
-    {
-      "job": "DispatchPendingNotificationsJob",
-      "cadence": "everyMinute",
-      "name": "notification-outbox-drain",
-      "impact_if_never_run": "THE OUTBOX IS NEVER DRAINED. No player receives any notification; the table grows without bound."
-    },
-    {
-      "job": "RetryFailedNotificationsJob",
-      "cadence": "everyTenMinutes",
-      "name": "notification-retry-sweep",
-      "impact_if_never_run": "A transient provider failure becomes permanent message loss."
-    },
-    {
-      "job": "ExpireStaleNotificationsJob",
-      "cadence": "dailyAt 03:20",
-      "name": "notification-retention-sweep",
-      "impact_if_never_run": "Retention policy is never applied."
-    },
-    {
-      "job": "RevokeExpiredSessionsJob",
-      "cadence": "everyFiveMinutes",
-      "name": "security-session-revocation",
-      "impact_if_never_run": "Expired sessions stay usable. Authentication defect."
-    },
-    {
-      "job": "ExpireMfaChallengesJob",
-      "cadence": "everyMinute",
-      "name": "security-mfa-challenge-expiry",
-      "impact_if_never_run": "An MFA challenge never expires, making the second factor replayable."
-    },
-    {
-      "job": "ReviewHighRiskSecurityEventsJob",
-      "cadence": "everyFifteenMinutes",
-      "name": "security-high-risk-review",
-      "impact_if_never_run": "High-risk security events are logged and never triaged."
-    },
-    {
-      "job": "ExpireBetCancellationRequestsJob",
-      "cadence": "everyFiveMinutes",
-      "name": "betting-cancellation-window-expiry",
-      "impact_if_never_run": "A player's stake sits in limbo past the cancellation window."
-    },
-    {
-      "job": "ExpireReportExportsJob",
-      "cadence": "hourlyAt(40)",
-      "name": "reporting-export-retention",
-      "impact_if_never_run": "Exports containing personal data are retained indefinitely."
-    }
+    { "job": "ExpireSelfExclusionsJob",           "cadence": "everyFiveMinutes",   "name": "player-protection-self-exclusion-expiry",  "impact_if_never_run": "Self-exclusions never lapse. Regulatory breach in both directions." },
+    { "job": "EnforceResponsibleGamingLimitsJob", "cadence": "everyFiveMinutes",   "name": "player-protection-limit-enforcement",      "impact_if_never_run": "Deposit, loss and session limits are recorded but never enforced." },
+    { "job": "DeliverDueRealityChecksJob",        "cadence": "everyMinute",        "name": "player-protection-reality-checks",         "impact_if_never_run": "Mandated session-time prompts are never shown." },
+    { "job": "ReviewPlayerProtectionCasesJob",    "cadence": "hourlyAt(25)",       "name": "player-protection-case-review",            "impact_if_never_run": "Escalated protection cases queue up unreviewed." },
+    { "job": "DispatchPendingNotificationsJob",   "cadence": "everyMinute",        "name": "notification-outbox-drain",                "impact_if_never_run": "THE OUTBOX IS NEVER DRAINED. No player receives any notification; the table grows without bound." },
+    { "job": "RetryFailedNotificationsJob",       "cadence": "everyTenMinutes",    "name": "notification-retry-sweep",                 "impact_if_never_run": "A transient provider failure becomes permanent message loss." },
+    { "job": "ExpireStaleNotificationsJob",       "cadence": "dailyAt 03:20",      "name": "notification-retention-sweep",             "impact_if_never_run": "Retention policy is never applied." },
+    { "job": "RevokeExpiredSessionsJob",          "cadence": "everyFiveMinutes",   "name": "security-session-revocation",              "impact_if_never_run": "Expired sessions stay usable. Authentication defect." },
+    { "job": "ExpireMfaChallengesJob",            "cadence": "everyMinute",        "name": "security-mfa-challenge-expiry",            "impact_if_never_run": "An MFA challenge never expires, making the second factor replayable." },
+    { "job": "ReviewHighRiskSecurityEventsJob",   "cadence": "everyFifteenMinutes","name": "security-high-risk-review",                "impact_if_never_run": "High-risk security events are logged and never triaged." },
+    { "job": "ExpireBetCancellationRequestsJob",  "cadence": "everyFiveMinutes",   "name": "betting-cancellation-window-expiry",       "impact_if_never_run": "A player's stake sits in limbo past the cancellation window." },
+    { "job": "ExpireReportExportsJob",            "cadence": "hourlyAt(40)",       "name": "reporting-export-retention",               "impact_if_never_run": "Exports containing personal data are retained indefinitely." }
   ],
   "still_zero_dispatch": [
-    {
-      "job": "MatchDrawPrizesJob",
-      "ctor": "int $drawId",
-      "correct_producer": "draw settlement lifecycle (lottery:settle-draws)",
-      "status": "OPEN"
-    },
-    {
-      "job": "CertifyDrawResultJob",
-      "ctor": "int $drawId, string $certifierReference",
-      "correct_producer": "operator certification action",
-      "status": "OPEN"
-    },
-    {
-      "job": "PublishCertifiedDrawJob",
-      "ctor": "int $drawId",
-      "correct_producer": "operator publication approval",
-      "status": "OPEN"
-    },
-    {
-      "job": "ReconcileCompletedDrawJob",
-      "ctor": "int $drawId",
-      "correct_producer": "post-settlement hook",
-      "status": "OPEN"
-    },
-    {
-      "job": "SendWinnerNotificationJob",
-      "ctor": "int $winnerNotificationId",
-      "correct_producer": "prize match result",
-      "status": "OPEN"
-    },
-    {
-      "job": "DisburseApprovedPrizeJob",
-      "ctor": "int $payoutId, ?int $batchId",
-      "correct_producer": "payout approval, behind PRIZE_PAYOUT_SAFETY_MODE",
-      "status": "OPEN"
-    },
-    {
-      "job": "ExecutePayoutTransferJob",
-      "ctor": "string $batchKey, ?int $chunkSize",
-      "correct_producer": "GeneratePayoutBatchJob fan-out",
-      "status": "OPEN"
-    },
-    {
-      "job": "DisburseWithdrawalJob",
-      "ctor": "payout identity",
-      "correct_producer": "withdrawal approval",
-      "status": "OPEN"
-    },
-    {
-      "job": "ProcessPrizeSettlementJob",
-      "ctor": "settlement identity",
-      "correct_producer": "settlement lifecycle",
-      "status": "OPEN"
-    },
-    {
-      "job": "ProcessFinancialReconciliationJob",
-      "ctor": "reconciliation identity",
-      "correct_producer": "finance:reconcile",
-      "status": "OPEN"
-    },
-    {
-      "job": "AllocateRetailTicketQuotaJob",
-      "ctor": "int $ticketProductId, int $drawId, ...",
-      "correct_producer": "retail product activation",
-      "status": "OPEN"
-    }
+    { "job": "MatchDrawPrizesJob",              "ctor": "int $drawId",                              "correct_producer": "draw settlement lifecycle (lottery:settle-draws)", "status": "OPEN" },
+    { "job": "CertifyDrawResultJob",            "ctor": "int $drawId, string $certifierReference",  "correct_producer": "operator certification action",                   "status": "OPEN" },
+    { "job": "PublishCertifiedDrawJob",         "ctor": "int $drawId",                              "correct_producer": "operator publication approval",                   "status": "OPEN" },
+    { "job": "ReconcileCompletedDrawJob",       "ctor": "int $drawId",                              "correct_producer": "post-settlement hook",                            "status": "OPEN" },
+    { "job": "SendWinnerNotificationJob",       "ctor": "int $winnerNotificationId",                "correct_producer": "prize match result",                              "status": "OPEN" },
+    { "job": "DisburseApprovedPrizeJob",        "ctor": "int $payoutId, ?int $batchId",             "correct_producer": "payout approval, behind PRIZE_PAYOUT_SAFETY_MODE","status": "OPEN" },
+    { "job": "ExecutePayoutTransferJob",        "ctor": "string $batchKey, ?int $chunkSize",        "correct_producer": "GeneratePayoutBatchJob fan-out",                   "status": "OPEN" },
+    { "job": "DisburseWithdrawalJob",           "ctor": "payout identity",                          "correct_producer": "withdrawal approval",                             "status": "OPEN" },
+    { "job": "ProcessPrizeSettlementJob",       "ctor": "settlement identity",                      "correct_producer": "settlement lifecycle",                            "status": "OPEN" },
+    { "job": "ProcessFinancialReconciliationJob","ctor": "reconciliation identity",                 "correct_producer": "finance:reconcile",                               "status": "OPEN" },
+    { "job": "AllocateRetailTicketQuotaJob",    "ctor": "int $ticketProductId, int $drawId, ...",   "correct_producer": "retail product activation",                       "status": "OPEN" }
   ],
   "why_the_remainder_is_open": "All eleven are event-driven and money- or result-critical: every one of them either moves money or decides a prize outcome. Wiring them requires choosing the exact transaction boundary and the exact operator approval gate, and two of them (DisburseApprovedPrizeJob, ExecutePayoutTransferJob) must sit behind PRIZE_PAYOUT_SAFETY_MODE. Attaching them to a plausible-looking producer without a verified end-to-end settlement test would be guessing with real money. They are reported OPEN rather than closed speculatively.",
-  "verification": "php artisan schedule:list shows 29 registered entries, including all 12 newly closed lanes.",
-  "provenance": {
-    "written_during_phase": 6,
-    "captured_at_utc": null,
-    "captured_at_note": "No date in the original; phase 6 is inside the 2026-10-01 measurement window of this closure.",
-    "base_commit": "1c21115b615dd37fb0ad17f3a4704445cdef4ce0",
-    "base_commit_in_this_clone": false,
-    "clone_head_commit": "5df5d14",
-    "clone_commit_count": 1,
-    "provenance_note": "This clone has exactly one commit (5df5d14) and 1c21115 is not an object in it, so the commit this record was measured against cannot be checked out here. Stated instead of assumed: a reader can tell which tree these numbers describe only if the record says so.",
-    "claims_refreshed_at_utc": "2026-10-16",
-    "claims_refreshed_by_cluster": 45
-  },
-  "claims_current_state": {
-    "totals_are_consistent_with_their_own_lists": {
-      "statement": "jobs_defined minus wired_before equals zero_dispatch_before, and zero_dispatch_before minus closed_this_pass equals zero_dispatch_after: the arithmetic of this artifact holds against its own lists, and the lists are counted rather than trusted.",
-      "as_of": "2026-10-16",
-      "verification": {
-        "kind": "internal_arithmetic",
-        "totals": {
-          "check_a": [
-            "jobs_defined",
-            "wired_before",
-            "zero_dispatch_before"
-          ],
-          "check_b": [
-            "zero_dispatch_before",
-            "closed_this_pass",
-            "zero_dispatch_after"
-          ]
-        },
-        "list_lengths": {
-          "closed_by_scheduler": "closed_this_pass",
-          "still_zero_dispatch": "zero_dispatch_after"
-        }
-      }
-    },
-    "the_open_list_is_still_open": {
-      "statement": "Every job under still_zero_dispatch has zero dispatch sites in app/ and routes/ on 2026-10-16; the day one gains a producer this claim fails and the artifact has to be re-measured.",
-      "as_of": "2026-10-16",
-      "verification": {
-        "kind": "zero_dispatch_jobs",
-        "inventory": "runtime/queue-dispatch-inventory.json",
-        "field": "still_zero_dispatch",
-        "search": [
-          "app",
-          "routes"
-        ],
-        "expected_sites": 0
-      }
-    }
-  }
+  "verification": "php artisan schedule:list shows 29 registered entries, including all 12 newly closed lanes."
 }

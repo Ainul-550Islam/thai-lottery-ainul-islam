@@ -150,7 +150,12 @@ final class AdminAccess
             return true;
         }
 
-        return $user->hasPermissionTo($permission, 'web');
+        try {
+            return $user->hasPermissionTo($permission, 'web');
+        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+            // A missing permission registration is not authorization; fail closed.
+            return false;
+        }
     }
 
     /**

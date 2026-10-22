@@ -17,7 +17,7 @@
 
             <div class="acct-form__row">
                 <div class="acct-field">
-                    <label for="country_code">{{ trans('account_services.verification_country_code') }}</label>
+                    <label for="country_code">{{ trans('account_services.member_verification_country_code') }}</label>
                     <input type="text"
                            id="country_code"
                            name="country_code"
@@ -32,7 +32,7 @@
                 </div>
 
                 <div class="acct-field">
-                    <label for="mobile">{{ trans('account_services.verification_mobile') }}</label>
+                    <label for="mobile">{{ trans('account_services.member_verification_mobile') }}</label>
                     <input type="tel"
                            id="mobile"
                            name="mobile"
@@ -52,7 +52,7 @@
             </div>
 
             <div class="acct-field">
-                <label for="document_type">{{ trans('account_services.verification_document_type') }}</label>
+                <label for="document_type">{{ trans('account_services.member_verification_document_type') }}</label>
                 <select id="document_type" name="document_type" required class="acct-input" aria-describedby="document_type-error">
                     <option value="">{{ trans('account_services.not_recorded') }}</option>
                     @foreach (($documentTypes ?? []) as $type)
@@ -67,7 +67,7 @@
             </div>
 
             <div class="acct-field">
-                <label for="document">{{ trans('account_services.verification_document_front') }}</label>
+                <label for="document">{{ trans('account_services.member_verification_document_front') }}</label>
                 <input type="file"
                        id="document"
                        name="document"
@@ -85,7 +85,7 @@
             </div>
 
             <div class="acct-field">
-                <label for="document_back">{{ trans('account_services.verification_document_back') }}</label>
+                <label for="document_back">{{ trans('account_services.member_verification_document_back') }}</label>
                 <input type="file"
                        id="document_back"
                        name="document_back"
@@ -101,7 +101,7 @@
 
             <div class="acct-form__actions">
                 <button type="submit" class="acct-btn" data-verification-submit>
-                    {{ trans('account_services.verification_submit') }}
+                    {{ trans('account_services.member_verification_submit') }}
                 </button>
             </div>
         </form>

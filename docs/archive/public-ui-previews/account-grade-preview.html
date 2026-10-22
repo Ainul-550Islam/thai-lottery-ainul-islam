@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIP Account Grades & Loyalty Ladder — ThaiLotto Official</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #050b14;
+            color: #cbd5e1;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 10% 80%, rgba(217, 119, 6, 0.04) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .tl-gold-gradient {
+            background: linear-gradient(135deg, #FFF6D6 0%, #F59E0B 50%, #B45309 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tl-gold-bg {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #92400E 100%);
+        }
+        .tl-card {
+            background: linear-gradient(180deg, rgba(16, 27, 45, 0.85) 0%, rgba(10, 18, 30, 0.95) 100%);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            border-radius: 1.25rem;
+            backdrop-filter: blur(12px);
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tl-card:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(217, 119, 6, 0.1);
+        }
+        .sim-panel {
+            background: linear-gradient(135deg, rgba(20, 35, 58, 0.9) 0%, rgba(12, 22, 38, 0.95) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-[#070e1b]/90 backdrop-blur-md border-b border-amber-500/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-xl tl-gold-bg flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-gem text-slate-950 text-xl font-black"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel'] block leading-none">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                        <span class="text-[10px] text-amber-400/80 font-mono tracking-widest uppercase">VIP Loyalty Club</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Home</a>
+                <a href="/about" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">About Us</a>
+                <a href="/vision-mission" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Vision & Mission</a>
+                <a href="/our-fees" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Fees</a>
+                <a href="/account-verification" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Verification</a>
+                <a href="/account-grade" class="text-sm font-semibold text-amber-400 border-b-2 border-amber-400 pb-1">VIP Grades</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <a href="/login" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-all">Sign In</a>
+                <a href="/register" class="px-5 py-2.5 rounded-lg text-sm font-black text-slate-950 tl-gold-bg hover:brightness-110 shadow-lg shadow-amber-500/20 transition-all">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <!-- Page Title & Hero Header -->
+        <div class="text-center max-w-3xl mx-auto mb-14">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono mb-4">
+                <i class="fa-solid fa-crown"></i> 30-Day Rolling Loyalty Privileges & Automated Cashback
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white font-['Cinzel'] tracking-tight mb-4">
+                VIP <span class="tl-gold-gradient">Account Grades</span> & Rebates
+            </h1>
+            <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
+                As your 30-day lottery volume grows, unlock higher VIP tier status with up to 5.00% monthly cashback rebates, zero-fee withdrawals, priority clearance, and personal white-glove jackpot concierge.
+            </p>
+
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-slate-400">
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-arrows-rotate text-amber-400"></i> Recalculated Nightly at 00:00 UTC+7</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-award text-emerald-400"></i> Max 5.00% Instant Rebate</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-coins text-cyan-400"></i> Automated Cashback Payout</span>
+            </div>
+        </div>
+
+        <!-- 5 VIP Tier Pedestals Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-16">
+            <!-- Bronze -->
+            <div class="tl-card vip-pedestal-card flex flex-col justify-between" id="card-bronze">
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-lg mb-3">
+                        <i class="fa-solid fa-shield"></i>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-500 uppercase font-bold block">SL 1 • TIER 1</span>
+                    <h3 class="text-base font-black text-white mb-1">Bronze VIP</h3>
+                    <div class="text-xs font-mono font-bold text-slate-400 mb-3">0.00 THB Spend</div>
+                    <div class="py-1 px-2.5 rounded bg-slate-800/80 text-slate-300 text-xs font-mono font-bold inline-block mb-4">
+                        0.00% Cashback
+                    </div>
+
+                    <ul class="space-y-1.5 text-[11px] text-slate-400 border-t border-[#1c2b44] pt-3">
+                        <li>• Standard PromptPay Access</li>
+                        <li>• Standard Payout Queue</li>
+                        <li>• Standard Schedule</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Silver -->
+            <div class="tl-card vip-pedestal-card flex flex-col justify-between" id="card-silver">
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-slate-700/60 text-slate-300 flex items-center justify-center text-lg mb-3">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400 uppercase font-bold block">SL 2 • TIER 2</span>
+                    <h3 class="text-base font-black text-white mb-1">Silver VIP</h3>
+                    <div class="text-xs font-mono font-bold text-slate-300 mb-3">10,000 THB Spend</div>
+                    <div class="py-1 px-2.5 rounded bg-slate-800 text-slate-200 text-xs font-mono font-bold inline-block mb-4 border border-slate-700">
+                        1.00% Cashback
+                    </div>
+
+                    <ul class="space-y-1.5 text-[11px] text-slate-400 border-t border-[#1c2b44] pt-3">
+                        <li>• 1.00% Monthly Cashback</li>
+                        <li>• 2 Free Bank Withdrawals/Mo</li>
+                        <li>• Priority Support Queue</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Gold (Popular) -->
+            <div class="tl-card vip-pedestal-card border-amber-500/50 shadow-lg shadow-amber-500/10 flex flex-col justify-between relative" id="card-gold">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                    POPULAR
+                </div>
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg mb-3 border border-amber-500/40">
+                        <i class="fa-solid fa-crown"></i>
+                    </div>
+                    <span class="text-[10px] font-mono text-amber-400 uppercase font-bold block">SL 3 • TIER 3</span>
+                    <h3 class="text-base font-black text-white mb-1">Gold VIP</h3>
+                    <div class="text-xs font-mono font-bold text-amber-400 mb-3">50,000 THB Spend</div>
+                    <div class="py-1 px-2.5 rounded bg-amber-500/20 text-amber-300 text-xs font-mono font-bold inline-block mb-4 border border-amber-500/40">
+                        2.00% Cashback
+                    </div>
+
+                    <ul class="space-y-1.5 text-[11px] text-slate-300 border-t border-[#1c2b44] pt-3">
+                        <li>• 2.00% Monthly Cashback</li>
+                        <li>• 5 Free Bank Withdrawals/Mo</li>
+                        <li>• Fast-Track Instant Payouts</li>
+                        <li>• Birthday Credits Bonus</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Platinum -->
+            <div class="tl-card vip-pedestal-card flex flex-col justify-between" id="card-platinum">
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg mb-3 border border-cyan-500/40">
+                        <i class="fa-solid fa-gem"></i>
+                    </div>
+                    <span class="text-[10px] font-mono text-cyan-400 uppercase font-bold block">SL 4 • TIER 4</span>
+                    <h3 class="text-base font-black text-white mb-1">Platinum VIP</h3>
+                    <div class="text-xs font-mono font-bold text-cyan-300 mb-3">250,000 THB Spend</div>
+                    <div class="py-1 px-2.5 rounded bg-cyan-500/20 text-cyan-300 text-xs font-mono font-bold inline-block mb-4 border border-cyan-500/40">
+                        3.50% Cashback
+                    </div>
+
+                    <ul class="space-y-1.5 text-[11px] text-slate-300 border-t border-[#1c2b44] pt-3">
+                        <li>• 3.50% Monthly Cashback</li>
+                        <li>• Unlimited Free Withdrawals</li>
+                        <li>• Dedicated VIP Manager</li>
+                        <li>• Higher Betting Limits</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Diamond VIP -->
+            <div class="tl-card vip-pedestal-card border-emerald-500/40 flex flex-col justify-between" id="card-diamond">
+                <div>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg mb-3 border border-emerald-500/40">
+                        <i class="fa-solid fa-dragon"></i>
+                    </div>
+                    <span class="text-[10px] font-mono text-emerald-400 uppercase font-bold block">SL 5 • TIER 5</span>
+                    <h3 class="text-base font-black text-white mb-1">Diamond VIP</h3>
+                    <div class="text-xs font-mono font-bold text-emerald-400 mb-3">1,000,000 THB</div>
+                    <div class="py-1 px-2.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold inline-block mb-4 border border-emerald-500/40">
+                        5.00% Cashback
+                    </div>
+
+                    <ul class="space-y-1.5 text-[11px] text-slate-200 border-t border-[#1c2b44] pt-3">
+                        <li>• 5.00% Max Cashback</li>
+                        <li>• Unlimited 0s Instant Clear</li>
+                        <li>• 1st Prize GLO Escort (6M+)</li>
+                        <li>• Annual VIP Gala Pass</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Real-Time VIP Rebate Simulator -->
+        <div class="sim-panel p-6 sm:p-10 mb-16">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                <!-- Left: Slider & Inputs -->
+                <div class="lg:col-span-7">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-calculator"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-black text-white font-['Cinzel']">Live VIP Rebate Simulator</h2>
+                            <p class="text-xs text-slate-400">Slide or enter your monthly lottery budget to simulate instant benefits.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">30-Day Wagering Volume</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="vipSpendInput" value="50000" min="0" max="2000000" step="5000" oninput="simCalculate(this.value)" class="w-36 bg-[#0a121e] border border-amber-500/40 rounded-lg px-3 py-1.5 text-right font-mono font-bold text-white text-sm focus:outline-none focus:border-amber-400">
+                                    <span class="text-xs font-bold text-amber-400 font-mono">THB</span>
+                                </div>
+                            </div>
+
+                            <input type="range" id="vipSpendSlider" min="0" max="1500000" step="5000" value="50000" oninput="simCalculate(this.value)" class="w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg">
+                            <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+                                <span>0 THB (Bronze)</span>
+                                <span>50K (Gold)</span>
+                                <span>250K (Platinum)</span>
+                                <span>1M+ (Diamond)</span>
+                            </div>
+                        </div>
+
+                        <!-- Quick Presets -->
+                        <div class="flex flex-wrap items-center gap-2 text-xs">
+                            <span class="text-slate-400 font-mono text-[11px] mr-1">Quick Presets:</span>
+                            <button type="button" onclick="simCalculate(10000)" class="px-3 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-xs border border-slate-700 transition-colors">10,000 THB</button>
+                            <button type="button" onclick="simCalculate(50000)" class="px-3 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-xs border border-slate-700 transition-colors">50,000 THB</button>
+                            <button type="button" onclick="simCalculate(250000)" class="px-3 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-xs border border-slate-700 transition-colors">250,000 THB</button>
+                            <button type="button" onclick="simCalculate(1000000)" class="px-3 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-xs border border-slate-700 transition-colors">1,000,000 THB</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Computed Results Box -->
+                <div class="lg:col-span-5 bg-[#0a1424] border border-amber-500/40 rounded-2xl p-6 relative">
+                    <div class="flex items-center justify-between border-b border-[#1c2b44] pb-3 mb-4">
+                        <div>
+                            <span class="text-[10px] font-mono text-slate-400 uppercase block">Calculated Tier</span>
+                            <span id="simTierName" class="text-lg font-black text-white font-['Cinzel']">Gold VIP</span>
+                        </div>
+                        <span id="simTierBadge" class="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold">SL 3 • 2.00% CASHBACK</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-xs text-slate-400 block mb-0.5">Estimated Monthly Cash Rebate:</span>
+                            <div id="simRebateValue" class="text-3xl font-black text-emerald-400 font-mono">1,000.00 THB</div>
+                            <span class="text-[10px] text-slate-400 font-mono">Credited automatically to Cash Balance every 1st of month.</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-3 border-t border-[#1c2b44] text-xs">
+                            <div>
+                                <span class="text-slate-400 block text-[10px]">Rebate Discount Rate:</span>
+                                <span id="simRebateRate" class="font-bold text-amber-400 font-mono">2.00%</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block text-[10px]">Free Bank Withdrawals:</span>
+                                <span id="simWithdrawalBenefit" class="font-bold text-cyan-400 font-mono">5 Free / Month</span>
+                            </div>
+                        </div>
+
+                        <!-- Progress to next tier -->
+                        <div id="simProgressBox" class="pt-3 border-t border-[#1c2b44]">
+                            <div class="flex justify-between text-[11px] font-mono text-slate-300 mb-1">
+                                <span>Next Tier Progress:</span>
+                                <span id="simProgressText" class="text-amber-400">200,000.00 THB to Platinum (20.0%)</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                                <div id="simProgressBar" class="bg-gradient-to-r from-amber-500 to-amber-300 h-2 rounded-full transition-all duration-300" style="width: 20%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Eligible Games Entitlement Matrix Table -->
+        <div class="tl-card mb-16">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-[#1c2b44] pb-4">
+                <div>
+                    <h3 class="text-lg font-black text-white font-['Cinzel']">Game-by-Game Discount Entitlement Matrix</h3>
+                    <p class="text-xs text-slate-400">Review which lottery markets qualify for VIP volume rebates.</p>
+                </div>
+                <div class="text-xs font-mono text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/30">
+                    <i class="fa-solid fa-shield-halved mr-1"></i> GLO Parity Protection Active
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                    <thead>
+                        <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                            <th class="py-3 px-3">Lottery Game / Market</th>
+                            <th class="py-3 px-3">Category</th>
+                            <th class="py-3 px-3">Entitlement Status</th>
+                            <th class="py-3 px-3">Max VIP Discount Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#1c2b44]/60">
+                        <tr>
+                            <td class="py-3 px-3 font-bold text-white">Thai 3-Digit (3D / 2D)</td>
+                            <td class="py-3 px-3 text-slate-400 font-mono">Thai National</td>
+                            <td class="py-3 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ELIGIBLE</span></td>
+                            <td class="py-3 px-3 font-mono font-bold text-amber-400">5.00%</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-3 font-bold text-white">Thai Running Numbers (19 Doors / Direct)</td>
+                            <td class="py-3 px-3 text-slate-400 font-mono">Thai National</td>
+                            <td class="py-3 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ELIGIBLE</span></td>
+                            <td class="py-3 px-3 font-mono font-bold text-amber-400">5.00%</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-3 font-bold text-white">Weekly Government Lottery Draw</td>
+                            <td class="py-3 px-3 text-slate-400 font-mono">Weekly Lottery</td>
+                            <td class="py-3 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ELIGIBLE</span></td>
+                            <td class="py-3 px-3 font-mono font-bold text-amber-400">4.00%</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-3 font-bold text-white">Mega Bingo 6/49 & 6/55</td>
+                            <td class="py-3 px-3 text-slate-400 font-mono">Bingo Lottery</td>
+                            <td class="py-3 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ELIGIBLE</span></td>
+                            <td class="py-3 px-3 font-mono font-bold text-amber-400">5.00%</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-3 font-bold text-white">PCSO Ultra Lotto 6/58</td>
+                            <td class="py-3 px-3 text-slate-400 font-mono">PCSO Lottery</td>
+                            <td class="py-3 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ELIGIBLE</span></td>
+                            <td class="py-3 px-3 font-mono font-bold text-amber-400">3.50%</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-3 font-bold text-white">Official GLO Standard 6-Digit (L6)</td>
+                            <td class="py-3 px-3 text-slate-400 font-mono">Government Lottery Office</td>
+                            <td class="py-3 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">GLO PROTECTED</span></td>
+                            <td class="py-3 px-3 font-mono font-bold text-slate-400">0.00% (Protected GLO Parity at 80 THB)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 p-3 bg-slate-900/80 rounded-xl border border-[#1c2b44] text-[11px] text-slate-400">
+                <i class="fa-solid fa-circle-info text-amber-400 mr-1.5"></i>
+                <strong>GLO Parity Guarantee:</strong> Under Thai government regulations, standard 6-digit GLO L6 tickets are sold at exact 80.00 THB statutory face-value. VIP discounts apply across our private numerical markets and side bets.
+            </div>
+        </div>
+
+        <!-- 30-Day Rolling Window FAQ & Rules -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="tl-card">
+                <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg mb-4">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <h4 class="text-base font-bold text-white mb-2 font-['Cinzel']">30-Day Rolling Window</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Your VIP grade is calculated continuously over a rolling 30-day period. Tier upgrades take effect instantly once a new volume threshold is reached.
+                </p>
+            </div>
+
+            <div class="tl-card">
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg mb-4">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <h4 class="text-base font-bold text-white mb-2 font-['Cinzel']">Automated Rebate Settlement</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Cashback rebates are calculated and credited automatically to your main Cash Balance on the 1st of every month without requiring manual claim requests.
+                </p>
+            </div>
+
+            <div class="tl-card">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg mb-4">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h4 class="text-base font-bold text-white mb-2 font-['Cinzel']">Grace Period Protection</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Higher tier members enjoy a 14-day grace buffer before any tier demotion occurs, allowing consistent access to VIP privileges and withdrawal waivers.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer matching visual mockup -->
+    <footer class="bg-[#050b14] border-t border-amber-500/20 pt-16 pb-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#1c2b44]">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl tl-gold-bg flex items-center justify-center">
+                            <i class="fa-solid fa-gem text-slate-950 font-black"></i>
+                        </div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel']">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed max-w-sm mb-6">
+                        Thailand's premier digital lottery platform. Officially licensed and regulated digital gateway providing transparent, instant, and high-security draw access for global players.
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-telegram"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-line"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Quick Navigation</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/" class="hover:text-amber-400 transition-colors">Home Page</a></li>
+                        <li><a href="/about" class="hover:text-amber-400 transition-colors">About ThaiLotto</a></li>
+                        <li><a href="/vision-mission" class="hover:text-amber-400 transition-colors">Vision & Mission</a></li>
+                        <li><a href="/how-to-play" class="hover:text-amber-400 transition-colors">How to Play</a></li>
+                        <li><a href="/faq" class="hover:text-amber-400 transition-colors">Frequently Asked Questions</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Legal & Compliance</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/terms-conditions" class="hover:text-amber-400 transition-colors">Terms & Conditions</a></li>
+                        <li><a href="/privacy-policy" class="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="/our-fees" class="hover:text-amber-400 transition-colors">Fee Schedules</a></li>
+                        <li><a href="/account-verification" class="hover:text-amber-400 transition-colors">KYC Verification</a></li>
+                        <li><a href="/account-grade" class="text-amber-400 font-bold transition-colors">Account Grade & Tiers</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Security & Trust</h5>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-lock text-emerald-400"></i>
+                            <span>256-Bit SSL Encryption</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                            <span>GLO Certified Results</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-server text-blue-400"></i>
+                            <span>99.99% Server Uptime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+                <div>&copy; 2026 ThaiLotto Platform. All Rights Reserved. Regulated lottery entertainment service.</div>
+                <div class="flex gap-6">
+                    <a href="/terms-conditions" class="hover:text-slate-400">Terms</a>
+                    <a href="/privacy-policy" class="hover:text-slate-400">Privacy</a>
+                    <a href="/our-fees" class="hover:text-slate-400">Fees</a>
+                    <a href="/account-grade" class="text-amber-400">VIP Grades</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Standalone Simulation Logic -->
+    <script>
+        var tiers = [
+            { key: 'bronze', sl: 1, name: 'Bronze VIP', min: 0, rate: 0.00, display: '0.00%', withdrawals: 'Standard Schedule' },
+            { key: 'silver', sl: 2, name: 'Silver VIP', min: 10000, rate: 0.01, display: '1.00%', withdrawals: '2 Free / Month' },
+            { key: 'gold', sl: 3, name: 'Gold VIP', min: 50000, rate: 0.02, display: '2.00%', withdrawals: '5 Free / Month' },
+            { key: 'platinum', sl: 4, name: 'Platinum VIP', min: 250000, rate: 0.035, display: '3.50%', withdrawals: 'Unlimited Free' },
+            { key: 'diamond', sl: 5, name: 'Diamond VIP', min: 1000000, rate: 0.05, display: '5.00%', withdrawals: 'Unlimited Instant Priority' }
+        ];
+
+        function simCalculate(spend) {
+            spend = parseFloat(spend);
+            if (isNaN(spend) || spend < 0) spend = 0;
+
+            document.getElementById('vipSpendInput').value = spend;
+            document.getElementById('vipSpendSlider').value = spend;
+
+            var current = tiers[0];
+            var next = tiers[1];
+
+            for (var i = 0; i < tiers.length; i++) {
+                if (spend >= tiers[i].min) {
+                    current = tiers[i];
+                    next = tiers[i + 1] || null;
+                }
+            }
+
+            var rebate = spend * current.rate;
+            document.getElementById('simTierName').textContent = current.name;
+            document.getElementById('simTierBadge').textContent = 'SL ' + current.sl + ' • ' + current.display + ' CASHBACK';
+            document.getElementById('simRebateValue').textContent = rebate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' THB';
+            document.getElementById('simRebateRate').textContent = current.display;
+            document.getElementById('simWithdrawalBenefit').textContent = current.withdrawals;
+
+            var progressBox = document.getElementById('simProgressBox');
+            var progressBar = document.getElementById('simProgressBar');
+            var progressText = document.getElementById('simProgressText');
+
+            if (next) {
+                var remaining = next.min - spend;
+                var pct = Math.min(100, Math.max(0, ((spend - current.min) / (next.min - current.min)) * 100));
+                progressText.textContent = remaining.toLocaleString('en-US') + ' THB to ' + next.name + ' (' + pct.toFixed(1) + '%)';
+                progressBar.style.width = pct + '%';
+            } else {
+                progressText.textContent = '🎉 Maximum Diamond VIP Tier Unlocked!';
+                progressBar.style.width = '100%';
+            }
+
+            // Highlight cards
+            tiers.forEach(function(t) {
+                var el = document.getElementById('card-' + t.key);
+                if (el) {
+                    if (t.key === current.key) {
+                        el.classList.add('border-amber-400', 'shadow-2xl', 'scale-105');
+                    } else {
+                        el.classList.remove('border-amber-400', 'shadow-2xl', 'scale-105');
+                    }
+                }
+            });
+        }
+
+        // Init
+        simCalculate(50000);
+    </script>
+</body>
+</html>

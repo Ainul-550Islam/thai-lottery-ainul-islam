@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account &amp; System Settings | ThaiLotto Club</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --st-bg-page: #0b0f17;
+            --st-bg-header: #0f1522;
+            --st-bg-card: #131b29;
+            --st-bg-card-sub: #172233;
+            --st-border-main: #1f2b3e;
+            --st-gold-main: #f59e0b;
+            --st-green-main: #10b981;
+            --st-red-main: #ef4444;
+        }
+        body {
+            background-color: var(--st-bg-page);
+            color: #f1f5f9;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .st-header {
+            background-color: var(--st-bg-header);
+            border-bottom: 1px solid var(--st-border-main);
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+        .st-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 1024px) {
+            .st-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        .st-tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #94a3b8;
+            font-size: 0.8125rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: left;
+            width: 100%;
+        }
+        .st-tab-btn.active {
+            background-color: rgba(245, 158, 11, 0.12);
+            border-color: var(--st-gold-main);
+            color: var(--st-gold-main);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header class="st-header">
+        <a href="#settings" class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+                🪷
+            </div>
+            <div>
+                <div class="text-base font-black text-white tracking-wide">THAILOTTO.CLUB</div>
+                <div class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Settings &amp; Preferences</div>
+            </div>
+        </a>
+
+        <div class="flex items-center gap-6">
+            <div class="bg-[#08121a] border border-amber-500/40 rounded-full px-4 py-1.5 text-xs font-bold text-amber-400">
+                Member: <span class="font-black text-white">Alex Thompson</span>
+                <span class="text-slate-500 font-normal">(TL-894120)</span>
+            </div>
+            <a href="/dashboard" class="text-slate-400 hover:text-white text-xs font-bold transition">
+                Back to Dashboard →
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="st-container">
+        <!-- SIDEBAR -->
+        <aside class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-6 flex flex-col gap-4 shadow-xl h-fit">
+            <div class="border-b border-[#1f2b3e] pb-3">
+                <h2 class="text-xs font-black text-white uppercase tracking-wider">Account Settings</h2>
+                <div class="text-[10px] text-amber-500 font-bold mt-0.5">Control Center</div>
+            </div>
+
+            <nav class="flex flex-col gap-1.5">
+                <button type="button" class="st-tab-btn active" onclick="switchTab('general', this)">
+                    <span>⚙️</span><span>General Preferences</span>
+                </button>
+                <button type="button" class="st-tab-btn" onclick="switchTab('security', this)">
+                    <span>🔒</span><span>Security &amp; 2FA</span>
+                </button>
+                <button type="button" class="st-tab-btn" onclick="switchTab('betting', this)">
+                    <span>🎲</span><span>Betting &amp; Slip</span>
+                </button>
+                <button type="button" class="st-tab-btn" onclick="switchTab('notifications', this)">
+                    <span>🔔</span><span>Alerts &amp; LINE</span>
+                </button>
+                <button type="button" class="st-tab-btn" onclick="switchTab('responsible', this)">
+                    <span>🛡️</span><span>Responsible Gaming</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- MAIN PANEL -->
+        <div class="space-y-6">
+            <!-- GENERAL TAB -->
+            <section id="section-general" class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-8 shadow-xl flex flex-col gap-6">
+                <div class="border-b border-[#1f2b3e] pb-4">
+                    <h2 class="text-lg font-black text-white">General Preferences</h2>
+                    <p class="text-xs text-slate-400 mt-1">Configure language, theme, and odds format.</p>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <div class="flex items-center justify-between p-4 bg-[#0c121d] border border-[#1f2b3e] rounded-xl">
+                        <div>
+                            <span class="font-bold text-white block">Portal Language (ภาษาของระบบ)</span>
+                            <span class="text-[11px] text-slate-400">Primary language interface.</span>
+                        </div>
+                        <select class="bg-[#172233] border border-[#1f2b3e] rounded-xl px-4 py-2 text-white font-bold outline-none">
+                            <option>ภาษาไทย (Thai)</option>
+                            <option>English (US)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-[#0c121d] border border-[#1f2b3e] rounded-xl">
+                        <div>
+                            <span class="font-bold text-white block">Odds Multiplier Format</span>
+                            <span class="text-[11px] text-slate-400">Multiplier representation.</span>
+                        </div>
+                        <select class="bg-[#172233] border border-[#1f2b3e] rounded-xl px-4 py-2 text-white font-bold outline-none">
+                            <option>Thai Multiplier (x900 / x95)</option>
+                            <option>Decimal (900.00 / 95.00)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="button" onclick="alert('General settings saved successfully.');" class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs py-3 px-6 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.35)] self-start">
+                    Save General Settings
+                </button>
+            </section>
+
+            <!-- SECURITY TAB -->
+            <section id="section-security" class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-8 shadow-xl flex flex-col gap-6" style="display: none;">
+                <div class="border-b border-[#1f2b3e] pb-4">
+                    <h2 class="text-lg font-black text-white">Security &amp; 2FA</h2>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-[#0c121d] border border-[#1f2b3e] rounded-xl text-xs">
+                    <div>
+                        <span class="font-bold text-white block">Google Two-Factor Authentication</span>
+                        <span class="text-[11px] text-slate-400">Requires 6-digit TOTP code on login.</span>
+                    </div>
+                    <button type="button" onclick="alert('2FA dialog activated.');" class="bg-emerald-500 text-slate-950 font-black px-4 py-2 rounded-xl">
+                        Enable 2FA
+                    </button>
+                </div>
+            </section>
+
+            <!-- BETTING TAB -->
+            <section id="section-betting" class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-8 shadow-xl flex flex-col gap-6" style="display: none;">
+                <div class="border-b border-[#1f2b3e] pb-4">
+                    <h2 class="text-lg font-black text-white">Betting Preferences</h2>
+                </div>
+                <label class="flex items-center justify-between p-4 bg-[#0c121d] border border-[#1f2b3e] rounded-xl text-xs cursor-pointer">
+                    <div>
+                        <span class="font-bold text-white block">Sound Effects</span>
+                        <span class="text-[11px] text-slate-400">Audio chime on draw countdown.</span>
+                    </div>
+                    <input type="checkbox" checked class="w-4 h-4 rounded text-emerald-500">
+                </label>
+            </section>
+
+            <!-- NOTIFICATIONS TAB -->
+            <section id="section-notifications" class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-8 shadow-xl flex flex-col gap-6" style="display: none;">
+                <div class="border-b border-[#1f2b3e] pb-4">
+                    <h2 class="text-lg font-black text-white">Alerts &amp; LINE Notify</h2>
+                </div>
+                <div class="p-4 bg-[#0c121d] border border-emerald-500/30 rounded-xl flex gap-3 text-xs">
+                    <input type="password" placeholder="Paste LINE Token..." class="bg-[#172233] border border-[#1f2b3e] rounded-xl px-4 py-2 text-white flex-1 outline-none font-mono">
+                    <button type="button" onclick="alert('LINE connected.');" class="bg-[#00c300] text-slate-950 font-black px-4 py-2 rounded-xl">
+                        Connect LINE
+                    </button>
+                </div>
+            </section>
+
+            <!-- RESPONSIBLE TAB -->
+            <section id="section-responsible" class="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-8 shadow-xl flex flex-col gap-6" style="display: none;">
+                <div class="border-b border-[#1f2b3e] pb-4">
+                    <h2 class="text-lg font-black text-white">Responsible Gaming Limits</h2>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div class="p-4 bg-[#0c121d] border border-[#1f2b3e] rounded-xl">
+                        <label class="font-bold text-slate-300 block mb-1">Daily Deposit Limit (THB)</label>
+                        <input type="number" value="5000" class="w-full bg-[#172233] border border-[#1f2b3e] rounded-xl px-4 py-2 text-white font-mono outline-none">
+                    </div>
+                    <div class="p-4 bg-[#0c121d] border border-[#1f2b3e] rounded-xl">
+                        <label class="font-bold text-slate-300 block mb-1">Single Bet Limit (THB)</label>
+                        <input type="number" value="1000" class="w-full bg-[#172233] border border-[#1f2b3e] rounded-xl px-4 py-2 text-white font-mono outline-none">
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        function switchTab(name, btn) {
+            document.querySelectorAll('.st-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            ['general', 'security', 'betting', 'notifications', 'responsible'].forEach(function(sec) {
+                var el = document.getElementById('section-' + sec);
+                if (el) el.style.display = (sec === name) ? 'flex' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

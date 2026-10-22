@@ -106,13 +106,6 @@ class WalletConversionPolicy
      */
     public function reverse(User $user, WalletConversion $conversion): bool
     {
-        // A member holds no operator role, so they are refused here without the
-        // permission lookup. Checking a permission a member cannot hold is how a
-        // refusal turned into a server error.
-        if (! $user->roles()->exists()) {
-            return false;
-        }
-
         if (AdminAccess::isReadOnly($user)) {
             return false;
         }

@@ -22,14 +22,15 @@ namespace App\Services\Media;
  * operator configured, and the allowlist silently contradicted it by
  * returning NOT_CONFIGURED for a perfectly valid https URL.
  *
- * The real risk here is the rendered href, so that is what is checked:
- *   - https only; javascript:, data:, file:, vbscript: and about: rejected,
- *   - a resolvable public host; localhost, 127.0.0.1, *.local and *.internal
- *     rejected so an operator cannot publish an unreachable or SSRF-shaped
- *     link,
- *   - protocol relative '//evil.test' rejected,
- *   - empty and whitespace only values dropped rather than rendered.
- * Anything that fails returns null, and a card with no surviving link reports
+ * The real risk here is the rendered href, so the validator checks its scheme,
+ * host syntax, and obvious local-name cases:
+ *   - HTTPS only; javascript:, data:, file:, vbscript: and about: rejected,
+ *   - empty hosts, localhost, 127.0.0.1, *.local and *.internal rejected,
+ *   - protocol-relative URLs rejected,
+ *   - empty and whitespace-only values dropped rather than rendered.
+ * It does not perform DNS reachability or store-ownership checks: the browser
+ * follows this operator-configured link directly, and the server does not fetch
+ * it. Anything that fails returns null, so a card with no surviving link reports
  * NOT_CONFIGURED instead of showing a fabricated store button.
  */
 class PublicAppLinkService

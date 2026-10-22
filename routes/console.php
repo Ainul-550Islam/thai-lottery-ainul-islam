@@ -51,6 +51,10 @@ Artisan::command('inspire', function (): void {
 |
 */
 
+// Core draw cadence and a periodic guard audit are explicit scheduled commands.
+Schedule::command('lottery:tick')->everyMinute()->withoutOverlapping()->onOneServer();
+Schedule::command('settlement:verify-guards')->everySixHours()->withoutOverlapping()->onOneServer();
+
 // Batch generation: fans approved-and-pending payouts into executor
 // batches. The job's uniqueness window is per minute — cadence matches it.
 Schedule::job(new GeneratePayoutBatchJob)

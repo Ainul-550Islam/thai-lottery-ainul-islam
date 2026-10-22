@@ -36,7 +36,7 @@ class PublicBonusService
         $configured = (array) config('home.campaigns', []);
         $max = max(0, (int) config('home.campaigns_max', 6));
 
-        if ($configured === []) {
+        if ($configured === [] || $max === 0) {
             return [
                 'status' => 'UNAVAILABLE',
                 'campaigns' => [],
@@ -52,8 +52,16 @@ class PublicBonusService
                 continue;
             }
 
-            $from = $this->parseDate($raw['valid_from'] ?? null);
-            $until = $this->parseDate($raw['valid_until'] ?? null);
+            $fromValue = $raw['valid_from'] ?? null;
+            $untilValue = $raw['valid_until'] ?? null;
+            $from = $this->parseDate($fromValue);
+            $until = $this->parseDate($untilValue);
+
+            // A malformed configured bound is not an unbounded campaign.
+            if (($this->hasDateInput($fromValue) && $from === null)
+                || ($this->hasDateInput($untilValue) && $until === null)) {
+                continue;
+            }
 
             if ($from !== null && $from->greaterThan($now)) {
                 continue;
@@ -77,9 +85,7 @@ class PublicBonusService
                 'cta_label' => isset($raw['cta_label']) && is_string($raw['cta_label']) && $raw['cta_label'] !== ''
                     ? $raw['cta_label']
                     : null,
-                'cta_url' => isset($raw['cta_url']) && is_string($raw['cta_url'])
-                    ? $this->safeCtaUrl($raw['cta_url'])
-                    : null,
+                'cta_url' => $this->safeCtaUrl($raw['cta_url'] ?? null),
             ];
 
             if (count($active) >= $max) {
@@ -96,10 +102,36 @@ class PublicBonusService
         }
 
         return [
-            'status' => 'VERIFIED',
+            'status' => 'AVAILABLE',
             'campaigns' => $active,
             'message' => '',
         ];
+    }
+
+    private function safeCtaUrl(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+        $url = trim($value);
+        if ($url === '' || preg_match('/[\\x00-\\x20\\x7f\\\\]/', $url) === 1) {
+            return null;
+        }
+        if (str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
+            return $url;
+        }
+        $parts = parse_url($url);
+        if (! is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
+            || ! is_string($parts['host'] ?? null) || $parts['host'] === ''
+            || isset($parts['user']) || isset($parts['pass'])) {
+            return null;
+        }
+        return $url;
+    }
+
+    private function hasDateInput(mixed $value): bool
+    {
+        return $value !== null && (! is_string($value) || trim($value) !== '');
     }
 
     private function parseDate(mixed $value): ?Carbon
@@ -113,38 +145,5 @@ class PublicBonusService
         } catch (\Throwable) {
             return null;
         }
-    }
-
-    /**
-     * Only two destinations are admitted for a promotion call-to-action: an absolute
-     * https URL with a host, or a single-slash site-relative path. Protocol-relative
-     * and backslash forms, other schemes, control characters and anything unparseable
-     * are dropped to null. The campaign still shows; only the link is withheld.
-     */
-    private function safeCtaUrl(string $value): ?string
-    {
-        $url = trim($value);
-
-        if ($url === '' || preg_match('/[\x00-\x1F\x7F]/', $url) === 1) {
-            return null;
-        }
-
-        if (str_starts_with($url, '/')) {
-            if (str_starts_with($url, '//') || str_starts_with($url, '/\\')) {
-                return null;
-            }
-
-            return $url;
-        }
-
-        $parts = parse_url($url);
-
-        if (! is_array($parts)
-            || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
-            || ! isset($parts['host']) || $parts['host'] === '') {
-            return null;
-        }
-
-        return $url;
     }
 }

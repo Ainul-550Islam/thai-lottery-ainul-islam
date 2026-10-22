@@ -5,6 +5,12 @@
 @section('robots', 'noindex, nofollow')
 
 @section('content')
+@php
+    $stateKey = 'state_'.strtolower((string) $state);
+    $stateLabel = trans()->has('agent.'.$stateKey)
+        ? trans('agent.'.$stateKey)
+        : trans('agent.unknown_value');
+@endphp
 <main class="next-shell next-content" id="agent-main" tabindex="-1" aria-labelledby="agent-title">
     <a class="pp-skip-link" href="#agent-main">{{ trans('public_pages.skip_to_content') }}</a>
     <header class="next-page-header">
@@ -36,7 +42,7 @@
 
     <section class="next-meta-strip" aria-label="{{ trans('agent.metadata') }}">
         <div><span>{{ trans('agent.agent_reference') }}</span><strong>{{ $agent->agent_code }}</strong></div>
-        <div><span>{{ trans('agent.status') }}</span><strong>{{ $state }}</strong></div>
+        <div><span>{{ trans('agent.status') }}</span><strong>{{ $stateLabel }}</strong></div>
         <div><span>{{ trans('agent.currency') }}</span><strong>{{ $agent->currency?->value ?? trans('agent.not_configured') }}</strong></div>
         <div><span>{{ trans('agent.referrals') }}</span><strong>{{ (string) $agent->total_referrals }}</strong></div>
     </section>
@@ -70,16 +76,23 @@
                 </thead>
                 <tbody>
                     @forelse ($records as $record)
+                        @php
+                            $recordStatus = (string) ($record['status'] ?? '');
+                            $recordStatusKey = 'value_'.$recordStatus;
+                            $recordStatusLabel = $recordStatus !== '' && trans()->has('agent.'.$recordStatusKey)
+                                ? trans('agent.'.$recordStatusKey)
+                                : trans('agent.unknown_value');
+                        @endphp
                         <tr>
                             <td class="font-mono">{{ $record['reference'] ?? trans('agent.not_configured') }}</td>
                             <td>{{ $record['type'] ?? $record['basis'] ?? trans('agent.not_configured') }}</td>
-                            <td class="font-mono">{{ $record['amount'] ?? $record['net'] ?? $record['status'] ?? trans('agent.not_configured') }}</td>
+                            <td class="font-mono">{{ $record['amount'] ?? $record['net'] ?? $recordStatusLabel }}</td>
                             <td>{{ $record['currency'] ?? trans('agent.not_configured') }}</td>
-                            <td>{{ $record['status'] ?? trans('agent.not_configured') }}</td>
+                            <td>{{ $recordStatusLabel }}</td>
                             <td>{{ $record['created_at'] ?? $record['paid_at'] ?? trans('agent.no_data') }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" role="status">{{ trans('agent.no_records') }} · {{ $state }}</td></tr>
+                        <tr><td colspan="6" role="status">{{ trans('agent.no_records') }} · {{ $stateLabel }}</td></tr>
                     @endforelse
                 </tbody>
             </table>

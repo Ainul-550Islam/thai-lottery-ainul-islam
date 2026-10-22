@@ -3,69 +3,63 @@
     'text' => [],
 ])
 
-<div class="tl-glass-panel p-8 relative overflow-hidden" id="next-draw" aria-labelledby="next-draw-title">
-    <!-- Top Ribbon Header -->
-    <div class="flex items-center justify-between border-b border-[#D4AF37]/20 pb-5">
+@php
+    $scheduledAt = $nextDraw['scheduled_at_iso'] ?? null;
+    $isScheduled = is_string($scheduledAt) && $scheduledAt !== '' && ($nextDraw['status'] ?? 'UNAVAILABLE') !== 'UNAVAILABLE';
+@endphp
+
+<section class="tl-glass-panel relative overflow-hidden p-8" id="next-draw" aria-labelledby="next-draw-title">
+    <div class="flex items-center justify-between border-b border-amber-500/20 pb-5">
         <div class="flex items-center gap-2">
-            <span class="text-lg text-[#D4AF37]" aria-hidden="true">❖</span>
-            <span id="next-draw-title" class="text-xs font-black uppercase tracking-widest text-[#D4AF37]">
+            <span class="text-lg text-amber-300" aria-hidden="true">❖</span>
+            <h2 id="next-draw-title" class="text-xs font-black uppercase tracking-widest text-amber-300">
                 {{ $text['next_draw_title'] ?? trans('home.countdown.title') }}
-            </span>
+            </h2>
         </div>
-        <span data-countdown-status class="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30">
-            {{ $nextDraw['status'] ?? trans('home.countdown.status_open') }}
-        </span>
+        @if (! empty($nextDraw['status']))
+            <span data-countdown-status class="rounded-full border border-slate-700 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-300">
+                {{ ($nextDraw['status'] ?? '') === 'AVAILABLE' ? trans('home.countdown.status_available') : trans('home.countdown.status_unavailable') }}
+            </span>
+        @endif
     </div>
 
-    @if (($nextDraw['status'] ?? 'AVAILABLE') !== 'UNAVAILABLE' && !empty($nextDraw['scheduled_at_iso']))
-        <!-- Scheduled Date Display -->
-        <div class="text-center my-6">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">
-                {{ $nextDraw['draw_name'] ?? 'THAI GOVERNMENT LOTTERY GLO L6' }}
-            </span>
-            <h2 class="text-3xl font-black text-white font-['Outfit']">
-                <time datetime="{{ $nextDraw['scheduled_at_iso'] }}" data-draw-datetime>
-                    {{ $nextDraw['scheduled_at_display'] ?? '16 OCTOBER 2026' }}
-                </time>
-            </h2>
-            <span class="text-xs font-mono font-bold text-[#D4AF37] mt-1 block">
-                {{ $text['draw_label'] ?? trans('home.draw_label') }} #{{ $nextDraw['draw_number'] ?? '24' }} • 14:30 {{ $nextDraw['timezone'] ?? 'Asia/Bangkok' }}
-            </span>
+    @if ($isScheduled)
+        <div class="my-6 text-center">
+            @if (! empty($nextDraw['draw_name']))
+                <span class="mb-1 block text-xs font-bold uppercase tracking-widest text-slate-400">{{ $nextDraw['draw_name'] }}</span>
+            @endif
+            <p class="text-3xl font-black text-white">
+                <time datetime="{{ $scheduledAt }}" data-draw-datetime>{{ $nextDraw['scheduled_at_display'] ?? $scheduledAt }}</time>
+            </p>
+            @if (! empty($nextDraw['draw_number']))
+                <span class="mt-2 block font-mono text-xs font-bold text-amber-300">
+                    {{ $text['draw_label'] ?? trans('home.draw_label') }} #{{ $nextDraw['draw_number'] }}
+                </span>
+            @endif
+            @if (! empty($nextDraw['timezone']))
+                <span class="mt-1 block text-xs text-slate-400">{{ $nextDraw['timezone'] }}</span>
+            @endif
         </div>
 
-        <!-- 4 Live Digit Countdown Slots -->
-        <div class="grid grid-cols-4 gap-3 my-6"
+        <div class="my-6 rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-center"
              data-home-countdown
-             data-target-iso="{{ $nextDraw['scheduled_at_iso'] }}"
-             data-target="{{ $nextDraw['scheduled_at_iso'] }}"
-             data-timezone="{{ $nextDraw['timezone'] ?? 'Asia/Bangkok' }}"
+             data-target-iso="{{ $scheduledAt }}"
+             data-target="{{ $scheduledAt }}"
+             data-reached-label="{{ trans('home.countdown.reached') }}"
+             @if (! empty($nextDraw['timezone'])) data-timezone="{{ $nextDraw['timezone'] }}" @endif
              role="timer"
-             aria-live="polite">
-            <div class="tl-countdown-box p-3 text-center">
-                <div class="text-2xl sm:text-3xl font-black text-white font-mono" id="cd-days">01</div>
-                <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">{{ trans('home.countdown.days') }}</div>
-            </div>
-            <div class="tl-countdown-box p-3 text-center">
-                <div class="text-2xl sm:text-3xl font-black text-white font-mono" id="cd-hours">14</div>
-                <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">{{ trans('home.countdown.hours') }}</div>
-            </div>
-            <div class="tl-countdown-box p-3 text-center">
-                <div class="text-2xl sm:text-3xl font-black text-white font-mono" id="cd-minutes">32</div>
-                <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">{{ trans('home.countdown.minutes') }}</div>
-            </div>
-            <div class="tl-countdown-box p-3 text-center border-amber-500/50">
-                <div class="text-2xl sm:text-3xl font-black text-[#D4AF37] font-mono animate-pulse" id="cd-seconds" data-countdown-output>48</div>
-                <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 mt-1">{{ trans('home.countdown.seconds') }}</div>
-            </div>
+             aria-live="polite"
+             aria-label="{{ $text['countdown_aria'] ?? trans('home.countdown.aria_label') }}">
+            <span class="block text-xs font-bold uppercase tracking-widest text-slate-400">{{ $text['countdown_label'] ?? trans('home.countdown.label') }}</span>
+            <span class="mt-2 block font-mono text-2xl font-black text-amber-300" data-countdown-output>—</span>
         </div>
 
-        <!-- Action Button -->
-        <a href="{{ route('national-lottery.index') }}" class="tl-btn-primary w-full py-4 rounded-xl text-center text-xs tracking-wider uppercase font-black block">
-            {{ trans('home.countdown.btn_bet_now') }} &rarr;
+        <a href="{{ route('national-lottery.index') }}" class="tl-btn-primary block w-full rounded-xl py-4 text-center text-xs font-black uppercase tracking-wider">
+            {{ $text['cta_results'] ?? trans('home.cta_results') }} &rarr;
         </a>
     @else
         <div class="py-12 text-center" role="status">
-            <p class="text-slate-400 text-sm">{{ $nextDraw['message'] ?? ($text['next_draw_none'] ?? trans('home.next_draw_none')) }}</p>
+            <p class="text-sm text-slate-400">{{ trans('home.next_draw_unavailable') }}</p>
         </div>
     @endif
-</div>
+</section>

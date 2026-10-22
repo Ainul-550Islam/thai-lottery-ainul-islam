@@ -23,6 +23,20 @@ final class AboutLocalizationTest extends TestCase
         $this->assertNotEmpty($thai['about_timeline.1939.description']);
     }
 
+    public function test_about_static_interface_renders_in_thai_and_bangla(): void
+    {
+        $this->get('/about?lang=th')
+            ->assertOk()
+            ->assertSee('สำรวจเรื่องราว')
+            ->assertSee('แพลตฟอร์มอิสระ');
+
+        $this->get('/about?lang=bn')
+            ->assertOk()
+            ->assertSee('আমাদের সম্পর্কে')
+            ->assertSee('একটি স্বাধীন প্ল্যাটফর্ম')
+            ->assertSee('<title>প্ল্যাটফর্ম সম্পর্কে', false);
+    }
+
     public function test_about_page_renders_the_configured_locale(): void
     {
         $this->app->setLocale('th');

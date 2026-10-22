@@ -4,7 +4,7 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/auth-portal.css') }}">
-<style @cspNonce>
+<style>
     .tl-auth-input-icon {
         position: absolute;
         left: 1rem;
@@ -29,13 +29,13 @@
             </div>
             <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold uppercase tracking-wider mb-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Fast Registration</span>
+                <span>Create Account</span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 Create Player Account
             </h1>
             <p class="text-xs text-slate-400 mt-1">
-                Join Thailand's premier verified digital lottery platform with instant payouts.
+                Create an account to access configured lottery information and member features. Eligibility and verification requirements apply.
             </p>
         </div>
 
@@ -217,3 +217,7 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/auth-portal.js') }}"></script>
+@endpush

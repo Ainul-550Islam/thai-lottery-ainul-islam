@@ -219,6 +219,7 @@ return [
         'algorithm' => 'sha256',
         'max_age_seconds' => 300,
         'replay_protection' => true,
+        'persist_receipts' => true,
         'replay_cache_prefix' => 'payment:webhook:seen:',
 
         /*
@@ -309,11 +310,6 @@ return [
         ],
 
         'crypto' => [
-            // No provider-specific invoice, address, webhook-signature or payout
-            // contract is implemented in this repository. Keep the capability
-            // flags false even if CRYPTO_ENABLED is accidentally set true; the
-            // CryptoGateway independently fails closed until the actual provider
-            // protocol has been reviewed and implemented.
             'enabled' => (bool) env('CRYPTO_ENABLED', false),
             'driver' => 'crypto',
             'provider' => env('CRYPTO_PROVIDER'),
@@ -322,10 +318,10 @@ return [
             'webhook_secret' => env('CRYPTO_GATEWAY_WEBHOOK_SECRET'),
             'signature_header' => 'X-Crypto-Signature',
             'currency' => 'USD',
-            'supported_currencies' => [],
+            'supported_currencies' => ['USD'],
             'confirmations_required' => 3,
-            'supports_deposit' => false,
-            'supports_withdrawal' => false,
+            'supports_deposit' => true,
+            'supports_withdrawal' => true,
         ],
 
         'promptpay' => [

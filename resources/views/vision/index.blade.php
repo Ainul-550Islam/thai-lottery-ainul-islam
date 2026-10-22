@@ -3,7 +3,7 @@
 @section('title', (string) ($page['title'] ?? trans('public_pages.vision_meta_title', [], app()->getLocale())))
 @section('meta_description', (string) ($meta['description'] ?? trans('public_pages.vision_meta_description', [], app()->getLocale())))
 @section('meta_canonical', (string) ($meta['canonical'] ?? url('/vision')))
-@section('meta_og_title', (string) ($meta['og_title'] ?? $page['title'] ?? 'Vision & Mission'))
+@section('meta_og_title', (string) ($meta['og_title'] ?? $page['title'] ?? trans('vision_page.pillars_title')))
 @section('meta_og_description', (string) ($meta['og_description'] ?? $page['lead'] ?? ''))
 @section('meta_og_type', (string) ($meta['og_type'] ?? 'website'))
 @section('meta_og_url', (string) ($meta['og_url'] ?? url('/vision')))
@@ -18,23 +18,23 @@
 
     <header class="vision-header" role="banner">
         <div class="vision-shell vision-header__inner">
-            <a class="vision-brand" href="{{ route('home') }}" aria-label="ThaiLotto home">
+            <a class="vision-brand" href="{{ route('home') }}" aria-label="{{ trans('vision_page.brand_aria') }}">
                 <span class="vision-brand__mark" aria-hidden="true"><span>TL</span></span>
-                <span class="vision-brand__name">{{ config('app.name') }} <small>STRATEGY &amp; TRUST</small></span>
+                <span class="vision-brand__name">{{ config('app.name') }} <small>{{ trans('vision_page.brand_subtitle') }}</small></span>
             </a>
-            <nav class="vision-nav" aria-label="Primary navigation">
-                <a href="{{ route('home') }}">HOME</a>
-                <a href="{{ route('results.index') }}">RESULTS</a>
-                <a href="{{ route('about') }}">ABOUT US</a>
-                <a class="is-active" href="{{ route('vision') }}" aria-current="page">VISION &amp; MISSION</a>
-                <a href="{{ route('contact') }}">CONTACT</a>
+            <nav class="vision-nav" aria-label="{{ trans('vision_page.nav_aria') }}">
+                <a href="{{ route('home') }}">{{ trans('vision_page.nav_home') }}</a>
+                <a href="{{ route('results.index') }}">{{ trans('vision_page.nav_results') }}</a>
+                <a href="{{ route('about') }}">{{ trans('vision_page.nav_about') }}</a>
+                <a class="is-active" href="{{ route('vision') }}" aria-current="page">{{ trans('vision_page.nav_vision') }}</a>
+                <a href="{{ route('contact') }}">{{ trans('vision_page.nav_contact') }}</a>
             </nav>
             <div class="vision-header__actions">
                 @auth
-                    <a class="vision-button vision-button--gold" href="{{ route('player.dashboard') }}">DASHBOARD</a>
+                    <a class="vision-button vision-button--gold" href="{{ route('player.dashboard') }}">{{ trans('vision_page.nav_dashboard') }}</a>
                 @else
-                    <a class="vision-button vision-button--quiet" href="{{ route('login') }}">LOGIN</a>
-                    <a class="vision-button vision-button--gold" href="{{ route('register') }}">JOIN NOW</a>
+                    <a class="vision-button vision-button--quiet" href="{{ route('login') }}">{{ trans('vision_page.nav_login') }}</a>
+                    <a class="vision-button vision-button--gold" href="{{ route('register') }}">{{ trans('vision_page.nav_join') }}</a>
                 @endauth
             </div>
         </div>
@@ -64,16 +64,16 @@
                     <span class="vision-orb__line vision-orb__line--two"></span>
                     <span class="vision-orb__line vision-orb__line--three"></span>
                 </div>
-                <div class="vision-float-card vision-float-card--top"><span>01</span><small>CLARITY</small></div>
-                <div class="vision-float-card vision-float-card--bottom"><span>02</span><small>RESPONSIBILITY</small></div>
+                <div class="vision-float-card vision-float-card--top"><span>01</span><small>{{ trans('vision_page.clarity') }}</small></div>
+                <div class="vision-float-card vision-float-card--bottom"><span>02</span><small>{{ trans('vision_page.responsibility') }}</small></div>
                 <span class="vision-hero__visual-label">{{ $page['hero']['visual_label'] }}</span>
             </div>
         </section>
 
         <section class="vision-section vision-pillars" data-pp-section="vision-mission" aria-labelledby="vision-pillars-title">
             <div class="vision-section__heading vision-section__heading--center">
-                <p class="vision-eyebrow">VISION + MISSION</p>
-                <h2 id="vision-pillars-title">A platform direction built for understanding</h2>
+                <p class="vision-eyebrow">{{ trans('vision_page.pillars_eyebrow') }}</p>
+                <h2 id="vision-pillars-title">{{ trans('vision_page.pillars_title') }}</h2>
                 <p>{{ $page['lead'] }}</p>
             </div>
             <div class="vision-pillar-grid">
@@ -132,9 +132,9 @@
 
         <section class="vision-section vision-values" data-pp-section="core-values" aria-labelledby="vision-values-title">
             <div class="vision-section__heading">
-                <p class="vision-eyebrow">PLATFORM VALUE SYSTEM</p>
+                <p class="vision-eyebrow">{{ trans('vision_page.value_system') }}</p>
                 <h2 id="vision-values-title">{{ trans('public_pages.core_values_title') }}</h2>
-                <p>These are the application’s own content and engineering principles. They are not a regulatory badge, government endorsement, or promise of a particular outcome.</p>
+                <p>{{ trans('vision_page.value_note') }}</p>
             </div>
             <div class="vision-value-grid">
                 @foreach ($page['core_values'] as $value)
@@ -185,7 +185,7 @@
 
         <section class="vision-cta" data-pp-section="contact" aria-labelledby="vision-cta-title">
             <div class="vision-cta__copy">
-                <p class="vision-eyebrow">PUBLIC ROUTES · REAL DESTINATIONS</p>
+                <p class="vision-eyebrow">{{ trans('vision_page.public_routes') }}</p>
                 <h2 id="vision-cta-title">{{ $page['cta']['title'] }}</h2>
                 <p>{{ $page['cta']['text'] }}</p>
                 <p class="vision-source-note">{{ $page['cta']['source_note'] }}</p>

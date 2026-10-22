@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Services\Legal\LegalDocumentService;
 use App\Services\PublicPages\PublicPageDataService;
 use App\Services\PublicPages\ResultsPageService;
 use Illuminate\Contracts\View\View;
@@ -14,15 +13,27 @@ use Illuminate\Http\Request;
  * Public informational/legal pages: /about, /vision, /terms, /privacy, /results.
  *
  * Anonymous by design. SEO meta is injected via layout yields
- * (meta_description / meta_canonical / meta_og_*). Controllers compose data
- * from the public-page, versioned legal-document, and results services.
+ * (meta_description / meta_canonical / meta_og_*). No business rules live in
+ * Blade — controllers only compose data from PublicPageDataService and ResultsPageService.
  */
 final class PublicPagesController
 {
-    public function __construct(
-        private readonly PublicPageDataService $pages,
-        private readonly LegalDocumentService $legalDocuments,
-    ) {
+    public function __construct(private readonly PublicPageDataService $pages)
+    {
+    }
+
+    /** Public overview of available platform services. */
+    public function services(): View
+    {
+        $locale = (string) app()->getLocale();
+        $meta = [
+            'title' => (string) trans('services.meta_title', [], $locale),
+            'description' => (string) trans('services.meta_description', [], $locale),
+            'canonical' => route('services'),
+            'robots' => 'index,follow',
+        ];
+
+        return view('services.index', compact('meta'));
     }
 
     public function about(Request $request): View
@@ -46,8 +57,8 @@ final class PublicPagesController
     public function terms(Request $request): View
     {
         $locale = $this->locale($request);
-        $data = $this->legalDocuments->currentData('terms', $locale);
-        $meta = $this->legalMeta($this->pages->meta('terms', $locale), $data);
+        $meta = $this->pages->meta('terms', $locale);
+        $data = $this->pages->terms($locale);
 
         return view('terms.index', [
             'terms' => $data + $meta,
@@ -58,8 +69,8 @@ final class PublicPagesController
     public function privacy(Request $request): View
     {
         $locale = $this->locale($request);
-        $data = $this->legalDocuments->currentData('privacy', $locale);
-        $meta = $this->legalMeta($this->pages->meta('privacy', $locale), $data);
+        $meta = $this->pages->meta('privacy', $locale);
+        $data = $this->pages->privacy($locale);
 
         return view('privacy.index', [
             'privacy' => $data + $meta,
@@ -93,24 +104,6 @@ final class PublicPagesController
         unset($request);
 
         return (string) app()->getLocale();
-    }
-
-    /**
-     * @param  array<string, string>  $meta
-     * @param  array<string, mixed>  $data
-     * @return array<string, string>
-     */
-    private function legalMeta(array $meta, array $data): array
-    {
-        $title = (string) ($data['meta_title'] ?? $meta['title'] ?? '');
-        $description = (string) ($data['meta_description'] ?? $meta['description'] ?? '');
-
-        return array_replace($meta, [
-            'title' => $title,
-            'description' => $description,
-            'og_title' => $title,
-            'og_description' => $description,
-        ]);
     }
 
     /**

@@ -32,10 +32,8 @@ use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalCompletionService;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -80,9 +78,7 @@ class PaymentWebhookService
     {
         $driver = $this->gateways->driver($gatewayName);
 
-        // 1. Provider-specific signature verification. The route middleware is
-        //    only a durable replay guard; it deliberately leaves missing and
-        //    invalid-signature decisions to this driver.
+        // 1. Signature Verification
         if ((bool) $this->config->get('payment.webhook.verify_signature', true)) {
             if (! $driver->verifyWebhookSignature($request)) {
                 Log::warning('Payment webhook signature verification failed', [
@@ -92,9 +88,6 @@ class PaymentWebhookService
 
                 return PaymentProcessingResult::failed($gatewayName, 'Invalid webhook signature.');
             }
-
-            $request->attributes->set('webhook.signature_verified', true);
-            $request->attributes->set('webhook.gateway', strtolower($gatewayName));
         }
 
         // 2. Parse Payload
@@ -466,12 +459,7 @@ class PaymentWebhookService
                     $payment->status = PaymentStatus::Captured;
                     $payment->captured_at = Carbon::now();
                     $payment->gateway_reference = $payload->providerReference ?? $payment->gateway_reference;
-                    $payment->gateway_response = [
-                        'gateway' => $gateway,
-                        'outcome' => 'completed',
-                        'provider_reference' => $payload->providerReference,
-                        'source' => 'verified_webhook',
-                    ];
+                    $payment->gateway_response = $payload->rawData;
                     $payment->save();
                 }
 
@@ -498,12 +486,10 @@ class PaymentWebhookService
             return PaymentProcessingResult::ignored($gateway, 'Withdrawal already in final state: '.$withdrawal->status->value, true);
         }
 
-        $reason = 'The payout provider confirmed that the disbursement failed.';
+        $reason = $payload->failureReason ?? 'Withdrawal payout failed or was rejected by provider.';
 
-        // This path is reached only after a persisted webhook envelope has passed
-        // the provider driver's signature verification. Store a generic outcome;
-        // the encrypted webhook evidence remains the source of the full payload.
-        $this->withdrawalApproval->markProviderFailed($withdrawal);
+        // Release the hold and mark Failed
+        $this->withdrawalApproval->markFailed($withdrawal, $reason);
 
         $payment = Payment::query()
             ->where('payable_type', Withdrawal::class)
@@ -514,26 +500,17 @@ class PaymentWebhookService
             $payment->status = PaymentStatus::Failed;
             $payment->failed_at = Carbon::now();
             $payment->failure_reason = $reason;
-            $payment->gateway_response = [
-                'gateway' => $gateway,
-                'outcome' => 'failed',
-                'provider_reference' => $payload->providerReference,
-                'source' => 'verified_webhook',
-            ];
+            $payment->gateway_response = $payload->rawData;
             $payment->save();
         }
 
         $this->recordAudit(
             action: AuditAction::Withdraw,
             auditable: $withdrawal,
-            description: sprintf('Withdrawal %s marked failed via a verified %s webhook.', $withdrawal->reference_number, strtoupper($gateway)),
+            description: sprintf('Withdrawal %s marked failed via %s webhook: %s', $withdrawal->reference_number, strtoupper($gateway), $reason),
             oldValues: ['status' => $withdrawal->status->value],
             newValues: ['status' => 'failed'],
-            metadata: [
-                'gateway' => $gateway,
-                'provider_reference' => $payload->providerReference,
-                'reason_code' => 'verified_provider_failure',
-            ],
+            metadata: ['gateway' => $gateway, 'reason' => $reason],
         );
 
         return PaymentProcessingResult::failed(
@@ -691,45 +668,12 @@ class PaymentWebhookService
                 'fee' => (string) $deposit->fee,
                 'gateway' => $gateway,
                 'gateway_reference' => $providerRef,
-                'gateway_response' => [
-                    'event_id' => $payload->eventId,
-                    'event_type' => $payload->eventType->value,
-                    'provider_reference' => $payload->providerReference,
-                ],
+                'gateway_response' => $payload->rawData,
             ]);
-            try {
-                $payment->save();
-            } catch (QueryException $exception) {
-                if (! $this->isPaymentPayableIdentityViolation($exception)) {
-                    throw $exception;
-                }
-
-                // A concurrent initiation or webhook may have inserted the
-                // one allowed Payment row after the initial lookup. Return
-                // that row rather than failing the provider delivery or
-                // creating a second financial aggregate.
-                $winner = Payment::query()
-                    ->where('payable_type', Deposit::class)
-                    ->where('payable_id', $deposit->getKey())
-                    ->first();
-
-                if (! $winner instanceof Payment) {
-                    throw $exception;
-                }
-
-                return $winner;
-            }
+            $payment->save();
         }
 
         return $payment;
-    }
-
-    private function isPaymentPayableIdentityViolation(QueryException $exception): bool
-    {
-        $message = strtolower($exception->getMessage());
-
-        return str_contains($message, 'payments_payable_once_unique')
-            || (str_contains($message, 'payments.payable_type') && str_contains($message, 'payments.payable_id'));
     }
 
     private function recordAudit(
@@ -771,7 +715,7 @@ class PaymentWebhookService
      *
      * @throws PaymentWebhookException
      */
-    public function processEnvelope(PaymentWebhookData $envelope, ?Request $request = null): array
+    public function processEnvelope(PaymentWebhookData $envelope): array
     {
         try {
             $this->webhookVerification->verify($envelope);
@@ -781,11 +725,6 @@ class PaymentWebhookService
             throw $refusal;
         }
 
-        if ($request !== null) {
-            $request->attributes->set('webhook.signature_verified', true);
-            $request->attributes->set('webhook.gateway', strtolower($envelope->providerCode));
-        }
-
         return DB::transaction(function () use ($envelope): array {
             $now = now();
             $inserted = DB::table('payment_webhooks')->insertOrIgnore([
@@ -793,17 +732,8 @@ class PaymentWebhookService
                 'provider' => $envelope->providerCode,
                 'event_id' => $envelope->eventId,
                 'event_type' => $envelope->eventType,
-                'signature' => null,
-                'signature_ciphertext' => $envelope->signature === null
-                    ? null
-                    : Crypt::encryptString($envelope->signature),
-                'payload' => json_encode([
-                    'encrypted' => true,
-                    'payload_fingerprint' => $envelope->payloadFingerprint,
-                ], JSON_THROW_ON_ERROR),
-                'payload_ciphertext' => Crypt::encryptString(
-                    json_encode($envelope->payload, JSON_THROW_ON_ERROR),
-                ),
+                'signature' => $envelope->signature,
+                'payload' => json_encode($envelope->payload, JSON_THROW_ON_ERROR),
                 'payload_fingerprint' => $envelope->payloadFingerprint,
                 'status' => PaymentWebhookStatus::Verified->value,
                 'received_at' => $now,
@@ -938,24 +868,6 @@ class PaymentWebhookService
                     throw PaymentWebhookException::malformed('a rejected envelope may never be applied');
                 }
 
-                $payload = $locked->payload;
-                $signature = $locked->signature;
-                $rawPayloadCiphertext = $locked->getRawOriginal('payload_ciphertext');
-                $rawSignatureCiphertext = $locked->getRawOriginal('signature_ciphertext');
-
-                // Older accepted envelopes predate encrypted evidence columns.
-                // Migrate them atomically before the retry is re-verified, and
-                // never copy their plaintext back into the legacy columns.
-                if ((! is_string($rawPayloadCiphertext) || $rawPayloadCiphertext === '') && is_array($payload)) {
-                    $locked->payload = $payload;
-                }
-
-                if ((! is_string($rawSignatureCiphertext) || $rawSignatureCiphertext === '')
-                    && is_string($signature)
-                    && $signature !== '') {
-                    $locked->signature = $signature;
-                }
-
                 $locked->claimed_at = now();
                 $locked->processing_attempts = (int) $locked->processing_attempts + 1;
                 $locked->save();
@@ -964,9 +876,9 @@ class PaymentWebhookService
                     providerCode: (string) $locked->provider,
                     eventId: (string) $locked->event_id,
                     eventType: (string) $locked->event_type,
-                    signature: $signature,
+                    signature: $locked->signature,
                     receivedAtIso: $locked->received_at?->toIso8601String() ?? now()->toIso8601String(),
-                    payload: is_array($payload) ? $payload : [],
+                    payload: is_array($locked->payload) ? $locked->payload : [],
                     payloadFingerprint: (string) $locked->payload_fingerprint,
                 );
 
@@ -1029,15 +941,8 @@ class PaymentWebhookService
                 'provider' => $envelope->providerCode,
                 'event_id' => $envelope->eventId,
                 'event_type' => $envelope->eventType,
-                'signature' => $envelope->signature === null || $envelope->signature === ''
-                    ? null
-                    : hash('sha256', $envelope->signature),
-                'signature_ciphertext' => null,
-                'payload' => json_encode([
-                    'encrypted' => false,
-                    'payload_fingerprint' => $envelope->payloadFingerprint,
-                ], JSON_THROW_ON_ERROR),
-                'payload_ciphertext' => null,
+                'signature' => $envelope->signature,
+                'payload' => json_encode($envelope->payload, JSON_THROW_ON_ERROR),
                 'payload_fingerprint' => $envelope->payloadFingerprint,
                 'status' => PaymentWebhookStatus::Rejected->value,
                 'status_reason' => $refusal->errorCode(),

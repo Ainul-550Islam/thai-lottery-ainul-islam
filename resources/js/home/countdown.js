@@ -48,7 +48,7 @@
         function tick() {
             var remaining = targetMs - Date.now();
             if (remaining <= 0) {
-                output.textContent = 'Draw time reached';
+                output.textContent = root.getAttribute('data-reached-label') || 'The scheduled draw time has arrived.';
                 root.setAttribute('data-countdown-state', 'reached');
                 if (timerId) {
                     window.clearInterval(timerId);

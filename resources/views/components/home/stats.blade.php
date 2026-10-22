@@ -4,12 +4,12 @@
         <h2 id="stats-title">{{ $text['stats_title'] ?? 'Platform statistics' }}</h2>
         @if (!empty($stats['status']))
             <span class="home-badge home-badge--{{ \Illuminate\Support\Str::slug($stats['status'], '-') }}">
-                {{ $stats['status'] === 'VERIFIED' ? ($text['stats_database'] ?? 'DATABASE') : $stats['status'] }}
+                {{ $stats['status'] === 'AVAILABLE' ? ($text['stats_database'] ?? 'CURRENT COUNTS') : $stats['status'] }}
             </span>
         @endif
     </div>
 
-    @if (($stats['status'] ?? 'UNAVAILABLE') !== 'VERIFIED' || empty($stats['metrics']))
+    @if (($stats['status'] ?? 'UNAVAILABLE') !== 'AVAILABLE' || empty($stats['metrics']))
         <p class="home-empty" role="status">{{ $stats['message'] ?? ($text['stats_unavailable'] ?? 'Statistics unavailable') }}</p>
     @else
         <ul class="home-stats" role="list">

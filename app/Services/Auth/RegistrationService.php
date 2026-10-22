@@ -10,8 +10,6 @@ use App\Enums\WalletStatus;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Agent\AgentReferralService;
-use App\Services\Legal\AgeVerificationService;
-use App\Services\Legal\ConsentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -50,8 +48,6 @@ final class RegistrationService
     public function __construct(
         private readonly AgentReferralService $referrals,
         private readonly CaptchaService $captcha,
-        private readonly ConsentService $consents,
-        private readonly AgeVerificationService $ageVerification,
     ) {}
 
     /**
@@ -131,13 +127,6 @@ final class RegistrationService
                     'referral_id' => $exception->getMessage(),
                 ]);
             }
-
-            // Age eligibility is an explicit self-declaration record, not an
-            // identity-document verification. Registration persists it and
-            // the immutable version/hash of the Terms and Privacy Notice in
-            // this same transaction as the account and wallet.
-            $this->ageVerification->attestFromRegistration($user, $request);
-            $this->consents->recordRegistration($user, $request);
 
             return $user;
         });

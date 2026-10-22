@@ -4,7 +4,7 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/auth-portal.css') }}">
-<style @cspNonce>
+<style>
     .tl-auth-input-icon {
         position: absolute;
         left: 1rem;
@@ -29,7 +29,7 @@
             </div>
             <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold uppercase tracking-wider mb-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Official Member Access</span>
+                <span>Member Sign In</span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 Player Sign In
@@ -134,3 +134,7 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/auth-portal.js') }}"></script>
+@endpush

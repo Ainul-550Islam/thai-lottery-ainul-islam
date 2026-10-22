@@ -38,6 +38,9 @@ final class ExternalCaptchaVerifierTest extends TestCase
             $this->config->set('services.captcha.'.$provider.'.site_key', 'test-only-site-key');
         }
         $this->config->set('services.captcha.turnstile.allowed_hostnames', ['example.test']);
+        $this->config->set('services.captcha.turnstile.actions', [
+            'login' => 'login', 'register' => 'register', 'password_reset' => 'password_reset',
+        ]);
         $this->http = new Factory;
         $this->http->preventStrayRequests();
         $this->verifier = new ExternalCaptchaVerifier($this->config, $this->http);

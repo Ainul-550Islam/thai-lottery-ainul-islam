@@ -49,8 +49,8 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
         };
 
         $line = match ($this->currentStatus) {
-            PaymentStatus::Captured->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) has been successfully processed and credited to your wallet.",
-            PaymentStatus::Failed->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) could not be completed.",
+            PaymentStatus::Captured->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) is recorded as captured. Sign in to review the corresponding wallet status.",
+            PaymentStatus::Failed->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) is recorded as failed. Check the transaction and wallet status in your account before retrying.",
             PaymentStatus::Cancelled->value => "Your payment of {$amount} {$currency} (Ref: {$ref}) was cancelled.",
             default => "Your payment of {$amount} {$currency} (Ref: {$ref}) is currently in status: {$this->currentStatus}.",
         };
@@ -58,7 +58,7 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject($subject)
             ->line($line)
-            ->action('View Wallet', url('/player/wallet'))
+            ->action('View Wallet', url('/wallet'))
             ->line('Thank you for using our platform.');
     }
 

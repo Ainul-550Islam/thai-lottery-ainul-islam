@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Lottery\Schema;
 
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use RuntimeException;
 
 /**
  * Builds a LaneSchema from a lane's config file (PROMPT 9).
@@ -57,7 +58,7 @@ final class LaneSchemaFactory
         $fields = $this->config->get($laneKey.'.fields');
 
         if (! is_array($fields) || $fields === []) {
-            throw new \RuntimeException("Lane [{$laneKey}] declares no result fields.");
+            throw new RuntimeException("Lane [{$laneKey}] declares no result fields.");
         }
 
         $typeMap = $this->config->get($laneKey.'.search.type_map');
@@ -86,11 +87,11 @@ final class LaneSchemaFactory
             $labelKey = $definition['label_key'] ?? null;
 
             if (! is_int($width) || $width < 1) {
-                throw new \RuntimeException("Lane [{$laneKey}] field [{$column}] has no usable width.");
+                throw new RuntimeException("Lane [{$laneKey}] field [{$column}] has no usable width.");
             }
 
             if (! is_string($pattern) || $pattern === '') {
-                throw new \RuntimeException("Lane [{$laneKey}] field [{$column}] has no validation pattern.");
+                throw new RuntimeException("Lane [{$laneKey}] field [{$column}] has no validation pattern.");
             }
 
             $searchType = null;
@@ -99,7 +100,7 @@ final class LaneSchemaFactory
                 $mapped = $searchTypes[$column];
 
                 if (is_int($mapped['length']) && $mapped['length'] !== $width) {
-                    throw new \RuntimeException(
+                    throw new RuntimeException(
                         "Lane [{$laneKey}] field [{$column}] is {$width} wide but its search type [{$mapped['type']}] expects {$mapped['length']}."
                     );
                 }
@@ -117,7 +118,7 @@ final class LaneSchemaFactory
         }
 
         if ($built === []) {
-            throw new \RuntimeException("Lane [{$laneKey}] declares no usable result fields.");
+            throw new RuntimeException("Lane [{$laneKey}] declares no usable result fields.");
         }
 
         $canonical = $this->config->get($laneKey.'.canonical_version');
@@ -128,7 +129,7 @@ final class LaneSchemaFactory
         }
 
         if (! is_string($canonical) || $canonical === '') {
-            throw new \RuntimeException("Lane [{$laneKey}] declares no canonical_version.");
+            throw new RuntimeException("Lane [{$laneKey}] declares no canonical_version.");
         }
 
         return new LaneSchema(

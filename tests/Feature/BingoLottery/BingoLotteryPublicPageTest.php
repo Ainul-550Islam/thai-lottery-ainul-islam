@@ -79,6 +79,11 @@ final class BingoLotteryPublicPageTest extends TestCase
 
         $response->assertOk();
         $this->assertSame(200, $response->getStatusCode(), 'A login redirect would also not be 200.');
+
+        $bangla = $this->get('/bingo-lottery?lang=bn')->assertOk();
+        $bangla->assertSee(trans('bingo_lottery.heading', [], 'bn'), false);
+        $bangla->assertSee(trans('bingo_lottery.skip_to_content', [], 'bn'), false);
+        $bangla->assertDontSee('Skip to content', false);
     }
 
     public function test_02_search_page_is_public_without_login(): void

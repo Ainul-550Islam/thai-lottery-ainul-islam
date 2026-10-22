@@ -100,6 +100,11 @@ final class NationalLotteryPublicPageTest extends TestCase
         $this->get('/national-lottery')
             ->assertOk()
             ->assertSee(trans('national_lottery.heading'), false);
+
+        $bangla = $this->get('/national-lottery?lang=bn')->assertOk();
+        $bangla->assertSee(trans('national_lottery.heading', [], 'bn'), false);
+        $bangla->assertSee(trans('national_lottery.skip_to_content', [], 'bn'), false);
+        $bangla->assertDontSee('Skip to content', false);
     }
 
     public function test_03_landing_page_with_no_data_says_so_and_invents_nothing(): void

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Home;
 
 use App\Services\Home\HomeCountdownService;
+use App\Services\Lottery\GloNextDrawService;
 use Illuminate\Support\Facades\Cache;
+use Mockery;
 use Tests\TestCase;
 
 /**
@@ -38,6 +40,26 @@ final class HomeCountdownServiceTest extends TestCase
         $this->assertArrayHasKey('timezone', $result);
         $this->assertArrayHasKey('remaining_seconds', $result);
         $this->assertSame('Asia/Bangkok', $result['timezone']);
+    }
+
+    public function test_open_for_betting_is_derived_from_draw_state_not_time_remaining(): void
+    {
+        $target = \Carbon\CarbonImmutable::now('Asia/Bangkok')->addDay()->toIso8601String();
+        $source = Mockery::mock(GloNextDrawService::class);
+        $source->shouldReceive('nextDraw')->once()->andReturn([
+            'status' => 'AVAILABLE',
+            'draw_number' => 'DRAW-1',
+            'draw_status' => 'scheduled',
+            'scheduled_at_iso' => $target,
+            'scheduled_at_display' => 'Tomorrow',
+            'timezone' => 'Asia/Bangkok',
+            'message' => null,
+        ]);
+
+        $result = (new HomeCountdownService($source))->getNextDrawTarget();
+
+        $this->assertFalse($result['is_open_for_betting']);
+        $this->assertTrue($result['has_next_draw']);
     }
 
     public function test_remaining_seconds_is_non_negative_integer(): void

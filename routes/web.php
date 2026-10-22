@@ -14,8 +14,6 @@ use App\Http\Controllers\GloL6Controller;
 use App\Http\Controllers\GloResultsPageController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\Legal\AccountAgeVerificationController;
-use App\Http\Controllers\Legal\LegalConsentController;
 use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\LotteryHubController;
 use App\Http\Controllers\LotteryPurchasePageController;
@@ -41,6 +39,7 @@ use App\Http\Controllers\Web\PaymentCallbackController;
 use App\Http\Controllers\Web\PlayerWebController;
 use App\Http\Controllers\Wallet\WalletConversionActionController;
 use App\Http\Controllers\Wallet\WalletConversionPageController;
+use App\Http\Middleware\RequireConversionIdempotencyKey;
 use App\Http\Controllers\WeeklyLotteryController;
 use Illuminate\Support\Facades\Route;
 
@@ -87,7 +86,7 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/login', [MemberAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [MemberAuthController::class, 'login'])->name('login.attempt')->middleware('throttle:login');
     Route::get('/register', [MemberAuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [MemberAuthController::class, 'register'])->name('register.attempt')->middleware('throttle:register');
+    Route::post('/register', [MemberAuthController::class, 'register'])->name('register.attempt')->middleware('throttle:login');
 
     // Password recovery: account no./email + CAPTCHA request, then the
     // token-gated new-password form. Throttled on both POSTs.
@@ -104,59 +103,45 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [MemberAuthController::class, 'logout'])->name('logout');
 
-    // Legal acknowledgement and age-attestation recovery routes are deliberately
-    // outside the transaction gates so existing users can complete them.
-    Route::get('/legal/consent', [LegalConsentController::class, 'show'])->name('legal.consent.form');
-    Route::post('/legal/consent', [LegalConsentController::class, 'store'])
-        ->middleware('throttle:account-verification')
-        ->name('legal.consent.store');
-    Route::get('/account/age-verification', [AccountAgeVerificationController::class, 'show'])
-        ->name('account.age-verification.form');
-    Route::post('/account/age-verification', [AccountAgeVerificationController::class, 'store'])
-        ->middleware('throttle:account-verification')
-        ->name('account.age-verification.store');
-
     Route::get('/dashboard', [PlayerWebController::class, 'dashboard'])->name('player.dashboard');
     Route::get('/draws', [PlayerWebController::class, 'draws'])->name('player.draws');
     Route::get('/draws/{id}', [PlayerWebController::class, 'drawDetail'])->name('player.draws.detail');
 
     Route::get('/bet', [PlayerWebController::class, 'betSlip'])->name('player.bet');
     Route::post('/bet/purchase', [BetPurchaseController::class, 'store'])
-        ->middleware(['active', 'throttle:bet', 'adult', 'legal.current'])
+        ->middleware('throttle:bet')
         ->name('player.bets.purchase');
     Route::post('/player/bets/purchase', [BetPurchaseController::class, 'store'])
-        ->middleware(['active', 'throttle:bet', 'adult', 'legal.current'])
+        ->middleware('throttle:bet')
         ->name('player.bets.purchase.alias');
     Route::get('/bets', [PlayerWebController::class, 'bets'])->name('player.bets');
 
     Route::get('/wallet', [PlayerWebController::class, 'wallet'])->name('player.wallet');
 
-    // Wallet conversion moves money between the member's own wallets and can fund
-    // betting, so every money-moving action carries the 18+ attestation and the
-    // current legal-consent gates, as deposits and bets do. The read-only pages
-    // stay open to any active member. KYC, standing and self-exclusion are also
-    // enforced inside the policy service.
+    // The Cash/Win conversion lane is authenticated and owner-scoped. Quotes
+    // and previews are read-only; only the execute endpoint can move balances.
     Route::get('/wallet/convert', [WalletConversionPageController::class, 'index'])
         ->name('player.wallet.conversion');
     Route::get('/wallet/convert/{reference}', [WalletConversionPageController::class, 'show'])
-        ->where('reference', '[A-Za-z0-9-]{1,64}')
+        ->where('reference', '[A-Za-z0-9_-]{8,80}')
         ->name('player.wallet.conversion.show');
     Route::post('/wallet/convert/preview', [WalletConversionPageController::class, 'preview'])
-        ->middleware(['active', 'adult', 'legal.current', 'throttle:wallet-conversion-quote'])
         ->name('player.wallet.conversion.preview');
     Route::post('/wallet/convert/quote', [WalletConversionActionController::class, 'quote'])
-        ->middleware(['active', 'adult', 'legal.current', 'conversion.enabled', 'throttle:wallet-conversion-quote'])
         ->name('player.wallet.conversion.quote');
     Route::post('/wallet/convert', [WalletConversionActionController::class, 'store'])
-        ->middleware(['active', 'adult', 'legal.current', 'conversion.enabled', 'conversion.idempotency', 'throttle:wallet-conversion-execute'])
+        ->middleware(RequireConversionIdempotencyKey::class)
         ->name('player.wallet.conversion.store');
 
+    // Member-owned cash/win conversion pages and actions. Every endpoint is
+    // authenticated; money-moving execution additionally requires an
+    // idempotency key, while preview and quote remain non-mutating operations.
     Route::get('/deposit', [PlayerWebController::class, 'deposit'])->name('player.deposit');
     Route::get('/deposit/status/{deposit}', [PlayerWebController::class, 'depositStatus'])
         ->where('deposit', '[A-Za-z0-9_\\-]{1,80}')
         ->name('player.deposit.status');
     Route::post('/deposit', [PlayerWebController::class, 'storeDeposit'])
-        ->middleware(['active', 'throttle:deposit', 'adult', 'legal.current'])
+        ->middleware('throttle:deposit')
         ->name('player.deposit.store');
 
     Route::get('/withdraw', [PlayerWebController::class, 'withdraw'])->name('player.withdraw');
@@ -164,7 +149,7 @@ Route::middleware('auth')->group(function (): void {
         ->where('withdrawal', '[A-Za-z0-9_\\-]{1,80}')
         ->name('player.withdrawal.status');
     Route::post('/withdraw', [PlayerWebController::class, 'storeWithdraw'])
-        ->middleware(['active', 'throttle:withdrawal', 'adult', 'legal.current'])
+        ->middleware('throttle:withdrawal')
         ->name('player.withdraw.store');
 
     Route::get('/profile', [PlayerWebController::class, 'profile'])->name('player.profile');
@@ -202,7 +187,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/account/verification', [MemberAccountVerificationController::class, 'show'])
         ->name('account.verification');
     Route::post('/account/verification', [MemberAccountVerificationController::class, 'submit'])
-        ->middleware(['throttle:account-verification', 'legal.current'])
+        ->middleware('throttle:account-verification')
         ->name('account.verification.submit');
     Route::get('/account/verification/document/{document}', [MemberAccountVerificationController::class, 'download'])
         ->middleware('throttle:account-verification')
@@ -309,8 +294,14 @@ Route::post('/check', [HomeController::class, 'checkSubmit'])
 // Public sales-point search UI (uses existing GloSalesPointService).
 Route::get('/sales-points', [HomeController::class, 'salesPoints'])->name('sales-points');
 
-// Public informational + legal pages (published database version with config fallback).
+// Public informational + legal pages (versioned Terms from config/legal.php).
 // public.legal = PublicLegalHeaders middleware: safe guest GET cache only.
+Route::get('/services', [PublicPagesController::class, 'services'])
+    ->middleware('public.legal')
+    ->name('services');
+Route::get('/our-services', fn () => redirect()->route('services', [], 301))
+    ->middleware('public.legal')
+    ->name('our-services');
 Route::get('/about', [PublicPagesController::class, 'about'])
     ->middleware('public.legal')
     ->name('about');
@@ -328,6 +319,47 @@ Route::get('/fees', [PublicPagesController::class, 'fees'])
 Route::get('/our-fees', [PublicPagesController::class, 'fees'])
     ->middleware('public.legal')
     ->name('our-fees');
+
+// Old prototype HTML files in public/ were directly web-accessible despite
+// being mockups. Their complete source has been retained outside the public
+// document root at docs/archive/public-ui-previews. Permanent redirects
+// now point visitors to the routed, supported application surfaces.
+$archivedPublicPreviewRedirects = [
+    'about-preview.html' => '/about',
+    'account-grade-preview.html' => '/account-grades',
+    'account-verification-preview.html' => '/account-verification-guide',
+    'bingo-lottery-preview.html' => '/bingo-lottery',
+    'contact-preview.html' => '/contact',
+    'deposit-portal-preview.html' => '/deposit',
+    'download-preview.html' => '/download',
+    'faq-preview.html' => '/faq',
+    'fees-preview.html' => '/fees',
+    'home-preview.html' => '/',
+    'how-to-play-preview.html' => '/how-to-play',
+    'lottery-history-preview.html' => '/bets',
+    'lotto-discount-preview.html' => '/discounts',
+    'national-lottery-preview.html' => '/national-lottery',
+    'pcso-lottery-preview.html' => '/pcso-lottery',
+    'player-dashboard-preview.html' => '/dashboard',
+    'player-profile-preview.html' => '/profile',
+    'player-security-settings-preview.html' => '/player/security',
+    'player-settings-preview.html' => '/player/settings',
+    'privacy-preview.html' => '/privacy',
+    'prize-verification-preview.html' => '/prize-verification',
+    'results-preview.html' => '/results',
+    'thai-lottery-betting-preview.html' => '/betting',
+    'vision-preview.html' => '/vision',
+    'wallet-management-preview.html' => '/wallet',
+    'weekly-lottery-preview.html' => '/weekly-lottery',
+    'withdrawal-portal-preview.html' => '/withdraw',
+];
+$archivedPreviewRouteIndex = 0;
+foreach ($archivedPublicPreviewRedirects as $previewPath => $destination) {
+    $archivedPreviewRouteIndex++;
+    Route::redirect('/'.$previewPath, $destination, 301)
+        ->name('legacy.preview.'.$archivedPreviewRouteIndex);
+}
+unset($archivedPublicPreviewRedirects, $archivedPreviewRouteIndex);
 
 // Public Prize Verification (PROMPT 4) — anonymous ticket / result checker.
 Route::get('/prize-verification', [PublicPrizeVerificationController::class, 'index'])
@@ -764,11 +796,9 @@ Route::middleware('auth')->group(function (): void {
 
 // User-facing locale switch route (session & cookie persistence)
 Route::get('/locale/{locale}', function (string $locale) {
-    $supported = \App\Support\SupportedLocale::normalise($locale);
-
-    if ($supported !== null) {
-        session(['locale' => $supported]);
-        cookie()->queue(cookie('locale', $supported, 60 * 24 * 365));
+    if (\App\Support\SupportedLocale::isSupported($locale)) {
+        session(['locale' => $locale]);
+        cookie()->queue(cookie('locale', $locale, 60 * 24 * 365));
     }
 
     return redirect()->back();

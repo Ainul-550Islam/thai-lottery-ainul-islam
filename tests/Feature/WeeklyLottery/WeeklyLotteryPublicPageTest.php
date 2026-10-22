@@ -112,6 +112,11 @@ final class WeeklyLotteryPublicPageTest extends TestCase
         $this->get('/weekly-lottery')
             ->assertOk()
             ->assertSee(trans('weekly_lottery.heading'), false);
+
+        $bangla = $this->get('/weekly-lottery?lang=bn')->assertOk();
+        $bangla->assertSee(trans('weekly_lottery.heading', [], 'bn'), false);
+        $bangla->assertSee(trans('weekly_lottery.skip_to_content', [], 'bn'), false);
+        $bangla->assertDontSee('Skip to content', false);
     }
 
     public function test_02_history_is_public_without_login(): void

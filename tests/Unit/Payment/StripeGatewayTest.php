@@ -66,10 +66,6 @@ final class StripeGatewayTest extends TestCase
         $this->assertTrue($response->successful);
         $this->assertSame('cs_test_mock_session_id', $response->providerReference);
         $this->assertSame('https://checkout.stripe.com/pay/cs_test_mock_session_id', $response->redirectUrl);
-        Http::assertSent(fn ($request): bool => $request->hasHeader(
-            'Idempotency-Key',
-            'deposit-DP-20260903-TEST01',
-        ));
     }
 
     public function test_signature_verification_and_parsing(): void

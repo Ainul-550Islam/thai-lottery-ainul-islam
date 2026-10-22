@@ -35,12 +35,6 @@ export default defineConfig({
                 'resources/css/pages/download.css',
                 'resources/css/auth-portal.css',
                 'resources/css/admin-lottofin.css',
-        // Standalone documents that do not extend layouts.app, and therefore never
-        // see app.css's Tailwind layer. Each imports a hand-written design system and
-        // adds the directives; the design systems stay separate so the pages that use
-        // them WITHOUT Tailwind (lotteries/index) are unaffected.
-                'resources/css/standalone-tailwind.css',
-                'resources/css/admin-tailwind.css',
                 'resources/css/glo-results-checker.css',
                 'resources/css/glo-l6.css',
                 'resources/css/player-security-settings.css',
@@ -70,15 +64,10 @@ export default defineConfig({
         'resources/js/player-profile.js',
         'resources/js/lottery-history.js',
         'resources/js/player-settings.js',
-        'resources/js/privacy-portal.js',
-        'resources/js/fees-portal.js',
         'resources/js/account-verification-portal.js',
         'resources/js/account-grade-portal.js',
-        'resources/js/prize-verification-portal.js',
-        'resources/js/lotto-discount-portal.js',
         'resources/js/how-to-play-portal.js',
         'resources/js/faq-portal.js',
-        'resources/js/contact-portal.js',
         'resources/js/components/AuthCard.tsx',
         'resources/js/components/LottoFinAdminDashboard.tsx',
         'resources/js/components/GloResultsChecker.tsx',
@@ -117,10 +106,6 @@ export default defineConfig({
                 'resources/js/wallet/wallet-balance.js',
                 'resources/js/home/countdown.js',
                 'resources/js/home/live-draw.js',
-                // Live Chat Support: visitor widget + operator console.
-                'resources/js/chat/widget.js',
-                'resources/js/chat/operator.js',
-                // PROMPT: Cash <-> Win balance transfer panel.
             ],
             refresh: true,
         }),

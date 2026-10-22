@@ -86,6 +86,17 @@ final class DepositService
         $fee = $this->resolveFee($amount, $options);
         $netAmount = $this->resolveNetAmount($amount, $fee);
 
+        // RESPONSIBLE GAMING (batch-14): deposit ceilings + the
+        // fail-closed exclusion gate, pronounced before any row is
+        // recorded. Refusals carry the desk's named codes.
+        /** @var User|null $rgUser */
+        $rgUser = User::query()->find($wallet->user_id);
+
+        if ($rgUser instanceof User) {
+            app(ResponsibleGamingEnforcementService::class)
+                ->assertDepositAllowed($rgUser, $amount->toString());
+        }
+
         return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options): Deposit {
             $lockedWallet = $this->locks->lock((int) $wallet->getKey());
 
@@ -100,18 +111,6 @@ final class DepositService
 
                     return $existing;
                 }
-            }
-
-            // Evaluate the rolling deposit ceiling only after acquiring the
-            // wallet lock. A concurrent request for the same player/currency
-            // cannot then spend the same remaining limit headroom. Idempotent
-            // replays return above, so they are never counted twice.
-            /** @var User|null $rgUser */
-            $rgUser = User::query()->find((int) $lockedWallet->user_id);
-
-            if ($rgUser instanceof User) {
-                app(ResponsibleGamingEnforcementService::class)
-                    ->assertDepositAllowed($rgUser, $amount->toString(), $amount->currency()->value);
             }
 
             $deposit = new Deposit;

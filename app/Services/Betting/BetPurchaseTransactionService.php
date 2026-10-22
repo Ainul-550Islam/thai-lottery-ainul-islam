@@ -10,7 +10,6 @@ use App\Exceptions\BetPurchaseConcurrencyException;
 use App\Exceptions\BetPurchaseException;
 use App\Models\Bet;
 use App\Services\Agent\AgentCommissionAccrualService;
-use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -36,23 +35,21 @@ use Throwable;
  *      a lock, so a concurrent identical request may have committed since. Re-reading
  *      here, holding the wallet lock, closes that window for two requests from the same
  *      player. The insert's UNIQUE constraint closes it for every other case.
- *   3. RE-CHECK RESPONSIBLE-GAMING LIMITS under the wallet lock. Parallel bets and
- *      deposits for this player cannot both spend the same rolling-limit headroom.
- *   4. CHECK THE BALANCE AGAINST THE LOCKED ROW. Before any row is created and before
+ *   3. CHECK THE BALANCE AGAINST THE LOCKED ROW. Before any row is created and before
  *      any capacity is reserved, so an unaffordable bet consumes nothing at all.
- *   5. RESERVE RISK CAPACITY. Under SELECT ... FOR UPDATE on the number_limits row,
- *      decided by Phase 3.1 from counters it re-read under that lock.
- *   6. CREATE THE BET. Needs to exist before the debit, because the debit's polymorphic
+ *   4. RESERVE RISK CAPACITY. Second lock. Under SELECT ... FOR UPDATE on the
+ *      number_limits row, decided by Phase 3.1 from counters it re-read under that lock.
+ *   5. CREATE THE BET. Needs to exist before the debit, because the debit's polymorphic
  *      reference points at it.
- *   7. CREATE THE ITEM. One line, one charge.
- *   8. CREATE THE TICKET AND LINK IT. The Phase 1 foreign key is bets.ticket_id, so the
+ *   6. CREATE THE ITEM. One line, one charge.
+ *   7. CREATE THE TICKET AND LINK IT. The Phase 1 foreign key is bets.ticket_id, so the
  *      ticket must exist before the bet can point at it.
- *   9. DEBIT THE WALLET. Phase 2.1 performs the debit, the double-entry posting and its
+ *   8. DEBIT THE WALLET. Phase 2.1 performs the debit, the double-entry posting and its
  *      own balance assertion as one unit, in a nested transaction - a SAVEPOINT inside
  *      this one - so an outer rollback still discards all of it.
- *  10. VERIFY THE LEDGER. Proven present, linked to this bet and balanced, before the
+ *   9. VERIFY THE LEDGER. Proven present, linked to this bet and balanced, before the
  *      commit is allowed. A purchase may not commit money that the books do not record.
- *  11. PROMOTE THE BET AND THE TICKET. Only paid-for, balanced purchases become Active
+ *  10. PROMOTE THE BET AND THE TICKET. Only paid-for, balanced purchases become Active
  *      and Confirmed.
  *
  * WHY THERE IS NO COMPENSATION OR CLEANUP CODE
@@ -86,7 +83,6 @@ final class BetPurchaseTransactionService
         private readonly BetPurchaseLedgerService $ledger,
         private readonly BetPurchaseIdempotencyService $idempotency,
         private readonly AgentCommissionAccrualService $commissionAccrual,
-        private readonly ResponsibleGamingEnforcementService $responsibleGaming,
         private readonly ConfigRepository $config,
     ) {
     }
@@ -138,34 +134,23 @@ final class BetPurchaseTransactionService
             );
         }
 
-        // 3. Responsible-gaming totals are mutable financial projections too.
-        // Re-evaluate under the player's wallet lock so two simultaneous bets
-        // cannot both pass the same daily/weekly/monthly loss ceiling using the
-        // same pre-transaction snapshot. The early check in BetPurchaseService
-        // remains a fast refusal; this is the concurrency-safe decision.
-        $this->responsibleGaming->assertBetAllowed(
-            $context->user,
-            $context->stakeMoney()->toString(),
-            $context->currency()->value,
-        );
-
-        // 4. Affordability, against the locked row.
+        // 3. Affordability, against the locked row.
         $this->wallets->assertSufficientBalance($wallet, $context->stakeMoney());
 
-        // 5. Risk capacity, under the number_limits row lock. No bypass exists.
+        // 4. Risk capacity, under the number_limits row lock. No bypass exists.
         $reservation = $this->risk->reserve($context);
 
-        // 6. The bet.
+        // 5. The bet.
         $bet = $this->bets->create($context);
 
-        // 7. The one item line.
+        // 6. The one item line.
         $item = $this->items->create($bet, $context);
 
-        // 8. The ticket, then the link.
+        // 7. The ticket, then the link.
         $ticket = $this->tickets->create($context);
         $bet = $this->bets->attachTicket($bet, $ticket);
 
-        // 9. The money. Phase 2.1 debits, posts the ledger and asserts its own balance.
+        // 8. The money. Phase 2.1 debits, posts the ledger and asserts its own balance.
         $transaction = $this->wallets->debitForBet(
             lockedWallet: $wallet,
             stake: $context->stakeMoney(),
@@ -183,16 +168,16 @@ final class BetPurchaseTransactionService
             ],
         );
 
-        // 10. The books, proven before the commit is allowed.
+        // 9. The books, proven before the commit is allowed.
         $ledgerEntryIds = $this->ledger->assertPostedForBet($transaction, $bet);
 
-        // 11. Promotion. Only now is the purchase paid for and recorded.
+        // 10. Promotion. Only now is the purchase paid for and recorded.
         $bet = $this->bets->markPlaced($bet);
         $ticket = $this->tickets->confirm($ticket);
 
         $this->assertExactlyOneItem($bet, $context);
 
-        // 12. Agent commissions accrue on real, paid turnover — never on an
+        // 11. Agent commissions accrue on real, paid turnover — never on an
         // unpaid, unposted or half-promoted purchase. Accruing here, inside the
         // same atomic unit, means a purchase that later cannot commit takes its
         // commission rows down with it, and a committed purchase can never

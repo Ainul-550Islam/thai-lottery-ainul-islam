@@ -43,6 +43,36 @@ final class HomeLaneResultsTest extends TestCase
         }
     }
 
+    public function test_bangla_home_lane_headings_and_field_labels_are_translated(): void
+    {
+        $response = $this->get('/?lang=bn');
+
+        $response->assertOk();
+
+        foreach ([
+            'national_lottery.heading',
+            'national_lottery.field_first_prize',
+            'national_lottery.field_three_up',
+            'national_lottery.field_two_up',
+            'national_lottery.field_two_down',
+            'weekly_lottery.heading',
+            'weekly_lottery.field_first_6',
+            'weekly_lottery.field_three_ball',
+            'weekly_lottery.field_two_ball',
+            'bingo_lottery.heading',
+            'bingo_lottery.field_first_6_mega',
+            'bingo_lottery.field_three_mega',
+            'bingo_lottery.field_two_mega',
+            'pcso_lottery.heading',
+            'pcso_lottery.field_six_digit',
+            'pcso_lottery.field_four_digit',
+            'pcso_lottery.field_three_digit',
+            'pcso_lottery.field_two_digit',
+        ] as $key) {
+            $response->assertSee(trans($key, [], 'bn'), false);
+        }
+    }
+
     public function test_a_lane_with_no_published_draw_says_so_rather_than_showing_zeros(): void
     {
         $response = $this->get('/');
@@ -75,6 +105,27 @@ final class HomeLaneResultsTest extends TestCase
         $response->assertSee('049', false);
         // Not widened into 1234 anywhere on the way here.
         $response->assertDontSee('>1234<', false);
+    }
+
+    public function test_bangla_home_lane_date_uses_a_bangla_month_name(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-16 12:00:00', 'Asia/Bangkok'));
+        app(BingoLotteryImportService::class)->import([
+            'draw_date' => '2026-10-01',
+            'first_6_mega' => '001234',
+            'three_mega' => '049',
+            'two_mega' => '09',
+            'source_identifier' => 'FIXTURE-HOME-BN-DATE',
+            'retrieved_at' => '2026-10-16T05:00:00+00:00',
+        ], 'fixture');
+
+        $digest = app(PublicLaneResultDigestService::class)->lanes();
+        $bingo = collect($digest['lanes'])->firstWhere('key', 'bingo_lottery');
+
+        $this->assertNotNull($bingo);
+        $this->assertSame('1 অক্টোবর 2026', $bingo['date_display_bn']);
+        $this->get('/?lang=bn')->assertOk()->assertSee('1 অক্টোবর 2026');
+        $this->travelBack();
     }
 
     public function test_the_pcso_card_shows_four_categories_and_a_draw_time(): void

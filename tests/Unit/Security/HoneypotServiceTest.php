@@ -68,6 +68,11 @@ final class HoneypotServiceTest extends TestCase
     public function test_value_semantics(mixed $value, bool $tripped): void
     {
         self::assertSame($tripped, HoneypotService::hasValue($value));
+        if (is_array($value)) {
+            // Symfony's InputBag rejects nested non-scalar input on construction;
+            // the classifier contract is covered directly above for this value.
+            return;
+        }
         $request = $this->request();
         $challenge = $this->service->issue($request, 'register');
         $request->merge(['_hp_token' => $challenge['token'], $challenge['field'] => $value]);

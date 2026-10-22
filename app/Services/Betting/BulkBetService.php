@@ -152,13 +152,8 @@ class BulkBetService
                 $refused++;
                 $record['reason'] = $e->getMessage();
             } catch (\Throwable $e) {
-                // Infrastructure faults are not item-level refusals. Propagate them
-                // to the HTTP exception handler so raw database/provider messages
-                // never enter the player-facing slip report. Earlier items remain
-                // committed independently and are replay-safe on a whole-slip retry.
-                report($e);
-
-                throw $e;
+                $refused++;
+                $record['reason'] = $e->getMessage();
             }
 
             $items[] = $record;

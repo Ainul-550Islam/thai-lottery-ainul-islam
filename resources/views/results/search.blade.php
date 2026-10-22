@@ -1,25 +1,25 @@
 @extends('layouts.app')
 
-@section('title', 'Search Results — Government Lottery')
+@section('title', trans('results_search.title'))
 @section('meta_robots', 'noindex, follow')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
     <div class="flex items-center justify-between flex-wrap gap-3">
-        <h1 class="text-2xl font-bold text-white">Search Lottery Results</h1>
-        <a href="{{ route('results.index') }}" class="text-sm text-emerald-400 underline">← All Results</a>
+        <h1 class="text-2xl font-bold text-white">{{ trans('results_search.title') }}</h1>
+        <a href="{{ route('results.index') }}" class="text-sm text-emerald-400 underline">{{ trans('results_search.all_results') }}</a>
     </div>
 
     <!-- Search Form -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <form method="GET" action="{{ route('results.search') }}" class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1 relative">
-                <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="Enter 6-digit number, draw number, or date (YYYY-MM-DD)"
+                <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="{{ trans('results_search.placeholder') }}"
                        maxlength="30"
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-emerald-500">
             </div>
             <button type="submit" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition">
-                Search
+                {{ trans('results_search.search') }}
             </button>
         </form>
     </div>
@@ -27,10 +27,10 @@
     @if (! empty($query))
         <section class="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
             <h2 class="text-base font-semibold text-slate-200 mb-1">
-                Search Results for: <span class="font-mono text-emerald-300">{{ $query }}</span>
+                {{ trans('results_search.results_for', ['query' => $query]) }}
             </h2>
             <p class="text-xs text-slate-400">
-                Found {{ count($results) }} matching published record(s).
+                {{ trans('results_search.found', ['count' => count($results)]) }}
             </p>
         </section>
 
@@ -38,12 +38,12 @@
             <table class="w-full text-sm text-left">
                 <thead class="bg-slate-800/80 text-slate-300">
                     <tr>
-                        <th class="p-3">Draw</th>
-                        <th class="p-3">Date</th>
-                        <th class="p-3">1st Prize</th>
-                        <th class="p-3">2-Digit Bottom</th>
-                        <th class="p-3">Source</th>
-                        <th class="p-3">Status</th>
+                        <th class="p-3">{{ trans('results_search.draw') }}</th>
+                        <th class="p-3">{{ trans('results_search.date') }}</th>
+                        <th class="p-3">{{ trans('results_search.first_prize') }}</th>
+                        <th class="p-3">{{ trans('results_search.bottom_two') }}</th>
+                        <th class="p-3">{{ trans('results_search.source') }}</th>
+                        <th class="p-3">{{ trans('results_search.status') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -58,13 +58,12 @@
                                     {{ $row['source_state'] }}
                                 </span>
                             </td>
-                            <td class="p-3 text-xs text-emerald-400 font-semibold uppercase">Published</td>
+                            <td class="p-3 text-xs text-emerald-400 font-semibold uppercase">{{ trans('results_search.published') }}</td>
                         </tr>
                     @empty
                         <tr>
                             <td class="p-6 text-center text-slate-400" colspan="6">
-                                No matching published results found for &ldquo;{{ $query }}&rdquo;.
-                                Please verify the number and try again.
+                                {{ trans('results_search.empty', ['query' => $query]) }}
                             </td>
                         </tr>
                     @endforelse

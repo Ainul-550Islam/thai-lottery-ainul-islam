@@ -7,66 +7,40 @@ namespace App\Services\Wallet\Conversion;
 use App\Contracts\Wallet\ConversionRepositoryContract;
 use App\Enums\Currency;
 use App\ValueObjects\ConversionLimits;
-use DateTimeImmutable;
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Support\Facades\DB;
 
 final class ConversionLimitService
 {
-    public function __construct(
-        private readonly ConversionRepositoryContract $conversions,
-    ) {}
+    public function __construct(private readonly Config $config) {}
 
-    public function limits(?Currency $currency = null): ConversionLimits
+    public function limits(Currency $currency): ConversionLimits
     {
-        $resolvedCurrency = $currency
-            ?? Currency::tryFrom((string) config('conversions.currency', ''))
-            ?? Currency::primary();
-
-        $rawLimits = config('conversions.limits', []);
-
-        return ConversionLimits::fromConfig(is_array($rawLimits) ? $rawLimits : [], $resolvedCurrency);
+        return ConversionLimits::fromConfig((array) $this->config->get('conversions.limits', []), $currency);
     }
 
-    public function dailyTotal(int $userId, ?DateTimeImmutable $now = null): string
+    public function dailyTotal(int $userId, ?Currency $currency = null): string
     {
-        $at = $now ?? new DateTimeImmutable;
-        $from = $at->modify('-24 hours');
-
-        return $this->conversions->completedTotalForUser($userId, $from, $at);
+        return $this->total($userId, CarbonImmutable::now()->startOfDay(), CarbonImmutable::now());
     }
 
-    public function monthlyTotal(int $userId, ?DateTimeImmutable $now = null): string
+    public function monthlyTotal(int $userId, ?Currency $currency = null): string
     {
-        $at = $now ?? new DateTimeImmutable;
-        $from = $at->modify('-30 days');
-
-        return $this->conversions->completedTotalForUser($userId, $from, $at);
+        return $this->total($userId, CarbonImmutable::now()->startOfMonth(), CarbonImmutable::now());
     }
 
     public function remainingDaily(int $userId, ?Currency $currency = null): ?string
     {
-        $limits = $this->limits($currency);
-        $ceiling = $limits->dailyLimit();
-        if ($ceiling === null) {
-            return null;
-        }
-
-        $used = $this->dailyTotal($userId);
-        $diff = bcsub($ceiling, $used, 2);
-
-        return bccomp($diff, '0.00', 2) >= 0 ? $diff : '0.00';
+        $limits = $this->limits($currency ?? Currency::primary());
+        return $limits->remainingDaily($this->dailyTotal($userId, $currency));
     }
 
-    public function remainingMonthly(int $userId, ?Currency $currency = null): ?string
+    private function total(int $userId, \DateTimeInterface $from, \DateTimeInterface $to): string
     {
-        $limits = $this->limits($currency);
-        $ceiling = $limits->monthlyLimit();
-        if ($ceiling === null) {
-            return null;
-        }
-
-        $used = $this->monthlyTotal($userId);
-        $diff = bcsub($ceiling, $used, 2);
-
-        return bccomp($diff, '0.00', 2) >= 0 ? $diff : '0.00';
+        $sum = DB::table('wallet_conversions')->where('user_id', $userId)
+            ->where('status', 'completed')->whereBetween('completed_at', [$from, $to])
+            ->sum('amount_in');
+        return bcadd((string) $sum, '0', 2);
     }
 }

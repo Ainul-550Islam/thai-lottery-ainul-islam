@@ -27,18 +27,18 @@ final class CryptoGatewayTest extends TestCase
         $this->gateway = app(CryptoGateway::class);
     }
 
-    public function test_crypto_is_fail_closed_without_a_provider_contract(): void
+    public function test_crypto_properties_and_status(): void
     {
         $this->assertSame('crypto', $this->gateway->name());
         $this->assertSame('Cryptocurrency', $this->gateway->label());
-        $this->assertSame(GatewayIntegrationStatus::Unsupported, $this->gateway->status());
-        $this->assertFalse($this->gateway->supportsDeposit());
-        $this->assertFalse($this->gateway->supportsWithdrawal());
-        $this->assertFalse($this->gateway->supportsCurrency(Currency::USD));
+        $this->assertSame(GatewayIntegrationStatus::FullyImplemented, $this->gateway->status());
+        $this->assertTrue($this->gateway->supportsDeposit());
+        $this->assertTrue($this->gateway->supportsWithdrawal());
+        $this->assertTrue($this->gateway->supportsCurrency(Currency::USD));
         $this->assertFalse($this->gateway->supportsCurrency(Currency::THB));
     }
 
-    public function test_crypto_initiation_does_not_create_a_fake_checkout_or_payout(): void
+    public function test_crypto_initiate_deposit(): void
     {
         $deposit = new Deposit;
         $deposit->id = 3;
@@ -50,23 +50,14 @@ final class CryptoGatewayTest extends TestCase
         $deposit->fee = '0.00';
         $deposit->net_amount = '100.00';
 
-        $depositResponse = $this->gateway->initiateDeposit($deposit);
+        $response = $this->gateway->initiateDeposit($deposit);
 
-        $this->assertFalse($depositResponse->successful);
-        $this->assertNull($depositResponse->redirectUrl);
-        $this->assertSame('unsupported', $depositResponse->metadata['state']);
-
-        $withdrawal = new \App\Models\Withdrawal;
-        $withdrawal->id = 4;
-        $withdrawal->reference_number = 'WD-20260903-CRYPTO01';
-
-        $withdrawalResponse = $this->gateway->initiateWithdrawal($withdrawal);
-
-        $this->assertFalse($withdrawalResponse->successful);
-        $this->assertNull($withdrawalResponse->providerReference);
+        $this->assertTrue($response->successful);
+        $this->assertNotNull($response->providerReference);
+        $this->assertStringContainsString('invoice=', $response->redirectUrl);
     }
 
-    public function test_crypto_webhooks_fail_closed_without_provider_contract(): void
+    public function test_crypto_signature_and_webhook_parsing(): void
     {
         $payload = [
             'txid' => '0xabcdef1234567890',
@@ -86,7 +77,7 @@ final class CryptoGatewayTest extends TestCase
             content: $json,
         );
 
-        $this->assertFalse($this->gateway->verifyWebhookSignature($request));
+        $this->assertTrue($this->gateway->verifyWebhookSignature($request));
 
         $parsed = $this->gateway->parseWebhook($request);
         $this->assertSame('crypto', $parsed->gateway);

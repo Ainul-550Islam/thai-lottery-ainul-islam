@@ -9,7 +9,7 @@ use App\Enums\FinancialTransactionType;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Finance\Money;
-use App\Services\Wallet\WalletService;
+use App\Services\Finance\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

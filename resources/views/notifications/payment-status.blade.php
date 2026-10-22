@@ -36,22 +36,22 @@
     </div>
 
     <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
-        @if(($status ?? '') === 'completed')
-            Your funds have been securely credited to your platform wallet and are available immediately for wagering.
+        @if(($status ?? '') === 'captured' || ($status ?? '') === 'completed')
+            The payment status is recorded as captured. Sign in to review the corresponding wallet entry; this notice alone does not confirm that a balance is available for use or withdrawal.
         @elseif(($status ?? '') === 'failed')
-            Your payment could not be processed by the payment provider. No funds were debited from your account.
+            The payment status is recorded as failed. Review the transaction and wallet status in your account before retrying.
         @else
-            Your transaction is currently being processed. You will receive an update once settlement is confirmed.
+            The current payment status is shown above. Check your account for the latest transaction and wallet information; no fixed settlement time is promised.
         @endif
     </p>
 
     <div style="text-align: center;">
-        <a href="{{ url('/player/wallet') }}" style="display: inline-block; padding: 12px 28px; background-color: #059669; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px;">
+        <a href="{{ url('/wallet') }}" style="display: inline-block; padding: 12px 28px; background-color: #059669; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px;">
             View Wallet Balance
         </a>
     </div>
 
     <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #1e293b; text-align: center; font-size: 11px; color: #64748b;">
-        &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery') }}. All transactions are recorded in the immutable audit ledger.
+        &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery') }}. Review the transaction state in your account and contact support if the displayed status needs clarification.
     </div>
 </div>

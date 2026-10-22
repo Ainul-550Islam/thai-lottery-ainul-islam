@@ -17,7 +17,7 @@ return [
     // Dashboard
     'dashboard_title' => 'Player Dashboard',
     'dashboard_lead' => 'Authenticated dashboard backed by the player, draw, wallet and ledger records.',
-    'dash_hero_subtitle' => 'Thai Lottery Wagering & Instant Payout System',
+    'dash_hero_subtitle' => 'Account, draw, wallet and ticket information',
     'status_scheduled' => 'SCHEDULED',
     'available_balance' => 'Available Balance',
     'next_official_draw' => 'Next Official Draw',
@@ -291,6 +291,9 @@ return [
     'security_limits_action' => 'Manage responsible gaming limits',
     'status_active' => 'ACTIVE',
     'status_inactive' => 'INACTIVE',
+    'status_suspended' => 'SUSPENDED',
+    'status_banned' => 'BANNED',
+    'status_pending_verification' => 'PENDING VERIFICATION',
     'no_security_sessions' => 'No security sessions are recorded for this account.',
     'session_reference' => 'Session reference',
     'session_ip' => 'IP address',
@@ -308,4 +311,7 @@ return [
     'self_exclusion_365' => '365 days',
     'self_exclusion_confirm' => 'Activate self-exclusion? This action cannot be undone before it ends.',
     'self_exclusion_submit' => 'Activate self-exclusion',
+    'nav_services' => 'Our Services',
+    'nav_about' => 'About',
+    'nav_lotto_discount' => 'Lotto Discount',
 ];

@@ -35,8 +35,10 @@ final class DepositRequest extends FormRequest
             'user_id' => ['prohibited'],
             'wallet_id' => ['prohibited'],
             'status' => ['prohibited'],
-            // Client-supplied fee and net figures are NOT validated and NOT read: the fee is the
-            // server-computed value, and any smuggled field is simply absent from validated().
+            'fee' => ['prohibited'],
+            'fee_amount' => ['prohibited'],
+            'fee_percentage' => ['prohibited'],
+            'net_amount' => ['prohibited'],
             'exchange_rate' => ['prohibited'],
             'provider' => ['prohibited'],
             'provider_reference' => ['prohibited'],

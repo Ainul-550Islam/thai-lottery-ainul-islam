@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Audit\AuditLogService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 final class SupportCaseService
 {
@@ -49,7 +50,7 @@ final class SupportCaseService
             ->first();
 
         if (! $case instanceof SupportCase) {
-            throw new \RuntimeException('Support case not found.');
+            throw new RuntimeException('Support case not found.');
         }
 
         return $case;
@@ -99,7 +100,7 @@ final class SupportCaseService
         $case = $this->findForOwner($owner, $reference);
 
         if (in_array($case->status, [SupportCase::STATUS_CLOSED, SupportCase::STATUS_RESOLVED], true)) {
-            throw new \RuntimeException('Closed support cases cannot receive replies.');
+            throw new RuntimeException('Closed support cases cannot receive replies.');
         }
 
         DB::transaction(function () use ($owner, $case, $body): void {

@@ -81,23 +81,22 @@ class StripeGateway extends AbstractPaymentGateway
                         'unit_amount' => (int) $amountInCents,
                         'product_data' => [
                             'name' => 'Wallet Deposit '.$deposit->reference_number,
-                            'description' => 'Deposit to Thai Lottery wallet',
+                            'description' => 'Deposit to player account #'.$deposit->user_id,
                         ],
                     ],
                     'quantity' => 1,
                 ],
             ],
             'metadata' => [
+                'deposit_id' => (string) $deposit->getKey(),
                 'deposit_reference' => $deposit->reference_number,
+                'user_id' => (string) $deposit->user_id,
+                'wallet_id' => (string) $deposit->wallet_id,
             ],
         ];
 
         try {
-            $stableReference = is_string($deposit->uuid) && $deposit->uuid !== ''
-                ? $deposit->uuid
-                : $deposit->reference_number;
             $response = Http::withToken($secretKey)
-                ->withHeaders(['Idempotency-Key' => 'deposit-'.$stableReference])
                 ->asForm()
                 ->post('https://api.stripe.com/v1/checkout/sessions', $params);
 
@@ -118,28 +117,13 @@ class StripeGateway extends AbstractPaymentGateway
             }
 
             $errorData = $response->json();
-            $providerError = is_array($errorData) && is_array($errorData['error'] ?? null)
-                ? $errorData['error']
-                : [];
-            $providerCode = $providerError['code'] ?? null;
+            $errorMessage = $errorData['error']['message'] ?? 'Stripe checkout creation failed: '.$response->body();
 
-            Log::warning('Stripe checkout request was refused', [
-                'http_status' => $response->status(),
-                'provider_error_code' => is_string($providerCode) ? substr($providerCode, 0, 64) : null,
-            ]);
-
-            return GatewayDepositResponse::failed(
-                'Stripe checkout creation failed.',
-                [],
-                ['gateway' => 'stripe', 'http_status' => $response->status()],
-            );
+            return GatewayDepositResponse::failed($errorMessage, is_array($errorData) ? $errorData : []);
         } catch (\Throwable $e) {
-            Log::error('Stripe deposit initiation failed', [
-                'exception_class' => $e::class,
-                'exception_code' => $e->getCode(),
-            ]);
+            Log::error('Stripe deposit initiation failed', ['exception' => $e->getMessage()]);
 
-            return GatewayDepositResponse::failed('Stripe could not be reached to create checkout.');
+            return GatewayDepositResponse::failed('Stripe connection error: '.$e->getMessage());
         }
     }
 

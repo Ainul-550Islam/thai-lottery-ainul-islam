@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class RequestRateSignalTest extends TestCase
 {
@@ -83,7 +84,7 @@ final class RequestRateSignalTest extends TestCase
         try {
             $this->signal->score($this->request());
             self::fail('Expected busy lock failure.');
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             self::assertStringContainsString('lock is busy', $e->getMessage());
             self::assertNull($this->cache->get($key));
         } finally {
@@ -98,7 +99,7 @@ final class RequestRateSignalTest extends TestCase
         try {
             $this->signal->score($this->request());
             self::fail('Expected corrupt state failure.');
-        } catch (\RuntimeException) {
+        } catch (RuntimeException) {
             self::assertSame('bad-state', $this->cache->get($key));
         }
         $lock = $this->cache->getStore()->lock($key.':lock', 10);
@@ -108,7 +109,7 @@ final class RequestRateSignalTest extends TestCase
 
     public function test_cache_without_locks_is_rejected(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         (new RequestRateSignal($this->config, new CacheRepository($this->createMock(Store::class)), $this->fingerprints, new VelocityWindow))->score($this->request());
     }
 

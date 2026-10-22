@@ -21,12 +21,12 @@
                 <td style="color: #f8fafc; font-family: monospace; font-weight: bold; text-align: right; padding: 6px 0;">{{ $reference ?? '—' }}</td>
             </tr>
             <tr>
-                <td style="color: #94a3b8; padding: 6px 0;">Disbursed Amount:</td>
+                <td style="color: #94a3b8; padding: 6px 0;">Recorded Amount:</td>
                 <td style="color: #f59e0b; font-family: monospace; font-weight: bold; font-size: 16px; text-align: right; padding: 6px 0;">{{ isset($amount) ? \App\Support\Admin\AdminFormat::money($amount, $currency ?? null) : '—' }}</td>
             </tr>
             <tr>
                 <td style="color: #94a3b8; padding: 6px 0;">Destination:</td>
-                <td style="color: #f8fafc; font-weight: bold; text-align: right; font-family: monospace; padding: 6px 0;">{{ $account_masked ?? 'Bank Account' }}</td>
+                <td style="color: #f8fafc; font-weight: bold; text-align: right; font-family: monospace; padding: 6px 0;">{{ $account_masked ?? 'Configured payout destination' }}</td>
             </tr>
             <tr>
                 <td style="color: #94a3b8; padding: 6px 0;">Current Status:</td>
@@ -37,21 +37,25 @@
 
     <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
         @if(($status ?? '') === 'completed')
-            Your withdrawal has been successfully disbursed to your designated bank account. Depending on your banking institution, funds typically arrive within minutes.
+            The platform records this withdrawal as completed. Check your destination account or provider statement for receipt details; timing depends on the destination provider.
         @elseif(($status ?? '') === 'rejected')
-            Your withdrawal could not be approved: {{ $reason ?? 'Destination verification failed.' }}. The reserved funds have been restored to your playable wallet balance.
+            The withdrawal was rejected.
+            @if (! empty($reason))
+                Review note: {{ $reason }}.
+            @endif
+            Check your account for current wallet status and any next steps.
         @else
-            Your payout request is undergoing dual-authorization review. We will notify you once disbursement has completed.
+            The current withdrawal status is shown above. Check your account for the latest wallet information and instructions; no completion time is promised.
         @endif
     </p>
 
     <div style="text-align: center;">
-        <a href="{{ url('/player/wallet') }}" style="display: inline-block; padding: 12px 28px; background-color: #d97706; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px;">
+        <a href="{{ url('/wallet') }}" style="display: inline-block; padding: 12px 28px; background-color: #d97706; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px;">
             Check Wallet History
         </a>
     </div>
 
     <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #1e293b; text-align: center; font-size: 11px; color: #64748b;">
-        &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery') }}. All payout operations are bound by KYC compliance regulations.
+        &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery') }}. Review the recorded withdrawal status and applicable account requirements.
     </div>
 </div>

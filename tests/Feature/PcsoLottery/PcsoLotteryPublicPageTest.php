@@ -80,6 +80,11 @@ final class PcsoLotteryPublicPageTest extends TestCase
 
         $response->assertOk();
         $this->assertSame(200, $response->getStatusCode());
+
+        $bangla = $this->get('/pcso-lottery?lang=bn')->assertOk();
+        $bangla->assertSee(trans('pcso_lottery.heading', [], 'bn'), false);
+        $bangla->assertSee(trans('pcso_lottery.skip_to_content', [], 'bn'), false);
+        $bangla->assertDontSee('Skip to content', false);
     }
 
     public function test_02_search_page_is_public_without_login(): void

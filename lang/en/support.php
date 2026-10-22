@@ -44,4 +44,9 @@ return [
     'priority_low' => 'Low',
     'priority_normal' => 'Normal',
     'priority_high' => 'High',
+    'status_open' => 'Open',
+    'status_in_progress' => 'In progress',
+    'status_resolved' => 'Resolved',
+    'status_closed' => 'Closed',
+    'unknown_value' => 'Not available',
 ];

@@ -53,9 +53,9 @@
             <h2 id="support-case-title">{{ $case->subject }}</h2>
             <dl>
                 <div><dt>{{ trans('support.reference') }}</dt><dd class="font-mono">{{ $case->public_reference }}</dd></div>
-                <div><dt>{{ trans('support.status_label') }}</dt><dd>{{ $case->status }}</dd></div>
-                <div><dt>{{ trans('support.priority_label') }}</dt><dd>{{ $case->priority }}</dd></div>
-                <div><dt>{{ trans('support.category_label') }}</dt><dd>{{ $case->category }}</dd></div>
+                <div><dt>{{ trans('support.status_label') }}</dt><dd>{{ trans()->has('support.status_'.$case->status) ? trans('support.status_'.$case->status) : trans('support.unknown_value') }}</dd></div>
+                <div><dt>{{ trans('support.priority_label') }}</dt><dd>{{ trans()->has('support.priority_'.$case->priority) ? trans('support.priority_'.$case->priority) : trans('support.unknown_value') }}</dd></div>
+                <div><dt>{{ trans('support.category_label') }}</dt><dd>{{ trans()->has('support.category_'.$case->category) ? trans('support.category_'.$case->category) : trans('support.unknown_value') }}</dd></div>
             </dl>
         </section>
 
@@ -90,7 +90,7 @@
                 <article class="support-case-summary">
                     <h3><a href="{{ route('support.show', ['reference' => $record->public_reference]) }}">{{ $record->subject }}</a></h3>
                     <p>{{ trans('support.reference') }}: <span class="font-mono">{{ $record->public_reference }}</span></p>
-                    <p>{{ $record->status }} · {{ $record->priority }} · {{ $record->category }}</p>
+                    <p>{{ trans()->has('support.status_'.$record->status) ? trans('support.status_'.$record->status) : trans('support.unknown_value') }} · {{ trans()->has('support.priority_'.$record->priority) ? trans('support.priority_'.$record->priority) : trans('support.unknown_value') }} · {{ trans()->has('support.category_'.$record->category) ? trans('support.category_'.$record->category) : trans('support.unknown_value') }}</p>
                 </article>
             @empty
                 <p>{{ trans('support.no_cases') }}</p>

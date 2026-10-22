@@ -7,8 +7,9 @@
 
     <title>@yield('title', 'Executive Analytics Dashboard') — LOTTOFIN ADMIN</title>
 
-    <!-- Compiled Tailwind utilities and the admin design system -->
-    @vite(['resources/css/tailwind-utility.css', 'resources/css/admin-lottofin.css'])
+    <!-- Tailwind & Design System Roots -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/admin-lottofin.css'])
 
     @stack('styles')
 </head>
@@ -127,10 +128,14 @@
                 <div class="lf-header-right">
                     <!-- User Profile Dropdown -->
                     <div class="lf-user-profile">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Admin" class="lf-user-avatar">
+                        <span class="lf-user-avatar" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21a8 8 0 10-16 0m8-10a4 4 0 100-8 4 4 0 000 8z"/>
+                            </svg>
+                        </span>
                         <div class="lf-user-info">
-                            <span class="lf-user-role">Admin</span>
-                            <span class="lf-user-name">Somchai</span>
+                            <span class="lf-user-role">Administrator</span>
+                            <span class="lf-user-name">{{ auth()->user()?->name ?? __('Administrator') }}</span>
                         </div>
                         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>

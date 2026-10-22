@@ -9,7 +9,7 @@
     <meta name="app-name" content="{{ config('app.name') }}">
     <meta name="theme-color" content="#059669">
 
-    <title>{{ config('app.name', 'Thai Lottery Enterprise Wagering Platform') }} - @yield('title', 'Player Portal')</title>
+    <title>@yield('title', 'Player Portal') — {{ config('app.name', 'Thai Lottery Enterprise Wagering Platform') }}</title>
 
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -82,6 +82,7 @@
                     <div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner">
                         <a href="{{ route('locale.switch', 'en') }}" class="px-2.5 py-1 rounded-lg transition {{ app()->getLocale() === 'en' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200' }}">EN</a>
                         <a href="{{ route('locale.switch', 'th') }}" class="px-2.5 py-1 rounded-lg transition {{ app()->getLocale() === 'th' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200' }}">TH</a>
+                        <a href="{{ route('locale.switch', 'bn') }}" lang="bn" hreflang="bn" class="px-2.5 py-1 rounded-lg transition {{ app()->getLocale() === 'bn' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200' }}" aria-label="বাংলা">বাংলা</a>
                     </div>
 
                     @auth
@@ -127,7 +128,7 @@
                     <!-- Mobile Menu Hamburger Button -->
                     <button type="button"
                             id="btn-open-mobile-menu"
-                            class="md:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            class="xl:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             aria-label="Open Navigation Menu">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>

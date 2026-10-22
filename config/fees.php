@@ -98,23 +98,6 @@ return [
         'perfect_money' => ['label_key' => 'account_services.fees_provider_perfect_money'],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Live conversion percentages
-    |--------------------------------------------------------------------------
-    |
-    | Whole percent ('1.00' = 1%). The conversion rows above name these keys in
-    | `execution`; the public fee page and the conversion engine both read them,
-    | so the published price and the charged price cannot drift. When a live
-    | value is missing or invalid, the row's published `rate` is used instead.
-    |
-    */
-
-    'conversion' => [
-        'cash_to_win_percentage' => (string) env('FEES_CASH_TO_WIN_PERCENTAGE', '1.00'),
-        'win_to_cash_percentage' => (string) env('FEES_WIN_TO_CASH_PERCENTAGE', '1.00'),
-    ],
-
     'categories' => [
 
         // ------------------------------------------------------------ account
@@ -256,7 +239,7 @@ return [
             'provider' => null,
             'description_key' => 'account_services.fees_description_cash_to_win',
             'description' => 'Conversion fee when moving balance from cash to win wallet.',
-            'execution' => 'fees.conversion.cash_to_win_percentage',
+            'execution' => 'conversions.fee.execution.percentage',
         ],
 
         'win_to_cash' => [
@@ -276,7 +259,47 @@ return [
             'provider' => null,
             'description_key' => 'account_services.fees_description_win_to_cash',
             'description' => 'Conversion fee when moving balance from win to cash wallet.',
-            'execution' => 'fees.conversion.win_to_cash_percentage',
+            'execution' => 'conversions.fee.execution.percentage',
+        ],
+
+        'cash_to_bonus' => [
+            'enabled' => true,
+            'public_visible' => true,
+            'calculation' => 'percentage',
+            'amount' => null,
+            'rate' => (string) env('FEES_CASH_TO_BONUS_RATE', '0.0000'),
+            'min' => null,
+            'max' => null,
+            'currency' => (string) env('FEES_CURRENCY', 'THB'),
+            'effective_from' => '2026-09-27',
+            'effective_to' => null,
+            'rule_version' => '2',
+            'internal' => false,
+            'group' => 'transfers',
+            'provider' => null,
+            'description_key' => 'account_services.fees_description_cash_to_bonus',
+            'description' => 'Conversion fee when moving balance from cash to bonus wallet.',
+            'execution' => 'conversions.fee.execution.percentage',
+        ],
+
+        'bonus_to_cash' => [
+            'enabled' => true,
+            'public_visible' => true,
+            'calculation' => 'percentage',
+            'amount' => null,
+            'rate' => (string) env('FEES_BONUS_TO_CASH_RATE', '0.0000'),
+            'min' => null,
+            'max' => null,
+            'currency' => (string) env('FEES_CURRENCY', 'THB'),
+            'effective_from' => '2026-09-27',
+            'effective_to' => null,
+            'rule_version' => '2',
+            'internal' => false,
+            'group' => 'transfers',
+            'provider' => null,
+            'description_key' => 'account_services.fees_description_bonus_to_cash',
+            'description' => 'Conversion fee when moving balance from bonus to cash wallet.',
+            'execution' => 'conversions.fee.execution.percentage',
         ],
 
         'personal_to_agent' => [

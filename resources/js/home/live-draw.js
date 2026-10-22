@@ -1,40 +1,43 @@
 /**
- * Public Home live-draw honesty helper.
+ * Progressive enhancement for the server-rendered public live-draw card.
  *
- * Reads data attributes produced by the server-rendered <x-home.live-draw>
- * component. When the provider is not configured it keeps the honest
- * "LIVE DRAW NOT_CONFIGURED" label and never injects a fake player or URL.
- * If an authorized embed URL is present the operator can open it; this script
- * only manages the status badge and optional lazy frame host — no invented media.
+ * The backend is authoritative for provider selection, URL validation and
+ * status. This script only removes unsafe/stale media when the server did not
+ * report a configured stream; it never upgrades a status or invents a URL.
  */
 (function () {
     'use strict';
 
-    function apply(root) {
-        var live = (root.getAttribute('data-live-status') || 'not_configured').toLowerCase();
-        var replay = (root.getAttribute('data-replay-status') || 'not_configured').toLowerCase();
-        var host = root.querySelector('[data-live-frame-host]');
-        var badge = root.querySelector('.home-badge');
+    var VALID_STATES = ['configured', 'not_configured', 'unavailable'];
 
-        root.setAttribute('data-live-resolved', 'true');
-
-        if (live !== 'configured') {
-            if (host) {
-                // Remove any accidental media children; show honest empty state only.
-                var kids = host.querySelectorAll('iframe,video,embed,object,source');
-                for (var i = 0; i < kids.length; i++) {
-                    kids[i].remove();
-                }
-            }
-            if (badge && badge.textContent.indexOf('NOT_CONFIGURED') === -1) {
-                badge.textContent = 'NOT_CONFIGURED';
-            }
-            root.setAttribute('data-live-state', 'not_configured');
-        } else {
-            root.setAttribute('data-live-state', 'configured');
+    function removeMedia(host) {
+        if (!host) {
+            return;
         }
 
-        root.setAttribute('data-replay-state', replay === 'configured' ? 'configured' : 'not_configured');
+        var media = host.querySelectorAll('iframe,video,embed,object,source');
+        for (var i = 0; i < media.length; i++) {
+            media[i].remove();
+        }
+    }
+
+    function apply(root) {
+        var reportedLive = (root.getAttribute('data-live-status') || 'unavailable').toLowerCase();
+        var live = VALID_STATES.indexOf(reportedLive) === -1 ? 'unavailable' : reportedLive;
+        var reportedReplay = (root.getAttribute('data-replay-status') || 'not_configured').toLowerCase();
+        var replay = reportedReplay === 'configured' ? 'configured' : 'not_configured';
+        var host = root.querySelector('[data-live-frame-host]');
+
+        // Configured is the only state allowed to retain a player. An outage is
+        // not the same thing as an absent configuration, so preserve that
+        // distinction in the DOM and leave the server-rendered badge untouched.
+        if (live !== 'configured') {
+            removeMedia(host);
+        }
+
+        root.setAttribute('data-live-resolved', 'true');
+        root.setAttribute('data-live-state', live);
+        root.setAttribute('data-replay-state', replay);
     }
 
     function boot() {

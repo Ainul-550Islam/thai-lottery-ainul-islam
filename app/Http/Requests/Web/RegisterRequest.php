@@ -23,7 +23,7 @@ class RegisterRequest extends FormRequest
      */
     public function rules(): array
     {
-        $minAgeYears = min(255, max(18, (int) config('legal.minimum_age', 18)));
+        $minAgeYears = 18;
 
         return [
             'referral_id' => ['required', 'string', 'min:3', 'max:64'],
@@ -54,15 +54,9 @@ class RegisterRequest extends FormRequest
                 'required',
                 'date',
                 'after:1900-01-01',
-                'before_or_equal:'.now()->subYears($minAgeYears)->toDateString(),
+                'before:'.now()->subYears($minAgeYears)->toDateString(),
             ],
-            'age_attestation' => ['required', 'accepted'],
             'terms' => ['required', 'accepted'],
-            'privacy_notice' => ['required', 'accepted'],
-            'terms_version' => ['required', 'string', 'min:1', 'max:64'],
-            'terms_hash' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/i'],
-            'privacy_version' => ['required', 'string', 'min:1', 'max:64'],
-            'privacy_hash' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/i'],
         ];
     }
 }

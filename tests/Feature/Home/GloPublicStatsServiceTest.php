@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Home;
 
+use App\Enums\DrawStatus;
+use App\Models\Draw;
+use App\Models\DrawResult;
+use App\Models\GloSalesPoint;
 use App\Models\User;
 use App\Services\Lottery\GloPublicStatsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,7 +45,7 @@ final class GloPublicStatsServiceTest extends TestCase
     {
         $payload = app(GloPublicStatsService::class)->publicStats();
 
-        $this->assertSame('VERIFIED', $payload['status']);
+        $this->assertSame('AVAILABLE', $payload['status']);
         $this->assertSame((string) User::query()->whereNull('deleted_at')->count(), $this->metrics($payload)['registered_members']);
     }
 
@@ -68,6 +72,46 @@ final class GloPublicStatsServiceTest extends TestCase
 
         $after = (int) $this->metrics($service->publicStats())['registered_members'];
         $this->assertSame($before + 2, $after, 'the soft-deleted user was counted');
+    }
+
+    public function test_published_results_metric_excludes_unpublished_draw_records(): void
+    {
+        DrawResult::factory()->create([
+            'draw_id' => Draw::factory()->create([
+                'status' => DrawStatus::ResultPublished,
+                'scheduled_at' => now()->subDay(),
+            ])->getKey(),
+        ]);
+        DrawResult::factory()->create([
+            'draw_id' => Draw::factory()->create([
+                'status' => DrawStatus::Scheduled,
+                'scheduled_at' => now()->addDay(),
+            ])->getKey(),
+        ]);
+
+        $service = app(GloPublicStatsService::class);
+        $service->flush();
+
+        $this->assertSame('1', $this->metrics($service->publicStats())['published_results']);
+    }
+
+    public function test_future_valid_sales_point_is_not_counted_as_active(): void
+    {
+        GloSalesPoint::query()->create([
+            'sales_point_code' => 'SP-FUTURE-HOME',
+            'display_name' => 'Future Home Point',
+            'status' => 'active',
+            'verification_state' => 'unverified',
+            'valid_from' => now()->addDay(),
+            'source' => 'operator',
+            'source_state' => 'INTERNAL_RECONCILED',
+            'metadata' => [],
+        ]);
+
+        $service = app(GloPublicStatsService::class);
+        $service->flush();
+
+        $this->assertSame('0', $this->metrics($service->publicStats())['sales_points']);
     }
 
     public function test_every_metric_is_marked_available_and_has_a_label(): void

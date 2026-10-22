@@ -42,14 +42,9 @@ return [
     'page_cache_ttl_seconds' => (int) env('HOME_PAGE_CACHE_TTL', 60),
 
     'trust' => [
-        'bullets' => [
-            'Server-side authorization on every financial action',
-            'Idempotent wallet and payout operations',
-            'Append-only audit trail for money movements',
-            'Webhook signature verification before settlement',
-            'Transaction-safe ledger writes with row locks',
-            'KYC-controlled withdrawals above the configured threshold',
-        ],
+        // No default trust claims. Operator-provided bullets must be reviewed
+        // for truthfulness and translated before publication.
+        'bullets' => [],
     ],
 
 ];

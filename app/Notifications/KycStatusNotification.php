@@ -43,9 +43,9 @@ class KycStatusNotification extends Notification implements ShouldQueue
         };
 
         $line = match ($this->status) {
-            KycStatus::Verified->value, 'approved' => 'Your identity documents have been verified. Your account is now fully approved for enhanced limits and withdrawals.',
-            KycStatus::Rejected->value, 'rejected' => 'Your submitted verification document could not be approved. Reason: '.($this->reason ?? 'Document unreadable or invalid format.').' Please upload a clear replacement document.',
-            KycStatus::UnderReview->value, 'under_review' => 'Your verification documents are currently being reviewed by our compliance team.',
+            KycStatus::Verified->value, 'approved' => 'Your verification status was marked approved. Sign in to review any remaining account or withdrawal requirements; approval does not guarantee that every account action is available.',
+            KycStatus::Rejected->value, 'rejected' => 'Your submitted verification document was not approved.'.($this->reason !== null && $this->reason !== '' ? ' Review note: '.$this->reason : '').' Sign in to review the instructions shown in your account.',
+            KycStatus::UnderReview->value, 'under_review' => 'Your verification status is under review. Check your account for the current status and any follow-up instructions; no fixed completion time is promised.',
             default => "Your account verification status is currently: {$this->status}.",
         };
 
@@ -53,11 +53,7 @@ class KycStatusNotification extends Notification implements ShouldQueue
             ->subject($subject)
             ->line($line);
 
-        if ($this->status === KycStatus::Rejected->value || $this->status === 'rejected') {
-            $mail->action('Resubmit Verification', url('/account/verification'));
-        } else {
-            $mail->action('View Account Status', url('/player/profile'));
-        }
+        $mail->action('View Account Verification Status', url('/account/verification'));
 
         return $mail->line('Thank you for ensuring platform safety and compliance.');
     }

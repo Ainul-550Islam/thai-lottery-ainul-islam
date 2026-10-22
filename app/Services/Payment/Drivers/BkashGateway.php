@@ -74,7 +74,7 @@ class BkashGateway extends AbstractPaymentGateway
 
         $payload = [
             'mode' => '0011',
-            'payerReference' => $deposit->reference_number,
+            'payerReference' => (string) $deposit->user_id,
             'callbackURL' => $this->successUrl().'?reference='.$deposit->reference_number,
             'amount' => (string) $deposit->amount,
             'currency' => 'BDT',
@@ -107,25 +107,13 @@ class BkashGateway extends AbstractPaymentGateway
             }
 
             $errorData = $response->json();
-            $providerCode = is_array($errorData) ? ($errorData['statusCode'] ?? null) : null;
+            $msg = $errorData['statusMessage'] ?? 'bKash payment creation failed: '.$response->body();
 
-            Log::warning('bKash checkout request was refused', [
-                'http_status' => $response->status(),
-                'provider_error_code' => is_string($providerCode) ? substr($providerCode, 0, 64) : null,
-            ]);
-
-            return GatewayDepositResponse::failed(
-                'bKash payment creation failed.',
-                [],
-                ['gateway' => 'bkash', 'http_status' => $response->status()],
-            );
+            return GatewayDepositResponse::failed($msg, is_array($errorData) ? $errorData : []);
         } catch (\Throwable $e) {
-            Log::error('bKash deposit initiation failed', [
-                'exception_class' => $e::class,
-                'exception_code' => $e->getCode(),
-            ]);
+            Log::error('bKash deposit initiation failed', ['exception' => $e->getMessage()]);
 
-            return GatewayDepositResponse::failed('bKash could not be reached to create checkout.');
+            return GatewayDepositResponse::failed('bKash connection error: '.$e->getMessage());
         }
     }
 
@@ -154,9 +142,19 @@ class BkashGateway extends AbstractPaymentGateway
             return false;
         }
 
-        $expected = hash_hmac('sha256', $request->getContent(), $secret);
+        $timestamp = trim((string) $request->header('X-Timestamp', ''));
+        if ($timestamp === '' || ! ctype_digit($timestamp)) {
+            return false;
+        }
 
-        return hash_equals($expected, $provided);
+        $tolerance = max(0, (int) config('security.webhook.timestamp_tolerance_seconds', 300));
+        if ($tolerance > 0 && abs(time() - (int) $timestamp) > $tolerance) {
+            return false;
+        }
+
+        $expected = hash_hmac('sha256', $timestamp.'.'.$request->getContent(), $secret);
+
+        return hash_equals($expected, strtolower($provided));
     }
 
     public function parseWebhook(Request $request): WebhookPayload
@@ -223,10 +221,7 @@ class BkashGateway extends AbstractPaymentGateway
                 return $response->json('id_token');
             }
         } catch (\Throwable $e) {
-            Log::error('bKash token grant failed', [
-                'exception_class' => $e::class,
-                'exception_code' => $e->getCode(),
-            ]);
+            Log::error('bKash token grant error', ['exception' => $e->getMessage()]);
         }
 
         return null;

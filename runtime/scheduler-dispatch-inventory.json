@@ -1,268 +1,37 @@
 {
- "artifact": "scheduler-dispatch-inventory",
- "phase": 7,
- "scheduler_definition_sites": [
-  "routes/console.php",
-  "bootstrap/app.php (withSchedule closure)"
- ],
- "entries_before": 17,
- "entries_after": 29,
- "verified_with": "php artisan schedule:list",
- "draw_lifecycle": {
-  "scheduled_command": "lottery:tick",
-  "cadence": "config('lottery.automation.tick_cron'), default '* * * * *'",
-  "kill_switch": "config('lottery.automation.enabled') -- when false the task is NOT registered at all, rather than registered and returning early. The subcommands carry the same guard, so a manual run is also refused without --force.",
-  "fans_out_to": [
-   "lottery:schedule-draws",
-   "lottery:open-draws",
-   "lottery:close-draws",
-   "lottery:mark-results-pending",
-   "lottery:settle-draws"
-  ],
-  "deliberately_excluded": "lottery:publish-result. Publication is a human-approved step by design, documented in TickCommand::STEPS. This is correct and was left alone."
- },
- "unscheduled_console_commands": {
-  "count": 29,
-  "assessment": "Most declared commands are correctly manual: operator tools (glo:freeze-ticket, glo:freeze-case, glo:breaker, glo:stress-harness), one-shot rebuilds (grades:rebuild-snapshots) and ad-hoc imports. The phase-7 open list mixed three different things together - lanes that were already scheduled, read-only monitoring lanes that genuinely had no producer, and draw-scoped operator actions that cannot have one. Cluster #46 separated them: the monitoring lanes are scheduled, the already-scheduled ones are recorded as such, and the operator actions stay open with the reason each one cannot be a cron entry.",
-  "open_findings": [
-   "glo:notify-saved-tickets -- saved-ticket holders are never told their number came up. Kept open on purpose: the command requires --draw= and refuses to run without it, so a cron entry would fail on every tick. What is missing is a producer that picks the draws to notify, and inventing that selection rule means deciding which customers get told, on a schedule, without a spec.",
-   "glo:process-frozen-winners -- frozen winners are never released. Kept open: it takes an actor (resolveActor) and holds payouts, which is a money decision, not a cadence. --dry-run exists, so the honest next step is reporting what it would hold, not automating the release.",
-   "glo:reconcile-sales -- sales reconciliation never runs per draw. Kept open: requires --draw= and an authenticated actor holding RECONCILE_LEDGER or PROCESS_SETTLEMENTS (measured: it exits non-zero with '--draw= is required.' when run bare), which makes it an operator action by construction."
-  ],
-  "count_note": "29 was measured as the number of declared commands with no producer during phase 7. It is left as the phase-7 number rather than re-derived, because the sentence it belongs to is a history of that phase; the current state is the three blocks below, and each of them is verified by a test that runs today.",
-  "operational_lanes_scheduled_in_cluster_46": {
-   "ops:evaluate-alerts": {
-    "cadence": "everyFiveMinutes",
-    "log": "storage/logs/ops-alerts.log",
-    "flag": "OPS_LANE_ALERTS",
-    "why_this_cadence": "OperationalAlertService::DEFAULT_THROTTLE_SECONDS is 900; a lane slower than its own cooldown can spend a whole window between looks."
-   },
-   "queue:health --json": {
-    "cadence": "everyTenMinutes",
-    "log": "storage/logs/queue-health.log",
-    "flag": "OPS_LANE_QUEUE_HEALTH",
-    "why_this_cadence": "The command's own --json option text says the JSON form exists for automated monitoring. A schedule entry is that automation; the exit code is the report."
-   },
-   "glo:provider-health --json": {
-    "cadence": "everyFiveMinutes",
-    "log": "storage/logs/glo-provider-health.log",
-    "flag": "OPS_LANE_PROVIDER_HEALTH",
-    "why_this_cadence": "It reports a circuit breaker counted over config('glo.sources.breaker.window_seconds'), 300 by default, so a report older than that window describes a source that may have already recovered."
-   },
-   "contact:delivery-health": {
-    "cadence": "dailyAt(03:45)",
-    "log": "storage/logs/contact-delivery-health.log",
-    "flag": "OPS_LANE_DELIVERY_HEALTH",
-    "why_this_cadence": "It reports whether forwarding is configured: a configuration fact that changes on deploy, not a live queue. Placed after contact:purge at 03:40 so one reading covers the contact lane."
-   },
-   "chat:health --json": {
-    "cadence": "dailyAt(03:50)",
-    "log": "storage/logs/chat-health.log",
-    "flag": "OPS_LANE_CHAT_HEALTH",
-    "why_this_cadence": "Also gated on chat.enabled: a health report for a feature that is switched off is noise that reads like a finding."
-   }
+  "artifact": "scheduler-dispatch-inventory",
+  "phase": 7,
+  "scheduler_definition_sites": ["routes/console.php", "bootstrap/app.php (withSchedule closure)"],
+  "entries_before": 17,
+  "entries_after": 29,
+  "verified_with": "php artisan schedule:list",
+  "draw_lifecycle": {
+    "scheduled_command": "lottery:tick",
+    "cadence": "config('lottery.automation.tick_cron'), default '* * * * *'",
+    "kill_switch": "config('lottery.automation.enabled') -- when false the task is NOT registered at all, rather than registered and returning early. The subcommands carry the same guard, so a manual run is also refused without --force.",
+    "fans_out_to": ["lottery:schedule-draws", "lottery:open-draws", "lottery:close-draws", "lottery:mark-results-pending", "lottery:settle-draws"],
+    "deliberately_excluded": "lottery:publish-result. Publication is a human-approved step by design, documented in TickCommand::STEPS. This is correct and was left alone."
   },
-  "findings_that_were_stale": [
-   {
-    "was": "finance:reconcile -- financial reconciliation never runs",
-    "now": "finance:reconcile has had a schedule entry since the ledger-reconciliation cluster, gated on finance.ledger.auto_reconcile and cadenced from finance.ledger.reconciliation_interval through ReconciliationCadence. What is true is narrower and worth keeping: the shipped .env template sets FINANCE_LEDGER_AUTO_RECONCILE=false while config/finance.php defaults it to true, so an install that copies the template does leave the control off.",
-    "measured_on": "2026-10-16",
-    "changed_by_clusters": [
-     46
-    ],
-    "verification": "php artisan schedule:list shows the entry when the flag is on; bootstrap/app.php gates it on ReconciliationCadence::isAutoReconcileEnabled(config('finance.ledger.auto_reconcile', false)); tests/Feature/Console/LedgerReconciliationScheduleTest.php pins both halves."
-   },
-   {
-    "was": "glo:expire-freezes -- a freeze that never expires holds a winner's prize indefinitely, unscheduled",
-    "now": "Scheduled hourly since the freeze-expiry cluster (->hourly(), withoutOverlapping(10), storage/logs/glo-freeze-expiry.log). The finding was written before that wiring and was left standing in the open list.",
-    "measured_on": "2026-10-16",
-    "changed_by_clusters": [
-     27,
-     46
-    ],
-    "verification": "bootstrap/app.php contains the entry; ScheduledClockProducersTest asserts it exists exactly once with the house safety flags."
-   },
-   {
-    "was": "contact:purge / contact:delivery-health -- contact retention and delivery health never run",
-    "now": "Half of it was stale and half of it was real until this cluster: contact:purge has been scheduled daily since the retention cluster, and contact:delivery-health is scheduled now (dailyAt 03:45, flag OPS_LANE_DELIVERY_HEALTH).",
-    "measured_on": "2026-10-16",
-    "changed_by_clusters": [
-     27,
-     46
-    ],
-    "verification": "pattern count of $schedule->command entries in bootstrap/app.php, asserted by OperationalLaneTruthTest."
-   },
-   {
-    "was": "ops:evaluate-alerts / ops:metrics-export -- the observability lane produces nothing",
-    "now": "ops:evaluate-alerts is scheduled every five minutes. ops:metrics-export stays unscheduled on purpose: its output is a pull target served over HTTP by the route named metrics, and writing the same text into a log file on a timer would produce a file no scraper reads.",
-    "measured_on": "2026-10-16",
-    "changed_by_clusters": [
-     46
-    ],
-    "verification": "ScheduledClockProducersTest::test_every_exemption_cites_a_fact_that_still_holds resolves both halves live: the route must exist and the lane must be scheduled."
-   }
-  ]
- },
- "result_import_finding": {
-  "severity": "CRITICAL",
-  "finding": "No result importer is scheduled on any lane (glo, national, weekly, bingo, pcso). The lifecycle advances a draw to results-pending and it stays there forever unless an operator runs an import by hand.",
-  "second_finding": "Every lane importer declared {--provider=fixture} as its DEFAULT option value. A no-argument run -- exactly what a cron entry or a hurried operator would do -- would have imported fabricated results into a real draw.",
-  "fix_applied": "The default was changed to official on all four lane importers (ImportNationalLotteryResults, ImportWeeklyLotteryResults, ImportBingoLotteryResults, ImportPcsoLotteryResults). A run with no provider now targets the official source and fails closed if it is unreachable, instead of silently fabricating a result.",
-  "still_open": "The importers remain unscheduled. Scheduling them requires each lane's official provider endpoint and credentials, which are not present in this environment, so a schedule entry here would be cargo cult."
- },
- "provenance": {
-  "written_during_phase": 7,
-  "captured_at_utc": null,
-  "captured_at_note": "No date in the original; phase 7 is inside the 2026-10-01 measurement window of this closure.",
-  "base_commit": "1c21115b615dd37fb0ad17f3a4704445cdef4ce0",
-  "base_commit_in_this_clone": false,
-  "clone_head_commit": "5df5d14",
-  "clone_commit_count": 1,
-  "provenance_note": "This clone has exactly one commit (5df5d14) and 1c21115 is not an object in it, so the commit this record was measured against cannot be checked out here. Stated instead of assumed: a reader can tell which tree these numbers describe only if the record says so.",
-  "claims_refreshed_at_utc": "2026-10-16",
-  "claims_refreshed_by_cluster": 46,
-  "refresh_note_46": "Refreshed again in cluster #46: the present-tense claims were re-checked against this tree, the four claims added here came from measurement (schedule:list, pattern counts and the lane test file), and the phase-7 open-findings list was split into what is scheduled, what was newly scheduled, and what cannot be."
- },
- "superseded_facts": [
-  {
-   "was": "entries_before 17, entries_after 29.",
-   "now": "38 schedule definitions across the two definition sites on 2026-10-16. A count of a growing list is kept as a lower bound from now on.",
-   "changed_by_clusters": "14, 15, 42 and 43 among others"
-  },
-  {
-   "was": "finance:reconcile -- financial reconciliation never runs",
-   "now": "finance:reconcile has had a schedule entry since the ledger-reconciliation cluster, gated on finance.ledger.auto_reconcile and cadenced from finance.ledger.reconciliation_interval through ReconciliationCadence. What is true is narrower and worth keeping: the shipped .env template sets FINANCE_LEDGER_AUTO_RECONCILE=false while config/finance.php defaults it to true, so an install that copies the template does leave the control off.",
-   "measured_on": "2026-10-16",
-   "changed_by_clusters": "46",
-   "verification": {
-    "kind": "pattern_count_at_least",
-    "path": "bootstrap/app.php",
-    "pattern": "schedule->command\\('finance:reconcile",
-    "at_least": 1
-   },
-   "verification_note": "php artisan schedule:list shows the entry when the flag is on; bootstrap/app.php gates it on ReconciliationCadence::isAutoReconcileEnabled(config('finance.ledger.auto_reconcile', false)); tests/Feature/Console/LedgerReconciliationScheduleTest.php pins both halves."
-  },
-  {
-   "was": "glo:expire-freezes -- a freeze that never expires holds a winner's prize indefinitely, unscheduled",
-   "now": "Scheduled hourly since the freeze-expiry cluster (->hourly(), withoutOverlapping(10), storage/logs/glo-freeze-expiry.log). The finding was written before that wiring and was left standing in the open list.",
-   "measured_on": "2026-10-16",
-   "changed_by_clusters": "27 and 46",
-   "verification": {
-    "kind": "pattern_count_at_least",
-    "path": "bootstrap/app.php",
-    "pattern": "schedule->command\\('glo:expire-freezes",
-    "at_least": 1
-   },
-   "verification_note": "bootstrap/app.php contains the entry; ScheduledClockProducersTest asserts it exists exactly once with the house safety flags."
-  },
-  {
-   "was": "contact:purge / contact:delivery-health -- contact retention and delivery health never run",
-   "now": "Half of it was stale and half of it was real until this cluster: contact:purge has been scheduled daily since the retention cluster, and contact:delivery-health is scheduled now (dailyAt 03:45, flag OPS_LANE_DELIVERY_HEALTH).",
-   "measured_on": "2026-10-16",
-   "changed_by_clusters": "27 and 46",
-   "verification": {
-    "kind": "pattern_count_at_least",
-    "path": "bootstrap/app.php",
-    "pattern": "schedule->command\\('contact:",
-    "at_least": 2
-   },
-   "verification_note": "pattern count of $schedule->command entries in bootstrap/app.php, asserted by OperationalLaneTruthTest."
-  },
-  {
-   "was": "ops:evaluate-alerts / ops:metrics-export -- the observability lane produces nothing",
-   "now": "ops:evaluate-alerts is scheduled every five minutes. ops:metrics-export stays unscheduled on purpose: its output is a pull target served over HTTP by the route named metrics, and writing the same text into a log file on a timer would produce a file no scraper reads.",
-   "measured_on": "2026-10-16",
-   "changed_by_clusters": "46",
-   "verification": {
-    "kind": "pattern_count_at_least",
-    "path": "bootstrap/app.php",
-    "pattern": "schedule->command\\('ops:evaluate-alerts",
-    "at_least": 1
-   },
-   "verification_note": "ScheduledClockProducersTest::test_every_exemption_cites_a_fact_that_still_holds resolves both halves live: the route must exist and the lane must be scheduled."
-  }
- ],
- "claims_current_state": {
-  "definition_sites_are_the_two_named_files": {
-   "statement": "The scheduler is defined in exactly the two places this artifact lists; a third would mean the inventory is no longer the map.",
-   "as_of": "2026-10-16",
-   "verification": {
-    "kind": "paths_exist",
-    "paths": [
-     "routes/console.php",
-     "bootstrap/app.php"
+  "unscheduled_console_commands": {
+    "count": 29,
+    "assessment": "Most are correctly manual: operator tools (glo:freeze-ticket, glo:freeze-case, glo:stress-harness), one-shot rebuilds (grades:rebuild-snapshots) and ad-hoc imports. The following are recurring operational lanes with no producer and are reported as OPEN findings rather than silently scheduled:",
+    "open_findings": [
+      "glo:expire-freezes -- a freeze that never expires holds a winner's prize indefinitely",
+      "glo:notify-saved-tickets -- saved-ticket holders are never told their number came up",
+      "glo:process-frozen-winners -- frozen winners are never released",
+      "glo:reconcile-sales -- sales reconciliation never runs",
+      "glo:provider-health -- provider outages are never detected",
+      "finance:reconcile -- financial reconciliation never runs",
+      "queue:health -- queue depth and failure rate are never monitored",
+      "ops:evaluate-alerts / ops:metrics-export -- the observability lane produces nothing",
+      "contact:purge / contact:delivery-health -- contact retention and delivery health never run"
     ]
-   }
   },
-  "entries_at_least": {
-   "statement": "At least 34 entries, counted as definitions in the two sites (29 through phase 7, plus the five operational lanes added in cluster #46).",
-   "as_of": "2026-10-16",
-   "verification": {
-    "kind": "schedule_definitions_at_least",
-    "definition_files": [
-     "routes/console.php",
-     "bootstrap/app.php"
-    ],
-    "patterns": [
-     "->command\\(",
-     "->job\\(",
-     "Schedule::command",
-     "Schedule::job"
-    ],
-    "at_least": 34
-   }
-  },
-  "result_importers_remain_unscheduled": {
-   "statement": "The critical open finding of phase 7 is still open: no :import command appears in either definition site, so results still never arrive by themselves.",
-   "as_of": "2026-10-16",
-   "verification": {
-    "kind": "no_importer_in_schedule",
-    "definition_files": [
-     "routes/console.php",
-     "bootstrap/app.php"
-    ],
-    "forbidden_substring": ":import"
-   }
-  },
-  "operational_lanes_are_scheduled": {
-   "statement": "All five read-only operational lanes appear as schedule entries in bootstrap/app.php.",
-   "as_of": "2026-10-16",
-   "verification": {
-    "kind": "pattern_count_at_least",
-    "path": "bootstrap/app.php",
-    "pattern": "\\$schedule->command\\('(ops:evaluate-alerts|queue:health --json|glo:provider-health --json|contact:delivery-health|chat:health --json)'",
-    "at_least": 5
-   }
-  },
-  "each_lane_is_switched_by_a_flag_it_owns": {
-   "statement": "Every lane entry is guarded by its own config('ops.lanes.*') read, so an operator can switch one off without editing the scheduler.",
-   "as_of": "2026-10-16",
-   "verification": {
-    "kind": "pattern_count_at_least",
-    "path": "bootstrap/app.php",
-    "pattern": "config\\('ops\\.lanes\\.[a-z_]+', true\\)",
-    "at_least": 5
-   }
-  },
-  "lane_flags_reach_the_operator": {
-   "statement": "Each of the five lane flags appears in the shipped .env template as a commented default, so the config value (on) applies until an operator says otherwise.",
-   "as_of": "2026-10-16",
-   "verification": {
-    "kind": "pattern_count_at_least",
-    "path": ".env.example",
-    "pattern": "OPS_LANE_[A-Z_]+=true",
-    "at_least": 5,
-    "pattern_note": "No leading # and no line anchor: the gate's re() helper treats a pattern beginning with # as already delimited, and compiles bare patterns with the i flag only, so ^ would look at the start of the file rather than the start of each line."
-   }
-  },
-  "the_lane_claims_are_gated_not_asserted": {
-   "statement": "The read-only, cadence and exemption claims in this artifact are checked by a test file that runs the commands, rather than being believed from this JSON.",
-   "as_of": "2026-10-16",
-   "verification": {
-    "kind": "tests_in_file_at_least",
-    "path": "tests/Feature/Console/OperationalLaneTruthTest.php",
-    "at_least": 10
-   }
+  "result_import_finding": {
+    "severity": "CRITICAL",
+    "finding": "No result importer is scheduled on any lane (glo, national, weekly, bingo, pcso). The lifecycle advances a draw to results-pending and it stays there forever unless an operator runs an import by hand.",
+    "second_finding": "Every lane importer declared {--provider=fixture} as its DEFAULT option value. A no-argument run -- exactly what a cron entry or a hurried operator would do -- would have imported fabricated results into a real draw.",
+    "fix_applied": "The default was changed to official on all four lane importers (ImportNationalLotteryResults, ImportWeeklyLotteryResults, ImportBingoLotteryResults, ImportPcsoLotteryResults). A run with no provider now targets the official source and fails closed if it is unreachable, instead of silently fabricating a result.",
+    "still_open": "The importers remain unscheduled. Scheduling them requires each lane's official provider endpoint and credentials, which are not present in this environment, so a schedule entry here would be cargo cult."
   }
- }
 }

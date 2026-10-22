@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', (string) ($page['title'] ?? trans('public_pages.about_meta_title', [], app()->getLocale())))
+@section('title', (string) ($meta['title'] ?? $page['meta_title'] ?? $page['title'] ?? trans('public_pages.about_meta_title', [], app()->getLocale())))
 @section('meta_description', (string) ($meta['description'] ?? trans('public_pages.about_meta_description', [], app()->getLocale())))
 @section('meta_canonical', (string) ($meta['canonical'] ?? url('/about')))
 @section('meta_og_title', (string) ($meta['og_title'] ?? $page['title'] ?? 'About'))
@@ -18,24 +18,24 @@
 
     <header class="about-header" role="banner">
         <div class="about-shell about-header__inner">
-            <a class="about-brand" href="{{ route('home') }}" aria-label="ThaiLotto home">
+            <a class="about-brand" href="{{ route('home') }}" aria-label="{{ trans('about_page.brand_aria') }}">
                 <span class="about-brand__mark" aria-hidden="true"><span>TL</span></span>
-                <span class="about-brand__name">{{ config('app.name') }} <small>PUBLIC INFORMATION</small></span>
+                <span class="about-brand__name">{{ config('app.name') }} <small>{{ trans('about_page.brand_subtitle') }}</small></span>
             </a>
-            <nav class="about-nav" aria-label="Primary navigation">
-                <a href="{{ route('home') }}">HOME</a>
-                <a href="{{ route('results.index') }}">RESULTS</a>
-                <a href="{{ route('ticket-check') }}">VERIFY</a>
-                <a href="{{ route('vision') }}">VISION</a>
-                <a class="is-active" href="{{ route('about') }}" aria-current="page">ABOUT US</a>
-                <a href="{{ route('contact') }}">CONTACT</a>
+            <nav class="about-nav" aria-label="{{ trans('about_page.nav_aria') }}">
+                <a href="{{ route('home') }}">{{ trans('about_page.nav_home') }}</a>
+                <a href="{{ route('results.index') }}">{{ trans('about_page.nav_results') }}</a>
+                <a href="{{ route('ticket-check') }}">{{ trans('about_page.nav_verify') }}</a>
+                <a href="{{ route('vision') }}">{{ trans('about_page.nav_vision') }}</a>
+                <a class="is-active" href="{{ route('about') }}" aria-current="page">{{ trans('about_page.nav_about') }}</a>
+                <a href="{{ route('contact') }}">{{ trans('about_page.nav_contact') }}</a>
             </nav>
             <div class="about-header__actions">
                 @auth
-                    <a class="about-button about-button--gold" href="{{ route('player.dashboard') }}">DASHBOARD</a>
+                    <a class="about-button about-button--gold" href="{{ route('player.dashboard') }}">{{ trans('about_page.nav_dashboard') }}</a>
                 @else
-                    <a class="about-button about-button--quiet" href="{{ route('login') }}">LOGIN</a>
-                    <a class="about-button about-button--gold" href="{{ route('register') }}">JOIN NOW</a>
+                    <a class="about-button about-button--quiet" href="{{ route('login') }}">{{ trans('about_page.nav_login') }}</a>
+                    <a class="about-button about-button--gold" href="{{ route('register') }}">{{ trans('about_page.nav_join') }}</a>
                 @endauth
             </div>
         </div>
@@ -49,9 +49,9 @@
                 <p class="about-hero__lead">{{ $page['lead'] }}</p>
                 <div class="about-hero__notice" role="note">
                     <span class="about-notice__icon" aria-hidden="true">i</span>
-                    <p>ThaiLotto is an independent platform. It is <strong>not the Government Lottery Office</strong>, <strong>not an official GLO agent</strong>, and <strong>not a government portal</strong>.</p>
+                    <p>{{ trans('about_page.independent_notice') }}</p>
                 </div>
-                <a class="about-text-link" href="#about-timeline">EXPLORE THE STORY <span aria-hidden="true">↓</span></a>
+                <a class="about-text-link" href="#about-timeline">{{ trans('about_page.explore_story') }} <span aria-hidden="true">↓</span></a>
             </div>
             <div class="about-hero__visual" aria-label="{{ $page['hero']['visual_label'] }}" role="img">
                 <div class="about-visual-grid" aria-hidden="true"></div>
@@ -64,10 +64,10 @@
                         <span class="about-ball about-ball--small">8</span>
                         <span class="about-ball about-ball--medium">2</span>
                     </div>
-                    <span class="about-visual-card__caption">HISTORY · CLARITY · CONTROL</span>
+                    <span class="about-visual-card__caption">{{ trans('about_page.visual_caption') }}</span>
                 </div>
-                <span class="about-visual-chip about-visual-chip--top">SOURCE LABELLED</span>
-                <span class="about-visual-chip about-visual-chip--bottom">EDITORIAL ARCHIVE</span>
+                <span class="about-visual-chip about-visual-chip--top">{{ trans('about_page.source_labelled') }}</span>
+                <span class="about-visual-chip about-visual-chip--bottom">{{ trans('about_page.editorial_archive') }}</span>
             </div>
         </section>
 
@@ -84,7 +84,7 @@
                 <div class="about-story__artifact" aria-hidden="true">
                     <span class="about-artifact__line"></span>
                     <span class="about-artifact__year">R5</span>
-                    <span class="about-artifact__label">A HISTORY OF LOTTERY REFERENCE</span>
+                    <span class="about-artifact__label">{{ trans('about_page.artifact_label') }}</span>
                     <span class="about-artifact__line"></span>
                 </div>
             </div>
@@ -93,7 +93,7 @@
         <section class="about-section about-steps" aria-labelledby="about-steps-title">
             <div class="about-section__heading about-section__heading--center">
                 <p class="about-eyebrow">{{ trans('public_pages.how_it_works_title') }}</p>
-                <h2 id="about-steps-title">Choose <span aria-hidden="true">→</span> Buy <span aria-hidden="true">→</span> Result <span aria-hidden="true">→</span> Claim</h2>
+                <h2 id="about-steps-title">{{ trans('about_page.steps_title') }}</h2>
                 <p>{{ trans('public_pages.useful_links_text') }}</p>
             </div>
             <ol class="about-step-grid">
@@ -204,7 +204,7 @@
 
         <section class="about-cta" aria-labelledby="about-cta-title">
             <div class="about-cta__copy">
-                <p class="about-eyebrow">{{ config('app.name') }} · PUBLIC ROUTES</p>
+                <p class="about-eyebrow">{{ config('app.name') }} · {{ trans('about_page.public_routes') }}</p>
                 <h2 id="about-cta-title">{{ $page['cta']['title'] }}</h2>
                 <p>{{ $page['cta']['source_note'] }}</p>
             </div>

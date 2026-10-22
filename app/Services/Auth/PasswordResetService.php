@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use SensitiveParameter;
 
 /*
@@ -107,7 +108,7 @@ final class PasswordResetService
             || ! $broker->getRepository() instanceof DatabaseTokenRepository
             || $broker->getRepository()->getConnection() !== DB::connection()
             || (new User)->getConnection() !== DB::connection()) {
-            throw new \RuntimeException('Password reset requires the default-connection database broker.');
+            throw new RuntimeException('Password reset requires the default-connection database broker.');
         }
 
         $status = DB::transaction(function () use ($broker, $credentials): string {
@@ -119,13 +120,13 @@ final class PasswordResetService
                 $credentials,
                 function (User $user, #[SensitiveParameter] string $password) use ($owner): void {
                     if (! $owner instanceof User || ! $user->is($owner) || $user->getConnection() !== DB::connection()) {
-                        throw new \RuntimeException('Password reset account binding is invalid.');
+                        throw new RuntimeException('Password reset account binding is invalid.');
                     }
                     $owner->password = Hash::make($password);
                     // Drop remember-device credentials even when session deletion is disabled.
                     $owner->remember_token = null;
                     if (! $owner->save()) {
-                        throw new \RuntimeException('Password reset persistence was refused.');
+                        throw new RuntimeException('Password reset persistence was refused.');
                     }
                     $this->revokeOtherSessions($owner);
                     $this->proofs->invalidate($owner, TotpActionProofInvalidationService::PASSWORD_CHANGED);
@@ -137,6 +138,15 @@ final class PasswordResetService
             throw ValidationException::withMessages([
                 'password' => __('public_pages.reset_invalid_token'),
             ]);
+        }
+
+        // Do not carry a pre-reset authentication session forward. Invalidating
+        // it after the broker transaction also prevents the session middleware
+        // from persisting an authenticated row after revokeOtherSessions ran.
+        if ($request->hasSession()) {
+            auth()->guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
 
         return [
@@ -185,7 +195,7 @@ final class PasswordResetService
         DB::table('sessions')->where('user_id', $user->id)->delete();
 
         if (! $user->forceFill(['remember_token' => null])->save()) {
-            throw new \RuntimeException('Password reset persistence was refused.');
+            throw new RuntimeException('Password reset persistence was refused.');
         }
     }
 }

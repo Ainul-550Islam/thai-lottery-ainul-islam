@@ -47,7 +47,7 @@ final class PublicBonusServiceTest extends TestCase
     {
         $result = $this->activeFor([$this->campaign()]);
 
-        $this->assertSame('VERIFIED', $result['status']);
+        $this->assertSame('AVAILABLE', $result['status']);
         $this->assertCount(1, $result['campaigns']);
         $this->assertSame('spring', $result['campaigns'][0]['id']);
         $this->assertSame('Spring offer', $result['campaigns'][0]['title']);
@@ -79,8 +79,34 @@ final class PublicBonusServiceTest extends TestCase
     {
         $result = $this->activeFor(['garbage', 42, $this->campaign()]);
 
-        $this->assertSame('VERIFIED', $result['status']);
+        $this->assertSame('AVAILABLE', $result['status']);
         $this->assertCount(1, $result['campaigns']);
+    }
+
+    public function test_zero_campaign_cap_returns_no_offers(): void
+    {
+        $result = $this->activeFor([$this->campaign()], 0);
+
+        $this->assertSame('UNAVAILABLE', $result['status']);
+        $this->assertSame([], $result['campaigns']);
+    }
+
+    public function test_invalid_configured_date_bound_does_not_create_an_unbounded_offer(): void
+    {
+        $invalid = $this->campaign(['valid_until' => 'not-a-date']);
+
+        $result = $this->activeFor([$invalid]);
+
+        $this->assertSame('UNAVAILABLE', $result['status']);
+        $this->assertSame([], $result['campaigns']);
+    }
+
+    public function test_legacy_home_bonus_view_accepts_the_available_status(): void
+    {
+        $view = (string) file_get_contents(resource_path('views/components/home/bonuses.blade.php'));
+
+        $this->assertStringContainsString("!== 'AVAILABLE'", $view);
+        $this->assertStringNotContainsString("!== 'VERIFIED'", $view);
     }
 
     public function test_number_of_campaigns_is_capped_at_campaigns_max(): void
@@ -137,7 +163,7 @@ final class PublicBonusServiceTest extends TestCase
     {
         $result = $this->activeFor([$this->campaign(['cta_url' => $url])]);
 
-        $this->assertSame('VERIFIED', $result['status']);
+        $this->assertSame('AVAILABLE', $result['status']);
         $this->assertNull($result['campaigns'][0]['cta_url']);
     }
 

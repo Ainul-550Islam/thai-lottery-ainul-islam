@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Services\Legal\LegalDocumentService;
 use App\Services\PublicPages\PublicPageDataService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -19,17 +18,15 @@ use Illuminate\Http\Request;
  */
 final class PublicLegalPrivacyController extends Controller
 {
-    public function __construct(
-        private readonly PublicPageDataService $pages,
-        private readonly LegalDocumentService $legalDocuments,
-    ) {
+    public function __construct(private readonly PublicPageDataService $pages)
+    {
     }
 
     public function index(Request $request): View
     {
         $locale = $this->locale($request);
-        $privacy = $this->legalDocuments->currentData('privacy', $locale);
-        $meta = $this->legalMeta($this->pages->meta('privacy', $locale), $privacy);
+        $privacy = $this->pages->privacy($locale);
+        $meta = $this->pages->meta('privacy', $locale);
 
         return view('privacy.index', [
             'privacy' => $privacy + $meta,
@@ -41,12 +38,10 @@ final class PublicLegalPrivacyController extends Controller
     {
         $locale = $this->locale($request);
 
-        $privacy = $this->legalDocuments->currentData('privacy', $locale);
-
         return response()->json([
             'success' => true,
-            'data' => $privacy,
-            'meta' => $this->legalMeta($this->pages->meta('privacy', $locale), $privacy),
+            'data' => $this->pages->privacy($locale),
+            'meta' => $this->pages->meta('privacy', $locale),
         ]);
     }
 
@@ -54,7 +49,7 @@ final class PublicLegalPrivacyController extends Controller
     {
         $locale = $this->locale($request);
         $query = trim((string) $request->query('q', ''));
-        $data = $this->legalDocuments->currentData('privacy', $locale);
+        $data = $this->pages->privacy($locale);
         $sections = is_array($data['sections'] ?? null) ? $data['sections'] : [];
 
         if ($query === '') {
@@ -98,24 +93,6 @@ final class PublicLegalPrivacyController extends Controller
             'state' => 'NOT_CONFIGURED',
             'message' => 'A verified Privacy Policy PDF export is not configured. Use the browser print or save control.',
         ], 501);
-    }
-
-    /**
-     * @param array<string, string> $meta
-     * @param array<string, mixed> $data
-     * @return array<string, string>
-     */
-    private function legalMeta(array $meta, array $data): array
-    {
-        $title = (string) ($data['meta_title'] ?? $meta['title'] ?? '');
-        $description = (string) ($data['meta_description'] ?? $meta['description'] ?? '');
-
-        return array_replace($meta, [
-            'title' => $title,
-            'description' => $description,
-            'og_title' => $title,
-            'og_description' => $description,
-        ]);
     }
 
     private function locale(Request $request): string

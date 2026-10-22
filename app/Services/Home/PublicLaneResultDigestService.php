@@ -9,6 +9,7 @@ use App\Services\Lottery\BingoLotteryResultService;
 use App\Services\Lottery\NationalLotteryResultService;
 use App\Services\Lottery\PcsoLotteryResultService;
 use App\Services\Lottery\WeeklyLotteryResultService;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Route;
 use Throwable;
 
@@ -154,6 +155,8 @@ class PublicLaneResultDigestService
             return null;
         }
 
+        $dateIso = isset($date['iso']) ? (string) $date['iso'] : null;
+
         return [
             'key' => $configKey,
             'title_key' => $configKey.'.heading',
@@ -161,9 +164,10 @@ class PublicLaneResultDigestService
             'available' => $available,
             'status' => (string) ($current['status'] ?? 'UNAVAILABLE'),
             'reference' => isset($draw['reference']) ? (string) $draw['reference'] : null,
-            'date_iso' => isset($date['iso']) ? (string) $date['iso'] : null,
+            'date_iso' => $dateIso,
             'date_display_en' => isset($date['display_en']) ? (string) $date['display_en'] : null,
             'date_display_th' => isset($date['display_th']) ? (string) $date['display_th'] : null,
+            'date_display_bn' => $this->formatBanglaDate($dateIso),
             // Only PCSO carries one; the others simply have no time to show.
             'time_display' => isset($draw['time_display']) ? (string) $draw['time_display'] : null,
             'source_state' => isset($current['provenance']['source_state'])
@@ -171,5 +175,39 @@ class PublicLaneResultDigestService
                 : null,
             'fields' => $fields,
         ];
+    }
+
+    private function formatBanglaDate(?string $isoDate): ?string
+    {
+        if (! is_string($isoDate) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $isoDate) !== 1) {
+            return null;
+        }
+
+        try {
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $isoDate, 'Asia/Bangkok');
+        } catch (Throwable) {
+            return null;
+        }
+
+        if (! $date instanceof CarbonImmutable || $date->format('Y-m-d') !== $isoDate) {
+            return null;
+        }
+
+        $months = [
+            1 => 'জানুয়ারি',
+            2 => 'ফেব্রুয়ারি',
+            3 => 'মার্চ',
+            4 => 'এপ্রিল',
+            5 => 'মে',
+            6 => 'জুন',
+            7 => 'জুলাই',
+            8 => 'আগস্ট',
+            9 => 'সেপ্টেম্বর',
+            10 => 'অক্টোবর',
+            11 => 'নভেম্বর',
+            12 => 'ডিসেম্বর',
+        ];
+
+        return $date->format('j').' '.$months[(int) $date->format('n')].' '.$date->format('Y');
     }
 }

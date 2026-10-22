@@ -7,7 +7,7 @@
         @endif
     </div>
 
-    @if (($bonuses['status'] ?? 'UNAVAILABLE') !== 'VERIFIED' || empty($bonuses['campaigns']))
+    @if (($bonuses['status'] ?? 'UNAVAILABLE') !== 'AVAILABLE' || empty($bonuses['campaigns']))
         <p class="home-empty" role="status">{{ $bonuses['message'] ?? ($text['bonuses_empty'] ?? 'No active promotions') }}</p>
     @else
         <ul class="home-campaigns" role="list">

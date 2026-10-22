@@ -15,7 +15,8 @@ use Illuminate\Notifications\Notification;
  * Withdrawal Status Notification.
  *
  * Dispatched on withdrawal lifecycle state changes (requested, pending, manual review,
- * completed, rejected, reversed). Only completed represents verified settlement.
+ * completed, rejected, reversed). A completed status is the platform record state;
+ * user-facing copy does not infer external provider receipt from that label.
  */
 class WithdrawalStatusNotification extends Notification implements ShouldQueue
 {
@@ -52,19 +53,19 @@ class WithdrawalStatusNotification extends Notification implements ShouldQueue
         };
 
         $line = match ($this->currentStatus) {
-            WithdrawalStatus::Completed->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) has been settled and sent to your payout destination.",
-            WithdrawalStatus::Processing->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) is currently being processed by the payment provider.",
-            WithdrawalStatus::UnderReview->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) is undergoing routine security review.",
-            WithdrawalStatus::Failed->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) failed to disburse. Reserved funds have been restored to your wallet.",
-            WithdrawalStatus::Rejected->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) was rejected. Reason: ".($this->reason ?? 'Compliance or account check failed.').' Funds have been refunded to your wallet.',
+            WithdrawalStatus::Completed->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) is recorded as completed. Check your destination account or provider statement for receipt details.",
+            WithdrawalStatus::Processing->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) is recorded as processing. No completion time is promised.",
+            WithdrawalStatus::UnderReview->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) is under review. Check your account for the current status and any instructions.",
+            WithdrawalStatus::Failed->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) is recorded as failed. Check your account for the current wallet status before retrying.",
+            WithdrawalStatus::Rejected->value => "Your withdrawal of {$amount} {$currency} (Ref: {$ref}) was rejected.".($this->reason !== null && $this->reason !== '' ? ' Review note: '.$this->reason : '').' Check your account for current wallet status and next steps.',
             default => "Your withdrawal request of {$amount} {$currency} (Ref: {$ref}) status has changed to: {$this->currentStatus}.",
         };
 
         return (new MailMessage)
             ->subject($subject)
             ->line($line)
-            ->action('View Withdrawal History', url('/player/withdraw'))
-            ->line('If you did not request this withdrawal, please contact security support immediately.');
+            ->action('View Withdrawal History', url('/withdraw'))
+            ->line('If you do not recognize this withdrawal, sign in and review your account security.');
     }
 
     /**

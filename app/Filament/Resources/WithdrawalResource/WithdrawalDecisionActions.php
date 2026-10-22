@@ -180,34 +180,6 @@ final class WithdrawalDecisionActions
                 },
             ],
             [
-                'name' => 'reconcileFailed',
-                'label' => 'Reconcile — confirmed not paid',
-                'icon' => 'heroicon-o-shield-check',
-                'color' => 'danger',
-                'heading' => 'Reconcile an unknown payout outcome',
-                'description' => 'Use only after checking the payout provider directly and confirming that no payout was made. The reservation is released and the withdrawal is failed. A different operator from the approver must perform this step, and the provider confirmation reference is stored on the withdrawal.',
-                'submitLabel' => 'Confirm not paid and release the funds',
-                'form' => [
-                    Forms\Components\TextInput::make('evidence')
-                        ->label('Provider confirmation reference (required)')
-                        ->required()
-                        ->maxLength(191)
-                        ->regex('/\A[A-Za-z0-9][A-Za-z0-9._:-]{0,190}\z/D'),
-                ],
-                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
-                    && $record->status === WithdrawalStatus::Processing,
-                'action' => static function (Withdrawal $record, array $data): void {
-                    OperatorActionFactory::run(
-                        static fn () => app(WithdrawalApprovalService::class)->markReconciledFailed(
-                            $record,
-                            (int) self::operatorId(),
-                            (string) $data['evidence'],
-                        ),
-                        $record->reference_number.' is reconciled as not paid and any reservation is released.',
-                    );
-                },
-            ],
-            [
                 'name' => 'markFailed',
                 'label' => 'Mark failed',
                 'icon' => 'heroicon-o-exclamation-triangle',

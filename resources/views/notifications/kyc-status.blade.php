@@ -37,21 +37,21 @@
 
     <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
         @if(($status ?? '') === 'approved' || ($status ?? '') === 'verified')
-            Your submitted documents have been approved by our compliance department. Your account now holds full unconstrained betting, deposit, and fast withdrawal privileges.
+            Your submitted documents were marked approved. Sign in to review the verification status and any feature-specific requirements. Approval does not guarantee that every account action is available.
         @elseif(($status ?? '') === 'rejected')
-            We could not verify your documents. Please ensure your photo identification is clearly visible, within its validity period, and not cropped. You may re-upload at any time.
+            The submitted documents were not approved. Review the notes above and follow the instructions shown in your account verification page. If you need help, contact support through the site.
         @else
-            We have securely received your verification document package. Our compliance team verifies documents within 24 hours.
+            Your verification status is shown above. Review your account for the current processing state; no fixed completion time is promised.
         @endif
     </p>
 
     <div style="text-align: center;">
-        <a href="{{ url('/player/verification') }}" style="display: inline-block; padding: 12px 28px; background-color: #0284c7; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px;">
+        <a href="{{ route('account.verification') }}" style="display: inline-block; padding: 12px 28px; background-color: #0284c7; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px;">
             Go to Verification Center
         </a>
     </div>
 
     <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #1e293b; text-align: center; font-size: 11px; color: #64748b;">
-        &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery') }}. Identity verification is conducted in accordance with international AML/CTF standards.
+        &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery') }}. This is an account status notification; applicable verification requirements are shown in your account.
     </div>
 </div>

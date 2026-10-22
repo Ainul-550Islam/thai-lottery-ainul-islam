@@ -12,7 +12,6 @@ use App\Services\Auth\CaptchaService;
 use App\Services\Auth\LoginService;
 use App\Services\Auth\PasswordResetService;
 use App\Services\Auth\RegistrationService;
-use App\Services\Legal\LegalDocumentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +42,6 @@ class MemberAuthController
         private readonly RegistrationService $registration,
         private readonly PasswordResetService $passwordReset,
         private readonly CaptchaService $captcha,
-        private readonly LegalDocumentService $legalDocuments,
     ) {}
 
     /*
@@ -98,10 +96,6 @@ class MemberAuthController
                 && (bool) config('auth_security.captcha.register', true),
             'captcha' => $this->captcha->isEnabled() && (bool) config('auth_security.captcha.register', true)
                 ? $this->captcha->issue($request, 'register') : [],
-            'legal' => [
-                'terms' => $this->legalDocuments->currentData('terms', (string) app()->getLocale()),
-                'privacy' => $this->legalDocuments->currentData('privacy', (string) app()->getLocale()),
-            ],
         ]);
     }
 

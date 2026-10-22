@@ -131,7 +131,7 @@ class BrowserPaymentCallbackTest extends TestCase
             ->getContent();
 
         $this->assertStringContainsString('Confirmed', $page);
-        $this->assertStringContainsString('This payment is confirmed', $page);
+        $this->assertStringContainsString('The payment is marked confirmed in this record', $page);
     }
 
     public function test_forged_query_flags_cannot_manufacture_a_paid_state(): void

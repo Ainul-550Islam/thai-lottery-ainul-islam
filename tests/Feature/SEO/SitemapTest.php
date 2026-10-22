@@ -40,7 +40,7 @@ class SitemapTest extends TestCase
     {
         $xml = $this->sitemapUrls();
 
-        foreach (['/results', '/check', '/about', '/terms', '/privacy', '/fees', '/discounts', '/contact', '/sales-points', '/account-grades', '/account-verification-guide', '/prize-verification', '/vision'] as $path) {
+        foreach (['/results', '/check', '/about', '/services', '/how-to-play', '/faq', '/download', '/betting', '/terms', '/privacy', '/fees', '/discounts', '/contact', '/sales-points', '/account-grades', '/account-verification-guide', '/prize-verification', '/vision'] as $path) {
             $this->assertContains($this->url($path), $xml, $path.' must be in the sitemap.');
         }
     }

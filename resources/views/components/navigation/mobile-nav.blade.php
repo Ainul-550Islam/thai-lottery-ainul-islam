@@ -1,4 +1,4 @@
-<div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="{{ __('player.navigation_label') }}">
+<div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out xl:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="{{ __('player.navigation_label') }}">
     <div class="flex items-center justify-between p-4 border-b border-slate-800">
         <div class="flex items-center space-x-2">
             <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">TL</div>
@@ -19,10 +19,17 @@
             <a href="{{ route('player.deposit') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-400 bg-amber-950/30 border border-amber-500/20 transition">{{ __('player.nav_deposit') }}</a>
             <a href="{{ route('glo-l6.index') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">{{ __('player.nav_glo_l6') }}</a>
             <a href="{{ route('player.profile') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_profile') }}</a>
+            <a href="{{ route('services') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_services') }}</a>
+            <a href="{{ route('about') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_about') }}</a>
+            <a href="{{ route('lotto-discount') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_lotto_discount') }}</a>
+            <a href="{{ route('contact') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_contact') }}</a>
         @else
             <a href="{{ route('lotteries.index') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_lotteries') }}</a>
             <a href="{{ route('glo-l6.index') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">{{ __('player.nav_glo_l6') }}</a>
             <a href="{{ route('results.index') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_results') }}</a>
+            <a href="{{ route('services') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_services') }}</a>
+            <a href="{{ route('about') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_about') }}</a>
+            <a href="{{ route('lotto-discount') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_lotto_discount') }}</a>
             <a href="{{ route('ticket-check') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_check_ticket') }}</a>
             <a href="{{ route('contact') }}" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">{{ __('player.nav_contact') }}</a>
         @endauth
@@ -34,6 +41,7 @@
             <div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950">
                 <a href="{{ route('locale.switch', 'en') }}" class="px-3 py-1 rounded text-xs font-bold {{ app()->getLocale() === 'en' ? 'bg-emerald-600 text-white' : 'text-slate-400' }}">EN</a>
                 <a href="{{ route('locale.switch', 'th') }}" class="px-3 py-1 rounded text-xs font-bold {{ app()->getLocale() === 'th' ? 'bg-emerald-600 text-white' : 'text-slate-400' }}">TH</a>
+                <a href="{{ route('locale.switch', 'bn') }}" lang="bn" hreflang="bn" class="px-3 py-1 rounded text-xs font-bold {{ app()->getLocale() === 'bn' ? 'bg-emerald-600 text-white' : 'text-slate-400' }}" aria-label="বাংলা">বাংলা</a>
             </div>
         </div>
 

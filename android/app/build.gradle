@@ -69,10 +69,6 @@ def releaseSigningConfigured = releaseStoreFile != null
 android {
     namespace 'com.ainul550.thailottery'
     compileSdk 35
-    // Pinned to the exact build tools android/README.md documents and the
-    // Signed Android APK workflow installs, so a local release build and the
-    // audited CI build compile against the same toolchain.
-    buildToolsVersion '35.0.0'
 
     defaultConfig {
         applicationId 'com.ainul550.thailottery'

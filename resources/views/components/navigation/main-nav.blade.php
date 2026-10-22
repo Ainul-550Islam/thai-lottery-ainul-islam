@@ -2,7 +2,7 @@
     'activeRoute' => null,
 ])
 
-<nav class="hidden md:flex items-center space-x-1 lg:space-x-2" aria-label="{{ __('player.navigation_label') }}">
+<nav class="hidden xl:flex items-center space-x-1 lg:space-x-2" aria-label="{{ __('player.navigation_label') }}">
     @auth
         <a href="{{ route('player.dashboard') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('player.dashboard') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
             {{ __('player.nav_dashboard') }}
@@ -33,6 +33,9 @@
         <a href="{{ route('results.index') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('results.index') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
             {{ __('player.nav_results') }}
         </a>
+        <a href="{{ route('services') }}" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('services*', 'our-services') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">{{ __('player.nav_services') }}</a>
+        <a href="{{ route('about') }}" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('about') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">{{ __('player.nav_about') }}</a>
+        <a href="{{ route('lotto-discount') }}" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('lotto-discount', 'discounts') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">{{ __('player.nav_lotto_discount') }}</a>
         <a href="{{ route('ticket-check') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('ticket-check*') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
             {{ __('player.nav_check_ticket') }}
         </a>

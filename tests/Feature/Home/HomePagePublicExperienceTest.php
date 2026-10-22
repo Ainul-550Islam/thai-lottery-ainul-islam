@@ -44,6 +44,45 @@ final class HomePagePublicExperienceTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_home_navigation_accessible_names_are_localized_in_all_supported_locales(): void
+    {
+        foreach ([
+            'en' => ['Footer navigation', 'Primary navigation'],
+            'th' => ['เมนูส่วนท้าย', 'เมนูหลัก'],
+            'bn' => ['ফুটার নেভিগেশন', 'প্রধান নেভিগেশন'],
+        ] as $locale => [$footerLabel, $primaryLabel]) {
+            $this->get('/?lang='.$locale)
+                ->assertOk()
+                ->assertSee('aria-label="'.$footerLabel.'"', false)
+                ->assertSee('aria-label="'.$primaryLabel.'"', false);
+        }
+    }
+
+    public function test_home_discloses_referral_and_affiliate_information_in_all_locales(): void
+    {
+        foreach ([
+            'en' => ['Referral code', 'Affiliate commissions'],
+            'th' => ['รหัสผู้แนะนำ', 'ค่าคอมมิชชันพันธมิตร'],
+            'bn' => ['রেফারেল কোড', 'অ্যাফিলিয়েট কমিশন'],
+        ] as $locale => [$referralTitle, $affiliateTitle]) {
+            $this->get('/?lang='.$locale)
+                ->assertOk()
+                ->assertSee($referralTitle)
+                ->assertSee($affiliateTitle)
+                ->assertSee('href="'.route('register').'"', false)
+                ->assertSee('href="'.route('discounts').'#affiliate-commissions"', false);
+        }
+    }
+
+    public function test_existing_account_home_does_not_link_back_to_guest_registration(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/?lang=bn')
+            ->assertOk()
+            ->assertSee('নিবন্ধনের সময় রেফারেল তথ্য সংরক্ষিত হয়; এই পৃষ্ঠা থেকে অ্যাকাউন্টের তথ্য পরিবর্তন করা যায় না।')
+            ->assertDontSee('href="'.route('register').'"', false);
+    }
+
     public function test_home_contains_required_feature_landmarks(): void
     {
         $content = (string) $this->get('/')->assertOk()->getContent();
@@ -67,6 +106,22 @@ final class HomePagePublicExperienceTest extends TestCase
         }
     }
 
+    public function test_home_does_not_render_placeholder_hash_links(): void
+    {
+        $content = (string) $this->get('/')->assertOk()->getContent();
+        $this->assertDoesNotMatchRegularExpression('~href=[\\x22\\x27]#[\\x22\\x27]~', $content);
+    }
+
+    public function test_home_uses_the_layout_mobile_drawer_without_duplicate_dom_ids(): void
+    {
+        $content = (string) $this->get('/')->assertOk()->getContent();
+
+        foreach (['btn-open-mobile-menu', 'btn-close-mobile-menu', 'mobile-menu-drawer'] as $id) {
+            preg_match_all('/\bid="'.preg_quote($id, '/').'"/', $content, $matches);
+            $this->assertCount(1, $matches[0], 'Expected exactly one #'.$id.' in the rendered home page.');
+        }
+    }
+
     public function test_home_never_returns_500_without_draws(): void
     {
         $this->get('/')->assertOk();
@@ -79,6 +134,74 @@ final class HomePagePublicExperienceTest extends TestCase
     {
         $content = (string) $this->get('/')->assertOk()->getContent();
         $this->assertStringContainsString('No verified result available', $content);
+
+        $bangla = (string) $this->get('/?lang=bn')->assertOk()->getContent();
+        $this->assertStringContainsString('যাচাইকৃত ফলাফল নেই', $bangla);
+        $this->assertStringContainsString('লাইভ ড্র কনফিগার করা হয়নি', $bangla);
+        $this->assertStringContainsString('রিপ্লে সেট করা হয়নি', $bangla);
+        $this->assertStringContainsString('L6 লটারি পণ্য', $bangla);
+        $this->assertStringContainsString('N3 লটারি পণ্য', $bangla);
+        $this->assertStringContainsString('শুধু ক্যাটালগ তথ্য', $bangla);
+        $this->assertStringNotContainsString('NO_VERIFIED_RESULT', strip_tags($bangla));
+    }
+
+    public function test_thai_home_formats_the_next_draw_with_a_buddhist_era_year(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-16 12:00:00', 'Asia/Bangkok'));
+        Draw::factory()->create([
+            'status' => DrawStatus::Scheduled,
+            'scheduled_at' => \Illuminate\Support\Carbon::parse('2026-10-19 15:00:00', 'Asia/Bangkok'),
+        ]);
+
+        $this->get('/?lang=th')
+            ->assertOk()
+            ->assertSee('19 ตุลาคม 2569')
+            ->assertSee('เวลาที่เหลือ')
+            ->assertSee('กำหนดออกรางวัล')
+            ->assertSee('วัน')
+            ->assertSee('ชั่วโมง')
+            ->assertSee('นาที')
+            ->assertSee('วินาที')
+            ->assertSee('เขตเวลา');
+
+        $this->get('/?lang=en')
+            ->assertOk()
+            ->assertSee('19 October 2026');
+
+        $this->travelBack();
+    }
+
+    public function test_countdown_reached_state_uses_localized_copy(): void
+    {
+        Draw::factory()->create([
+            'status' => DrawStatus::Scheduled,
+            'scheduled_at' => now()->addDays(3),
+        ]);
+
+        $thai = (string) $this->get('/?lang=th')->assertOk()->getContent();
+        $this->assertStringContainsString('data-reached-label="ถึงเวลาตามกำหนดการแล้ว"', $thai);
+
+        $bangla = (string) $this->get('/?lang=bn')->assertOk()->getContent();
+        $this->assertStringContainsString('data-reached-label="নির্ধারিত ড্রয়ের সময় হয়েছে"', $bangla);
+        $this->assertStringContainsString('সময় অঞ্চল', $bangla);
+        $this->assertStringContainsString('ড্রয়ের নির্ধারিত সময়', $bangla);
+        $this->assertStringContainsString('ঘণ্টা', $bangla);
+
+        $javascript = (string) file_get_contents(base_path('resources/js/home/countdown.js'));
+        $this->assertStringContainsString("root.getAttribute('data-reached-label')", $javascript);
+    }
+
+    public function test_unavailable_next_draw_messages_are_localized_in_thai_and_bangla(): void
+    {
+        config(['lottery.draw.official_schedule.days_of_month' => []]);
+
+        $this->get('/?lang=th')
+            ->assertOk()
+            ->assertSee('ยังไม่มีข้อมูลกำหนดออกรางวัลในขณะนี้ โปรดลองตรวจสอบอีกครั้งภายหลัง');
+
+        $this->get('/?lang=bn')
+            ->assertOk()
+            ->assertSee('এ মুহূর্তে পরবর্তী ড্রয়ের তথ্য পাওয়া যাচ্ছে না। পরে আবার দেখুন।');
     }
 
     public function test_next_draw_countdown_uses_server_iso_target(): void
@@ -137,13 +260,14 @@ final class HomePagePublicExperienceTest extends TestCase
         }
     }
 
-    public function test_prize_highlight_unavailable_or_verified_only(): void
+    public function test_prize_highlight_has_an_explicit_catalogue_or_source_state(): void
     {
         // No draws → catalogue-only or unavailable, never a fake jackpot number.
         $content = (string) $this->get('/')->assertOk()->getContent();
         $this->assertTrue(
             str_contains($content, 'CATALOGUE_ONLY')
             || str_contains($content, 'UNAVAILABLE')
+            || str_contains($content, 'AVAILABLE')
             || str_contains($content, 'VERIFIED'),
             'Prize highlight must carry an explicit status',
         );
@@ -189,7 +313,8 @@ final class HomePagePublicExperienceTest extends TestCase
         User::factory()->create();
 
         $content = (string) $this->get('/')->assertOk()->getContent();
-        $this->assertStringContainsString('VERIFIED', $content);
+        $this->assertStringContainsString('Registered accounts', $content);
+        $this->assertStringContainsString('AVAILABLE', $content);
         $this->assertStringNotContainsString('15700', $content);
         $this->assertStringNotContainsString('189300', $content);
         $this->assertStringNotContainsString('18600', $content);
@@ -281,9 +406,12 @@ final class HomePagePublicExperienceTest extends TestCase
     public function test_trust_section_only_factual_claims(): void
     {
         $content = (string) $this->get('/')->assertOk()->getContent();
-        $this->assertStringContainsString('Server-side authorization', $content);
-        $this->assertStringContainsString('Idempotent wallet', $content);
-        // No invented compliance badges.
+        $this->assertStringContainsString('independent platform', $content);
+        $this->assertStringContainsString('Result availability and source labels vary by product', $content);
+        $this->assertStringNotContainsString('Server-side authorization on every financial action', $content);
+        $this->assertStringNotContainsString('Idempotent wallet and payout operations', $content);
+        $this->assertStringNotContainsString('Government Lottery Office publications', $content);
+        // No unsupported security or compliance badges.
         $this->assertStringNotContainsString('ISO 27001', $content);
         $this->assertStringNotContainsString('PCI-DSS certified', $content);
     }

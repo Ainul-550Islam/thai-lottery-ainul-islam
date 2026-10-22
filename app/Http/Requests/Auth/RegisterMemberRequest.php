@@ -36,7 +36,7 @@ final class RegisterMemberRequest extends FormRequest
      */
     public function rules(): array
     {
-        $minAgeYears = min(255, max(18, (int) config('legal.minimum_age', 18)));
+        $minAgeYears = 18;
 
         return [
             'referral_id' => ['required', 'string', 'min:3', 'max:64'],
@@ -78,16 +78,10 @@ final class RegisterMemberRequest extends FormRequest
                 'required',
                 'date',
                 'after:1900-01-01',
-                'before_or_equal:'.now()->subYears($minAgeYears)->toDateString(),
+                'before:'.now()->subYears($minAgeYears)->toDateString(),
             ],
 
-            'age_attestation' => ['required', 'accepted'],
             'terms' => ['required', 'accepted'],
-            'privacy_notice' => ['required', 'accepted'],
-            'terms_version' => ['required', 'string', 'min:1', 'max:64'],
-            'terms_hash' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/i'],
-            'privacy_version' => ['required', 'string', 'min:1', 'max:64'],
-            'privacy_hash' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/i'],
             ...app(CaptchaService::class)->validationRules('register'),
         ];
     }
@@ -97,8 +91,6 @@ final class RegisterMemberRequest extends FormRequest
      */
     public function attributes(): array
     {
-        $minAgeYears = min(255, max(18, (int) config('legal.minimum_age', 18)));
-
         return [
             'captcha_answer' => __('public_pages.captcha_label'),
             'referral_id' => __('public_pages.register_referral'),
@@ -111,13 +103,7 @@ final class RegisterMemberRequest extends FormRequest
             'email' => __('public_pages.register_email'),
             'date_of_birth' => __('public_pages.register_dob'),
             'nationality' => __('public_pages.register_nationality'),
-            'age_attestation' => __('public_pages.register_age_attestation', ['age' => $minAgeYears]),
             'terms' => __('public_pages.register_terms'),
-            'privacy_notice' => __('public_pages.register_privacy_notice'),
-            'terms_version' => __('public_pages.register_terms'),
-            'terms_hash' => __('public_pages.register_terms'),
-            'privacy_version' => __('public_pages.register_privacy_notice'),
-            'privacy_hash' => __('public_pages.register_privacy_notice'),
         ];
     }
 }

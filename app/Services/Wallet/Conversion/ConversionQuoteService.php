@@ -8,139 +8,98 @@ use App\Contracts\Wallet\ConversionPolicyContract;
 use App\DTOs\Wallet\ConversionQuoteData;
 use App\DTOs\Wallet\ConversionRequestData;
 use App\Enums\ConversionFeeBearer;
-use App\Enums\Currency;
-use App\Enums\WalletConversionDirection;
-use App\Enums\WalletConversionStatus;
+use App\Enums\WalletConversionQuoteStatus;
+use App\Exceptions\Wallet\ConversionException;
 use App\Models\WalletConversionQuote;
-use DateTimeImmutable;
-use Illuminate\Support\Carbon;
+use App\ValueObjects\ConversionLimits;
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class ConversionQuoteService
 {
     public function __construct(
-        private readonly ConversionFeeCalculator $fees,
-        private readonly ConversionLimitService $limits,
         private readonly ConversionPolicyContract $policy,
+        private readonly ConversionFeeCalculator $fees,
+        private readonly Config $config,
     ) {}
 
-    public function issue(ConversionRequestData $request): ConversionQuoteData
+    public function quote(ConversionRequestData $request): ConversionQuoteData
     {
         $this->policy->assertAllowed($request);
-
-        $breakdown = $this->fees->breakdownFor(
-            $request->direction,
-            $request->amount,
-            $request->currency->value,
-        );
-
-        $ttlSeconds = max(10, (int) config('conversions.quotes.ttl_seconds', 120));
-        $issuedAt = Carbon::now()->toDateTimeImmutable();
-        $expiresAt = Carbon::instance($issuedAt)->addSeconds($ttlSeconds)->toDateTimeImmutable();
-
-        $prefix = (string) config('conversions.quotes.reference_prefix', 'WQU');
-        $reference = strtoupper($prefix).'-'.strtoupper(bin2hex(random_bytes(8)));
-
-        WalletConversionQuote::query()->create([
-            'reference' => $reference,
-            'user_id' => $request->userId,
-            'direction' => $request->direction->value,
-            'status' => WalletConversionStatus::Quoted->value,
-            'currency' => $request->currency->value,
-            'amount_in' => bcadd($request->amount, '0', 2),
-            'fee_amount' => $breakdown->feeAmount,
-            'amount_out' => $breakdown->netAmount,
-            'rate' => $breakdown->rate,
-            'fee_bearer' => $breakdown->bearer->value,
-            'fee_rule_key' => $breakdown->ruleKey,
-            'fee_rule_version' => $breakdown->ruleVersion,
-            'expires_at' => Carbon::instance($expiresAt),
-        ]);
-
-        return new ConversionQuoteData(
-            reference: $reference,
-            direction: $request->direction,
-            amountIn: bcadd($request->amount, '0', 2),
-            feeAmount: $breakdown->feeAmount,
-            amountOut: $breakdown->netAmount,
-            rate: $breakdown->rate,
-            currency: $request->currency,
-            feeBearer: $breakdown->bearer,
-            feeRuleKey: $breakdown->ruleKey,
-            feeRuleVersion: $breakdown->ruleVersion,
-            limits: $this->limits->limits($request->currency),
-            issuedAt: $issuedAt,
-            expiresAt: $expiresAt,
-            description: $breakdown->describe(),
-        );
-    }
-
-    public function findByReference(string $reference): ?WalletConversionQuote
-    {
-        return WalletConversionQuote::query()->where('reference', $reference)->first();
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    public function openForUser(int $userId): array
-    {
-        $rows = WalletConversionQuote::query()
-            ->where('user_id', $userId)
-            ->where('status', WalletConversionStatus::Quoted->value)
-            ->where('expires_at', '>', Carbon::now())
-            ->orderByDesc('id')
-            ->limit(10)
-            ->get();
-
-        $limits = $this->limits->limits();
-        $result = [];
-
-        foreach ($rows as $row) {
-            $direction = $row->direction instanceof WalletConversionDirection
-                ? $row->direction
-                : (WalletConversionDirection::tryFrom((string) $row->direction) ?? WalletConversionDirection::CashToWin);
-            $currency = Currency::tryFrom((string) $row->currency) ?? Currency::primary();
-            $bearer = $row->fee_bearer instanceof ConversionFeeBearer
-                ? $row->fee_bearer
-                : (ConversionFeeBearer::tryFrom((string) $row->fee_bearer) ?? ConversionFeeBearer::Source);
-
-            $issuedAt = $row->created_at !== null
-                ? DateTimeImmutable::createFromInterface($row->created_at)
-                : new DateTimeImmutable;
-            $expiresAt = $row->expires_at !== null
-                ? DateTimeImmutable::createFromInterface($row->expires_at)
-                : $issuedAt;
-
-            $dto = new ConversionQuoteData(
-                reference: (string) $row->reference,
-                direction: $direction,
-                amountIn: bcadd((string) $row->amount_in, '0', 2),
-                feeAmount: bcadd((string) $row->fee_amount, '0', 2),
-                amountOut: bcadd((string) $row->amount_out, '0', 2),
-                rate: (string) $row->rate,
-                currency: $currency,
-                feeBearer: $bearer,
-                feeRuleKey: (string) $row->fee_rule_key,
-                feeRuleVersion: (string) $row->fee_rule_version,
-                limits: $limits,
-                issuedAt: $issuedAt,
-                expiresAt: $expiresAt,
-            );
-
-            $result[] = $dto->toArray();
+        $amount = bcadd($request->amount, '0', 2);
+        $fee = $this->fees->breakdownFor($request->direction, $amount, $request->currency->value);
+        if (! $fee->isEnforceable()) {
+            throw ConversionException::failure('feature_disabled', 'The published conversion fee rule is unavailable, so the conversion lane is disabled.');
         }
+        if (bccomp($fee->netAmount, '0', 2) <= 0) {
+            throw ConversionException::failure('conversion_amount_too_small_after_fee', 'The amount must be greater than the fee.');
+        }
+        $now = CarbonImmutable::now();
+        $expires = $now->addSeconds(max(1, (int) $this->config->get('conversions.quotes.ttl_seconds', 120)));
+        $reference = 'WQ-'.strtoupper(Str::random(24));
+        $limits = ConversionLimits::fromConfig((array) $this->config->get('conversions.limits', []), $request->currency);
 
-        return $result;
+        return DB::transaction(function () use ($request, $amount, $fee, $now, $expires, $reference, $limits): ConversionQuoteData {
+            WalletConversionQuote::query()->create([
+                'reference' => $reference,
+                'user_id' => $request->userId,
+                'direction' => $request->direction,
+                'status' => WalletConversionQuoteStatus::Quoted,
+                'currency' => $request->currency,
+                'amount_in' => $amount,
+                'fee_amount' => $fee->feeAmount,
+                'amount_out' => $fee->netAmount,
+                'fee_rule_key' => $fee->ruleKey,
+                'fee_rule_version' => $fee->ruleVersion,
+                'fee_rate' => $fee->rate,
+                'fee_bearer' => $fee->bearer,
+                'channel' => $request->channel->value,
+                'request_fingerprint' => hash('sha256', implode('|', [$request->userId, $request->direction->value, $amount, $request->currency->value])),
+                'limits' => $limits->toArray(),
+                'issued_at' => $now,
+                'expires_at' => $expires,
+            ]);
+            return new ConversionQuoteData(
+                reference: $reference,
+                direction: $request->direction,
+                amountIn: $amount,
+                feeAmount: $fee->feeAmount,
+                amountOut: $fee->netAmount,
+                rate: $fee->rate,
+                currency: $request->currency,
+                feeBearer: $fee->bearer,
+                feeRuleKey: $fee->ruleKey,
+                feeRuleVersion: $fee->ruleVersion,
+                limits: $limits,
+                issuedAt: $now->toDateTimeImmutable(),
+                expiresAt: $expires->toDateTimeImmutable(),
+                description: $fee->describe(),
+            );
+        });
     }
 
-    public function expireStale(int $batchSize = 500): int
+    public function findValidForExecution(ConversionRequestData $request): WalletConversionQuote
     {
-        return (int) WalletConversionQuote::query()
-            ->where('status', WalletConversionStatus::Quoted->value)
-            ->where('expires_at', '<=', Carbon::now())
-            ->limit(max(1, $batchSize))
-            ->update([
-                'status' => WalletConversionStatus::Expired->value,
-            ]);
+        if (! $request->hasQuote()) {
+            throw ConversionException::failure('conversion_quote_required', 'A valid conversion quote is required.');
+        }
+        $quote = WalletConversionQuote::query()->where('reference', $request->quoteReference)->where('user_id', $request->userId)->lockForUpdate()->first();
+        if (! $quote || $quote->status !== WalletConversionQuoteStatus::Quoted || $quote->expires_at->isPast()) {
+            throw ConversionException::failure('conversion_quote_expired', 'The conversion quote is missing, consumed, or expired.');
+        }
+        if ($quote->direction !== $request->direction || bccomp((string) $quote->amount_in, $request->amount, 2) !== 0 || $quote->currency !== $request->currency) {
+            throw ConversionException::failure('conversion_quote_mismatch', 'The quote does not match the requested conversion.');
+        }
+        return $quote;
+    }
+
+    public function consume(WalletConversionQuote $quote, int $conversionId): void
+    {
+        $quote->status = WalletConversionQuoteStatus::Consumed;
+        $quote->consumed_at = now();
+        $quote->conversion_id = $conversionId;
+        $quote->save();
     }
 }

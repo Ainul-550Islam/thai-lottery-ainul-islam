@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use InvalidArgumentException;
 use LogicException;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Throwable;
 use WeakMap;
 
@@ -88,7 +89,7 @@ final class BotDetectionService
             } catch (Throwable $error) {
                 if ($empty->mode === 'enforce' && ($settings['mode'] ?? 'log') === 'enforce') {
                     // Future middleware must map this to service-unavailable, not a bot verdict.
-                    throw new \RuntimeException('Bot evidence unavailable; enforcement assessment aborted.', 0, $error);
+                    throw new RuntimeException('Bot evidence unavailable; enforcement assessment aborted.', 0, $error);
                 }
                 // Observation failure is explicit, not a fabricated high score or block.
                 $unavailable[] = $name;
@@ -104,7 +105,7 @@ final class BotDetectionService
                 $this->logger->info('bot.assessment', $decision->toArray() + ['unavailable_signals' => $unavailable]);
             } catch (Throwable $error) {
                 if ($empty->mode === 'enforce') {
-                    throw new \RuntimeException('Bot observability unavailable.', 0, $error);
+                    throw new RuntimeException('Bot observability unavailable.', 0, $error);
                 }
                 $decision = $this->withReason($decision, 'BOT_OBSERVABILITY_UNAVAILABLE');
             }

@@ -9,6 +9,7 @@ use App\Enums\GloSourceState;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Models\User;
+use App\Services\Lottery\GloPublicPrizeSummaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -36,6 +37,54 @@ final class PublicResultsAnonymousTest extends TestCase
         $response->assertSee(__('results.title'), false);
     }
 
+    public function test_results_search_static_interface_renders_in_thai_and_bangla(): void
+    {
+        $this->get('/results/search?q=missing&lang=th')
+            ->assertOk()
+            ->assertSee('ค้นหาผลสลาก')
+            ->assertSee('ไม่พบผลรางวัลที่เผยแพร่ตรงกับ');
+
+        $this->get('/results/search?q=missing&lang=bn')
+            ->assertOk()
+            ->assertSee('লটারির ফলাফল খুঁজুন')
+            ->assertSee('প্রকাশিত ফল পাওয়া যায়নি');
+    }
+
+    public function test_results_card_status_and_table_labels_render_in_thai_and_bangla(): void
+    {
+        $draw = Draw::factory()->create([
+            'scheduled_at' => now()->subDay(),
+            'status' => DrawStatus::ResultPublished,
+            'draw_number' => 'locale-card-1',
+        ]);
+        DrawResult::query()->create([
+            'draw_id' => $draw->getKey(),
+            'first_prize' => '123456',
+            'second_prize' => [],
+            'third_prize' => [],
+            'consolation_prizes' => [],
+            'metadata' => ['glo' => ['import_provider' => 'fixture']],
+        ]);
+
+        $this->get('/results?lang=th')
+            ->assertOk()
+            ->assertSee('ผลรางวัลที่เผยแพร่')
+            ->assertSee('ข้อมูลตัวอย่าง');
+
+        $this->get('/results?lang=bn')
+            ->assertOk()
+            ->assertSee('প্রকাশিত ফলাফল')
+            ->assertSee('নমুনা তথ্য');
+    }
+
+    public function test_results_page_has_canonical_and_open_graph_metadata(): void
+    {
+        $content = (string) $this->get('/results')->assertOk()->getContent();
+
+        $this->assertStringContainsString('<link rel="canonical" href="'.route('results.index').'"', $content);
+        $this->assertStringContainsString('<meta property="og:type" content="website"', $content);
+    }
+
     public function test_results_page_never_labels_fixture_as_official(): void
     {
         $draw = Draw::factory()->create([
@@ -58,8 +107,33 @@ final class PublicResultsAnonymousTest extends TestCase
         $content = (string) $response->getContent();
         $response->assertSee(GloSourceState::FixtureOnly->value, false);
         $this->assertStringContainsString('FIXTURE_ONLY', $content);
+        $this->assertStringContainsString('1001, 1002, 2001', $content, 'Other published prize groups must not be omitted from the results table.');
         // Fixture rows must never carry the official badge on the same row block.
         $this->assertStringNotContainsString('OFFICIAL_SOURCE_VERIFIED', str_replace('FIXTURE_ONLY', '', $content));
+    }
+
+    public function test_prize_summary_does_not_promote_unknown_result_provider_to_verified(): void
+    {
+        Cache::forget('home.prize-summary');
+        $draw = Draw::factory()->create([
+            'scheduled_at' => now()->subDay(),
+            'status' => DrawStatus::ResultPublished,
+            'draw_number' => 'unknown-provider-1',
+        ]);
+        DrawResult::query()->create([
+            'draw_id' => $draw->getKey(),
+            'first_prize' => '123456',
+            'second_prize' => [],
+            'third_prize' => [],
+            'consolation_prizes' => [],
+            'metadata' => ['glo' => ['import_provider' => 'unrecognized-source']],
+        ]);
+
+        $summary = app(GloPublicPrizeSummaryService::class)->highlight();
+
+        $this->assertSame('AVAILABLE', $summary['status']);
+        $this->assertSame(GloSourceState::InternalReconciled->value, $summary['source_state']);
+        $this->assertFalse($summary['fixture_sample']);
     }
 
     public function test_metrics_route_requires_auth_and_staff_gate(): void

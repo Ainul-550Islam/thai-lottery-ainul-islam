@@ -14,7 +14,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
-use Tests\Concerns\RecordsCurrentLegalConsent;
 use Tests\TestCase;
 
 /*
@@ -29,7 +28,6 @@ use Tests\TestCase;
  */
 final class AccountVerificationFlowTest extends TestCase
 {
-    use RecordsCurrentLegalConsent;
     use RefreshDatabase;
 
     private User $player;
@@ -43,7 +41,6 @@ final class AccountVerificationFlowTest extends TestCase
             'phone' => '0812345678',
         ]);
 
-        $this->recordCurrentLegalConsent($this->player);
         Storage::fake('local');
     }
 
@@ -498,6 +495,15 @@ final class AccountVerificationFlowTest extends TestCase
         $front = KycDocument::query()->find($aggregate->front_document_id);
         $this->assertSame('verified', (string) $front->status->value);
 
+        // The page has a dedicated label for the document-level VERIFIED
+        // state; it must not expose a raw translation key.
+        $content = (string) $this->actingAs($this->player)
+            ->get(route('account.verification'))
+            ->assertOk()
+            ->getContent();
+        $this->assertStringContainsString('Verified', $content);
+        $this->assertStringNotContainsString('account_services.verification_status_VERIFIED', $content);
+
         // Audited with the reviewer identity.
         $this->assertDatabaseHas('audit_logs', ['user_id' => $reviewer->id]);
     }
@@ -625,6 +631,8 @@ final class AccountVerificationFlowTest extends TestCase
             ->assertOk()
             ->getContent();
         $this->assertStringContainsString('การยืนยันบัญชี', $content);
+        $this->assertStringContainsString('ส่งข้อมูลยืนยันตัวตนที่ร้องขอเพื่อให้ตรวจสอบบัญชี', $content);
+        $this->assertStringContainsString('ไม่ใช่ e-KYC ของรัฐบาล', $content);
         $this->assertStringContainsString('ยืนยันตอนนี้', $content);
 
         app()->setLocale('en');
@@ -633,6 +641,15 @@ final class AccountVerificationFlowTest extends TestCase
             ->assertOk()
             ->getContent();
         $this->assertStringContainsString('Account Verification', $content);
+        $this->assertStringContainsString('Document upload verification is not government e-KYC', $content);
+
+        app()->setLocale('bn');
+        $content = (string) $this->actingAs($this->player)
+            ->get(route('account.verification'))
+            ->assertOk()
+            ->getContent();
+        $this->assertStringContainsString('অ্যাকাউন্ট যাচাই', $content);
+        $this->assertStringContainsString('নথি আপলোডের এই যাচাই সরকারি ই-কেওয়াইসি', $content);
     }
 
     public function test_page_shows_no_other_users_data_or_internal_ids(): void

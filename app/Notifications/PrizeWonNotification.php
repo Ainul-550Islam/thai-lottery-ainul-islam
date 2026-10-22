@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Enums\Currency;
+use App\Enums\PrizeDisbursementStatus;
 use App\Models\PrizeDisbursement;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,15 +38,33 @@ class PrizeWonNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $amount = (string) $this->disbursement->prize_amount;
-        $currency = $this->disbursement->currency->value ?? 'THB';
+        $currency = $this->currencyCode();
         $drawId = (string) $this->disbursement->draw_id;
+        $status = $this->disbursement->status;
+        $statusValue = $status instanceof PrizeDisbursementStatus
+            ? $status->value
+            : (string) $status;
 
         return (new MailMessage)
-            ->subject('Congratulations! You Won a Lottery Prize!')
-            ->line("Your ticket #{$this->ticketNumber} matched the {$this->tierName} prize in Draw #{$drawId}.")
-            ->line("Prize Amount: {$amount} {$currency}")
-            ->action('View My Winnings', url('/player/bets'))
-            ->line('The winnings have been credited to your platform wallet.');
+            ->subject('Prize status update')
+            ->line("A prize result was recorded for ticket #{$this->ticketNumber} in Draw #{$drawId} ({$this->tierName}).")
+            ->line("Recorded prize amount: {$amount} {$currency}")
+            ->line('Current disbursement status: '.str_replace('_', ' ', $statusValue).'.')
+            ->line('This notification does not by itself confirm that funds are available for withdrawal. Sign in to review your current wallet and payout status.')
+            ->action('Review My Bets', url('/bets'));
+    }
+
+    private function currencyCode(): string
+    {
+        $currencyAttribute = $this->disbursement->getAttribute('currency');
+
+        if ($currencyAttribute instanceof Currency) {
+            return $currencyAttribute->value;
+        }
+
+        $currency = strtoupper(trim((string) $currencyAttribute));
+
+        return Currency::tryFromCode($currency)?->value ?? Currency::primary()->value;
     }
 
     /**
@@ -58,7 +78,7 @@ class PrizeWonNotification extends Notification implements ShouldQueue
             'ticket_number' => $this->ticketNumber,
             'tier_name' => $this->tierName,
             'prize_amount' => (string) $this->disbursement->prize_amount,
-            'currency' => $this->disbursement->currency->value ?? 'THB',
+            'currency' => $this->currencyCode(),
             'status' => (string) $this->disbursement->status->value,
             'reference_number' => (string) $this->disbursement->reference_number,
             'created_at' => now()->toIso8601String(),

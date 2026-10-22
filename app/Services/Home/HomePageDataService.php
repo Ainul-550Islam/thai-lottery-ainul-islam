@@ -10,6 +10,7 @@ use App\Services\Media\PublicAppLinkService;
 use App\Services\Payments\PublicPaymentMethodsService;
 use App\Services\Promotions\PublicBonusService;
 use App\Services\Support\PublicSupportService;
+use Illuminate\Support\Facades\Route;
 
 /**
  * Single composition point for the public Home page.
@@ -47,7 +48,7 @@ class HomePageDataService
         $resultsFeedData = $this->section(fn (): array => $this->resultFeed->getLatestResultsFeed());
 
         $hero = [
-            'status' => 'VERIFIED',
+            'status' => 'AVAILABLE',
             'app_name' => (string) config('app.name', 'Thai Lottery'),
             'draw_status' => $nextDraw['draw_status'] ?? null,
             'next_draw_iso' => $nextDraw['scheduled_at_iso'] ?? null,
@@ -61,6 +62,12 @@ class HomePageDataService
         $laneResults = $this->section(fn (): array => $this->laneResults->lanes());
         $prizeHighlight = $this->section(fn (): array => $this->gloHome->prizeCard());
         $paymentMethods = $this->section(fn (): array => $this->payments->publicMethods());
+        $trustBullets = array_values(array_filter(array_map(
+            static fn (mixed $bullet): ?string => is_string($bullet) && trim($bullet) !== ''
+                ? trim($bullet)
+                : null,
+            (array) config('home.trust.bullets', []),
+        )));
 
         return [
             'hero' => $hero,
@@ -99,13 +106,8 @@ class HomePageDataService
             'support' => $this->section(fn (): array => $this->support->contact()),
             'app_links' => $this->section(fn (): array => $this->appLinks->links()),
             'trust' => [
-                'status' => 'VERIFIED',
-                'bullets' => array_values(array_map('strval', (array) config('home.trust.bullets', [
-                    'Officially ingested from Government Lottery Office feeds',
-                    '256-bit SSL encrypted transactions with bank-grade security',
-                    'Transparent draw verification and immutable provenance',
-                    '24/7 dedicated multi-channel player support',
-                ]))),
+                'status' => $trustBullets === [] ? 'NOT_CONFIGURED' : 'CONFIGURED',
+                'bullets' => $trustBullets,
                 'message' => null,
             ],
             'products' => $this->section(fn (): array => $this->gloHome->productSummary()),
@@ -142,14 +144,14 @@ class HomePageDataService
     private function navigation(): array
     {
         $items = [
-            ['label' => 'Home', 'route' => 'home'],
-            ['label' => 'Results', 'route' => 'results.index'],
-            ['label' => 'Ticket Checker', 'route' => 'ticket-check'],
-            ['label' => 'Sales Points', 'route' => 'sales-points'],
-            ['label' => 'National Lottery', 'route' => 'national-lottery.index'],
-            ['label' => 'Weekly Lottery', 'route' => 'weekly-lottery.index'],
-            ['label' => 'Bingo Speed', 'route' => 'bingo-lottery.index'],
-            ['label' => 'PCSO 6D', 'route' => 'pcso-lottery.index'],
+            ['label_key' => 'home.nav_home', 'route' => 'home'],
+            ['label_key' => 'home.nav_results', 'route' => 'results.index'],
+            ['label_key' => 'home.nav_ticket_check', 'route' => 'ticket-check'],
+            ['label_key' => 'home.nav_sales_points', 'route' => 'sales-points'],
+            ['label_key' => 'home.nav_national_lottery', 'route' => 'national-lottery.index'],
+            ['label_key' => 'home.nav_weekly_lottery', 'route' => 'weekly-lottery.index'],
+            ['label_key' => 'home.nav_bingo', 'route' => 'bingo-lottery.index'],
+            ['label_key' => 'home.nav_pcso', 'route' => 'pcso-lottery.index'],
         ];
 
         $path = '';
@@ -163,14 +165,13 @@ class HomePageDataService
         $out = [];
 
         foreach ($items as $item) {
-            $url = '#';
-
-            try {
-                $url = route($item['route']);
-            } catch (\Throwable) {
-                // Route not registered in this environment: leave '#'.
+            // A missing route is not a valid public destination. Omit the item
+            // rather than rendering a deceptive href="#" placeholder.
+            if (! Route::has($item['route'])) {
+                continue;
             }
 
+            $url = route($item['route']);
             $active = false;
 
             if ($path !== '') {
@@ -180,7 +181,7 @@ class HomePageDataService
             }
 
             $out[] = [
-                'label' => $item['label'],
+                'label' => (string) trans($item['label_key'], [], app()->getLocale()),
                 'route' => $item['route'],
                 'url' => $url,
                 'active' => $active,
@@ -226,6 +227,7 @@ class HomePageDataService
             'payments_title' => (string) trans('home.payments_title', [], $locale),
             'support_title' => (string) trans('home.support_title', [], $locale),
             'app_title' => (string) trans('home.app_title', [], $locale),
+            'independent_disclaimer' => (string) trans('home.independent_disclaimer', [], $locale),
         ];
     }
 }

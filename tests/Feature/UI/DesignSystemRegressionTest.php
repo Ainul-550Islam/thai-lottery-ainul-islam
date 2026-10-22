@@ -51,7 +51,7 @@ class DesignSystemRegressionTest extends TestCase
         $this->assertStringContainsString('Draw #101', $rendered);
         $this->assertStringContainsString('2026-10-01', $rendered);
         $this->assertStringContainsString('123456', $rendered);
-        $this->assertStringContainsString('OFFICIAL SOURCE VERIFIED', $rendered);
+        $this->assertStringContainsString(trans('results.official_source_verified'), $rendered);
     }
 
     /**

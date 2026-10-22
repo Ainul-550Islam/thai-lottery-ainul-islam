@@ -187,15 +187,24 @@ body.lf-admin-body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    cursor: pointer;
 }
+
 
 .lf-user-avatar {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lf-text-muted);
+    background: var(--lf-bg-card);
     border: 1px solid var(--lf-border-main);
+}
+
+.lf-user-avatar svg {
+    width: 18px;
+    height: 18px;
 }
 
 .lf-user-info {

@@ -10,6 +10,7 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Signed, session/purpose-bound, sequentially single-use form timing evidence.
@@ -29,7 +30,7 @@ final class FormTimingSignal implements BotSignal
         $settings = $this->settings();
         $this->validatePurpose($purpose);
         if (! $request->hasSession() || $request->session()->getId() === '') {
-            throw new \RuntimeException('Form timing requires a session.');
+            throw new RuntimeException('Form timing requires a session.');
         }
 
         $session = $request->session();

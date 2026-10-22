@@ -2,14 +2,6 @@
 
 use App\Enums\AuditAction;
 
-$isLocalEnvironment = env('APP_ENV', 'production') === 'local';
-$viteDevelopmentSources = $isLocalEnvironment
-    ? ['http://localhost:5173', 'http://127.0.0.1:5173']
-    : [];
-$viteDevelopmentSocketSources = $isLocalEnvironment
-    ? ['ws://localhost:5173', 'ws://127.0.0.1:5173']
-    : [];
-
 /*
 |--------------------------------------------------------------------------
 | Application Security Configuration
@@ -44,12 +36,6 @@ return [
         'login' => [
             'max_attempts' => (int) env('RATE_LIMIT_LOGIN_ATTEMPTS', 5),
             'decay_minutes' => (int) env('RATE_LIMIT_LOGIN_DECAY_MINUTES', 15),
-            'by' => 'email_and_ip',
-        ],
-
-        'register' => [
-            'max_attempts' => (int) env('RATE_LIMIT_REGISTER_ATTEMPTS', 5),
-            'decay_minutes' => (int) env('RATE_LIMIT_REGISTER_DECAY_MINUTES', 60),
             'by' => 'email_and_ip',
         ],
 
@@ -251,53 +237,6 @@ return [
         'permissions_policy' => 'geolocation=(), microphone=(), camera=()',
         'hsts_max_age' => 31536000,
         'hsts_include_subdomains' => true,
-        'content_security_policy' => [
-            'enabled' => (bool) env('SECURITY_CSP_ENABLED', true),
-            'report_only' => (bool) env('SECURITY_CSP_REPORT_ONLY', false),
-            'nonce_directives' => ['script-src', 'style-src'],
-            'directives' => [
-                'default-src' => ["'self'"],
-                'base-uri' => ["'self'"],
-                'object-src' => ["'none'"],
-                'frame-ancestors' => ["'none'"],
-                'form-action' => ["'self'"],
-                'script-src' => [
-                    "'self'",
-                    ...$viteDevelopmentSources,
-                    'https://challenges.cloudflare.com',
-                    'https://hcaptcha.com',
-                    'https://*.hcaptcha.com',
-                ],
-                'style-src' => [
-                    "'self'",
-                    ...$viteDevelopmentSources,
-                    'https://cdnjs.cloudflare.com',
-                    'https://fonts.googleapis.com',
-                ],
-                'style-src-attr' => ["'unsafe-inline'"],
-                'img-src' => ["'self'", 'data:', 'blob:', 'https://images.unsplash.com'],
-                'font-src' => [
-                    "'self'",
-                    'data:',
-                    'https://fonts.gstatic.com',
-                    'https://cdnjs.cloudflare.com',
-                ],
-                'connect-src' => [
-                    "'self'",
-                    ...$viteDevelopmentSources,
-                    ...$viteDevelopmentSocketSources,
-                    'https://challenges.cloudflare.com',
-                    'https://hcaptcha.com',
-                    'https://*.hcaptcha.com',
-                ],
-                'frame-src' => [
-                    "'self'",
-                    'https://challenges.cloudflare.com',
-                    'https://hcaptcha.com',
-                    'https://*.hcaptcha.com',
-                ],
-            ],
-        ],
     ],
 
     /*

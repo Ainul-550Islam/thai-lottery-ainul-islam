@@ -45,6 +45,15 @@ final class AboutContentIntegrityTest extends TestCase
         $this->assertStringNotContainsString('href="#"', $content);
     }
 
+    public function test_about_and_vision_do_not_claim_unverified_glo_compatibility(): void
+    {
+        foreach ([route('about'), route('vision')] as $url) {
+            $content = (string) $this->get($url)->assertOk()->getContent();
+            $this->assertStringNotContainsStringIgnoringCase('GLO-compatible', $content);
+            $this->assertStringNotContainsStringIgnoringCase('GLO-style', $content);
+        }
+    }
+
     public function test_about_page_has_a_safe_empty_state_contract(): void
     {
         $data = app(AboutPageService::class)->data('en');

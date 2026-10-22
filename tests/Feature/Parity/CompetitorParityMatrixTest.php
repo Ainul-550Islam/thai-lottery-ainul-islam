@@ -27,6 +27,7 @@ final class CompetitorParityMatrixTest extends TestCase
             'C6 bonus / campaigns (home section)' => ['/'],
             'C10 support' => ['/support'],
             'C11 about' => ['/about'],
+            'C11 services landing' => ['/services'],
             'C11 how to play' => ['/how-to-play'],
             'C11 vision' => ['/vision'],
             'C12 contact' => ['/contact'],
@@ -81,6 +82,30 @@ final class CompetitorParityMatrixTest extends TestCase
     public function test_competitor_home_component_exists_as_a_view(string $view): void
     {
         $this->assertFileExists(resource_path('views/'.$view.'.blade.php'));
+    }
+
+    public function test_reintroduced_home_components_render_only_configured_claims(): void
+    {
+        $hero = (string) file_get_contents(resource_path('views/components/home/hero.blade.php'));
+        $offers = (string) file_get_contents(resource_path('views/components/home/bonus-section.blade.php'));
+        $countdown = (string) file_get_contents(resource_path('views/components/home/next-draw.blade.php'));
+        $stats = (string) file_get_contents(resource_path('views/components/home/stats.blade.php'));
+        $trust = (string) file_get_contents(resource_path('views/components/home/trust.blade.php'));
+
+        $this->assertStringContainsString("route('ticket-check')", $hero);
+        $this->assertStringContainsString("route('results.index')", $hero);
+        $this->assertStringNotContainsString('500,000+', $hero);
+        $this->assertStringNotContainsString('99.99%', $hero);
+        $this->assertStringContainsString('scheduled_at_iso', $countdown);
+        $this->assertStringNotContainsString('16 OCTOBER 2026', $countdown);
+        $this->assertStringNotContainsString("?? '24'", $countdown);
+        $this->assertStringContainsString("['campaigns']", $offers);
+        $this->assertStringNotContainsString('100% Match', $offers);
+        $this->assertStringNotContainsString('VIP', $offers);
+        $this->assertStringContainsString("!== 'AVAILABLE'", $stats);
+        $this->assertStringNotContainsString("!== 'VERIFIED'", $stats);
+        $this->assertStringContainsString("?? 'NOT_CONFIGURED'", $trust);
+        $this->assertStringNotContainsString("?? 'VERIFIED'", $trust);
     }
 
     public function test_bangla_is_part_of_the_locale_allow_list_for_c19(): void

@@ -42,6 +42,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $phone_verified_at
  * @property Carbon|null $last_login_at
+ * @property Carbon|null $last_seen_at
  * @property string|null $last_login_ip
  * @property array<string, mixed>|null $preferences
  * @property Carbon|null $created_at
@@ -90,6 +91,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     protected $hidden = [
         'password',
         'remember_token',
+        'last_seen_at',
     ];
 
     /**
@@ -105,20 +107,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'last_seen_at' => 'datetime',
             'preferences' => 'array',
         ];
-    }
-
-    /** @return HasMany<UserConsent> */
-    public function consents(): HasMany
-    {
-        return $this->hasMany(UserConsent::class);
-    }
-
-    /** @return HasOne<AgeVerification> */
-    public function ageVerification(): HasOne
-    {
-        return $this->hasOne(AgeVerification::class);
     }
 
     /**
