@@ -1,0 +1,1 @@
+var e=class{init(){document.getElementById(`initiateDepositBtn`)?.addEventListener(`click`,()=>{window.location.assign(`/deposit`)})}};if(typeof document<`u`){let t=()=>new e().init();document.readyState===`loading`?document.addEventListener(`DOMContentLoaded`,t):t()}

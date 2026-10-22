@@ -230,8 +230,32 @@ return [
     | Financial Audit
     |--------------------------------------------------------------------------
     |
-    | Financial audit rows are append only; retention is enforced by a
-    | scheduled prune command added in a later phase.
+    | Financial audit rows are append only. The 'audit' section at the bottom of
+    | this file declares a policy for them - enabled, append_only, retention_days
+    | (365 by default), log_balance_snapshots and an audited_events list - and no
+    | code reads a single one of those keys. That is worth saying in so many words,
+    | because the readable consequence is specific: setting AUDIT_LOG_RETENTION_DAYS
+    | in an environment changes nothing at all. Nothing prunes the table, so audit
+    | rows accumulate indefinitely, and nothing can turn audit writing off either -
+    | the writes are unconditional, so 'enabled' is not a switch anyone can use.
+    |
+    | The two sources even disagree about the window today: .env.example and .env.ci
+    | both set AUDIT_LOG_RETENTION_DAYS=3650, while the key below defaults to 365.
+    | Nothing reads either number, so the disagreement is harmless right now, and it
+    | stops being harmless the moment someone wires the key up without noticing that
+    | the template and the config mean different lengths of retention.
+    |
+    | There is also no prune command for this table. The only prune command in the
+    | application deletes webhook replay-guard rows, which are a different concern
+    | and are pruned on a schedule that is wired and tested.
+    |
+    | Deciding audit retention is not a code decision: how long an append-only audit
+    | trail must be kept is a compliance question, and a prune command written
+    | without that answer would delete evidence on purpose. The next person to touch
+    | this should either read the keys here from the code that enforces them - the
+    | prune task, and whatever honours 'enabled' - or delete them, so the file stops
+    | describing a control that does not exist. Until then, treat retention_days as
+    | documentation of an intent, not as configuration that is in force.
     |
     */
 

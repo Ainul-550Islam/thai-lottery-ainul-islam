@@ -1,0 +1,20 @@
+/* Tailwind 3 design semantics retained while its unpatched braces chain is removed.
+   Exact legacy theme values and MIT attribution live in tailwind-legacy-theme.json. */
+*, ::before, ::after, ::backdrop, ::file-selector-button {
+    border-color: #e5e7eb;
+}
+
+@utility outline-none {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    /* Override the built-in v4 outline-none style while retaining a transparent forced-colors outline. */
+    outline-style: solid !important;
+}
+
+@source inline("blur");
+
+/* Tailwind 4 removes the unsuffixed blur alias. Keep its composable legacy value. */
+@utility blur {
+    --tw-blur: blur(8px);
+    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
+}

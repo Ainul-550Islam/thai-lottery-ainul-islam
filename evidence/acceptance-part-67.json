@@ -1,0 +1,153 @@
+{
+  "part": 67,
+  "passed": true,
+  "scope": "Current owner-serialized open-quote slot admission with a bounded current-ID selection, physical transaction enforcement before decisive quote lookup/consumption and second-resolution shared admission/issue/expiry facts. Existing financial replay, accounting, rolling allowance and reversal authority retained.",
+  "default": {
+    "passed": true,
+    "cases": 4339,
+    "assertions": 143606,
+    "skipped": 201,
+    "errors": 0,
+    "failures": 0,
+    "source_files": 315,
+    "exact_discovery_matched": true,
+    "all_previous_4304_case_ids_retained": true
+  },
+  "native": {
+    "passed": true,
+    "cases": 566,
+    "assertions": 7503,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "genuine_two_child_parent_waits": 58,
+    "new_old_rr_quote_slot_profiles": 4
+  },
+  "dedicated_quote_slots": {
+    "passed": true,
+    "cases": 35,
+    "assertions": 191,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "overlap": "Default/native/focused/static/standalone overlap; never add suite counts.",
+  "omission_controls": {
+    "total": 9,
+    "expected_assertion_failures": 9,
+    "setup_errors": 0,
+    "genuine_two_child_current_read_controls": 4,
+    "parent_and_both_child_shadow_quote_service_and_repository_sources_proved": true
+  },
+  "syntax": {
+    "php_files": 2173,
+    "changed_php_pint_files": 7
+  },
+  "python_tests": 86,
+  "static": {
+    "passed": true,
+    "cases": 35,
+    "assertions": 1718,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "standalone": {
+    "passed": true,
+    "cases": 29,
+    "assertions": 94,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "node": "24.22.0",
+    "npm": "11.21.1",
+    "genuine_vite_build": true
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true,
+    "retired_settlement_worker_activated": false
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part67_migrations": 0,
+    "engine": "separate empty SQLite store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 158,
+    "historical_backfill": false,
+    "populated_production_upgrade": false
+  },
+  "ci_workflow_local_parse": {
+    "parsed": true,
+    "mandatory_previous_22_case_step_python_compiled": true,
+    "four_distinct_wallet_owner_waits_required": true,
+    "mandatory_new_55_case_step_python_compiled": true,
+    "three_old_rr_proof_profiles_required": true,
+    "mandatory_current_46_case_step_python_compiled": true,
+    "six_old_rr_cached_authority_profiles_required": true,
+    "remote_ci_executed": false,
+    "new_35_case_step_python_compiled": true,
+    "four_old_count_rr_two_child_profiles_matched": true
+  },
+  "current_frozen_sources": {
+    "app/Repositories/Wallet/WalletConversionQuoteRepository.php": "c4a35173c86164c02c5ea74308b60723e609dfbf0f0db21b61821f6b9c22d35c",
+    "app/Services/Wallet/Conversion/ConversionQuoteService.php": "ae9df9eb5b2c56ede4f356502c4c554fc26c174d5004c59f1e641a688b2b6dff",
+    "tests/Support/ConversionQuoteSlotFixture.php": "de063dc9986a607d8d42e40093ee83b540df3462f97d966e4b6531aa96787f88",
+    "tests/Feature/Wallet/Conversion/ConversionQuoteSlotTest.php": "50b6c342987b814ed8cd5e6388fda31f60f7fbc7dfcb32fe7441e9237f08cb4c",
+    "tests/Feature/Wallet/Conversion/ConversionQuoteSlotServerTest.php": "5d35c7acbe618184249855cb9d09144c398d0e19712769d6da5a271870bacc00",
+    "tests/Support/FinancialRaceProbe.php": "f621d51ec304ec451695d67ca1178ca8904c827c320fea3368af57ad5f42614f",
+    "tests/Support/RunsServerFinancialRaces.php": "e220b1cba2baf228465e6c8250ca19380b03fc91566416a44a7bfbbd9398ea6e",
+    ".github/workflows/financial-concurrency.yml": "fdbe7488eb3997e718a1134d10f4098e464d5909b95eef70b71c91319586be9b",
+    "scripts/release_source_inventory.py": "d4630f0e1acabeab36ecbe4ce7330a2c98f1c65d289888c9ce26d651b7ef9664"
+  },
+  "provenance": {
+    "complete_current_discovery_executed": true,
+    "all_previous_4304_ids_retained": true,
+    "existing_assertions_not_weakened": true,
+    "each_default_source_file_has_separate_process_and_named_tmpfs_sqlite_database": true,
+    "no_journaling_or_synchronous_policy_disabled": true,
+    "real_parent_quote_creation_and_financial_consumption_not_raw_lifecycle_rewrites_for_native_profiles": true,
+    "raw_noncanonical_lifecycle_currency_facts_are_only_eligibility_fixtures_not_execution_receipts": true,
+    "owner_principal_mutex_preserved_in_accepted_native_controls": true,
+    "initial_missing_gd_setup_diagnostic_excluded": true,
+    "complete_default_rerun_with_gd_loaded_and_distinct_framework_fake_storage_tokens": true,
+    "initial_parallel_fake_storage_collision_diagnostic_excluded": true,
+    "ineffective_explicit_second_rounding_omission_diagnostic_excluded": true
+  },
+  "returned_ids_bounded_by_effective_configured_ceiling": true,
+  "total_database_scan_work_or_all_engine_locks_bounded": false,
+  "slot_is_wallet_hold_or_financial_reservation": false,
+  "all_privileged_quote_or_lifecycle_writers_serialized": false,
+  "all_historical_positive_rows_accounting_certified": false,
+  "qualified_accounting_timezone": "Asia/Bangkok fixed offset",
+  "custom_dst_accounting_timezones_certified": false,
+  "arbitrary_privileged_writer_or_other_isolation_certification": false,
+  "historical_repairs_or_backfills": false,
+  "new_migrations": 0,
+  "provider_io_inside_sql": false,
+  "remote_ci_executed": false,
+  "live_provider_transfer_or_refund": false,
+  "populated_production_upgrade_restore": false,
+  "all_writer_or_cross_currency_global_risk_certification": false,
+  "worldwide_legal_approval": false
+}

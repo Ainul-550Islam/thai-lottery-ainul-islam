@@ -11,7 +11,10 @@ use App\Models\User;
 /**
  * Authorization for bet amendment.
  *
- * Same ownership-first shape as BetCancellationPolicy: a player amends only
+ * Same ownership-first shape as the cancellation service enforces: a player amends only
+ * their own bet, and an operator needs a real permission phrase. This policy is NOT consulted by
+ * the amendment endpoint - BetAmendmentController calls no authorize() and BetAmendmentService
+ * scopes its own query - so it documents intent rather than enforcing it.
  * their own bet; an operator with the bet permission phrases may amend any.
  * Domain eligibility (window, draw state, valid replacement) belongs to
  * BetAmendmentService and is never answered here.

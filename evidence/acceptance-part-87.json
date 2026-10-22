@@ -1,0 +1,685 @@
+{
+  "passed": true,
+  "part": 87,
+  "default": {
+    "cases": 5786,
+    "assertions": 155323,
+    "skipped": 265,
+    "errors": 0,
+    "failures": 0
+  },
+  "default_isolated_source_files": 349,
+  "native": {
+    "cases": 2064,
+    "assertions": 21013,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "native_raw": {
+    "cases": 2065,
+    "assertions": 21013,
+    "skipped": 1,
+    "errors": 0,
+    "failures": 0
+  },
+  "focused_subset": {
+    "cases": 54,
+    "assertions": 786,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "focused_sqlite": {
+    "cases": 54,
+    "assertions": 786,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "overlapping_not_additive": true,
+  "retained_case_ids": {
+    "part86-default-accepted-junit.xml": {
+      "case_ids": 5732,
+      "all_retained": true
+    },
+    "part86-native-accepted-junit.xml": {
+      "case_ids": 2010,
+      "all_retained": true
+    }
+  },
+  "genuine_contention_profiles": 112,
+  "general_two_child_parent_wait_profiles": 105,
+  "retry_profiles": 4,
+  "ledger_root_profiles": 3,
+  "all_previous_profiles_retained": true,
+  "new_contention_profiles": 0,
+  "counterfactual": {
+    "passed": true,
+    "healthy_controls": 6,
+    "qualified_expected_failures": 6,
+    "exact_original_part86_baseline": true,
+    "production_source_and_test_unchanged": true,
+    "production_sha256": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+    "part86_source_sha256": "01ae9257390421a869e88d218fc0d8ad4d9b684afd35b7de63ad9242ba5ce580",
+    "runs": [
+      {
+        "driver": "sqlite",
+        "kind": "account-saving",
+        "position": 0,
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ]
+        ],
+        "independent_journal_values": [],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "sqlite",
+        "kind": "account-saving",
+        "position": 0,
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "01ae9257390421a869e88d218fc0d8ad4d9b684afd35b7de63ad9242ba5ce580",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0"
+          ],
+          [
+            "10"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ]
+        ],
+        "independent_journal_values": [
+          [
+            "debit",
+            "10"
+          ],
+          [
+            "credit",
+            "10"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "domain_code": null,
+          "journal_rows_before_owner_handling": 2,
+          "account_balances_before_owner_handling": [
+            0,
+            10
+          ],
+          "committed_journal_rows": 2,
+          "caller_depth_before_owner_handling": 1,
+          "physical_before_owner_handling": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "sqlite",
+        "kind": "account-updating",
+        "position": 1,
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 1,
+        "committed_journal_imbalance": "10",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ]
+        ],
+        "independent_journal_values": [
+          [
+            "debit",
+            "10"
+          ]
+        ],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "sqlite",
+        "kind": "account-updating",
+        "position": 1,
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "01ae9257390421a869e88d218fc0d8ad4d9b684afd35b7de63ad9242ba5ce580",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ]
+        ],
+        "independent_journal_values": [
+          [
+            "debit",
+            "10"
+          ],
+          [
+            "credit",
+            "10"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "domain_code": null,
+          "journal_rows_before_owner_handling": 2,
+          "account_balances_before_owner_handling": [
+            10,
+            0
+          ],
+          "committed_journal_rows": 2,
+          "caller_depth_before_owner_handling": 1,
+          "physical_before_owner_handling": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "sqlite",
+        "kind": "entry-saving",
+        "position": 0,
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ]
+        ],
+        "independent_journal_values": [],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "sqlite",
+        "kind": "entry-saving",
+        "position": 0,
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "01ae9257390421a869e88d218fc0d8ad4d9b684afd35b7de63ad9242ba5ce580",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 1,
+        "committed_journal_imbalance": "-10",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10"
+          ],
+          [
+            "10"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ],
+          [
+            "0"
+          ]
+        ],
+        "independent_journal_values": [
+          [
+            "credit",
+            "10"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": "App\\Exceptions\\FinancialException",
+          "domain_code": "ledger_unbalanced_posting",
+          "journal_rows_before_owner_handling": 1,
+          "account_balances_before_owner_handling": [
+            10,
+            10
+          ],
+          "committed_journal_rows": 1,
+          "caller_depth_before_owner_handling": 1,
+          "physical_before_owner_handling": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "mysql",
+        "kind": "account-saving",
+        "position": 0,
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ]
+        ],
+        "independent_journal_values": [],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "mysql",
+        "kind": "account-saving",
+        "position": 0,
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "01ae9257390421a869e88d218fc0d8ad4d9b684afd35b7de63ad9242ba5ce580",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0.00"
+          ],
+          [
+            "10.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ]
+        ],
+        "independent_journal_values": [
+          [
+            "debit",
+            "10.00"
+          ],
+          [
+            "credit",
+            "10.00"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "domain_code": null,
+          "journal_rows_before_owner_handling": 2,
+          "account_balances_before_owner_handling": [
+            "0.00",
+            "10.00"
+          ],
+          "committed_journal_rows": 2,
+          "caller_depth_before_owner_handling": 1,
+          "physical_before_owner_handling": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "mysql",
+        "kind": "account-updating",
+        "position": 1,
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 1,
+        "committed_journal_imbalance": "10.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ]
+        ],
+        "independent_journal_values": [
+          [
+            "debit",
+            "10.00"
+          ]
+        ],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "mysql",
+        "kind": "account-updating",
+        "position": 1,
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "01ae9257390421a869e88d218fc0d8ad4d9b684afd35b7de63ad9242ba5ce580",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ]
+        ],
+        "independent_journal_values": [
+          [
+            "debit",
+            "10.00"
+          ],
+          [
+            "credit",
+            "10.00"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "domain_code": null,
+          "journal_rows_before_owner_handling": 2,
+          "account_balances_before_owner_handling": [
+            "10.00",
+            "0.00"
+          ],
+          "committed_journal_rows": 2,
+          "caller_depth_before_owner_handling": 1,
+          "physical_before_owner_handling": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "mysql",
+        "kind": "entry-saving",
+        "position": 0,
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ]
+        ],
+        "independent_journal_values": [],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "mysql",
+        "kind": "entry-saving",
+        "position": 0,
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "01ae9257390421a869e88d218fc0d8ad4d9b684afd35b7de63ad9242ba5ce580",
+        "shadow_test_sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+        "committed_journal_rows": 1,
+        "committed_journal_imbalance": "-10.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10.00"
+          ],
+          [
+            "10.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ],
+          [
+            "0.00"
+          ]
+        ],
+        "independent_journal_values": [
+          [
+            "credit",
+            "10.00"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": "App\\Exceptions\\FinancialException",
+          "domain_code": "ledger_unbalanced_posting",
+          "journal_rows_before_owner_handling": 1,
+          "account_balances_before_owner_handling": [
+            "10.00",
+            "10.00"
+          ],
+          "committed_journal_rows": 1,
+          "caller_depth_before_owner_handling": 1,
+          "physical_before_owner_handling": true,
+          "committed_caller_marker_rows": 1
+        }
+      }
+    ],
+    "scope": "Synthetic committed probes only. Original account-save veto silently succeeds with two balanced rows and one stale cached balance; original first-entry veto continues and fails late with a credit-only row. New guards stop on the refused save; earlier accepted DML remains caller-owned and requires whole-operation rollback. Thirty-two ordinary refusal cases prove that rollback."
+  },
+  "auxiliary": {
+    "passed": true,
+    "php_linted": 2224,
+    "pint_files": 2,
+    "python_tests": 100,
+    "genuine_locked_vite_build": true,
+    "rust_locked_tests": 27,
+    "rust_release_build": true,
+    "workflow_parsed_not_remotely_run": true,
+    "new_54_case_write_refusal_gate": true,
+    "retained_72_case_callback_journal_gate": true,
+    "retained_100_case_input_witness_gate": true,
+    "retained_88_case_reentrancy_gate": true,
+    "retained_88_case_boundary_gate": true,
+    "retained_88_case_payload_gate": true,
+    "retained_73_case_gate": true,
+    "retained_82_case_gate": true,
+    "retained_25_case_gate": true,
+    "retained_18_and_21_case_gates": true,
+    "frozen_implementation_files": 4,
+    "no_new_javascript_test_execution_claim": true
+  },
+  "composer_advisories": 0,
+  "composer_abandoned": 0,
+  "tested_source_sha256": {
+    "app/Services/Finance/LedgerPostingService.php": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+    "tests/Feature/Finance/LedgerPostingWriteRefusalTest.php": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+    ".github/workflows/financial-concurrency.yml": "28bec1859fbe46d6a1480efe895ab719e4d967055af8b3d58f977d936f640b97",
+    "scripts/release_source_inventory.py": "81de76253ae497204d370f3ee29b41b6f5db1154fcd3f9dd7b3f1c7fa67508d2"
+  },
+  "source_preflight_sha256": "21d5f05166c81ea13df7e0b7653a462c35eda88378a9f07f7fb5c7df3e389868",
+  "scope": "False account or ledger model save returns stop posting immediately with a domain refusal. Earlier accepted writes remain caller-owned and require whole-operation rollback. No event bypass, row-count witness, callback sandbox, provider transfer, remote CI, production restore or worldwide approval."
+}

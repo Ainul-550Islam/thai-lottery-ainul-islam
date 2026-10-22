@@ -7,6 +7,7 @@ namespace Tests\Feature\Queue;
 use App\DTOs\BetPurchaseData;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
 use App\DTOs\Payment\WebhookPayload;
+use App\Enums\AuditAction;
 use App\Enums\BetType;
 use App\Enums\Currency;
 use App\Enums\DrawStatus;
@@ -717,13 +718,21 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         $job->handle();
 
+        // This row used to be located by the fake subject the job wrote for it
+        // (auditable_type = AuditLog::class, auditable_id = 0), which is what an
+        // audit row about a run looks like when nothing pins the columns. The
+        // action is the fact that identifies it, and the subject is null now
+        // because there is no row for it to point at. Cluster #47.
         $audit = AuditLog::query()
-            ->where('auditable_type', AuditLog::class)
+            ->where('action', AuditAction::SecurityAlert->value)
             ->latest('id')
             ->first();
 
         $this->assertNotNull($audit);
         $this->assertSame(RiskLevel::Critical, $audit->risk_level);
         $this->assertStringContainsString('Audit Warning', $audit->description);
+        $this->assertNull($audit->auditable_type);
+        $this->assertNull($audit->auditable_id);
+        $this->assertSame('financial_alert', $audit->metadata['lane']);
     }
 }

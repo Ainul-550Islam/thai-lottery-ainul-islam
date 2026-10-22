@@ -1,0 +1,6 @@
+evidence for the phase-0 baseline, quoted so the artifact cannot drift into the present tense
+  2026-10-01, at 1c21115: php artisan test reported 466 failed / 1556 passed / 5 skipped / 106389 assertions,
+                   exit FAILING, 307.74s. Reproduced from runtime/production-blocker-baseline.json
+                   (test_baseline), which is the file that recorded it.
+  2026-10-16: 0 failed / 2860 passed / 5 skipped / 117989 assertions, exit 0 (suite-final-summary.txt).
+  The two numbers describe different trees. That is why each now carries a date.

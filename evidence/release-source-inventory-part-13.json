@@ -1,0 +1,5152 @@
+{
+  "schema_version": 1,
+  "scope": "STATIC_ONLY",
+  "runtime_verified": false,
+  "production_verified": false,
+  "live_payment_verified": false,
+  "official_source_verified": false,
+  "page_mapping_verified": false,
+  "sources": [
+    {
+      "path": "tests/Feature/Finance/WalletWriteRefusalTest.php",
+      "exists": true,
+      "sha256": "8511e7eb26c890431d9c0d4aca8b5be08b1e4abeeae8fd3279cb5ad2fec9c17d",
+      "bytes": 14385
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingWriteRefusalTest.php",
+      "exists": true,
+      "sha256": "e28d13b6431011fc785fd82a25f50886cd7f5641bf76575b8e1896532a1a3199",
+      "bytes": 10941
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingCallbackJournalTest.php",
+      "exists": true,
+      "sha256": "419b4a523ec35aa73eb3ab287b5166e3dbd934c7689c02250044d9709010ddee",
+      "bytes": 9808
+    },
+    {
+      "path": "app/Services/Finance/LedgerPostingInputWitness.php",
+      "exists": true,
+      "sha256": "163e387f1236ad6bac6f1ecad2fd91dbd9863f2a2fec19ff9335bd7ba0d679d3",
+      "bytes": 3087
+    },
+    {
+      "path": "tests/Unit/Services/LedgerPostingInputWitnessTest.php",
+      "exists": true,
+      "sha256": "d64ce94bc5eb5a46ae6d788f03f3d50690f4764e4f8b61589b60a127c314358b",
+      "bytes": 7424
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingInputDriftTest.php",
+      "exists": true,
+      "sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+      "bytes": 8992
+    },
+    {
+      "path": "app/Services/Finance/LedgerPostingInvocationLease.php",
+      "exists": true,
+      "sha256": "c141b41bde4b27c4ca72bcc32885cf9e9966e5d0d34a8fda2181f09e20d0fe6d",
+      "bytes": 1672
+    },
+    {
+      "path": "tests/Unit/Services/LedgerPostingInvocationLeaseTest.php",
+      "exists": true,
+      "sha256": "3a82eeb368e827cf3ad841e33c30ceeb26e521309b4c47bdc249e491b215e08d",
+      "bytes": 6396
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingReentrancyTest.php",
+      "exists": true,
+      "sha256": "bd57b541f02f93aa29c38d7452161d96ee84329301ed945505d594f6e90cebd3",
+      "bytes": 10290
+    },
+    {
+      "path": "app/Services/Finance/LedgerPostingWriteBoundary.php",
+      "exists": true,
+      "sha256": "d414675f909a9ae9c25ef52bb89f882220a779c3194a3c5260264fb72a8df649",
+      "bytes": 3418
+    },
+    {
+      "path": "tests/Unit/Services/LedgerPostingWriteBoundaryTest.php",
+      "exists": true,
+      "sha256": "66b8d620c2eb478d200413ecd822150d3365577a288425f6ef89a0ccedc67087",
+      "bytes": 6908
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingWriteBoundaryTest.php",
+      "exists": true,
+      "sha256": "46c6077bf3c28a5253035784d835aa6311ef43912d1bfa099f793055365c63f8",
+      "bytes": 9675
+    },
+    {
+      "path": "app/Services/Finance/LedgerEntryPayloadPreflight.php",
+      "exists": true,
+      "sha256": "806533f02f66de343f282a84593cc5b7a782d7e1a8716b8d83f04e934ae86075",
+      "bytes": 3474
+    },
+    {
+      "path": "tests/Unit/Services/LedgerEntryPayloadPreflightTest.php",
+      "exists": true,
+      "sha256": "19951b4136756b41a0e228eac653b47bddf9bc60962aa68cc569f69f6b1ab2bb",
+      "bytes": 7688
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingEntryPayloadTest.php",
+      "exists": true,
+      "sha256": "af3a2f8ce6f6f96d1fe55022014450a714aa8e3c665a7b3b540f8d521e23e092",
+      "bytes": 9923
+    },
+    {
+      "path": "app/Services/Finance/LedgerEntryMoneyPreflight.php",
+      "exists": true,
+      "sha256": "761e358cf665215525d54fb9695b139fb13f1be85a34643c83126d9aebf26df5",
+      "bytes": 3373
+    },
+    {
+      "path": "tests/Unit/Services/LedgerEntryMoneyPreflightTest.php",
+      "exists": true,
+      "sha256": "af4d6e1a1c1082950e34a50d2bf36d89c0b6168ea1fbd0a2468f87e96e1ba2d1",
+      "bytes": 7021
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingEntryMoneyTest.php",
+      "exists": true,
+      "sha256": "d20d6a9c13c236300c4d0d6ebde0ac6958a32ee49e1f4adbed7478fe4386d4a9",
+      "bytes": 8091
+    },
+    {
+      "path": "app/Services/Finance/LedgerAccountBalanceProjector.php",
+      "exists": true,
+      "sha256": "54641f122ce05d403e7ab07692daa3425e339aa5fa1f204dd08cddd82b120509",
+      "bytes": 2524
+    },
+    {
+      "path": "tests/Unit/Services/LedgerAccountBalanceProjectorTest.php",
+      "exists": true,
+      "sha256": "2d49202df55b6374bee7acb06f31e26a9943b14a5d1011620e657357637b977a",
+      "bytes": 6720
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingBalanceProjectionTest.php",
+      "exists": true,
+      "sha256": "7a27add8e7829024ec6d43ec6bf8693ae00cfb9cc17262c61729cdae7e22ea85",
+      "bytes": 9399
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingDraftIdentityTest.php",
+      "exists": true,
+      "sha256": "c875de1b9fa456df6627ad0cbf08c072a9e866f3c499c92903258bb26485c6d1",
+      "bytes": 11628
+    },
+    {
+      "path": "app/Services/Finance/LedgerPostingObserver.php",
+      "exists": true,
+      "sha256": "7135e61ce59aafe5117d341fa7611ddfa164236abfe85232e65529cc55320d7e",
+      "bytes": 3622
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingObserverOwnershipTest.php",
+      "exists": true,
+      "sha256": "153d6a7c6c283d2229945f61685014649dc1c3bdffb8c9fb8ab7e600420c579c",
+      "bytes": 11558
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingCurrentReadTest.php",
+      "exists": true,
+      "sha256": "e8eda867c86b7eeee9995cd42d15d4356467f105d33ae94ff4eb0a875aef6e27",
+      "bytes": 7702
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingCurrentReadServerTest.php",
+      "exists": true,
+      "sha256": "a9932eafdd28d899144af06ae5939a403494b0487dec7573676970da6869c239",
+      "bytes": 10169
+    },
+    {
+      "path": "tests/Support/LedgerPostingProbe.php",
+      "exists": true,
+      "sha256": "dcb283626bd5f4c9fcaf6a894aa95cfe983e56736084941f3c3fb2255cac5052",
+      "bytes": 3701
+    },
+    {
+      "path": "tests/Feature/Finance/LedgerPostingAdmissionTest.php",
+      "exists": true,
+      "sha256": "1f4fce0b3920a750c1d1b3684a2251c457163dd1ddcd389e8cd926aa49baaea7",
+      "bytes": 9913
+    },
+    {
+      "path": "tests/Feature/Finance/FinancialModelRoutingContextTest.php",
+      "exists": true,
+      "sha256": "751bfd981a62c0db7982f422ec51063288d486d5d15b48b9f0bd4a0f71c2428c",
+      "bytes": 10981
+    },
+    {
+      "path": "app/Services/Finance/FinancialRecordIdentifier.php",
+      "exists": true,
+      "sha256": "e754137067f6726dc907aaad72fda073b794922469354ee2ff700b8f41ff1112",
+      "bytes": 3460
+    },
+    {
+      "path": "tests/Unit/FinancialRecordIdentifierTest.php",
+      "exists": true,
+      "sha256": "1b5a473435b890975ba5d93d962bfc0930d397552e481701a827d2d02465cdbc",
+      "bytes": 2421
+    },
+    {
+      "path": "tests/Feature/Finance/FinancialIdentifierRoutingTest.php",
+      "exists": true,
+      "sha256": "4a3b9ebe8d60f803cbbdc7d3a2cfacab084ef666f286da2b23e6993b790b533f",
+      "bytes": 7000
+    },
+    {
+      "path": "tests/Feature/Finance/FinancialRetryOwnershipTest.php",
+      "exists": true,
+      "sha256": "e4e810c253ea695c8888e12f1caf9ea84e148309a06d4b8c7c2460a5d40f9fd9",
+      "bytes": 10114
+    },
+    {
+      "path": "tests/Feature/Finance/FinancialRetryOwnershipServerTest.php",
+      "exists": true,
+      "sha256": "cb79fbf94bb45166d9ff8c8168a0f927829adfa08f86d65985eabae0375ff845",
+      "bytes": 8458
+    },
+    {
+      "path": "tests/Support/FinancialRetryProbe.php",
+      "exists": true,
+      "sha256": "bbd95a93d6b172a52fd27dc13589902425b45cf42909d82046b5954355d07ac0",
+      "bytes": 6184
+    },
+    {
+      "path": "scripts/verify_financial_retry_ci.py",
+      "exists": true,
+      "sha256": "1f463b91c15afe058c73798b9c173e754daa521f2f6ebd002087b6e987ac1f85",
+      "bytes": 3874
+    },
+    {
+      "path": "scripts/test_verify_financial_retry_ci.py",
+      "exists": true,
+      "sha256": "d93e982d4e73f9e26499e5bf21a75afb907c9cf008d6b8447f25a24eafccaf89",
+      "bytes": 4087
+    },
+    {
+      "path": "app/Services/Finance/FinancialStateTransitionService.php",
+      "exists": true,
+      "sha256": "c24ce354e1d7c8c25266fa60a84fa1e34c0b9314ba53f9e981f689c73c79c9c9",
+      "bytes": 18829
+    },
+    {
+      "path": "tests/Support/LifecycleBoundaryOperation.php",
+      "exists": true,
+      "sha256": "ffec18717364138cbe8228ac5b1611ee427ff8b7633e03c4ac21ef9a8b38f20e",
+      "bytes": 2117
+    },
+    {
+      "path": "tests/Feature/Finance/LifecycleTransactionBoundaryTest.php",
+      "exists": true,
+      "sha256": "53b73ecd9b1bba2d634b0215fb71be94d2edc3d4dafe1d875503cdd36d2b7983",
+      "bytes": 11953
+    },
+    {
+      "path": "tests/Feature/Finance/LifecycleTransactionBoundaryServerTest.php",
+      "exists": true,
+      "sha256": "d26e65641f6241612995723e8c39afb83b1da9ac8c2e5d716c341c0f083e134c",
+      "bytes": 3156
+    },
+    {
+      "path": "scripts/verify_lifecycle_boundary_ci.py",
+      "exists": true,
+      "sha256": "05ea05baa480638bdfe33e80027631e8ac0df4d4f9a6f6b09a27713bc38d5ecb",
+      "bytes": 2925
+    },
+    {
+      "path": "scripts/test_verify_lifecycle_boundary_ci.py",
+      "exists": true,
+      "sha256": "fc856fc8e33b0aeea086c1763faf3ff09a7c62a366a49f0ecb917368f18dae6f",
+      "bytes": 4008
+    },
+    {
+      "path": "tests/Support/ReversalBoundaryOperation.php",
+      "exists": true,
+      "sha256": "34fadb7ce44fbb265550715935d64defd1072f615d0772f7734dd0f6657949e3",
+      "bytes": 4185
+    },
+    {
+      "path": "tests/Feature/Finance/ReversalTransactionBoundaryTest.php",
+      "exists": true,
+      "sha256": "45e0b0765c86b26e53c4d7917c5bf6ecff9ec67797bc2e56a5ed549098b7af3f",
+      "bytes": 11932
+    },
+    {
+      "path": "tests/Feature/Finance/ReversalTransactionBoundaryServerTest.php",
+      "exists": true,
+      "sha256": "6e6650c342fb7fa926460812088ed1c3508baf673ebd236981973e8aa21315db",
+      "bytes": 4056
+    },
+    {
+      "path": "app/Services/Finance/WalletLockService.php",
+      "exists": true,
+      "sha256": "eafd549263e5036331d728a0a8b5176a9568b103ae8a74b5e63ea7309ef082ab",
+      "bytes": 11450
+    },
+    {
+      "path": "app/Services/Finance/WalletHoldService.php",
+      "exists": true,
+      "sha256": "eb95c85a52c3dd004da7e5b5a4fd598d030ce8052a1cfbe318faf76522341370",
+      "bytes": 18313
+    },
+    {
+      "path": "app/Services/Finance/FinancialTransactionService.php",
+      "exists": true,
+      "sha256": "354460f7749f9291aa16f655039c6ce5cc9f20a3b8b31795790d62267f4417b8",
+      "bytes": 19672
+    },
+    {
+      "path": "tests/Support/WalletBoundaryOperation.php",
+      "exists": true,
+      "sha256": "337846de2112c5d7d72aa41b8b756eeb423b9d2724e9287df7023e2093f17623",
+      "bytes": 3865
+    },
+    {
+      "path": "tests/Feature/Finance/WalletTransactionBoundaryTest.php",
+      "exists": true,
+      "sha256": "91419ca86fc51ca663446a8109ad3ed7342e99a2f05cda7895b2579b1a04520d",
+      "bytes": 9970
+    },
+    {
+      "path": "tests/Feature/Finance/WalletTransactionBoundaryServerTest.php",
+      "exists": true,
+      "sha256": "e77d4b17bc2d4971420c2b67a1e009026cfbf93acda2e450e0ca24d4d899b42a",
+      "bytes": 3787
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/ConversionWalletEligibility.php",
+      "exists": true,
+      "sha256": "686ec74c030999d23b167496cf1058fbaee0a35cdf54612ec2e17b33f5136e40",
+      "bytes": 5087
+    },
+    {
+      "path": "tests/Support/ConversionWalletEligibilityFixture.php",
+      "exists": true,
+      "sha256": "aa7b64a7fd4cdd29f9b67321be9d3952e707ef3a941feb645b409ccb1dd508c2",
+      "bytes": 3820
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionWalletEligibilityTest.php",
+      "exists": true,
+      "sha256": "18f3d551c49605ab2d595c75045a93adb8f8e31f1c542182b803e12b4c70a594",
+      "bytes": 8998
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionWalletEligibilityServerTest.php",
+      "exists": true,
+      "sha256": "41abe73a349d939f51d2114b7f00b8d03994a23491829cf0fd6a1a225c3f671f",
+      "bytes": 2907
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/ConversionMemberEligibility.php",
+      "exists": true,
+      "sha256": "8db203fb4b9ec918e6e76897fc16ef638062684b05b9b4fa02d17337f97a70a9",
+      "bytes": 6669
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/ConversionPolicyGuard.php",
+      "exists": true,
+      "sha256": "aea8fd75aa57b13085fd599ec29e60e070f3425f696e0798f3ef6de75aba28a4",
+      "bytes": 3191
+    },
+    {
+      "path": "tests/Support/ConversionMemberEligibilityFixture.php",
+      "exists": true,
+      "sha256": "55bfce6ed82e1b7663180a2797d06f533796b9a8a302f13fe0dc03c0a9ba876d",
+      "bytes": 3776
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionMemberEligibilityTest.php",
+      "exists": true,
+      "sha256": "cfc9ff448053ccfbabcca9a7c1873f41eed0ad720f49d65a3cef7725c6e31a44",
+      "bytes": 14402
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionMemberEligibilityServerTest.php",
+      "exists": true,
+      "sha256": "08b863e2b4602544db20f2b623e310818b5d35d9951dd981cd0bbc065f6d2f60",
+      "bytes": 3393
+    },
+    {
+      "path": "app/Repositories/Wallet/WalletConversionQuoteRepository.php",
+      "exists": true,
+      "sha256": "c4a35173c86164c02c5ea74308b60723e609dfbf0f0db21b61821f6b9c22d35c",
+      "bytes": 5603
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "exists": true,
+      "sha256": "ae9df9eb5b2c56ede4f356502c4c554fc26c174d5004c59f1e641a688b2b6dff",
+      "bytes": 5333
+    },
+    {
+      "path": "tests/Support/ConversionQuoteSlotFixture.php",
+      "exists": true,
+      "sha256": "de063dc9986a607d8d42e40093ee83b540df3462f97d966e4b6531aa96787f88",
+      "bytes": 1467
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionQuoteSlotTest.php",
+      "exists": true,
+      "sha256": "50b6c342987b814ed8cd5e6388fda31f60f7fbc7dfcb32fe7441e9237f08cb4c",
+      "bytes": 11219
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionQuoteSlotServerTest.php",
+      "exists": true,
+      "sha256": "5d35c7acbe618184249855cb9d09144c398d0e19712769d6da5a271870bacc00",
+      "bytes": 3691
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "exists": true,
+      "sha256": "e70d3c774a993cfd8c38e849a476504c03fd3012213d9ec8bf6c45e8e0694110",
+      "bytes": 5538
+    },
+    {
+      "path": "tests/Support/ConversionRollingLimitFixture.php",
+      "exists": true,
+      "sha256": "26c7bd314eb0eaf772d87cb23e28a3ebefbd0cf0d8ea4ff2c52beb0d0c24bccc",
+      "bytes": 2425
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionRollingLimitTest.php",
+      "exists": true,
+      "sha256": "6492ba6245d01dd512f0a575d559773a2f8a036040d4f36609c4e90f79169f7d",
+      "bytes": 8510
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionRollingLimitServerTest.php",
+      "exists": true,
+      "sha256": "5d8b749692f53767f5a9e5290a1641923030c2afcca86beca11c1347ee5c0e82",
+      "bytes": 4325
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/ConversionReversalAuthority.php",
+      "exists": true,
+      "sha256": "fb0219e5a10673b84082f2e9ffa119e6acda5501c1e726ada0ec0448cce24f58",
+      "bytes": 3773
+    },
+    {
+      "path": "tests/Support/ConversionReversalAuthorityFixture.php",
+      "exists": true,
+      "sha256": "5c03907db8398b270d9caa4d6c59f1859a2ce81cfd92e411e7d698f8ff7a5172",
+      "bytes": 3110
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionReversalAuthorityTest.php",
+      "exists": true,
+      "sha256": "1cae3bb32c781a6e12e6712603b6d2012a39db09b9db271648f7c9d700545182",
+      "bytes": 9925
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionReversalAuthorityServerTest.php",
+      "exists": true,
+      "sha256": "37e624bede852fb79a7040ee3c0dd090b3ecaa14b6e26fbbc8e911ad834d3081",
+      "bytes": 3143
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/ConversionIntegrityGuard.php",
+      "exists": true,
+      "sha256": "7d3e4d936fc3bfa8e16731e76b0ee5d12850f27fad23fa649b9c3aeec32d951f",
+      "bytes": 10266
+    },
+    {
+      "path": "app/Services/Finance/LedgerPostingService.php",
+      "exists": true,
+      "sha256": "c0e7a7d50bde039a8d5ea3889545bba30eed61202a1c3252484ba9edc702d922",
+      "bytes": 22978
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionOriginalProofTest.php",
+      "exists": true,
+      "sha256": "67caf5b69c00d22ce5aeeab23c136dd0702b2fc4c68356335d3d24e1dd3cf221",
+      "bytes": 11796
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/ConversionOriginalProofServerTest.php",
+      "exists": true,
+      "sha256": "ee1c960d6a56cf92b3a0a9b92ca1d834c5bc49deeeff08f9f80cc3914a7b928e",
+      "bytes": 4811
+    },
+    {
+      "path": "tests/Support/RunsServerFinancialRaces.php",
+      "exists": true,
+      "sha256": "08d4a205d6bf361572b951c28cda28d23482bce308c495ecb72c5c6b969941de",
+      "bytes": 15259
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/StripeRefundConversionGuard.php",
+      "exists": true,
+      "sha256": "0fbacc61b1969a2911d1df881afc6b174e8594112091d3f9153723e9cc22dcbd",
+      "bytes": 1685
+    },
+    {
+      "path": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "exists": true,
+      "sha256": "65f0e91127ba3e33c80c59a4d316a11c1c55cc7e64e521f9e5b4ba96b9010fec",
+      "bytes": 19810
+    },
+    {
+      "path": "tests/Support/StripeRefundConversionFixture.php",
+      "exists": true,
+      "sha256": "d6ce51debabe55412626494dffd9eac7ea820c64f1e0e31303e4953981b2c0e8",
+      "bytes": 2615
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/StripeRefundConversionGuardTest.php",
+      "exists": true,
+      "sha256": "5e239dc252d7162e7e01611bcb16ef2a46b61290c0bf22a5df1c08c5f965cd95",
+      "bytes": 11486
+    },
+    {
+      "path": "tests/Feature/Wallet/Conversion/StripeRefundConversionGuardServerTest.php",
+      "exists": true,
+      "sha256": "f6e21d02c9fc66d373c15633cef4e9e2f9b62c2c07a1f71df8c682697d39d03e",
+      "bytes": 5283
+    },
+    {
+      "path": "app/Services/Finance/WithdrawalInitialHoldService.php",
+      "exists": true,
+      "sha256": "81f61a128f30adecacbf04877daa55c940dc47480bb66372392fb26140c4c070",
+      "bytes": 11802
+    },
+    {
+      "path": "database/migrations/2026_10_18_000700_create_withdrawal_initial_holds.php",
+      "exists": true,
+      "sha256": "98a7140f397a324a04881b6d93e863a230386467c8db2c6953928878f1476cd3",
+      "bytes": 2075
+    },
+    {
+      "path": "app/Services/Finance/WithdrawalRequestWithHoldService.php",
+      "exists": true,
+      "sha256": "c5248795b90a81bae3d1e273a6a1af74f94af0dee03bcd6d145beb6baccc477d",
+      "bytes": 1708
+    },
+    {
+      "path": "app/Services/Finance/WithdrawalReservationService.php",
+      "exists": true,
+      "sha256": "dd510315da2e10c32b5085b993d34dd52375e2b98f0c1b2d0ef763b036059e92",
+      "bytes": 7832
+    },
+    {
+      "path": "app/Services/Finance/WithdrawalHoldFloor.php",
+      "exists": true,
+      "sha256": "e6cf8e7bb681a6ad1e01078bef77c6722256a21258cdbc59090350cd9176b1bb",
+      "bytes": 2473
+    },
+    {
+      "path": "app/Services/Finance/WithdrawalService.php",
+      "exists": true,
+      "sha256": "c7fed889744bdd3310e1e4ede30ef5fd09ec76ac6dcf0cdf1df17c6f78e3223f",
+      "bytes": 21923
+    },
+    {
+      "path": "app/Services/Finance/WithdrawalApprovalService.php",
+      "exists": true,
+      "sha256": "4749e9605dab91f5fae56436478be78020fe48f02a6d8da9e6e8f94588f2af63",
+      "bytes": 18631
+    },
+    {
+      "path": "app/Services/Finance/WithdrawalIntegrityGuard.php",
+      "exists": true,
+      "sha256": "fc5ccebb03284d38ca0a6946bbdfe977566427787b8f1d9b4a0772a290158dd2",
+      "bytes": 5806
+    },
+    {
+      "path": "app/Enums/WithdrawalStatus.php",
+      "exists": true,
+      "sha256": "0a49aac2ac342f7a3e34b572070dfc9e6c93dc2b5f1da6bd85d51a0b0ead6729",
+      "bytes": 7137
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalInitialHoldHandoffTest.php",
+      "exists": true,
+      "sha256": "50225a388eca13a2ea834c0a3a5d984e4e0700d903b0d812367f0184131e7d8d",
+      "bytes": 17024
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalInitialHoldHandoffServerTest.php",
+      "exists": true,
+      "sha256": "ea311f5b2f0af01bab6e9ed9fc88826e8429d53ede4a6a0b176f27eeddff311c",
+      "bytes": 5343
+    },
+    {
+      "path": "tests/Support/FinancialRaceProbe.php",
+      "exists": true,
+      "sha256": "f4ed490ad4a5e9945975bfd4e9291efd3c1de6eacba7cbf333655fa5827e0b44",
+      "bytes": 53595
+    },
+    {
+      "path": ".github/workflows/financial-concurrency.yml",
+      "exists": true,
+      "sha256": "d03083f9cca9adc2785203ab72832b8e3c4a43a68b95b6770a8375dd0afe72ea",
+      "bytes": 46722
+    },
+    {
+      "path": "scripts/release_source_inventory.py",
+      "exists": true,
+      "sha256": "c7674ba090894612f5d04ae968f79ee824f07a28512edb7bd3d6be8cb416afcb",
+      "bytes": 60372
+    },
+    {
+      "path": "app/Services/Finance/StripeRefundWithdrawalGuard.php",
+      "exists": true,
+      "sha256": "66002232c3d370df914d3f46dba50ef118fde96ccfd40b6d4bc7e1dba86fb484",
+      "bytes": 1994
+    },
+    {
+      "path": "app/Http/Controllers/Api/V1/WithdrawalController.php",
+      "exists": true,
+      "sha256": "2c3f16b427705d5b41bdbea8eff688c9711f2a2590ea581032b9c2b279085deb",
+      "bytes": 12343
+    },
+    {
+      "path": "tests/Feature/Payment/StripeRefundWithdrawalGuardTest.php",
+      "exists": true,
+      "sha256": "8e28318f836487e8b6e8173a81c2a102fcc7222508388855b942bceacf434dc0",
+      "bytes": 13633
+    },
+    {
+      "path": "tests/Feature/Payment/StripeRefundWithdrawalGuardServerTest.php",
+      "exists": true,
+      "sha256": "eec0d1ed6f83e1acf8579a4be022e928857e161ed1fbedef9f8dd39176f38cae",
+      "bytes": 5484
+    },
+    {
+      "path": "app/Services/Betting/BetPurchaseTransactionService.php",
+      "exists": true,
+      "sha256": "669bdfbb5ad3c90e24539b8387232382b3094a07bc1e5c32013697e4befd254b",
+      "bytes": 16581
+    },
+    {
+      "path": "app/Services/Betting/StripeRefundWagerGuard.php",
+      "exists": true,
+      "sha256": "80eaeabed73b5a6f4d23726408c78fbb5ec94945eae7b1dc63292382985c1b3b",
+      "bytes": 1751
+    },
+    {
+      "path": "app/Services/Betting/BetPurchaseAdmission.php",
+      "exists": true,
+      "sha256": "e59f46d8a5af2748f3159682f275b51f68c3881ebe4bbf77f93a7b8061f0dbb8",
+      "bytes": 1547
+    },
+    {
+      "path": "app/Http/Support/BetPurchaseErrorMapper.php",
+      "exists": true,
+      "sha256": "2f1062d2a46734fd993ef10ad0db88fff235aa71c016da4f6de7958b842b97dd",
+      "bytes": 32082
+    },
+    {
+      "path": "app/Services/Betting/BetAmendmentService.php",
+      "exists": true,
+      "sha256": "00c70dfa8c80dad3eb4ad8834562064df766ae30c3ded1074efc56c44a3f0c6b",
+      "bytes": 12469
+    },
+    {
+      "path": "tests/Support/StripeRefundWagerFixture.php",
+      "exists": true,
+      "sha256": "479e9257d1bc6eb482a64c50ae96b859075c4d862cfc9f00aa4527fe2f363eb7",
+      "bytes": 2793
+    },
+    {
+      "path": "tests/Feature/Betting/StripeRefundWagerGuardTest.php",
+      "exists": true,
+      "sha256": "dd8636dbf34221fd26bbaea38b7e19897c68c441ab74f7b83e06da50ee5b1ebb",
+      "bytes": 15685
+    },
+    {
+      "path": "tests/Feature/Betting/StripeRefundWagerGuardServerTest.php",
+      "exists": true,
+      "sha256": "0a6ddaa74ae3a6165f80a9645447c85635c010c5f01d7d4254d6dd321e6e3763",
+      "bytes": 4161
+    },
+    {
+      "path": "database/migrations/2026_10_18_000600_create_stripe_refund_recoveries.php",
+      "exists": true,
+      "sha256": "943f687b107a7126b62b2dad5ff659795a110d24231c6be330aed3662dd4d835",
+      "bytes": 2932
+    },
+    {
+      "path": "app/Services/Payment/StripeRefundRecoveryAccess.php",
+      "exists": true,
+      "sha256": "138d1544a20fef24e893347f11ee7cf14445147a2f722c35fbee45728dfb8f37",
+      "bytes": 985
+    },
+    {
+      "path": "app/Services/Payment/StripeRefundRecoveryLookup.php",
+      "exists": true,
+      "sha256": "7548249773552f55d39c6e2a3656990a43211dba549dcbbcb5117ea882e69ebc",
+      "bytes": 4765
+    },
+    {
+      "path": "app/Services/Payment/StripeRefundRecoveryService.php",
+      "exists": true,
+      "sha256": "77a2eb9bd72a92c479500bff3cffdbefd1a404c5ba48c186c5325e2974113f9e",
+      "bytes": 21187
+    },
+    {
+      "path": "app/Models/StripeRefundRecoveryIntent.php",
+      "exists": true,
+      "sha256": "f7f58c17e98b9d0991f35a906b35168ffb91b17967b002f3d42febb27b2127eb",
+      "bytes": 763
+    },
+    {
+      "path": "tests/Support/StripeRefundRecoveryFixture.php",
+      "exists": true,
+      "sha256": "641395d1154db034330a43ad7ee32b98ff73ab8afb9898e81b53cba36cdf0d4b",
+      "bytes": 3147
+    },
+    {
+      "path": "tests/Feature/Payment/StripeRefundRecoveryTest.php",
+      "exists": true,
+      "sha256": "7b4858e40b7a117e1af4bd85fe7bc01812736da2065ba68c49c67c03a7329bb0",
+      "bytes": 17881
+    },
+    {
+      "path": "tests/Feature/Payment/StripeRefundRecoveryServerTest.php",
+      "exists": true,
+      "sha256": "9d6ef87d5fb2ecd426b6f645355f0102ce175f85af8e5b2018d4be80caac028f",
+      "bytes": 2989
+    },
+    {
+      "path": "database/migrations/2026_10_18_000500_create_stripe_followup_sweep_work.php",
+      "exists": true,
+      "sha256": "9bf86610fe58800be15588afb878ef8e44692a0605d15e6d5a6e0bda429f87ba",
+      "bytes": 2452
+    },
+    {
+      "path": "app/Services/Payment/StripeFollowupSweepService.php",
+      "exists": true,
+      "sha256": "15ce5bcb33a85e92db35dfae58f88813b2659a846a672f1deb52e0faadf30037",
+      "bytes": 16061
+    },
+    {
+      "path": "app/Console/Commands/StripeFollowupSweep.php",
+      "exists": true,
+      "sha256": "8a1b84ad8a948fe494568fefccda78b6b41075fca9cca18347775499a8b5c70c",
+      "bytes": 1879
+    },
+    {
+      "path": "app/Models/StripeFollowupSweepWork.php",
+      "exists": true,
+      "sha256": "566d8b3625aceb79da16abb099d1645648b3612f7adf2d3308805bc80e9226f4",
+      "bytes": 873
+    },
+    {
+      "path": "routes/console.php",
+      "exists": true,
+      "sha256": "277c9b6005b3e61a22ef7e6654355d8085050809f027ef694281d6cf704d46d2",
+      "bytes": 11042
+    },
+    {
+      "path": "tests/Feature/Payment/StripeFollowupSweepTest.php",
+      "exists": true,
+      "sha256": "d3a53479bfd693a1a69bd0166c8e170faa4c08adb11f3c298fbf2b0b8d7e27bc",
+      "bytes": 18221
+    },
+    {
+      "path": "tests/Feature/Payment/StripeFollowupSweepServerTest.php",
+      "exists": true,
+      "sha256": "cb0b3e8b10cccb0d255b1bd8c7496de19b06b788e063002bec39529b26229e63",
+      "bytes": 4637
+    },
+    {
+      "path": "database/migrations/2026_10_18_000400_create_stripe_followup_route_decisions.php",
+      "exists": true,
+      "sha256": "51bf37bf365fb578661eebb1bb81aa58e77cce986bacafd6017d4a0ba1f6f04f",
+      "bytes": 1288
+    },
+    {
+      "path": "app/Services/Payment/StripeFollowupRoutingService.php",
+      "exists": true,
+      "sha256": "4ce0ca4487144ddc09d0b31cb729f856494068e44b28d9aff1b507a73019332e",
+      "bytes": 11507
+    },
+    {
+      "path": "app/Models/StripeDepositFollowup.php",
+      "exists": true,
+      "sha256": "d39b48e1cff532e25151de5fd3b1334f0bb42e0e1a1632a0dcd6f4a93598a377",
+      "bytes": 1161
+    },
+    {
+      "path": "app/Models/StripeFollowupRouteDecision.php",
+      "exists": true,
+      "sha256": "bc3e359371ee9f997900f203f8926b1a1a0c8e55f22bf8de9f7e7f92a2c47df1",
+      "bytes": 841
+    },
+    {
+      "path": "app/Filament/Resources/StripeDepositFollowupResource.php",
+      "exists": true,
+      "sha256": "1867d4ca1e6005c8ad578665e2f79c69ea16dafeb425b567c57b2d160b31e214",
+      "bytes": 8450
+    },
+    {
+      "path": "app/Filament/Resources/StripeDepositFollowupResource/Pages/ListStripeDepositFollowups.php",
+      "exists": true,
+      "sha256": "6f259fc55c942e8a23d0629109495a9699e8ede1d7cd2d7d5c0a7e2190e76602",
+      "bytes": 736
+    },
+    {
+      "path": "tests/Feature/Payment/StripeFollowupRoutingTest.php",
+      "exists": true,
+      "sha256": "8805f4892617b048c3759f61cff74d77b879ada4858a8c14b8261a51d5be911a",
+      "bytes": 22551
+    },
+    {
+      "path": "tests/Feature/Payment/StripeFollowupRoutingServerTest.php",
+      "exists": true,
+      "sha256": "3e766a4a831c6d2ab82ff2b0a1ada57d40eeda7f6e62eaa46e2764ba65cbe44b",
+      "bytes": 4761
+    },
+    {
+      "path": "database/factories/Support/LotteryFactoryDate.php",
+      "exists": true,
+      "sha256": "186f6f90fc3fc3ce43373679f42b5e714725016b55e2e8739b20e4d2466b8eb5",
+      "bytes": 1539
+    },
+    {
+      "path": "database/factories/BingoLotteryDrawFactory.php",
+      "exists": true,
+      "sha256": "25427b27e9a24cbb192280b3296564f1325ae225489b18299a57252a3a39cdd5",
+      "bytes": 3041
+    },
+    {
+      "path": "database/factories/WeeklyLotteryDrawFactory.php",
+      "exists": true,
+      "sha256": "273f7b15742abbda5859c57d1675ff9ef87591dac2c1f03d50cf3011075da981",
+      "bytes": 3052
+    },
+    {
+      "path": "database/factories/NationalLotteryDrawFactory.php",
+      "exists": true,
+      "sha256": "d250478ede1abb8550f4b0bec0468bced523baaa547b6312399fd4e8a0b0c3a3",
+      "bytes": 2264
+    },
+    {
+      "path": "tests/Feature/Database/LotteryFactoryDateTest.php",
+      "exists": true,
+      "sha256": "08710e62ca130aeb394fb3889a3bb4603795764f3e5bdd4e300d19593b4d2cc0",
+      "bytes": 2666
+    },
+    {
+      "path": "database/migrations/2026_10_18_000300_create_stripe_deposit_review_cases.php",
+      "exists": true,
+      "sha256": "ba3ec08c670313aebf62f8116a27f62518fc9e00346611050e33b0194af7d3ff",
+      "bytes": 3327
+    },
+    {
+      "path": "app/Services/Payment/DepositReviewAccess.php",
+      "exists": true,
+      "sha256": "33de7a3736e57d24c6f24d2e027ab85c4b6722d9cf1512f703fe164de20e009e",
+      "bytes": 1083
+    },
+    {
+      "path": "app/Services/Payment/StripeDepositFollowupInbox.php",
+      "exists": true,
+      "sha256": "f44ed596c5c8341f3f22d0eacb78a783ceef10d8d042d2aa33225b332442af97",
+      "bytes": 7092
+    },
+    {
+      "path": "app/Services/Payment/StripeDepositReviewService.php",
+      "exists": true,
+      "sha256": "092cb210da4bc4d25a4463303fbb85e911a3c5a67a522936027406fe48adec56",
+      "bytes": 17913
+    },
+    {
+      "path": "app/Http/Controllers/Api/V1/StripeDepositFollowupController.php",
+      "exists": true,
+      "sha256": "a83ac35bf003f349584cf1f7831b336d8ac992aa3098085c2bb26522b197d7bc",
+      "bytes": 1138
+    },
+    {
+      "path": "app/Filament/Resources/DepositResource/StripeDepositReviewActions.php",
+      "exists": true,
+      "sha256": "179d796c10e39b026ffcb6bf770abd2b286a5419a943383dbf7cdda10f41227e",
+      "bytes": 7273
+    },
+    {
+      "path": "tests/Support/StripeDepositReviewFixture.php",
+      "exists": true,
+      "sha256": "89d118d33da1d8570737455f249015fa752410cae135f49ffff961b137ab2c80",
+      "bytes": 6534
+    },
+    {
+      "path": "tests/Feature/Payment/StripeDepositReviewTest.php",
+      "exists": true,
+      "sha256": "8df843be2e7f21eabc43755ee7ed2c972fa0099535eaa7c28b7990fe46821dfe",
+      "bytes": 22845
+    },
+    {
+      "path": "tests/Feature/Payment/StripeDepositReviewServerTest.php",
+      "exists": true,
+      "sha256": "55f3e08ca57c2ce813a694b214163d5553ffe582c2e23e81df3b272d486b0f97",
+      "bytes": 4267
+    },
+    {
+      "path": "app/Services/Payment/DepositSettlementAccess.php",
+      "exists": true,
+      "sha256": "06888c9336200dcb9b30e7f651f863db980b7336d528b056faf6233f3146f7b6",
+      "bytes": 1092
+    },
+    {
+      "path": "app/Services/Payment/StripeDepositCaptureLookup.php",
+      "exists": true,
+      "sha256": "21b8944b5365d48625dcc5edc08824a8a45aa0e7fd92c0a30f4ab51eca7767f4",
+      "bytes": 6279
+    },
+    {
+      "path": "app/Services/Payment/StripeDepositSettlementService.php",
+      "exists": true,
+      "sha256": "54c922ba4ed248c91c8bf86c5d7b26f23afe56254fe156ffc9c179fd993b4377",
+      "bytes": 13826
+    },
+    {
+      "path": "database/migrations/2026_10_18_000200_create_stripe_deposit_settlement_receipts.php",
+      "exists": true,
+      "sha256": "c503d9a5c5b6c6867d926d3ec26a3e798b1a8a01aec7ec27247a23400a4b9ed0",
+      "bytes": 2025
+    },
+    {
+      "path": "tests/Feature/Payment/StripeDepositSettlementTest.php",
+      "exists": true,
+      "sha256": "35f10616b6088b77a4c1c806ce9e5ec54eed9ac9a549bd90ba5025a3f6397f2a",
+      "bytes": 23761
+    },
+    {
+      "path": "tests/Feature/Payment/StripeDepositSettlementServerTest.php",
+      "exists": true,
+      "sha256": "62b5c93511c3fb489f337dff7c0a1b93f0b31f668c581c2ca8305903747eadfc",
+      "bytes": 4686
+    },
+    {
+      "path": "app/Services/Payment/DepositCheckoutAccess.php",
+      "exists": true,
+      "sha256": "f035f5db9d755ed06302b071caa6d51abb81728cda9ccb18a94b86130ffc0911",
+      "bytes": 1090
+    },
+    {
+      "path": "app/Services/Payment/StripeCheckoutLookup.php",
+      "exists": true,
+      "sha256": "fdbf1db859949949164cd8912000527a48e0658a4ea81fe09f320c5ad1cdffc7",
+      "bytes": 6255
+    },
+    {
+      "path": "database/migrations/2026_10_18_000100_create_deposit_checkout_lookup_receipts_table.php",
+      "exists": true,
+      "sha256": "1887a79506b5056434496d06c8631c5b158f5bf5b82921f5eab9304a3706610f",
+      "bytes": 1526
+    },
+    {
+      "path": "tests/Feature/Payment/StripeCheckoutReconciliationTest.php",
+      "exists": true,
+      "sha256": "0dbc700f530e83139ed495602fadaea24ff4b58c425b712c4326fccde00d378e",
+      "bytes": 16623
+    },
+    {
+      "path": "tests/Feature/Payment/StripeCheckoutReconciliationServerTest.php",
+      "exists": true,
+      "sha256": "c93f7d9e8a0808ac47c80d9708e9d2e5fa0ae316331e2e5abb1661cfe1747b33",
+      "bytes": 2664
+    },
+    {
+      "path": "app/Services/Payment/DepositCheckoutService.php",
+      "exists": true,
+      "sha256": "abd5976154a549e03213e34d8790dc4ed469c4950297f589125a2d9fd7e43f17",
+      "bytes": 27254
+    },
+    {
+      "path": "database/migrations/2026_10_17_000500_create_deposit_checkout_attempts_table.php",
+      "exists": true,
+      "sha256": "44014f3376185b0aa56abe40971626485a234f322b99f89d73a23b0013f0872a",
+      "bytes": 1397
+    },
+    {
+      "path": "tests/Feature/Payment/DurableDepositCheckoutTest.php",
+      "exists": true,
+      "sha256": "ff2d28f932967e1c5fa27ad9c25725a577109ecb3ca15f2b3b18044f45d09830",
+      "bytes": 22260
+    },
+    {
+      "path": "tests/Feature/Payment/DurableDepositCheckoutServerTest.php",
+      "exists": true,
+      "sha256": "841853f9f939dba18192b7ee9769b08b4754fbed9905a3b0afa81dfd33cb4bb5",
+      "bytes": 2732
+    },
+    {
+      "path": "tests/Support/SyntheticDepositCheckoutGateway.php",
+      "exists": true,
+      "sha256": "df90044c877ae04aa730a9f1bb43e6449f6aeb8ded93d8012eb7735400516d91",
+      "bytes": 2132
+    },
+    {
+      "path": "app/Services/Finance/DepositAdmission.php",
+      "exists": true,
+      "sha256": "e0b0417874c79a273720ea035e69c7f75c35ec5328bac37a6b05fe7a6ac07f15",
+      "bytes": 1467
+    },
+    {
+      "path": "app/Services/Payment/PaymentInitiationService.php",
+      "exists": true,
+      "sha256": "59de20f6e9907dba1c15d956f74ed52b5a927f960d5961edae6b76673d633391",
+      "bytes": 1675
+    },
+    {
+      "path": "tests/Feature/Compliance/PlayerDepositAdmissionTest.php",
+      "exists": true,
+      "sha256": "a830d54c40e5ab4f39315a4188e91170af76ae0c99c69402bd0b32e6aebca520",
+      "bytes": 16664
+    },
+    {
+      "path": "tests/Feature/Compliance/PlayerDepositAdmissionServerTest.php",
+      "exists": true,
+      "sha256": "deb60aa7c0401ee6fc616b6b5733159e7dbad206990733ab9e88e963dd7b63a6",
+      "bytes": 11480
+    },
+    {
+      "path": "app/DTOs/ResponsibleGaming/ResponsibleGamingLimitData.php",
+      "exists": true,
+      "sha256": "8b08467c4b9d61b551eba3ca9545dd5b7f02006c43d9932957b7aecb2405f7fc",
+      "bytes": 4583
+    },
+    {
+      "path": "database/migrations/2026_10_17_000400_create_responsible_gaming_limit_ownerships_table.php",
+      "exists": true,
+      "sha256": "d1e67e225a72146caa768a43aacf7c4e62cd9b7dba8b2ef8117de1a17c62ba97",
+      "bytes": 1012
+    },
+    {
+      "path": "app/Services/ResponsibleGaming/ResponsibleGamingLimitOwnership.php",
+      "exists": true,
+      "sha256": "cd86beead8a4d8a9e966790ebdc34cae01a77ecc619f4748dda27fa9ddd06e8b",
+      "bytes": 3124
+    },
+    {
+      "path": "app/Services/Security/ResponsibleGamingService.php",
+      "exists": true,
+      "sha256": "3ce5c000ebeaaf25030fb47bd04bd5cd555f98969219ca6275e83edc9f75c170",
+      "bytes": 6017
+    },
+    {
+      "path": "app/Http/Controllers/Api/V1/ResponsibleGamingController.php",
+      "exists": true,
+      "sha256": "f3bb26d2632236c86fe31e59cd033c20de5d10cace2b64c140158f1801abf60d",
+      "bytes": 13367
+    },
+    {
+      "path": "bootstrap/app.php",
+      "exists": true,
+      "sha256": "de9e68e5648f306d7f478cf0137e19e46efc5fb0350d0e8c2737b45ed63a86a3",
+      "bytes": 15493
+    },
+    {
+      "path": "tests/Feature/Compliance/ResponsibleGamingLimitLifecycleTest.php",
+      "exists": true,
+      "sha256": "e90d7ab897164bf2a1a2c9e580d8b94bb94955361bbca891701b059108e4735d",
+      "bytes": 16636
+    },
+    {
+      "path": "tests/Feature/Compliance/ResponsibleGamingLimitLifecycleServerTest.php",
+      "exists": true,
+      "sha256": "c2f4aed3f9b36725bb0d4f492b40c0377c715e066c4433f3406ae5c707554695",
+      "bytes": 7553
+    },
+    {
+      "path": "app/Services/ResponsibleGaming/ResponsibleGamingPlayerLock.php",
+      "exists": true,
+      "sha256": "19ae05256cc31333b3858cf19d8c55ebc6e9c3315d64ffce2ddeff569fd6a065",
+      "bytes": 1576
+    },
+    {
+      "path": "app/Services/ResponsibleGaming/ResponsibleGamingEnforcementService.php",
+      "exists": true,
+      "sha256": "e7cb0bd91834ec1c2f2da56ab02929d84f5805edc47ffade0a1a0080c7bdf17c",
+      "bytes": 11074
+    },
+    {
+      "path": "app/Services/ResponsibleGaming/ResponsibleGamingLimitService.php",
+      "exists": true,
+      "sha256": "bcf03361a09c7572c7242658bbc55fce43736cb3080d00cfb6beeb1b5fe7ec8c",
+      "bytes": 21360
+    },
+    {
+      "path": "app/Services/ResponsibleGaming/SelfExclusionService.php",
+      "exists": true,
+      "sha256": "b63fa6036caa7c528b9be9ae3435e0a5b9a5d7c3befd0f9aa1aa3f32abcc30f8",
+      "bytes": 11480
+    },
+    {
+      "path": "tests/Feature/Betting/PlayerWagerAdmissionTest.php",
+      "exists": true,
+      "sha256": "09b34926b52cb3cf21151c766fc0189a8e8ecaaaa2453a96c7e90c992f86b8d2",
+      "bytes": 12195
+    },
+    {
+      "path": "tests/Feature/Betting/PlayerWagerAdmissionServerTest.php",
+      "exists": true,
+      "sha256": "42446570a9cadef6cc1593f56fc194b4980ad5a2c5c29c75a33ee71bf60b5e60",
+      "bytes": 11109
+    },
+    {
+      "path": "app/Services/Risk/DrawRiskAdmission.php",
+      "exists": true,
+      "sha256": "ec8ddbcb892b41114d3e0c664c25cad48155595aa75a148bf221217137c4983d",
+      "bytes": 2270
+    },
+    {
+      "path": "app/Services/Risk/RiskAssessmentService.php",
+      "exists": true,
+      "sha256": "80865c05dabaf302ffa3f1a56b574bdc5d1c889df4e2c373ace3890149d92c6f",
+      "bytes": 19134
+    },
+    {
+      "path": "tests/Feature/Risk/DrawRiskAdmissionTest.php",
+      "exists": true,
+      "sha256": "d5361194aa84bde3ff5867ee4a202293f78b63b2b5162f42e438c2a990de255c",
+      "bytes": 16250
+    },
+    {
+      "path": "tests/Feature/Risk/DrawRiskAdmissionServerTest.php",
+      "exists": true,
+      "sha256": "19a1c99ebac19eb5f85d1014138c3e0320fb09aee3e36bd0050628614846a6d7",
+      "bytes": 9141
+    },
+    {
+      "path": "tests/Feature/Filament/OwnedDrawCancellationActionTest.php",
+      "exists": true,
+      "sha256": "115452164343277e5cca100f70decb2461e0bbbda66d2e3bc60af13a0215a9ab",
+      "bytes": 3575
+    },
+    {
+      "path": "database/migrations/2026_10_17_000300_create_draw_cancellation_ownerships_table.php",
+      "exists": true,
+      "sha256": "49942e6a3e2578390133ecc2bf35e8dcc1cd4105acc6c8510711ad1082c39b80",
+      "bytes": 1394
+    },
+    {
+      "path": "app/Services/Draw/DrawCancellationService.php",
+      "exists": true,
+      "sha256": "1be5ca5b318a8029c4658d60c9969b14633287c30d6d6ad661f905e344f4db15",
+      "bytes": 18661
+    },
+    {
+      "path": "app/Services/Draw/DrawLifecycleService.php",
+      "exists": true,
+      "sha256": "8f6984fd1900469d5669c3e9e0db99bb4b575891a86f532e03a4cd5d9764b223",
+      "bytes": 20749
+    },
+    {
+      "path": "app/Filament/Resources/DrawResource/DrawLifecycleActions.php",
+      "exists": true,
+      "sha256": "e42e2dd6a320dc3c628036a46c2529e4490a40a2c2460ad983b1656f79e8ae94",
+      "bytes": 13432
+    },
+    {
+      "path": "config/lottery.php",
+      "exists": true,
+      "sha256": "f593db67c13d9c45c20ae88fcebcdf7404c1c1e09d1387fbc5d5ae3a2059bb8b",
+      "bytes": 21573
+    },
+    {
+      "path": "tests/Feature/Draw/OwnedDrawCancellationTest.php",
+      "exists": true,
+      "sha256": "49b567a003009612879870bcc6423c1a644fa13c739fbd59947da1c9f0ebd74c",
+      "bytes": 20124
+    },
+    {
+      "path": "tests/Feature/Draw/OwnedDrawCommissionCancellationTest.php",
+      "exists": true,
+      "sha256": "2e1ba8f984d94468d149fd807c05eddcc9edea53015a175faebbf3649b61c671",
+      "bytes": 4853
+    },
+    {
+      "path": "tests/Feature/Draw/OwnedDrawCancellationServerRaceTest.php",
+      "exists": true,
+      "sha256": "04b9dbdb3b8321ed2f63f32ac98a2cae47eff02349ecab117a020bc6b2cb2cf3",
+      "bytes": 6286
+    },
+    {
+      "path": "database/migrations/2026_10_17_000200_create_bet_purchase_receipts_table.php",
+      "exists": true,
+      "sha256": "26b2248f581c7fe239898150065572674f4f0cbe45883e528f250591bf161b6a",
+      "bytes": 1403
+    },
+    {
+      "path": "app/Services/Betting/BetPurchaseReceipt.php",
+      "exists": true,
+      "sha256": "b318941a9fa85181512b44a9de3998b9e17cf828afe9e9bcc5683479de7cee79",
+      "bytes": 4204
+    },
+    {
+      "path": "app/Services/Betting/BetPurchaseReplayService.php",
+      "exists": true,
+      "sha256": "bbe12a8044834117240c45a03bb55d2f2b0e0a173faff5b6f4c156be85a94fdc",
+      "bytes": 3940
+    },
+    {
+      "path": "app/Services/Betting/BetPurchaseIdempotencyService.php",
+      "exists": true,
+      "sha256": "7e87bc0240e275246bb82d77645f0c35f5eecd8c891eea14350b169a84a74b81",
+      "bytes": 16124
+    },
+    {
+      "path": "tests/Feature/Betting/OwnedPurchaseReplayTest.php",
+      "exists": true,
+      "sha256": "439509914f0ac70a599dbabf753e212569e4a6ab529b0ca767d4f019349c2dc6",
+      "bytes": 12324
+    },
+    {
+      "path": "tests/Feature/Betting/OwnedPurchaseReplayServerRaceTest.php",
+      "exists": true,
+      "sha256": "e1f5499881005a96cb7b686b48f0ea561f34ecc21feca9f24466e5cf46bde967",
+      "bytes": 2035
+    },
+    {
+      "path": "app/Services/Betting/BetAmendmentOwnership.php",
+      "exists": true,
+      "sha256": "b13132ec40ecf2bd431c00258c7916ffaf524eae6d2da5bdb0f64da298e66194",
+      "bytes": 10380
+    },
+    {
+      "path": "app/Services/Betting/BetAmendmentPermit.php",
+      "exists": true,
+      "sha256": "e938cfa344eedc423f087a80f26c81eeef454d4ba47ab2eb53020611dbe3dd78",
+      "bytes": 1178
+    },
+    {
+      "path": "app/Services/Betting/BetAmendmentReplacement.php",
+      "exists": true,
+      "sha256": "c24926e9c7ec7dd16d9eea0957d8097d818420972c6b53055a15a6c64392946f",
+      "bytes": 366
+    },
+    {
+      "path": "database/migrations/2026_10_17_000100_create_bet_amendment_ownerships_table.php",
+      "exists": true,
+      "sha256": "1f0fb229d3e2cfd0258d3715cd6ad0f046e7a1be76f2ada37d8205a4bc7f9f97",
+      "bytes": 2685
+    },
+    {
+      "path": "tests/Feature/Betting/Concerns/BuildsOwnedAmendment.php",
+      "exists": true,
+      "sha256": "70601965821a26ceb0d3ed48fbaaac5e3435b224f90b685b319a4f6a3d3a00fd",
+      "bytes": 1206
+    },
+    {
+      "path": "tests/Feature/Betting/OwnedBetAmendmentTest.php",
+      "exists": true,
+      "sha256": "287446c71da86433b93a8bc627f19cae7ee52efdfbdc03234995027db55d5011",
+      "bytes": 20914
+    },
+    {
+      "path": "tests/Feature/Betting/OwnedBetAmendmentServerRaceTest.php",
+      "exists": true,
+      "sha256": "fe778a291e3a163839ea37cfd30e02c31059cd53ced65b3bf9dc857be1f26e5b",
+      "bytes": 2883
+    },
+    {
+      "path": "app/Services/Betting/BetPurchaseService.php",
+      "exists": true,
+      "sha256": "b40af011cf98595c2819e3e317366055c545236ebaf9b13ac2f6cba3e643fa7e",
+      "bytes": 9181
+    },
+    {
+      "path": "app/Providers/AppServiceProvider.php",
+      "exists": true,
+      "sha256": "ba7a50e703681b3bd9a703496a23c43362d59bd8b9062e16d97d968bcc394c15",
+      "bytes": 25812
+    },
+    {
+      "path": "app/Http/Controllers/Api/V1/BetAmendmentController.php",
+      "exists": true,
+      "sha256": "eaff99dd0afec62d41c53b385111ebb910edf5f1e9278a72a7c7622ca138a708",
+      "bytes": 2031
+    },
+    {
+      "path": "database/migrations/2026_10_16_000600_create_agent_commission_compensations_table.php",
+      "exists": true,
+      "sha256": "eaca846bee8fd5f3121464a980bf8bb77881d2034292ef4667b505d84ad15ada",
+      "bytes": 2360
+    },
+    {
+      "path": "app/Services/Agent/BetCommissionCompensation.php",
+      "exists": true,
+      "sha256": "77a7ccae65439d0b9e094b884f5eb59b59a86275d3e32fd98f653ec16cf23869",
+      "bytes": 5840
+    },
+    {
+      "path": "app/Services/Agent/AgentCommissionReversalService.php",
+      "exists": true,
+      "sha256": "6653d64e5e4bb982645b022117f802e601dfcac07ba40ca8fcceecd9e0f13792",
+      "bytes": 7413
+    },
+    {
+      "path": "app/Services/Finance/FinancialReversalService.php",
+      "exists": true,
+      "sha256": "cba1611c1733dea3f84c17d3102e04cce432b662e3bb5721b78f0e367a015969",
+      "bytes": 12575
+    },
+    {
+      "path": "config/agent.php",
+      "exists": true,
+      "sha256": "39824942b1b852539e457df1261a71cdfe4b24c5754b2173a2b2b9fc0125965c",
+      "bytes": 5899
+    },
+    {
+      "path": "tests/Feature/Agent/Concerns/BuildsPaidCommissionCancellation.php",
+      "exists": true,
+      "sha256": "48362a1845f953975416c407e1075eeb3766cdef127c847817bce727fc216bd5",
+      "bytes": 1667
+    },
+    {
+      "path": "tests/Feature/Agent/PaidCommissionCancellationTest.php",
+      "exists": true,
+      "sha256": "d7774dd35daacf1f5fb6f6096fcfe770ccdaf1c445554aa7741ea0f15b209ee7",
+      "bytes": 16019
+    },
+    {
+      "path": "tests/Feature/Agent/PaidCommissionCurrentReadTest.php",
+      "exists": true,
+      "sha256": "11f520000d46b4fcd521578406dcc0121f54e7dccdb1ed0b02321f47808bfb66",
+      "bytes": 6246
+    },
+    {
+      "path": "tests/Feature/Agent/CommissionRefundReversalTest.php",
+      "exists": true,
+      "sha256": "fa3cc4dab084bb372b363947b3b8c32072310f9a524e8b596ccafcd49ad0f810",
+      "bytes": 6082
+    },
+    {
+      "path": "tests/Feature/Agent/CommissionDrawCancellationTest.php",
+      "exists": true,
+      "sha256": "d6b72b8e47c5d8ec0fb4542a89e01986e0d1bd3d9bd3b96d646f880e9e3637bf",
+      "bytes": 1815
+    },
+    {
+      "path": "database/migrations/2026_10_16_000500_create_agent_commission_payouts_table.php",
+      "exists": true,
+      "sha256": "4bcd88b8376b5a3aca93ed0db3321be4ce608a18f3618aacf0d824fa00622c92",
+      "bytes": 1576
+    },
+    {
+      "path": "app/Services/Agent/AgentCommissionPayoutProof.php",
+      "exists": true,
+      "sha256": "2ecc0b03ec823cddbd47cfb9db208bbf10f95b72f515027194af97e44329475c",
+      "bytes": 12414
+    },
+    {
+      "path": "app/Services/Agent/AgentCommissionPayoutService.php",
+      "exists": true,
+      "sha256": "8112b1f356cd2b221ebe89e53b93d03acf0e55809db382ce95bc3edfa0145490",
+      "bytes": 9957
+    },
+    {
+      "path": "app/Services/Agent/AgentCommissionSettlementService.php",
+      "exists": true,
+      "sha256": "779081c9924bb3275adf562ff81c5688474a03d36239915934fed108c98182fa",
+      "bytes": 483
+    },
+    {
+      "path": "app/Services/Agent/AgentSettlementService.php",
+      "exists": true,
+      "sha256": "a3de0cb77f5e3d7f8690f049440e16b734fb219cb7e5acd1783be4f7ad9fa11b",
+      "bytes": 1128
+    },
+    {
+      "path": "app/Services/Agent/AgentCommissionService.php",
+      "exists": true,
+      "sha256": "b81ff5704f2832f5029e5161779c751aca2e629efb30346d5ad69f363a32d018",
+      "bytes": 1492
+    },
+    {
+      "path": "tests/Feature/Agent/AgentInactiveBehaviorTest.php",
+      "exists": true,
+      "sha256": "fe9104d5d0a3f4abbd4d5f1098e6a689e304b87f33caa1f63fefae5df21d1af9",
+      "bytes": 2564
+    },
+    {
+      "path": "tests/Feature/BusinessCriticalInvariantTest.php",
+      "exists": true,
+      "sha256": "076c47eb617d7e3a4fe06cc46c846aca41949c00aaa0c34cce7941b0d19c6acf",
+      "bytes": 15241
+    },
+    {
+      "path": "tests/Feature/FinalProductionReadinessTest.php",
+      "exists": true,
+      "sha256": "339a215e24941ebab867974b9bc542d40de168552905a4305b088f9d6917cfef",
+      "bytes": 11494
+    },
+    {
+      "path": "tests/Feature/Agent/OwnedCommissionPayoutTest.php",
+      "exists": true,
+      "sha256": "e85efcfa93e316d462838658c83a3c87cc3dd373ac36454bf391fe96418811df",
+      "bytes": 18125
+    },
+    {
+      "path": "tests/Feature/Agent/CommissionPayoutCurrentReadTest.php",
+      "exists": true,
+      "sha256": "d60303d1c199e5c827dbe0fe5ad3453c5dda78a9ba9179670fa5d8ff9e80edb6",
+      "bytes": 5656
+    },
+    {
+      "path": "database/migrations/2026_10_16_000400_create_bet_commission_ownerships_table.php",
+      "exists": true,
+      "sha256": "d47fe48c9274b30d05dbbc2dd4da129635e25100a644a89955399419f49bb9cc",
+      "bytes": 2027
+    },
+    {
+      "path": "app/Services/Agent/BetCommissionCancellation.php",
+      "exists": true,
+      "sha256": "d8aecb32aaf5f61d17dbfdcbf8d132ac23a0f5bda485a7cfd55bae7734e598bb",
+      "bytes": 16981
+    },
+    {
+      "path": "app/Services/Agent/AgentCommissionAccrualService.php",
+      "exists": true,
+      "sha256": "5d16fcd2db3aeaa250510bad71589dc09a78a043688e8ced5e5c4453b0110c3f",
+      "bytes": 7154
+    },
+    {
+      "path": "tests/Feature/Agent/Concerns/BuildsCommissionCancellation.php",
+      "exists": true,
+      "sha256": "44cbeb9aeb5efa0329a3270ba13a66e0dde876ab68817b74d8a115285b99fa6e",
+      "bytes": 2529
+    },
+    {
+      "path": "tests/Feature/Agent/CoordinatedUnpaidCancellationTest.php",
+      "exists": true,
+      "sha256": "213494bdd197abe8c30d27d3301e9c25d7cf3a8da471b4cd7d5ae7679d76e183",
+      "bytes": 15507
+    },
+    {
+      "path": "tests/Feature/Agent/CommissionCancellationCurrentReadTest.php",
+      "exists": true,
+      "sha256": "1cac54dff5c7e937d10b71619a8f714ea9f12d2d987b83d9ebfb3ddd739fd5a1",
+      "bytes": 6785
+    },
+    {
+      "path": "app/Http/Controllers/Api/V1/BetCancellationController.php",
+      "exists": true,
+      "sha256": "619e0f3887f597ac788fa81239c1bd47b1cef713aa9b9d4ae9711332089a4e0e",
+      "bytes": 2252
+    },
+    {
+      "path": "app/Services/Betting/BetCancellationService.php",
+      "exists": true,
+      "sha256": "ca7e922e8d5d213ba6ab8d35bf6534138b5a97da5d7cc4dd4dc3fdc60932c55b",
+      "bytes": 13897
+    },
+    {
+      "path": "app/Services/Betting/BetAccountingProof.php",
+      "exists": true,
+      "sha256": "c1dbb019b7f8b84045fb31a288edc675ba71781204826a4893d204cd191d21b5",
+      "bytes": 6003
+    },
+    {
+      "path": "app/Services/Betting/BetPurchaseOwnership.php",
+      "exists": true,
+      "sha256": "6b62896da5a1ba38d35359a4c6e93f8ccb085618d47ac9f94e26cea361cb2306",
+      "bytes": 6466
+    },
+    {
+      "path": "app/Services/Risk/BetRiskOwnershipFloor.php",
+      "exists": true,
+      "sha256": "b69e026d6f64efaa30ffa5f6fcbffb8ceb35e58a75340f6689e150aef71bb07a",
+      "bytes": 2388
+    },
+    {
+      "path": "app/Services/Risk/NumberLimitEngine.php",
+      "exists": true,
+      "sha256": "164e96053a1d41a26dbc94918480d15b27d44762711fb1d314736ae6c21cca4d",
+      "bytes": 32596
+    },
+    {
+      "path": "database/migrations/2026_10_16_000300_create_bet_purchase_ownerships_table.php",
+      "exists": true,
+      "sha256": "0205aa6531ea17144f84906e7110c8e10bfbd8d2fbfdb26703230cc482e8e389",
+      "bytes": 2165
+    },
+    {
+      "path": "tests/Feature/Betting/BetCancellationOwnershipTest.php",
+      "exists": true,
+      "sha256": "3e0a421e66a17f49050d59c5c591e954c64af358836befa87945055fb55f7a66",
+      "bytes": 21971
+    },
+    {
+      "path": "tests/Feature/Betting/BetCancellationCurrentReadTest.php",
+      "exists": true,
+      "sha256": "72451faf940bdb9240d7ce6061576e52f6d5cfd54ffcdbcb3a75813c630fb397",
+      "bytes": 6018
+    },
+    {
+      "path": "tests/Feature/Betting/Concerns/BuildsOwnedBetPurchase.php",
+      "exists": true,
+      "sha256": "69138c52b97ec2685c1a2ae9ee1cbca031ca9df79738d1d1b828774f3b31ac92",
+      "bytes": 1813
+    },
+    {
+      "path": "app/DTOs/Finance/FinancialHoldData.php",
+      "exists": true,
+      "sha256": "7c46dbf6b8214d63f721e0cdf18712d3016aac3861dbfeca4d4df2281780f8a4",
+      "bytes": 4109
+    },
+    {
+      "path": "app/Services/Finance/FinancialHoldService.php",
+      "exists": true,
+      "sha256": "5d1ef947148c05667dc0849bf177cae7c6c397bf1d5b346c6a19471fad587345",
+      "bytes": 12861
+    },
+    {
+      "path": "app/Services/Finance/FinancialHoldOwnership.php",
+      "exists": true,
+      "sha256": "77b82b7c10bbb14959e4a797253c40d339483e6f997ef88e9165e6f544a99ed0",
+      "bytes": 8199
+    },
+    {
+      "path": "database/migrations/2026_10_16_000200_create_financial_hold_claims_table.php",
+      "exists": true,
+      "sha256": "2014fc12b761ceac6507504e7a6738ea1d4cadc1018617adf023f43accb199bf",
+      "bytes": 1777
+    },
+    {
+      "path": "tests/Feature/Payment/FinancialHoldOwnershipTest.php",
+      "exists": true,
+      "sha256": "a2d0c98529c9b93bbb5329b095c45ef4169dad6393b8e6d51113d54885c55d22",
+      "bytes": 18196
+    },
+    {
+      "path": "tests/Feature/Payment/FinancialHoldCurrentReadTest.php",
+      "exists": true,
+      "sha256": "cc416c7c1813bc0b0691d0c0286db4219e9b4cec1186630939e9c1657519f9c4",
+      "bytes": 7045
+    },
+    {
+      "path": "package.json",
+      "exists": true,
+      "sha256": "d68b579b13dbc4084174530d8cb10c375dbbb9fe9a5e914a3e17013e526d8480",
+      "bytes": 1138
+    },
+    {
+      "path": "package-lock.json",
+      "exists": true,
+      "sha256": "b7b393331202f3ef46318c1496719e76760099e6f112e524f64995df8d2b3cb6",
+      "bytes": 96926
+    },
+    {
+      "path": "composer.lock",
+      "exists": true,
+      "sha256": "61a36c4dbe7a1309e09061b590e96d4b84c2cf52ea698c9dbd263f6182110223",
+      "bytes": 383148
+    },
+    {
+      "path": ".nvmrc",
+      "exists": true,
+      "sha256": "a1c56e968c358e10872d64220b3ae759ffe7feaffc4da95fae425dbcca43fe44",
+      "bytes": 8
+    },
+    {
+      "path": ".npmrc",
+      "exists": true,
+      "sha256": "7151cf397def0c2cb0ab65643701d27d335a72c90f775675b5f826bc7005818a",
+      "bytes": 19
+    },
+    {
+      "path": "postcss.config.js",
+      "exists": true,
+      "sha256": "fe78f76eb483fdc486e5f0ba4aabe66c85575aeec3c2d3e89f7024fc4632e67f",
+      "bytes": 92
+    },
+    {
+      "path": "tailwind.config.js",
+      "exists": true,
+      "sha256": "58ffdc0474d383e2cb7e0b14c575c34bb6de1978c06cf919d894ec91f04ebdbf",
+      "bytes": 647
+    },
+    {
+      "path": "resources/css/app.css",
+      "exists": true,
+      "sha256": "e975e8f625bf7e2859ec955a238c82b87424ac00d5fe73051599e0278c70feb9",
+      "bytes": 1632
+    },
+    {
+      "path": "resources/css/tailwind-compat.css",
+      "exists": true,
+      "sha256": "aa26d9ce8ea8171cdfe9b0582b99d4658902c329e1ac2dc585264db6e39cecaf",
+      "bytes": 841
+    },
+    {
+      "path": "resources/css/tailwind-legacy-theme.json",
+      "exists": true,
+      "sha256": "5568378f5c2b5db9bc02db52b9f16886b1826ec4ee4b7cbfeee20cbc6f8af016",
+      "bytes": 18989
+    },
+    {
+      "path": "scripts/dependency_security_gate.mjs",
+      "exists": true,
+      "sha256": "4d215c861d0ad4faabb08945fad048404293fc19ddb87157baef27300d2ae005",
+      "bytes": 6526
+    },
+    {
+      "path": "tests/dependencies/security-gate.test.mjs",
+      "exists": true,
+      "sha256": "d64927f2986fdaf49c5e40846b1e145afb893cbea5962cb8c7db0c85c1f7b6cb",
+      "bytes": 6712
+    },
+    {
+      "path": "tests/browser/frontend-build.helpers.mjs",
+      "exists": true,
+      "sha256": "2d9c7d383388651136370029f5ccefb5d85fed9a81e466131c38dcfe4885bcfb",
+      "bytes": 3376
+    },
+    {
+      "path": "tests/browser/frontend-build.spec.mjs",
+      "exists": true,
+      "sha256": "3071e35ade785a65d05de2ff8f799c8149026d938bca295640185246805f163a",
+      "bytes": 2571
+    },
+    {
+      "path": "tests/browser/fixtures/tailwind-v3-compat.json",
+      "exists": true,
+      "sha256": "0c2e8aecc5ff4b04d3a2d6cb50fd07f2ef514f88383aad1670e881c5e5cfa206",
+      "bytes": 6225
+    },
+    {
+      "path": "tests/Unit/Production/DependencyAuditBoundaryTest.php",
+      "exists": true,
+      "sha256": "93033647c4d96ff7b920b56bbf7f6a314c400c82944484f168525b067eee8cdc",
+      "bytes": 3383
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "exists": true,
+      "sha256": "9991c0bf9b7076d29eecc663694a102f3f8eafb5181004cfc0faa36f4703c6e3",
+      "bytes": 24485
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "exists": true,
+      "sha256": "5c062c6db00c93cf4304a8993d1df1fae41093fccfcb8727b9584c3fff4b1ce5",
+      "bytes": 3170
+    },
+    {
+      "path": "app/Services/Finance/ReversalIntegrityGuard.php",
+      "exists": true,
+      "sha256": "976a71d4f71ba2dc0ade68ada9698e9bdab251f6ecd71f477de8af3d020e7acd",
+      "bytes": 11663
+    },
+    {
+      "path": "app/Services/Finance/ExternalRefundPolicy.php",
+      "exists": true,
+      "sha256": "042b35e4a5efcd5fb737594a03fb28e21038182d99bf4aa30189b0ce3631eaab",
+      "bytes": 722
+    },
+    {
+      "path": "app/Services/Finance/RefundService.php",
+      "exists": true,
+      "sha256": "969d22c53650530ad22e8f38510e09f4b9d7eedf69fd93281828e74692f32fa9",
+      "bytes": 1070
+    },
+    {
+      "path": "tests/Feature/Finance/ReversalIntegrityTest.php",
+      "exists": true,
+      "sha256": "78649b1155fc6e962b75e51c64ec0aa6393daca0b3297a8331dab5255ef90126",
+      "bytes": 18966
+    },
+    {
+      "path": "tests/Feature/Payment/ManagedRefundBoundaryTest.php",
+      "exists": true,
+      "sha256": "3f4f8cdb2e75322c92524fd770683cbadbe1b70e216f1c4183c624e361ab1e6e",
+      "bytes": 7348
+    },
+    {
+      "path": "tests/Feature/Payment/ReversalIntegrityServerRaceTest.php",
+      "exists": true,
+      "sha256": "256a3322574296c789f8472d9ac43a81af691447e45a9e4bb89e606648f54a45",
+      "bytes": 5086
+    },
+    {
+      "path": "tests/Feature/Payment/PaymentLedgerBalanceTest.php",
+      "exists": true,
+      "sha256": "78a48e93d12c76b42bf10d06c674df6535cf2f22c3f38792421e491757b303df",
+      "bytes": 4137
+    },
+    {
+      "path": "app/Services/Finance/WalletService.php",
+      "exists": true,
+      "sha256": "385af4e0dfcf120601c9ab51285b8b20dee78e008e58250d99193f0700885547",
+      "bytes": 25532
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalHoldFloorTest.php",
+      "exists": true,
+      "sha256": "92addd77070994cc3a49c748555f16eabe866f5cf19ce36677c69f9f4fe164f1",
+      "bytes": 13489
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalHoldFloorServerRaceTest.php",
+      "exists": true,
+      "sha256": "46c577453a909216f4b293542d7755ce5b9a988c698fb5422c25ecc71923afa1",
+      "bytes": 6957
+    },
+    {
+      "path": "app/Services/Payment/WithdrawalCallbackApplicationService.php",
+      "exists": true,
+      "sha256": "c9bd35fd1494fd2361b5db594cfb327218c7a009e683debcbe24309511409d77",
+      "bytes": 5729
+    },
+    {
+      "path": "database/migrations/2026_10_16_000200_create_withdrawal_reservations_table.php",
+      "exists": true,
+      "sha256": "bdce5cc625d3d860daaa9b3d3d7cfc2ad6c0080b1b6a979d01668de8a53a0243",
+      "bytes": 1560
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalOriginalProofTest.php",
+      "exists": true,
+      "sha256": "018569c85c7ca7e1f9e50a0e265955d6bcfb55262ab97608a49e07978380c4bb",
+      "bytes": 18174
+    },
+    {
+      "path": "app/Services/Finance/ExactReconciliationReader.php",
+      "exists": true,
+      "sha256": "18ccc9b5273b0c3075d35b2e69983af3004c4e1cf91e502795a91f3c1170b9e0",
+      "bytes": 3294
+    },
+    {
+      "path": "app/Services/Finance/FinancialReconciliationService.php",
+      "exists": true,
+      "sha256": "0dce671f7ca689958e6ade7f48f441db915041f5d9fd8e71789f78b5e4a2e2d8",
+      "bytes": 53700
+    },
+    {
+      "path": "app/Services/Finance/LedgerReconciliationService.php",
+      "exists": true,
+      "sha256": "6515199683b6e4be694b50276355afb318f39b5de7705a7e7b285cfe4b782419",
+      "bytes": 16801
+    },
+    {
+      "path": "tests/Support/InjectsHistoricalAccountingFaults.php",
+      "exists": true,
+      "sha256": "6bd808f449085d2d1e350e6f1c8d6f38dc855410981e565fb3bce720486017dd",
+      "bytes": 2340
+    },
+    {
+      "path": "tests/Feature/Finance/FinancialReconciliationComprehensiveTest.php",
+      "exists": true,
+      "sha256": "9fdd0d759292380bfed47741d9a59565056cf3a57deb1f7a2408bd1aeed90110",
+      "bytes": 39310
+    },
+    {
+      "path": "tests/Feature/Finance/ReconciliationOriginalEvidenceTest.php",
+      "exists": true,
+      "sha256": "051497ad51d804c2e8919a33281202346b53617750a823e04aaedeb0c7530464",
+      "bytes": 13059
+    },
+    {
+      "path": "tests/Feature/Web/BrowserPaymentCallbackTest.php",
+      "exists": true,
+      "sha256": "34e93c23a323f016ccd1ac1e34e30bf3a7d3360f799be0795bee3dacaf717bc6",
+      "bytes": 8893
+    },
+    {
+      "path": "tests/Feature/FinalWholeSystemNoSkipTest.php",
+      "exists": true,
+      "sha256": "14263289cef1635653f9a0f43c995d2baacd6bf6e31f5270e88cd7c0902e5f41",
+      "bytes": 9440
+    },
+    {
+      "path": "app/Services/Finance/DepositIntegrityGuard.php",
+      "exists": true,
+      "sha256": "9e6fbef893821f6aff343195dc941b6830d188c8116a5ac231b702e9395aacbe",
+      "bytes": 6057
+    },
+    {
+      "path": "app/Services/Payment/DepositProviderAccountService.php",
+      "exists": true,
+      "sha256": "7419930ab5ccf4af3deecd138e0375c7729ac68aa93393a836904a6b41049460",
+      "bytes": 1506
+    },
+    {
+      "path": "app/Services/Payment/FinancialProviderReferenceService.php",
+      "exists": true,
+      "sha256": "be3c1bd7a8aab875dec043c0b7718cae1abc3ef48bea7ad47132e160dfab2a45",
+      "bytes": 4227
+    },
+    {
+      "path": "app/Services/Payment/DepositCallbackApplicationService.php",
+      "exists": true,
+      "sha256": "9b14e2dcdb65ed7f583053d3f8d0ae7849fb8cefe5cee743ed659af091e99992",
+      "bytes": 5208
+    },
+    {
+      "path": "app/Console/Commands/Finance/DepositReferenceAuditCommand.php",
+      "exists": true,
+      "sha256": "ad965656f436ac8e26db6884c0ffde7cffdb98cc25bec69645c1adc1261e9df9",
+      "bytes": 3217
+    },
+    {
+      "path": "database/migrations/2026_10_16_000100_create_financial_provider_reference_owners_table.php",
+      "exists": true,
+      "sha256": "62dcb9da30136d8bf62d00f30f6d8c5fd8b7e55f8f7ca59070fb3ed01b45073f",
+      "bytes": 2203
+    },
+    {
+      "path": "tests/Feature/Payment/DepositOriginalIntegrityTest.php",
+      "exists": true,
+      "sha256": "b021ec6e5920fddbcedf8516bd6c9f6c51136b8e0c30dc2f80606f12647856f3",
+      "bytes": 9045
+    },
+    {
+      "path": "tests/Feature/Payment/DepositCallbackOriginalProofTest.php",
+      "exists": true,
+      "sha256": "5d2331706d439988add391dafd058cb659ff479f6d4f9a47a94ea6028f7710c3",
+      "bytes": 6297
+    },
+    {
+      "path": "tests/Feature/Payment/DepositReferenceAuditTest.php",
+      "exists": true,
+      "sha256": "8e9388f377e66a5bedb06aa7eb9e27310f1b71554ee6e7d8cdda801da0e9bfad",
+      "bytes": 2744
+    },
+    {
+      "path": "tests/Feature/Payment/DepositReferenceServerRaceTest.php",
+      "exists": true,
+      "sha256": "85f889d77611da01c8dbe7e90dafa72168fe7eb209c63995414aed0d9a18e6bf",
+      "bytes": 5000
+    },
+    {
+      "path": "app/Filament/Resources/DepositResource/DepositDecisionActions.php",
+      "exists": true,
+      "sha256": "447623e7d1d09e174f04086da77811004d91335783ed8cf537c41dd2856a93a4",
+      "bytes": 13538
+    },
+    {
+      "path": "app/Services/Finance/DepositCompletionService.php",
+      "exists": true,
+      "sha256": "dceb5c257b8b4d05b0e24577c1bf9c88c39c7ce49393bea5b5136e9f3b8a3b2a",
+      "bytes": 7352
+    },
+    {
+      "path": "app/Services/Finance/DepositService.php",
+      "exists": true,
+      "sha256": "081792bee2d3c66b79c3e3bc774e12f26a6f4b353242c40167e8345770d37c2a",
+      "bytes": 18669
+    },
+    {
+      "path": "app/Services/Payment/PaymentCallbackService.php",
+      "exists": true,
+      "sha256": "c4a7ef1d36dec521fd2628deb795bfc874d0db20053455d0b198565727c70158",
+      "bytes": 12634
+    },
+    {
+      "path": "app/Services/Payment/PaymentVerificationService.php",
+      "exists": true,
+      "sha256": "1aab44b9653a15c241a94502be71f36c9d828ce460983bb81a459ed851c0bcec",
+      "bytes": 12358
+    },
+    {
+      "path": "tests/Feature/Filament/FinanceResourcesTest.php",
+      "exists": true,
+      "sha256": "e6b257981e50b9bc3f7063300a423ca302adc811f4c2b3565cc3d019f7fffb51",
+      "bytes": 39761
+    },
+    {
+      "path": "tests/Feature/Payment/PaymentCallbackServiceTest.php",
+      "exists": true,
+      "sha256": "a6ab1dde49c032650cefc031d5fc6b8164b3b688acd3af4c571e5d8626ca3e87",
+      "bytes": 8601
+    },
+    {
+      "path": "app/Services/Prize/PrizeClaimGuard.php",
+      "exists": true,
+      "sha256": "e07324674de36b1ba1dcd333a9987ccf1483ae5fa1a7a11a59ffaa1916b341b9",
+      "bytes": 9296
+    },
+    {
+      "path": "app/Services/Prize/PrizeClaimService.php",
+      "exists": true,
+      "sha256": "da4ccecf84897121e3bb39708714e4e04f24dbf386d78ec3c0c44e897b31f9cf",
+      "bytes": 8505
+    },
+    {
+      "path": "app/Services/Prize/ClaimWindowService.php",
+      "exists": true,
+      "sha256": "741cde7f9a4b4ac78ee733f3aabe79d90de9776b562f54dc247aa1548838a4fa",
+      "bytes": 4430
+    },
+    {
+      "path": "app/Services/Prize/PrizeExpiryService.php",
+      "exists": true,
+      "sha256": "9b6d49ecbb5e7af9dde84474e079bba1c63b2279f4a7ffbf1768c44bea891954",
+      "bytes": 6389
+    },
+    {
+      "path": "app/Services/Prize/UnclaimedPrizeService.php",
+      "exists": true,
+      "sha256": "ab83cdb6dcd350d1aef9f9be3358d812b0994b0d64e5627fb94014081553541f",
+      "bytes": 3195
+    },
+    {
+      "path": "app/Services/Prize/PrizeClaimCompletionService.php",
+      "exists": true,
+      "sha256": "93038752b768df0ea74b0dcdbdcaf14bce623871fbca2e08e8c2692b0d9e396c",
+      "bytes": 4329
+    },
+    {
+      "path": "app/Services/Prize/PrizeClaimValidationService.php",
+      "exists": true,
+      "sha256": "de22e9811229b5d155cec124ef37d6897451f616275cbfb838a33c876547a64f",
+      "bytes": 3979
+    },
+    {
+      "path": "app/Enums/PrizeClaimStatus.php",
+      "exists": true,
+      "sha256": "81f3dd0cf7aa05f5c19e2e969e44d160fdc7f5bbd5cf88d26fc6721ff1e43ab1",
+      "bytes": 3158
+    },
+    {
+      "path": "app/Enums/ClaimWindowStatus.php",
+      "exists": true,
+      "sha256": "77568f6671c0c7cf362cef75ae3ecf105c3749b3db6312b91da57baf0ef3c118",
+      "bytes": 2109
+    },
+    {
+      "path": "app/Http/Requests/Prize/CreatePrizeClaimRequest.php",
+      "exists": true,
+      "sha256": "03f10558368c717e46a1e59a7b24a5e3ce3c9cd6202e1c62ae0d14ee09248747",
+      "bytes": 2600
+    },
+    {
+      "path": "app/Http/Requests/Admin/ReviewPlayerPrizeClaimRequest.php",
+      "exists": true,
+      "sha256": "c98fa438af9c49761e4d88104007e92219d094c21ac56ae24f6763cf9ee55089",
+      "bytes": 1413
+    },
+    {
+      "path": "app/Http/Controllers/Admin/PlayerPrizeClaimReviewController.php",
+      "exists": true,
+      "sha256": "0c95e82267446e4a8214636fb11544288b869d99534a3d4d1bcd0285996ad73b",
+      "bytes": 3358
+    },
+    {
+      "path": "app/Http/Controllers/Api/V1/PrizeClaimController.php",
+      "exists": true,
+      "sha256": "f10e17b58000850d98e196e3d11af5cdb08aface91204b7e9464e77612838785",
+      "bytes": 6779
+    },
+    {
+      "path": "app/Http/Resources/PrizeClaimResource.php",
+      "exists": true,
+      "sha256": "15ae67be46075e64307cc8cfaac88409f88558ded4c162c388b2a69d907623da",
+      "bytes": 4029
+    },
+    {
+      "path": "resources/views/admin/player-prize-claims.blade.php",
+      "exists": true,
+      "sha256": "6ac8f46d741d2dd93eafd808bd468764df063bacc4650559f4029deda7548949",
+      "bytes": 3385
+    },
+    {
+      "path": "app/Jobs/ExpireUnclaimedPrizesJob.php",
+      "exists": true,
+      "sha256": "e8a28dd0f5f0840a4f0eb5eb11a7e9fe6f84c2f3aa93f8880e8acde32e4bd49b",
+      "bytes": 5225
+    },
+    {
+      "path": "app/Jobs/SweepUnclaimedPrizesJob.php",
+      "exists": true,
+      "sha256": "1c699c75d274a192367d58b4747049689d3dc8ec731655cb6e4e00e8f7266a6a",
+      "bytes": 4455
+    },
+    {
+      "path": "app/Jobs/CloseExpiredClaimWindowsJob.php",
+      "exists": true,
+      "sha256": "212a1e8752c18271444ff9d66d093d8eb2299b73b69314f6a4f8723d437952a5",
+      "bytes": 4516
+    },
+    {
+      "path": "tests/Support/CreatesPlayerPrizeClaim.php",
+      "exists": true,
+      "sha256": "dc6d9111ca0898494eb962c9a538ca8f6ef22dd70614232722272bdfa38ee394",
+      "bytes": 3329
+    },
+    {
+      "path": "tests/Feature/Payment/PlayerPrizeClaimLifecycleTest.php",
+      "exists": true,
+      "sha256": "94e2b37b762e48f3b8cda1d2b88b55d6cb3fc6a3bd34028f586521e2ceb60e04",
+      "bytes": 13233
+    },
+    {
+      "path": "tests/Feature/Payment/PlayerPrizeClaimHttpTest.php",
+      "exists": true,
+      "sha256": "2f21ef48123c1991d2ead0ec996160c0579cf38c0becd1bf0eb770c59c9bdc6e",
+      "bytes": 5911
+    },
+    {
+      "path": "tests/Feature/Payment/PlayerPrizeExpiryTest.php",
+      "exists": true,
+      "sha256": "46ccdb0cc372bad45b99a9c2dceaa99aba465c5c79e422f26ea76461ca85ae5a",
+      "bytes": 8561
+    },
+    {
+      "path": "tests/Feature/Payment/PlayerPrizeClaimCompletionTest.php",
+      "exists": true,
+      "sha256": "ff2e912918c3cc465574b1fe70674e1ec0fcab306c2f03748cb9dfe72f11ee8e",
+      "bytes": 5867
+    },
+    {
+      "path": "tests/Feature/Payment/PlayerPrizeClaimServerRaceTest.php",
+      "exists": true,
+      "sha256": "4fa35b45bc02965a2fb9fa7d475fef43d3f4383dcd209c6b3f73092c375212a5",
+      "bytes": 4169
+    },
+    {
+      "path": "tests/Feature/Api/V1/Batch7ApiSurfaceTest.php",
+      "exists": true,
+      "sha256": "c0ad2147164ab6eb96c9a33d36498347a8c08d2403a773b2deea905adef0e470",
+      "bytes": 22404
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutEvidenceServerRaceTest.php",
+      "exists": true,
+      "sha256": "f0753891623b9d8202d9a6a0ea5f5722f366716cb13ea6ecdfacbe1a5e88958c",
+      "bytes": 1666
+    },
+    {
+      "path": "database/migrations/2026_10_15_000600_create_payout_transfer_evidence_tables.php",
+      "exists": true,
+      "sha256": "098ac54f2011b5232d1b4304f89bb60d52a35cbce764438b380fc6f7b07dce96",
+      "bytes": 2177
+    },
+    {
+      "path": "app/Services/Payment/PayoutEvidenceStore.php",
+      "exists": true,
+      "sha256": "c0e437dc2fdfb2d80ce6c7034d7414fad4a3f7ced8e70c7bb9f86a99860788e3",
+      "bytes": 3234
+    },
+    {
+      "path": "app/Services/Payment/PayoutEvidenceService.php",
+      "exists": true,
+      "sha256": "595715069aeb37d5685d02ab46b2ee7d8b4128b52a79872a7373deffa8206bfa",
+      "bytes": 7904
+    },
+    {
+      "path": "app/Http/Requests/Admin/UploadPayoutEvidenceRequest.php",
+      "exists": true,
+      "sha256": "30556ed6acd8cdc6dde3d3f19cb878e1b99f84c4a331172ed1dfc095877f7d22",
+      "bytes": 1233
+    },
+    {
+      "path": "app/Http/Controllers/Admin/PayoutEvidenceController.php",
+      "exists": true,
+      "sha256": "18bf9abefc7779df8dc00c9f3961e27653bcf83fd499f02bc8964e1be5ab74c9",
+      "bytes": 2441
+    },
+    {
+      "path": "app/Console/Commands/Finance/PayoutEvidenceAuditCommand.php",
+      "exists": true,
+      "sha256": "988aae84c87239cfcefe20b75a4b7fd3f6f8fa1cd818585ea7c5374f1f7dc73a",
+      "bytes": 2842
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutEvidenceWorkflowTest.php",
+      "exists": true,
+      "sha256": "f4bd4189f0bf7cba23b60fddd0d706013521fb418511a66e93b4f088126f3cf9",
+      "bytes": 8170
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutEvidenceHttpTest.php",
+      "exists": true,
+      "sha256": "052c2ae8e1ddd8ff2d1d1f80082208f6986a632fa31ceb6326278bec0a3ee5f4",
+      "bytes": 5242
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutEvidenceRetentionTest.php",
+      "exists": true,
+      "sha256": "fdc4ff8fac900c9cd99e5b8bb119b6754010e1ec0ed7b40737eed3d897551dab",
+      "bytes": 3858
+    },
+    {
+      "path": "database/migrations/2026_10_15_000500_create_outbound_provider_references_table.php",
+      "exists": true,
+      "sha256": "0c15ad031e8b7d83000cdbacfe53bbb36718aee5425af83875fd35efb7b4bd97",
+      "bytes": 2035
+    },
+    {
+      "path": "app/Services/Payment/OutboundProviderReferenceService.php",
+      "exists": true,
+      "sha256": "4a6b5ed6436648400154a26b2d9ca1c6cf2b99f4152a8e0ff975a9f01fa3e6d5",
+      "bytes": 5484
+    },
+    {
+      "path": "app/Services/Payment/OutboundReferenceHistoryService.php",
+      "exists": true,
+      "sha256": "9d1a2fe6ba5d1167935d4411af89dd55cb711317e549cd5ffdeb7a1aa7bd5f23",
+      "bytes": 4977
+    },
+    {
+      "path": "app/Services/Payment/OutboundReferenceAuditService.php",
+      "exists": true,
+      "sha256": "b2d49346d425f3d79d0b82c932875b7fd56ac165bfb76aac2591c6146bfec349",
+      "bytes": 4070
+    },
+    {
+      "path": "app/Console/Commands/Finance/OutboundReferenceAuditCommand.php",
+      "exists": true,
+      "sha256": "23d10cf59744f63a2e49dcfc420c0f2c17892f238869b1d619fc756115042669",
+      "bytes": 3057
+    },
+    {
+      "path": "tests/Feature/Payment/OutboundReferenceCrossDomainTest.php",
+      "exists": true,
+      "sha256": "e42cc633b9a8e39174f358c83788af1debef1e932abb07f9606250dd6a875b2c",
+      "bytes": 10770
+    },
+    {
+      "path": "tests/Feature/Payment/OutboundReferenceRegistryTest.php",
+      "exists": true,
+      "sha256": "d15102e9cdee57364b90100c5779544eccc3b6303d41ce4a3092849a0fa52b03",
+      "bytes": 4977
+    },
+    {
+      "path": "tests/Feature/Payment/OutboundReferenceAuditTest.php",
+      "exists": true,
+      "sha256": "bcdb795541e9f65b07adf4d79480d2ca500d7f6419b0ccdceef1d9c2ea851f28",
+      "bytes": 4781
+    },
+    {
+      "path": "tests/Feature/Payment/OutboundReferenceServerRaceTest.php",
+      "exists": true,
+      "sha256": "2a183b452baf4a4a105712cbb6634fe32a806fdd9c0797348747abb25fdbd3f4",
+      "bytes": 3412
+    },
+    {
+      "path": "database/migrations/2026_10_15_000400_create_payout_batch_members_table.php",
+      "exists": true,
+      "sha256": "b5cc456ea72e8aaaeceea6133da9862008f44163bdd94e95e627e4af81db48be",
+      "bytes": 1194
+    },
+    {
+      "path": "app/Services/Finance/PayoutBatchMembershipService.php",
+      "exists": true,
+      "sha256": "8bcff7598ea2defbdb9ea243c265219d9105a4ddd0021e38c9ae6363906aebbe",
+      "bytes": 6831
+    },
+    {
+      "path": "app/Services/Finance/PayoutBatchService.php",
+      "exists": true,
+      "sha256": "e281062bcdfaee8534e09f1833d433c40f184f90428ebae69bf5deea929d15cf",
+      "bytes": 10016
+    },
+    {
+      "path": "app/Services/Finance/ApprovedWalletPayoutService.php",
+      "exists": true,
+      "sha256": "9a13f2369812402323cdf97127135b988560e7acd256367960b33589f981dcb9",
+      "bytes": 3034
+    },
+    {
+      "path": "app/Services/Finance/PayoutBatchRoutingService.php",
+      "exists": true,
+      "sha256": "e978fd7e13db9c6f2dbfbd66acc28c08be62260fe227262d6df8851dbe00778c",
+      "bytes": 3693
+    },
+    {
+      "path": "app/Services/Finance/PayoutApprovalIntakeService.php",
+      "exists": true,
+      "sha256": "9b9cb05ed6b487458b125df1a6f08d40d20f3985155c1b4df9ae1ff0ad4f496b",
+      "bytes": 5209
+    },
+    {
+      "path": "app/Jobs/ProcessPayoutBatchJob.php",
+      "exists": true,
+      "sha256": "c098090a9869cfa4815d692a8546cbf1f1219e6c447a5f7eaf53e4aa3b2f562d",
+      "bytes": 3900
+    },
+    {
+      "path": "app/Jobs/GeneratePayoutBatchJob.php",
+      "exists": true,
+      "sha256": "4cb588aaec2dc3f576db8fbdfeff1df728628b12f6466ed109568350a78d69ee",
+      "bytes": 3517
+    },
+    {
+      "path": "app/Http/Controllers/Admin/PayoutApprovalIntakeController.php",
+      "exists": true,
+      "sha256": "e37babf439b12ab6185989550f574df8e06930f1f3ad0b7b03bb023124b862f9",
+      "bytes": 7117
+    },
+    {
+      "path": "app/Http/Requests/Admin/StorePayoutApprovalRequest.php",
+      "exists": true,
+      "sha256": "8e26daa9b15fe9391ef8d0dd7f3261df295903c9e1ae37668a1596931d6f011c",
+      "bytes": 1706
+    },
+    {
+      "path": "app/Http/Requests/Admin/DecidePayoutApprovalRequest.php",
+      "exists": true,
+      "sha256": "2d5669ff28f3e2887b510061a6e81bc9066bbcf91ea433ce8e95abb508a5483d",
+      "bytes": 1298
+    },
+    {
+      "path": "app/Http/Resources/PayoutApprovalResource.php",
+      "exists": true,
+      "sha256": "e28a9545d0ad955b8b0bc5ceb728a3f86b60d2ad644996f8c029ec92ce2cd799",
+      "bytes": 1217
+    },
+    {
+      "path": "resources/views/admin/payout-approvals.blade.php",
+      "exists": true,
+      "sha256": "ebca9a2d1b4fe90b5b2afabba0c3eeca487d30ce1c04f99a0398572be7a63ab2",
+      "bytes": 6243
+    },
+    {
+      "path": "app/Services/Prize/PrizeDisbursementService.php",
+      "exists": true,
+      "sha256": "2ccef47d4bb2c7cd582978b05b59731aa966f18d7a8102dd943022f05a1d3fe6",
+      "bytes": 16912
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutApprovalIntakeHttpTest.php",
+      "exists": true,
+      "sha256": "a9d5bf852a7252176779e8289bad68c662a6f045cb215c6e1a9006313ef8837b",
+      "bytes": 5262
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutBatchRoutingTest.php",
+      "exists": true,
+      "sha256": "610bc758634489fba3e74e7024b9c951d73934caca653a2c037be24685e999e5",
+      "bytes": 4900
+    },
+    {
+      "path": "tests/Feature/Payment/ApprovedWalletPayoutTest.php",
+      "exists": true,
+      "sha256": "495ec157f8e978f310dc06090ec75b389bcb33a005daa036b6ba2b19aeb3bb1e",
+      "bytes": 7833
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutBatchProjectionTest.php",
+      "exists": true,
+      "sha256": "db8092c13aef8554a0b6197cf9a74cb9af6a6bb2c800ea8dea9ed7dd6dff0da4",
+      "bytes": 6785
+    },
+    {
+      "path": "tests/Feature/Production/QueueDispatchContractTest.php",
+      "exists": true,
+      "sha256": "aeef2d9218785befc65c92ed560f4428bed2b74fa0ea9c4f23ef63a44e6f93f0",
+      "bytes": 10438
+    },
+    {
+      "path": "database/migrations/2026_10_15_000300_create_payout_transfer_references_table.php",
+      "exists": true,
+      "sha256": "ad9f921c2bfdfd4db34d8ebd579f6ef51f47fdfbd1822573a5e5527d4db6ada1",
+      "bytes": 1169
+    },
+    {
+      "path": "app/Services/Finance/PayoutApprovalGuard.php",
+      "exists": true,
+      "sha256": "1bd6d88b6e7619b68eaccc6e40163aefa38d601aa1c1c8978df684328cf7bde7",
+      "bytes": 4049
+    },
+    {
+      "path": "app/Services/Finance/PayoutApprovalService.php",
+      "exists": true,
+      "sha256": "3a15450be3deed7366df40c1e13afcd4e643d1106f24aee54490d0eb285dd59d",
+      "bytes": 24481
+    },
+    {
+      "path": "app/Services/Payment/PayoutTransferAccess.php",
+      "exists": true,
+      "sha256": "da392c0593018ce8fd6f74d73c076c48b6085712881b053caa3cf16200b34db9",
+      "bytes": 1430
+    },
+    {
+      "path": "app/Services/Payment/PayoutTransferGuard.php",
+      "exists": true,
+      "sha256": "f9adc92587a273485ae2dbcaa5098a0476221060f1c827b94895d6f2465f0536",
+      "bytes": 4407
+    },
+    {
+      "path": "app/Services/Payment/PayoutTransferReferenceService.php",
+      "exists": true,
+      "sha256": "c1218877189008086932747d5b11e0ac585533a5b6ef283e5ec74520cca36418",
+      "bytes": 4162
+    },
+    {
+      "path": "app/Services/Finance/ExternalPayoutCompletionService.php",
+      "exists": true,
+      "sha256": "ae30a367592eb54b8cd9401c5a4a037cda458115c3197d9467c16ff3535b31f2",
+      "bytes": 2354
+    },
+    {
+      "path": "app/Services/Payment/PayoutTransferService.php",
+      "exists": true,
+      "sha256": "a318552b2fc19be506a3e1204f55aa900df409b5afaf9c46258dd18f5a4ccaea",
+      "bytes": 12056
+    },
+    {
+      "path": "app/Jobs/ExecutePayoutTransferJob.php",
+      "exists": true,
+      "sha256": "8f225f26b9c7fff7ae1a1b67d51aa0522880f01334775d043c22d8dcb20b466b",
+      "bytes": 8311
+    },
+    {
+      "path": "app/Http/Requests/Admin/ReviewPayoutTransferRequest.php",
+      "exists": true,
+      "sha256": "58516e4fcc884d301965481d102972195e10a31d76441594935c643ed3db3d58",
+      "bytes": 1332
+    },
+    {
+      "path": "app/Http/Resources/PayoutTransferResource.php",
+      "exists": true,
+      "sha256": "57e7274f4d9abd49ceb9cba51eab4c0df3b70e1ba4889d348d412be5580174e4",
+      "bytes": 1252
+    },
+    {
+      "path": "app/Http/Controllers/Admin/PayoutTransferReviewController.php",
+      "exists": true,
+      "sha256": "068b9230546ce18015ac3cd76955233df5ab15d81e143a947835a1dec07f8c8a",
+      "bytes": 4855
+    },
+    {
+      "path": "resources/views/admin/payout-transfers.blade.php",
+      "exists": true,
+      "sha256": "3f53e3d99f8232a94e8534c5c8f5b862042c9e4c2015437b8e7c0a8749ab843d",
+      "bytes": 5375
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutApprovalBoundaryTest.php",
+      "exists": true,
+      "sha256": "f5ae49d029c4ac9b9dd91af2ffa0a00b5132a6baf59f8fba0c9f09398505cfae",
+      "bytes": 4984
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutTransferIdentityTest.php",
+      "exists": true,
+      "sha256": "06cd7e9273a6e9a612183bf42d10584ceeea8de04b546ca1b7f98baeeaccfb40",
+      "bytes": 3331
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutTransferCompletionTest.php",
+      "exists": true,
+      "sha256": "14c6e422408a91ab58a90472d444322e1f7d50fa8d701e1c2c0fb32b7a649bb4",
+      "bytes": 7597
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutTransferReferenceTest.php",
+      "exists": true,
+      "sha256": "003b672dfa5001059deddc61c676fc17b361250a820345ec259ea5ffb5343723",
+      "bytes": 6929
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutTransferHttpTest.php",
+      "exists": true,
+      "sha256": "e5d4433573cc5defbeec7ab052f6aadd59c57170dd412dd7d0f6e86f88046cc0",
+      "bytes": 3743
+    },
+    {
+      "path": "tests/Feature/Payment/PayoutTransferJobTest.php",
+      "exists": true,
+      "sha256": "29330dba4c26d71c80f06f9fd0b1453a431b52811f04da789344864b244bd1e4",
+      "bytes": 1956
+    },
+    {
+      "path": "tests/Support/CreatesExternalPayout.php",
+      "exists": true,
+      "sha256": "f985f6db582e076b59341ec96131771c3318cc00821d423475719c86db7e8056",
+      "bytes": 17145
+    },
+    {
+      "path": "database/migrations/2026_10_15_000200_create_withdrawal_provider_references_table.php",
+      "exists": true,
+      "sha256": "ec37a89f7a8fb86b29ca75e9116d269d41c56b56a7b3aa20ccf1e14ee8a6fe1a",
+      "bytes": 1447
+    },
+    {
+      "path": "app/Services/Payment/WithdrawalProviderAccountService.php",
+      "exists": true,
+      "sha256": "172cfd1690808ce0c1e897e15288c48e13fa013010e4d648b88e66f939e1bcf6",
+      "bytes": 2516
+    },
+    {
+      "path": "app/Services/Payment/WithdrawalProviderReferenceService.php",
+      "exists": true,
+      "sha256": "b5cec5d3063108bba7b2fa59a6d7c4b2ad3d7e679122444755a2732a630d21d9",
+      "bytes": 10741
+    },
+    {
+      "path": "app/Console/Commands/Finance/WithdrawalReferenceAuditCommand.php",
+      "exists": true,
+      "sha256": "8fbc387052cdb21fce02784ec4c91d3cda15c734a57f488cc6e3b972a7240b93",
+      "bytes": 2670
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalReferenceCrossLaneTest.php",
+      "exists": true,
+      "sha256": "08481cf6a7c6f54f830d015769b97f2cecc25314cbd66aad9a746c53519e32f7",
+      "bytes": 8989
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalProviderAccountTest.php",
+      "exists": true,
+      "sha256": "d915ae6f6c2f6380d23d339e61bb52fa151b4094a8f1d3b5a5bf5529013bf9e1",
+      "bytes": 4369
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalProviderReferenceTest.php",
+      "exists": true,
+      "sha256": "bfcb7c70980bfb08ffe0ab9e5c265ffdd0dac025924340e2dde032ba2634924a",
+      "bytes": 7455
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalReferenceAuditTest.php",
+      "exists": true,
+      "sha256": "493f196cb8293eea83901a82d9b69c2073b26a2f7351c1e8e4a1ec16ad1b35d7",
+      "bytes": 4936
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalReferenceLegacyCompatibilityTest.php",
+      "exists": true,
+      "sha256": "77107f85ecead2bdf445f6856c5546c56d3a6e1c433792d8d32c0256cc8f4d63",
+      "bytes": 9475
+    },
+    {
+      "path": "tests/Feature/Concurrency/WithdrawalReferenceServerRaceTest.php",
+      "exists": true,
+      "sha256": "c8e5a1b6ea98b0195133e29465658f67d2139b6627df7fa1c8cc70ec3be5ef3b",
+      "bytes": 6453
+    },
+    {
+      "path": "app/Services/Finance/WithdrawalCompletionService.php",
+      "exists": true,
+      "sha256": "d6b118be880ef361c000c2a87960a60f38a6f0b92704b8c41abb5d1022ab4d53",
+      "bytes": 15904
+    },
+    {
+      "path": "config/payment.php",
+      "exists": true,
+      "sha256": "b2a26db04a1e711bce9c33a5c8d4e6c5bcaa5258efa252081d88e2b7cdf05bfa",
+      "bytes": 18504
+    },
+    {
+      "path": "database/migrations/2026_10_15_000100_create_withdrawal_reconciliations_table.php",
+      "exists": true,
+      "sha256": "c18a6e247cccbc0e310b5e103c52a151744a35588207c46126afefb5ea6dc565",
+      "bytes": 2250
+    },
+    {
+      "path": "app/Enums/WithdrawalReconciliationOutcome.php",
+      "exists": true,
+      "sha256": "3456fc3de98489eebf14de0e49ff96553e4225860e654a5c3b7915d08b55f68b",
+      "bytes": 279
+    },
+    {
+      "path": "app/Models/WithdrawalReconciliation.php",
+      "exists": true,
+      "sha256": "6dfdd9ed5c3e2046d9137eb1f30e47660a7d870332dbea5dc5d5ad300c0af77f",
+      "bytes": 1308
+    },
+    {
+      "path": "app/DTOs/Payment/WithdrawalReconciliationFacts.php",
+      "exists": true,
+      "sha256": "d30eaaeb2e9bbc63da30c5b5280759b1cb88fda1cf8325000b8e3e1ea5fbb4dd",
+      "bytes": 2409
+    },
+    {
+      "path": "app/Exceptions/WithdrawalReconciliationException.php",
+      "exists": true,
+      "sha256": "a1bfe6434676a14a084200e69b6ab9ef0ff263ec589fa07d92ab73508d30b099",
+      "bytes": 399
+    },
+    {
+      "path": "app/Services/Payment/WithdrawalReconciliationAccess.php",
+      "exists": true,
+      "sha256": "54c9874a1cde754dcc51cf8506cc35ccdf655bb77536562ad2a96a16a265e729",
+      "bytes": 1221
+    },
+    {
+      "path": "app/Services/Payment/WithdrawalReconciliationEvidenceStore.php",
+      "exists": true,
+      "sha256": "99c540c2fb55bfa2f60cd1c3106f496fa875b75093ca3527c89bbfc0656cb3eb",
+      "bytes": 2038
+    },
+    {
+      "path": "app/Services/Payment/WithdrawalReconciliationService.php",
+      "exists": true,
+      "sha256": "80527741b5cb15c85ff2300c47f9c3fb7966cec3f992f95e554488d6480fe74f",
+      "bytes": 16068
+    },
+    {
+      "path": "app/Http/Resources/WithdrawalReconciliationResource.php",
+      "exists": true,
+      "sha256": "805172a3c94da11caaedf8814fbf98d8078c7423fb885f3e59a597a6b59678bb",
+      "bytes": 1029
+    },
+    {
+      "path": "app/Http/Requests/Admin/StoreWithdrawalReconciliationRequest.php",
+      "exists": true,
+      "sha256": "5bc27286083a277b9196b3c6b7f9f3b64070cb6bd437ef299aca1bc6541a9266",
+      "bytes": 1150
+    },
+    {
+      "path": "app/Http/Requests/Admin/DecideWithdrawalReconciliationRequest.php",
+      "exists": true,
+      "sha256": "a5459f7eb182476077c6e2d91bc3f8baf45b10baf73b688a694d47113a46b9d1",
+      "bytes": 700
+    },
+    {
+      "path": "app/Http/Controllers/Admin/WithdrawalReconciliationController.php",
+      "exists": true,
+      "sha256": "8c44ac60a4016bd920690caf818ec49c743c78120656b9a234d8a91da3a803ff",
+      "bytes": 6390
+    },
+    {
+      "path": "config/permission.php",
+      "exists": true,
+      "sha256": "fda63e03456cf1e8cb6fe4683e74d01cbb09f897600327d98d6a30b1fef55b0d",
+      "bytes": 3848
+    },
+    {
+      "path": "resources/views/admin/withdrawal-reconciliation.blade.php",
+      "exists": true,
+      "sha256": "81bdf23a9bed8b21138aff17ddb1bac981547565b897c7933e26ef6e05e319d9",
+      "bytes": 6571
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalReconciliationServiceTest.php",
+      "exists": true,
+      "sha256": "b73f34f97c0ef4150b71c4d3f358f32a34d1a3e2cf075a7f7146446bbd729288",
+      "bytes": 21595
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalReconciliationHttpTest.php",
+      "exists": true,
+      "sha256": "064985754dd2d456c0a024c4d156b79d538110e4a2cca69834d3b6d7bcd4423f",
+      "bytes": 11483
+    },
+    {
+      "path": "tests/Feature/Concurrency/WithdrawalReconciliationServerRaceTest.php",
+      "exists": true,
+      "sha256": "262cdf4b0accc5ce34548d917525d58001af1f72b7222c6d3a0ed7798c8fa53c",
+      "bytes": 5554
+    },
+    {
+      "path": "app/DTOs/Payment/GatewayWithdrawalResponse.php",
+      "exists": true,
+      "sha256": "edb5c2b125b2542ae94b30c6a8f35f77d2db129aefda08af34323c5806a40fba",
+      "bytes": 2821
+    },
+    {
+      "path": "app/Services/Payment/WithdrawalDisbursementService.php",
+      "exists": true,
+      "sha256": "ac4d77b7c6e580cd50271c637342486d47090ae867eaea4093c312b951595c26",
+      "bytes": 19074
+    },
+    {
+      "path": "app/Services/Payment/Contracts/PaymentGatewayInterface.php",
+      "exists": true,
+      "sha256": "3873756e5754e40f7143bf369dc3093ea432dd2e06b78ed7b1700f09d69274dd",
+      "bytes": 3682
+    },
+    {
+      "path": "app/Jobs/Payment/DisburseWithdrawalJob.php",
+      "exists": true,
+      "sha256": "c245a6e64fceaa9bac12f6b71410bebd32532b89350224f74d7cdcbf66cce0c2",
+      "bytes": 7885
+    },
+    {
+      "path": "app/Console/Commands/Finance/WithdrawalDispatchStatusCommand.php",
+      "exists": true,
+      "sha256": "e1afa396d1be291ef72d4afd4da74374e755bafd4b53860ef3a9453c29016e44",
+      "bytes": 3909
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalDispatchSafetyTest.php",
+      "exists": true,
+      "sha256": "18211486f3721b37a80433543687b78e8c744cfff39485b033a801d8d45ad416",
+      "bytes": 15073
+    },
+    {
+      "path": "tests/Feature/Payment/WithdrawalDispatchStatusTest.php",
+      "exists": true,
+      "sha256": "b3becb827827eda611b4ff062c66df998215a7f5d8d3b89f983398605946c0b3",
+      "bytes": 3843
+    },
+    {
+      "path": "tests/Feature/Queue/ProductionQueueComprehensiveTest.php",
+      "exists": true,
+      "sha256": "e545ede1d85315c21c0aa9facfb84aa73c078f6e10a68b676c187326d26b87c9",
+      "bytes": 29729
+    },
+    {
+      "path": "tests/Support/SyntheticWithdrawalGateway.php",
+      "exists": true,
+      "sha256": "d030cb1a3e207878fcba76e5d3a68860a86ca080cabbb2743ed0b3cf3c0bec63",
+      "bytes": 2687
+    },
+    {
+      "path": "tests/Support/WithdrawalDispatchProbe.php",
+      "exists": true,
+      "sha256": "666ed64695d660d95013e5a7afc4c35ea99196f92e785f7448ae00927cec9992",
+      "bytes": 3583
+    },
+    {
+      "path": "tests/Feature/Concurrency/WithdrawalDispatchRecoveryTest.php",
+      "exists": true,
+      "sha256": "cf44d186735492fe3aa23499c31097e6979a9e20787c505b0dcbe7857c02d742",
+      "bytes": 7385
+    },
+    {
+      "path": "tests/Feature/Concurrency/WithdrawalDispatchServerRaceTest.php",
+      "exists": true,
+      "sha256": "b428db07f6074dc0fda585abef8a112293df2de55935a307921d57d39720da95",
+      "bytes": 2401
+    },
+    {
+      "path": "scripts/run_withdrawal_dispatch_recovery.py",
+      "exists": true,
+      "sha256": "894fa22aa354f91c75987fcca61e2de57cce2ca228e3bf85c8e2be53289c3fa5",
+      "bytes": 6667
+    },
+    {
+      "path": "scripts/test_run_withdrawal_dispatch_recovery.py",
+      "exists": true,
+      "sha256": "7c1941a547076c0ae8c58ea0ff16dd0e973852c292f71a77b4fb862035b91552",
+      "bytes": 3930
+    },
+    {
+      "path": "tests/Unit/Payment/BkashGatewayTest.php",
+      "exists": true,
+      "sha256": "a62ed1cb1292cc2a76377eda4464d5963d407eb71dc0efec3754d90acdeaf293",
+      "bytes": 3863
+    },
+    {
+      "path": "tests/Unit/Payment/NagadGatewayTest.php",
+      "exists": true,
+      "sha256": "756966ee3f97675cec88bc10d7709ac55c75cd3c3efed1e76c7ed331f3a1ad1c",
+      "bytes": 3464
+    },
+    {
+      "path": "tests/Unit/Payment/CryptoGatewayTest.php",
+      "exists": true,
+      "sha256": "4e98f5e58502fb463b56ce2eb77fab785d3f3395c63a24c1eb0622ed8ba22c66",
+      "bytes": 3104
+    },
+    {
+      "path": "app/DTOs/Payment/WebhookMoneyFacts.php",
+      "exists": true,
+      "sha256": "74cce52d9fcada08fcf19ba003bdc4d9382e77cac6c6e8f2c5f59d0bbcd5eb0d",
+      "bytes": 1048
+    },
+    {
+      "path": "app/Services/Payment/PaymentWebhookBindingService.php",
+      "exists": true,
+      "sha256": "0bdfda7842dfdc27cc945a2e151ed39e90b8ac777ea7812ecb09cc6a7db739fb",
+      "bytes": 6808
+    },
+    {
+      "path": "app/Services/Payment/PaymentWebhookService.php",
+      "exists": true,
+      "sha256": "9c5af2e72162b60dbf415f0328ce6559f8d1045e1b5db716d71757a12c8e8a88",
+      "bytes": 37952
+    },
+    {
+      "path": "app/Services/Payment/Drivers/StripeGateway.php",
+      "exists": true,
+      "sha256": "36db98d42a121a78d97a4deba676cdc6269ee935a8db9396a05414e0c2a0895a",
+      "bytes": 9856
+    },
+    {
+      "path": "app/Services/Payment/Drivers/BkashGateway.php",
+      "exists": true,
+      "sha256": "e389e697a9fc25fe0e87be8faa3e5410fe5649e53adc8604de156023083547cd",
+      "bytes": 9202
+    },
+    {
+      "path": "app/Services/Payment/Drivers/NagadGateway.php",
+      "exists": true,
+      "sha256": "b11848707c0c170d7d85d5c6ea3ba8a05e773ae8bd74eef3eece70c70c72d7b8",
+      "bytes": 6804
+    },
+    {
+      "path": "app/Services/Payment/Drivers/CryptoGateway.php",
+      "exists": true,
+      "sha256": "57168b5c6f31db359f2ce84d7eead8e9be66c1d1c1c1e2aa86dd0caeb59bb53e",
+      "bytes": 4437
+    },
+    {
+      "path": "tests/Feature/Payment/WebhookObligationBindingTest.php",
+      "exists": true,
+      "sha256": "57608464791706a9adbae4ec8f9e839c248a182710ce83316da74212530c749a",
+      "bytes": 13416
+    },
+    {
+      "path": "tests/Feature/Payment/WebhookMoneyFactsTest.php",
+      "exists": true,
+      "sha256": "9fd90c98ebfc133fac3feaef2aeee50001a24194976b118ae36e854ac0078143",
+      "bytes": 2722
+    },
+    {
+      "path": "tests/Feature/Payment/PaymentWebhookSignatureVerificationTest.php",
+      "exists": true,
+      "sha256": "e6f0bb00ade9506624a76068c7e5779db6cd880030d18ed2ed115d396ece936e",
+      "bytes": 3510
+    },
+    {
+      "path": "tests/Feature/Concurrency/WebhookObligationServerRaceTest.php",
+      "exists": true,
+      "sha256": "8ef6e9d7922c9786113d93c3457b1bbb1b2fccb6c96ac66349200a859ea9e565",
+      "bytes": 5094
+    },
+    {
+      "path": "scripts/test_run_financial_concurrency.py",
+      "exists": true,
+      "sha256": "c7cf9736a7569bf942b7ff5316cbbc7607b675efeb2ccc73b66b37051a562aeb",
+      "bytes": 9559
+    },
+    {
+      "path": "routes/web.php",
+      "exists": true,
+      "sha256": "4df0bb2da47d182c672967d35165c89489cc827277357b3aff4dccd78b9fba9c",
+      "bytes": 61578
+    },
+    {
+      "path": "routes/api.php",
+      "exists": true,
+      "sha256": "9b4264090430d188fd8a6a5ff68b19a5bf234f22259e98dd61b10da02e1af881",
+      "bytes": 59664
+    },
+    {
+      "path": "app/Console/Commands/Lottery/SettleDrawChunkedCommand.php",
+      "exists": true,
+      "sha256": "edc484fd1ede81f910a42fc0a2d27f505dbb83e3ada456ca3de63996fe423f46",
+      "bytes": 17899
+    },
+    {
+      "path": "tests/Support/OwnsPrivateRedis.php",
+      "exists": true,
+      "sha256": "e5b7049a15d6b25456f58c91c5b5d0b3c46b50c64d521e424a67dc62c0c92f1b",
+      "bytes": 4070
+    },
+    {
+      "path": "tests/Support/RedisSettlementProbe.php",
+      "exists": true,
+      "sha256": "2eea910608533f0175031641926cb83ba75dfb35f89cda267a2e99a67245122c",
+      "bytes": 4445
+    },
+    {
+      "path": "tests/Feature/Concurrency/RedisSettlementRecoveryTest.php",
+      "exists": true,
+      "sha256": "7cc77843b5dbeac830196524f3771909cabd678b83e10b060fe1ecba8231d5d8",
+      "bytes": 11750
+    },
+    {
+      "path": "tests/Feature/Draw/SettlementQueueHandoffTest.php",
+      "exists": true,
+      "sha256": "14df1ca532c1b6a99b2e1cdb8bab04315b52116e1d58e345e51168093a5b34cc",
+      "bytes": 8569
+    },
+    {
+      "path": "scripts/run_redis_settlement_recovery.py",
+      "exists": true,
+      "sha256": "e842d098f37612626cc5be958c626acc7989f937eea930ff987faf03b9f75282",
+      "bytes": 7257
+    },
+    {
+      "path": "scripts/test_run_redis_settlement_recovery.py",
+      "exists": true,
+      "sha256": "28f96c059574d06ff3bdcec038f31aca8ff4f2414b35788771ddef941f966a2e",
+      "bytes": 6225
+    },
+    {
+      "path": "app/Jobs/Draw/Concerns/HasSettlementRecoveryWindow.php",
+      "exists": true,
+      "sha256": "ae237c5d71101505e8c0844fc1766399f146dab57a8ad423803f21f052bc6c24",
+      "bytes": 759
+    },
+    {
+      "path": "app/Jobs/Draw/ProcessPrizeSettlementJob.php",
+      "exists": true,
+      "sha256": "c00845353b879985832748a398f11c5134905929add52aeacfb1cc8e8bd5780f",
+      "bytes": 5921
+    },
+    {
+      "path": "app/Jobs/Draw/SettleDrawChunkJob.php",
+      "exists": true,
+      "sha256": "995d45276c13a9c4f70be17e75c517f58fef59a0afa56924f8ee2f17ae2015ba",
+      "bytes": 2484
+    },
+    {
+      "path": "app/Jobs/Draw/FinalizeDrawSettlementJob.php",
+      "exists": true,
+      "sha256": "7069104ef6cea06f57d6c2a7cfa6a124ecdc43f19b16d3891c0bf948f894a7f4",
+      "bytes": 1788
+    },
+    {
+      "path": "tests/Support/SettlementRecoveryProbe.php",
+      "exists": true,
+      "sha256": "ff0cafd99907295ce0c1cea791e3c0ec1801164ea4f5e378fe56e4581a62ff88",
+      "bytes": 5440
+    },
+    {
+      "path": "tests/Feature/Concurrency/SettlementWorkerRecoveryTest.php",
+      "exists": true,
+      "sha256": "3deaf6e32140c87f55fdb23e18565ef0f6419231f451e649d68af286cec09ca9",
+      "bytes": 14439
+    },
+    {
+      "path": "tests/Feature/Queue/SettlementRecoveryPolicyTest.php",
+      "exists": true,
+      "sha256": "28e1cdfa69d3adeec6aa9fd8236d8733fdd40397535202554ca48833088f4802",
+      "bytes": 2729
+    },
+    {
+      "path": "scripts/run_settlement_recovery.py",
+      "exists": true,
+      "sha256": "85c4913634258d53b95afb05b2e519eb79d8018702f417af6b444dc680463cb0",
+      "bytes": 6958
+    },
+    {
+      "path": "scripts/test_run_settlement_recovery.py",
+      "exists": true,
+      "sha256": "401a62158c9c6d1fcb1ae1bc51fda85730eb571bf22b927eb1d1df239fea7cd8",
+      "bytes": 3514
+    },
+    {
+      "path": "scripts/run_financial_concurrency.py",
+      "exists": true,
+      "sha256": "20e94ff9febb15e6ca0a126f43b09735ee8823740feb855b4937ffcde54e4928",
+      "bytes": 15074
+    },
+    {
+      "path": "app/Http/Controllers/Admin/LottoFinExecutiveDashboardController.php",
+      "exists": true,
+      "sha256": "9fe71bed931fffc1489cc299cbc0fadb8ee2eb3289be3ccc923bd0eec505f945",
+      "bytes": 24699
+    },
+    {
+      "path": "app/Http/Controllers/Admin/ReleaseOperationsController.php",
+      "exists": true,
+      "sha256": "4cf99fe90f5b37b369be416a4a0c1aaf881a83ab6a2ce957e26e48cd394b8816",
+      "bytes": 33210
+    },
+    {
+      "path": "app/Console/Commands/GloImportResult.php",
+      "exists": true,
+      "sha256": "a4ae3e7b083ada04b3f796ef29461e196b50df4cd16991749bee29de46128c78",
+      "bytes": 6033
+    },
+    {
+      "path": "app/Http/Controllers/Api/V1/DrawResultController.php",
+      "exists": true,
+      "sha256": "2c34ec98b66ac5db1d10d48691235878ad455a609373b5676f87e662d2222732",
+      "bytes": 15447
+    },
+    {
+      "path": "app/Services/Lottery/GloResultImportService.php",
+      "exists": true,
+      "sha256": "d0ef6baf0f6b6f638a41af8388a11e68b7460b9edafaf5fff07c5a35dcd0e541",
+      "bytes": 24264
+    },
+    {
+      "path": "app/Services/Draw/DrawResultIngestionService.php",
+      "exists": true,
+      "sha256": "bcc613949a8f27e02836ffa7ff306d3d6da57a1532eddcc5e934ec72a67b5891",
+      "bytes": 23584
+    },
+    {
+      "path": "app/Services/Draw/DrawResultConfirmationService.php",
+      "exists": true,
+      "sha256": "3c98df7cf85c7dc265cf08b6fae1187b2927938e9bbb880540552660e9b1224c",
+      "bytes": 22600
+    },
+    {
+      "path": "app/Services/Draw/DrawResultPublicationService.php",
+      "exists": true,
+      "sha256": "5df7906ca8bd79ad15b3c4e5ac27c110d9bad4a48b6d6bab9669bbb2f1d1e550",
+      "bytes": 39610
+    },
+    {
+      "path": "scripts/pages_251_350_audit_matrix.py",
+      "exists": true,
+      "sha256": "99e937a77be452e332ce99ec4551fe15ca6cd9c78876828c8b3bd5a6665b0dc2",
+      "bytes": 27126
+    },
+    {
+      "path": "security/weekly-result-integrity/Cargo.toml",
+      "exists": true,
+      "sha256": "4daffb4a57e72defd2959c457ea276b9ca38985d14c07887ee71901a60979a10",
+      "bytes": 1815
+    },
+    {
+      "path": "security/weekly-result-integrity/Cargo.lock",
+      "exists": true,
+      "sha256": "afbe3e911b46d630c15b759560e09b78598c369d464de7f6958ee6877d102bbe",
+      "bytes": 8972
+    },
+    {
+      "path": "security/weekly-result-integrity/src/main.rs",
+      "exists": true,
+      "sha256": "eec82b8eae6d044b68766351a431a20c862b0cf552e3bbd15cf2f1e18da66042",
+      "bytes": 2980
+    },
+    {
+      "path": "security/weekly-result-integrity/src/lib.rs",
+      "exists": true,
+      "sha256": "a99f3dd0e53a4c3fc2173d9043420b97847bd15e53e638c6225b6522e9aa63e1",
+      "bytes": 13818
+    },
+    {
+      "path": "security/weekly-result-integrity/src/canonical.rs",
+      "exists": true,
+      "sha256": "2c5666a636af52f3b41ac83b8289af7858a294d22c494db89e3dccc79d1c36fc",
+      "bytes": 9413
+    },
+    {
+      "path": "security/weekly-result-integrity/src/error.rs",
+      "exists": true,
+      "sha256": "5d4dd6b0f7c66f020c04ea454a494a1583a67224b325222a8729b9bfc19b8a3f",
+      "bytes": 3595
+    },
+    {
+      "path": "security/weekly-result-integrity/tests/strict_signature.rs",
+      "exists": true,
+      "sha256": "7abca792cd49cc088e4000e3b7066d968f75f69380aefe08437112bc4ddaf79f",
+      "bytes": 1760
+    },
+    {
+      "path": "security/weekly-result-integrity/tests/cli_boundary.rs",
+      "exists": true,
+      "sha256": "1baf3c757e69bd8b5e11d91dcc5ec05bdc05f26cc24ca105cb3469ec79843580",
+      "bytes": 2733
+    },
+    {
+      "path": "app/Services/Lottery/WeeklyResultIntegrityService.php",
+      "exists": true,
+      "sha256": "d8d2b2edaf55d4f0c0bb540cebb16697e8fcd0e88d4d8e31a44a538da154de29",
+      "bytes": 14016
+    },
+    {
+      "path": "app/Services/Lottery/Support/AbstractLotteryImportService.php",
+      "exists": true,
+      "sha256": "e9bd67356b776fa39f9da0c869681b84ddd1f369a665eee1b5eb9d27ff12663a",
+      "bytes": 43223
+    },
+    {
+      "path": "tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php",
+      "exists": true,
+      "sha256": "5ea393f7df5aebaced838f3cef49125c0bd4f1f09e5bf7d116487f2b25fb24d6",
+      "bytes": 7113
+    },
+    {
+      "path": "tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php",
+      "exists": true,
+      "sha256": "de6ff4f060d5e22f651f3c00e7a050f5be13ede61a30495e2a00147d6d694ae4",
+      "bytes": 7052
+    },
+    {
+      "path": "security/weekly-result-integrity/tests/integrity.rs",
+      "exists": true,
+      "sha256": "f69d2c6e918bef6ba802e7988e57d5f179b2a348b81834bd2dc454b87727f00e",
+      "bytes": 11926
+    }
+  ],
+  "pages": [
+    {
+      "page": 77,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 78,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 79,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 80,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 81,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 82,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 83,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 84,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 85,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 86,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 87,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 88,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 89,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 90,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 91,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 92,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 93,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 94,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 95,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 96,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 97,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 98,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 99,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 100,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 101,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 102,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 103,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 104,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 105,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 106,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 107,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 108,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 109,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 110,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 111,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 112,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 113,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 114,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 115,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 116,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 117,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 118,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 119,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 120,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 121,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 122,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 123,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 124,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 125,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 126,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 127,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 128,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 129,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 130,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 131,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 132,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 133,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 134,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 135,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 136,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 137,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 138,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 139,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 140,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 141,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 142,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 143,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 144,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 145,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 146,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 147,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 148,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 149,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 150,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 151,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 152,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 153,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 154,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 155,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 156,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 157,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 158,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 159,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 160,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 161,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 162,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 163,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 164,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 165,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 166,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 167,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 168,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 169,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 170,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 171,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 172,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 173,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 174,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 175,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 176,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 177,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 178,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 179,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 180,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 181,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 182,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 183,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 184,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 185,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 186,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 187,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 188,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 189,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 190,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 191,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 192,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 193,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 194,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 195,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 196,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 197,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 198,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 199,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 200,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 201,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 202,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 203,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 204,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 205,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 206,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 207,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 208,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 209,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 210,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 211,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 212,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 213,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 214,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 215,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 216,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 217,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 218,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 219,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 220,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 221,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 222,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 223,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 224,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 225,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 226,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 227,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 228,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 229,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 230,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 231,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 232,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 233,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 234,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 235,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 236,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 237,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 238,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 239,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 240,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 241,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 242,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 243,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 244,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 245,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 246,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 247,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 248,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 249,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 250,
+      "declared_title": null,
+      "mapping_status": "NOT_CONFIGURED",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 251,
+      "declared_title": "Runtime Environment Bootstrap",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 252,
+      "declared_title": "Dependency Installation Verification",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 253,
+      "declared_title": "Laravel Boot Verification",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 254,
+      "declared_title": "Database Connection Verification",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 255,
+      "declared_title": "Migration Baseline",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 256,
+      "declared_title": "Seeder Safety Audit",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 257,
+      "declared_title": "Factory and Fixture Audit",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 258,
+      "declared_title": "Database Constraint Audit",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 259,
+      "declared_title": "Database Transaction Audit",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 260,
+      "declared_title": "Concurrency Test Harness",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 261,
+      "declared_title": "Wallet Integrity Activation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 262,
+      "declared_title": "Wallet Ledger Balance Rebuild",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 263,
+      "declared_title": "Wallet Double-Spend Test",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 264,
+      "declared_title": "Wallet Hold and Release",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 265,
+      "declared_title": "Wallet Reservation Expiry",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 266,
+      "declared_title": "Financial Transaction Idempotency",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 267,
+      "declared_title": "Ledger Posting Contract",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 268,
+      "declared_title": "Ledger Reversal Contract",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 269,
+      "declared_title": "Financial Reconciliation Execution",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 270,
+      "declared_title": "Reconciliation Exception Lifecycle",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 271,
+      "declared_title": "Deposit Runtime Flow",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 272,
+      "declared_title": "Deposit Duplicate Callback",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 273,
+      "declared_title": "Payment Callback Ownership",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 274,
+      "declared_title": "Payment Signature Validation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 275,
+      "declared_title": "Payment Provider Error Matrix",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 276,
+      "declared_title": "Payment State Machine",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 277,
+      "declared_title": "Payment Event Persistence",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 278,
+      "declared_title": "Payment Webhook Queue",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 279,
+      "declared_title": "Payment Dead-Letter Processing",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 280,
+      "declared_title": "Payment Replay",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 281,
+      "declared_title": "Withdrawal Runtime Flow",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 282,
+      "declared_title": "Withdrawal Duplicate Submission",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 283,
+      "declared_title": "Withdrawal KYC Gate",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 284,
+      "declared_title": "Withdrawal Self-Exclusion and Restriction",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 285,
+      "declared_title": "Withdrawal Failure Recovery",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 286,
+      "declared_title": "Withdrawal Completion Reconciliation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 287,
+      "declared_title": "Bet Purchase Runtime Activation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 288,
+      "declared_title": "Bet Price Authority",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 289,
+      "declared_title": "Bet Currency Authority",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 290,
+      "declared_title": "Bet Limit Enforcement",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 291,
+      "declared_title": "Bet Concurrency",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 292,
+      "declared_title": "Bet Idempotency",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 293,
+      "declared_title": "Bet Failure Rollback",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 294,
+      "declared_title": "Ticket Issuance Runtime",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 295,
+      "declared_title": "Ticket Ownership",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 296,
+      "declared_title": "Ticket Share and QR Security",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 297,
+      "declared_title": "Ticket Verification Runtime",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 298,
+      "declared_title": "Draw Open and Close Automation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 299,
+      "declared_title": "Draw State Machine",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 300,
+      "declared_title": "Draw Locking and Cutoff",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 301,
+      "declared_title": "Result Import Runtime",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 302,
+      "declared_title": "Result Provenance Persistence",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 303,
+      "declared_title": "Result Duplicate Import",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 304,
+      "declared_title": "Result Conflict Detection",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 305,
+      "declared_title": "Result Certification",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 306,
+      "declared_title": "Result Publication Gate",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 307,
+      "declared_title": "Result Correction Policy",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 308,
+      "declared_title": "Leading-Zero Integrity",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 309,
+      "declared_title": "National Lottery Data Lane",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 310,
+      "declared_title": "Weekly Lottery Data Lane",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 311,
+      "declared_title": "Mega and Other Product Data Lane",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 312,
+      "declared_title": "PCSO Data Lane",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 313,
+      "declared_title": "GLO L6 Data Lane",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 314,
+      "declared_title": "GLO L6 Purchase Contract",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 315,
+      "declared_title": "GLO L6 Ticket Range",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 316,
+      "declared_title": "GLO L6 Pricing Authority",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 317,
+      "declared_title": "GLO Prize Allocation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 318,
+      "declared_title": "GLO Unsold Ticket Prize Scaling",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 319,
+      "declared_title": "GLO Claim Window",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 320,
+      "declared_title": "GLO Prize Claim Creation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 321,
+      "declared_title": "GLO Claim Duplicate",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 322,
+      "declared_title": "GLO Claim Age Verification",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 323,
+      "declared_title": "GLO Claim KYC",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 324,
+      "declared_title": "GLO Payment Hold",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 325,
+      "declared_title": "GLO Ticket Freeze Runtime",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 326,
+      "declared_title": "GLO Freeze Release",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 327,
+      "declared_title": "GLO Frozen Winner Processing",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 328,
+      "declared_title": "GLO Public Result Publication",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 329,
+      "declared_title": "Prize Matching Engine",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 330,
+      "declared_title": "Prize Settlement Engine",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 331,
+      "declared_title": "Prize Payout Idempotency",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 332,
+      "declared_title": "Prize Payout Failure Recovery",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 333,
+      "declared_title": "Agent Commission Runtime",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 334,
+      "declared_title": "Agent Commission Duplicate",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 335,
+      "declared_title": "Agent Settlement Runtime",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 336,
+      "declared_title": "Agent Referral Attribution",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 337,
+      "declared_title": "Agent Owner Isolation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 338,
+      "declared_title": "Notification Delivery Runtime",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 339,
+      "declared_title": "Notification Idempotency",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 340,
+      "declared_title": "Notification Preference Enforcement",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 341,
+      "declared_title": "Support Case Contract",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 342,
+      "declared_title": "Support Case Creation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 343,
+      "declared_title": "Support Case Owner Isolation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 344,
+      "declared_title": "Support Case Reply",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 345,
+      "declared_title": "Support Case Escalation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 346,
+      "declared_title": "Support SLA and Age Projection",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 347,
+      "declared_title": "Security Event Persistence",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 348,
+      "declared_title": "MFA Runtime",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 349,
+      "declared_title": "Session Revocation",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    },
+    {
+      "page": 350,
+      "declared_title": "Final Runtime Acceptance Gate",
+      "mapping_status": "DECLARED_RECIPE_ONLY",
+      "route_mapping_verified": false,
+      "runtime_verified": false,
+      "financial_execution_verified": false
+    }
+  ],
+  "note": "Hashes prove source bytes only. Declared recipes are not deployed route/page mappings. Missing sources remain explicit."
+}

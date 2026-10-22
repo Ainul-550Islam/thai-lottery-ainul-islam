@@ -1,0 +1,163 @@
+{
+  "scope": "Synthetic built-CSS computed-style reference, not screenshots or live payment acceptance.",
+  "tailwind": "3.4.19",
+  "baseline_css_sha256": "9a2189891cb56801293265bc5b52525d65e96ac064dee9d8ab2fc4516f4033c6",
+  "baseline_lock_sha256": "7e84aa2b15906311999214f3078623ae3e77c299767e2c4c2566b98dec20063c",
+  "matrices": {
+    "desktop": {
+      "rounded": {
+        "borderRadius": "4px"
+      },
+      "shadow": {
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px"
+      },
+      "shadow-sm": {
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"
+      },
+      "shadow-lg": {
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px"
+      },
+      "blur": {
+        "filter": "blur(8px)"
+      },
+      "backdrop-blur": {
+        "backdropFilter": "blur(8px)"
+      },
+      "flex-grow": {
+        "flexGrow": "1"
+      },
+      "border": {
+        "borderTopWidth": "1px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)"
+      },
+      "brand": {
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(255, 255, 255)",
+        "borderRadius": "8px"
+      },
+      "panel": {
+        "backgroundColor": "rgb(15, 23, 42)",
+        "color": "rgb(209, 213, 219)",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderRadius": "8px",
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px"
+      },
+      "type": {
+        "fontSize": "14px",
+        "lineHeight": "20px",
+        "fontWeight": "500"
+      },
+      "focus-outline": {
+        "outlineColor": "rgba(0, 0, 0, 0)",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px"
+      },
+      "focus-ring": {
+        "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgb(16, 185, 129) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "hover-brand": {
+        "backgroundColor": "rgba(0, 0, 0, 0)"
+      },
+      "responsive": {
+        "display": "flex"
+      },
+      "component-panel": {
+        "backgroundColor": "rgb(15, 23, 42)",
+        "color": "rgb(209, 213, 219)",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderRadius": "8px",
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px"
+      },
+      "component-input": {
+        "backgroundColor": "rgb(15, 23, 42)",
+        "color": "rgb(209, 213, 219)",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderRadius": "8px"
+      },
+      "component-elevated": {
+        "backgroundColor": "rgb(15, 23, 42)",
+        "borderRadius": "8px",
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px"
+      }
+    },
+    "mobile": {
+      "rounded": {
+        "borderRadius": "4px"
+      },
+      "shadow": {
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px"
+      },
+      "shadow-sm": {
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"
+      },
+      "shadow-lg": {
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px"
+      },
+      "blur": {
+        "filter": "blur(8px)"
+      },
+      "backdrop-blur": {
+        "backdropFilter": "blur(8px)"
+      },
+      "flex-grow": {
+        "flexGrow": "1"
+      },
+      "border": {
+        "borderTopWidth": "1px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)"
+      },
+      "brand": {
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(255, 255, 255)",
+        "borderRadius": "8px"
+      },
+      "panel": {
+        "backgroundColor": "rgb(15, 23, 42)",
+        "color": "rgb(209, 213, 219)",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderRadius": "8px",
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px"
+      },
+      "type": {
+        "fontSize": "14px",
+        "lineHeight": "20px",
+        "fontWeight": "500"
+      },
+      "focus-outline": {
+        "outlineColor": "rgba(0, 0, 0, 0)",
+        "outlineStyle": "solid",
+        "outlineWidth": "2px"
+      },
+      "focus-ring": {
+        "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgb(16, 185, 129) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "hover-brand": {
+        "backgroundColor": "rgba(0, 0, 0, 0)"
+      },
+      "responsive": {
+        "display": "none"
+      },
+      "component-panel": {
+        "backgroundColor": "rgb(15, 23, 42)",
+        "color": "rgb(209, 213, 219)",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderRadius": "8px",
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px"
+      },
+      "component-input": {
+        "backgroundColor": "rgb(15, 23, 42)",
+        "color": "rgb(209, 213, 219)",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderRadius": "8px"
+      },
+      "component-elevated": {
+        "backgroundColor": "rgb(15, 23, 42)",
+        "borderRadius": "8px",
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px"
+      }
+    }
+  },
+  "reference_extension": "Three component/utility cascade probes added against the same hash-verified original Tailwind3 CSS. All original15 vectors remeasured and asserted unchanged."
+}

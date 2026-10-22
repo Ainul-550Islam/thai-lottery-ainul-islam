@@ -1,0 +1,709 @@
+Part20 runtime evidence — 2026-10-14
+Pinned base a73ad5b8dce6c1f9f777f25ed38b20355d69b3be
+All database-writing runs executed serially against the guarded disposable SQLite test store.
+Full diagnostic:2448 tests/130031 assertions/no failures or errors/SKIP2;exit0.
+Final rendering24/1060PASS;conversion and translation97/1307PASS;translation33/79PASS.
+Final financial group296/3282SKIP1;production group63/168PASS.
+Whole diagnostic preceded three Pint style-only normalizations;final scoped groups rerun afterward.
+Skip2184:shared-server row-lock concurrency;Skip2423:Rust native verifier binary unavailable.
+The native skip is additionally isolated with its reason and zero assertions.
+Baseline translation32/77FAIL1;currency regression on pinned controller2/8FAIL2.
+147 dictionary keys per locale;fee/ledger/engine/balance permissions unchanged.
+Server-rendered HTTP and synthetic ledger tests, not browser-JavaScript/live-provider approval.
+No runtime .env/config cache/database/dependency export.
+
+===== part20-translation-baseline.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+F...............................                                  32 / 32 (100%)
+
+Time: 00:03.680, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\TranslationKeyIntegrityTest::test_every_literal_translation_reference_resolves_in_both_locales
+2145 literal translation references checked; 86 unresolved:
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.form_heading')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.form_hint')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.script_amount_hint')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.script_unpriced_note')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.script_no_crypto_note')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_amount')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_amount_help')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_fee')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_receive')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_rate')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.action_convert')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.action_get_price')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.daily_remaining')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.script_unavailable')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/direction-switch.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.direction_switch_label')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/direction-switch.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.direction_disabled')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limits_heading')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limits_caption')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_per_conversion')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_daily')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_used')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_remaining')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_monthly')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_used')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_currency')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limits_hint')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_master_title')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_direction_title')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_master_body')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_direction_body')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_schedule_note')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.history_heading')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.history_empty')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.history_caption')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_reference')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_direction')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_amount_in')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_fee')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_amount_out')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_status')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_date')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_actions')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.action_view')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_heading')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_not_published')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_caption')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_rate_row')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_on_example')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_bearer_row')
+/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_rule_row')
+Failed asserting that two arrays are identical.
+--- Expected
++++ Actual
+@@ @@
+-Array &0 []
++Array &0 [
++    0 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.form_heading')',
++    1 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.form_hint')',
++    2 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.script_amount_hint')',
++    3 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.script_unpriced_note')',
++    4 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.script_no_crypto_note')',
++    5 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_amount')',
++    6 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_amount_help')',
++    7 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_fee')',
++    8 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_receive')',
++    9 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_rate')',
++    10 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.action_convert')',
++    11 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.action_get_price')',
++    12 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.daily_remaining')',
++    13 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/quote-form.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.script_unavailable')',
++    14 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/direction-switch.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.direction_switch_label')',
++    15 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/direction-switch.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.direction_disabled')',
++    16 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limits_heading')',
++    17 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limits_caption')',
++    18 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_per_conversion')',
++    19 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_daily')',
++    20 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_used')',
++    21 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_remaining')',
++    22 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_monthly')',
++    23 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_used')',
++    24 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limit_currency')',
++    25 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limits-panel.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.limits_hint')',
++    26 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_master_title')',
++    27 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_direction_title')',
++    28 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_master_body')',
++    29 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_direction_body')',
++    30 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/limitations-notice.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.closed_schedule_note')',
++    31 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.history_heading')',
++    32 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.history_empty')',
++    33 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.history_caption')',
++    34 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_reference')',
++    35 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_direction')',
++    36 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_amount_in')',
++    37 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_fee')',
++    38 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_amount_out')',
++    39 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_status')',
++    40 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_date')',
++    41 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.col_actions')',
++    42 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/history-table.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.action_view')',
++    43 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_heading')',
++    44 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_not_published')',
++    45 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_caption')',
++    46 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_rate_row')',
++    47 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_on_example')',
++    48 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_bearer_row')',
++    49 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_rule_row')',
++    50 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/partials/fee-breakdown.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.fee_parity_note')',
++    51 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.detail_title')',
++    52 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.detail_title')',
++    53 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.back_to_conversion')',
++    54 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.detail_movement')',
++    55 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_direction')',
++    56 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_amount_in')',
++    57 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_fee')',
++    58 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_fee_rate')',
++    59 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_rule_version')',
++    60 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_amount_out')',
++    61 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_channel')',
++    62 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.detail_positions')',
++    63 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.after')',
++    64 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.after')',
++    65 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_created')',
++    66 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_completed')',
++    67 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_reversed')',
++    68 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.field_quote')',
++    69 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.detail_timeline')',
++    70 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.timeline_empty')',
++    71 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/show.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.timeline_hint')',
++    72 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.page_title')',
++    73 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.page_lead')',
++    74 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.page_title')',
++    75 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.page_lead')',
++    76 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.back_to_wallet')',
++    77 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.balances_heading')',
++    78 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.not_open')',
++    79 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.not_open')',
++    80 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.blocked_title')',
++    81 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.blocked_hint')',
++    82 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.open_quotes_heading')',
++    83 => '/home/user/thai-lottery-ainul-islam/resources/views/wallet/conversion/index.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.expires')',
++    84 => '/home/user/thai-lottery-ainul-islam/resources/views/components/navigation/mobile-nav.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.nav_convert')',
++    85 => '/home/user/thai-lottery-ainul-islam/resources/views/components/navigation/main-nav.blade.php: reference to namespace "wallet_conversion" which has no lang file (__('wallet_conversion.nav_convert')',
++]
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/TranslationKeyIntegrityTest.php:164
+
+FAILURES!
+Tests: 32, Assertions: 77, Failures: 1.
+
+===== part20-currency-regression-before-fix.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+FF                                                                  2 / 2 (100%)
+
+Time: 00:02.852, Memory: 72.50 MB
+
+There were 2 failures:
+
+1) Tests\Feature\Wallet\Conversion\ConversionRenderingTest::test_another_currency_wallet_cannot_replace_the_configured_currency_balance with data set "English" ('en')
+Failed asserting that the value at [sourceWallet] fulfills the expectations defined by the closure.
+Failed asserting that false is true.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:1308
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionRenderingTest.php:219
+
+2) Tests\Feature\Wallet\Conversion\ConversionRenderingTest::test_another_currency_wallet_cannot_replace_the_configured_currency_balance with data set "Thai" ('th')
+Failed asserting that the value at [sourceWallet] fulfills the expectations defined by the closure.
+Failed asserting that false is true.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:1308
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionRenderingTest.php:219
+
+FAILURES!
+Tests: 2, Assertions: 8, Failures: 2.
+
+===== part20-translation-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.................................                                 33 / 33 (100%)
+
+Time: 00:03.677, Memory: 74.50 MB
+
+OK (33 tests, 79 assertions)
+
+===== part20-rendering-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+........................                                          24 / 24 (100%)
+
+Time: 00:07.996, Memory: 78.50 MB
+
+OK (24 tests, 1060 assertions)
+
+===== part20-conversion-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 97 ( 67%)
+................................                                  97 / 97 (100%)
+
+Time: 00:22.920, Memory: 89.00 MB
+
+OK (97 tests, 1307 assertions)
+
+===== part20-financial-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 296 ( 21%)
+............................................................... 126 / 296 ( 42%)
+.....................................S......................... 189 / 296 ( 63%)
+............................................................... 252 / 296 ( 85%)
+............................................                    296 / 296 (100%)
+
+Time: 01:20.017, Memory: 107.00 MB
+
+There was 1 skipped test:
+
+1) Tests\Feature\Settlement\SettlementSimulationTest::point_20_lets_only_one_of_two_concurrent_settlements_write
+Real multi-process concurrency requires a shared server with equivalent row locks; SQLite does not implement that row-lock protocol, regardless of file or in-memory storage.
+
+OK, but some tests were skipped!
+Tests: 296, Assertions: 3282, Skipped: 1.
+
+===== part20-production-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................   63 / 63 (100%)
+
+Time: 00:06.736, Memory: 74.50 MB
+
+OK (63 tests, 168 assertions)
+
+===== part20-full-suite-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................................   61 / 2448 (  2%)
+.............................................................  122 / 2448 (  4%)
+.............................................................  183 / 2448 (  7%)
+.............................................................  244 / 2448 (  9%)
+.............................................................  305 / 2448 ( 12%)
+.............................................................  366 / 2448 ( 14%)
+.............................................................  427 / 2448 ( 17%)
+.............................................................  488 / 2448 ( 19%)
+.............................................................  549 / 2448 ( 22%)
+.............................................................  610 / 2448 ( 24%)
+.............................................................  671 / 2448 ( 27%)
+.............................................................  732 / 2448 ( 29%)
+.............................................................  793 / 2448 ( 32%)
+.............................................................  854 / 2448 ( 34%)
+.............................................................  915 / 2448 ( 37%)
+.............................................................  976 / 2448 ( 39%)
+............................................................. 1037 / 2448 ( 42%)
+............................................................. 1098 / 2448 ( 44%)
+............................................................. 1159 / 2448 ( 47%)
+............................................................. 1220 / 2448 ( 49%)
+............................................................. 1281 / 2448 ( 52%)
+............................................................. 1342 / 2448 ( 54%)
+............................................................. 1403 / 2448 ( 57%)
+............................................................. 1464 / 2448 ( 59%)
+............................................................. 1525 / 2448 ( 62%)
+............................................................. 1586 / 2448 ( 64%)
+............................................................. 1647 / 2448 ( 67%)
+............................................................. 1708 / 2448 ( 69%)
+............................................................. 1769 / 2448 ( 72%)
+............................................................. 1830 / 2448 ( 74%)
+............................................................. 1891 / 2448 ( 77%)
+............................................................. 1952 / 2448 ( 79%)
+............................................................. 2013 / 2448 ( 82%)
+............................................................. 2074 / 2448 ( 84%)
+............................................................. 2135 / 2448 ( 87%)
+................................................S............ 2196 / 2448 ( 89%)
+............................................................. 2257 / 2448 ( 92%)
+............................................................. 2318 / 2448 ( 94%)
+............................................................. 2379 / 2448 ( 97%)
+...........................................S................. 2440 / 2448 ( 99%)
+........                                                      2448 / 2448 (100%)
+
+Time: 08:47.870, Memory: 273.00 MB
+
+OK, but some tests were skipped!
+Tests: 2448, Assertions: 130031, Skipped: 2.
+PHPUNIT_EXIT=0
+
+===== part20-native-skip-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+S                                                                   1 / 1 (100%)
+
+Time: 00:02.012, Memory: 64.50 MB
+
+There was 1 skipped test:
+
+1) Tests\Feature\WeeklyLottery\WeeklyLotteryPublicPageTest::test_51_php_and_the_native_verifier_agree_or_the_test_is_skipped
+The Rust verifier binary is not built in this environment.
+
+OK, but some tests were skipped!
+Tests: 1, Assertions: 0, Skipped: 1.
+
+===== part20-static-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+...............                                                   15 / 15 (100%)
+
+Time: 00:00.017, Memory: 12.00 MB
+
+OK (15 tests, 991 assertions)
+
+===== part20-ci-unit-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+...................                                               19 / 19 (100%)
+
+Time: 00:00.018, Memory: 12.00 MB
+
+OK (19 tests, 53 assertions)
+
+===== part20-ci-cli-final.log =====
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.615s
+
+OK
+
+===== part20-inventory-guards-final.log =====
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.033s
+
+OK
+
+===== part20-scanner-final.log =====
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.013s
+
+OK
+
+===== part20-runner-guards-final.log =====
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.005s
+
+OK
+
+===== part20-inventory-refresh.log =====
+{
+  "scope": "STATIC_ONLY",
+  "page_slots": 274,
+  "missing_sources": [],
+  "documents_written": true,
+  "stale_documents": [],
+  "runtime_verified": false,
+  "production_verified": false,
+  "live_payment_verified": false
+}
+
+===== part20-inventory-check-final.log =====
+{
+  "scope": "STATIC_ONLY",
+  "page_slots": 274,
+  "missing_sources": [],
+  "documents_written": false,
+  "stale_documents": [],
+  "runtime_verified": false,
+  "production_verified": false,
+  "live_payment_verified": false
+}
+
+===== part20-preflight-final.log =====
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": true,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": true
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": true
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_quotes": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_audits": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ]
+  },
+  "missing_imported_app_class_count": 0,
+  "missing_imported_app_classes": [],
+  "source_preflight_passed": true,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}
+
+===== part20-pint-first.log =====
+
+  ..⨯.⨯.⨯..
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    FAIL   ........................................... 9 files, 3 style issues  
+  ⨯ app/Http/Controllers/Wallet/WalletConversionPageController.php fully_qual…  
+  ⨯ app/Http/Requests/Wallet/ConversionQuoteRequest.php fully_qualified_stric…  
+  ⨯ app/Rules/ConversionAmountRule.php unary_operator_spaces, not_operator_wi…  
+
+
+===== part20-pint-fix.log =====
+
+  ..✓.✓.✓..
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    FIXED   .................................... 9 files, 3 style issues fixed  
+  ✓ app/Http/Controllers/Wallet/WalletConversionPageController.php fully_qual…  
+  ✓ app/Http/Requests/Wallet/ConversionQuoteRequest.php fully_qualified_stric…  
+  ✓ app/Rules/ConversionAmountRule.php unary_operator_spaces, not_operator_wi…  
+
+
+===== part20-pint-final.log =====
+
+  .........
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   ........................................................... 9 files  
+
+
+===== part20-lint-final.log =====
+No syntax errors detected in lang/en/wallet_conversion.php
+No syntax errors detected in lang/th/wallet_conversion.php
+No syntax errors detected in app/Http/Controllers/Wallet/WalletConversionPageController.php
+No syntax errors detected in app/Http/Controllers/Wallet/WalletConversionActionController.php
+No syntax errors detected in app/Http/Requests/Wallet/ConversionQuoteRequest.php
+No syntax errors detected in app/Http/Requests/Wallet/ConversionExecuteRequest.php
+No syntax errors detected in app/Rules/ConversionAmountRule.php
+No syntax errors detected in app/Rules/ConversionDirectionRule.php
+No syntax errors detected in tests/Feature/Wallet/Conversion/ConversionRenderingTest.php
+
+===== part20-whitespace-final.log =====
+WHITESPACE_EXIT=0
+
+===== part20-build-final.log =====
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                   25.08 kB │ gzip:  3.00 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css               1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                  3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css              4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css            4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css               6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css            6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css             6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css               6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css          7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                 7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css               7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css            7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css              7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                       8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css               8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css             8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css         8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css     9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css              9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                      9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                        10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css           12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                        12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css              12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css          12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                     12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                   12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                    12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                 12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                         12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css        12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                      13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                       14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                       15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-baUnksz1.css                         71.14 kB │ gzip: 12.91 kB
+public/build/assets/account-grades-iqvPnkdB.js                0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js          0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                     0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                           0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                   0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                      0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js            0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js             0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js              0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js          0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js              0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js             0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                   0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                 0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js              0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                     0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                  0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                       0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                     1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                        1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js            1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js            1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                         1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                     1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js          1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                          1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js      1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                   1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js            2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                  2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js          2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js         2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js             2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js             2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                         2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js           2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                  2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-BxtEzC2x.js               3.17 kB │ gzip:  1.28 kB
+public/build/assets/privacy-portal-DccX1fIk.js                3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                    3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                   4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js     4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js               5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js               6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js   6.34 kB │ gzip:  2.13 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                   6.62 kB │ gzip:  2.59 kB
+public/build/assets/bet-slip-D0XoVmrB.js                      7.62 kB │ gzip:  3.19 kB
+public/build/assets/app-1IIFpSSh.js                          58.45 kB │ gzip: 21.59 kB
+
+✓ built in 2.84s
+
+===== part20-source-preservation-final.log =====
+{
+  "prior_paths": 198,
+  "unchanged_prior_paths": 197,
+  "revised_prior_paths": [
+    "app/Http/Controllers/Wallet/WalletConversionActionController.php"
+  ],
+  "economic_sources_preserved": true,
+  "runtime_env_absent": true,
+  "config_cache_absent": true,
+  "pinned_head": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "new_dictionary_key_count": "147"
+}
+

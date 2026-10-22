@@ -21,22 +21,104 @@
     "server_generated": "Produced by the database or by the model's creating hook; never accepted from any caller."
   },
   "fields": [
-    { "column": "id",               "class": "server_generated",     "writer": "database auto-increment",                                  "browser_settable": false },
-    { "column": "user_id",          "class": "safe_mass_assignable", "writer": "WalletService identity tuple",                             "browser_settable": false, "note": "Resolved from the authenticated session, never from request input." },
-    { "column": "type",             "class": "safe_mass_assignable", "writer": "WalletService identity tuple",                             "browser_settable": false },
-    { "column": "currency",         "class": "safe_mass_assignable", "writer": "WalletService identity tuple",                             "browser_settable": false },
-    { "column": "status",           "class": "explicit_only",        "writer": "Wallet::booted() defaults to Active; transitions via admin service only", "browser_settable": false },
-    { "column": "balance",          "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
-    { "column": "locked_balance",   "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
-    { "column": "total_deposited",  "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
-    { "column": "total_withdrawn",  "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
-    { "column": "total_wagered",    "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
-    { "column": "total_won",        "class": "explicit_only",        "writer": "Finance\\WalletService inside a locked transaction",        "browser_settable": false },
-    { "column": "version",          "class": "server_generated",     "writer": "Wallet::booted() seeds 1; incremented only by the optimistic-lock writers", "browser_settable": false, "note": "THE BLOCKER. Must start at 1, never 0." },
-    { "column": "locked_at",        "class": "explicit_only",        "writer": "compliance freeze service",                                "browser_settable": false },
-    { "column": "locked_reason",    "class": "explicit_only",        "writer": "compliance freeze service",                                "browser_settable": false },
-    { "column": "created_at",       "class": "server_generated",     "writer": "Eloquent timestamps",                                      "browser_settable": false },
-    { "column": "updated_at",       "class": "server_generated",     "writer": "Eloquent timestamps",                                      "browser_settable": false }
+    {
+      "column": "id",
+      "class": "server_generated",
+      "writer": "database auto-increment",
+      "browser_settable": false
+    },
+    {
+      "column": "user_id",
+      "class": "safe_mass_assignable",
+      "writer": "WalletService identity tuple",
+      "browser_settable": false,
+      "note": "Resolved from the authenticated session, never from request input."
+    },
+    {
+      "column": "type",
+      "class": "safe_mass_assignable",
+      "writer": "WalletService identity tuple",
+      "browser_settable": false
+    },
+    {
+      "column": "currency",
+      "class": "safe_mass_assignable",
+      "writer": "WalletService identity tuple",
+      "browser_settable": false
+    },
+    {
+      "column": "status",
+      "class": "explicit_only",
+      "writer": "Wallet::booted() defaults to Active; transitions via admin service only",
+      "browser_settable": false
+    },
+    {
+      "column": "balance",
+      "class": "explicit_only",
+      "writer": "Finance\\WalletService inside a locked transaction",
+      "browser_settable": false
+    },
+    {
+      "column": "locked_balance",
+      "class": "explicit_only",
+      "writer": "Finance\\WalletService inside a locked transaction",
+      "browser_settable": false
+    },
+    {
+      "column": "total_deposited",
+      "class": "explicit_only",
+      "writer": "Finance\\WalletService inside a locked transaction",
+      "browser_settable": false
+    },
+    {
+      "column": "total_withdrawn",
+      "class": "explicit_only",
+      "writer": "Finance\\WalletService inside a locked transaction",
+      "browser_settable": false
+    },
+    {
+      "column": "total_wagered",
+      "class": "explicit_only",
+      "writer": "Finance\\WalletService inside a locked transaction",
+      "browser_settable": false
+    },
+    {
+      "column": "total_won",
+      "class": "explicit_only",
+      "writer": "Finance\\WalletService inside a locked transaction",
+      "browser_settable": false
+    },
+    {
+      "column": "version",
+      "class": "server_generated",
+      "writer": "Wallet::booted() seeds 1; incremented only by the optimistic-lock writers",
+      "browser_settable": false,
+      "note": "THE BLOCKER. Must start at 1, never 0."
+    },
+    {
+      "column": "locked_at",
+      "class": "explicit_only",
+      "writer": "compliance freeze service",
+      "browser_settable": false
+    },
+    {
+      "column": "locked_reason",
+      "class": "explicit_only",
+      "writer": "compliance freeze service",
+      "browser_settable": false
+    },
+    {
+      "column": "created_at",
+      "class": "server_generated",
+      "writer": "Eloquent timestamps",
+      "browser_settable": false
+    },
+    {
+      "column": "updated_at",
+      "class": "server_generated",
+      "writer": "Eloquent timestamps",
+      "browser_settable": false
+    }
   ],
   "derived_not_stored": {
     "available_balance": "Computed at read time as bcsub(balance, locked_balance, 2). There is no such column; it is an Eloquent accessor."
@@ -47,7 +129,7 @@
     "app/Services/Finance/WalletService.php",
     "app/Services/Wallet/WalletService.php",
     "database/factories/WalletFactory.php",
-    "database/migrations/2026_10_01_000001_fix_wallet_version_initial_state.php"
+    "database/migrations/2026_10_06_000100_align_wallet_version_default.php"
   ],
   "schema_remediation": "The migration sets wallets.version default 0 -> 1 and backfills UPDATE wallets SET version = 1 WHERE version < 1. down() reverts the column default only; it deliberately does not roll back row values, because reverting a live optimistic-lock token would reintroduce the defect.",
   "verification": {
@@ -65,5 +147,58 @@
       "no row can sit below the initial version"
     ],
     "mass_assignment_exceptions_in_full_suite": "26 before this pass, 4 after -- and the 4 remaining are on User.kyc_status and GloL6Sale.created_at, not on Wallet"
-  }
+  },
+  "provenance": {
+    "written_during_phase": 2,
+    "captured_at_utc": null,
+    "captured_at_note": "No date in the original; phase 2 is inside the 2026-10-01 measurement window of this closure.",
+    "base_commit": "1c21115b615dd37fb0ad17f3a4704445cdef4ce0",
+    "base_commit_in_this_clone": false,
+    "clone_head_commit": "5df5d14",
+    "clone_commit_count": 1,
+    "provenance_note": "This clone has exactly one commit (5df5d14) and 1c21115 is not an object in it, so the commit this record was measured against cannot be checked out here. Stated instead of assumed: a reader can tell which tree these numbers describe only if the record says so.",
+    "claims_refreshed_at_utc": "2026-10-16",
+    "claims_refreshed_by_cluster": 45
+  },
+  "claims_current_state": {
+    "files_it_claims_to_have_changed_exist": {
+      "statement": "Every path under files_changed exists in this tree.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "paths_exist_in_field",
+        "field": "files_changed"
+      }
+    },
+    "wallet_fields_list_matches_the_model_source": {
+      "statement": "12 of the 16 columns this artifact enumerates appear as quoted literals in app/Models/Wallet.php (measured 2026-10-16). The four that do not are id, created_at, updated_at and locked_reason: the first three are server-generated and never mass-assignable, and locked_reason is read through Eloquent attribute access rather than listed in the model. So the honest form of this claim is a bound plus the reason the rest is missing, not a total.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "fields_declared_on_class",
+        "path": "app/Models/Wallet.php",
+        "field": "fields",
+        "key": "column",
+        "at_least": 12,
+        "expected_absent": [
+          "id",
+          "created_at",
+          "updated_at",
+          "locked_reason"
+        ]
+      }
+    }
+  },
+  "superseded_facts": [
+    {
+      "was": "files_changed named database/migrations/2026_10_01_000001_fix_wallet_version_initial_state.php",
+      "now": "That migration does not exist in this tree. The change it describes was delivered five days later as database/migrations/2026_10_06_000100_align_wallet_version_default.php, which guards itself with Schema::hasTable/hasColumn and both updates the rows (version 0 -> 1) and the column default. A record that names a file nobody can find is worse than no record: the reader concludes the work was lost.",
+      "measured_on": "2026-10-16",
+      "changed_by_clusters": 45,
+      "verification": {
+        "kind": "paths_exist",
+        "paths": [
+          "database/migrations/2026_10_06_000100_align_wallet_version_default.php"
+        ]
+      }
+    }
+  ]
 }

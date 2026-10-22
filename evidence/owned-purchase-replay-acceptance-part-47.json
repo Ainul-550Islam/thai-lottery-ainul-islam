@@ -1,0 +1,447 @@
+{
+  "part": 47,
+  "recorded_date": "2026-10-17",
+  "base_commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "delivery": {
+    "first_file": 882,
+    "last_file": 902,
+    "next_file": 903,
+    "full_bodies": 21,
+    "cumulative_paths": 623,
+    "prior_unchanged": 602,
+    "prior_revised": 10,
+    "first_supplied": 11
+  },
+  "functionality": [
+    "NEW original paid-purchase/ticket/full-financial-key receipts captured in the ordinary purchase transaction, never backfilled",
+    "All ordinary purchase/existing/direct/lost-race replay uses current wallet-first original debit, canonical journal, immutable original terms and sealed ticket receipt proof",
+    "Original financial ownership pointer replaces first matching polymorphic reference",
+    "Over-precise or malformed retry amounts cannot be rounded into a matching purchase",
+    "Ambient framework/raw-PDO transaction refusal; no re-price, new reservation, debit, refund or history repair on replay",
+    "Cancelled/winning/frozen/closed-draw replay attests only immutable original funding, not current prize/refund/balance authority",
+    "Existing amendment dispatch-capability and strict cancellation permission remain intact"
+  ],
+  "default": {
+    "tests": 3492,
+    "assertions": 135512,
+    "skipped": 101,
+    "failures_errors": 0,
+    "shard_exits": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "discovery_exact_equality": true
+  },
+  "native": {
+    "tests": 369,
+    "assertions": 2045,
+    "skipped": 0,
+    "failures_errors": 0,
+    "server": "11.8.6-MariaDB-0+deb13u1 from Debian",
+    "selected_default_skips_executed": 33,
+    "other_default_skips_not_executed": 68,
+    "two_child_lock_witnesses": [
+      {
+        "class": "Tests\\Feature\\Agent\\CommissionCancellationCurrentReadTest",
+        "name": "test_two_actual_requests_refund_and_cancel_both_commission_levels_once",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          27,
+          26
+        ],
+        "parent_blocker": 25,
+        "wallet_ids": [],
+        "blocker_row_id": 3,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Agent\\CommissionPayoutCurrentReadTest",
+        "name": "test_draw_and_manual_actual_children_compete_for_one_original_credit",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          39,
+          38
+        ],
+        "parent_blocker": 37,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Agent\\PaidCommissionCurrentReadTest",
+        "name": "test_two_real_paid_cancellers_wait_on_the_first_sorted_wallet_then_refund_once",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          185,
+          186
+        ],
+        "parent_blocker": 184,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\BetCancellationCurrentReadTest",
+        "name": "test_two_actual_cancellers_wait_then_commit_one_refund_and_one_replay",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          197,
+          196
+        ],
+        "parent_blocker": 195,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedBetAmendmentServerRaceTest",
+        "name": "test_two_simultaneous_ingresses_can_own_only_one_original_refund_and_replacement",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          247,
+          248
+        ],
+        "parent_blocker": 246,
+        "wallet_ids": [],
+        "blocker_row_id": 3,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedBetAmendmentServerRaceTest",
+        "name": "test_two_simultaneous_ingresses_can_own_only_one_original_refund_and_replacement",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          251,
+          250
+        ],
+        "parent_blocker": 249,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedBetAmendmentServerRaceTest",
+        "name": "test_two_simultaneous_ingresses_can_own_only_one_original_refund_and_replacement",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          254,
+          253
+        ],
+        "parent_blocker": 252,
+        "wallet_ids": [],
+        "blocker_row_id": 3,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedBetAmendmentServerRaceTest",
+        "name": "test_two_simultaneous_ingresses_can_own_only_one_original_refund_and_replacement",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          256,
+          257
+        ],
+        "parent_blocker": 255,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedPurchaseReplayServerRaceTest",
+        "name": "test_simultaneous_calls_lock_the_original_wallet_and_never_repeat_the_debit",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          422,
+          423
+        ],
+        "parent_blocker": 421,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedPurchaseReplayServerRaceTest",
+        "name": "test_simultaneous_calls_lock_the_original_wallet_and_never_repeat_the_debit",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          425,
+          426
+        ],
+        "parent_blocker": 424,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedPurchaseReplayServerRaceTest",
+        "name": "test_simultaneous_calls_lock_the_original_wallet_and_never_repeat_the_debit",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          428,
+          429
+        ],
+        "parent_blocker": 427,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  "static": {
+    "tests": 35,
+    "assertions": 1472,
+    "python_tests": 86,
+    "php_suffixed_files_linted": 2030,
+    "changed_php_files_pint": 10
+  },
+  "node": {
+    "version": "24.22.0",
+    "npm": "11.21.1",
+    "contract_tests": 54,
+    "build_passed": true,
+    "known_advisories": 0,
+    "canonical_acceptance_assets_byte_identical_to_exact_pinned_rebuild": 109
+  },
+  "rust": {
+    "version": "1.85.1",
+    "locked_tests": 27,
+    "release_build_passed": true
+  },
+  "negative_controls": {
+    "expected_failure_controls": [
+      {
+        "mode": "receipt-hash",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "d6c36cd9cc049429a4e97a3fe5d1f9a04490205fd22a069c8e44fed02d9fc081"
+      },
+      {
+        "mode": "original-proof",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "899407c78a07ac7af31722bbec37b6259aeaf34978148c917b73194e9dff2fde"
+      },
+      {
+        "mode": "precision",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "64a6c35bebc1fe6259a31fb6e90dc23e9ea0c6895582f3942f1976b325e32e70"
+      },
+      {
+        "mode": "atomic-receipt",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "6b3b67180e5b47f13c1a3bb7b85ee028d6fbfc460eccb8336dccc281bdf7c50b"
+      }
+    ],
+    "total_failures": 4,
+    "total_errors": 0,
+    "real_source_never_modified": true,
+    "isolated_source_restored": true,
+    "source_sha256": {
+      "app/Services/Betting/BetPurchaseReceipt.php": "b318941a9fa85181512b44a9de3998b9e17cf828afe9e9bcc5683479de7cee79",
+      "app/Services/Betting/BetPurchaseReplayService.php": "bbe12a8044834117240c45a03bb55d2f2b0e0a173faff5b6f4c156be85a94fdc",
+      "app/Services/Betting/BetPurchaseIdempotencyService.php": "7e87bc0240e275246bb82d77645f0c35f5eecd8c891eea14350b169a84a74b81",
+      "app/Services/Betting/BetPurchaseTransactionService.php": "300a0d26fcc9f6b8692fd12ca083163e1d628b73a3e7247b880843e5c917b2f8"
+    },
+    "scope": "Only a separate disposable shadow source/store was mutated. Actual application/default/native sources were never modified. Four deliberate omissions must produce four assertion failures, zero errors. No real funds or external operation."
+  },
+  "source_sha256": {
+    "database/migrations/2026_10_17_000200_create_bet_purchase_receipts_table.php": "26b2248f581c7fe239898150065572674f4f0cbe45883e528f250591bf161b6a",
+    "app/Services/Betting/BetPurchaseReceipt.php": "b318941a9fa85181512b44a9de3998b9e17cf828afe9e9bcc5683479de7cee79",
+    "app/Services/Betting/BetPurchaseReplayService.php": "bbe12a8044834117240c45a03bb55d2f2b0e0a173faff5b6f4c156be85a94fdc",
+    "app/Services/Betting/BetPurchaseIdempotencyService.php": "7e87bc0240e275246bb82d77645f0c35f5eecd8c891eea14350b169a84a74b81",
+    "app/Services/Betting/BetPurchaseService.php": "9162a34b1aa92f034c08aef34a4ea4e48b74d4592281c790d18ddc29d0976a1f",
+    "app/Services/Betting/BetPurchaseTransactionService.php": "300a0d26fcc9f6b8692fd12ca083163e1d628b73a3e7247b880843e5c917b2f8",
+    "tests/Feature/Betting/BetCancellationOwnershipTest.php": "3e0a421e66a17f49050d59c5c591e954c64af358836befa87945055fb55f7a66",
+    "tests/Feature/Betting/OwnedPurchaseReplayTest.php": "439509914f0ac70a599dbabf753e212569e4a6ab529b0ca767d4f019349c2dc6",
+    "tests/Feature/Betting/OwnedPurchaseReplayServerRaceTest.php": "e1f5499881005a96cb7b686b48f0ea561f34ecc21feca9f24466e5cf46bde967",
+    "tests/Support/FinancialRaceProbe.php": "a2a815dc97e658aca02bf48528cc240f84b7b85c1cff3705ec2b56dab3a6b871"
+  },
+  "log_sha256": {
+    "full-final.log": "9a8b07d4645d4383efc442b995fed49a2b9cb6429bc5311b1cca1e6f6ec58fa5",
+    "full-final-junit.xml": "87f8b3dc63cabca30c03806f898930dc6df025900e72240848797e33f4700063",
+    "native.log": "f667672da424a754afad3e15310e5aeaf2b77f616d6d3558422329161a7a29cf",
+    "native-junit.xml": "757b53baf9a72a38c3b4c794b74acef64faee092239580499d18faa87dadf45c",
+    "static.log": "54da83645226d5df06bb68ad6822b6727f94461823aa151adfb9264a7e380b73",
+    "static-junit.xml": "7527e81f3d030078087245ce763d592b3afccaada952c0d90cea6def9357d165",
+    "python.log": "ae988b938ad3cd3fa3136c10101593ea02c190e03ba507df119a81950d6fb09d",
+    "pint-final.log": "b8c5269887f26f70fdf87368d2d6f3debea3c019730d48ccd301ec1b49aeb224",
+    "lint.log": "aba77d81d05a4ae4386624cc2dc16e4a6b6755c853c38db8a587aa2bd5236b37",
+    "negative-results.json": "bcf71aefc25b5e963923779ca08ca08dcbc47c307c174be9ba2db1d378772d88",
+    "negative-receipt-hash.log": "d6c36cd9cc049429a4e97a3fe5d1f9a04490205fd22a069c8e44fed02d9fc081",
+    "negative-original-proof.log": "899407c78a07ac7af31722bbec37b6259aeaf34978148c917b73194e9dff2fde",
+    "negative-precision.log": "64a6c35bebc1fe6259a31fb6e90dc23e9ea0c6895582f3942f1976b325e32e70",
+    "negative-atomic-receipt.log": "6b3b67180e5b47f13c1a3bb7b85ee028d6fbfc460eccb8336dccc281bdf7c50b",
+    "negative-shadow-map.json": "7d05b63b39b856060a2f73473602e3b44fe66239d4486af0a6cbc9e29eacf4ce",
+    "rust.log": "0201e2620bbb042b1857b583f29f1a64f3304695c6f7cbc206f98f4d7e805067",
+    "native-build.log": "7be9588695a453860efa1dc36706f6fb53f92a7991816d4242d1d8d6bf64c49a",
+    "composer-audit.json": "e464a6f19a008d852b61fd0966a47b663d20d70ccfba0b30edd6483a787f15f5",
+    "node-final.log": "15d3c447b4bb1138bc050c759a691ee4df83048124717cac3abe5faaaf64adde",
+    "security-final.log": "78a78368433539f1965723225444c09b4f02704a233fbea0ab59466e925733df",
+    "node-tests-final.log": "da4f4d79507464ce81a04f856f7de85025a0519cdddec04306df378b0508942f",
+    "build-final.log": "1f1f7a901f1ea663136576d2e9a598c4d5e7d939b45be696015cf5452c92ec43",
+    "pinned-build-equality.json": "69301959c75ed7772c7f23a0b7648113e4449b328f7e53b3ac52b76d2be12a32",
+    "lock-witness.jsonl": "f264b6dad30624ceab1b0f6a61e979a916ba2eded57b9710a70e8bb0620b78b4",
+    "preflight.log": "0fcf9154ecb7334b09c4e73d3c63cb2cf061f4205f626423e65d4e220d5d3da3",
+    "inventory-check.log": "c3ca7077aea26f7e638f32364b8e54c5f60ae419b86daf45f9146eae21e1f437"
+  },
+  "diagnostics": "Initial focused attempts are diagnostics, not acceptance. Two old corruption fixtures needed to remove the new restrictive receipt FK before deliberately removing source ownership. The synthetic extra-journal fixture was corrected to use an actual existing column and a distinct allowed uniqueness tuple; no integrity constraint was relaxed. Ambient refusal retains the existing invariant error code. All changes were frozen before final full/default/native acceptance. Initial bundled npm11.19.1 passed the supported engine range, but the exact declared11.21.1 was then genuinely installed for clean final dependency/audit/test/build acceptance. Its isolated rebuild was byte-equal to all109 canonical assets used by ongoing PHP tests, so no Vite manifest was removed or replaced mid-suite. Real application sources were never mutated by the four isolated omission controls.",
+  "scope": "Actual local synthetic mechanics only. Matrices overlap, not additive unique coverage. No historical enrollment, authenticated bank/provider operation, real transfer, browser/pentest/remote-deployment or worldwide legal certification."
+}

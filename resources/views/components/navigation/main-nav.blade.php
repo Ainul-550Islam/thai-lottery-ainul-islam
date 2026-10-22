@@ -36,6 +36,18 @@
         <a href="{{ route('ticket-check') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('ticket-check*') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
             {{ __('player.nav_check_ticket') }}
         </a>
+        <a href="{{ route('national-lottery.index') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('national-lottery.*') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+            {{ __('player.nav_national_lottery') }}
+        </a>
+        <a href="{{ route('weekly-lottery.index') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('weekly-lottery.*') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+            {{ __('player.nav_weekly_lottery') }}
+        </a>
+        <a href="{{ route('bingo-lottery.index') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('bingo-lottery.*') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+            {{ __('player.nav_bingo_lottery') }}
+        </a>
+        <a href="{{ route('pcso-lottery.index') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('pcso-lottery.*') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+            {{ __('player.nav_pcso_lottery') }}
+        </a>
         <a href="{{ route('contact') }}" class="px-3 py-2 rounded-xl text-sm font-semibold transition {{ request()->routeIs('contact*') ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
             {{ __('player.nav_contact') }}
         </a>

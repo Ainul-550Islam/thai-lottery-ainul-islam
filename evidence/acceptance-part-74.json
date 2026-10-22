@@ -1,0 +1,204 @@
+{
+  "part": 74,
+  "passed": true,
+  "date": "2026-10-20",
+  "scope": "Prevent lossy financial record identity coercion before integrated wallet/user/hold/lifecycle/reversal routing.",
+  "default": {
+    "passed": true,
+    "cases": 4946,
+    "assertions": 146580,
+    "skipped": 252,
+    "errors": 0,
+    "failures": 0,
+    "source_files": 329,
+    "exact_discovery_matched": true,
+    "all_previous_4809_case_ids_retained": true
+  },
+  "native": {
+    "passed": true,
+    "cases": 1224,
+    "assertions": 12025,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "genuine_parent_two_child_waits": 107,
+    "genuine_two_child_deadlock_cycles": 2,
+    "total_genuine_concurrency_profiles": 109,
+    "retained_parent_waits": 107,
+    "retained_deadlock_cycle_profiles": 2,
+    "new_concurrency_profiles": 0
+  },
+  "focused_subset": {
+    "passed": true,
+    "cases": 137,
+    "assertions": 665,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "suite_counts_overlap": true,
+  "raw_native_cases": 1225,
+  "platform_only_native_record_excluded": 1,
+  "omission_controls": {
+    "passed": true,
+    "qualified_expected_failures": 2,
+    "runs": [
+      {
+        "mode": "current_raw_model_key_omitted",
+        "cases": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skipped": 0,
+        "exit": 1,
+        "shadow_source_paths_audited": true
+      },
+      {
+        "mode": "complete_many_key_validation_omitted",
+        "cases": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skipped": 0,
+        "exit": 1,
+        "shadow_source_paths_audited": true
+      }
+    ],
+    "committed_accounting": {
+      "healthy": {
+        "outcome": "refused",
+        "error": "wallet_not_persisted",
+        "balance": "500.00",
+        "financial_transactions": 1,
+        "ledger_entries": 2,
+        "transaction_level": 0,
+        "physical_transaction": false
+      },
+      "omitted": {
+        "outcome": "accepted",
+        "error": null,
+        "balance": "510.00",
+        "financial_transactions": 2,
+        "ledger_entries": 4,
+        "transaction_level": 0,
+        "physical_transaction": false
+      }
+    },
+    "forbidden_credit_really_committed_only_when_raw_guard_omitted": true,
+    "production_sources_unchanged": true
+  },
+  "syntax": {
+    "php_files": 2196,
+    "changed_php_pint_files": 9
+  },
+  "python_tests": 100,
+  "static": {
+    "passed": true,
+    "cases": 35,
+    "assertions": 1782,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "standalone": {
+    "passed": true,
+    "cases": 29,
+    "assertions": 94,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "node": "24.22.0",
+    "npm": "11.21.1",
+    "genuine_vite_build": true
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part74_migrations": 0,
+    "engine": "separate empty SQLite store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 158,
+    "historical_backfill": false,
+    "populated_production_upgrade": false
+  },
+  "ci_workflow_local_parse": {
+    "parsed": true,
+    "new_native_case_gate": 137,
+    "old_131_case_nine_wait_reversal_gate_retained": true,
+    "all_current_python_scripts_compile": true,
+    "remote_ci_executed": false,
+    "retained_retry_case_gate": 28,
+    "new_race_profiles": 0
+  },
+  "current_frozen_sources": {
+    "app/Services/Finance/FinancialRecordIdentifier.php": "a87fd953d44098b022007715263fcc1bd7ecb309e41d41341992fc629e392ee8",
+    "app/Services/Finance/FinancialTransactionService.php": "354460f7749f9291aa16f655039c6ce5cc9f20a3b8b31795790d62267f4417b8",
+    "app/Services/Finance/FinancialStateTransitionService.php": "baf074f159b4f887322b9969ebd186f55adaea8bb6e54a28b674e3df0192c78e",
+    "app/Services/Finance/WalletLockService.php": "eafd549263e5036331d728a0a8b5176a9568b103ae8a74b5e63ea7309ef082ab",
+    "app/Services/Finance/WalletHoldService.php": "eb95c85a52c3dd004da7e5b5a4fd598d030ce8052a1cfbe318faf76522341370",
+    "app/Services/Finance/WalletService.php": "80c05be390cb03b7cd8b647f5dc8e2d43564e09eca30d898591c541ca9a96582",
+    "app/Services/Finance/FinancialReversalService.php": "cba1611c1733dea3f84c17d3102e04cce432b662e3bb5721b78f0e367a015969",
+    "tests/Unit/FinancialRecordIdentifierTest.php": "1b5a473435b890975ba5d93d962bfc0930d397552e481701a827d2d02465cdbc",
+    "tests/Feature/Finance/FinancialIdentifierRoutingTest.php": "4a3b9ebe8d60f803cbbdc7d3a2cfacab084ef666f286da2b23e6993b790b533f",
+    "scripts/release_source_inventory.py": "10c07d9bccd383d6c94abc92f1a403f220226de652b3a1d345767e56b39e325d",
+    ".github/workflows/financial-concurrency.yml": "f96e147f84ccbf43b5c76bb81663b328f9ecdffdd6625146b35ef97174c9078c"
+  },
+  "php_sources_frozen_before_full_suites": {
+    "app/Services/Finance/FinancialRecordIdentifier.php": "a87fd953d44098b022007715263fcc1bd7ecb309e41d41341992fc629e392ee8",
+    "app/Services/Finance/FinancialTransactionService.php": "354460f7749f9291aa16f655039c6ce5cc9f20a3b8b31795790d62267f4417b8",
+    "app/Services/Finance/FinancialStateTransitionService.php": "baf074f159b4f887322b9969ebd186f55adaea8bb6e54a28b674e3df0192c78e",
+    "app/Services/Finance/WalletLockService.php": "eafd549263e5036331d728a0a8b5176a9568b103ae8a74b5e63ea7309ef082ab",
+    "app/Services/Finance/WalletHoldService.php": "eb95c85a52c3dd004da7e5b5a4fd598d030ce8052a1cfbe318faf76522341370",
+    "app/Services/Finance/WalletService.php": "80c05be390cb03b7cd8b647f5dc8e2d43564e09eca30d898591c541ca9a96582",
+    "app/Services/Finance/FinancialReversalService.php": "cba1611c1733dea3f84c17d3102e04cce432b662e3bb5721b78f0e367a015969",
+    "tests/Unit/FinancialRecordIdentifierTest.php": "1b5a473435b890975ba5d93d962bfc0930d397552e481701a827d2d02465cdbc",
+    "tests/Feature/Finance/FinancialIdentifierRoutingTest.php": "4a3b9ebe8d60f803cbbdc7d3a2cfacab084ef666f286da2b23e6993b790b533f"
+  },
+  "provenance": {
+    "all_current_default_discovered_ids_accounted_for": true,
+    "all_previous_4809_default_and_1087_native_executed_case_ids_retained": true,
+    "existing_assertions_not_weakened": true,
+    "each_default_file_has_unique_process_tmpfs_sqlite_and_test_token": true,
+    "sqlite_journal_or_synchronous_policy_disabled": false,
+    "all_nine_php_sources_finalized_before_full_regression": true,
+    "inventory_narrative_updated_before_auxiliary_python_verification": true,
+    "retained_native_profiles": 109,
+    "new_native_race_profiles": 0,
+    "no_fx_or_cross_currency_money_sum": true
+  },
+  "canonical_positive_php_integer_identity_only": true,
+  "current_raw_model_key_before_eloquent_cast": true,
+  "whole_many_key_set_validated_before_sql": true,
+  "thirteen_malformed_identity_route_profiles_times_eight_forms": 104,
+  "healthy_string_keys_and_idempotent_journals_retained": true,
+  "well_formed_id_is_not_authorization": true,
+  "upstream_already_coerced_values_detectable": false,
+  "all_upstream_writers_or_drivers_certified": false,
+  "new_migrations": 0,
+  "historical_repairs_or_backfills": false,
+  "remote_ci_executed": false,
+  "live_provider_transfer_or_refund": false,
+  "populated_production_upgrade_restore": false,
+  "worldwide_legal_approval": false
+}

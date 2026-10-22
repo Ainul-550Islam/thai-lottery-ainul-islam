@@ -1,0 +1,963 @@
+{
+  "part": 51,
+  "recorded_date": "2026-10-17",
+  "base_commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "delivery": {
+    "first_file": 963,
+    "last_file": 983,
+    "next_file": 984,
+    "full_bodies": 21,
+    "cumulative_paths": 669,
+    "prior_unchanged": 648,
+    "prior_revised": 8,
+    "first_supplied": 13
+  },
+  "functionality": [
+    "Fresh source-owned historical limit requests, exact original terms/full active basis/epoch/backend-zone ownership and player-global optional request keys; changed payload refused; terminal replay never resurrected",
+    "Desired-current-state choose operation with no-write equal reuse, legitimate lower choices after a real cycle and immediate cancellation of pending increases",
+    "Minimum twenty-four-hour increases with later requested start, live effective window, unchanged basis and current player/protection guards",
+    "Mutex-first candidate sweep with locked actual-player recheck, without historical ownerless activation/expiry enrollment",
+    "Atomic configured-currency legacy summary/version/audit writes; no swallowed failures or pending-as-binding amount; safe expected HTTP422/web errors and pending API metadata"
+  ],
+  "default": {
+    "tests": 3727,
+    "assertions": 137162,
+    "skipped": 138,
+    "failures_errors": 0,
+    "shard_exits": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "discovery_exact_equality": true
+  },
+  "native": {
+    "tests": 604,
+    "assertions": 3699,
+    "skipped": 0,
+    "failures_errors": 0,
+    "server": "MariaDB 11.8.6 / InnoDB, socket-only disposable test store",
+    "selected_default_skips_executed": 70,
+    "other_default_skips_not_executed": 68,
+    "two_child_lock_witnesses": [
+      {
+        "class": "Tests\\Feature\\Agent\\CommissionCancellationCurrentReadTest",
+        "name": "test_two_actual_requests_refund_and_cancel_both_commission_levels_once",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          151,
+          150
+        ],
+        "parent_blocker": 149,
+        "wallet_ids": [],
+        "blocker_row_id": 3,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Agent\\CommissionPayoutCurrentReadTest",
+        "name": "test_draw_and_manual_actual_children_compete_for_one_original_credit",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          162,
+          163
+        ],
+        "parent_blocker": 161,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Agent\\PaidCommissionCurrentReadTest",
+        "name": "test_two_real_paid_cancellers_wait_on_the_first_sorted_wallet_then_refund_once",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          310,
+          309
+        ],
+        "parent_blocker": 308,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\BetCancellationCurrentReadTest",
+        "name": "test_two_actual_cancellers_wait_then_commit_one_refund_and_one_replay",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          320,
+          321
+        ],
+        "parent_blocker": 319,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedBetAmendmentServerRaceTest",
+        "name": "test_two_simultaneous_ingresses_can_own_only_one_original_refund_and_replacement",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          372,
+          371
+        ],
+        "parent_blocker": 370,
+        "wallet_ids": [],
+        "blocker_row_id": 3,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedBetAmendmentServerRaceTest",
+        "name": "test_two_simultaneous_ingresses_can_own_only_one_original_refund_and_replacement",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          374,
+          375
+        ],
+        "parent_blocker": 373,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedBetAmendmentServerRaceTest",
+        "name": "test_two_simultaneous_ingresses_can_own_only_one_original_refund_and_replacement",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          377,
+          378
+        ],
+        "parent_blocker": 376,
+        "wallet_ids": [],
+        "blocker_row_id": 3,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedBetAmendmentServerRaceTest",
+        "name": "test_two_simultaneous_ingresses_can_own_only_one_original_refund_and_replacement",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          381,
+          380
+        ],
+        "parent_blocker": 379,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedPurchaseReplayServerRaceTest",
+        "name": "test_simultaneous_calls_lock_the_original_wallet_and_never_repeat_the_debit",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          419,
+          420
+        ],
+        "parent_blocker": 418,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedPurchaseReplayServerRaceTest",
+        "name": "test_simultaneous_calls_lock_the_original_wallet_and_never_repeat_the_debit",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          422,
+          423
+        ],
+        "parent_blocker": 421,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\OwnedPurchaseReplayServerRaceTest",
+        "name": "test_simultaneous_calls_lock_the_original_wallet_and_never_repeat_the_debit",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          425,
+          426
+        ],
+        "parent_blocker": 424,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Draw\\OwnedDrawCancellationServerRaceTest",
+        "name": "test_two_coordinators_wait_on_the_first_original_wallet_and_share_exactly_one_refund",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          467,
+          466
+        ],
+        "parent_blocker": 465,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Draw\\OwnedDrawCancellationServerRaceTest",
+        "name": "test_two_coordinators_wait_on_the_first_original_wallet_and_share_exactly_one_refund",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          469,
+          470
+        ],
+        "parent_blocker": 468,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Draw\\OwnedDrawCancellationServerRaceTest",
+        "name": "test_two_coordinators_wait_on_the_first_original_wallet_and_share_exactly_one_refund",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          473,
+          472
+        ],
+        "parent_blocker": 471,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Draw\\OwnedDrawCancellationServerRaceTest",
+        "name": "test_two_coordinators_wait_on_the_first_original_wallet_and_share_exactly_one_refund",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          475,
+          476
+        ],
+        "parent_blocker": 474,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Draw\\OwnedDrawCancellationServerRaceTest",
+        "name": "test_player_cancellation_racing_draw_cancellation_never_duplicates_the_refund",
+        "table": "wallets",
+        "waiting_children": 2,
+        "child_connections": [
+          479,
+          478
+        ],
+        "parent_blocker": 477,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Draw\\OwnedDrawCancellationServerRaceTest",
+        "name": "test_cross_wallet_purchase_at_the_draw_lock_either_refuses_or_forces_a_safe_new_membership_attempt",
+        "table": "draws",
+        "waiting_children": 2,
+        "child_connections": [
+          481,
+          482
+        ],
+        "parent_blocker": 480,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Risk\\DrawRiskAdmissionServerTest",
+        "name": "test_two_risk_writers_wait_on_draw_before_limits_and_only_one_consumes_the_last_capacity",
+        "table": "draws",
+        "waiting_children": 2,
+        "child_connections": [
+          684,
+          683
+        ],
+        "parent_blocker": 682,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Risk\\DrawRiskAdmissionServerTest",
+        "name": "test_two_risk_writers_wait_on_draw_before_limits_and_only_one_consumes_the_last_capacity",
+        "table": "draws",
+        "waiting_children": 2,
+        "child_connections": [
+          686,
+          687
+        ],
+        "parent_blocker": 685,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Risk\\DrawRiskAdmissionServerTest",
+        "name": "test_two_risk_writers_wait_on_draw_before_limits_and_only_one_consumes_the_last_capacity",
+        "table": "draws",
+        "waiting_children": 2,
+        "child_connections": [
+          690,
+          689
+        ],
+        "parent_blocker": 688,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Risk\\DrawRiskAdmissionServerTest",
+        "name": "test_risk_racing_draw_refund_either_commits_first_and_holds_cancellation_or_refuses_after_it",
+        "table": "draws",
+        "waiting_children": 2,
+        "child_connections": [
+          693,
+          692
+        ],
+        "parent_blocker": 691,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Risk\\DrawRiskAdmissionServerTest",
+        "name": "test_risk_racing_draw_refund_either_commits_first_and_holds_cancellation_or_refuses_after_it",
+        "table": "draws",
+        "waiting_children": 2,
+        "child_connections": [
+          695,
+          696
+        ],
+        "parent_blocker": 694,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Risk\\DrawRiskAdmissionServerTest",
+        "name": "test_risk_racing_draw_refund_either_commits_first_and_holds_cancellation_or_refuses_after_it",
+        "table": "draws",
+        "waiting_children": 2,
+        "child_connections": [
+          699,
+          698
+        ],
+        "parent_blocker": 697,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\PlayerWagerAdmissionServerTest",
+        "name": "test_distinct_wallets_wait_on_the_player_and_cannot_jointly_exceed_daily_wagering",
+        "table": "users",
+        "waiting_children": 2,
+        "child_connections": [
+          778,
+          777
+        ],
+        "parent_blocker": 776,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\PlayerWagerAdmissionServerTest",
+        "name": "test_policy_writer_and_new_purchase_contend_on_the_same_decisive_player_row",
+        "table": "users",
+        "waiting_children": 2,
+        "child_connections": [
+          780,
+          781
+        ],
+        "parent_blocker": 779,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Betting\\PlayerWagerAdmissionServerTest",
+        "name": "test_policy_writer_and_new_purchase_contend_on_the_same_decisive_player_row",
+        "table": "users",
+        "waiting_children": 2,
+        "child_connections": [
+          783,
+          784
+        ],
+        "parent_blocker": 782,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Compliance\\ResponsibleGamingLimitLifecycleServerTest",
+        "name": "test_same_explicit_request_contends_on_player_and_can_never_fork_or_change_payload",
+        "table": "users",
+        "waiting_children": 2,
+        "child_connections": [
+          830,
+          831
+        ],
+        "parent_blocker": 829,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Compliance\\ResponsibleGamingLimitLifecycleServerTest",
+        "name": "test_same_explicit_request_contends_on_player_and_can_never_fork_or_change_payload",
+        "table": "users",
+        "waiting_children": 2,
+        "child_connections": [
+          834,
+          833
+        ],
+        "parent_blocker": 832,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Compliance\\ResponsibleGamingLimitLifecycleServerTest",
+        "name": "test_due_increase_racing_fresh_lowering_can_never_undo_the_safer_choice",
+        "table": "users",
+        "waiting_children": 2,
+        "child_connections": [
+          837,
+          836
+        ],
+        "parent_blocker": 835,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      },
+      {
+        "class": "Tests\\Feature\\Compliance\\ResponsibleGamingLimitLifecycleServerTest",
+        "name": "test_atomic_summary_reduction_and_actual_purchase_share_the_same_decisive_player_lock",
+        "table": "users",
+        "waiting_children": 2,
+        "child_connections": [
+          840,
+          839
+        ],
+        "parent_blocker": 838,
+        "wallet_ids": [],
+        "blocker_row_id": 1,
+        "lock_index": "PRIMARY",
+        "accepted_before_barrier": [
+          false,
+          false
+        ],
+        "snapshot_owner_counts": [
+          null,
+          null
+        ],
+        "snapshot_reversal_counts": [
+          null,
+          null
+        ]
+      }
+    ],
+    "new_player_lock_races": 4,
+    "new_stale_snapshot_cases": 2
+  },
+  "focused": {
+    "sqlite_tests": 39,
+    "sqlite_assertions": 166,
+    "native_tests": 36,
+    "native_assertions": 249,
+    "failure_error_skip": 0
+  },
+  "static": {
+    "tests": 35,
+    "assertions": 1528,
+    "additional_standalone_tests": 29,
+    "additional_standalone_assertions": 94,
+    "python_tests": 86,
+    "lint_files": 2091,
+    "pint_changed_files": 10
+  },
+  "negative_controls": {
+    "expected_failure_controls": [
+      {
+        "mode": "cancel-pending",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "6a30b36af802729cb2aa1b85bce621e1b3f3a0d3dbdaa07578adc6ba7444830f"
+      },
+      {
+        "mode": "payload",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "62dd3193de4b627541a4d3092f64d6c9b2479d9276dad529db4ad4d6d71206c9"
+      },
+      {
+        "mode": "binding-failure",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "42462d2ea07762f611fdf0988b39909b90faf458a96fa37fbb432153abeb582e"
+      },
+      {
+        "mode": "basis",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "a97b18597d9e1054b7a09db7d44ae394bbd0eddb513bf71caca987eba6dfbf06"
+      },
+      {
+        "mode": "expiry",
+        "exit": 1,
+        "cases": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "log_sha256": "4221e92c1d7081943823cfc6cdbc839d4130d699537a1648a5cdd96fe520f27a"
+      }
+    ],
+    "total_failures": 5,
+    "total_errors": 0,
+    "real_source_never_modified": true,
+    "isolated_source_restored": true,
+    "source_sha256": {
+      "app/Services/ResponsibleGaming/ResponsibleGamingLimitService.php": "bcf03361a09c7572c7242658bbc55fce43736cb3080d00cfb6beeb1b5fe7ec8c",
+      "app/Services/ResponsibleGaming/ResponsibleGamingLimitOwnership.php": "cd86beead8a4d8a9e966790ebdc34cae01a77ecc619f4748dda27fa9ddd06e8b",
+      "app/Services/Security/ResponsibleGamingService.php": "3ce5c000ebeaaf25030fb47bd04bd5cd555f98969219ca6275e83edc9f75c170"
+    },
+    "scope": "Only isolated disposable shadow code/store is mutated. Policy/accounting fixtures are synthetic; five omissions must produce one assertion failure each with zero errors. Actual application/default/native sources are never changed by controls."
+  },
+  "dependency_build": {
+    "node": "24.22.0",
+    "npm": "11.21.1",
+    "known_npm_advisories": 0,
+    "node_contracts": 54,
+    "frontend_output_files": 109,
+    "composer_advisories_abandoned": 0,
+    "actual_rust_tests": 27,
+    "locked_release_built": true
+  },
+  "frozen_implementation_sha256": {
+    "app/DTOs/ResponsibleGaming/ResponsibleGamingLimitData.php": "8b08467c4b9d61b551eba3ca9545dd5b7f02006c43d9932957b7aecb2405f7fc",
+    "database/migrations/2026_10_17_000400_create_responsible_gaming_limit_ownerships_table.php": "d1e67e225a72146caa768a43aacf7c4e62cd9b7dba8b2ef8117de1a17c62ba97",
+    "app/Services/ResponsibleGaming/ResponsibleGamingLimitOwnership.php": "cd86beead8a4d8a9e966790ebdc34cae01a77ecc619f4748dda27fa9ddd06e8b",
+    "app/Services/ResponsibleGaming/ResponsibleGamingLimitService.php": "bcf03361a09c7572c7242658bbc55fce43736cb3080d00cfb6beeb1b5fe7ec8c",
+    "app/Services/Security/ResponsibleGamingService.php": "3ce5c000ebeaaf25030fb47bd04bd5cd555f98969219ca6275e83edc9f75c170",
+    "app/Http/Controllers/Api/V1/ResponsibleGamingController.php": "f3bb26d2632236c86fe31e59cd033c20de5d10cace2b64c140158f1801abf60d",
+    "bootstrap/app.php": "de9e68e5648f306d7f478cf0137e19e46efc5fb0350d0e8c2737b45ed63a86a3",
+    "tests/Feature/Compliance/ResponsibleGamingLimitLifecycleTest.php": "e90d7ab897164bf2a1a2c9e580d8b94bb94955361bbca891701b059108e4735d",
+    "tests/Feature/Compliance/ResponsibleGamingLimitLifecycleServerTest.php": "c2f4aed3f9b36725bb0d4f492b40c0377c715e066c4433f3406ae5c707554695",
+    "tests/Support/FinancialRaceProbe.php": "3282a270f75910f3c716f7897c3687511e394329a10113f75e332f4de20f2ba4"
+  },
+  "log_sha256": {
+    "full-final.log": "e6b378e53846c04104e2653ecabbb2353d6f95b6e0e2eee58e100d945320b5f6",
+    "full-final-junit.xml": "718ee2e14edc89a0209211f29cf7ac1a51afaf03bd36adf5c92d4467ed87fe57",
+    "native.log": "540d47c225686e7a1c9998671b13a8f81065eb612d97a7e8e46765334719bd29",
+    "native-junit.xml": "7ab61ea9ba2f77b4f947eeff2f20da73d87d02b6c5f63a907d3d229a9ff8ab17",
+    "focus-current.log": "a0e0240e794d12e7a6da15da01c2bd1e4745d8840893d2c7d201742e75b89a7d",
+    "focus-current-junit.xml": "73fc3b2a88443440734ba3ab09b2db452b75e1be46e78b5f51f9ee4aa198c837",
+    "native-focus-current.log": "c8402e2fc2175530c7311ee4c79291db2c10b396046145ab682d99e4f53c0d2d",
+    "native-focus-current-junit.xml": "29d2640ccfca417fd5692e2b8660b5125d375a1f081f11cd4e5c7b1ed96f6a58",
+    "static.log": "e89b37cca25bfe0099d2ab70d0e6c1ae781890df916e81fddb1b8ef0bc4f9d57",
+    "static-junit.xml": "811cf244ea65e881aa678131fda9d98de4627b4e5336bb293bc2b280697568f5",
+    "standalone.log": "5fe6f4d2811eb314c85b250cd722b7d0a424d8baaab7537529b9e65b964d7052",
+    "standalone-junit.xml": "dc04b47e43c7404c53b473f22dca9effd0e0470142de774fed5f10d886b19239",
+    "python.log": "e49beae70562beac04175be54b1796aface110aaca488f3d7f145b077b510465",
+    "pint.log": "b8c5269887f26f70fdf87368d2d6f3debea3c019730d48ccd301ec1b49aeb224",
+    "lint.log": "c4b661ca06908abdf90593b733b043f2b3c084d3440c589d62e6548b1697cbc8",
+    "negative-results.json": "4bbceec624b67c9b265558b9cfd6644b48b535be11a973cd58a1d0ad12d1bac6",
+    "negative-shadow-map.json": "c422936f5f302415d2840c9de56119ea33b6866172ffd11a59406de18299decb",
+    "negative-cancel-pending.log": "6a30b36af802729cb2aa1b85bce621e1b3f3a0d3dbdaa07578adc6ba7444830f",
+    "negative-payload.log": "62dd3193de4b627541a4d3092f64d6c9b2479d9276dad529db4ad4d6d71206c9",
+    "negative-binding-failure.log": "42462d2ea07762f611fdf0988b39909b90faf458a96fa37fbb432153abeb582e",
+    "negative-basis.log": "a97b18597d9e1054b7a09db7d44ae394bbd0eddb513bf71caca987eba6dfbf06",
+    "negative-expiry.log": "4221e92c1d7081943823cfc6cdbc839d4130d699537a1648a5cdd96fe520f27a",
+    "rust.log": "956c0a00815dea8d7711cef200fee0f950063d2cd12553ecf62296f26c32a896",
+    "native-build.log": "b99256f64b77387f0e5965f5f08ab7fa9a278e8e381de8873412426ee587936a",
+    "composer-audit.json": "e464a6f19a008d852b61fd0966a47b663d20d70ccfba0b30edd6483a787f15f5",
+    "node.log": "b2097e5b91115d1c8e5487ffcacd9d430af67323161fe8a88e24fe88ddd134c0",
+    "security.log": "78a78368433539f1965723225444c09b4f02704a233fbea0ab59466e925733df",
+    "node-tests.log": "23371faecfe287a93cd331d57f12b35e8755498f36e17372975413aa2c6725f5",
+    "build.log": "4b22aa614bf9342b89d51c86c5aebd9790c964b9507c6a14cc6308882527b94b",
+    "frontend-artifact-hashes.json": "1a3e5c204c77cd9368fdc0a38ad0a765fc80158df1548dc2482f3be572e5e299",
+    "lock-witness.jsonl": "25c21381f3fc1fccf7e70feae7ceaad38e5b75c5be7c97d7fdc0de9564502576",
+    "preflight.log": "0fcf9154ecb7334b09c4e73d3c63cb2cf061f4205f626423e65d4e220d5d3da3",
+    "inventory-check.log": "c3ca7077aea26f7e638f32364b8e54c5f60ae419b86daf45f9146eae21e1f437",
+    "source-gate-exits.json": "76fef0ae26ddb289d7361fd77b88483685cd69ae85b9df6d9c3a6f70bed63fa7"
+  },
+  "diagnostics": "Initial UTC-only assumption was replaced by original backend-zone plus exact epoch facts; an initial MariaDB1020 sweep race was fixed with mutex-before-transactional-hint reads, not accepted as current-read proof. Earlier failures are diagnostics, not passes. Two first source-gate commands named absent standalone/Python paths; corrected full profiles pass. No accepted test assertion or witness was weakened.",
+  "scope": "Local synthetic application acceptance only. Default and native matrices overlap. No historical backfill, universal all-writer/actor certification, production migration, live provider/payment, browser/pentest, legal approval or worldwide100% completion. choose is not durable client-request/unknown-outcome replay. Trusted arbitrary SQL/ownership deletion is not certified."
+}

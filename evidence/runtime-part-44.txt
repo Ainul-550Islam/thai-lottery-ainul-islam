@@ -1,0 +1,995 @@
+Part44 actual local runtime acceptance — 2026-10-16T13:28:23.984652+00:00
+
+| Executed check | Result |
+|---|---|
+| Complete accepted default PHP / four SQLite shards plus83-case GD file rerun | 3355 tests / 134922 assertions / 0 errors or failures / 87 explicit skips |
+| Discovery equality | Every discovered PHP test ID appears once in the final accepted result set; infrastructure retries remain recorded |
+| Final owned MariaDB matrix | 223 tests / 1212 assertions / 0 errors, failures or skips |
+| New functional source-owned payout matrix, included above | 44 tests / 120 assertions: THB/USD/BDT, direct+parent, draw/manual replay, source/history corruption, protected other liabilities, suspension/reactivation, rollback, retention and paid-label erasure |
+| New native current-read/race matrix, included above | 5 tests / 60 assertions: peer paid-counter increment, fresh book deficit, committed paid replay, hidden original account, actual draw-vs-manual child race |
+| Actual InnoDB lock witnesses | Three distinct two-child decisive wallet-lock races, including cross-ingress payout; every child observed waiting before release |
+| Three separate mutation controls | 4 expected assertion failures / 0 errors; correct bytes restored before final acceptance |
+| Static PHP contracts / dependency boundaries | 35 tests / 1424 assertions, pass |
+| Python | 86 tests, pass |
+| PHP syntax | 2013 PHP-suffixed source/template files; 0 failures |
+| Pint | All 15 changed/new PHP bodies pass |
+| Native verifier | 27 Rust tests and locked release build pass |
+| Full locked npm graph | 149 locked/audited packages, 0 known findings; 54 Node dependency-policy tests pass |
+| Actual Vite build | Pass under pinned Node24.22.0/npm11.21.1 |
+| Full locked Composer graph, including development dependencies | 0 advisories / 0 abandoned packages |
+| Source preflight / generated inventory | Pass; no missing imported App classes or stale generated documents |
+| Final source freeze | All 16 implementation/test/generator bodies unchanged throughout final complete acceptance |
+
+
+===== full-final.log =====
+Part44 final complete accepted source regression. Four isolated disjoint SQLite shards plus an exact full-file rerun of both GD-dependent files (83 cases) after missing GD was restored. The initial40 errors were exclusively missing GD; no application/test changes or added skips. Final case IDs are unique and complete; intermediate infrastructure errors remain separately recorded.
+
+===== original shard 1, actual exit 2 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............SSSSS.............................................  63 / 938 (  6%)
+.......SSSSS................................................... 126 / 938 ( 13%)
+....................SSSSSSSSSS................................. 189 / 938 ( 20%)
+............................................................... 252 / 938 ( 26%)
+............................................................... 315 / 938 ( 33%)
+............................................................... 378 / 938 ( 40%)
+............................................................... 441 / 938 ( 47%)
+............................................................... 504 / 938 ( 53%)
+............................................................... 567 / 938 ( 60%)
+............................................................... 630 / 938 ( 67%)
+............................EEEEEEEEEEEEEEEEEEEEEEEEEE.E....... 693 / 938 ( 73%)
+............................................................... 756 / 938 ( 80%)
+............................................................... 819 / 938 ( 87%)
+............................................................... 882 / 938 ( 94%)
+........................................................        938 / 938 (100%)
+
+Time: 08:37.294, Memory: 173.00 MB
+
+There were 27 errors:
+
+1) Tests\Feature\Verification\AccountVerificationFlowTest::test_post_with_forged_account_id_is_ignored
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:109
+
+2) Tests\Feature\Verification\AccountVerificationFlowTest::test_valid_submission_with_front_and_back
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:133
+
+3) Tests\Feature\Verification\AccountVerificationFlowTest::test_front_only_submission_accepted_under_default_policy
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:164
+
+4) Tests\Feature\Verification\AccountVerificationFlowTest::test_back_required_when_configured
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:180
+
+5) Tests\Feature\Verification\AccountVerificationFlowTest::test_missing_front_document_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:191
+
+6) Tests\Feature\Verification\AccountVerificationFlowTest::test_invalid_mobile_rejected_on_the_document_surface
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:203
+
+7) Tests\Feature\Verification\AccountVerificationFlowTest::test_unsupported_country_code_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:215
+
+8) Tests\Feature\Verification\AccountVerificationFlowTest::test_unsupported_document_type_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:227
+
+9) Tests\Feature\Verification\AccountVerificationFlowTest::test_client_cannot_submit_a_status
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:238
+
+10) Tests\Feature\Verification\AccountVerificationFlowTest::test_oversized_upload_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:258
+
+11) Tests\Feature\Verification\AccountVerificationFlowTest::test_forged_mime_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:273
+
+12) Tests\Feature\Verification\AccountVerificationFlowTest::test_executable_upload_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:287
+
+13) Tests\Feature\Verification\AccountVerificationFlowTest::test_double_extension_upload_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:299
+
+14) Tests\Feature\Verification\AccountVerificationFlowTest::test_svg_script_upload_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:311
+
+15) Tests\Feature\Verification\AccountVerificationFlowTest::test_path_traversal_filename_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:326
+
+16) Tests\Feature\Verification\AccountVerificationFlowTest::test_documents_stored_privately_with_server_generated_names
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:345
+
+17) Tests\Feature\Verification\AccountVerificationFlowTest::test_public_url_does_not_expose_documents
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:365
+
+18) Tests\Feature\Verification\AccountVerificationFlowTest::test_owner_retrieves_own_document_through_the_authorized_path
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:387
+
+19) Tests\Feature\Verification\AccountVerificationFlowTest::test_another_user_cannot_retrieve_someone_elses_document
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:415
+
+20) Tests\Feature\Verification\AccountVerificationFlowTest::test_duplicate_open_submission_is_deterministic
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:441
+
+21) Tests\Feature\Verification\AccountVerificationFlowTest::test_member_cannot_approve_their_own_verification
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:456
+
+22) Tests\Feature\Verification\AccountVerificationFlowTest::test_reviewer_approval_closes_the_submission
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:477
+
+23) Tests\Feature\Verification\AccountVerificationFlowTest::test_reviewer_under_review_transition_then_decision
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:505
+
+24) Tests\Feature\Verification\AccountVerificationFlowTest::test_illegal_transition_rejected_and_terminal_states_immutable
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:532
+
+25) Tests\Feature\Verification\AccountVerificationFlowTest::test_retry_after_rejection_preserves_history
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:560
+
+26) Tests\Feature\Verification\AccountVerificationFlowTest::test_history_is_member_safe
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:591
+
+27) Tests\Feature\Verification\AccountVerificationFlowTest::test_page_shows_no_other_users_data_or_internal_ids
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:642
+
+ERRORS!
+Tests: 938, Assertions: 118956, Errors: 27, Skipped: 20.
+
+===== original shard 2, actual exit 2 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................EEEE....EEEEEEEE..  63 / 885 (  7%)
+E.............................................................. 126 / 885 ( 14%)
+............................................................... 189 / 885 ( 21%)
+.........................SSSSSSSSSSSSS......................... 252 / 885 ( 28%)
+............................................................... 315 / 885 ( 35%)
+............................................................... 378 / 885 ( 42%)
+............................................................... 441 / 885 ( 49%)
+............................................................... 504 / 885 ( 56%)
+............................................................... 567 / 885 ( 64%)
+............................................................... 630 / 885 ( 71%)
+............................................................... 693 / 885 ( 78%)
+............................................................... 756 / 885 ( 85%)
+............................................................... 819 / 885 ( 92%)
+............................................................... 882 / 885 ( 99%)
+...                                                             885 / 885 (100%)
+
+Time: 09:22.267, Memory: 171.00 MB
+
+There were 13 errors:
+
+1) Tests\Feature\Account\AccountServicesPagesTest::test_valid_submission_creates_pending_document
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:315
+
+2) Tests\Feature\Account\AccountServicesPagesTest::test_duplicate_open_submission_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:340
+
+3) Tests\Feature\Account\AccountServicesPagesTest::test_invalid_mobile_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:367
+
+4) Tests\Feature\Account\AccountServicesPagesTest::test_invalid_document_type_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:384
+
+5) Tests\Feature\Account\AccountServicesPagesTest::test_original_filename_not_used_as_storage_path
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:465
+
+6) Tests\Feature\Account\AccountServicesPagesTest::test_private_document_not_publicly_accessible
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:484
+
+7) Tests\Feature\Account\AccountServicesPagesTest::test_client_cannot_submit_approved
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:507
+
+8) Tests\Feature\Account\AccountServicesPagesTest::test_reviewer_authorization_four_eyes
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:528
+
+9) Tests\Feature\Account\AccountServicesPagesTest::test_audit_exists_for_submission
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:588
+
+10) Tests\Feature\Account\AccountServicesPagesTest::test_rejected_flow
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:607
+
+11) Tests\Feature\Account\AccountServicesPagesTest::test_approved_flow
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:630
+
+12) Tests\Feature\Account\AccountServicesPagesTest::test_expired_flow
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:653
+
+13) Tests\Feature\Account\AccountServicesPagesTest::test_null_byte_filename_rejected_by_document_service
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:709
+
+ERRORS!
+Tests: 885, Assertions: 5977, Errors: 13, Skipped: 13.
+
+===== original shard 3, actual exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...........SSSSS...............................................  63 / 871 (  7%)
+............................................................... 126 / 871 ( 14%)
+.........................SSSSSSSSSSSSSSSSSS.................... 189 / 871 ( 21%)
+............................................................... 252 / 871 ( 28%)
+............................................................... 315 / 871 ( 36%)
+............................................................... 378 / 871 ( 43%)
+............................................................... 441 / 871 ( 50%)
+............................................................... 504 / 871 ( 57%)
+............................................................... 567 / 871 ( 65%)
+............................................................... 630 / 871 ( 72%)
+............................................................... 693 / 871 ( 79%)
+................S.............................................. 756 / 871 ( 86%)
+............................................................... 819 / 871 ( 94%)
+....................................................            871 / 871 (100%)
+
+Time: 09:07.444, Memory: 157.00 MB
+
+OK, but some tests were skipped!
+Tests: 871, Assertions: 7295, Skipped: 24.
+
+===== original shard 4, actual exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................SSS........SSSS  63 / 661 (  9%)
+............................................................... 126 / 661 ( 19%)
+..............................SS............................... 189 / 661 ( 28%)
+...................SS.......................S.................. 252 / 661 ( 38%)
+...................................SS.......................... 315 / 661 ( 47%)
+................SSSS.......................SSSSS............... 378 / 661 ( 57%)
+............................................................... 441 / 661 ( 66%)
+................................SSSSSSS........................ 504 / 661 ( 76%)
+............................................................... 567 / 661 ( 85%)
+............................................................... 630 / 661 ( 95%)
+...............................                                 661 / 661 (100%)
+
+Time: 09:11.777, Memory: 129.00 MB
+
+OK, but some tests were skipped!
+Tests: 661, Assertions: 2528, Skipped: 30.
+
+===== GD restored, both complete source files rerun, exit0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 83 ( 78%)
+..................                                                83 / 83 (100%)
+
+Time: 00:17.373, Memory: 87.00 MB
+
+OK (83 tests, 810 assertions)
+
+Final accepted complete regression: Tests:3355, Assertions:134922, Skipped:87, Errors/failures:0.
+
+===== gd-recheck.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 83 ( 78%)
+..................                                                83 / 83 (100%)
+
+Time: 00:17.373, Memory: 87.00 MB
+
+OK (83 tests, 810 assertions)
+
+===== native.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 223 ( 28%)
+............................................................... 126 / 223 ( 56%)
+............................................................... 189 / 223 ( 84%)
+..................................                              223 / 223 (100%)
+
+Time: 04:15.107, Memory: 93.00 MB
+
+OK (223 tests, 1212 assertions)
+
+===== witness-rerun.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...                                                                 3 / 3 (100%)
+
+Time: 00:16.818, Memory: 72.50 MB
+
+OK (3 tests, 69 assertions)
+
+===== agent-book-negative.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+FF                                                                  2 / 2 (100%)
+
+Time: 00:14.545, Memory: 74.50 MB
+
+There were 2 failures:
+
+1) Tests\Feature\Agent\CommissionPayoutCurrentReadTest::test_current_payout_authority_does_not_use_old_reader_rows with data set "paid_counter" ('paid_counter')
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'1.00'
++'0.50'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Agent/CommissionPayoutCurrentReadTest.php:82
+
+2) Tests\Feature\Agent\CommissionPayoutCurrentReadTest::test_current_payout_authority_does_not_use_old_reader_rows with data set "book_deficit" ('book_deficit')
+Old reader data authorized an unproved payout/replay.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Agent/CommissionPayoutCurrentReadTest.php:72
+
+FAILURES!
+Tests: 2, Assertions: 14, Failures: 2.
+
+===== account-negative.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:14.349, Memory: 70.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Agent\CommissionPayoutCurrentReadTest::test_current_payout_authority_does_not_use_old_reader_rows with data set "account_hidden" ('account_hidden')
+Old reader data authorized an unproved payout/replay.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Agent/CommissionPayoutCurrentReadTest.php:72
+
+FAILURES!
+Tests: 1, Assertions: 6, Failures: 1.
+
+===== receipt-negative.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:12.349, Memory: 70.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Agent\OwnedCommissionPayoutTest::test_durable_credit_receipt_blocks_member_refund_even_when_mutable_paid_labels_are_removed
+Erased paid labels hid the durable original credit and authorized an unpaired refund.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Agent/OwnedCommissionPayoutTest.php:335
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+
+===== static.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...................................                               35 / 35 (100%)
+
+Time: 00:00.132, Memory: 14.00 MB
+
+OK (35 tests, 1424 assertions)
+
+===== python.log =====
+......................................................................................
+----------------------------------------------------------------------
+Ran 86 tests in 2.691s
+
+OK
+
+===== pint.log =====
+
+  ...............
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   .......................................................... 15 files  
+
+
+===== lint.log =====
+{
+  "php_suffixed_files": 2013,
+  "failures": [],
+  "passed": true
+}
+
+===== rust.log =====
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cfg-if v1.0.5
+  Downloaded block-buffer v0.10.4
+  Downloaded crypto-common v0.1.7
+  Downloaded base64ct v1.8.3
+  Downloaded const-oid v0.9.6
+  Downloaded curve25519-dalek-derive v0.1.1
+  Downloaded cpufeatures v0.2.17
+  Downloaded itoa v1.0.18
+  Downloaded hex v0.4.3
+  Downloaded subtle v2.6.1
+  Downloaded signature v2.2.0
+  Downloaded generic-array v0.14.7
+  Downloaded version_check v0.9.5
+  Downloaded sha2 v0.10.9
+  Downloaded rustc_version v0.4.1
+  Downloaded pkcs8 v0.10.2
+  Downloaded zmij v1.0.23
+  Downloaded spki v0.7.3
+  Downloaded proc-macro2 v1.0.107
+  Downloaded unicode-ident v1.0.26
+  Downloaded typenum v1.20.1
+  Downloaded serde v1.0.229
+  Downloaded ed25519-dalek v2.2.0
+  Downloaded memchr v2.8.3
+  Downloaded serde_core v1.0.229
+  Downloaded ed25519 v2.2.3
+  Downloaded serde_json v1.0.151
+  Downloaded der v0.7.10
+  Downloaded syn v2.0.119
+  Downloaded curve25519-dalek v4.1.3
+  Downloaded serde_derive v1.0.229
+  Downloaded semver v1.0.28
+  Downloaded rand_core v0.6.4
+  Downloaded quote v1.0.47
+  Downloaded syn v3.0.6
+  Downloaded digest v0.10.7
+  Downloaded zeroize v1.9.0
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling zmij v1.0.23
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling signature v2.2.0
+   Compiling serde v1.0.229
+   Compiling subtle v2.6.1
+   Compiling zeroize v1.9.0
+   Compiling serde_json v1.0.151
+   Compiling serde_derive v1.0.229
+   Compiling ed25519 v2.2.3
+   Compiling sha2 v0.10.9
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling rand_core v0.6.4
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.05s
+     Running unittests src/lib.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-22a456e02c732867)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-80bdcd03109364f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_boundary.rs (security/weekly-result-integrity/target/debug/deps/cli_boundary-067c451bd0c81b0e)
+
+running 5 tests
+test fingerprint_disagreement_exits_two_without_accepting ... ok
+test document_ceiling_is_enforced_before_parsing ... ok
+test malformed_json_exits_one_and_does_not_crash ... ok
+test invalid_utf8_is_a_structured_rejection ... ok
+test unsigned_request_exits_zero_with_exact_library_fingerprint ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/integrity.rs (security/weekly-result-integrity/target/debug/deps/integrity-efe5c4cfa280c0dd)
+
+running 19 tests
+test a_fully_unavailable_result_canonicalizes_without_inventing_zeros ... ok
+test a_different_first_6_produces_a_different_hash ... ok
+test a_malformed_request_document_is_a_value_not_a_panic ... ok
+test a_matching_expected_fingerprint_is_accepted_and_a_wrong_one_is_not ... ok
+test a_partial_result_triple_is_refused ... ok
+test a_value_that_lost_a_leading_zero_hashes_differently ... ok
+test an_invalid_signature_is_rejected ... ok
+test canonical_bytes_are_valid_utf8_including_non_ascii_identifiers ... ok
+test canonical_bytes_start_with_the_version_and_field_count ... ok
+test canonical_field_order_is_fixed_and_documented ... ok
+test half_supplied_signature_material_is_refused_not_downgraded ... ok
+test leading_zeros_are_part_of_the_canonical_bytes ... ok
+test malformed_values_are_rejected_rather_than_repaired ... ok
+test null_and_empty_are_distinct ... ok
+test the_crate_source_contains_no_unsafe_and_no_network_or_process_calls ... ok
+test the_dependency_tree_contains_no_networking_crate ... ok
+test the_same_payload_always_produces_the_same_hash ... ok
+test unsigned_payload_returns_hash_only_and_never_claims_a_signature ... ok
+test a_valid_signature_is_accepted_only_when_a_key_is_configured ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/strict_signature.rs (security/weekly-result-integrity/target/debug/deps/strict_signature-2c56f82fb4fbf60b)
+
+running 3 tests
+test source_identifier_over_191_characters_is_rejected ... ok
+test unicode_source_identifier_counts_characters_but_hashes_utf8_bytes ... ok
+test weak_identity_key_and_signature_cannot_authenticate_any_result ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests weekly_result_integrity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+===== native-build.log =====
+   Compiling proc-macro2 v1.0.107
+   Compiling version_check v0.9.5
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling zmij v1.0.23
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling serde v1.0.229
+   Compiling subtle v2.6.1
+   Compiling zeroize v1.9.0
+   Compiling serde_json v1.0.151
+   Compiling signature v2.2.0
+   Compiling ed25519 v2.2.3
+   Compiling serde_derive v1.0.229
+   Compiling sha2 v0.10.9
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `release` profile [optimized] target(s) in 16.69s
+
+===== security.log =====
+
+> security:dependencies
+> node scripts/dependency_security_gate.mjs
+
+{
+  "passed": true,
+  "scope": "Known advisories in the complete npm lock graph, not a whole-platform security certification.",
+  "node": "24.22.0",
+  "npm": "11.21.1",
+  "lockedPackages": 149,
+  "auditedPackages": 149,
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  }
+}
+
+===== node-tests.log =====
+
+> test:dependencies
+> node --test tests/dependencies/*.test.mjs
+
+✔ the complete reviewed lock and runtime are accepted (2.354161ms)
+✔ nonzero info is refused even if npm exits0 (0.286719ms)
+✔ missing info count is not a clean audit (0.11243ms)
+✔ nonzero low is refused even if npm exits0 (0.135066ms)
+✔ missing low count is not a clean audit (0.297505ms)
+✔ nonzero moderate is refused even if npm exits0 (0.128962ms)
+✔ missing moderate count is not a clean audit (0.384737ms)
+✔ nonzero high is refused even if npm exits0 (0.179824ms)
+✔ missing high count is not a clean audit (0.348024ms)
+✔ nonzero critical is refused even if npm exits0 (0.215331ms)
+✔ missing critical count is not a clean audit (0.147475ms)
+✔ nonzero total is refused even if npm exits0 (0.083254ms)
+✔ missing total count is not a clean audit (0.054428ms)
+✔ refuses an uncounted advisory (0.134134ms)
+✔ refuses an audit API error (0.063678ms)
+✔ refuses a future unsupported schema (0.096437ms)
+✔ refuses a string zero (0.063757ms)
+✔ refuses an empty graph (0.114967ms)
+✔ refuses a missing graph (0.098278ms)
+✔ refuses an array of vulnerabilities (0.061614ms)
+✔ refuses npm status null with a superficially clean report (0.075598ms)
+✔ refuses npm status 1 with a superficially clean report (0.056727ms)
+✔ refuses npm status 2 with a superficially clean report (0.045502ms)
+✔ refuses npm status 127 with a superficially clean report (0.047805ms)
+✔ runtime 20.20.2 needs review rather than a silently bypassed engine (0.105565ms)
+✔ runtime 22.22.0 needs review rather than a silently bypassed engine (0.048588ms)
+✔ runtime 23.0.0 needs review rather than a silently bypassed engine (0.054894ms)
+✔ runtime 25.0.0 needs review rather than a silently bypassed engine (0.043704ms)
+✔ runtime 24.0.0-preview needs review rather than a silently bypassed engine (0.062403ms)
+✔ runtime unknown needs review rather than a silently bypassed engine (0.108316ms)
+✔ npm 10.8.2 is outside the reviewed major (0.15365ms)
+✔ npm 12.0.0 is outside the reviewed major (0.053432ms)
+✔ npm  is outside the reviewed major (0.092058ms)
+✔ npm 11.0.0-preview is outside the reviewed major (0.056232ms)
+✔ lock policy rejects missing root (1.114498ms)
+✔ lock policy rejects old lock format (0.581384ms)
+✔ lock policy rejects root manifest drift (0.533817ms)
+✔ lock policy rejects old root engine (1.584085ms)
+✔ lock policy rejects missing compiler (0.926571ms)
+✔ lock policy rejects restored unpatched braces (0.825492ms)
+✔ lock policy rejects unreviewed nested compiler (0.959275ms)
+✔ lock policy rejects unreviewed adapter (0.659321ms)
+✔ lock policy rejects remote nonregistry artifact (0.868501ms)
+✔ lock policy rejects missing integrity (1.344621ms)
+✔ lock policy rejects weak hash algorithm (1.298992ms)
+✔ lock policy rejects top-level fake bundle (1.349688ms)
+✔ lock policy rejects undeclared bundled artifact (0.735037ms)
+✔ lock policy rejects unlocked bundle parent (0.652389ms)
+✔ audit invocation explicitly includes development and optional packages and all severities (1.902035ms)
+✔ audit network failure cannot turn green (1.006673ms)
+✔ audit malformed JSON cannot turn green (0.853506ms)
+✔ audit timeout cannot turn green (0.820349ms)
+✔ audit spawn failure cannot turn green (1.162868ms)
+✔ all five CI Node setups follow the reviewed version file; every npm install lane runs the gate (8.291371ms)
+ℹ tests 54
+ℹ suites 0
+ℹ pass 54
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.283081
+
+ACTUAL RACE WITNESSES
+[
+  {
+    "class": "Tests\\Feature\\Agent\\CommissionPayoutCurrentReadTest",
+    "name": "test_draw_and_manual_actual_children_compete_for_one_original_credit",
+    "table": "wallets",
+    "waiting_children": 2,
+    "child_connections": [
+      545,
+      544
+    ],
+    "parent_blocker": 543,
+    "wallet_ids": [],
+    "blocker_row_id": 1,
+    "lock_index": "PRIMARY",
+    "accepted_before_barrier": [
+      false,
+      false
+    ],
+    "snapshot_owner_counts": [
+      null,
+      null
+    ],
+    "snapshot_reversal_counts": [
+      null,
+      null
+    ]
+  },
+  {
+    "class": "Tests\\Feature\\Agent\\CommissionCancellationCurrentReadTest",
+    "name": "test_two_actual_requests_refund_and_cancel_both_commission_levels_once",
+    "table": "wallets",
+    "waiting_children": 2,
+    "child_connections": [
+      548,
+      547
+    ],
+    "parent_blocker": 546,
+    "wallet_ids": [],
+    "blocker_row_id": 3,
+    "lock_index": "PRIMARY",
+    "accepted_before_barrier": [
+      false,
+      false
+    ],
+    "snapshot_owner_counts": [
+      null,
+      null
+    ],
+    "snapshot_reversal_counts": [
+      null,
+      null
+    ]
+  },
+  {
+    "class": "Tests\\Feature\\Betting\\BetCancellationCurrentReadTest",
+    "name": "test_two_actual_cancellers_wait_then_commit_one_refund_and_one_replay",
+    "table": "wallets",
+    "waiting_children": 2,
+    "child_connections": [
+      550,
+      551
+    ],
+    "parent_blocker": 549,
+    "wallet_ids": [],
+    "blocker_row_id": 1,
+    "lock_index": "PRIMARY",
+    "accepted_before_barrier": [
+      false,
+      false
+    ],
+    "snapshot_owner_counts": [
+      null,
+      null
+    ],
+    "snapshot_reversal_counts": [
+      null,
+      null
+    ]
+  }
+]
+FROZEN SOURCES
+{
+  "database/migrations/2026_10_16_000500_create_agent_commission_payouts_table.php": "4bcd88b8376b5a3aca93ed0db3321be4ce608a18f3618aacf0d824fa00622c92",
+  "app/Services/Agent/AgentCommissionPayoutProof.php": "e9829c558f263d1428203ebf30320401f24b01201dd2299888189dd1f936ae6f",
+  "app/Services/Agent/AgentCommissionPayoutService.php": "d45df41723ba562c37a6f103601e5e192d82cb003e35630fee191eda73697099",
+  "app/Services/Agent/AgentCommissionSettlementService.php": "779081c9924bb3275adf562ff81c5688474a03d36239915934fed108c98182fa",
+  "app/Services/Agent/AgentSettlementService.php": "a3de0cb77f5e3d7f8690f049440e16b734fb219cb7e5acd1783be4f7ad9fa11b",
+  "app/Services/Agent/AgentCommissionService.php": "b81ff5704f2832f5029e5161779c751aca2e629efb30346d5ad69f363a32d018",
+  "app/Services/Agent/BetCommissionCancellation.php": "720822928fc4ad1cdbc4c3978430e37d89956e4e931036c79e366a76f12697cc",
+  "app/Services/Finance/ReversalIntegrityGuard.php": "9d2317e9723cb8458135e3dd049d6c545b8c3c2a80a751ca1cc0434646e3aaa8",
+  "tests/Feature/Agent/AgentInactiveBehaviorTest.php": "fe9104d5d0a3f4abbd4d5f1098e6a689e304b87f33caa1f63fefae5df21d1af9",
+  "tests/Feature/BusinessCriticalInvariantTest.php": "076c47eb617d7e3a4fe06cc46c846aca41949c00aaa0c34cce7941b0d19c6acf",
+  "tests/Feature/FinalProductionReadinessTest.php": "339a215e24941ebab867974b9bc542d40de168552905a4305b088f9d6917cfef",
+  "tests/Feature/FinalWholeSystemNoSkipTest.php": "14263289cef1635653f9a0f43c995d2baacd6bf6e31f5270e88cd7c0902e5f41",
+  "tests/Feature/Agent/OwnedCommissionPayoutTest.php": "e85efcfa93e316d462838658c83a3c87cc3dd373ac36454bf391fe96418811df",
+  "tests/Feature/Agent/CommissionPayoutCurrentReadTest.php": "d60303d1c199e5c827dbe0fe5ad3453c5dda78a9ba9179670fa5d8ff9e80edb6",
+  "tests/Support/FinancialRaceProbe.php": "f74dd477ba640cea096a470d2a4428b1089fa87e9b9264cba82b62df96fd37c1",
+  "scripts/release_source_inventory.py": "cf43d503e3ed7403bd59232d70d9ca9f4ac284cbf2bf5ceb4242c2f6dd750a82"
+}
+LOG SHA256
+{
+  "part44-full-final.log": "9797d98745731d6091249dac83b031fc1a0bf43acf559c1190db60ed41405bb4",
+  "part44-full-final-junit.xml": "cb5fc48cae98944c04be7d149b9d389c8481cf7a56c63e337726998b9b8f3ab5",
+  "part44-native.log": "6d0c791cca20a4bb6145932e6f05dd9a6bfe9ad5e64b8ee8585093caa97d9deb",
+  "part44-native-junit.xml": "5c79ec0a1a68df58bfa44d356c13d7cec50e15c81e1edf0519fed6f98107c229",
+  "part44-agent-book-negative.log": "7c9563ab964e10a525cac9d8e62759169e4b73207d3ae73f8eaa5649e928848b",
+  "part44-agent-book-negative-junit.xml": "07d165a56cfed0c6470a087d51ec13fb9dfe626c99171922dd7d0c2cf1794002",
+  "part44-account-negative.log": "14f41d8a5762821603e0024756e313b442203b57ed9d9d30ca4b55eb6771bda3",
+  "part44-account-negative-junit.xml": "6bae243e392e278bdbe79b892886529c0d7502a336e905bd04d7721e42f852df",
+  "part44-receipt-negative.log": "ba5056908550eeee4accc407ba887045e52737b2172e8f4fec4c661c9e914fc7",
+  "part44-receipt-negative-junit.xml": "da5e62bb2f98fb85cf33e258fb58c0c2121259caebf3055271346b0c1c29e719",
+  "part44-python.log": "0d90fa8654c3f2b1e20a79413b38ded51d7ce1baf9207c55cb6926bb10b71483",
+  "part44-pint.log": "63a9e92c9368ef46d5ce2bffc2398498ef5e27e0b23a7460089052740ea5d132",
+  "part44-lint.log": "a69363c0b31ccaf3eb1e5806047ccc95051f6081e2a156f02be38478aa5c1c6f",
+  "part44-static.log": "d17f39ae9adb29cf79fb72158f56594c164490f0465b4c009384bd8eed0bee06",
+  "part44-preflight.log": "0fcf9154ecb7334b09c4e73d3c63cb2cf061f4205f626423e65d4e220d5d3da3",
+  "part44-inventory-check.log": "c3ca7077aea26f7e638f32364b8e54c5f60ae419b86daf45f9146eae21e1f437",
+  "part44-rust.log": "5711bd594d8f1800d9f17ac88e0800c9649257d62e3772c308161e9836bbd108",
+  "part44-native-build.log": "bffe44e08359a45b3ff221b92cd290e53efd6aa0b0a6c2cf62d3f5f1a71427b5",
+  "part44-security.log": "78a78368433539f1965723225444c09b4f02704a233fbea0ab59466e925733df",
+  "part44-node-tests.log": "92269418739df7b6b3ef043099eb2c0024363f48d3fa2b0981c87e649828cfbe",
+  "part44-build.log": "4cdf3682e5f12347e2c03c7a928edab2cc6701bde995abd1be39f6dcf5078ae6",
+  "part44-composer-full-audit.json": "e464a6f19a008d852b61fd0966a47b663d20d70ccfba0b30edd6483a787f15f5",
+  "part44-gd-recheck.log": "5cc06341e5835d68a1e7af62d6a593b325aa041eb6828f80f42f89a6c4ca553b",
+  "part44-gd-recheck-junit.xml": "44178b583a3ea03a73de3b7731ffa36d3977e148b7b8ad3d4274381bb6cf64e4",
+  "part44-lock-witness.jsonl": "96532e36da6e9a3bbe474e76d9bf82845e6e1e937a09594291d2eeebfa033f0a",
+  "part44-witness-rerun.log": "7e7ba4b81a55c56cfe0dcd0a7e96d350b22b8e04d0b38caff8bf365749d602fd",
+  "part44-witness-rerun-junit.xml": "35860900b98a9abe9e7ba58d9867f386ac0361588446e0e398db2e05a28740ec"
+}
+
+BOUNDARIES
+Local new original-credit ownership only. No coordinated paid member compensation, legacy writer/actor universal integration, provider live payment/refund, historical adoption, remote CI/deployment, all-writer/load/multi-host or worldwide permission certified. Mutation failures are negative controls, not successful financial operations. Default/native suites overlap.19 selected SQL-only cases passed natively;68 other profile skips remain explicit. Authoritative remaining scope: docs/remaining-work-part-44.md.

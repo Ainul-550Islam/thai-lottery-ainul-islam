@@ -15,6 +15,8 @@ final class VisionPageTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->withoutVite(); // asserts page content; public/build/manifest.json is a build artefact
         Cache::flush();
     }
 

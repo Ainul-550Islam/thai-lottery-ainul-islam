@@ -1,0 +1,16 @@
+{
+  "expected_failure": true,
+  "tests": 2,
+  "failures": 2,
+  "errors": 0,
+  "exit_code": 1,
+  "mutations": "Removed ONLY current agent reads for accrual and current active owner/business-book reads for cancellation. Member wallet, original accounting, parent purchase, own commission and own claim locking retained.",
+  "correct_source_restored": true,
+  "restored_sha256": {
+    "app/Services/Agent/AgentCommissionAccrualService.php": "5d16fcd2db3aeaa250510bad71589dc09a78a043688e8ced5e5c4453b0110c3f",
+    "app/Services/Agent/BetCommissionCancellation.php": "53376e6c1af2352242e146c894f8fb56adbb400b46f4cb5ee638eef000f0f74f"
+  },
+  "scope": "Expected-failure mutation control only; never a passed financial operation.",
+  "log_sha256": "c1ad8aa01ac6774b60e0952d415e8936fbb11db3a721fc7ab6ea7b81345537ce",
+  "junit_sha256": "d35fe7d3152b4eaa631d5aea4114afa5c9eff88a31de735d1c9a7fa3b4e3e384"
+}

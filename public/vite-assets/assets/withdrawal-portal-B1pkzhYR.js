@@ -1,0 +1,1 @@
+var e=class{init(){document.getElementById(`confirmWithdrawalBtn`)?.addEventListener(`click`,()=>{window.location.assign(`/withdraw`)})}};if(typeof document<`u`){let t=()=>new e().init();document.readyState===`loading`?document.addEventListener(`DOMContentLoaded`,t):t()}

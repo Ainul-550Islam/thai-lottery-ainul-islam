@@ -23,7 +23,6 @@
     "tests_added": 29,
     "note": "29 added tests: ProductionConfigSafetyTest (16), WalletWriteContractTest (9), QueueDispatchContractTest (4). All passing."
   },
-  "status": "STILL FAILING -- the suite is not green. This is reported as-is. No test was weakened, skipped, marked incomplete or deleted to improve this number.",
   "largest_single_cause_resolved": {
     "cause": "Vite manifest not found at public/build/manifest.json",
     "tests_affected": "approximately 215",
@@ -136,5 +135,68 @@
       "detail": "User.kyc_status has a cast but is absent from $fillable, and GloL6Sale.created_at is not fillable. kyc_status was deliberately NOT added to $fillable: tests/Feature/Compliance/WithdrawalKycGateTest.php:133 is a forgery test proving the system must never accept kyc_status from request input. The correct fix is a factory state or an explicit service writer, not a wider mass-assignment surface.",
       "assessment": "OPEN by design decision, documented rather than silently widened."
     }
-  ]
+  ],
+  "provenance": {
+    "written_during_phase": 8,
+    "captured_at_utc": null,
+    "captured_at_note": "No date in the original; the logs of phase 8 in this workspace are dated 2026-10-01.",
+    "base_commit": "1c21115b615dd37fb0ad17f3a4704445cdef4ce0",
+    "base_commit_in_this_clone": false,
+    "clone_head_commit": "5df5d14",
+    "clone_commit_count": 1,
+    "provenance_note": "This clone has exactly one commit (5df5d14) and 1c21115 is not an object in it, so the commit this record was measured against cannot be checked out here. Stated instead of assumed: a reader can tell which tree these numbers describe only if the record says so.",
+    "claims_refreshed_at_utc": "2026-10-16",
+    "claims_refreshed_by_cluster": 45
+  },
+  "superseded_facts": [
+    {
+      "was": "final: 248 failed / 1803 passed / 2056 total / 107715 assertions; status \"STILL FAILING\".",
+      "now": "0 failed / 2868 passed / 5 skipped / 118125 assertions, exit 0, on 2026-10-16. The delta fields (failures_removed, tests_newly_passing, tests_added) describe phase 8 only and are left exactly as measured.",
+      "changed_by_clusters": "9 through 44, and the suite grew from 2056 tests to 2865",
+      "evidence": "runtime/evidence/suite-final-summary.txt"
+    },
+    {
+      "was": "delta.note: \"29 added tests: ProductionConfigSafetyTest (16), WalletWriteContractTest (9), QueueDispatchContractTest (4).\"",
+      "now": "ProductionConfigSafetyTest has 20 test methods today and WalletWriteContractTest still has 9 (re-measured 2026-10-16). The two artifacts of this phase disagreed (16 vs 6) about the same file; both counts were true of their own moment and neither was labelled as such.",
+      "changed_by_clusters": "45"
+    }
+  ],
+  "claims_current_state": {
+    "no_test_was_removed_to_get_here": {
+      "statement": "The integrity statement of this phase is that nothing was deleted or weakened; the decidable form of that, re-checked here, is that every test file this record names still exists.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "paths_exist",
+        "paths": [
+          "tests/Feature/Production/ProductionConfigSafetyTest.php",
+          "tests/Feature/Production/WalletWriteContractTest.php",
+          "tests/Feature/Production/QueueDispatchContractTest.php"
+        ]
+      }
+    },
+    "queue_dispatch_contract_test_size": {
+      "statement": "QueueDispatchContractTest, named by this artifact without a path, still exists under tests/Feature/Production with 4 test methods (2026-10-16).",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "tests_in_file_at_least",
+        "path": "tests/Feature/Production/QueueDispatchContractTest.php",
+        "at_least": 4
+      }
+    },
+    "wallet_contract_test_size": {
+      "statement": "WalletWriteContractTest still carries at least the 9 tests this record counted.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "tests_in_file_at_least",
+        "path": "tests/Feature/Production/WalletWriteContractTest.php",
+        "at_least": 9
+      }
+    }
+  },
+  "history": {
+    "as_written_at_phase_8": {
+      "status": "STILL FAILING -- the suite is not green. This is reported as-is. No test was weakened, skipped, marked incomplete or deleted to improve this number."
+    }
+  },
+  "status": "The counts in this file describe the tree at phase 8. They are not the state of this checkout: the result that has to hold today is in runtime/evidence/suite-final-summary.txt, and the numbers quoted by superseded_facts are the ones a reader of the original was shown."
 }

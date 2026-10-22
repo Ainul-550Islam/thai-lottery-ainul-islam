@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#020617">
+<meta name="robots" content="noindex">
+<title>You are offline — Thai Lottery</title>
+<!--
+    C4 FIX - offline fallback page.
+
+    Deliberately self-contained: every style is inline and there are no
+    external fonts, stylesheets, scripts or images. This page is served from
+    the service worker's precache at the moment the network is unavailable,
+    so anything it tried to load from the network would simply fail and leave
+    the visitor with an unstyled document.
+
+    It also inlines its own icon as a data URI for the same reason.
+-->
+<style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+        --ink-100: #0B0904;
+        --ink-400: #141007;
+        --ink-450: #1C170E;
+        --gold: #D4AF37;
+        --gold-100: #FFF6D6;
+        --gold-200: #F5E6B8;
+        --slate-300: #CBD5E1;
+        --slate-400: #94A3B8;
+    }
+
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+
+    body {
+        background-color: var(--ink-100);
+        background-image:
+            radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.10) 0%, transparent 55%),
+            radial-gradient(circle at 85% 85%, rgba(212, 175, 55, 0.05) 0%, transparent 45%);
+        background-attachment: fixed;
+        color: var(--slate-300);
+        font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .card {
+        width: 100%;
+        max-width: 34rem;
+        background: linear-gradient(180deg, rgba(28, 23, 14, 0.92) 0%, rgba(20, 16, 7, 0.96) 100%);
+        border: 1px solid rgba(212, 175, 55, 0.25);
+        border-radius: 1.25rem;
+        padding: 2.5rem 2rem;
+        text-align: center;
+    }
+
+    .mark {
+        width: 4.5rem;
+        height: 4.5rem;
+        margin: 0 auto 1.5rem;
+        display: block;
+    }
+
+    h1 {
+        margin: 0 0 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--gold-100);
+        letter-spacing: -0.01em;
+    }
+
+    .lede {
+        margin: 0 0 1.75rem;
+        color: var(--slate-400);
+        font-size: 0.975rem;
+    }
+
+    .notice {
+        background: rgba(212, 175, 55, 0.08);
+        border: 1px solid rgba(212, 175, 55, 0.22);
+        border-radius: 0.75rem;
+        padding: 0.875rem 1rem;
+        margin: 0 0 1.75rem;
+        font-size: 0.875rem;
+        color: var(--gold-200);
+        text-align: left;
+    }
+
+    .notice strong { color: var(--gold-100); }
+
+    .actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-decoration: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+        transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .btn-primary {
+        background: var(--gold);
+        color: var(--ink-100);
+    }
+
+    .btn-primary:hover { background: var(--gold-100); }
+
+    .btn-quiet {
+        background: transparent;
+        color: var(--gold-200);
+        border-color: rgba(212, 175, 55, 0.35);
+    }
+
+    .btn-quiet:hover { background: rgba(212, 175, 55, 0.10); }
+
+    .btn:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
+    }
+
+    ul.links {
+        list-style: none;
+        margin: 1.75rem 0 0;
+        padding: 1.5rem 0 0;
+        border-top: 1px solid rgba(212, 175, 55, 0.18);
+        display: flex;
+        gap: 1.25rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        font-size: 0.875rem;
+    }
+
+    ul.links a { color: var(--gold-200); text-decoration: none; }
+    ul.links a:hover { text-decoration: underline; }
+
+    .status { margin-top: 1rem; font-size: 0.8125rem; min-height: 1.25rem; }
+    .status[data-online="true"] { color: #10B981; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<main class="card">
+    <!-- Inline so the page needs nothing from the network. -->
+    <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Thai Lottery">
+        <circle cx="32" cy="32" r="30" fill="#141007"/>
+        <circle cx="32" cy="32" r="30" fill="none" stroke="#B8860B" stroke-width="2"/>
+        <circle cx="32" cy="32" r="17" fill="#D4AF37"/>
+        <rect x="17" y="27.5" width="30" height="9" rx="4.5" fill="#0B0904"/>
+    </svg>
+
+    <h1>You&rsquo;re offline</h1>
+    <p class="lede">
+        We can&rsquo;t reach the network right now. Pages you have already
+        visited are still available.
+    </p>
+
+    <div class="notice">
+        <strong>Results and balances need a connection.</strong>
+        Draw results, ticket checks, wallet balances and bet history are always
+        fetched live and are never stored on your device, so they cannot be
+        shown while you are offline.
+    </div>
+
+    <div class="actions">
+        <button class="btn btn-primary" type="button" id="retry">Try again</button>
+        <a class="btn btn-quiet" href="/">Go to home</a>
+    </div>
+
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+
+    <ul class="links">
+        <li><a href="/results">Results</a></li>
+        <li><a href="/national-lottery">Thai GLO</a></li>
+        <li><a href="/how-to-play">How to play</a></li>
+        <li><a href="/faq">FAQ</a></li>
+    </ul>
+</main>
+
+<script>
+    // Inline and dependency-free, for the same reason the CSS is.
+    (function () {
+        var status = document.getElementById('status');
+        var retry = document.getElementById('retry');
+
+        function render() {
+            var online = navigator.onLine;
+            status.setAttribute('data-online', online ? 'true' : 'false');
+            status.textContent = online
+                ? 'Back online — reloading…'
+                : 'Still offline.';
+        }
+
+        retry.addEventListener('click', function () {
+            render();
+            if (navigator.onLine) {
+                window.location.reload();
+            }
+        });
+
+        window.addEventListener('online', function () {
+            render();
+            window.location.reload();
+        });
+        window.addEventListener('offline', render);
+
+        render();
+    })();
+</script>
+</body>
+</html>

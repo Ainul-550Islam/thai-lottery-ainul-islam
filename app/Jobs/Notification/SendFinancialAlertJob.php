@@ -69,12 +69,27 @@ class SendFinancialAlertJob implements ShouldQueue
         $log = new AuditLog;
         $log->fill([
             'user_id' => null,
-            'action' => AuditAction::Reconcile,
+            // Not AuditAction::Reconcile. This job is the alerting side of the platform, and
+            // it used to file every alert it sent - queue backlog, failed-job spikes,
+            // anomalies - as a reconciliation run. That was not cosmetic: the freshness check
+            // that decides whether to raise the stale-reconciliation alert selects the newest
+            // row with action=reconcile, so each alert wrote the evidence that the
+            // reconciliation had just happened. The alarm reset the clock it was watching,
+            // which made the control unable to stay breached and let /api/health report
+            // 'pass' about a ledger nobody had checked. A lane that reports its own
+            // inaction to itself is worse than a lane nobody runs, because it looks green.
+            //
+            // security_alert is the action this record actually is: it already exists in the
+            // enum, the column is a 32-char string with no DB enum of its own, and nothing
+            // else filters on it for money semantics.
+            'action' => AuditAction::SecurityAlert,
             'risk_level' => $this->severity,
-            'auditable_type' => AuditLog::class,
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf('%s: %s', $this->title, $this->message),
-            'metadata' => $this->metadata,
+            // The lane name is a default the caller can override; the alert row is
+            // about this run, so it has no subject row to name.
+            'metadata' => $this->metadata + ['lane' => 'financial_alert'],
         ]);
         $log->save();
     }

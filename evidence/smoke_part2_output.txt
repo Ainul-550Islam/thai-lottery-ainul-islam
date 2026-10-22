@@ -1,0 +1,59 @@
+=== PART 2 SMOKE: Cash <-> Win conversion engine ===
+PASS  member created with verified KYC  [verified]
+PASS  cash wallet opened at 1000.00 THB  [1000.00]
+PASS  win wallet opened at 0.00 THB  [0.00]
+PASS  Win is a first-class wallet type
+PASS  contract resolves from the container  [App\Services\Wallet\Conversion\WalletConversionService]
+PASS  service reports cash_to_win enabled
+PASS  published fee rule exists  [2]
+PASS  published percentage equals config rate  [schedule 1.00% vs config 0.0100]
+PASS  quote charges 1% on 100.00 (1.00 THB)  [expected 1.00, got 1.00]
+PASS  quote nets 99.00 after fee  [expected 99.00, got 99.00]
+PASS  quote reports the gross amount  [expected 100.00, got 100.00]
+PASS  quote is still valid  [120s remaining]
+PASS  quote is bound to cash_to_win
+PASS  conversion completed  [completed]
+PASS  conversion moved money
+PASS  conversion is not a replay
+PASS  engine charged exactly 1% (1.00 THB)  [expected 1.00, got 1.00]
+PASS  member received 99.00 in the Win wallet  [expected 99.00, got 99.00]
+PASS  cash wallet debited by the full 100.00  [expected 900.00, got 900.00]
+PASS  win wallet credited with the net 99.00  [expected 99.00, got 99.00]
+PASS  balances sum to the platform total minus fee  [999.00]
+PASS  conversion row persisted  [CONV-SZBKPX9JI4OB]
+PASS  conversion row records direction
+PASS  conversion row links the quote  [QTC-4RVTUGIEFKRT]
+PASS  conversion row captured balances  [1000.00 -> 900.00 / 0.00 -> 99.00]
+PASS  conversion row recorded the fee rule version  [2]
+PASS  conversion row recorded the channel  [web]
+PASS  fee revenue account 4100 received the 1.00 THB fee  [expected 1.00, got 1.00]
+PASS  ledger rows written for both wallets  [6 entries]
+PASS  cash liability ledger rows sum to the -100.00 balance change  [expected -100.00, got -100.00]
+PASS  win liability ledger rows sum to the +99.00 balance change  [expected 99.00, got 99.00]
+PASS  replay returns the same reference  [CONV-SZBKPX9JI4OB]
+PASS  replay is flagged as a replay
+PASS  replay did not move money
+PASS  cash balance unchanged after replay  [expected 900.00, got 900.00]
+PASS  win balance unchanged after replay  [expected 99.00, got 99.00]
+PASS  exactly one conversion row exists after the replay  [1 rows]
+PASS  overdraw refused with a stable code  [insufficient_balance]
+PASS  cash untouched after the refused attempt  [expected 900.00, got 900.00]
+PASS  win untouched after the refused attempt  [expected 99.00, got 99.00]
+PASS  a too-short idempotency key is refused  [idempotency_key_too_short]
+PASS  an amount under the 10.00 floor is refused  [below_minimum]
+PASS  refusals are recorded in the audit trail  [4 audit rows]
+PASS  reversal recorded as its own conversion  [win_to_cash]
+PASS  reversal completed  [completed]
+PASS  cash restored to 1000.00  [expected 1000.00, got 1000.00]
+PASS  win restored to 0.00  [expected 0.00, got 0.00]
+PASS  no fee is charged to undo a movement  [expected 0.00, got 0.00]
+PASS  original marked reversed  [reversed]
+PASS  original points at its reversal  [2]
+PASS  reversal points back at the original
+PASS  fee revenue account carries the 1.00 THB refund  [expected 1.00, got 1.00]
+PASS  charged rate equals the published rate  [charged 0.010000 vs published 0.0100]
+PASS  history lists both the conversion and its reversal  [2 rows]
+PASS  member can fetch the conversion by reference
+PASS  member can fetch the reversal by reference
+
+=== RESULT: 56 passed, 0 failed ===

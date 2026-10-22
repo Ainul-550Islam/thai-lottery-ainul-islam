@@ -1,0 +1,280 @@
+Part59 FINAL LOCAL ACCEPTANCE
+
+{
+  "part": 59,
+  "date": "2026-10-18",
+  "scope": "Local synthetic confirmed zero-fee full Stripe refund financial recovery; no provider refund creation or live money transfer.",
+  "default": {
+    "tests": 4068,
+    "assertions": 140916,
+    "skipped": 166,
+    "errors_failures": 0,
+    "all_discovered_test_ids_executed": true,
+    "isolation": "one PHP process and disposable SQLite database per source test file; eight workers"
+  },
+  "native": {
+    "tests": 227,
+    "assertions": 3242,
+    "skipped": 0,
+    "errors_failures": 0,
+    "server": "Owned Unix-socket-only MariaDB 11.8.6/InnoDB thai_lottery_test",
+    "default_skips_executed": 12,
+    "default_skips_not_in_native": 154,
+    "genuine_two_child_parent_waits": 12,
+    "new_refund_waits": 2,
+    "new_independent_unlocked_http_arrival_profile": true
+  },
+  "new_refund_default": {
+    "tests": 42,
+    "assertions": 1122,
+    "skipped": 2,
+    "errors_failures": 0
+  },
+  "new_refund_native": {
+    "tests": 42,
+    "assertions": 1198,
+    "skipped": 0,
+    "errors_failures": 0
+  },
+  "omission_controls": [
+    {
+      "mode": "direct_financial_duty",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "mode": "provider_status",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "mode": "provider_currency",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "mode": "wallet_debit",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "mode": "cash_account",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "mode": "financial_replay_proof",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "mode": "immutable_header",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "mode": "provider_freshness",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "mode": "durable_managed_reversal",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "source_sha256": {
+    "database/migrations/2026_10_18_000600_create_stripe_refund_recoveries.php": "943f687b107a7126b62b2dad5ff659795a110d24231c6be330aed3662dd4d835",
+    "app/Models/StripeRefundRecoveryIntent.php": "f7f58c17e98b9d0991f35a906b35168ffb91b17967b002f3d42febb27b2127eb",
+    "app/Services/Payment/StripeRefundRecoveryAccess.php": "138d1544a20fef24e893347f11ee7cf14445147a2f722c35fbee45728dfb8f37",
+    "app/Services/Payment/StripeRefundRecoveryLookup.php": "7548249773552f55d39c6e2a3656990a43211dba549dcbbcb5117ea882e69ebc",
+    "app/Services/Payment/StripeRefundRecoveryService.php": "93aaea07f0ea6378c97c8b960c6518f1e0565b445b69009c2a021d177e918684",
+    "app/Services/Finance/ReversalIntegrityGuard.php": "976a71d4f71ba2dc0ade68ada9698e9bdab251f6ecd71f477de8af3d020e7acd",
+    "app/Filament/Resources/DepositResource/StripeDepositReviewActions.php": "179d796c10e39b026ffcb6bf770abd2b286a5419a943383dbf7cdda10f41227e",
+    "config/payment.php": "b2a26db04a1e711bce9c33a5c8d4e6c5bcaa5258efa252081d88e2b7cdf05bfa",
+    "config/permission.php": "fda63e03456cf1e8cb6fe4683e74d01cbb09f897600327d98d6a30b1fef55b0d",
+    "database/seeders/RolePermissionSeeder.php": "1b628e889994129842d77e00961760b1940e992792eceda68ea0c88c3e6fbff9",
+    "tests/Support/StripeRefundRecoveryFixture.php": "641395d1154db034330a43ad7ee32b98ff73ab8afb9898e81b53cba36cdf0d4b",
+    "tests/Support/FinancialRaceProbe.php": "aadb07d674157d4e87585a55c1c763162ecf8ce1b810d25a99a8003679070ea4",
+    "tests/Feature/Payment/StripeRefundRecoveryTest.php": "7b4858e40b7a117e1af4bd85fe7bc01812736da2065ba68c49c67c03a7329bb0",
+    "tests/Feature/Payment/StripeRefundRecoveryServerTest.php": "9d6ef87d5fb2ecd426b6f645355f0102ce175f85af8e5b2018d4be80caac028f",
+    ".github/workflows/financial-concurrency.yml": "9e83399e8a38e3de20a81d48724318b2dcbdeebce9e652eec6e5e27c19dba35b",
+    ".env.example": "b44c1dbbf66e263ef7ab8e9b0474b590f6c8dc099c1229702c59890862036774",
+    ".env.production.example": "c92279eb7fab1b86b8b9ad52b3b5ed972be5881f0681ceb12040d61b95c6d9d4",
+    "scripts/release_source_inventory.py": "77cec02d4449a753e641a430cac0675fb9207848ef8b054c0de479014f8ee4c7"
+  },
+  "static_php": {
+    "tests": 35,
+    "assertions": 1642,
+    "skipped": 0,
+    "errors_failures": 0
+  },
+  "standalone_php": {
+    "tests": 29,
+    "assertions": 94,
+    "skipped": 0,
+    "errors_failures": 0
+  },
+  "php_syntax": {
+    "php_suffixed_files": 2143,
+    "excluded_generated_directories": [
+      ".cache",
+      ".git",
+      "build",
+      "node_modules",
+      "storage",
+      "target",
+      "vendor"
+    ],
+    "failures": [],
+    "passed": true
+  },
+  "python_tests": 86,
+  "node_dependency_tests": 54,
+  "rust_tests": 27,
+  "locked_dependency_audits": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_vulnerabilities": 0,
+    "node": "24.22.0",
+    "npm": "11.21.1"
+  },
+  "frontend_verified_files": 109,
+  "empty_migration": {
+    "passed": true,
+    "store": "/home/user/.cache/part59-migration-rehearsal/thai_lottery_test",
+    "tables": [
+      "stripe_refund_recovery_intents",
+      "stripe_refund_recovery_receipts",
+      "stripe_refund_recoveries"
+    ],
+    "initially_created": [
+      true,
+      true,
+      true
+    ],
+    "after_empty_down": [
+      false,
+      false,
+      false
+    ],
+    "after_empty_up": [
+      true,
+      true,
+      true
+    ],
+    "prior_capture_four_review_and_route_tables_preserved": true,
+    "scope": "Owned disposable empty SQLite migration up/down/up only; no production data, populated-history restore or power-loss proof."
+  },
+  "asset_prerequisite_repair": {
+    "passed": true,
+    "source_unchanged": true,
+    "assertions_unchanged": true,
+    "genuine_frontend_manifest_sha256": "704cdc58bed997199f0347f0f21135caed7c964aea1d597517c7fd4e0587bc4e",
+    "runs": [
+      {
+        "index": 1,
+        "file": "tests/Feature/About/AboutContentIntegrityTest.php",
+        "initial_cases": 3,
+        "initial_failures": 2,
+        "exit": 0,
+        "cases": 3,
+        "assertions": 15,
+        "initial_junit_sha256": "44a0c6faaa21c812be449f1cbcddcac7f71cb73328f5e88b585da32e349ab4ad",
+        "final_junit_sha256": "f3e339f5177f6aa98aee2515bbd7c431d6c96b5a0824e4a588c9d026a8adab49"
+      },
+      {
+        "index": 2,
+        "file": "tests/Feature/About/AboutLegacyRouteTest.php",
+        "initial_cases": 2,
+        "initial_failures": 1,
+        "exit": 0,
+        "cases": 2,
+        "assertions": 5,
+        "initial_junit_sha256": "7bab00f87f35fe333c9fc2aa6bcc4dbb8bd98e7c61675b9b3289ae80efa9996c",
+        "final_junit_sha256": "887c59a9f8020569fb3cf4dc744f2dcc82198cb358c4507ccc8a85f2ce7519a0"
+      },
+      {
+        "index": 3,
+        "file": "tests/Feature/About/AboutLocalizationTest.php",
+        "initial_cases": 2,
+        "initial_failures": 1,
+        "exit": 0,
+        "cases": 2,
+        "assertions": 8,
+        "initial_junit_sha256": "66f8ebacaf2409f1b5828052efef957dd2939718bab598a464ef22d906d05304",
+        "final_junit_sha256": "733ebd6b7668c3c27794dc863b056c2320f64ab72221151c9a4bf79ce6d605a2"
+      },
+      {
+        "index": 4,
+        "file": "tests/Feature/About/AboutPageTest.php",
+        "initial_cases": 3,
+        "initial_failures": 3,
+        "exit": 0,
+        "cases": 3,
+        "assertions": 22,
+        "initial_junit_sha256": "a12dc9e1eae3c00d262b186a5384f770122c80201335a8e303a0308a6855ff0e",
+        "final_junit_sha256": "7d70a9559b7da5ec06c58ce3d7eb2ab3a4ed034c9555040015a793329f3bfebe"
+      },
+      {
+        "index": 6,
+        "file": "tests/Feature/Account/AccountServicesPagesTest.php",
+        "initial_cases": 51,
+        "initial_failures": 12,
+        "exit": 0,
+        "cases": 51,
+        "assertions": 653,
+        "initial_junit_sha256": "31fc7eb11c34a57d7ecf56fa23b44934d81afe364be69ca866556d13abf90377",
+        "final_junit_sha256": "ff4c24ebce9c81e26cb8cf772d9863f78fa7becbbd7bf72dd7a47a754b21ceb0"
+      },
+      {
+        "index": 32,
+        "file": "tests/Feature/Auth/MemberAuthParityTest.php",
+        "initial_cases": 54,
+        "initial_failures": 10,
+        "exit": 0,
+        "cases": 54,
+        "assertions": 276,
+        "initial_junit_sha256": "a6cf500717cfc3bd2acad86fdd996339e0b422dd40430ddb0b75592f66050687",
+        "final_junit_sha256": "79507a19c6c8389afc8ad54d6e3c54caccb976d82dbe6de13a5a12b48d69075b"
+      }
+    ]
+  },
+  "deterministic_fault_input_fix": {
+    "test_file": "tests/Feature/Payment/StripeRefundRecoveryTest.php",
+    "old_sha256": "92bd060c97146048bc3d97793a12f8f9f0e96fa6df954792c2fe0ade3c59d098",
+    "final_sha256": "7b4858e40b7a117e1af4bd85fe7bc01812736da2065ba68c49c67c03a7329bb0",
+    "change": "A corruption test used now()-1, which could equal the immutable stored created_epoch after one second elapsed. It now subtracts one from the actual stored original epoch, guaranteeing a changed header. All refusal/money/no-HTTP assertions are unchanged. No application source changed. Final full40 and native42/guard controls are rerun on the deterministic input."
+  },
+  "diagnostics": "One new header-corruption test used now()-1, which could accidentally equal the originally stored epoch after one second elapsed. The fault input now subtracts one from the actual stored epoch, guaranteeing corruption; the refusal and money assertions are unchanged. Final default40/new native42 and isolated controls are rerun. The remaining native185 profiles use unchanged application/test source and are merged without duplicate IDs. Six default source-file runs initially began before the required Vite build completed and had29 asset-prerequisite failures. They were rerun unchanged after the genuine locked build in fresh stores, preserving identical test-ID sets; the final complete aggregate uses their passing reports and retains the initial raw reports as diagnostics. No Vite bypass or assertion change was made. The first isolated omission attempt hit its 180-second harness timeout during disposable schema bootstrap under combined compile/test memory pressure; it produced no completed control and is not acceptance. Its shadow source was restored in finally. The final isolated v3 run uses the same assertions with a 600-second harness timeout. A parallel Rust compilation was stopped after successful locked npm audit/tests/build to relieve memory pressure; final locked Rust tests/build were resumed with one compiler job. No production setting or financial assertion was weakened. The final native test store buffer pool was reduced from128 to64MiB only in its owned disposable server session environment.",
+  "limits": "Default and selected native cases overlap. Forty new feature tests plus two genuine native races are not every interleaving/actor/writer or global ingress/spend fencing. Injected SQL exception and controlled clocks are not OS-kill/power-loss proof. Empty migration is not populated restore or production migration. Current encrypted custody is not privileged DB/schema/key-compromise or external anti-rollback certification. No live merchant event/refund/transfer, deployed activation, remote CI or worldwide legal approval occurred. Partial/multiple refunds, original fees, disputes, new provider refunds, negative-debt collection, risk/withdrawal clearance and financially-resolved case projection remain separate policy/workflows."
+}
+
+This supersedes no immutable historical test matrix. Reinstall locked dependencies and rebuild outputs after cleanup before execution.

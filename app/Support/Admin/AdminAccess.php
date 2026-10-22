@@ -103,6 +103,95 @@ final class AdminAccess
     public const MANAGE_GLO_SALES_POINTS = 'manage glo sales points';
 
     /**
+     * Which seeded permission a console panel requires.
+     *
+     * This is the single source of truth for the panel vocabulary. It lives here rather
+     * than in the controller because two things have to agree about it: the controller,
+     * which refuses a panel the operator may not open, and the console navigation, which
+     * must not offer a link the operator would be refused on. When those two maps were
+     * separate, the navigation advertised eight destinations gated only by the coarse
+     * `can:access-admin` route middleware, so an operator holding that but not (say)
+     * RECONCILE_LEDGER saw a Double-Entry Reconciliation link that 403'd on click.
+     *
+     * Keeping the map here makes the disagreement unrepresentable: the navigation asks
+     * this method, and so does authorizePanel().
+     *
+     * @param  string  $panel  a value produced by the console's panel resolver
+     */
+    public static function panelPermission(string $panel): string
+    {
+        return match ($panel) {
+            'draws' => self::VIEW_DRAWS,
+            'risk', 'compliance' => self::VIEW_RISK_ALERTS,
+            'payments', 'withdrawals' => self::MANAGE_PAYOUTS,
+            'bets' => self::VIEW_TRANSACTION_HISTORY,
+            'audits' => self::VIEW_AUDIT_LOGS,
+            'wallets' => self::MANAGE_WALLET,
+            'ledger' => self::VIEW_FINANCIAL_REPORTS,
+            'reconciliation' => self::RECONCILE_LEDGER,
+            'kyc' => self::MANAGE_USERS,
+            'claims', 'claim_review' => self::MANAGE_GLO_PRIZE_CLAIMS,
+            'freezes' => self::REVIEW_GLO_FREEZES,
+            'settlements' => self::PROCESS_SETTLEMENTS,
+            'wallet_operations' => self::MANAGE_WALLET,
+            'payment_methods', 'withdrawal_methods', 'payment_events', 'payment_exceptions' => self::MANAGE_PAYOUTS,
+            'draw_lifecycle' => self::MANAGE_DRAWS,
+            'publication', 'imports', 'sources' => self::VIEW_RESULTS,
+            'lotteries', 'lottery_rules', 'fees', 'account_grades' => self::MANAGE_SYSTEM_SETTINGS,
+            'account_verification', 'responsible_gaming', 'self_exclusion', 'users', 'user_detail', 'user_finance', 'bet_detail', 'ticket_detail', 'ticket_verification' => self::MANAGE_USERS,
+            'commissions' => self::VIEW_COMMISSIONS,
+            'queues', 'scheduler', 'runtime', 'api_status', 'webhooks', 'security', 'release', 'cutover', 'health' => self::VIEW_AUDIT_LOGS,
+            default => self::VIEW_DASHBOARD,
+        };
+    }
+
+    /**
+     * Every panel this class knows about, keyed by the permission it requires.
+     *
+     * Used by the console-chrome test to prove the navigation and the authorizer cannot
+     * drift: a panel that appears in one map and not the other fails there rather than
+     * in front of an operator.
+     *
+     * @return array<string, string>
+     */
+    public static function panelPermissions(): array
+    {
+        $panels = [
+            'dashboard', 'draws', 'risk', 'compliance', 'payments', 'withdrawals', 'bets',
+            'audits', 'wallets', 'ledger', 'reconciliation', 'kyc', 'claims', 'claim_review',
+            'freezes', 'settlements', 'wallet_operations', 'payment_methods',
+            'withdrawal_methods', 'payment_events', 'payment_exceptions', 'draw_lifecycle',
+            'publication', 'imports', 'sources', 'lotteries', 'lottery_rules', 'fees',
+            'account_grades', 'account_verification', 'responsible_gaming', 'self_exclusion',
+            'users', 'user_detail', 'user_finance', 'bet_detail', 'ticket_detail',
+            'ticket_verification', 'commissions', 'queues', 'scheduler', 'runtime',
+            'api_status', 'webhooks', 'security', 'release', 'cutover', 'health',
+        ];
+
+        $out = [];
+
+        foreach ($panels as $panel) {
+            $out[$panel] = self::panelPermission($panel);
+        }
+
+        return $out;
+    }
+
+    /**
+     * May this user open THIS panel?
+     *
+     * The one question both the console navigation and the panel authorizer have to
+     * answer, answered once. The navigation calls it to decide whether to render a link;
+     * the controller calls it to decide whether to serve the panel. Because they share
+     * the call, a link that renders cannot lead to a 403, and a panel that 403s cannot
+     * be offered - which is exactly the pair of failures that two separate maps produce.
+     */
+    public static function mayOpenPanel(?User $user, string $panel): bool
+    {
+        return self::canAccessPanel($user) && self::allows($user, self::panelPermission($panel));
+    }
+
+    /**
      * May this user open the admin panel?
      *
      * Three conditions, all of them necessary: an operator role, an account status that

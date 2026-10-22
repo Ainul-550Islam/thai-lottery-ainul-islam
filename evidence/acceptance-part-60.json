@@ -1,0 +1,139 @@
+{
+  "part": 60,
+  "scope": "Canonical routed NEW paid-bet admission for known authenticated succeeded Stripe full-refund recovery exposure; actual local money-write safeguard, not live provider or global spend clearance.",
+  "passed": true,
+  "default": {
+    "passed": true,
+    "source_files": 301,
+    "cases": 4097,
+    "assertions": 141649,
+    "skipped": 169,
+    "failures": 0,
+    "errors": 0,
+    "exact_discovery_id_match": true,
+    "unchanged_gd_prerequisite_rerun": 51,
+    "frozen_implementation_files": 16
+  },
+  "native": {
+    "passed": true,
+    "cases": 324,
+    "assertions": 4453,
+    "skipped": 0,
+    "genuine_parent_lock_waits": 18,
+    "new_distinct_wallet_profiles": 3,
+    "old_rr_empty_source_snapshots": 2,
+    "native_complete_run": 322,
+    "independent_unchanged_up_rollback_profiles": 2,
+    "composite_unique_ids": true,
+    "canonical_frozen_sources_unchanged": true
+  },
+  "overlap": "Default/native/static/standalone counts overlap and must not be added.",
+  "default_skipped_ids_executed_in_selected_native": 25,
+  "default_skipped_ids_not_executed_in_selected_native": 144,
+  "focused_feature": {
+    "cases": 24,
+    "assertions": 684
+  },
+  "new_server_profiles": 3,
+  "indexed_rollback_profiles_per_engine": {
+    "cases": 2,
+    "assertions": 34,
+    "up_definitions_byte_identical": true,
+    "original_row_fields_preserved": true
+  },
+  "omission_controls": {
+    "total": 12,
+    "intended_assertion_failures": 12,
+    "setup_errors": 0,
+    "native_current_read_and_early_admission_controls": 2,
+    "native_parent_and_both_children_shadow_autoload_verified": true
+  },
+  "syntax": {
+    "php_files": 2148,
+    "changed_php_pint_files": 14
+  },
+  "python": 86,
+  "static": {
+    "cases": 35,
+    "assertions": 1652
+  },
+  "standalone": {
+    "cases": 29,
+    "assertions": 94
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "genuine_vite_build": true,
+    "generated_asset_files_verified": 109
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true,
+    "retired_settlement_worker_activated": false
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part60_migrations": 0,
+    "engine": "isolated empty SQLite test store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 157,
+    "original_part59_recovery_schema_present": [
+      "stripe_refund_recovery_intents",
+      "stripe_refund_recovery_receipts",
+      "stripe_refund_recoveries"
+    ],
+    "production_or_populated_upgrade": false
+  },
+  "provenance": {
+    "gd_missing_extension_errors": 13,
+    "unchanged_identical_id_rerun": 51,
+    "pre_refinement_partial_runs_not_counted": true,
+    "native_complete322_plus_independent2": true,
+    "canonical13_sources_unchanged_through_final_compatibility_additions": true,
+    "all16_current_frozen_files_match": true
+  },
+  "ci_workflow_parsed_and_embedded_python_compiled": true,
+  "remote_ci_executed": false,
+  "live_provider_refund_or_transfer": false,
+  "populated_production_migration_restore": false,
+  "power_loss_or_all_writer_global_risk_certification": false,
+  "worldwide_legal_approval": false,
+  "history_cap_per_player_currency": 100,
+  "receipt_cap_per_intent": 100,
+  "new_migrations": 0,
+  "implementation_sha256": {
+    "app/Services/Betting/StripeRefundWagerGuard.php": "80eaeabed73b5a6f4d23726408c78fbb5ec94945eae7b1dc63292382985c1b3b",
+    "app/Services/Betting/BetPurchaseAdmission.php": "e59f46d8a5af2748f3159682f275b51f68c3881ebe4bbf77f93a7b8061f0dbb8",
+    "app/Services/Betting/BetPurchaseTransactionService.php": "669bdfbb5ad3c90e24539b8387232382b3094a07bc1e5c32013697e4befd254b",
+    "app/Services/Payment/StripeRefundRecoveryService.php": "7135f77a794bccbb6c2274fa8304d07c71f438131548ee1f707e35f3202c2e2d",
+    "app/Http/Support/BetPurchaseErrorMapper.php": "2f1062d2a46734fd993ef10ad0db88fff235aa71c016da4f6de7958b842b97dd",
+    "app/Services/Betting/BetAmendmentService.php": "00c70dfa8c80dad3eb4ad8834562064df766ae30c3ded1074efc56c44a3f0c6b",
+    "tests/Support/StripeRefundWagerFixture.php": "479e9257d1bc6eb482a64c50ae96b859075c4d862cfc9f00aa4527fe2f363eb7",
+    "tests/Feature/Betting/StripeRefundWagerGuardTest.php": "dd8636dbf34221fd26bbaea38b7e19897c68c441ab74f7b83e06da50ee5b1ebb",
+    "tests/Feature/Betting/StripeRefundWagerGuardServerTest.php": "0a6ddaa74ae3a6165f80a9645447c85635c010c5f01d7d4254d6dd321e6e3763",
+    "tests/Support/FinancialRaceProbe.php": "0b7694bf0be320d1604c1649ca789602da8c57b28d3350c3606acebac1690c67",
+    "tests/Support/RunsServerFinancialRaces.php": "2112a5409ec94d842522fbdff112d6adeef975ece604aff424c27ecbb7e98d60",
+    ".github/workflows/financial-concurrency.yml": "49e4cc7f76cf931eba30a0f8d1e0edf967b472190680a32affa63547f892b733",
+    "scripts/release_source_inventory.py": "ad914618ace9872603062c517f9d200479b03b6062f56bfb6567472f6786064c",
+    "database/migrations/2026_10_06_000300_add_payment_webhook_claim_state.php": "56205917438e09910839967a158cfed653a681b184e79eb578decf055e354497",
+    "tests/Feature/Database/WebhookClaimMigrationRollbackTest.php": "f88adc2ea61c6c6dea4b4814ab7174ed88d7470f61bc9e14c2e069acc7cac252",
+    "database/migrations/2024_02_01_001900_extend_kyc_documents_for_verification_lane.php": "e9ef3164931d0e8e100a52f0a852994cca580c4bf1c6a99b57e3c05d3a4a7f2c"
+  }
+}

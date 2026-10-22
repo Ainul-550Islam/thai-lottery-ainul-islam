@@ -6,7 +6,6 @@ namespace App\Events;
 
 use App\Models\Payout;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -57,7 +56,11 @@ final class PrizePayoutCompleted implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel('user.'.(int) $this->winner->id),
+            // Private, and on the channel routes/channels.php authorizes with the same ownership
+            // predicate echo.js relies on. This used to be a plain Channel: broadcastOn() with a
+            // public channel skips /broadcasting/auth entirely, so any subscriber of 'user.17'
+            // would have received user 17's payout event with no authentication at all.
+            new PrivateChannel('user.'.(int) $this->winner->id),
         ];
     }
 

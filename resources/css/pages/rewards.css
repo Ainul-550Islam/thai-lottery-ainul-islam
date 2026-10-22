@@ -1,0 +1,230 @@
+@import './public-next-pages.css';
+
+.rewards-hub {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.rewards-rg-banner {
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    background: rgba(120, 53, 15, 0.35);
+    color: #fde68a;
+    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+    font-size: 0.925rem;
+    line-height: 1.5;
+}
+
+.rewards-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .rewards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.rewards-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.rewards-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-top: 0.5rem;
+}
+
+.rewards-inline-field {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    align-items: center;
+}
+
+.rewards-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.rewards-input {
+    flex: 1 1 12rem;
+    min-width: 0;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(var(--tl-line-rgb, 148, 163, 184), 0.35);
+    background: rgba(var(--tl-surface-1-rgb, 15, 23, 42), 0.65);
+    color: inherit;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.925rem;
+}
+
+.rewards-select {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(var(--tl-line-rgb, 148, 163, 184), 0.35);
+    background: rgba(var(--tl-surface-1-rgb, 15, 23, 42), 0.85);
+    color: inherit;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.rewards-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.rewards-btn--primary {
+    background: linear-gradient(135deg, #059669, #0d9488);
+    color: #ffffff;
+    border: none;
+}
+
+.rewards-btn--secondary {
+    background: transparent;
+    border: 1px solid rgba(16, 185, 129, 0.55);
+    color: inherit;
+}
+
+.rewards-btn--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: transparent;
+    color: inherit;
+}
+
+.rewards-balance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.rewards-points-pill {
+    border-radius: 9999px;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    background: rgba(6, 78, 59, 0.45);
+    padding: 0.5rem 1rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.rewards-points-pill span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+.rewards-catalogue {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.rewards-tier-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(var(--tl-line-rgb, 148, 163, 184), 0.25);
+}
+
+.rewards-tier-name {
+    font-weight: 700;
+    font-size: 0.925rem;
+}
+
+.rewards-tier-cost {
+    font-size: 0.8rem;
+    opacity: 0.75;
+}
+
+.rewards-subheading {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.8;
+}
+
+.rewards-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.rewards-list__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.65rem;
+    background: rgba(15, 23, 42, 0.35);
+    font-size: 0.875rem;
+}
+
+.rewards-amount {
+    color: #34d399;
+}
+
+.rewards-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.rewards-stats-grid div {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(var(--tl-line-rgb, 148, 163, 184), 0.22);
+}
+
+.rewards-stats-grid dt {
+    font-size: 0.75rem;
+    opacity: 0.75;
+}
+
+.rewards-stats-grid dd {
+    margin: 0.25rem 0 0;
+    font-size: 1.125rem;
+    font-weight: 800;
+}
+
+.rewards-empty,
+.rewards-footnote {
+    font-size: 0.85rem;
+    opacity: 0.78;
+}
+
+.rewards-live-status {
+    min-height: 1.1rem;
+    font-size: 0.8rem;
+    color: #34d399;
+}
+
+.rewards-divider {
+    border: 0;
+    border-top: 1px solid rgba(var(--tl-line-rgb, 148, 163, 184), 0.22);
+    margin: 0.5rem 0;
+}

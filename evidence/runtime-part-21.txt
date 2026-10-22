@@ -1,0 +1,1823 @@
+Part21 runtime evidence —2026-10-15
+Pinned base a73ad5b8dce6c1f9f777f25ed38b20355d69b3be
+All database-writing suites serial, guarded disposable repository SQLite store only.
+Final full2475 tests/130294 assertions;no failures/errors;SKIP2;exit0.
+Currency boundary27 cases;conversion and translation124/1570PASS.
+Initial valid-fixture baseline23/48FAIL22;initial fixture mistakes not counted as application proof.
+First full attempt deliberately interrupted during contract preservation, not a passed diagnostic.
+First completed full2475/130122ERROR40/SKIP5:all40errors absent GD extension;three driver skips absent PDO MySQL.
+Runtime restored without changing assertions:recovery88/830PASS;fresh final full recorded below.
+Two remaining skips:equivalent shared-server row-lock proof and unbuilt Rust verifier binary.
+Exact per-currency summary totals;strict input/config denomination;recorded quote denomination.
+Fee arithmetic and wallet/ledger mutation engine retained;no FX/member-transfer/provider approval enabled.
+No live customer funds, provider transfer or universal jurisdiction approval established.
+
+===== part21-currency-baseline-valid-fixture.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+FFFFFFFFFFFFF.FFFFFFFFF                                           23 / 23 (100%)
+
+Time: 00:07.965, Memory: 78.50 MB
+
+There were 22 failures:
+
+1) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_invalid_configuration_refuses_every_currency_dependent_surface_without_writes with data set "unknown" ('ZZZ')
+Expected response status code [503] but received 200.
+Failed asserting that 200 is identical to 503.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:38
+
+2) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_invalid_configuration_refuses_every_currency_dependent_surface_without_writes with data set "null" (null)
+Expected response status code [503] but received 200.
+Failed asserting that 200 is identical to 503.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:38
+
+3) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_invalid_configuration_refuses_every_currency_dependent_surface_without_writes with data set "empty" ('')
+Expected response status code [503] but received 200.
+Failed asserting that 200 is identical to 503.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:38
+
+4) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_invalid_configuration_refuses_every_currency_dependent_surface_without_writes with data set "array" (['USD'])
+Expected response status code [503] but received 500.
+Failed asserting that 500 is identical to 503.
+
+The following exception occurred during the last request:
+
+ErrorException: Array to string conversion in /home/user/thai-lottery-ainul-islam/app/Http/Controllers/Wallet/WalletConversionPageController.php:64
+Stack trace:
+#0 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(262): Illuminate\Foundation\Bootstrap\HandleExceptions->handleError()
+#1 /home/user/thai-lottery-ainul-islam/app/Http/Controllers/Wallet/WalletConversionPageController.php(64): Illuminate\Foundation\Bootstrap\HandleExceptions->{closure:Illuminate\Foundation\Bootstrap\HandleExceptions::forwardsTo():261}()
+#2 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(46): App\Http\Controllers\Wallet\WalletConversionPageController->index()
+#3 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/Route.php(265): Illuminate\Routing\ControllerDispatcher->dispatch()
+#4 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/Route.php(211): Illuminate\Routing\Route->runController()
+#5 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/Router.php(822): Illuminate\Routing\Route->run()
+#6 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Routing\Router->{closure:Illuminate\Routing\Router::runRouteWithinStack():821}()
+#7 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}()
+#8 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\SubstituteBindings->handle()
+#9 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php(63): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#10 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Auth\Middleware\Authenticate->handle()
+#11 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php(87): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#12 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\VerifyCsrfToken->handle()
+#13 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(48): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#14 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\View\Middleware\ShareErrorsFromSession->handle()
+#15 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(120): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#16 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(63): Illuminate\Session\Middleware\StartSession->handleStatefulRequest()
+#17 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Session\Middleware\StartSession->handle()
+#18 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(36): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#19 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse->handle()
+#20 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(74): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#21 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Cookie\Middleware\EncryptCookies->handle()
+#22 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#23 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\Pipeline\Pipeline->then()
+#24 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\Routing\Router->runRouteWithinStack()
+#25 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\Routing\Router->runRoute()
+#26 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\Routing\Router->dispatchToRoute()
+#27 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\Routing\Router->dispatch()
+#28 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Foundation\Http\Kernel->{closure:Illuminate\Foundation\Http\Kernel::dispatchToRouter():197}()
+#29 /home/user/thai-lottery-ainul-islam/vendor/livewire/livewire/src/Features/SupportDisablingBackButtonCache/DisableBackButtonCacheMiddleware.php(19): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}()
+#30 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Livewire\Features\SupportDisablingBackButtonCache\DisableBackButtonCacheMiddleware->handle()
+#31 /home/user/thai-lottery-ainul-islam/app/Http/Middleware/SetLocale.php(57): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#32 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\SetLocale->handle()
+#33 /home/user/thai-lottery-ainul-islam/app/Http/Middleware/CorrelationIdMiddleware.php(35): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#34 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\CorrelationIdMiddleware->handle()
+#35 /home/user/thai-lottery-ainul-islam/app/Http/Middleware/SecurityHeaders.php(13): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#36 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\Http\Middleware\SecurityHeaders->handle()
+#37 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#38 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#39 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull->handle()
+#40 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#41 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#42 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\TrimStrings->handle()
+#43 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#44 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePostSize->handle()
+#45 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#46 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance->handle()
+#47 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#48 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\HandleCors->handle()
+#49 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#50 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\TrustProxies->handle()
+#51 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#52 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks->handle()
+#53 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#54 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePathEncoding->handle()
+#55 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}()
+#56 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\Pipeline\Pipeline->then()
+#57 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\Foundation\Http\Kernel->sendRequestThroughRouter()
+#58 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(607): Illuminate\Foundation\Http\Kernel->handle()
+#59 /home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(368): Illuminate\Foundation\Testing\TestCase->call()
+#60 /home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php(38): Illuminate\Foundation\Testing\TestCase->get()
+#61 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest->test_invalid_configuration_refuses_every_currency_dependent_surface_without_writes()
+#62 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\Framework\TestCase->runTest()
+#63 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\Framework\TestCase->runBare()
+#64 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\Framework\TestRunner->run()
+#65 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestCase->run()
+#66 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestSuite->run()
+#67 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\Framework\TestSuite->run()
+#68 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\TextUI\TestRunner->run()
+#69 /home/user/thai-lottery-ainul-islam/vendor/phpunit/phpunit/phpunit(104): PHPUnit\TextUI\Application->run()
+#70 /home/user/thai-lottery-ainul-islam/vendor/bin/phpunit(122): include('...')
+#71 {main}
+
+----------------------------------------------------------------------------------
+
+Array to string conversion
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:38
+
+5) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_invalid_configuration_refuses_every_currency_dependent_surface_without_writes with data set "integer" (42)
+Expected response status code [503] but received 200.
+Failed asserting that 200 is identical to 503.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:38
+
+6) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_invalid_configuration_refuses_every_currency_dependent_surface_without_writes with data set "lowercase" ('usd')
+Expected response status code [503] but received 200.
+Failed asserting that 200 is identical to 503.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:38
+
+7) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_explicit_bad_currency_is_not_replaced_by_the_configured_currency with data set "unknown" ('ZZZ')
+Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:61
+
+8) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_explicit_bad_currency_is_not_replaced_by_the_configured_currency with data set "null" (null)
+Expected response status code [422] but received 201.
+Failed asserting that 201 is identical to 422.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:58
+
+9) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_explicit_bad_currency_is_not_replaced_by_the_configured_currency with data set "empty" ('')
+Expected response status code [422] but received 201.
+Failed asserting that 201 is identical to 422.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:58
+
+10) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_explicit_bad_currency_is_not_replaced_by_the_configured_currency with data set "array" (['USD'])
+Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:61
+
+11) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_explicit_bad_currency_is_not_replaced_by_the_configured_currency with data set "integer" (42)
+Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:61
+
+12) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_explicit_bad_currency_is_not_replaced_by_the_configured_currency with data set "lowercase" ('usd')
+Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:61
+
+13) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_supported_but_different_currency_is_refused_even_for_a_read_only_preview
+Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:72
+
+14) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_summary_has_separate_exact_currency_buckets_and_scoped_legacy_money_fields
+Failed asserting that null is identical to 'THB'.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/AssertableJsonString.php:243
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:880
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:113
+
+15) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_open_quotes_keep_their_recorded_denomination_after_configuration_changes
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="sh33kFMvUXGcILYDEoJ4PxRBv2YDQ6iJvsmCEKNn">\n
+    \n
+    <meta name="app-name" content="Thai Lottery">\n
+    <meta name="theme-color" content="#059669">\n
+\n
+    <title>Thai Lottery - Cash / Win wallet conversion</title>\n
+\n
+    <link rel="manifest" href="/manifest.webmanifest">\n
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">\n
+\n
+    \n
+            <meta name="description" content="Move funds between your own Cash (Primary) and Win wallets in the same currency. This is not a transfer to another member or a currency exchange. Win is not enabled for direct betting or withdrawal here; withdrawal from Cash remains subject to eligibility and operator approval.">\n
+                    <meta name="robots" content="noindex,nofollow">\n
+                    \n
+    \n
+    <link rel="preload" as="style" href="http://localhost/build/assets/app-baUnksz1.css" /><link rel="preload" as="style" href="http://localhost/build/assets/lottery-CJ-DF_a5.css" /><link rel="preload" as="style" href="http://localhost/build/assets/home-BZX8okIA.css" /><link rel="preload" as="style" href="http://localhost/build/assets/public-pages-DwHed-9B.css" /><link rel="preload" as="style" href="http://localhost/build/assets/account-services-C3ZF4V86.css" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/app-1IIFpSSh.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/rolldown-runtime-hePW80VL.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/auth-portal-PMrGbyPi.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/mobile-menu-DjyVqvWR.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/wallet-balance-fVmydr9F.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/public-pages-BYwoqYgK.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/account-verification-C8heWaJx.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/account-grade-DVU03bMe.js" /><link rel="stylesheet" href="http://localhost/build/assets/app-baUnksz1.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/lottery-CJ-DF_a5.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/home-BZX8okIA.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/public-pages-DwHed-9B.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/account-services-C3ZF4V86.css" data-navigate-track="reload" /><script type="module" src="http://localhost/build/assets/app-1IIFpSSh.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/mobile-menu-DjyVqvWR.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/wallet-balance-fVmydr9F.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/public-pages-BYwoqYgK.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/account-verification-C8heWaJx.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/account-grade-DVU03bMe.js" data-navigate-track="reload"></script>        <link rel="preload" as="style" href="http://localhost/build/assets/wallet-conversion-CI0TeR6s.css" /><link rel="stylesheet" href="http://localhost/build/assets/wallet-conversion-CI0TeR6s.css" data-navigate-track="reload" /></head>\n
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">\n
+    <!-- Header -->\n
+    <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/20">\n
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\n
+            <div class="flex items-center justify-between h-16">\n
+                <!-- Brand Logo -->\n
+                <div class="flex items-center space-x-3">\n
+                    <a href="http://localhost/dashboard" class="flex items-center space-x-2.5 group">\n
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-teal-400 flex items-center justify-center font-black text-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform duration-200">\n
+                            TL\n
+                        </div>\n
+                        <div class="hidden sm:block">\n
+                            <span class="text-lg font-black tracking-tight bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent">\n
+                                THAI LOTTERY\n
+                            </span>\n
+                            <span class="block text-[10px] text-slate-400 uppercase tracking-widest font-bold">Enterprise Wagering</span>\n
+                        </div>\n
+                    </a>\n
+                </div>\n
+\n
+                <!-- Desktop Navigation -->\n
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2" aria-label="Main navigation">\n
+            <a href="http://localhost/dashboard" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Dashboard\n
+        </a>\n
+        <a href="http://localhost/bet" class="px-3.5 py-2 rounded-xl text-sm font-bold transition flex items-center space-x-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20">\n
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m6-6H6"/></svg>\n
+            <span>Place Bet</span>\n
+        </a>\n
+        <a href="http://localhost/draws" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Draws &amp; Results\n
+        </a>\n
+        <a href="http://localhost/bets" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            My Bets\n
+        </a>\n
+        <a href="http://localhost/wallet" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Wallet\n
+        </a>\n
+                    <a href="http://localhost/wallet/convert" class="px-3 py-2 rounded-xl text-sm font-semibold transition bg-slate-800 text-amber-300 border border-amber-500/30 shadow-sm">\n
+                Convert Cash / Win\n
+            </a>\n
+                <a href="http://localhost/glo-l6" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            GLO L6\n
+        </a>\n
+    </nav>\n
+\n
+                <!-- Action Controls (Wallet, Auth, Mobile Menu Trigger) -->\n
+                <div class="flex items-center space-x-2.5 sm:space-x-4">\n
+                    <!-- Language Selector (Desktop) -->\n
+                    <div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner">\n
+                        <a href="http://localhost/locale/en" class="px-2.5 py-1 rounded-lg transition bg-emerald-600 text-white shadow">EN</a>\n
+                        <a href="http://localhost/locale/th" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200">TH</a>\n
+                    </div>\n
+\n
+                                            <!-- Live Wallet Indicator -->\n
+                        <div id="live-wallet-pill" class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700/80 rounded-full px-3.5 py-1.5 text-xs sm:text-sm shadow-inner">\n
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>\n
+                            <span class="text-slate-400 font-medium">Balance:</span>\n
+                            <span id="player-balance-display" class="font-mono font-bold text-amber-400">\n
+                                ฿1,000.00\n
+                            </span>\n
+                        </div>\n
+\n
+                        <a href="http://localhost/deposit" class="hidden sm:inline-flex items-center px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition">\n
+                            + Deposit\n
+                        </a>\n
+\n
+                        <!-- User Profile Menu -->\n
+                        <div class="relative flex items-center space-x-2">\n
+                            <a href="http://localhost/profile" class="flex items-center space-x-2 p-1.5 rounded-xl hover:bg-slate-800 transition" title="Profile">\n
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center font-black text-sm text-white border border-emerald-400/30">\n
+                                    M\n
+                                </div>\n
+                            </a>\n
+\n
+                            <form method="POST" action="http://localhost/logout" class="inline">\n
+                                <input type="hidden" name="_token" value="sh33kFMvUXGcILYDEoJ4PxRBv2YDQ6iJvsmCEKNn" autocomplete="off">                                <button type="submit" class="p-2 text-slate-400 hover:text-rose-400 transition" title="Log Out">\n
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>\n
+                                </button>\n
+                            </form>\n
+                        </div>\n
+                    \n
+                    <!-- Mobile Menu Hamburger Button -->\n
+                    <button type="button"\n
+                            id="btn-open-mobile-menu"\n
+                            class="md:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"\n
+                            aria-label="Open Navigation Menu">\n
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>\n
+                    </button>\n
+                </div>\n
+            </div>\n
+        </div>\n
+    </header>\n
+\n
+    <!-- Mobile Navigation Drawer -->\n
+    <div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="Main navigation">\n
+    <div class="flex items-center justify-between p-4 border-b border-slate-800">\n
+        <div class="flex items-center space-x-2">\n
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">TL</div>\n
+            <span class="font-bold text-white tracking-tight">Thai Lottery</span>\n
+        </div>\n
+        <button type="button" id="btn-close-mobile-menu" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Close menu">\n
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>\n
+        </button>\n
+    </div>\n
+\n
+    <div class="flex-1 overflow-y-auto px-4 py-6 space-y-2">\n
+                    <a href="http://localhost/dashboard" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Dashboard</a>\n
+            <a href="http://localhost/bet" class="block px-4 py-3 rounded-xl text-base font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 transition">Place Bet</a>\n
+            <a href="http://localhost/draws" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Draws &amp; Results</a>\n
+            <a href="http://localhost/bets" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">My Bets</a>\n
+            <a href="http://localhost/wallet" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Wallet</a>\n
+                            <a href="http://localhost/wallet/convert" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">Convert Cash / Win</a>\n
+                        <a href="http://localhost/deposit" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-400 bg-amber-950/30 border border-amber-500/20 transition">Deposit</a>\n
+            <a href="http://localhost/glo-l6" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">GLO L6</a>\n
+            <a href="http://localhost/profile" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Profile &amp; Security</a>\n
+            </div>\n
+\n
+    <div class="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3">\n
+        <div class="flex items-center justify-between">\n
+            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Language</span>\n
+            <div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950">\n
+                <a href="http://localhost/locale/en" class="px-3 py-1 rounded text-xs font-bold bg-emerald-600 text-white">EN</a>\n
+                <a href="http://localhost/locale/th" class="px-3 py-1 rounded text-xs font-bold text-slate-400">TH</a>\n
+            </div>\n
+        </div>\n
+\n
+                    <form method="POST" action="http://localhost/logout">\n
+                <input type="hidden" name="_token" value="sh33kFMvUXGcILYDEoJ4PxRBv2YDQ6iJvsmCEKNn" autocomplete="off">                <button type="submit" class="w-full py-2.5 bg-slate-800 hover:bg-rose-950/50 text-slate-300 hover:text-rose-300 font-bold text-sm rounded-xl transition border border-slate-700">Log Out</button>\n
+            </form>\n
+            </div>\n
+</div>\n
+\n
+    <!-- Global Notifications / Flash Feedback -->\n
+        \n
+    <!-- Main Content Container -->\n
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">\n
+        \n
+<main class="wc-shell" role="main">\n
+    <header class="wc-header">\n
+        <div>\n
+            <h1 class="wc-title">Cash / Win wallet conversion</h1>\n
+            <p class="wc-lead">Move funds between your own Cash (Primary) and Win wallets in the same currency. This is not a transfer to another member or a currency exchange. Win is not enabled for direct betting or withdrawal here; withdrawal from Cash remains subject to eligibility and operator approval.</p>\n
+        </div>\n
+\n
+        <a class="wc-back" href="http://localhost/wallet">Back to wallets</a>\n
+    </header>\n
+\n
+    \n
+    \n
+    <nav class="wc-switch" aria-label="Choose conversion direction">\n
+            \n
+                    <span class="wc-switch__item wc-switch__item--current" aria-current="page">Cash to Win</span>\n
+                    \n
+                    <a class="wc-switch__item" href="http://localhost/wallet/convert?direction=win_to_cash">Win to Cash</a>\n
+            </nav>\n
+\n
+    <div class="wc-grid">\n
+        <section class="wc-card wc-card--balances" aria-labelledby="wc-balances-heading">\n
+            <h2 class="wc-card__title" id="wc-balances-heading">Wallet balances</h2>\n
+\n
+            <dl class="wc-balances">\n
+                <div class="wc-balances__row  wc-balances__row--active ">\n
+                    <dt>Cash (Primary) wallet</dt>\n
+                    <dd class="wc-money wc-money--out">\n
+                        $1,000.00\n
+                    </dd>\n
+                </div>\n
+\n
+                <div class="wc-balances__row  wc-balances__row--active ">\n
+                    <dt>Win wallet</dt>\n
+                    <dd class="wc-money wc-money--in">\n
+                        $0.00\n
+                    </dd>\n
+                </div>\n
+            </dl>\n
+\n
+                    </section>\n
+\n
+                    <section class="wc-card wc-card--form" aria-labelledby="wc-form-heading">\n
+    <h2 class="wc-card__title" id="wc-form-heading">Get a quote, then convert</h2>\n
+    <p class="wc-card__hint">\n
+        Previewing and quoting move no funds. Quotes last up to 120 seconds, subject to expiry and fee-rule validation. Only Convert executes the quoted request.\n
+    </p>\n
+\n
+    <form\n
+        class="wc-form"\n
+        method="POST"\n
+        action="http://localhost/wallet/convert"\n
+        data-wc-conversion-form\n
+        data-wc-preview-url="http://localhost/wallet/convert/preview"\n
+        data-wc-quote-url="http://localhost/wallet/convert/quote"\n
+        data-wc-currency="USD"\n
+        data-wc-direction="cash_to_win"\n
+        data-wc-min="10.00"\n
+        data-wc-max="500000.00"\n
+        data-wc-available="1000.00"\n
+        \n
+        data-wc-amount-hint="Enter a positive decimal amount with at most two decimal places."\n
+        data-wc-unpriced-note="The server preview is unavailable. Do not treat the displayed example as your quote; request a fresh quote before converting."\n
+        data-wc-no-crypto-note="Secure request identifiers are unavailable in this browser. Conversion controls remain disabled."\n
+    >\n
+        <input type="hidden" name="_token" value="sh33kFMvUXGcILYDEoJ4PxRBv2YDQ6iJvsmCEKNn" autocomplete="off">\n
+        \n
+        <input type="hidden" name="idempotency_key" value="" data-wc-idempotency-key>\n
+\n
+        <input type="hidden" name="direction" value="cash_to_win">\n
+\n
+                    <input type="hidden" name="quote_reference" value="" data-wc-quote-reference>\n
+        \n
+        <div class="wc-field">\n
+            <label class="wc-field__label" for="wc-conversion-amount">Amount to convert</label>\n
+\n
+            <div class="wc-field__control">\n
+                <input\n
+                    class="wc-field__input"\n
+                    id="wc-conversion-amount"\n
+                    name="amount"\n
+                    type="text"\n
+                    inputmode="decimal"\n
+                    autocomplete="off"\n
+                    required\n
+                    value="10.00"\n
+                    data-wc-amount\n
+                    aria-describedby="wc-amount-help wc-amount-error"\n
+                >\n
+                <span class="wc-field__suffix">USD</span>\n
+            </div>\n
+\n
+            <p class="wc-field__help" id="wc-amount-help">\n
+                Use a positive decimal amount with at most two decimal places. Transaction range:\n
+                10.00 – 500000.00 USD.\n
+            </p>\n
+\n
+                    </div>\n
+\n
+        <div class="wc-preview" data-wc-preview aria-live="polite">\n
+            <div class="wc-preview__cell">\n
+                <span class="wc-preview__label">Fee</span>\n
+                <span class="wc-preview__value wc-money--fee" data-wc-preview-fee>0.00</span>\n
+            </div>\n
+            <div class="wc-preview__cell">\n
+                <span class="wc-preview__label">Net amount received</span>\n
+                <span class="wc-preview__value wc-money--in" data-wc-preview-net>0.00</span>\n
+            </div>\n
+            <div class="wc-preview__cell">\n
+                <span class="wc-preview__label">Fee percentage</span>\n
+                <span class="wc-preview__value" data-wc-preview-rate>1.00%</span>\n
+            </div>\n
+        </div>\n
+\n
+        <p class="wc-preview__note" data-wc-preview-note hidden></p>\n
+\n
+        \n
+        \n
+        \n
+        <div class="wc-form__actions">\n
+            <button class="wc-button wc-button--primary" type="submit" data-wc-submit>\n
+                Convert\n
+            </button>\n
+\n
+            <button class="wc-button wc-button--ghost" type="button" data-wc-quote>\n
+                Get price\n
+            </button>\n
+        </div>\n
+\n
+                    <p class="wc-form__footnote">\n
+                Remaining in the rolling 24-hour window: 1000000.00 USD\n
+            </p>\n
+        \n
+        <p class="wc-form__footnote wc-form__footnote--quiet" data-wc-disabled-note hidden>\n
+            Conversion controls require JavaScript and secure request identifiers. No funds have moved.\n
+        </p>\n
+    </form>\n
+</section>\n
+        \n
+                    <section class="wc-card" aria-labelledby="wc-fee-heading">\n
+    <h2 class="wc-card__title" id="wc-fee-heading">Conversion fee</h2>\n
+\n
+    \n
+            <table class="wc-table wc-table--rates">\n
+            <caption class="wc-table__caption">Current fee rule for Cash to Win</caption>\n
+            <tbody>\n
+                <tr>\n
+                    <th scope="row">Percentage fee</th>\n
+                    <td>1.00%</td>\n
+                </tr>\n
+                <tr>\n
+                    <th scope="row">Fee and net credit for a $100.00 example</th>\n
+                    <td class="wc-money">\n
+                        $1.00\n
+                        <span class="wc-rate">→ $99.00</span>\n
+                    </td>\n
+                </tr>\n
+                <tr>\n
+                    <th scope="row">Fee bearer</th>\n
+                    <td>Source wallet</td>\n
+                </tr>\n
+                <tr>\n
+                    <th scope="row">Rule and version</th>\n
+                    <td>\n
+                        <code>cash_to_win</code>\n
+                        · v2\n
+                                                    · 2026-09-27\n
+                                            </td>\n
+                </tr>\n
+            </tbody>\n
+        </table>\n
+\n
+        <p class="wc-card__hint">The example and execution use the server&#039;s fee rule. The fee is deducted from the conversion amount; a fresh quote is required before execution.</p>\n
+    </section>\n
+            </div>\n
+\n
+            <section class="wc-card" aria-labelledby="wc-limits-heading">\n
+    <h2 class="wc-card__title" id="wc-limits-heading">Conversion limits</h2>\n
+\n
+    <table class="wc-table">\n
+        <caption class="wc-table__caption">Limits from the conversion policy</caption>\n
+        <tbody>\n
+            <tr>\n
+                <th scope="row">Per-conversion range</th>\n
+                <td class="wc-money">10.00 – 500000.00 USD</td>\n
+            </tr>\n
+\n
+                            <tr>\n
+                    <th scope="row">Rolling 24-hour limit</th>\n
+                    <td class="wc-money">\n
+                        1000000.00 USD\n
+                        <span class="wc-rate">\n
+                            0.00 USD used\n
+                                                            · 1000000.00 USD remaining\n
+                                                    </span>\n
+                    </td>\n
+                </tr>\n
+            \n
+                            <tr>\n
+                    <th scope="row">Rolling 30-day limit</th>\n
+                    <td class="wc-money">\n
+                        5000000.00 USD\n
+                        <span class="wc-rate">0.00 USD used</span>\n
+                    </td>\n
+                </tr>\n
+            \n
+            <tr>\n
+                <th scope="row">Conversion currency</th>\n
+                <td>USD</td>\n
+            </tr>\n
+        </tbody>\n
+    </table>\n
+\n
+    <p class="wc-card__hint">Both directions share rolling limits in the conversion currency. Reversing a conversion does not restore the allowance. These are not calendar-day or calendar-month limits.</p>\n
+</section>\n
+    \n
+            <section class="wc-card" aria-labelledby="wc-open-quotes-heading">\n
+            <h2 class="wc-card__title" id="wc-open-quotes-heading">1 open quote</h2>\n
+            <p class="wc-card__hint">An open quote reserves no funds. An expired quote or changed fee rule requires a fresh quote.</p>\n
+\n
+            <ul class="wc-quotes">\n
+                                    <li class="wc-quotes__item">\n
+                        <span class="wc-quotes__amount">$100.00</span>\n
+                        <span class="wc-quotes__arrow" aria-hidden="true">→</span>\n
+                        <span class="wc-quotes__net">$99.00</span>\n
+                        <span class="wc-quotes__expiry" data-wc-expiry="2026-10-15 10:38:37">\n
+                            Expires at <time datetime="2026-10-15 10:38:37">2026-10-15 10:38:37</time>\n
+                        </span>\n
+                    </li>\n
+                            </ul>\n
+        </section>\n
+    \n
+    <section class="wc-card" aria-labelledby="wc-history-heading">\n
+    <h2 class="wc-card__title" id="wc-history-heading">Conversion history</h2>\n
+\n
+            <p class="wc-empty">No conversions recorded for this direction.</p>\n
+    </section>\n
+</main>\n
+    </main>\n
+\n
+    <!-- Global Platform Footer -->\n
+    <footer class="pp-footer bg-slate-900/60 border-t border-slate-800/80 backdrop-blur-xl py-12 text-xs text-slate-400" role="contentinfo">\n
+    <div class="pp-footer__inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">\n
+        <!-- Top Section: Brand + Links Grid -->\n
+        <div class="pp-footer__nav grid grid-cols-1 md:grid-cols-4 gap-8">\n
+            <!-- Brand Column -->\n
+            <div class="space-y-3 md:col-span-1">\n
+                <div class="flex items-center space-x-2.5">\n
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">\n
+                        TL\n
+                    </div>\n
+                    <a href="http://localhost" class="font-extrabold text-white text-base tracking-tight hover:text-amber-300 transition">\n
+                        Thai Lottery\n
+                    </a>\n
+                </div>\n
+                <p class="text-xs text-slate-400 leading-relaxed">\n
+                    Independent enterprise wagering platform. High-precision lottery results, automated prize calculations, and fintech-grade account management.\n
+                </p>\n
+            </div>\n
+\n
+            <!-- Lottery Lanes -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Lottery Lanes</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/national-lottery" class="hover:text-emerald-400 transition">Government Lottery (GLO)</a></li>\n
+                    <li><a href="http://localhost/weekly-lottery" class="hover:text-emerald-400 transition">Weekly Lottery</a></li>\n
+                    <li><a href="http://localhost/bingo-lottery" class="hover:text-emerald-400 transition">Mega Lottery</a></li>\n
+                    <li><a href="http://localhost/pcso-lottery" class="hover:text-emerald-400 transition">PCSO Lottery</a></li>\n
+                    <li><a href="http://localhost/results" class="hover:text-emerald-400 transition">Official Draw Results</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Public Information -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Information</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/about" class="hover:text-emerald-400 transition">About the Platform</a></li>\n
+                    <li><a href="http://localhost/vision" class="hover:text-emerald-400 transition">Vision &amp; Mission</a></li>\n
+                    <li><a href="http://localhost/check" class="hover:text-emerald-400 transition">Ticket Verification</a></li>\n
+                    <li><a href="http://localhost/sales-points" class="hover:text-emerald-400 transition">Authorized Sales Points</a></li>\n
+                    <li><a href="http://localhost/fees" class="hover:text-emerald-400 transition">Platform Fees</a></li>\n
+                    <li><a href="http://localhost/discounts" class="hover:text-emerald-400 transition">Lottery Discounts</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Legal & Compliance -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Legal &amp; Support</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/terms" class="hover:text-emerald-400 transition">Terms of Service</a></li>\n
+                    <li><a href="http://localhost/privacy" class="hover:text-emerald-400 transition">Privacy Policy</a></li>\n
+                    <li><a href="http://localhost/account-verification-guide" class="hover:text-emerald-400 transition">KYC Verification Guide</a></li>\n
+                    <li><a href="http://localhost/account-grades" class="hover:text-emerald-400 transition">Account Grades</a></li>\n
+                    \n
+                    <li><a href="http://localhost/prize-verification" class="hover:text-emerald-400 transition">Prize Verification</a></li>\n
+                    <li><a href="http://localhost/contact" class="hover:text-emerald-400 transition">Contact Us</a></li>\n
+                </ul>\n
+            </div>\n
+        </div>\n
+\n
+        <!-- Legal Disclaimer & Copyright -->\n
+        <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">\n
+            <p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl">\n
+                &copy; 2026 Thai Lottery.\n
+                All rights reserved. Independent wagering platform, operated by no state authority and endorsed by none. Published draw rules are referenced solely for prize-calculation compatibility.\n
+                \n
+            </p>\n
+            \n
+            <div class="flex items-center space-x-4 shrink-0 text-[11px]">\n
+                <span class="text-slate-600">v1.0.0</span>\n
+            </div>\n
+        </div>\n
+    </div>\n
+</footer>\n
+\n
+    <!-- Core Scripts -->\n
+        <link rel="modulepreload" as="script" href="http://localhost/build/assets/wallet-conversion-DdyvICy_.js" /><script type="module" src="http://localhost/build/assets/wallet-conversion-DdyvICy_.js" data-navigate-track="reload"></script></body>\n
+</html>\n
+' [UTF-8](length: 30321) contains "฿99.00" [UTF-8](length: 8).
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:710
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:137
+
+16) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_dto_cannot_turn_a_malformed_currency_into_primary_money with data set "unknown" ('ZZZ')
+Failed asserting that exception of type "App\Exceptions\Wallet\ConversionException" is thrown.
+
+17) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_dto_cannot_turn_a_malformed_currency_into_primary_money with data set "null" (null)
+Failed asserting that exception of type "App\Exceptions\Wallet\ConversionException" is thrown.
+
+18) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_dto_cannot_turn_a_malformed_currency_into_primary_money with data set "empty" ('')
+Failed asserting that exception of type "App\Exceptions\Wallet\ConversionException" is thrown.
+
+19) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_dto_cannot_turn_a_malformed_currency_into_primary_money with data set "array" (['USD'])
+Failed asserting that exception of type "ErrorException" matches expected exception "App\Exceptions\Wallet\ConversionException". Message was: "Array to string conversion" at
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php:262
+/home/user/thai-lottery-ainul-islam/app/DTOs/Wallet/ConversionRequestData.php:80
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:147
+.
+
+20) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_dto_cannot_turn_a_malformed_currency_into_primary_money with data set "integer" (42)
+Failed asserting that exception of type "App\Exceptions\Wallet\ConversionException" is thrown.
+
+21) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_dto_cannot_turn_a_malformed_currency_into_primary_money with data set "lowercase" ('usd')
+Failed asserting that exception of type "App\Exceptions\Wallet\ConversionException" is thrown.
+
+22) Tests\Feature\Wallet\Conversion\ConversionCurrencyBoundaryTest::test_dto_omission_uses_configured_currency_and_bad_fee_currency_is_refused
+Failed asserting that two variables reference the same object.
+--- Expected
++++ Actual
+@@ @@
+-App\Enums\Currency Enum #4522 (USD, 'USD')
++App\Enums\Currency Enum #4523 (THB, 'THB')
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php:154
+
+FAILURES!
+Tests: 23, Assertions: 48, Failures: 22.
+
+===== part21-currency-first.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.......................                                           23 / 23 (100%)
+
+Time: 00:07.410, Memory: 78.50 MB
+
+OK (23 tests, 189 assertions)
+
+===== part21-conversion-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 124 ( 50%)
+.............................................................   124 / 124 (100%)
+
+Time: 00:28.509, Memory: 89.00 MB
+
+OK (124 tests, 1570 assertions)
+
+===== part21-full-interrupted.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+............SS.S.............................................   61 / 2475 (  2%)
+.............................................................  122 / 2475 (  4%)
+.............................................................  183 / 2475 (  7%)
+...............................EEEE....EEEEEEEE..E...........  244 / 2475 (  9%)
+.............................................................  305 / 2475 ( 12%)
+.............................................................  366 / 2475 ( 14%)
+.............................................................  427 / 2475 ( 17%)
+................
+===== part21-full-missing-extensions.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+............SS.S.............................................   61 / 2475 (  2%)
+.............................................................  122 / 2475 (  4%)
+.............................................................  183 / 2475 (  7%)
+...............................EEEE....EEEEEEEE..E...........  244 / 2475 (  9%)
+.............................................................  305 / 2475 ( 12%)
+.............................................................  366 / 2475 ( 14%)
+.............................................................  427 / 2475 ( 17%)
+.............................................................  488 / 2475 ( 19%)
+.............................................................  549 / 2475 ( 22%)
+.............................................................  610 / 2475 ( 24%)
+.............................................................  671 / 2475 ( 27%)
+.............................................................  732 / 2475 ( 29%)
+.............................................................  793 / 2475 ( 32%)
+.............................................................  854 / 2475 ( 34%)
+.............................................................  915 / 2475 ( 36%)
+.............................................................  976 / 2475 ( 39%)
+............................................................. 1037 / 2475 ( 41%)
+............................................................. 1098 / 2475 ( 44%)
+............................................................. 1159 / 2475 ( 46%)
+............................................................. 1220 / 2475 ( 49%)
+............................................................. 1281 / 2475 ( 51%)
+............................................................. 1342 / 2475 ( 54%)
+............................................................. 1403 / 2475 ( 56%)
+............................................................. 1464 / 2475 ( 59%)
+............................................................. 1525 / 2475 ( 61%)
+............................................................. 1586 / 2475 ( 64%)
+............................................................. 1647 / 2475 ( 66%)
+............................................................. 1708 / 2475 ( 69%)
+............................................................. 1769 / 2475 ( 71%)
+............................................................. 1830 / 2475 ( 73%)
+............................................................. 1891 / 2475 ( 76%)
+............................................................. 1952 / 2475 ( 78%)
+............................................................. 2013 / 2475 ( 81%)
+............................................................. 2074 / 2475 ( 83%)
+............................................................. 2135 / 2475 ( 86%)
+................................................S............ 2196 / 2475 ( 88%)
+..............................................EEEEEEEEEEEEEEE 2257 / 2475 ( 91%)
+EEEEEEEEEEE.E................................................ 2318 / 2475 ( 93%)
+............................................................. 2379 / 2475 ( 96%)
+............................................................. 2440 / 2475 ( 98%)
+.........S.........................                           2475 / 2475 (100%)
+
+Time: 08:47.991, Memory: 273.00 MB
+
+There were 40 errors:
+
+1) Tests\Feature\Account\AccountServicesPagesTest::test_valid_submission_creates_pending_document
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:315
+
+2) Tests\Feature\Account\AccountServicesPagesTest::test_duplicate_open_submission_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:340
+
+3) Tests\Feature\Account\AccountServicesPagesTest::test_invalid_mobile_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:367
+
+4) Tests\Feature\Account\AccountServicesPagesTest::test_invalid_document_type_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:384
+
+5) Tests\Feature\Account\AccountServicesPagesTest::test_original_filename_not_used_as_storage_path
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:465
+
+6) Tests\Feature\Account\AccountServicesPagesTest::test_private_document_not_publicly_accessible
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:484
+
+7) Tests\Feature\Account\AccountServicesPagesTest::test_client_cannot_submit_approved
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:507
+
+8) Tests\Feature\Account\AccountServicesPagesTest::test_reviewer_authorization_four_eyes
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:528
+
+9) Tests\Feature\Account\AccountServicesPagesTest::test_audit_exists_for_submission
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:588
+
+10) Tests\Feature\Account\AccountServicesPagesTest::test_rejected_flow
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:607
+
+11) Tests\Feature\Account\AccountServicesPagesTest::test_approved_flow
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:630
+
+12) Tests\Feature\Account\AccountServicesPagesTest::test_expired_flow
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:653
+
+13) Tests\Feature\Account\AccountServicesPagesTest::test_null_byte_filename_rejected_by_document_service
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Account/AccountServicesPagesTest.php:709
+
+14) Tests\Feature\Verification\AccountVerificationFlowTest::test_post_with_forged_account_id_is_ignored
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:109
+
+15) Tests\Feature\Verification\AccountVerificationFlowTest::test_valid_submission_with_front_and_back
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:133
+
+16) Tests\Feature\Verification\AccountVerificationFlowTest::test_front_only_submission_accepted_under_default_policy
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:164
+
+17) Tests\Feature\Verification\AccountVerificationFlowTest::test_back_required_when_configured
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:180
+
+18) Tests\Feature\Verification\AccountVerificationFlowTest::test_missing_front_document_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:191
+
+19) Tests\Feature\Verification\AccountVerificationFlowTest::test_invalid_mobile_rejected_on_the_document_surface
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:203
+
+20) Tests\Feature\Verification\AccountVerificationFlowTest::test_unsupported_country_code_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:215
+
+21) Tests\Feature\Verification\AccountVerificationFlowTest::test_unsupported_document_type_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:227
+
+22) Tests\Feature\Verification\AccountVerificationFlowTest::test_client_cannot_submit_a_status
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:238
+
+23) Tests\Feature\Verification\AccountVerificationFlowTest::test_oversized_upload_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:258
+
+24) Tests\Feature\Verification\AccountVerificationFlowTest::test_forged_mime_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:273
+
+25) Tests\Feature\Verification\AccountVerificationFlowTest::test_executable_upload_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:287
+
+26) Tests\Feature\Verification\AccountVerificationFlowTest::test_double_extension_upload_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:299
+
+27) Tests\Feature\Verification\AccountVerificationFlowTest::test_svg_script_upload_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:311
+
+28) Tests\Feature\Verification\AccountVerificationFlowTest::test_path_traversal_filename_rejected
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:326
+
+29) Tests\Feature\Verification\AccountVerificationFlowTest::test_documents_stored_privately_with_server_generated_names
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:345
+
+30) Tests\Feature\Verification\AccountVerificationFlowTest::test_public_url_does_not_expose_documents
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:365
+
+31) Tests\Feature\Verification\AccountVerificationFlowTest::test_owner_retrieves_own_document_through_the_authorized_path
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:387
+
+32) Tests\Feature\Verification\AccountVerificationFlowTest::test_another_user_cannot_retrieve_someone_elses_document
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:415
+
+33) Tests\Feature\Verification\AccountVerificationFlowTest::test_duplicate_open_submission_is_deterministic
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:441
+
+34) Tests\Feature\Verification\AccountVerificationFlowTest::test_member_cannot_approve_their_own_verification
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:456
+
+35) Tests\Feature\Verification\AccountVerificationFlowTest::test_reviewer_approval_closes_the_submission
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:477
+
+36) Tests\Feature\Verification\AccountVerificationFlowTest::test_reviewer_under_review_transition_then_decision
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:505
+
+37) Tests\Feature\Verification\AccountVerificationFlowTest::test_illegal_transition_rejected_and_terminal_states_immutable
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:532
+
+38) Tests\Feature\Verification\AccountVerificationFlowTest::test_retry_after_rejection_preserves_history
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:560
+
+39) Tests\Feature\Verification\AccountVerificationFlowTest::test_history_is_member_safe
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:591
+
+40) Tests\Feature\Verification\AccountVerificationFlowTest::test_page_shows_no_other_users_data_or_internal_ids
+LogicException: GD extension is not installed.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:77
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Http/Testing/FileFactory.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:689
+/home/user/thai-lottery-ainul-islam/tests/Feature/Verification/AccountVerificationFlowTest.php:642
+
+--
+
+There were 5 skipped tests:
+
+1) Tests\Unit\Config\DatabaseDriverOptionsTest::the_modern_and_legacy_ssl_ca_attribute_ids_are_identical
+Pdo\Mysql is only provided by PHP 8.4+. The legacy fallback in config/database.php is asserted by the sibling tests in this class.
+
+2) Tests\Unit\Config\DatabaseDriverOptionsTest::the_mysql_options_array_is_keyed_by_the_ssl_ca_attribute_id
+The mysql PDO driver is not available on this build, so there is no SSL CA attribute id to assert against.
+
+3) Tests\Unit\Config\DatabaseDriverOptionsTest::the_database_config_prefers_the_modern_pdo_mysql_attribute_name
+The mysql PDO driver is not installed, so PHP exposes no SSL CA or certificate attribute ids to compare.
+
+4) Tests\Feature\Settlement\SettlementSimulationTest::point_20_lets_only_one_of_two_concurrent_settlements_write
+Real multi-process concurrency requires a shared server with equivalent row locks; SQLite does not implement that row-lock protocol, regardless of file or in-memory storage.
+
+5) Tests\Feature\WeeklyLottery\WeeklyLotteryPublicPageTest::test_51_php_and_the_native_verifier_agree_or_the_test_is_skipped
+The Rust verifier binary is not built in this environment.
+
+ERRORS!
+Tests: 2475, Assertions: 130122, Errors: 40, Skipped: 5.
+PHPUNIT_EXIT=2
+
+===== part21-runtime-extensions.log =====
+Selecting previously unselected package libabsl20240722:amd64.
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 39845 files and directories currently installed.)
+Preparing to unpack .../00-libabsl20240722_20240722.0-4_amd64.deb ...
+Unpacking libabsl20240722:amd64 (20240722.0-4) ...
+Selecting previously unselected package libaom3:amd64.
+Preparing to unpack .../01-libaom3_3.12.1-1+deb13u1_amd64.deb ...
+Unpacking libaom3:amd64 (3.12.1-1+deb13u1) ...
+Selecting previously unselected package libgav1-1:amd64.
+Preparing to unpack .../02-libgav1-1_0.19.0-3+b1_amd64.deb ...
+Unpacking libgav1-1:amd64 (0.19.0-3+b1) ...
+Selecting previously unselected package librav1e0.7:amd64.
+Preparing to unpack .../03-librav1e0.7_0.7.1-9+b2_amd64.deb ...
+Unpacking librav1e0.7:amd64 (0.7.1-9+b2) ...
+Selecting previously unselected package libsvtav1enc2:amd64.
+Preparing to unpack .../04-libsvtav1enc2_2.3.0+dfsg-1_amd64.deb ...
+Unpacking libsvtav1enc2:amd64 (2.3.0+dfsg-1) ...
+Selecting previously unselected package libyuv0:amd64.
+Preparing to unpack .../05-libyuv0_0.0.1904.20250204-1_amd64.deb ...
+Unpacking libyuv0:amd64 (0.0.1904.20250204-1) ...
+Selecting previously unselected package libavif16:amd64.
+Preparing to unpack .../06-libavif16_1.2.1-1.2_amd64.deb ...
+Unpacking libavif16:amd64 (1.2.1-1.2) ...
+Selecting previously unselected package libimagequant0:amd64.
+Preparing to unpack .../07-libimagequant0_2.18.0-1+b2_amd64.deb ...
+Unpacking libimagequant0:amd64 (2.18.0-1+b2) ...
+Selecting previously unselected package libgd3:amd64.
+Preparing to unpack .../08-libgd3_2.3.3-14~deb13u1_amd64.deb ...
+Unpacking libgd3:amd64 (2.3.3-14~deb13u1) ...
+Selecting previously unselected package php8.4-gd.
+Preparing to unpack .../09-php8.4-gd_8.4.26-1~deb13u1_amd64.deb ...
+Unpacking php8.4-gd (8.4.26-1~deb13u1) ...
+Selecting previously unselected package php-gd.
+Preparing to unpack .../10-php-gd_2%3a8.4+96_all.deb ...
+Unpacking php-gd (2:8.4+96) ...
+Selecting previously unselected package php8.4-mysql.
+Preparing to unpack .../11-php8.4-mysql_8.4.26-1~deb13u1_amd64.deb ...
+Unpacking php8.4-mysql (8.4.26-1~deb13u1) ...
+Selecting previously unselected package php-mysql.
+Preparing to unpack .../12-php-mysql_2%3a8.4+96_all.deb ...
+Unpacking php-mysql (2:8.4+96) ...
+Selecting previously unselected package php8.4-pgsql.
+Preparing to unpack .../13-php8.4-pgsql_8.4.26-1~deb13u1_amd64.deb ...
+Unpacking php8.4-pgsql (8.4.26-1~deb13u1) ...
+Selecting previously unselected package php-pgsql.
+Preparing to unpack .../14-php-pgsql_2%3a8.4+96_all.deb ...
+Unpacking php-pgsql (2:8.4+96) ...
+Setting up libaom3:amd64 (3.12.1-1+deb13u1) ...
+Setting up php8.4-mysql (8.4.26-1~deb13u1) ...
+Creating config file /etc/php/8.4/mods-available/mysqlnd.ini with new version
+Creating config file /etc/php/8.4/mods-available/mysqli.ini with new version
+Creating config file /etc/php/8.4/mods-available/pdo_mysql.ini with new version
+Setting up libabsl20240722:amd64 (20240722.0-4) ...
+Setting up php8.4-pgsql (8.4.26-1~deb13u1) ...
+Creating config file /etc/php/8.4/mods-available/pgsql.ini with new version
+Creating config file /etc/php/8.4/mods-available/pdo_pgsql.ini with new version
+Setting up libsvtav1enc2:amd64 (2.3.0+dfsg-1) ...
+Setting up libimagequant0:amd64 (2.18.0-1+b2) ...
+Setting up php-pgsql (2:8.4+96) ...
+Setting up libgav1-1:amd64 (0.19.0-3+b1) ...
+Setting up librav1e0.7:amd64 (0.7.1-9+b2) ...
+Setting up libyuv0:amd64 (0.0.1904.20250204-1) ...
+Setting up libavif16:amd64 (1.2.1-1.2) ...
+Setting up php-mysql (2:8.4+96) ...
+Setting up libgd3:amd64 (2.3.3-14~deb13u1) ...
+Setting up php8.4-gd (8.4.26-1~deb13u1) ...
+Creating config file /etc/php/8.4/mods-available/gd.ini with new version
+Setting up php-gd (2:8.4+96) ...
+Processing triggers for libc-bin (2.41-12+deb13u4) ...
+Processing triggers for php8.4-cli (8.4.26-1~deb13u1) ...
+[PHP Modules]
+bcmath
+calendar
+Core
+ctype
+curl
+date
+dom
+exif
+FFI
+fileinfo
+filter
+ftp
+gd
+gettext
+hash
+iconv
+intl
+json
+libxml
+mbstring
+mysqli
+mysqlnd
+openssl
+pcntl
+pcre
+PDO
+pdo_mysql
+pdo_pgsql
+pdo_sqlite
+pgsql
+Phar
+posix
+random
+readline
+Reflection
+session
+shmop
+SimpleXML
+sockets
+sodium
+SPL
+sqlite3
+standard
+sysvmsg
+sysvsem
+sysvshm
+tokenizer
+xml
+xmlreader
+xmlwriter
+xsl
+Zend OPcache
+zip
+zlib
+
+[Zend Modules]
+Zend OPcache
+
+
+===== part21-runtime-recovery-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 88 ( 73%)
+.......................                                           88 / 88 (100%)
+
+Time: 00:12.951, Memory: 87.00 MB
+
+OK (88 tests, 830 assertions)
+
+===== part21-full-suite-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................................   61 / 2475 (  2%)
+.............................................................  122 / 2475 (  4%)
+.............................................................  183 / 2475 (  7%)
+.............................................................  244 / 2475 (  9%)
+.............................................................  305 / 2475 ( 12%)
+.............................................................  366 / 2475 ( 14%)
+.............................................................  427 / 2475 ( 17%)
+.............................................................  488 / 2475 ( 19%)
+.............................................................  549 / 2475 ( 22%)
+.............................................................  610 / 2475 ( 24%)
+.............................................................  671 / 2475 ( 27%)
+.............................................................  732 / 2475 ( 29%)
+.............................................................  793 / 2475 ( 32%)
+.............................................................  854 / 2475 ( 34%)
+.............................................................  915 / 2475 ( 36%)
+.............................................................  976 / 2475 ( 39%)
+............................................................. 1037 / 2475 ( 41%)
+............................................................. 1098 / 2475 ( 44%)
+............................................................. 1159 / 2475 ( 46%)
+............................................................. 1220 / 2475 ( 49%)
+............................................................. 1281 / 2475 ( 51%)
+............................................................. 1342 / 2475 ( 54%)
+............................................................. 1403 / 2475 ( 56%)
+............................................................. 1464 / 2475 ( 59%)
+............................................................. 1525 / 2475 ( 61%)
+............................................................. 1586 / 2475 ( 64%)
+............................................................. 1647 / 2475 ( 66%)
+............................................................. 1708 / 2475 ( 69%)
+............................................................. 1769 / 2475 ( 71%)
+............................................................. 1830 / 2475 ( 73%)
+............................................................. 1891 / 2475 ( 76%)
+............................................................. 1952 / 2475 ( 78%)
+............................................................. 2013 / 2475 ( 81%)
+............................................................. 2074 / 2475 ( 83%)
+............................................................. 2135 / 2475 ( 86%)
+................................................S............ 2196 / 2475 ( 88%)
+............................................................. 2257 / 2475 ( 91%)
+............................................................. 2318 / 2475 ( 93%)
+............................................................. 2379 / 2475 ( 96%)
+............................................................. 2440 / 2475 ( 98%)
+.........S.........................                           2475 / 2475 (100%)
+
+Time: 08:33.127, Memory: 271.00 MB
+
+There were 2 skipped tests:
+
+1) Tests\Feature\Settlement\SettlementSimulationTest::point_20_lets_only_one_of_two_concurrent_settlements_write
+Real multi-process concurrency requires a shared server with equivalent row locks; SQLite does not implement that row-lock protocol, regardless of file or in-memory storage.
+
+2) Tests\Feature\WeeklyLottery\WeeklyLotteryPublicPageTest::test_51_php_and_the_native_verifier_agree_or_the_test_is_skipped
+The Rust verifier binary is not built in this environment.
+
+OK, but some tests were skipped!
+Tests: 2475, Assertions: 130294, Skipped: 2.
+PHPUNIT_EXIT=0
+
+===== part21-currency-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...........................                                       27 / 27 (100%)
+
+Time: 00:08.310, Memory: 80.50 MB
+
+OK (27 tests, 243 assertions)
+
+===== part21-translation-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.................................                                 33 / 33 (100%)
+
+Time: 00:03.446, Memory: 72.50 MB
+
+OK (33 tests, 79 assertions)
+
+===== part21-financial-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 323 ( 19%)
+............................................................... 126 / 323 ( 39%)
+.....................................S......................... 189 / 323 ( 58%)
+............................................................... 252 / 323 ( 78%)
+............................................................... 315 / 323 ( 97%)
+........                                                        323 / 323 (100%)
+
+Time: 01:24.082, Memory: 109.00 MB
+
+There was 1 skipped test:
+
+1) Tests\Feature\Settlement\SettlementSimulationTest::point_20_lets_only_one_of_two_concurrent_settlements_write
+Real multi-process concurrency requires a shared server with equivalent row locks; SQLite does not implement that row-lock protocol, regardless of file or in-memory storage.
+
+OK, but some tests were skipped!
+Tests: 323, Assertions: 3545, Skipped: 1.
+
+===== part21-production-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................   63 / 63 (100%)
+
+Time: 00:06.314, Memory: 74.50 MB
+
+OK (63 tests, 168 assertions)
+
+===== part21-static-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+...............                                                   15 / 15 (100%)
+
+Time: 00:00.020, Memory: 12.00 MB
+
+OK (15 tests, 991 assertions)
+
+===== part21-ci-unit-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+...................                                               19 / 19 (100%)
+
+Time: 00:00.015, Memory: 12.00 MB
+
+OK (19 tests, 53 assertions)
+
+===== part21-ci-cli-final.log =====
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.510s
+
+OK
+
+===== part21-inventory-guards-final.log =====
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.031s
+
+OK
+
+===== part21-scanner-final.log =====
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.018s
+
+OK
+
+===== part21-runner-guards-final.log =====
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.003s
+
+OK
+
+===== part21-inventory-refresh.log =====
+{
+  "scope": "STATIC_ONLY",
+  "page_slots": 274,
+  "missing_sources": [],
+  "documents_written": true,
+  "stale_documents": [],
+  "runtime_verified": false,
+  "production_verified": false,
+  "live_payment_verified": false
+}
+
+===== part21-inventory-check-final.log =====
+{
+  "scope": "STATIC_ONLY",
+  "page_slots": 274,
+  "missing_sources": [],
+  "documents_written": false,
+  "stale_documents": [],
+  "runtime_verified": false,
+  "production_verified": false,
+  "live_payment_verified": false
+}
+
+===== part21-preflight-final.log =====
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": true,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": true
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": true
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_quotes": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_audits": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ]
+  },
+  "missing_imported_app_class_count": 0,
+  "missing_imported_app_classes": [],
+  "source_preflight_passed": true,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}
+
+===== part21-pint-fix.log =====
+
+  ..✓✓..✓✓✓✓✓✓..✓
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    FIXED   ................................... 15 files, 9 style issues fixed  
+  ✓ app/DTOs/Wallet/ConversionFeeBreakdownData.php unary_operator_spaces, not…  
+  ✓ app/DTOs/Wallet/ConversionRequestData.php unary_operator_spaces, not_oper…  
+  ✓ app/Http/Controllers/Api/V1/WalletConversionController.php unary_operator…  
+  ✓ app/Http/Controllers/Wallet/WalletConversionPageController.php no_multili…  
+  ✓ app/Services/Wallet/Conversion/ConversionFeeCalculator.php unary_operator…  
+  ✓ app/Services/Wallet/Conversion/ConversionHistoryService.php unary_operato…  
+  ✓ app/Services/Wallet/Conversion/ConversionLimitService.php braces_position…  
+  ✓ app/Services/Wallet/Conversion/ConversionPolicyGuard.php unary_operator_s…  
+  ✓ tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php ordere…  
+
+
+===== part21-pint-contract.log =====
+
+  ..
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   ........................................................... 2 files  
+
+
+===== part21-pint-final.log =====
+
+  ...............
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   .......................................................... 15 files  
+
+
+===== part21-lint-final.log =====
+No syntax errors detected in app/Support/Wallet/ConversionCurrency.php
+No syntax errors detected in app/Enums/WalletConversionRejectionReason.php
+No syntax errors detected in app/DTOs/Wallet/ConversionRequestData.php
+No syntax errors detected in app/DTOs/Wallet/ConversionFeeBreakdownData.php
+No syntax errors detected in app/Http/Requests/Wallet/ConversionQuoteRequest.php
+No syntax errors detected in app/Http/Requests/Wallet/ConversionExecuteRequest.php
+No syntax errors detected in app/Services/Wallet/Conversion/ConversionPolicyGuard.php
+No syntax errors detected in app/Services/Wallet/Conversion/ConversionFeeCalculator.php
+No syntax errors detected in app/Services/Wallet/Conversion/ConversionLimitService.php
+No syntax errors detected in app/Services/Wallet/Conversion/ConversionHistoryService.php
+No syntax errors detected in app/Http/Controllers/Api/V1/WalletConversionController.php
+No syntax errors detected in app/Http/Controllers/Wallet/WalletConversionPageController.php
+No syntax errors detected in lang/en/wallet_conversion.php
+No syntax errors detected in lang/th/wallet_conversion.php
+No syntax errors detected in tests/Feature/Wallet/Conversion/ConversionCurrencyBoundaryTest.php
+
+===== part21-whitespace-final.log =====
+WHITESPACE_EXIT=0
+
+===== part21-build-final.log =====
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                   25.08 kB │ gzip:  3.00 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css               1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                  3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css              4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css            4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css               6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css            6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css             6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css               6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css          7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                 7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css               7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css            7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css              7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                       8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css               8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css             8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css         8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css     9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css              9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                      9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                        10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css           12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                        12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css              12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css          12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                     12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                   12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                    12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                 12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                         12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css        12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                      13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                       14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                       15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-baUnksz1.css                         71.14 kB │ gzip: 12.91 kB
+public/build/assets/account-grades-iqvPnkdB.js                0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js          0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                     0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                           0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                   0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                      0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js            0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js             0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js              0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js          0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js              0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js             0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                   0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                 0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js              0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                     0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                  0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                       0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                     1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                        1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js            1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js            1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                         1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                     1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js          1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                          1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js      1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                   1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js            2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                  2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js          2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js         2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js             2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js             2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                         2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js           2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                  2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-BxtEzC2x.js               3.17 kB │ gzip:  1.28 kB
+public/build/assets/privacy-portal-DccX1fIk.js                3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                    3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                   4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js     4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js               5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js               6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js   6.34 kB │ gzip:  2.13 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                   6.62 kB │ gzip:  2.59 kB
+public/build/assets/bet-slip-D0XoVmrB.js                      7.62 kB │ gzip:  3.19 kB
+public/build/assets/app-1IIFpSSh.js                          58.45 kB │ gzip: 21.59 kB
+
+✓ built in 1.86s
+
+===== part21-source-preservation-final.log =====
+{
+  "prior_paths": 214,
+  "unchanged_prior_paths": 201,
+  "revised_prior_paths": [
+    "app/Enums/WalletConversionRejectionReason.php",
+    "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+    "app/Services/Wallet/Conversion/ConversionLimitService.php",
+    "app/Services/Wallet/Conversion/ConversionPolicyGuard.php",
+    "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+    "app/Http/Controllers/Api/V1/WalletConversionController.php",
+    "lang/en/wallet_conversion.php",
+    "lang/th/wallet_conversion.php",
+    "app/Http/Controllers/Wallet/WalletConversionPageController.php",
+    "app/Http/Requests/Wallet/ConversionQuoteRequest.php",
+    "app/Http/Requests/Wallet/ConversionExecuteRequest.php",
+    "resources/views/wallet/conversion/index.blade.php",
+    "resources/views/wallet/conversion/partials/quote-form.blade.php"
+  ],
+  "new_paths": 7,
+  "planned_unique_paths": 221,
+  "fee_arithmetic_body_preserved_ignoring_formatting": true,
+  "fee_config_conversion_config_engine_and_wallet_permissions_unchanged": true,
+  "runtime_env_absent": true,
+  "config_cache_absent": true,
+  "dictionary_keys_per_locale": 150
+}
+

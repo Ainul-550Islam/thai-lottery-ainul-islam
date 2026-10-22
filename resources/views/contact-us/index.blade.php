@@ -6,12 +6,27 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Contact Customer Support & VIP Helpdesk — ThaiLotto Official</title>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    {{--
+        The Tailwind Play CDN used to be loaded here as
+        <script src="https://cdn.tailwindcss.com">. It is a development tool: it
+        compiles CSS in the visitor's browser at runtime, and shipping it meant a
+        third-party JavaScript compiler executing on every request plus a script-src
+        that could not be narrowed to 'self'. The utilities are now built locally by
+        resources/css/standalone-tailwind.css, which imports the same theme and adds
+        the Tailwind directives in the order the CDN's injected <style> already had.
+    --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/resources/css/thailotto-theme.css">
+    {{--
+        This page is standalone: its own <!DOCTYPE html>, no @extends, so it never
+        sees layouts.app's bundle and must load its own styles. The entry below
+        imports thailotto-theme.css and adds the Tailwind utility layer. It used to
+        be a bare link to /resources/css/thailotto-theme.css, which is not a publicly
+        served directory, so the page had been rendering with no theme stylesheet at
+        all and leaning entirely on the CDN.
+    --}}
+    @vite(['resources/css/standalone-tailwind.css'])
     <style>
         body {
             background-color: #050b14;
@@ -356,7 +371,12 @@
         </div>
     </footer>
 
-    <!-- Runtime JavaScript -->
-    <script src="/resources/js/contact-portal.js"></script>
+    {{--
+        Runtime JavaScript. contact-portal.js owns the ticket dispatch form, the
+        CSRF header and the submit button state; the src this replaces pointed at
+        /resources/js/, which is not publicly served, so the form had no controller
+        and every request for it was a 404.
+    --}}
+    @vite(['resources/js/contact-portal.js'])
 </body>
 </html>

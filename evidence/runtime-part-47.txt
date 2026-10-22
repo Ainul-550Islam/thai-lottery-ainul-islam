@@ -1,0 +1,759 @@
+Part47 current accepted local synthetic evidence. Default/native/static matrices overlap. Final source hashes and raw log identities are in the accompanying JSON; diagnostic failures are not accepted results.
+
+===== full-final.log =====
+Part47 complete default regression across four isolated disposable file-backed SQLite shards.
+Each shard executes disjoint source files; no test filter or test source change.
+
+===== shard 1, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 889 (  7%)
+.....SSSSS..................................................... 126 / 889 ( 14%)
+.........................................SSSSSSS............... 189 / 889 ( 21%)
+.....................................................SSSSSS.... 252 / 889 ( 28%)
+............................................................... 315 / 889 ( 35%)
+............................................................... 378 / 889 ( 42%)
+............................................................... 441 / 889 ( 49%)
+............................................................... 504 / 889 ( 56%)
+............................................................... 567 / 889 ( 63%)
+............................................................... 630 / 889 ( 70%)
+............................................................... 693 / 889 ( 77%)
+............................................................... 756 / 889 ( 85%)
+............................................................... 819 / 889 ( 92%)
+............................................................... 882 / 889 ( 99%)
+.......                                                         889 / 889 (100%)
+
+Time: 11:36.728, Memory: 163.00 MB
+
+OK, but some tests were skipped!
+Tests: 889, Assertions: 108800, Skipped: 18.
+
+===== shard 2, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.................................SSSSS.........................  63 / 976 (  6%)
+............................................................... 126 / 976 ( 12%)
+...SSSSS....................................................... 189 / 976 ( 19%)
+............................................................... 252 / 976 ( 25%)
+...........SSSSSSSSSSSSSSS..................................... 315 / 976 ( 32%)
+............................................................... 378 / 976 ( 38%)
+............................................................... 441 / 976 ( 45%)
+............................................................... 504 / 976 ( 51%)
+............................................................... 567 / 976 ( 58%)
+............................................................... 630 / 976 ( 64%)
+............................................................... 693 / 976 ( 71%)
+............................................................... 756 / 976 ( 77%)
+............................................................... 819 / 976 ( 83%)
+............................................................... 882 / 976 ( 90%)
+............................................................... 945 / 976 ( 96%)
+...............................                                 976 / 976 (100%)
+
+Time: 12:07.215, Memory: 177.00 MB
+
+OK, but some tests were skipped!
+Tests: 976, Assertions: 16137, Skipped: 25.
+
+===== shard 3, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 966 (  6%)
+......................SSSS....................................S 126 / 966 ( 13%)
+SS...............SSSSSSSSSSSSSSSSSSSS.......................... 189 / 966 ( 19%)
+............................................................... 252 / 966 ( 26%)
+............................................................... 315 / 966 ( 32%)
+............................................................... 378 / 966 ( 39%)
+............................................................... 441 / 966 ( 45%)
+............................................................... 504 / 966 ( 52%)
+............................................................... 567 / 966 ( 58%)
+............................................................... 630 / 966 ( 65%)
+............................................................... 693 / 966 ( 71%)
+............................................................... 756 / 966 ( 78%)
+..............................S................................ 819 / 966 ( 84%)
+............................................................... 882 / 966 ( 91%)
+............................................................... 945 / 966 ( 97%)
+.....................                                           966 / 966 (100%)
+
+Time: 12:11.664, Memory: 177.00 MB
+
+OK, but some tests were skipped!
+Tests: 966, Assertions: 8047, Skipped: 28.
+
+===== shard 4, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................SSS........SSSS  63 / 661 (  9%)
+............................................................... 126 / 661 ( 19%)
+..............................SS............................... 189 / 661 ( 28%)
+...................SS.......................S.................. 252 / 661 ( 38%)
+...................................SS.......................... 315 / 661 ( 47%)
+................SSSS.......................SSSSS............... 378 / 661 ( 57%)
+............................................................... 441 / 661 ( 66%)
+................................SSSSSSS........................ 504 / 661 ( 76%)
+............................................................... 567 / 661 ( 85%)
+............................................................... 630 / 661 ( 95%)
+...............................                                 661 / 661 (100%)
+
+Time: 11:38.348, Memory: 129.00 MB
+
+OK, but some tests were skipped!
+Tests: 661, Assertions: 2528, Skipped: 30.
+
+Combined complete regression: Tests: 3492, Assertions: 135512, Skipped: 101, Errors/failures: 0.
+
+===== native.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 369 ( 17%)
+............................................................... 126 / 369 ( 34%)
+............................................................... 189 / 369 ( 51%)
+............................................................... 252 / 369 ( 68%)
+............................................................... 315 / 369 ( 85%)
+......................................................          369 / 369 (100%)
+
+Time: 08:27.358, Memory: 103.00 MB
+
+OK (369 tests, 2045 assertions)
+
+===== static.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...................................                               35 / 35 (100%)
+
+Time: 00:00.282, Memory: 14.00 MB
+
+OK (35 tests, 1472 assertions)
+
+===== python.log =====
+......................................................................................
+----------------------------------------------------------------------
+Ran 86 tests in 2.023s
+
+OK
+
+===== pint-final.log =====
+
+  ..........
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   .......................................................... 10 files  
+
+
+===== lint.log =====
+{
+  "php_suffixed_files": 2030,
+  "failures": [],
+  "passed": true
+}
+
+===== negative-receipt-hash.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part47-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:16.394, Memory: 70.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Betting\OwnedPurchaseReplayTest::test_partial_historical_or_corrupted_receipt_never_replays_repairs_or_charges with data set #2 ('receipt_hash')
+Owned funding proof should refuse.
+
+/home/user/.cache/part47-negative-isolated/tests/Feature/Betting/OwnedPurchaseReplayTest.php:238
+/home/user/.cache/part47-negative-isolated/tests/Feature/Betting/OwnedPurchaseReplayTest.php:188
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+
+===== negative-original-proof.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part47-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:18.841, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Betting\OwnedPurchaseReplayTest::test_partial_historical_or_corrupted_receipt_never_replays_repairs_or_charges with data set #14 ('original_amount')
+Owned funding proof should refuse.
+
+/home/user/.cache/part47-negative-isolated/tests/Feature/Betting/OwnedPurchaseReplayTest.php:238
+/home/user/.cache/part47-negative-isolated/tests/Feature/Betting/OwnedPurchaseReplayTest.php:188
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+
+===== negative-precision.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part47-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:19.563, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Betting\OwnedPurchaseReplayTest::test_malformed_or_different_stake_is_not_rounded_into_replay with data set #0 ('10.001')
+Owned funding proof should refuse.
+
+/home/user/.cache/part47-negative-isolated/tests/Feature/Betting/OwnedPurchaseReplayTest.php:238
+/home/user/.cache/part47-negative-isolated/tests/Feature/Betting/OwnedPurchaseReplayTest.php:105
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+
+===== negative-atomic-receipt.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part47-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:17.556, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Betting\OwnedPurchaseReplayTest::test_ambient_replay_and_late_receipt_insert_failure_cannot_hide_a_partial_commit
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'Synthetic late receipt failure.'
++'Late failure expected.'
+
+/home/user/.cache/part47-negative-isolated/tests/Feature/Betting/OwnedPurchaseReplayTest.php:212
+
+FAILURES!
+Tests: 1, Assertions: 5, Failures: 1.
+
+===== native-build.log =====
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded pkcs8 v0.10.2
+  Downloaded zeroize v1.9.0
+  Downloaded generic-array v0.14.7
+  Downloaded base64ct v1.8.3
+  Downloaded cfg-if v1.0.5
+  Downloaded zmij v1.0.23
+  Downloaded rustc_version v0.4.1
+  Downloaded const-oid v0.9.6
+  Downloaded subtle v2.6.1
+  Downloaded serde_derive v1.0.229
+  Downloaded rand_core v0.6.4
+  Downloaded proc-macro2 v1.0.107
+  Downloaded typenum v1.20.1
+  Downloaded cpufeatures v0.2.17
+  Downloaded version_check v0.9.5
+  Downloaded unicode-ident v1.0.26
+  Downloaded signature v2.2.0
+  Downloaded digest v0.10.7
+  Downloaded serde_json v1.0.151
+  Downloaded serde v1.0.229
+  Downloaded der v0.7.10
+  Downloaded serde_core v1.0.229
+  Downloaded curve25519-dalek v4.1.3
+  Downloaded ed25519-dalek v2.2.0
+  Downloaded quote v1.0.47
+  Downloaded memchr v2.8.3
+  Downloaded curve25519-dalek-derive v0.1.1
+  Downloaded block-buffer v0.10.4
+  Downloaded spki v0.7.3
+  Downloaded syn v2.0.119
+  Downloaded sha2 v0.10.9
+  Downloaded semver v1.0.28
+  Downloaded hex v0.4.3
+  Downloaded ed25519 v2.2.3
+  Downloaded crypto-common v0.1.7
+  Downloaded itoa v1.0.18
+  Downloaded syn v3.0.6
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling curve25519-dalek v4.1.3
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling syn v2.0.119
+   Compiling digest v0.10.7
+   Compiling zmij v1.0.23
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling signature v2.2.0
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling serde_json v1.0.151
+   Compiling serde v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling ed25519 v2.2.3
+   Compiling sha2 v0.10.9
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `release` profile [optimized] target(s) in 20.52s
+
+===== rust.log =====
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling zmij v1.0.23
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling subtle v2.6.1
+   Compiling zeroize v1.9.0
+   Compiling signature v2.2.0
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling ed25519 v2.2.3
+   Compiling serde_derive v1.0.229
+   Compiling sha2 v0.10.9
+   Compiling itoa v1.0.18
+   Compiling rand_core v0.6.4
+   Compiling memchr v2.8.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.16s
+     Running unittests src/lib.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-22a456e02c732867)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-80bdcd03109364f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_boundary.rs (security/weekly-result-integrity/target/debug/deps/cli_boundary-067c451bd0c81b0e)
+
+running 5 tests
+test document_ceiling_is_enforced_before_parsing ... ok
+test fingerprint_disagreement_exits_two_without_accepting ... ok
+test malformed_json_exits_one_and_does_not_crash ... ok
+test invalid_utf8_is_a_structured_rejection ... ok
+test unsigned_request_exits_zero_with_exact_library_fingerprint ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/integrity.rs (security/weekly-result-integrity/target/debug/deps/integrity-efe5c4cfa280c0dd)
+
+running 19 tests
+test a_fully_unavailable_result_canonicalizes_without_inventing_zeros ... ok
+test a_malformed_request_document_is_a_value_not_a_panic ... ok
+test a_different_first_6_produces_a_different_hash ... ok
+test a_matching_expected_fingerprint_is_accepted_and_a_wrong_one_is_not ... ok
+test a_partial_result_triple_is_refused ... ok
+test a_value_that_lost_a_leading_zero_hashes_differently ... ok
+test an_invalid_signature_is_rejected ... ok
+test canonical_bytes_are_valid_utf8_including_non_ascii_identifiers ... ok
+test canonical_bytes_start_with_the_version_and_field_count ... ok
+test canonical_field_order_is_fixed_and_documented ... ok
+test half_supplied_signature_material_is_refused_not_downgraded ... ok
+test leading_zeros_are_part_of_the_canonical_bytes ... ok
+test malformed_values_are_rejected_rather_than_repaired ... ok
+test null_and_empty_are_distinct ... ok
+test the_crate_source_contains_no_unsafe_and_no_network_or_process_calls ... ok
+test the_dependency_tree_contains_no_networking_crate ... ok
+test the_same_payload_always_produces_the_same_hash ... ok
+test unsigned_payload_returns_hash_only_and_never_claims_a_signature ... ok
+test a_valid_signature_is_accepted_only_when_a_key_is_configured ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/strict_signature.rs (security/weekly-result-integrity/target/debug/deps/strict_signature-2c56f82fb4fbf60b)
+
+running 3 tests
+test source_identifier_over_191_characters_is_rejected ... ok
+test weak_identity_key_and_signature_cannot_authenticate_any_result ... ok
+test unicode_source_identifier_counts_characters_but_hashes_utf8_bytes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests weekly_result_integrity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+===== security-final.log =====
+
+> security:dependencies
+> node scripts/dependency_security_gate.mjs
+
+{
+  "passed": true,
+  "scope": "Known advisories in the complete npm lock graph, not a whole-platform security certification.",
+  "node": "24.22.0",
+  "npm": "11.21.1",
+  "lockedPackages": 149,
+  "auditedPackages": 149,
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  }
+}
+
+===== node-tests-final.log =====
+✔ the complete reviewed lock and runtime are accepted (21.436463ms)
+✔ nonzero info is refused even if npm exits0 (0.399218ms)
+✔ missing info count is not a clean audit (0.166953ms)
+✔ nonzero low is refused even if npm exits0 (0.169943ms)
+✔ missing low count is not a clean audit (0.158172ms)
+✔ nonzero moderate is refused even if npm exits0 (0.106357ms)
+✔ missing moderate count is not a clean audit (0.14101ms)
+✔ nonzero high is refused even if npm exits0 (0.096508ms)
+✔ missing high count is not a clean audit (0.127246ms)
+✔ nonzero critical is refused even if npm exits0 (12.599404ms)
+✔ missing critical count is not a clean audit (0.236947ms)
+✔ nonzero total is refused even if npm exits0 (0.098851ms)
+✔ missing total count is not a clean audit (0.093279ms)
+✔ refuses an uncounted advisory (0.194156ms)
+✔ refuses an audit API error (0.090035ms)
+✔ refuses a future unsupported schema (0.178236ms)
+✔ refuses a string zero (0.107099ms)
+✔ refuses an empty graph (0.101656ms)
+✔ refuses a missing graph (0.087434ms)
+✔ refuses an array of vulnerabilities (0.125902ms)
+✔ refuses npm status null with a superficially clean report (0.10042ms)
+✔ refuses npm status 1 with a superficially clean report (0.068075ms)
+✔ refuses npm status 2 with a superficially clean report (0.060082ms)
+✔ refuses npm status 127 with a superficially clean report (0.062577ms)
+✔ runtime 20.20.2 needs review rather than a silently bypassed engine (0.159354ms)
+✔ runtime 22.22.0 needs review rather than a silently bypassed engine (0.065004ms)
+✔ runtime 23.0.0 needs review rather than a silently bypassed engine (0.059862ms)
+✔ runtime 25.0.0 needs review rather than a silently bypassed engine (0.069584ms)
+✔ runtime 24.0.0-preview needs review rather than a silently bypassed engine (0.099736ms)
+✔ runtime unknown needs review rather than a silently bypassed engine (0.12091ms)
+✔ npm 10.8.2 is outside the reviewed major (0.200018ms)
+✔ npm 12.0.0 is outside the reviewed major (0.074071ms)
+✔ npm  is outside the reviewed major (0.107615ms)
+✔ npm 11.0.0-preview is outside the reviewed major (0.072341ms)
+✔ lock policy rejects missing root (1.31323ms)
+✔ lock policy rejects old lock format (28.665272ms)
+✔ lock policy rejects root manifest drift (0.867219ms)
+✔ lock policy rejects old root engine (18.771392ms)
+✔ lock policy rejects missing compiler (1.282106ms)
+✔ lock policy rejects restored unpatched braces (1.05801ms)
+✔ lock policy rejects unreviewed nested compiler (1.055939ms)
+✔ lock policy rejects unreviewed adapter (8.165992ms)
+✔ lock policy rejects remote nonregistry artifact (1.961056ms)
+✔ lock policy rejects missing integrity (3.516295ms)
+✔ lock policy rejects weak hash algorithm (1.005176ms)
+✔ lock policy rejects top-level fake bundle (3.979994ms)
+✔ lock policy rejects undeclared bundled artifact (1.11564ms)
+✔ lock policy rejects unlocked bundle parent (0.656129ms)
+✔ audit invocation explicitly includes development and optional packages and all severities (5.470618ms)
+✔ audit network failure cannot turn green (1.867823ms)
+✔ audit malformed JSON cannot turn green (2.139927ms)
+✔ audit timeout cannot turn green (1.42769ms)
+✔ audit spawn failure cannot turn green (1.443566ms)
+✔ all five CI Node setups follow the reviewed version file; every npm install lane runs the gate (4.032233ms)
+ℹ tests 54
+ℹ suites 0
+ℹ pass 54
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 459.638051
+
+===== build-final.log =====
+
+> build
+> vite build --outDir /home/user/.cache/part47-pinned-frontend
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+
+(!) outDir /home/user/.cache/part47-pinned-frontend is not inside project root and will not be emptied.
+Use --emptyOutDir to override.
+
+rendering chunks...
+computing gzip size...
+../.cache/part47-pinned-frontend/manifest.json                                    25.08 kB │ gzip:  3.00 kB
+../.cache/part47-pinned-frontend/assets/bingo-lottery-DcRhy8pR.css                 1.51 kB │ gzip:  0.68 kB
+../.cache/part47-pinned-frontend/assets/weekly-lottery-CvRR7OgT.css                1.66 kB │ gzip:  0.75 kB
+../.cache/part47-pinned-frontend/assets/national-lottery-DUzkSC9_.css              1.96 kB │ gzip:  0.82 kB
+../.cache/part47-pinned-frontend/assets/contact-CnzCsQ7K.css                       2.86 kB │ gzip:  1.03 kB
+../.cache/part47-pinned-frontend/assets/auth-portal-D_fBALKk.css                   3.66 kB │ gzip:  1.23 kB
+../.cache/part47-pinned-frontend/assets/player-settings-CcQjgnGN.css               4.82 kB │ gzip:  1.45 kB
+../.cache/part47-pinned-frontend/assets/wallet-conversion-CI0TeR6s.css             4.85 kB │ gzip:  1.64 kB
+../.cache/part47-pinned-frontend/assets/prize-discount-XR_0p4pR.css                6.51 kB │ gzip:  1.79 kB
+../.cache/part47-pinned-frontend/assets/withdrawal-portal-DTIrqnd7.css             6.58 kB │ gzip:  1.76 kB
+../.cache/part47-pinned-frontend/assets/account-services-C3ZF4V86.css              6.64 kB │ gzip:  1.96 kB
+../.cache/part47-pinned-frontend/assets/player-profile-BBtsCzo5.css                6.68 kB │ gzip:  1.87 kB
+../.cache/part47-pinned-frontend/assets/glo-results-checker-CVwaH7EQ.css           7.34 kB │ gzip:  2.23 kB
+../.cache/part47-pinned-frontend/assets/public-pages-DwHed-9B.css                  7.77 kB │ gzip:  2.10 kB
+../.cache/part47-pinned-frontend/assets/deposit-portal-DrkRming.css                7.81 kB │ gzip:  1.99 kB
+../.cache/part47-pinned-frontend/assets/wallet-management-B9AnBVpE.css             7.82 kB │ gzip:  2.02 kB
+../.cache/part47-pinned-frontend/assets/lottery-history-BcIBMRCv.css               7.90 kB │ gzip:  1.90 kB
+../.cache/part47-pinned-frontend/assets/glo-l6-D9lQorNn.css                        8.49 kB │ gzip:  2.39 kB
+../.cache/part47-pinned-frontend/assets/admin-lottofin-CMbsWr2Y.css                8.64 kB │ gzip:  2.13 kB
+../.cache/part47-pinned-frontend/assets/player-dashboard-B_07Plr5.css              8.81 kB │ gzip:  2.23 kB
+../.cache/part47-pinned-frontend/assets/thai-lottery-betting-B5ajkW3q.css          8.98 kB │ gzip:  2.33 kB
+../.cache/part47-pinned-frontend/assets/player-security-settings-C0iOjrmo.css      9.09 kB │ gzip:  2.21 kB
+../.cache/part47-pinned-frontend/assets/thailotto-theme-Bp57fmJ-.css               9.51 kB │ gzip:  2.48 kB
+../.cache/part47-pinned-frontend/assets/lottery-CJ-DF_a5.css                       9.66 kB │ gzip:  2.80 kB
+../.cache/part47-pinned-frontend/assets/home-BZX8okIA.css                         10.03 kB │ gzip:  2.39 kB
+../.cache/part47-pinned-frontend/assets/pcso-lottery-BrEco0RY.css                 12.11 kB │ gzip:  3.18 kB
+../.cache/part47-pinned-frontend/assets/public-next-pages-CuyCltwt.css            12.89 kB │ gzip:  3.47 kB
+../.cache/part47-pinned-frontend/assets/fees-DeLDGMDU.css                         12.95 kB │ gzip:  3.48 kB
+../.cache/part47-pinned-frontend/assets/account-grades-tABPk35W.css               12.95 kB │ gzip:  3.49 kB
+../.cache/part47-pinned-frontend/assets/prize-verification-DigFLw9_.css           12.95 kB │ gzip:  3.48 kB
+../.cache/part47-pinned-frontend/assets/contact-gesx-Obr.css                      12.95 kB │ gzip:  3.49 kB
+../.cache/part47-pinned-frontend/assets/privacy-D6EP8zpL.css                      12.95 kB │ gzip:  3.48 kB
+../.cache/part47-pinned-frontend/assets/discounts-Dtyfd7v7.css                    12.95 kB │ gzip:  3.48 kB
+../.cache/part47-pinned-frontend/assets/download-wcYagyQr.css                     12.95 kB │ gzip:  3.49 kB
+../.cache/part47-pinned-frontend/assets/how-to-play-D4ESlSIs.css                  12.95 kB │ gzip:  3.48 kB
+../.cache/part47-pinned-frontend/assets/faq--x2b-Xf9.css                          12.95 kB │ gzip:  3.49 kB
+../.cache/part47-pinned-frontend/assets/account-verification-BPPUEu3L.css         12.96 kB │ gzip:  3.49 kB
+../.cache/part47-pinned-frontend/assets/vision-C4_NXAnm.css                       13.89 kB │ gzip:  3.53 kB
+../.cache/part47-pinned-frontend/assets/terms-DXyzc3G4.css                        14.12 kB │ gzip:  3.62 kB
+../.cache/part47-pinned-frontend/assets/about-mD4LtnlG.css                        15.37 kB │ gzip:  3.96 kB
+../.cache/part47-pinned-frontend/assets/app-DCximxvo.css                         110.83 kB │ gzip: 17.76 kB
+../.cache/part47-pinned-frontend/assets/account-grades-iqvPnkdB.js                 0.04 kB │ gzip:  0.06 kB
+../.cache/part47-pinned-frontend/assets/account-verification-iqvPnkdB.js           0.04 kB │ gzip:  0.06 kB
+../.cache/part47-pinned-frontend/assets/contact-iqvPnkdB.js                        0.04 kB │ gzip:  0.06 kB
+../.cache/part47-pinned-frontend/assets/discounts-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+../.cache/part47-pinned-frontend/assets/download-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+../.cache/part47-pinned-frontend/assets/faq-iqvPnkdB.js                            0.04 kB │ gzip:  0.06 kB
+../.cache/part47-pinned-frontend/assets/how-to-play-iqvPnkdB.js                    0.04 kB │ gzip:  0.06 kB
+../.cache/part47-pinned-frontend/assets/privacy-iqvPnkdB.js                        0.04 kB │ gzip:  0.06 kB
+../.cache/part47-pinned-frontend/assets/AuthCard-BQKdu6To.js                       0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/DepositPortal-BQKdu6To.js                  0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/GloResultsChecker-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/LotteryHistory-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/LottoFinAdminDashboard-BQKdu6To.js         0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/PlayerDashboard-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/PlayerProfile-BQKdu6To.js                  0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/PlayerSecuritySettings-BQKdu6To.js         0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/PlayerSettings-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/ThaiLotteryBetting-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/WalletManagement-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/WithdrawalPortal-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+../.cache/part47-pinned-frontend/assets/deposit-portal-BTkZAXu7.js                 0.23 kB │ gzip:  0.18 kB
+../.cache/part47-pinned-frontend/assets/withdrawal-portal-C_HkmiNh.js              0.23 kB │ gzip:  0.19 kB
+../.cache/part47-pinned-frontend/assets/weekly-lottery-zufHxTcU.js                 0.26 kB │ gzip:  0.18 kB
+../.cache/part47-pinned-frontend/assets/bingo-lottery-Wfl133xR.js                  0.26 kB │ gzip:  0.18 kB
+../.cache/part47-pinned-frontend/assets/national-lottery-DR-8R4iq.js               0.26 kB │ gzip:  0.18 kB
+../.cache/part47-pinned-frontend/assets/thai-lottery-betting-fLIFn8Yw.js           0.30 kB │ gzip:  0.22 kB
+../.cache/part47-pinned-frontend/assets/player-dashboard-DQXHBi75.js               0.38 kB │ gzip:  0.25 kB
+../.cache/part47-pinned-frontend/assets/wallet-management-Cf9qvsz7.js              0.44 kB │ gzip:  0.27 kB
+../.cache/part47-pinned-frontend/assets/mobile-menu-DjyVqvWR.js                    0.54 kB │ gzip:  0.27 kB
+../.cache/part47-pinned-frontend/assets/account-grade-DVU03bMe.js                  0.57 kB │ gzip:  0.31 kB
+../.cache/part47-pinned-frontend/assets/rolldown-runtime-hePW80VL.js               0.71 kB │ gzip:  0.42 kB
+../.cache/part47-pinned-frontend/assets/admin-lottofin-CRxNTz2z.js                 0.80 kB │ gzip:  0.39 kB
+../.cache/part47-pinned-frontend/assets/live-draw-CY6WfIYI.js                      0.87 kB │ gzip:  0.43 kB
+../.cache/part47-pinned-frontend/assets/pcso-lottery-BZxI8kF8.js                   0.93 kB │ gzip:  0.54 kB
+../.cache/part47-pinned-frontend/assets/contact-Dl3hcSwo.js                        0.96 kB │ gzip:  0.45 kB
+../.cache/part47-pinned-frontend/assets/countdown-DVmu-DsQ.js                      1.02 kB │ gzip:  0.55 kB
+../.cache/part47-pinned-frontend/assets/vision-DyVb2t6y.js                         1.10 kB │ gzip:  0.56 kB
+../.cache/part47-pinned-frontend/assets/prize-verification-awFdLfRe.js             1.10 kB │ gzip:  0.64 kB
+../.cache/part47-pinned-frontend/assets/prize-verification-B7DKRudH.js             1.12 kB │ gzip:  0.55 kB
+../.cache/part47-pinned-frontend/assets/about-FWU8Goo0.js                          1.26 kB │ gzip:  0.59 kB
+../.cache/part47-pinned-frontend/assets/countdown-DCWNt0sQ.js                      1.30 kB │ gzip:  0.67 kB
+../.cache/part47-pinned-frontend/assets/account-verification-C8heWaJx.js           1.31 kB │ gzip:  0.70 kB
+../.cache/part47-pinned-frontend/assets/fees-9NKFmMOQ.js                           1.37 kB │ gzip:  0.75 kB
+../.cache/part47-pinned-frontend/assets/player-security-settings-DQfmjqb0.js       1.39 kB │ gzip:  0.56 kB
+../.cache/part47-pinned-frontend/assets/player-profile-CBe58ENT.js                 1.65 kB │ gzip:  0.65 kB
+../.cache/part47-pinned-frontend/assets/auth-portal-PMrGbyPi.js                    1.66 kB │ gzip:  0.79 kB
+../.cache/part47-pinned-frontend/assets/how-to-play-portal-DBYvsWSp.js             2.14 kB │ gzip:  1.04 kB
+../.cache/part47-pinned-frontend/assets/live-results-C2bDv2D2.js                   2.15 kB │ gzip:  1.01 kB
+../.cache/part47-pinned-frontend/assets/account-grade-portal-QYMb6qRl.js           2.29 kB │ gzip:  1.02 kB
+../.cache/part47-pinned-frontend/assets/lotto-discount-portal-DVPDCBVQ.js          2.36 kB │ gzip:  0.99 kB
+../.cache/part47-pinned-frontend/assets/wallet-conversion-DdyvICy_.js              2.37 kB │ gzip:  1.11 kB
+../.cache/part47-pinned-frontend/assets/public-next-pages-aqQO7lKm.js              2.41 kB │ gzip:  0.93 kB
+../.cache/part47-pinned-frontend/assets/terms-BCCISDCL.js                          2.49 kB │ gzip:  0.99 kB
+../.cache/part47-pinned-frontend/assets/wallet-balance-fVmydr9F.js                 2.52 kB │ gzip:  1.15 kB
+../.cache/part47-pinned-frontend/assets/glo-results-checker-DE1GgEQG.js            2.58 kB │ gzip:  1.23 kB
+../.cache/part47-pinned-frontend/assets/public-pages-BYwoqYgK.js                   2.87 kB │ gzip:  1.28 kB
+../.cache/part47-pinned-frontend/assets/ticket-selector-BxtEzC2x.js                3.17 kB │ gzip:  1.28 kB
+../.cache/part47-pinned-frontend/assets/privacy-portal-DccX1fIk.js                 3.23 kB │ gzip:  1.38 kB
+../.cache/part47-pinned-frontend/assets/faq-portal-DJT8wFEx.js                     3.24 kB │ gzip:  1.34 kB
+../.cache/part47-pinned-frontend/assets/fees-portal-BSDiPx2M.js                    4.20 kB │ gzip:  1.72 kB
+../.cache/part47-pinned-frontend/assets/contact-portal-CcnVKTkU.js                 4.80 kB │ gzip:  1.60 kB
+../.cache/part47-pinned-frontend/assets/prize-verification-portal--sqHcNQa.js      4.84 kB │ gzip:  1.90 kB
+../.cache/part47-pinned-frontend/assets/lottery-history-Bv3fZHif.js                5.18 kB │ gzip:  1.82 kB
+../.cache/part47-pinned-frontend/assets/player-settings-BmDrzCUv.js                6.01 kB │ gzip:  1.53 kB
+../.cache/part47-pinned-frontend/assets/account-verification-portal-Dnal4Jj2.js    6.34 kB │ gzip:  2.13 kB
+../.cache/part47-pinned-frontend/assets/jsx-runtime-C7VpfOrh.js                    6.62 kB │ gzip:  2.59 kB
+../.cache/part47-pinned-frontend/assets/bet-slip-D0XoVmrB.js                       7.62 kB │ gzip:  3.19 kB
+../.cache/part47-pinned-frontend/assets/app-1IIFpSSh.js                           58.45 kB │ gzip: 21.59 kB
+
+✓ built in 4.40s
+[33m[PLUGIN_TIMINGS] [0mJavaScript callbacks ran for 3.0s of this 4.4s build (69%).
+1 callback is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
+  - plugin vite:css transform (40 calls)
+See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
+
+
+===== pinned-build-equality.json =====
+{
+  "identical": true,
+  "files": 109,
+  "sha256": {
+    "manifest.json": "704cdc58bed997199f0347f0f21135caed7c964aea1d597517c7fd4e0587bc4e",
+    "assets/PlayerDashboard-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/faq-iqvPnkdB.js": "676d0aadd1502b2f8d68d1fd5639324336f6ab04ebf24222501c220ea7c5d1e8",
+    "assets/wallet-conversion-CI0TeR6s.css": "89e9e3e953a08b58dcdd16e1e7abe3f1259936ece5ca232917bfaa75a259b729",
+    "assets/bet-slip-D0XoVmrB.js": "651000f4993e72e07389fc1e9c107fb535d984631ee459d5ede1d23e6ca79ad6",
+    "assets/fees-DeLDGMDU.css": "e730c6075aea35da1909dedefafc001f1d21e61421f95ee143a5f1eca9d48fda",
+    "assets/pcso-lottery-BZxI8kF8.js": "ee4e2820b1411355a459b996fed37da6674d0969d412db608b4e73f23fa87557",
+    "assets/fees-portal-BSDiPx2M.js": "021583eeebc3e83345a3e7fa029f4227e78232543381edc624797a64b85670c5",
+    "assets/how-to-play-iqvPnkdB.js": "676d0aadd1502b2f8d68d1fd5639324336f6ab04ebf24222501c220ea7c5d1e8",
+    "assets/faq--x2b-Xf9.css": "23b572bd13e4991ee40522f54edf44a4fe1fab905abef72a3be986bfd75d7d6a",
+    "assets/weekly-lottery-CvRR7OgT.css": "0699a2430a16bf15179348d3752968631999c52529c7587f1710b820aebef412",
+    "assets/player-settings-CcQjgnGN.css": "3424f1db1dbfe3f1baec1ed675356391914c1755df14ec044f1fa8471c9746de",
+    "assets/contact-gesx-Obr.css": "931d4e3f1f857fcd6aa4ba2625c4e4b809bb6253d83989abb1ec7f4403a35da5",
+    "assets/account-grades-tABPk35W.css": "e140a8d46b086abc3f77d6f9c2eab84c267a5241c5d6e305b4611ddca6680108",
+    "assets/thailotto-theme-Bp57fmJ-.css": "8bb0f8063bb30ecf460bb875686d0c66f57aa5350c508fd14799591460e3e356",
+    "assets/player-profile-CBe58ENT.js": "9a8f4a611951aafef7c5bc160a9fb59339aa6b88b123f35e3387570e27b0daac",
+    "assets/account-grade-DVU03bMe.js": "360e7fbd2547bd98514435031ed01e319239437bda1c66a4be8c238c1074dd79",
+    "assets/deposit-portal-BTkZAXu7.js": "0dc0451294dd8c2a07b2be1d4493f61ab8ae5026f88b2c7a8561fa0668928a48",
+    "assets/thai-lottery-betting-B5ajkW3q.css": "d45c6c4dfabaa99d11fe54edb60e308d321be9463a5845cf59defbf0beedec3b",
+    "assets/terms-DXyzc3G4.css": "ad57e40639b725f43f3916575541127231d49a745395ee7920e232bebdd5c842",
+    "assets/ThaiLotteryBetting-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/download-iqvPnkdB.js": "676d0aadd1502b2f8d68d1fd5639324336f6ab04ebf24222501c220ea7c5d1e8",
+    "assets/DepositPortal-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/faq-portal-DJT8wFEx.js": "2f8f7e95767fa4b9549b585d4bbca5082c927208cd23de65ab9c86b68526205d",
+    "assets/account-verification-BPPUEu3L.css": "3c3279b22953b7fb230fe4aae8fbd04114c97defe4317563f34324a5bc1234a9",
+    "assets/withdrawal-portal-DTIrqnd7.css": "1588f66c699c92b95a36df3e22b8f76817c1b21262314edcaec90abc2f1b3e2c",
+    "assets/lotto-discount-portal-DVPDCBVQ.js": "cdcaac686008e7bb29387f67f4dfa0473b437b5cbb009f3f52928b6e5c431246",
+    "assets/how-to-play-D4ESlSIs.css": "4434947644d0aa4f2b91dce14b0d5fb07a2a99b0396340ecf2f4a06b6a6543b4",
+    "assets/account-verification-C8heWaJx.js": "74616165dcea7749ac35bbdae0bf2175addce799d1d5d33a4413506d27c8b4ab",
+    "assets/app-DCximxvo.css": "0b0493319501127e4e0dd78e80e628d06849c1691e9e81dd31c23825009834cb",
+    "assets/how-to-play-portal-DBYvsWSp.js": "e56e4676c1f71a73e8e7e435ec5274ca303629ab76547ed43f7fe4ff6b4e08f0",
+    "assets/privacy-portal-DccX1fIk.js": "58f86fec977753c8cb48d25b7ea8b73fa36141fc0abdfb6fc76dd6d065e3da89",
+    "assets/player-security-settings-C0iOjrmo.css": "bf64c5da7b7451671a95d00fe8f349387d5b3a2e3fb38087e80738b19328c804",
+    "assets/glo-results-checker-DE1GgEQG.js": "ec748cd3ad78210589e5b2ed4724a7337547f57044e4fe52925cc90291098b75",
+    "assets/auth-portal-D_fBALKk.css": "97fab5b92388b944663c0726235f9566716ee2eec2bebf7b9b65e4f0a45b47b6",
+    "assets/deposit-portal-DrkRming.css": "601ebf84c3e13b9e3c2a6828913308d366afdfd47b85c7f52db007f308f655a0",
+    "assets/contact-Dl3hcSwo.js": "754e8da90accca909eafecfcccac4d7de012866828403447847e681254b9ca21",
+    "assets/contact-iqvPnkdB.js": "676d0aadd1502b2f8d68d1fd5639324336f6ab04ebf24222501c220ea7c5d1e8",
+    "assets/wallet-balance-fVmydr9F.js": "bc99fa9797717d8dfba4b5e49f166b0e925af7071ecf4647c5fa93a10c26a3c1",
+    "assets/WalletManagement-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/lottery-CJ-DF_a5.css": "8ba1006f8581c5e4a2e581424951d2319906f89ed812cf089e22e989f7d5f1da",
+    "assets/auth-portal-PMrGbyPi.js": "b11723914b4022b1999774df7b5c0d66d046de2cd7ef94fd401f77396a0ac5ce",
+    "assets/PlayerProfile-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/terms-BCCISDCL.js": "48fc59c73b44b50f166daf87d6164c3014064eed9f007a9f2328720c198c430e",
+    "assets/thai-lottery-betting-fLIFn8Yw.js": "753558b6e4cde2e5323951bb1c3ec7915c2333075ddfd399d1297ffc2a5106da",
+    "assets/app-1IIFpSSh.js": "80f58a83f350a619355e61977805fe66ec91b3086cc8c2236ee0b2293acf4c8b",
+    "assets/wallet-conversion-DdyvICy_.js": "47f0a483849da4b9500e68990562d45d97d79a6d52576ca34c49118b06d6df74",
+    "assets/glo-results-checker-CVwaH7EQ.css": "f6aff6b7e248c57e52ad3d4dbcf09d685ab5abc2ea47dc1a5a5cb21685e26516",
+    "assets/privacy-iqvPnkdB.js": "676d0aadd1502b2f8d68d1fd5639324336f6ab04ebf24222501c220ea7c5d1e8",
+    "assets/home-BZX8okIA.css": "0c94f8e6b41815e180fba5371aae672ccc8fcf8d93aa9ff7c510a409b0d8010a",
+    "assets/prize-verification-DigFLw9_.css": "4a795673dfbaf61accc19b921f1fd7bb15bddb9ba11a96430a9d0c22b2c2b5e3",
+    "assets/privacy-D6EP8zpL.css": "a4e426c9560949847f3b7fe1441aff55cbe05834dfb55f12c26918c7bbbc030d",
+    "assets/bingo-lottery-Wfl133xR.js": "e553202b497d19ba41583e354ace9cd5132d32d4927614fceba55898dcd79ac1",
+    "assets/withdrawal-portal-C_HkmiNh.js": "464d56b458c872784c4e3947a7fdf74f6b567c09149a70661834c34927d5829e",
+    "assets/player-security-settings-DQfmjqb0.js": "d552fbed4f68a8be00c3515e0f8557c20208804206752a03014a2c0c458b5cab",
+    "assets/pcso-lottery-BrEco0RY.css": "4285a59d1ace8986aeaa3571c4ceda8022df8523e61abb4fed0d2e66014c1b32",
+    "assets/admin-lottofin-CMbsWr2Y.css": "77cbc2d10fe94abc109af1958e368c6c7a106dc7ea0a250e84e9611b65942df6",
+    "assets/jsx-runtime-C7VpfOrh.js": "00962ed5c844c6dce554f755180bedd1c2ffca27ffaf5c9974c71d99c0d5a900",
+    "assets/about-FWU8Goo0.js": "9abfaae427a2cd8b5b6761f3e282e45695b00a1a4d407ffc2aa19d9dba690cb5",
+    "assets/public-next-pages-aqQO7lKm.js": "313b22006ddd9be005246a80579a0e0492629d1a2b8463874ec315a44a09fed4",
+    "assets/national-lottery-DR-8R4iq.js": "27d2c759866b86e3d347eaa3df408b90199d8a14599f7d97ac6b24e48da0c6fd",
+    "assets/public-pages-BYwoqYgK.js": "09a0eb53cdc54acefec497724f9bfcdb4d0942bbf36c0c518f566d6d8192df9f",
+    "assets/mobile-menu-DjyVqvWR.js": "989afb5456b6ae9c55012d99ce14ce0036039654537f606da514c172c67489d5",
+    "assets/rolldown-runtime-hePW80VL.js": "580ad8c58061a4dde99bde0a56905e382f0568516ee2f5b84dbfb52085709021",
+    "assets/GloResultsChecker-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/discounts-iqvPnkdB.js": "676d0aadd1502b2f8d68d1fd5639324336f6ab04ebf24222501c220ea7c5d1e8",
+    "assets/player-dashboard-DQXHBi75.js": "5a741c2bab2b3502d46175714174db73df72d9a351cdeee5d703dda02871bf6a",
+    "assets/bingo-lottery-DcRhy8pR.css": "5990fbdc5634b815784097011a9ee824fd40ac5fb8d972b9295fc1efac704060",
+    "assets/contact-portal-CcnVKTkU.js": "4f539f349d6c4a398ae5ea338ed0ea679c5bece61691df3eea316e5e5fc41551",
+    "assets/player-profile-BBtsCzo5.css": "0a24be1c5d663d33e4713d2a4af25389809a20a2d98d40d9c1589ad797aba7ee",
+    "assets/vision-C4_NXAnm.css": "4ad95a151afbb1db9c63571f444b195c08368704a3e822e9f7d8dd5a361bdd2f",
+    "assets/player-dashboard-B_07Plr5.css": "1e849a652a23162751193be2a5e9b96bcc23cb7a6cf50a804011529f03ca7ae8",
+    "assets/account-grade-portal-QYMb6qRl.js": "3f227af53f67904bcf34d8f0300e0ccb41b15d6e94e2cf0182e03fc00d577be7",
+    "assets/prize-verification-portal--sqHcNQa.js": "477ce867bb755bd6763521d42ec59cd5be4080f46e742d00fa16ee0c3f767139",
+    "assets/account-grades-iqvPnkdB.js": "676d0aadd1502b2f8d68d1fd5639324336f6ab04ebf24222501c220ea7c5d1e8",
+    "assets/fees-9NKFmMOQ.js": "e01c102da9bbd13141eb10d099ddd5088a822a703e089eea2a3c861f30585c94",
+    "assets/public-next-pages-CuyCltwt.css": "1fe7af980ea95108ceffba4aaa6a8ca14c2137391cf6457bfaf8b1017dab8a2b",
+    "assets/download-wcYagyQr.css": "254058551681020ce72a864275b267402889b3e3524a3711b356f3babbcd06e3",
+    "assets/weekly-lottery-zufHxTcU.js": "b10f2e89d0fbbfd80a4594b21d8b3a9ac4adcc09a45eec35ed6854aa5145450d",
+    "assets/countdown-DCWNt0sQ.js": "1cc2ea1506de47a506105180cdaf4980ac45b14f37545bcbd6fb517df350e1c4",
+    "assets/prize-verification-awFdLfRe.js": "9ca858362364e22626148a35e8bc14b6357b7d4eb18fd5e097b5067520c90d32",
+    "assets/contact-CnzCsQ7K.css": "829f2a728e52309ea1cff17dff7e3ca6479e11eac25e64eb039baf79f4c476f9",
+    "assets/wallet-management-Cf9qvsz7.js": "88a29f5b314d81c4ee7739410f9ab7535fd0d4e4d6a3b0545e9dc371bf229af6",
+    "assets/countdown-DVmu-DsQ.js": "60680a67a8adeed16fb329b028e0fe8970b502dd9220560cc1fa4cd6daac6918",
+    "assets/PlayerSecuritySettings-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/ticket-selector-BxtEzC2x.js": "f7b9926a5054e4b5b15f8c628ce3d49d791306b3b6b2968909e0b9e3e26759fa",
+    "assets/account-verification-portal-Dnal4Jj2.js": "870761da9f2fd14f9ed3a28946b856c08a40284cb26a8c2a89a688b29bbcf93f",
+    "assets/LotteryHistory-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/wallet-management-B9AnBVpE.css": "2132b7d7f166f2e207de1ebb6e60b699156b6c8aa025b416f322c1452b71c2a7",
+    "assets/account-services-C3ZF4V86.css": "82e47add4d39e5682b14040f2c5c21228c0fe58b81db506d193e01b770788cea",
+    "assets/AuthCard-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/national-lottery-DUzkSC9_.css": "2a0e2f219718ee98ecee2bb0579eadc827746391b547f6d174601b9b9204e27f",
+    "assets/LottoFinAdminDashboard-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/player-settings-BmDrzCUv.js": "dacf98c6e87a8fec8a1624febf44202b530294fadbf9db04ba5a142e421024fb",
+    "assets/lottery-history-BcIBMRCv.css": "e8e7c6baa70f37e932dbdb8410b0f258f2f9f0851da59b5e6808a68ebab73b41",
+    "assets/PlayerSettings-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/about-mD4LtnlG.css": "c4c6aa476cd2923fb322861b8ab6ec7ae65ee49edde9cadc5caa5c1045d50562",
+    "assets/live-draw-CY6WfIYI.js": "371d08d9189265b93de37ee0c386d129849cb0af57b451ee7d9f6c876c77a63f",
+    "assets/lottery-history-Bv3fZHif.js": "143e72704bcda4a08a0975ea5d0ee469545eb77b060268c84ac41a718d3e2041",
+    "assets/WithdrawalPortal-BQKdu6To.js": "a1d10a6a21280f6363fb151ee72ad5932eb15161877c94e881ac5cc75649d540",
+    "assets/admin-lottofin-CRxNTz2z.js": "2e70e158514ce80b5d7e21ae5b9bab5ac94edeba708668f11a7b0b3b1e6fdc5b",
+    "assets/live-results-C2bDv2D2.js": "1196ad85500c838a274da0ae3294db488bb37b889d60e57cc98444deabb134bc",
+    "assets/prize-discount-XR_0p4pR.css": "7f974a511c25e3bc07057a6246651cfae89cae5c91bb8c4ff56c895fd029ee64",
+    "assets/vision-DyVb2t6y.js": "3d8363268b5f962331d05e06e461473b352b5aed9a9263c8e5040d344953356f",
+    "assets/prize-verification-B7DKRudH.js": "5c3473803ab34428326e814670d674a02c9a691032190a6f0d8eb1efea45fd5e",
+    "assets/account-verification-iqvPnkdB.js": "676d0aadd1502b2f8d68d1fd5639324336f6ab04ebf24222501c220ea7c5d1e8",
+    "assets/glo-l6-D9lQorNn.css": "5f8be89266c429e0aa275797d1a0b55d8b62e7977faef850890ef242299d7e45",
+    "assets/public-pages-DwHed-9B.css": "0d80460dfc6ee8e4ba771c3ea887d794f417a956f84360448e00ae0871c9b3cc",
+    "assets/discounts-Dtyfd7v7.css": "da143468e34383fe5c344cf581dcfd832abbad5b046e66fb37dcf6a621d5f002"
+  }
+}

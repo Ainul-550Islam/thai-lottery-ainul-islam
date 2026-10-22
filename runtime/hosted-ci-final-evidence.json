@@ -5,12 +5,18 @@
   "run_id": null,
   "conclusion": null,
   "reason": "This environment has no write or push credentials for github.com/Ainul-550Islam/thai-lottery-ainul-islam. The remediation branch fix/production-blocker-closure exists only in the local clone. No commit was pushed, therefore no workflow was triggered, therefore no run ID exists.",
-  "fabrication_statement": "No run ID, conclusion, timestamp or job result has been invented. The absence of evidence is reported as absence of evidence.",
+  "fabrication_statement": "No run ID, conclusion, timestamp or job result has been invented. The absence of evidence is reported as absence of evidence. Cluster 45 corrected one present-tense claim in this file: it certified that all three toolchain pins were 8.4, which was false when written and is true today for a different reason (cluster 44).",
   "observed_history_before_remediation": {
     "total_runs": 11,
     "green_runs": 0,
     "window": "2026-09-26 to 2026-10-01",
-    "latest": { "workflow": "CI", "number": 7, "id": "36850419997", "commit": "1c21115", "conclusion": "failure" },
+    "latest": {
+      "workflow": "CI",
+      "number": 7,
+      "id": "36850419997",
+      "commit": "1c21115",
+      "conclusion": "failure"
+    },
     "failing_steps": {
       "PHP tests": "Install dependencies",
       "Runtime and Rust contract gates": "Validate Composer platform and dependencies",
@@ -19,12 +25,68 @@
     },
     "note": "The pipeline has never been green on any commit in the repository's recorded history."
   },
-  "what_was_fixed_that_should_unblock_the_first_three_jobs": "Phase 4 corrected the platform contract: composer.json required php ^8.2 while composer.lock already required >= 8.4.1, and both workflows pinned 8.3. All three are now 8.4, config.platform.php is pinned to 8.4.1, and locally composer validate / composer install / composer check-platform-reqs / composer audit all pass on PHP 8.4.26. This is the documented cause of the Install dependencies and Validate Composer platform failures, but the fix is UNVERIFIED on hosted infrastructure.",
   "required_to_close": [
     "Push fix/production-blocker-closure to the origin remote.",
     "Let CI and Security & Vulnerability Gate run to completion on that head commit.",
     "Record the real run ID and conclusion here.",
     "Only a genuine success conclusion may change the release decision."
   ],
-  "release_impact": "Per the governing rule, hosted CI green is mandatory for RELEASE READY. Unverified hosted CI forces RELEASE BLOCKED and forbids producing a production ZIP."
+  "release_impact": "Per the governing rule, hosted CI green is mandatory for RELEASE READY. Unverified hosted CI forces RELEASE BLOCKED and forbids producing a production ZIP.",
+  "provenance": {
+    "written_during_phase": 13,
+    "captured_at_utc": "2026-10-16",
+    "captured_at_note": "The run history quoted here was read from the GitHub API on 2026-10-16; it is external evidence with no credentials in this clone, so it is labelled unverifiable below instead of being presented as checked.",
+    "base_commit": "1c21115b615dd37fb0ad17f3a4704445cdef4ce0",
+    "base_commit_in_this_clone": false,
+    "clone_head_commit": "5df5d14",
+    "clone_commit_count": 1,
+    "provenance_note": "This clone has exactly one commit (5df5d14) and 1c21115 is not an object in it, so the commit this record was measured against cannot be checked out here. Stated instead of assumed: a reader can tell which tree these numbers describe only if the record says so.",
+    "claims_refreshed_at_utc": "2026-10-16",
+    "claims_refreshed_by_cluster": 45
+  },
+  "corrections": [
+    {
+      "field_corrected": "what_was_fixed_that_should_unblock_the_first_three_jobs",
+      "false_statement_removed_from_the_present_tense": "\"Phase 4 corrected the platform contract ... and both workflows pinned 8.3. All three are now 8.4.\" That sentence was not true when it was written: composer.json and composer.lock were 8.4, but the workflows still pinned 8.3 in six places, and it stayed that way until cluster 44 on 2026-10-16. The harm is not the typo -- it is that a record which certifies an unfinished fix stops anybody from checking it.",
+      "what_was_actually_true_then": "composer.json required php ^8.2 and the lock required >= 8.4.1 (that part of the sentence was accurate); config.platform.php was pinned to 8.4.1; the workflows were not.",
+      "measured_by": "tests/Feature/Infra/ReleaseSpecContractTest.php (cluster 44), which now pins the agreement between composer.json, config.platform.php, docker/php/Dockerfile, the compose file and every workflow pin.",
+      "measured_on": "2026-10-16",
+      "changed_by_clusters": 44
+    }
+  ],
+  "claims_current_state": {
+    "hosted_ci_remains_unverified": {
+      "statement": "No run ID exists for this branch and none was invented: this environment has no push credential for the remote, so the hosted conclusion is unknown rather than failing.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "unverifiable",
+        "reason": "Requires network write access to github.com, which this sandbox does not have. Recorded so that the test enforces the absence of a fabricated run ID (run_id must stay null) rather than pretending to check the pipeline."
+      }
+    },
+    "no_run_id_fabricated": {
+      "statement": "run_id is still null and conclusion is still null.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "json_fields_are_null",
+        "path": "runtime/hosted-ci-final-evidence.json",
+        "fields": [
+          "run_id",
+          "conclusion"
+        ]
+      }
+    },
+    "toolchain_now_actually_agrees": {
+      "statement": "The thing this record claimed in 2026-10-01 and that only became true on 2026-10-16: every php-version pin in both workflows matches composer.json require.php and config.platform.php.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "php_version_pins_agree"
+      }
+    }
+  },
+  "history": {
+    "as_written_at_phase_13": {
+      "what_was_fixed_that_should_unblock_the_first_three_jobs": "Phase 4 corrected the platform contract: composer.json required php ^8.2 while composer.lock already required >= 8.4.1, and both workflows pinned 8.3. All three are now 8.4, config.platform.php is pinned to 8.4.1, and locally composer validate / composer install / composer check-platform-reqs / composer audit all pass on PHP 8.4.26. This is the documented cause of the Install dependencies and Validate Composer platform failures, but the fix is UNVERIFIED on hosted infrastructure."
+    }
+  },
+  "history_note": "The sentence above is the phase-13 text, kept verbatim because it is what an operator was told at the time. It is not a statement about this tree: read corrections[0] for what was wrong with it and claims_current_state for the version of the fact that is checked on every run."
 }

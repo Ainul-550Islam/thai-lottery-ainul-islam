@@ -13,8 +13,8 @@
 | :--- | :--- | :--- |
 | **Release Commit SHA** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Git Release Tag |
 | **Artifact SHA-256 Checksum** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Build Pipeline |
-| **Target PHP Version** | `PHP 8.2+` (with `bcmath`, `pdo_mysql`, `redis`, `sodium`) | `[x] CODE VERIFIED` |
-| **Laravel Framework Version** | `Laravel 11.x` | `[x] CODE VERIFIED` |
+| **Target PHP Version** | `PHP 8.4` (composer.json requires `^8.4`; `config.platform.php` = `8.4.1`) — with `bcmath`, `intl`, `opcache`, `pcntl`, `pdo_mysql`, `pdo_pgsql`, `redis`, `sodium`, `dom`, `fileinfo`, `mbstring`, `zip` | `[x] CODE VERIFIED` |
+| **Laravel Framework Version** | `Laravel 12.x` (`composer.json`: `laravel/framework: ^12.0`) | `[x] CODE VERIFIED` |
 | **Node.js & NPM Version** | `Node.js 20.x` / `NPM 10.x` | `[x] CODE VERIFIED` |
 | **Rust / Cargo Engine** | `Cargo 1.75+` (GLO verification engine) | `[ ] NOT VERIFIED — HOST ENVIRONMENT` |
 | **Database Engine & Version** | `MySQL 8.0.16+` / `MariaDB 10.6+` (InnoDB, strict mode) | `[x] CODE VERIFIED` |
@@ -57,7 +57,8 @@
   - `SESSION_SAME_SITE=lax`
 - [x] **Private KYC Directory Isolation**: Verify `/storage/app/kyc_private/` is strictly inaccessible via public HTTP.
 - [x] **TLS & HSTS Headers**: `SecurityHeaders` middleware enforces HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and strict Referrer-Policy.
-- [x] **Trusted Proxies Configuration**: `TrustProxies` middleware configured to parse `X-Forwarded-For` and `X-Forwarded-Proto`.
+- [x] **Trusted Proxies - code side**: `config/trustedproxy.php` feeds the framework's own `Illuminate\Http\Middleware\TrustProxies`, which already runs in the default global stack. `X-Forwarded-Host` is deliberately NOT trusted (nothing here reads it; `trustHosts()` is the tool if it is ever needed).
+- [ ] **Trusted Proxies - operator input**: set `TRUSTED_PROXIES` to the real proxy addresses - line 25 above is still `NOT VERIFIED`. Left unset, only loopback + RFC 1918 peers are believed, so a public-CDN deployment that skips this reports the edge node's IP for every player, which also collapses the `login:ip:` throttle bucket into one shared budget for the whole lobby.
 
 ---
 
@@ -113,7 +114,7 @@
   ```ini
   [program:thailotto-worker]
   process_name=%(program_name)s_%(process_num)02d
-  command=php /var/www/thailotto/artisan queue:work --queue=high,default,low --tries=3 --timeout=90 --sleep=3
+  command=php /var/www/thailotto/artisan queue:work --queue=financial-critical,webhooks,reconciliation,default,notifications --tries=3 --timeout=180 --sleep=3
   autostart=true
   autorestart=true
   numprocs=4

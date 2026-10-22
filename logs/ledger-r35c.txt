@@ -1,0 +1,366 @@
+Round 35c ledger @ HEAD ec87d11 (code tip d1f6feb) - AUTHORITATIVE
+Suite run: php vendor/bin/phpunit (full suite, 4 testsuites), raw 359197 B, junit 1142148 B
+Trailer verbatim:
+    Tests: 2473, Assertions: 113153, Errors: 117, Failures: 14, Skipped: 3, Risky: 1.
+  (no 'PHPUnit Deprecations' line = 0, closed by d1f6feb)
+  locks=0, php-startup warnings=0, MissingRateLimiter=0
+Red test names: 131 (identical set to round 35: newly_red=0)
+Environment at this commit: 50 PHP modules, bcmath=yes gd=yes pdo_mysql=yes (round 35 fix, no repo source edits)
+Extension guards in the tree: only bcmath (app/Services/Finance/Money.php -> THROWS money_exact_arithmetic_unavailable,
+  no float fallback) and pdo_mysql (config/database.php, DatabaseDriverOptionsTest) -- both satisfied, so the
+  extension set is COMPLETE for this codebase; phpunit.xml pins CACHE_STORE=array SESSION_DRIVER=array
+  QUEUE_CONNECTION=sync BROADCAST_CONNECTION=log, so redis/apcu/memcached capability is irrelevant to the suite.
+Risky:1 disposition: GloResultFallbackTest 'did not remove its own error/exception handlers' = framework
+  re-bootstrap artifact (vendor .../HandleExceptions.php:49 set_error_handler, :342 restore_error_handler);
+  zero set_*_handler in app/ tests/ bootstrap/ -> declined, in-test 'fix' would pop Laravel's handler.
+Author-scope reds, each measured not assumed:
+  TranslationKeyIntegrityTest: 2152 refs checked, 74 unresolved, ALL of form 'namespace "chat" has no lang file'.
+    lang/{en,th}/chat.php absent from HEAD, from all 53 archives (filename-level sweep), and from the patch series;
+    delivered root 5df5d14 ships exactly 20 namespaces x 2 locales with zero chat/transfer entries -> undelivered lane.
+  Pages77To100StaticContractTest: 54 expected route literals, exactly 1 absent -- "Route::get('/users'" -- and
+    routes/web.php:869-871 documents the deliberate choice ('/legacy/users, NOT /users: Filament UserResource owns
+    the GET admin/users URI; Laravel keys the route table by method+URI'). Satisfying the grep would re-create
+    the documented collision -> not bent.
+  PublicResultsAnonymousTest wants assertSee('Government Lottery results') on /results; that phrase exists ONLY at
+    HomeController.php:34,37 as a meta fallback -> writing it is new site copy AND PublicTermsTest simultaneously
+    asserts the site 'do[es] not claim government ownership' -> the suite contradicts itself, author call.
+  ScheduleRegistrationTest (verbatim): Failed asserting that ''/home/user/phplocal/usr/bin/php8.4' 'artisan'
+    payment:purge-webhook-replay-guards' does not contain "payment" -- the 'no money in the scheduler' tripwire
+    catches the author's own purge command NAME. Renaming it is forbidden here; left as-is.
+  LocaleNegotiationTest: no such table: chat_canned_responses (schema for the undelivered chat lane).
+Asset lane correction: resources/js/chat/widget.js (17405 B) and operator.js (18077 B) ARE in HEAD and are the
+  vite.config.js:121-122 inputs referenced by chat/operator.blade.php:110 -- no restoration was needed. Truly
+  absent: resources/css/chat.css, resources/js/transfer.js, resources/css/transfer.css, and vite.config.js:123
+  ends with '// PROMPT: Cash <-> Win balance transfer panel.' followed by NO input -> the delivery was truncated here.
+Ledger durability: logs/*.raw|*.xml are not gitignored, so untracked copies die to the ~128 MB snapshot cap;
+  this compact file is the durable record, the originals live in /home/user/logs/.
+Red names:
+BalanceTransferServiceTest::a_cash_to_win_transfer_moves_the_amount_and_charges_the_fee_on_top
+BalanceTransferServiceTest::a_disabled_lane_refuses_with_503_and_moves_nothing
+BalanceTransferServiceTest::a_frozen_source_wallet_is_refused_without_disclosing_why
+BalanceTransferServiceTest::a_malformed_amount_never_reaches_bcmath
+BalanceTransferServiceTest::a_quote_lists_limit_blockers_so_the_ui_can_explain_them
+BalanceTransferServiceTest::a_quote_prices_the_lane_without_moving_anything
+BalanceTransferServiceTest::a_quote_reports_unaffordable_without_throwing
+BalanceTransferServiceTest::a_reference_never_uses_an_ambiguous_character
+BalanceTransferServiceTest::a_single_disabled_direction_leaves_the_other_working
+BalanceTransferServiceTest::a_transfer_with_a_zero_fee_moves_value_exactly
+BalanceTransferServiceTest::a_win_to_cash_transfer_moves_money_back_the_other_way
+BalanceTransferServiceTest::a_win_wallet_is_created_on_first_use
+BalanceTransferServiceTest::a_withdrawn_fee_row_refuses_rather_than_transferring_for_free
+BalanceTransferServiceTest::a_zero_amount_is_refused_even_though_it_is_syntactically_valid
+BalanceTransferServiceTest::an_amount_above_the_lane_maximum_is_refused
+BalanceTransferServiceTest::an_amount_below_the_lane_minimum_is_refused
+BalanceTransferServiceTest::an_amount_the_source_cannot_cover_is_refused_and_nothing_moves
+BalanceTransferServiceTest::an_oversized_key_is_hashed_rather_than_truncated
+BalanceTransferServiceTest::attempting_to_mass_assign_monetary_columns_is_refused_outright
+BalanceTransferServiceTest::different_keys_both_execute
+BalanceTransferServiceTest::every_completed_transfer_has_a_unique_reference_and_uuid
+BalanceTransferServiceTest::failed_attempts_do_not_consume_daily_allowance
+BalanceTransferServiceTest::locked_funds_are_not_spendable_by_a_transfer
+BalanceTransferServiceTest::monetary_columns_are_not_mass_assignable
+BalanceTransferServiceTest::no_key_at_all_still_executes_and_records
+BalanceTransferServiceTest::the_clearing_account_constant_is_seeded_in_the_chart_of_accounts
+BalanceTransferServiceTest::the_cooldown_allows_a_transfer_once_enough_time_has_passed
+BalanceTransferServiceTest::the_cooldown_does_not_apply_across_directions
+BalanceTransferServiceTest::the_cooldown_refuses_a_second_transfer_that_arrives_too_soon
+BalanceTransferServiceTest::the_daily_amount_limit_refuses_a_transfer_that_would_exceed_it
+BalanceTransferServiceTest::the_daily_count_limit_refuses_once_reached
+BalanceTransferServiceTest::the_engine_type_is_recorded_in_transaction_metadata
+BalanceTransferServiceTest::the_fee_is_snapshotted_so_a_later_rate_change_cannot_rewrite_history
+BalanceTransferServiceTest::the_players_total_balance_falls_by_exactly_the_fee
+BalanceTransferServiceTest::the_quote_and_the_execution_agree_on_the_fee
+BalanceTransferServiceTest::the_row_snapshots_the_balances_as_they_were_at_that_moment
+BalanceTransferServiceTest::the_same_key_with_a_different_amount_is_a_conflict_not_a_replay
+BalanceTransferServiceTest::the_same_key_with_a_different_direction_is_a_conflict
+BalanceTransferServiceTest::the_same_key_with_the_same_payload_replays_without_moving_money_again
+BalanceTransferServiceTest::the_transfer_row_records_the_completed_state_and_both_transaction_legs
+BalanceTransferServiceTest::the_whole_transfer_commits_or_rolls_back_together
+BalanceTransferServiceTest::transferring_twice_reuses_the_same_wallet_rather_than_creating_a_second_one
+BalanceTransferServiceTest::two_players_balances_are_never_intermingled
+BusinessCriticalInvariantTest::test_invariant_10_agent_commission_settlement_idempotency
+BusinessCriticalInvariantTest::test_invariant_11_agent_commission_cancellation_for_suspended_agent
+BusinessCriticalInvariantTest::test_invariant_13_self_exclusion_lifecycle
+BusinessCriticalInvariantTest::test_invariant_15_multi_currency_wallet_isolation
+BusinessCriticalInvariantTest::test_invariant_1_idempotent_webhook_processing
+BusinessCriticalInvariantTest::test_invariant_2_withdrawal_disbursement_terminal_state_safety
+BusinessCriticalInvariantTest::test_invariant_3_financial_reconciliation_engine_auditing
+BusinessCriticalInvariantTest::test_invariant_4_wallet_ledger_balance_consistency
+ChatOperatorApiTest::test_agent_reply_stamps_first_response_but_note_does_not
+ChatOperatorApiTest::test_claim_without_reply_permission_is_refused
+ChatOperatorApiTest::test_close_without_close_permission_is_refused
+ChatOperatorApiTest::test_dashboard_shows_queue_and_presence
+ChatOperatorApiTest::test_operator_close_writes_reason_and_queues_transcript
+ChatOperatorApiTest::test_operator_poll_sees_internal_notes
+ChatOperatorApiTest::test_player_account_cannot_reach_the_console
+ChatOperatorApiTest::test_release_puts_the_conversation_back_in_the_queue
+ChatOperatorApiTest::test_take_next_claims_the_best_candidate
+ChatOperatorApiTest::test_take_next_reports_empty_queue_honestly
+ChatOperatorApiTest::test_the_claim_race_has_exactly_one_winner
+ChatOperatorApiTest::test_visitor_cannot_force_a_note_kind
+ChatSecurityTest::test_a_member_cannot_read_another_members_conversation
+ChatSecurityTest::test_a_second_browser_cannot_read_the_first_conversation
+ChatSecurityTest::test_a_second_browser_cannot_write_into_the_first_conversation
+ChatSecurityTest::test_guest_cannot_forge_a_sender_identity
+ChatSecurityTest::test_identity_token_is_stored_only_as_a_hash
+ChatSecurityTest::test_probing_by_id_learns_nothing
+ChatSecurityTest::test_well_formedness_rejects_malformed_tokens
+ChatVisitorApiTest::test_availability_is_public_and_honest
+ChatVisitorApiTest::test_client_token_retry_does_not_duplicate
+ChatVisitorApiTest::test_close_is_final_for_sends_but_keeps_the_thread_readable
+ChatVisitorApiTest::test_empty_and_oversized_messages_are_refused_with_codes
+ChatVisitorApiTest::test_guest_can_open_a_conversation_and_gets_identity_cookie
+ChatVisitorApiTest::test_internal_notes_never_reach_the_visitor
+ChatVisitorApiTest::test_mark_read_zeroes_the_visitor_counter_idempotently
+ChatVisitorApiTest::test_signed_in_member_claims_the_guest_conversation_without_losing_it
+ChatVisitorApiTest::test_start_is_idempotent_resume_not_duplicate
+ChatVisitorApiTest::test_unknown_browser_gets_404_not_someone_elses_chat
+ChatVisitorApiTest::test_visitor_can_send_and_poll_their_own_message
+ChatVisitorApiTest::test_widget_config_respects_master_switch
+ChunkedSettlementTest::a_completed_run_cannot_settle_the_draw_a_second_time
+ChunkedSettlementTest::a_run_opened_under_dry_run_keeps_dry_run_even_if_config_changes_mid_run
+ChunkedSettlementTest::an_interrupted_run_resumes_from_its_cursor_and_finishes
+ChunkedSettlementTest::finalize_refuses_while_bets_remain_past_the_cursor
+ChunkedSettlementTest::only_one_run_can_exist_for_a_draw
+ChunkedSettlementTest::percent_complete_reports_progress_and_is_null_without_a_denominator
+ChunkedSettlementTest::re_running_a_chunk_does_not_pay_a_bet_twice
+ChunkedSettlementTest::the_chunked_path_pays_only_once_and_only_under_live
+ChunkedSettlementTest::the_draw_stays_published_until_the_run_is_finalized
+ChunkedSettlementTest::the_monolithic_job_stands_aside_for_an_aborted_resumable_run
+ChunkedSettlementTest::the_monolithic_job_stands_aside_while_a_chunked_run_owns_the_draw
+ChunkedSettlementTest::the_monolithic_path_refuses_while_a_chunked_run_is_in_flight
+ChunkedSettlementTest::the_orchestrator_clamps_the_configured_chunk_size
+ChunkedSettlementTest::the_safety_mode_is_read_at_open_and_not_per_chunk
+ChunkedSettlementTest::totals_accumulate_exactly_across_chunks
+FinalProductionReadinessTest::test_agent_commission_settlement
+FinalProductionReadinessTest::test_bulk_bet_placement_with_idempotency
+FinalProductionReadinessTest::test_payment_webhook_replay_protection
+FinalProductionReadinessTest::test_system_health_and_readiness
+FinalProductionReadinessTest::test_wallet_isolation_and_balance_immutability
+FinalWholeSystemNoSkipTest::test_02_deposit_funding_and_balance_crediting
+FinalWholeSystemNoSkipTest::test_04_bulk_bet_placement_with_idempotency_and_satang_math
+FinalWholeSystemNoSkipTest::test_05_proportional_prize_calculation_and_settlement
+FinalWholeSystemNoSkipTest::test_06_withdrawal_request_and_disbursement_lifecycle
+FinalWholeSystemNoSkipTest::test_07_agent_referral_and_settlement_journal
+FinalWholeSystemNoSkipTest::test_08_responsible_gaming_and_self_exclusion_safeguards
+GloResultFallbackTest::the_import_service_fetches_through_the_ladder_and_labels_from_the_payload
+GloResultFallbackTest::the_ladder_refuses_to_reach_the_fixture_lane_without_explicit_permission
+LocaleNegotiationTest::test_the_operator_canned_response_picker_follows_the_negotiated_locale
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_01_glo_l6_official_ticket_business_flow
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_02_glo_proportional_payout_and_direct_wallet_settlement
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_03_payment_hub_deposit_and_withdrawal_execution
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_04_wallet_canonical_double_entry_and_single_source
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_06_financial_idempotency_protection
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_07_cross_currency_wallet_isolation
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_08_responsible_gaming_canonical_enforcement
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p1_14_kyc_document_storage_and_verification
+P0P1P2ComprehensiveEnterpriseSuiteTest::test_p2_22_agent_and_draw_reconciliation
+Pages150To250StaticContractTest::test_canonical_finance_lottery_and_rust_boundaries_are_present
+Pages77To100StaticContractTest::test_pages_100_through_150_route_contracts_are_present_and_private_surfaces_are_bounded
+PublicResultsAnonymousTest::test_results_page_is_public_without_login
+PublicTermsTest::test_legal_disclaimer_independent_platform_and_language_parity
+RealMoneyBusinessReadinessTest::test_bulk_bet_slip_cart_partial_success_and_replay_idempotency
+RealMoneyBusinessReadinessTest::test_financial_reconciliation_engine_runs_without_anomalies
+RealMoneyBusinessReadinessTest::test_glo_prize_claim_lifecycle_and_approval
+RealMoneyBusinessReadinessTest::test_multi_currency_wallet_reservation_and_consumption
+RealMoneyBusinessReadinessTest::test_withdrawal_disbursement_failure_restores_balance
+ScheduleRegistrationTest::no_scheduled_task_touches_money
+TranslationKeyIntegrityTest::test_every_literal_translation_reference_resolves_in_both_locales
+
+ROUND 37 ADDENDUM (no phpunit re-run; the numbers above are unchanged and authoritative):
+- production caching trio route:cache/view:cache/config:cache all EXIT 0 at 45a1619 (the old
+  "route:cache exits 1" claim is retracted); caches cleared again immediately afterwards.
+- php artisan route:list EXIT 1: Target class [App\Services\Transfer\BalanceTransferService] does not exist.
+- measured blast radius: 585 routes / 87 controllers / 1 controller file absent (Admin\BalanceTransferDeskController,
+  routes/web.php:1064-1103); 13 absent App\Services classes referenced by 7 delivered controllers =
+  20 DI-blocking (5 controllers unconstructable: ChatAdmin/ChatAttachment/ChatOperator/ChatVisitor/BalanceTransfer)
+  + 2 lazy-only (PlayerProfilePortalController:149, Web/PlayerWebController) -> Player & Web stay green.
+- sandbox hazard: the boundary re-cloned the repo and HEAD fell back to 5df5d14; recovered by the bundle ritual;
+  ALWAYS `git rev-parse --short HEAD` first thing in a turn.
+
+ROUND 38 - AUTHORITATIVE NUMBERS MOVED to: Tests 2477 / Assertions 113165 / Errors 117 / Failures 14 /
+Skipped 3 / Risky 1 / Deprecations none / locks 0 (raw: /home/user/logs/suite-r38.raw, junit-r38.xml).
+Red names still 131 (newly_red 0, closed 0). New: app/Services/Wallet/WalletService.php normalises the loose
+shapes its signature advertises (fix), guarded by tests/Feature/Finance/WalletServiceFacadeNormalizationTest.php
+(4 tests, 12 assertions, incl. exact-decimal string comparisons and a float-refusal case).
+The 36 Feature-root reds are test-vs-API drift, not money failures: 13 files call the strict canonical
+WalletService with pre-refactor loose args; AgentCommission/CommissionStatus enum-cast comparison;
+reconcileSystem -> reconcile rename; referenceType: -> options['reference_type']; 'UP' vs documented
+UP->healthy translation; and BusinessCriticalInvariantTest:168's ledger CASE-WHEN whitelist that lacks
+'adjustment' and lists a non-existent 'credit' type. Self-exclusion: two-phase by design, activation sweep IS
+scheduled (ExpireSelfExclusionsJob via routes/console.php:199) -> no safety hole, one open policy question in
+test_p0_08. Structural: 1192 app classes, 31 short-name collisions, 14 zero-reference variants (do not delete -
+Filament/resources discovery caveat).
+
+ROUND 39 - LEDGER MOVED AGAIN (first net red reduction since the toolchain fix):
+Tests 2478 / Assertions 113167 / Errors 117 / Failures 13 / Skipped 3 / Risky 1 / Deprecations none /
+locks 0. Red names 130 (was 131): CLOSED ChatOperatorApiTest::test_player_account_cannot_reach_the_console,
+NEWLY RED none, no kind changes. Cause: app/Providers/{Chat,Transfer}ServiceProvider imported
+Illuminate\Support\Limit - a class that exists in no Laravel version (correct: Illuminate\Cache\RateLimiting\Limit)
+- so every limiter fatals at dispatch; mine, from ab17c1d, undetected for 7 rounds because a registration-only
+test passes anyway. Guard added (source-level, mutation-tested) in tests/Feature/Security/NamedRateLimitersTest.php.
+Also recorded here so no one re-derives it: Draw's 15 = missing run-handle API on a PRESENT class; 1 absent class
+(BalanceTransferService) accounts for 43 of the remaining 117 errors; kyc_status must NOT enter $fillable.
+
+## ROUND 40 (HEAD 7988fb1 — tests only; app/ untouched)
+Generalised the round-39 find: audited every runtime symbol my providers/tests
+touch by INVOKING it, not grepping.
+
+- **30 named limiters invoked** with a bare `Request::create('/throttle-probe','GET')`
+  in 0.45 s → **0 broken**. My 9 return real `Illuminate\Cache\RateLimiting\Limit`
+  objects; the author's 21 (`login`, `password-reset`, `contact-submit`,
+  `glo/national/weekly/bingo/pcso-result-search`, `ticket-verification`, …) return
+  non-empty *arrays* of Limits — a usable-limit test must accept both shapes, and
+  `Limit` with `callback === null` (AppServiceProvider's deliberate deferral).
+- **Config parity**: all 9 keys the two providers read resolve to the documented
+  ceilings — chat 10/30/240/180, transfer 60/10/120/3/6 ⇒ no limiter silently on a default.
+- **429 envelope** built directly off `ApiResponse::error(CODE_RATE_LIMITED,…)`:
+  status 429, `Retry-After: 60`, `success:false`, `error.code=rate_limited`.
+- **New guards** in `tests/Feature/Security/NamedRateLimitersTest.php` (2 tests, now
+  `OK (4/40)`): every declared limiter must invoke and yield a usable limit; the 429
+  envelope must build. **Mutation-proved**: pointing ChatServiceProvider back at the
+  nonexistent FQN makes the source guard name exactly `ChatServiceProvider.php` and the
+  invocation test report `chat-start/chat-poll/chat-send/chat-operator (body threw Error:
+  Class "Illuminate\Support\Limit" not found)` — this test would have caught my round-39
+  bug the day I wrote it. `tests/Feature/Security + tests/Feature/Architecture` =
+  `OK (58 tests, 240 assertions)`, fully green ⇒ my providers pass the repo's own
+  structural gate.
+- **Two retractions of my own claims.** (1) Suspicion that `TransferServiceProvider`
+  called a nonexistent `$user->userCeiling()`: false — it is that provider's own private
+  helper at `TransferServiceProvider.php:67`; the closures use only
+  `getAuthIdentifier()`, `config()`, `ip()`. (2) After `interface_exists(
+  'Symfony\Component\HttpFoundation\ResponseInterface')` returned false I said `vendor/`
+  was pruned — also wrong: my probe had never required the autoloader, so *every*
+  class_exists() read false. Re-measured: the composer classmap has **9,971 entries and
+  0 missing files** ⇒ the tree is internally consistent; but `vendor/symfony/
+  http-foundation` really does ship 25 files **without** `ResponseInterface.php`, and its
+  `Response.php` loads anyway. Standing rule: assert against the repo's own declared types
+  (`ApiResponse::error(): Illuminate\Http\JsonResponse`), never against framework symbols
+  this tree may lack — that is a *stronger* assertion, not a relaxed one.
+- **A self-inflicted bug my own run caught**: inserting imports with a greedy
+  `str.replace` also rewrote the *guard's own* `str_contains` literal, making it demand a
+  three-line import block from every provider (3 false positives). Restored by exact-literal
+  patch. Rule reaffirmed: after editing a test file, RUN it — the diff looked fine.
+- **Author-scope heads-up (recorded, not fixed)**: `app/Providers/AuthServiceProvider.php:63,70`
+  define only `access-metrics` and `access-admin` — so the chat operator routes
+  (`web.php:1211,1252`) authorize properly — while `transfer.view_any`, `transfer.reverse`
+  and `transfer.approve_reverse` are defined by neither Gate nor a policy method. Those
+  desk routes will 403 **every admin even after the absent controller is delivered**
+  (Laravel denies undefined abilities; it does not fatal).
+- **Environment, per turn**: `public/build` and `node_modules` are snapshot-excluded ⇒
+  `npm ci` (142 pkgs, 3 s) + `npm run build` → manifest **25,477 B** before any suite run;
+  `start_process` does not inherit my PATH ⇒ call php by absolute path.
+- **Ledger expectation**: 2480 tests (from 2478, +2 mine) with red names **still 130** —
+  the added assertions are NOT a red reduction and must not be reported as one.
+
+### ROUND 40 RESULTS (tree caa2801, suite ran on 7988fb1 — app/ identical)
+Tests 2480 / Assertions 113175 / Errors 117 / Failures 13 / Skipped 3 / Risky 1 /
+Deprecations 0 / startup warnings 0. Name-A/B r39->r40 via tools/junit_ab.py:
+**red 130 -> 130, CLOSED 0, NEWLY_RED 0, KIND_CHANGED 0, skipped 3->3.** The +2 tests and
++8 assertions reconcile exactly to NamedRateLimitersTest (32->40 assertions), which is the
+proof that adding these guards moved nothing else. `tools/junit_ab.py` counts RED as E+F and
+reports Skipped separately (133 vs 130 was that label, not a ledger conflict).
+Absent-class drivers, recomputed from junit-r40.xml: BalanceTransferService x43,
+ChatConversationService x25, ChatIdentityService x4, ProcessPaymentWebhookService x2 =
+**74 of 117 errors (63%) from four absent classes**; the full red set is now snapshotted in
+tracked `logs/red-names-r40.txt` (130 rows) so a trimmed /home/user/logs cannot blind a round.
+Posture unchanged: RELEASE BLOCKED.
+
+TIP after round 40 = 5012a39 (60 commits, bundle 59 patches / 819268 B, verify+REPLAY OK, red 130, tests 2480/113175, Deprecations 0).
+The next round must  FIRST: the boundary re-clones repo/.git (5 times now -> 5df5d14) and if HEAD is not 5012a39, replay the bundle. Do NOT report the +2 tests/+8 assertions as red progress: they are my own added guards.
+
+## ROUND 41 — FIRST CONTENT-FIX REDUCTION: red 130 -> 128 (tree b621c0e, 62 commits)
+Suite: **2480 tests / 113184 assertions / 117E / 11F / 3S / 1R**, Deprecations 0, startup
+warnings 0, manifest/vite complaints 0. tools/junit_ab.py r40->r41: **CLOSED 2, NEWLY_RED 0,
+KIND_CHANGED 0**, skipped 3->3. The +9 assertions are the two tests now running past their
+first abort (terms cache-control, results FIXTURE_ONLY checks) — reconciles exactly.
+CLOSED: PublicTermsTest::test_legal_disclaimer_independent_platform_and_language_parity and
+PublicResultsAnonymousTest::test_results_page_is_public_without_login. Changed files: ONLY 4
+lang values (en/th public_pages.terms_disclaimer_text, en/th results.lead) — no test, view,
+guard or assertion touched.
+What was wrong: the terms disclaimer said "No page on this site should be read as an official
+GLO website" — the literal `not the official GLO website` (demanded by PublicTermsTest:245 AND
+WeeklyLotteryPublicPageTest:441, and endorsed by the author's own comment at
+PublicAboutVisionTest:110 "body may say ...") was absent; `do not claim government ownership`
+was ALREADY in the same value but its assert never ran (asserts abort at the first failure —
+read assert order, not just the first failing line). The results page had "Government Lottery
+results" nowhere in en copy while PublicResultsAnonymousTest:54 pins it; results.lead (rendered
+at resources/views/results/index.blade.php:15) now names the page and keeps the honesty rule
+("records kept by this platform ... not an official GLO announcement").
+Two of my assumptions died by measurement: (1) the recorded "branding conflict" was not one —
+naming the product is not claiming ownership; (2) the terms view never reads public_pages.terms_*
+directly (grep empty, no <x- tag) — the lang keys are live only because
+app/Services/PublicPages/TermsPageService.php:114 maps sections[].body via text->line(); I
+traced the render path and confirmed via the page dump ("Legal disclaimer" x3) instead of
+editing blind. Thai kept in Thai (appended a sentence, nothing re-translated); results.php stays
+in its untranslated-English style. en/th parity preserved exactly (394=394 identical order;
+results parity true).
+LATENT, RECORDED, NOT PURGED: `ThaiLotto` in resources/views/terms/index.blade.php:29 (an
+aria-label) and in 8 shipped files, while PublicTermsTest:248 forbids `Thailotto` — the case
+differs and assertStringNotContainsString is case-sensitive, so nothing fails;
+PublicAboutVision/Weekly/Fees/Pcso/Bingo are all green. A token purge is out of scope.
+ROUND 42 TARGET, MEASURED: TranslationKeyIntegrityTest::test_every_literal_translation_reference_
+resolves_in_both_locales is red with "2152 literal translation references checked; 74
+unresolved" — of those, exactly **4 distinct keys** (`player.nav_national_lottery`,
+`nav_weekly_lottery`, `nav_bingo_lottery`, `nav_pcso_lottery`) are missing from BOTH
+`lang/en/player.php` and `lang/th/player.php`, which exist, and are used by
+resources/views/components/navigation/main-nav.blade.php (they render as raw keys in shipped
+HTML). Those 4x2 are mine to add. The rest fall in the `chat` (40 rows) / `transfer` (68 rows)
+namespaces whose lang files do not exist at all — author lane, do not stub. My row parse
+double-counted (each line appears twice in the failure body): trust the guard's own summary
+line, and re-read the test source for its counting rule before editing.
+Also red and NOT mine: Pages77To100StaticContractTest::test_pages_100_through_150_route_contracts
+and Pages150To250StaticContractTest assert on file source text, and the dumped routes/web.php
+use-block names Admin\BalanceTransferDeskController — entangled with the absent desk class.
+Environment, again: 6th re-clone caught (HEAD 5df5d14, commits=1, dirty=168) ->
+`tools/gitbundle56.sh restore` + `git reset --hard <tip>` + re-set repo-local git identity (the
+reset drops it); `public/build` + `node_modules` are still snapshot-excluded (npm ci 142 pkgs,
+build -> manifest 25477 B). Tracked rolling red snapshot is now `logs/red-names-latest.txt`
+(128 rows) instead of a per-round filename. POSTURE: RELEASE BLOCKED — 128 reds, 117 of them
+errors, and 74 of those errors name just four absent classes.
+
+## ROUND 42 (tree 22a5b4b, 64 commits) — public nav labels; red 128 -> 128 (0 closed, by design)
+Fixed a user-visible defect: main-nav.blade.php calls __('player.nav_national_lottery' |
+nav_weekly_lottery | nav_bingo_lottery | nav_pcso_lottery) and none of the four existed in
+lang/{en,th}/player.php, so EVERY public page printed the raw key strings in its header.
+TranslationKeyIntegrityTest's own summary moved **74 unresolved -> 66** and its failure body no
+longer lists a single "missing from lang/*/player.php" row (measured in the full-suite junit, not
+my parse). The 66 remaining are all "reference to namespace which has no lang file" for chat(40)/
+transfer(68) — the author's absent lanes — and the guard asserts assertSame([], $missing), so
+**this test cannot be closed in my lane**; no lang/en/chat.php or transfer.php was stubbed.
+Labels derived mechanically, nothing invented: en = each page's own 'heading' minus trailing
+" Results" (National/Weekly/Mega/PCSO Lottery — the bingo lane brands itself 'Mega Lottery', as
+BingoLotteryPublicPageTest:135 also pins), th = the same page's Thai heading minus its leading
+"ผล" (สลากกินแบ่งแห่งชาติ, หวยรายสัปดาห์, Mega Lottery, หวย PCSO — the Thai files keep that brand in
+Latin script). Inserted at the same position in both files after nav_contact; en/th stay exactly
+symmetric (281 = 281, identical order).
+Adds tests/Feature/PublicPages/PublicNavLabelsTest.php — OK (3 tests, 28 assertions): renders
+/terms and requires the four labels and NO 'player.nav_' substring, in en and in th, plus key
+presence/non-emptiness in both locales. A deliberately over-strict assertion was removed before
+shipping: "English must not survive into the Thai render" would be wrong for 'Mega Lottery'.
+Suite r42: 2483 / 113212 / 117E / 11F / 3S / 1R, Deprecations 0, startup warnings 0; A/B vs r41:
+CLOSED 0, NEWLY_RED 0, KIND_CHANGED 0; +3 tests and +28 assertions reconcile exactly to the new
+file. Changed files: lang/en/player.php, lang/th/player.php, the new test — nothing else.
+Three process lessons, all self-inflicted and all measured: (1) the 7th re-clone fired and I
+restored history but did NOT rebuild assets, so the first run of my new test died on
+ViteManifestNotFoundException and an isolated 9-dir combo showed **11 phantom reds** (HomePage
+asset test, fees-page tests, player-page tests). After npm ci + npm run build (manifest 25,477 B)
+the same combo was 426 tests / 1 failure. Rule: immediately after ANY reset, assert the manifest
+bytes before ANY phpunit invocation. (2) Those 11 looked "NEW" only because my A/B helper compared
+dotted snapshot names against backslash junit names — a comparison bug, not a finding; normalise
+before concluding anything. (3) A bare-kernel php /tmp probe returns 500 for real page requests
+(no phpunit env), so it can NEVER serve as behavioural proof for HTTP — which is exactly why the
+page-level guard test replaced it.
+Next (unchanged, still open): the four guard-exception reds are fixture gaps with a known recipe
+(seed the wallet / KYC rows test-side at AgentCommissionSettlementService.php:153,
+GloL6AuthoritativeTicketEngineService.php:379, ProductionPaymentExecutionHubService.php:59) —
+legitimate, never loosen the guard. POSTURE: RELEASE BLOCKED — 128 reds, 117 of them errors, 74
+of those naming just four absent classes.
+
+ROUND 47  settlement path: orchestrator run-API implemented (10 methods over the
+          existing settleBetRange/finalizeChunkedSettlement primitives);
+          SettleDrawChunkJob trait-collision fatal fixed; FinalizeDrawSettlementJob
+          created; BetStatus::Accepted -> ::Active; --queue arity drift removed.
+          suite 2483/113286 102E/11F/3S  = 113 RED (128 -> 113, 15 closed)
+          A/B: 0 newly red, 0 kind changed. sweep47: 0 enum-case, 0 arity repo-wide.
+          tip ccab8b8  posture RELEASE BLOCKED (74 of 102 = absent author lanes)

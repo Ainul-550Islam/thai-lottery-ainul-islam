@@ -1,0 +1,12 @@
+{
+  "scope": "Intentional expected-failure mutation of candidate visibility, NOT a normally passing acceptance test. Safety still refuses money; this control proves valid old-snapshot replay needs the current read.",
+  "expected_failure_observed": true,
+  "observed_exit_code": 1,
+  "mutation": "Remove only the lockForUpdate clause in FinancialReversalService::candidates.",
+  "original_source_sha256": "48d6154ed2db5d11a36bb4204f158a14ad255964f1355ca9ecadfc7a65775686",
+  "mutant_source_sha256": "c6508cbbe3bdf8f9b0780e9f5dc0a66cfbafac6af71b498f4121ca36e03357d2",
+  "source_restored": true,
+  "restored_source_sha256": "48d6154ed2db5d11a36bb4204f158a14ad255964f1355ca9ecadfc7a65775686",
+  "testcases": 1,
+  "output": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\nF                                                                   1 / 1 (100%)\n\nTime: 00:07.671, Memory: 66.50 MB\n\nThere was 1 failure:\n\n1) Tests\\Feature\\Payment\\ReversalIntegrityServerRaceTest::test_old_snapshots_read_the_newly_committed_canonical_compensation_for_replay\n[{\"outcome\":\"refused\",\"code\":\"reversal_accounting_conflict\",\"exception\":\"App\\\\Exceptions\\\\FinancialException\",\"sqlstate\":null,\"table\":null,\"statement\":null,\"driver_code\":null},{\"outcome\":\"refused\",\"code\":\"reversal_accounting_conflict\",\"exception\":\"App\\\\Exceptions\\\\FinancialException\",\"sqlstate\":null,\"table\":null,\"statement\":null,\"driver_code\":null}]\nFailed asserting that two arrays are identical.\n--- Expected\n+++ Actual\n@@ @@\n Array &0 [\n-    0 => 'reversed',\n-    1 => 'reversed',\n+    0 => 'refused',\n+    1 => 'refused',\n ]\n\n/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/ReversalIntegrityServerRaceTest.php:91\n\nFAILURES!\nTests: 1, Assertions: 19, Failures: 1.\n"
+}

@@ -75,14 +75,14 @@
                                     <div class="flex items-center justify-end space-x-2">
                                         <form method="POST" action="{{ route('admin.withdrawals.disburse', $withdrawal->id) }}">
                                             @csrf
-                                            <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition" onclick="return confirm('Authorize and disburse this withdrawal?')">
+                                            <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition" data-confirm="Authorize and disburse this withdrawal?">
                                                 Disburse
                                             </button>
                                         </form>
 
                                         <form method="POST" action="{{ route('admin.withdrawals.reject', $withdrawal->id) }}">
                                             @csrf
-                                            <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg transition" onclick="return confirm('Reject withdrawal and restore balance to user?')">
+                                            <button type="submit" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg transition" data-confirm="Reject withdrawal and restore balance to user?">
                                                 Reject
                                             </button>
                                         </form>

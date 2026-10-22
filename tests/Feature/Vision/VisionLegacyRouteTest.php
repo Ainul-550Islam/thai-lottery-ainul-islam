@@ -9,6 +9,13 @@ use Tests\TestCase;
 
 final class VisionLegacyRouteTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite(); // asserts page content; public/build/manifest.json is a build artefact
+    }
+
     use RefreshDatabase;
 
     public function test_legacy_vision_url_redirects_to_the_canonical_route(): void

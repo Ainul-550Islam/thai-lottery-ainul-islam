@@ -1,0 +1,4 @@
+  Tests:    111 failed, 2 skipped, 2186 passed (112773 assertions)
+  Duration: 305.23s
+
+EXIT=2

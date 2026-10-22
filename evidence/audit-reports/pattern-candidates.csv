@@ -1,0 +1,471 @@
+file,line,candidate_not_confirmed_defect
+.env.example,179,# deposits instead of showing a placeholder account.
+app/Enums/GatewayIntegrationStatus.php,14,* - Simulated: Mocked/sandbox driver for testing environments only.
+app/Filament/Pages/GloTicketFreezePage.php,65,"->placeholder('GLOFZ-… or drawId-l6-123456'),"
+app/Filament/Resources/AgentResource.php,158,->placeholder('—')
+app/Filament/Resources/AgentResource.php,195,->placeholder('not approved')
+app/Filament/Resources/AgentResource.php,232,"Infolists\Components\TextEntry::make('user.username')->label('Account')->placeholder('—'),"
+app/Filament/Resources/AgentResource.php,233,"Infolists\Components\TextEntry::make('user.email')->label('Email')->placeholder('—'),"
+app/Filament/Resources/AgentResource.php,243,"Infolists\Components\TextEntry::make('parent.agent_code')->label('Upline agent')->placeholder('none — top of tree'),"
+app/Filament/Resources/AgentResource.php,274,"->placeholder('not approved'),"
+app/Filament/Resources/AgentResource.php,278,"->placeholder('—'),"
+app/Filament/Resources/AgentResource.php,281,->placeholder('—')
+app/Filament/Resources/AuditLogResource.php,164,->placeholder('—')
+app/Filament/Resources/AuditLogResource.php,176,->placeholder('system')
+app/Filament/Resources/AuditLogResource.php,184,"->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,191,"->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,196,->placeholder('—')
+app/Filament/Resources/AuditLogResource.php,201,->placeholder('—')
+app/Filament/Resources/AuditLogResource.php,209,->placeholder('—')
+app/Filament/Resources/AuditLogResource.php,316,->placeholder('not classified')
+app/Filament/Resources/AuditLogResource.php,320,->placeholder('—')
+app/Filament/Resources/AuditLogResource.php,329,"->placeholder('system (no signed-in user)'),"
+app/Filament/Resources/AuditLogResource.php,332,"->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,336,"->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,339,"->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,351,->placeholder('No field-level difference recorded for this entry.')
+app/Filament/Resources/AuditLogResource.php,364,"->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,371,"->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,379,"Infolists\Components\TextEntry::make('ip_address')->label('IP address')->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,380,"Infolists\Components\TextEntry::make('method')->label('HTTP method')->placeholder('—'),"
+app/Filament/Resources/AuditLogResource.php,381,"Infolists\Components\TextEntry::make('url')->label('URL')->placeholder('—')->columnSpan(2),"
+app/Filament/Resources/AuditLogResource.php,382,"Infolists\Components\TextEntry::make('user_agent')->label('User agent')->placeholder('—')->columnSpanFull(),"
+app/Filament/Resources/AuditLogResource.php,383,"Infolists\Components\TextEntry::make('request_id')->label('Request id')->copyable()->placeholder('—'),"
+app/Filament/Resources/BetResource/Pages/ViewBet.php,22,*   service to delegate to: cancellation and refund are not implemented in the domain
+app/Filament/Resources/BetResource.php,171,"->placeholder('—'),"
+app/Filament/Resources/BetResource.php,176,"->placeholder('—'),"
+app/Filament/Resources/BetResource.php,326,->placeholder('All bets')
+app/Filament/Resources/BetResource.php,350,"Infolists\Components\TextEntry::make('user.username')->label('Player')->placeholder('—'),"
+app/Filament/Resources/BetResource.php,351,"Infolists\Components\TextEntry::make('draw.draw_number')->label('Draw')->placeholder('—'),"
+app/Filament/Resources/BetResource.php,352,"Infolists\Components\TextEntry::make('ticket.ticket_number')->label('Ticket')->placeholder('not ticketed'),"
+app/Filament/Resources/BetResource.php,385,"Infolists\Components\TextEntry::make('cancelled_reason')->label('Cancellation reason')->placeholder('—'),"
+app/Filament/Resources/BetResource.php,402,"->placeholder('—'),"
+app/Filament/Resources/DepositResource.php,173,->placeholder('—')
+app/Filament/Resources/DepositResource.php,256,"Infolists\Components\TextEntry::make('provider')->placeholder('—'),"
+app/Filament/Resources/DepositResource.php,257,"Infolists\Components\TextEntry::make('provider_reference')->label('Provider reference')->placeholder('—')->copyable(),"
+app/Filament/Resources/DepositResource.php,311,"->placeholder('none posted'),"
+app/Filament/Resources/DepositResource.php,320,->placeholder('—')
+app/Filament/Resources/DrawResource.php,181,"->placeholder('—'),"
+app/Filament/Resources/DrawResource.php,186,"->placeholder('—'),"
+app/Filament/Resources/DrawResource.php,281,"Infolists\Components\TextEntry::make('result.first_prize')->label('First prize (6 digits)')->placeholder('not published'),"
+app/Filament/Resources/DrawResource.php,282,"Infolists\Components\TextEntry::make('result.bottom_two')->label('Bottom two')->placeholder('not published'),"
+app/Filament/Resources/DrawResource.php,283,"Infolists\Components\TextEntry::make('result.published_at')->label('Published at')->formatStateUsing(fn ($state): string => AdminFormat::marketTime($state))->placeholder('—'),"
+app/Filament/Resources/FinancialTransactionResource.php,120,->placeholder('system')
+app/Filament/Resources/FinancialTransactionResource.php,231,"Infolists\Components\TextEntry::make('user.username')->label('Player')->placeholder('system'),"
+app/Filament/Resources/FinancialTransactionResource.php,237,->placeholder('—')
+app/Filament/Resources/FinancialTransactionResource.php,250,"Infolists\Components\TextEntry::make('description')->label('Description')->placeholder('—')->columnSpanFull(),"
+app/Filament/Resources/FinancialTransactionResource.php,290,"Infolists\Components\TextEntry::make('reference_id')->label('Source id')->placeholder('—'),"
+app/Filament/Resources/FinancialTransactionResource.php,299,"->placeholder('—'),"
+app/Filament/Resources/NumberLimitResource.php,306,Forms\Components\Placeholder::make('reserved_so_far')
+app/Filament/Resources/NumberLimitResource.php,347,"->placeholder('—'),"
+app/Filament/Resources/NumberLimitResource.php,395,->placeholder('config fallback')
+app/Filament/Resources/NumberLimitResource.php,468,"Infolists\Components\TextEntry::make('draw.draw_number')->label('Draw')->placeholder('—'),"
+app/Filament/Resources/NumberLimitResource.php,503,"->placeholder('falls back to configuration'),"
+app/Filament/Resources/TicketResource.php,28,"* `tickets` is a real, fully populated table, not a stub: ticket_number, user_id,"
+app/Filament/Resources/TicketResource.php,158,"->placeholder('—'),"
+app/Filament/Resources/TicketResource.php,163,"->placeholder('—'),"
+app/Filament/Resources/TicketResource.php,258,"Infolists\Components\TextEntry::make('user.username')->label('Player')->placeholder('—'),"
+app/Filament/Resources/TicketResource.php,259,"Infolists\Components\TextEntry::make('draw.draw_number')->label('Draw')->placeholder('—'),"
+app/Filament/Resources/UserResource/RelationManagers/WalletsRelationManager.php,106,->placeholder('—')
+app/Filament/Resources/UserResource.php,202,->placeholder('—')
+app/Filament/Resources/UserResource.php,220,->placeholder('none')
+app/Filament/Resources/UserResource.php,226,->placeholder('not verified')
+app/Filament/Resources/UserResource.php,232,->placeholder('never')
+app/Filament/Resources/UserResource.php,287,"Infolists\Components\TextEntry::make('phone')->label('Phone')->placeholder('—'),"
+app/Filament/Resources/UserResource.php,320,"->placeholder('none'),"
+app/Filament/Resources/UserResource.php,341,"->placeholder('not verified'),"
+app/Filament/Resources/UserResource.php,345,"->placeholder('not verified'),"
+app/Filament/Resources/UserResource.php,349,"->placeholder('never'),"
+app/Filament/Resources/UserResource.php,352,"->placeholder('—'),"
+app/Filament/Resources/WalletResource.php,177,->placeholder('—')
+app/Filament/Resources/WalletResource.php,286,->placeholder('not locked')
+app/Filament/Resources/WithdrawalResource.php,261,"Infolists\Components\TextEntry::make('provider')->placeholder('—'),"
+app/Filament/Resources/WithdrawalResource.php,262,"Infolists\Components\TextEntry::make('provider_reference')->label('Provider reference')->placeholder('—'),"
+app/Filament/Resources/WithdrawalResource.php,295,"Infolists\Components\TextEntry::make('reviewed_by')->label('Reviewed by (user id)')->placeholder('—'),"
+app/Filament/Resources/WithdrawalResource.php,301,->placeholder('—')
+app/Filament/Resources/WithdrawalResource.php,318,"->placeholder('none posted'),"
+app/Http/Requests/Api/V1/LoginRequest.php,29,* stub would imply a contract it cannot honour. Accounts are created by seeding or by the
+app/Http/Responses/ApiResponse.php,14,"* placeholder, so there was no existing response convention to preserve. This class"
+app/Http/Support/BetPurchaseAuditRecorder.php,23,"* placeholder is. Phase 4.4 uses all of it. No new logging framework, no new table, no new"
+app/Http/Support/BetPurchaseAuditRecorder.php,45,"* second line of defence, using the project's declared placeholder."
+app/Http/Support/BetPurchaseAuditRecorder.php,206,"$placeholder = (string) config('security.audit.redaction_placeholder', '[redacted]');"
+app/Http/Support/BetPurchaseAuditRecorder.php,212,$snapshot[$key] = $placeholder;
+app/Models/AuditLog.php,28,* 'audit.redaction_placeholder') names the keys the audit service has to strip
+app/Models/AuditLog.php,106,*    replaced with the configured placeholder) before the row reaches the
+app/Models/AuditLog.php,145,"$placeholder = (string) config('security.audit.redaction_placeholder', '[REDACTED]');"
+app/Models/AuditLog.php,163,$scrubbed[$key] = $placeholder;
+app/Models/Support/AbstractLotteryDraw.php,66,* placeholder for zeros. A lane that renders an unavailable draw as
+app/Services/Home/HomePageDataService.php,216,"'check_placeholder' => (string) trans('home.check_placeholder', [], $locale),"
+app/Services/Lottery/GloTicketFreezeService.php,285,?? $this->systemPlaceholderActor();
+app/Services/Lottery/GloTicketFreezeService.php,521,private function systemPlaceholderActor(): User
+app/Services/Observability/StructuredLogger.php,115,$placeholder = '[REDACTED]';
+app/Services/Observability/StructuredLogger.php,123,$sanitized[$key] = $placeholder;
+app/Services/Payment/ProductionPaymentExecutionHubService.php,115,* The PromptPay inbound lane is not implemented (see the status block in
+app/Services/Payment/PromptPayPaymentService.php,14,"* THIS IS THE REAL THING, NOT A STUB"
+app/Services/PublicPages/PublicPageDataService.php,18,* cached variant. Failures degrade to a safe UNAVAILABLE stub (same pattern
+app/Services/Risk/RiskAlertService.php,354,* Replace any sensitive key with the configured placeholder.
+app/Services/Risk/RiskAlertService.php,365,$placeholder = $this->config->get('security.audit.redaction_placeholder');
+app/Services/Risk/RiskAlertService.php,371,$placeholder = is_string($placeholder) ? $placeholder : '[redacted]';
+app/Services/Risk/RiskAlertService.php,384,? $placeholder
+app/Services/Ticket/TicketQrVerificationService.php,232,"fingerprint: str_repeat('0', 64), // placeholder; the real signature is derived below"
+composer.json,29,"""mockery/mockery"": ""^1.6"","
+composer.lock,167,"""mockery/mockery"": ""^1.5.1"","
+composer.lock,561,"""jetbrains/phpstorm-stubs"": ""2023.2"","
+composer.lock,2155,"""mockery/mockery"": ""^1.6.10"","
+composer.lock,2190,"""mockery/mockery"": ""Required to use mocking (^1.6)."","
+composer.lock,2281,"""mockery/mockery"": ""^1.5"","
+composer.lock,2284,"""phpstan/phpstan-mockery"": ""^1.1.3"""
+composer.lock,2338,"""mockery/mockery"": ""^1.6"","
+composer.lock,2461,"""mockery/mockery"": ""~1.3.3|^1.4.2"","
+composer.lock,3182,"""mockery/mockery"": ""^1.3.1"","
+composer.lock,3744,"""mockery/mockery"": ""^1.6.12"","
+composer.lock,4584,"""mockery/mockery"": ""^1.6"","
+composer.lock,4590,"""phpstan/phpstan-mockery"": ""^2.0"","
+composer.lock,4664,"""mockery/mockery"": ""^1.6"","
+composer.lock,4666,"""php-mock/php-mock"": ""^2.6"","
+composer.lock,4667,"""php-mock/php-mock-mockery"": ""^1.5"","
+composer.lock,4672,"""phpstan/phpstan-mockery"": ""^2.0"","
+composer.lock,4930,"""mockery/mockery"": ""^1.5"","
+composer.lock,6335,"""Resources/stubs"""
+composer.lock,6510,"""Resources/stubs"""
+composer.lock,6677,"""Resources/stubs"""
+composer.lock,6761,"""Resources/stubs"""
+composer.lock,6841,"""Resources/stubs"""
+composer.lock,6921,"""Resources/stubs"""
+composer.lock,8016,"""mockery/mockery"": ""^1.0"","
+composer.lock,8232,"""mockery/mockery"": ""^1.6.12"","
+composer.lock,8337,"""name"": ""mockery/mockery"","
+composer.lock,8341,"""url"": ""https://github.com/mockery/mockery.git"","
+composer.lock,8346,"""url"": ""https://api.github.com/repos/mockery/mockery/zipball/967a801bd188989a5669bd280f252d51c0fdc9ee"","
+composer.lock,8365,"""library/Mockery.php"""
+composer.lock,8368,"""Mockery\\"": ""library/Mockery"""
+composer.lock,8395,"""description"": ""Mockery is a simple yet flexible PHP mock object framework"","
+composer.lock,8396,"""homepage"": ""https://github.com/mockery/mockery"","
+composer.lock,8401,"""mock"","
+composer.lock,8402,"""mock objects"","
+composer.lock,8403,"""mockery"","
+composer.lock,8404,"""stub"","
+composer.lock,8410,"""docs"": ""https://docs.mockery.io/"","
+composer.lock,8411,"""issues"": ""https://github.com/mockery/mockery/issues"","
+composer.lock,8412,"""rss"": ""https://github.com/mockery/mockery/releases.atom"","
+composer.lock,8413,"""security"": ""https://github.com/mockery/mockery/security/advisories"","
+composer.lock,8414,"""source"": ""https://github.com/mockery/mockery"""
+composer.lock,9083,"""ext-soap"": ""To be able to generate mocks based on WSDL files"""
+config/account.php,54,// OTP lane is not implemented — page must show NOT_CONFIGURED.
+config/logging.php,30,"'replace_placeholders' => true,"
+config/logging.php,38,"'replace_placeholders' => true,"
+config/logging.php,46,"'replace_placeholders' => true,"
+config/logging.php,54,"'replace_placeholders' => true,"
+config/logging.php,62,"'replace_placeholders' => true,"
+config/logging.php,71,"'replace_placeholders' => true,"
+config/logging.php,92,"'replace_placeholders' => true,"
+config/logging.php,98,"'replace_placeholders' => true,"
+config/security.php,157,"'redaction_placeholder' => '[REDACTED]',"
+database/migrations/2024_01_06_000100_create_audit_logs_table.php,22,* 'audit.redaction_placeholder'.
+deployment/CUTOVER-CHECKLIST.md,81,"*(Never seed synthetic results, fake users, or mock wallets into production).*"
+docker-compose.production.yml,61,"# file carries a usable secret, and no service falls back to a placeholder."
+lang/en/bingo_lottery.php,99,"'search_term_placeholder' => 'Exact value',"
+lang/en/contact.php,10,"| NO SUPPORT ADDRESS LIVES IN THIS FILE. Not an example, not a placeholder."
+lang/en/home.php,23,"'check_placeholder' => 'e.g. 012345',"
+lang/en/home.php,114,"'placeholder' => 'Enter 2, 3, or 6-digit number...',"
+lang/en/national_lottery.php,90,"'search_number_placeholder' => 'Two to six digits',"
+lang/en/national_lottery.php,92,"'search_date_placeholder' => 'YYYY-MM-DD',"
+lang/en/pcso_lottery.php,81,"'search_term_placeholder' => 'Exact value',"
+lang/en/public_pages.php,240,"'login_identifier_placeholder' => 'Account ID, username or email address',"
+lang/en/public_pages.php,248,"'captcha_placeholder' => 'Answer',"
+lang/en/public_pages.php,291,"'forgot_identifier_placeholder' => 'Account number or email address',"
+lang/en/public_pages.php,404,"'privacy_search_placeholder' => 'Search privacy text',"
+lang/en/weekly_lottery.php,91,"'search_term_placeholder' => 'Exact value',"
+lang/th/bingo_lottery.php,95,"'search_term_placeholder' => 'ค่าที่ตรงกันทุกตัวอักษร',"
+lang/th/home.php,23,"'check_placeholder' => 'เช่น 012345',"
+lang/th/home.php,113,"'placeholder' => 'กรอกเลข 2, 3 หรือ 6 หลัก...',"
+lang/th/national_lottery.php,87,"'search_number_placeholder' => 'ตัวเลข 2 ถึง 6 หลัก',"
+lang/th/national_lottery.php,89,"'search_date_placeholder' => 'ปปปป-ดด-วว',"
+lang/th/pcso_lottery.php,81,"'search_term_placeholder' => 'ค่าที่ตรงกันทุกตัวอักษร',"
+lang/th/public_pages.php,9,| government portal. Config-sourced numbers use the same {placeholders}.
+lang/th/public_pages.php,239,"'login_identifier_placeholder' => 'รหัสบัญชี ชื่อผู้ใช้ หรืออีเมลแอดเดรส',"
+lang/th/public_pages.php,247,"'captcha_placeholder' => 'คำตอบ',"
+lang/th/public_pages.php,290,"'forgot_identifier_placeholder' => 'เลขบัญชีหรืออีเมลแอดเดรส',"
+lang/th/public_pages.php,403,"'privacy_search_placeholder' => 'ค้นหาข้อความความเป็นส่วนตัว',"
+lang/th/weekly_lottery.php,87,"'search_term_placeholder' => 'ค่าที่ตรงกันทุกตัวอักษร',"
+public/account-grade-preview.html,413,<!-- Footer matching visual mockup -->
+public/account-verification-preview.html,255,"<input type=""text"" id=""kycStatusRef"" placeholder=""e.g. KYC-88291"" value=""KYC-88291"" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/account-verification-preview.html,260,"<input type=""text"" id=""kycStatusContact"" placeholder=""e.g. 0812345678 or member@thailotto.club"" value=""0819876543"" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/account-verification-preview.html,366,"<input type=""text"" id=""kycFullName"" placeholder=""e.g. Somchai Prasert"" required class=""w-full bg-[#070d18] border border-amber-500/30 rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/account-verification-preview.html,381,"<input type=""text"" id=""kycIdNumber"" placeholder=""13-digit ID or Passport No."" required class=""w-full bg-[#070d18] border border-amber-500/30 rounded-lg px-3.5 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/account-verification-preview.html,390,"<input type=""tel"" id=""kycPhone"" placeholder=""812345678"" required class=""w-full bg-[#070d18] border border-amber-500/30 rounded-r-lg px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/account-verification-preview.html,419,<!-- Footer matching visual mockup -->
+public/contact-preview.html,184,"<input type=""text"" id=""contactName"" placeholder=""e.g. Somchai Prasert"" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/contact-preview.html,189,"<input type=""text"" id=""contactContact"" placeholder=""e.g. member@thailotto.club or 0812345678"" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/contact-preview.html,218,"<input type=""text"" id=""contactSubject"" placeholder=""Brief summary of your inquiry..."" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/contact-preview.html,223,"<textarea id=""contactMessage"" rows=""4"" placeholder=""Please describe your question or issue in detail..."" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg p-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400""></textarea>"
+public/contact-preview.html,254,"<input type=""text"" id=""trackerTicketId"" placeholder=""e.g. TKT-98421"" value=""TKT-98421"" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+public/contact-preview.html,290,<!-- Footer matching visual mockup -->
+public/css/filament/filament/app.css,1,"*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ri"
+public/css/filament/forms/forms.css,1,"input::-webkit-datetime-edit{display:block;padding:0}.cropper-container{-webkit-touch-callout:none;direction:ltr;font-size:0;line-height:0;position:relative;touch-action:none;-webkit-user-select:none;-moz-user-select:none;user-select:none}.cropper-container img{backface-visibility:hidden;display:block;height:100%;image-orientation:0deg;max-height:none!important;max-width:none!important;min-height:0!important;min-width:0!important;width:100%}.cropper-canvas,.cropper-crop-box,.cropper-drag-box,.cr"
+public/deposit-portal-preview.html,200,"<input type=""text"" id=""customAmountInput"" class=""w-full bg-transparent border-none text-white font-mono font-bold text-lg outline-none"" value=""1000"" placeholder=""Enter amount..."">"
+public/deposit-portal-preview.html,278,"<input type=""text"" placeholder=""4242 •••• •••• 4242"" class=""w-full bg-[#172233] border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none"">"
+public/download-preview.html,410,"<input type=""text"" data-checksum-input placeholder=""Paste SHA-256 hash to verify..."" class=""w-full bg-[#0B0904] border border-[#D4AF37]/30 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] transition-all"">"
+public/faq-preview.html,95,"<input type=""text"" id=""faqSearchInput"" oninput=""searchFaqStandalone(this.value)"" placeholder=""Search questions (e.g. 'PromptPay', '900x', 'KYC', '1st prize', 'limit')..."" class=""w-full bg-[#0a1424] border border-amber-500/30 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-2xl"">"
+public/faq-preview.html,288,<!-- Footer matching visual mockup -->
+public/fees-preview.html,223,"<input type=""text"" id=""feeSearchInput"" oninput=""filterFeeCards(this.value)"" placeholder=""Search fee schedules by method, currency, or rule (e.g., 'PromptPay', 'USDT', 'Wire')..."" class=""w-full bg-[#101b2d] border border-amber-500/30 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-inner"">"
+public/fees-preview.html,539,<!-- Footer matching visual mockup -->
+public/how-to-play-preview.html,392,<!-- Footer matching visual mockup -->
+public/js/filament/forms/components/file-upload.js,40,"</svg>`;n(X)},o.readAsText(e)}),Ku=e=>{let t;try{t=new ImageData(e.width,e.height)}catch{t=document.createElement(""canvas"").getContext(""2d"").createImageData(e.width,e.height)}return t.data.set(e.data),t},Zu=()=>{let e={resize:c,filter:p},t=(d,m)=>(d.forEach(u=>{m=e[u.type](m,u.data)}),m),i=(d,m)=>{let u=d.transforms,g=null;if(u.forEach(f=>{f.type===""filter""&&(g=f)}),g){let f=null;u.forEach(h=>{h.type===""resize""&&(f=h)}),f&&(f.data.matrix=g.data,u=u.filter(h=>h.type!==""filter""))}m(t(u,d.imageData"
+public/js/filament/forms/components/markdown-editor.js,5,"`?(ue=A.appendChild(x(""span"",ee[0]==""\r""?""\u240D"":""\u2424"",""cm-invalidchar"")),ue.setAttribute(""cm-text"",ee[0]),e.col+=1):(ue=e.cm.options.specialCharPlaceholder(ee[0]),ue.setAttribute(""cm-text"",ee[0]),s&&h<9?A.appendChild(x(""span"",[ue])):A.appendChild(ue),e.col+=1);e.map.push(e.pos,e.pos+1,ue),e.pos++}}if(e.trailingSpace=u.charCodeAt(t.length-1)==32,n||r||i||m||a||l){var _e=n||"""";r&&(_e+=r),i&&(_e+=i);var be=x(""span"",[A],_e,a);if(l)for(var Ce in l)l.hasOwnProperty(Ce)&&Ce!=""style""&&Ce!=""class""&&"
+public/js/filament/forms/components/markdown-editor.js,12,"`,""start"")},toggleOverwrite:function(e){return e.toggleOverwrite()}};function Wl(e,t){var n=Ae(e.doc,t),r=Zt(n);return r!=n&&(t=_(r)),Ro(!0,e,r,t,1)}function Jf(e,t){var n=Ae(e.doc,t),r=Ic(n);return r!=n&&(t=_(r)),Ro(!0,e,n,t,-1)}function Ul(e,t){var n=Wl(e,t.line),r=Ae(e.doc,n.line),i=Pe(r,e.doc.direction);if(!i||i[0].level==0){var a=Math.max(n.ch,r.text.search(/\S/)),l=t.line==n.line&&t.ch<=a&&t.ch;return ne(n.line,l?0:a,n.sticky)}return n}function Ci(e,t,n){if(typeof t==""string""&&(t=$n[t],!t)"
+public/js/filament/forms/components/markdown-editor.js,24,"outline: none; border-width: 0; outline: none; overflow: hidden; opacity: .05; filter: alpha(opacity=5);`;var j;g&&(j=i.ownerDocument.defaultView.scrollY),r.input.focus(),g&&i.ownerDocument.defaultView.scrollTo(null,j),r.input.reset(),n.somethingSelected()||(i.value=t.prevInput="" ""),t.contextMenuPending=Y,r.selForContextMenu=n.doc.sel,clearTimeout(r.detectingSelectAll);function ee(){if(i.selectionStart!=null){var ue=n.somethingSelected(),me=""\u200B""+(ue?i.value:"""");i.value=""\u21DA"",i.value=me,t."
+public/js/filament/forms/components/markdown-editor.js,26,"`+O+re+G,J&&b(S,T)}}S.replaceSelections(h)};function b(S,s){var h=s.line,g=0,T=0,y=p.exec(S.getLine(h)),c=y[1];do{g+=1;var d=h+g,k=S.getLine(d),z=p.exec(k);if(z){var M=z[1],w=parseInt(y[3],10)+g-T,W=parseInt(z[3],10),E=W;if(c===M&&!isNaN(W))w===W&&(E=W+1),w>W&&(E=w+1),S.replaceRange(k.replace(p,M+E+z[4]+z[5]),{line:d,ch:0},{line:d,ch:k.length});else{if(c.length>M.length||c.length<M.length&&g===1)return;T+=1}}}while(z)}})});var ms=Ke((hs,gs)=>{(function(o){typeof hs==""object""&&typeof gs==""object"""
+public/js/filament/forms/components/markdown-editor.js,32,"`),x=re+R.length,K=R[R.length-1].length;return{from:p(x,K),to:p(x+V.length-1,V.length==1?K+V[0].length:V[V.length-1].length),match:Q}}}}var y,c;String.prototype.normalize?(y=function(w){return w.normalize(""NFD"").toLowerCase()},c=function(w){return w.normalize(""NFD"")}):(y=function(w){return w.toLowerCase()},c=function(w){return w});function d(w,W,E,O){if(w.length==W.length)return E;for(var G=0,J=E+Math.max(0,w.length-W.length);;){if(G==J)return G;var re=G+J>>1,q=O(w.slice(0,re)).length;if(q==E)re"
+public/js/filament/forms/components/markdown-editor.js,40,"`,{line:k+1,ch:0});for(var R=d;R<=k;R++)s.indentLine(R,""subtract"");s.focus()}else{var V=h.line===g.line&&h.ch===g.ch&&h.ch===0,x=h.line!==g.line;V||x?S(s,h,g,p):Rr(s,!1,[""`"",""`""])}}function ji(o){la(o.codemirror,""quote"")}function Jn(o){Lr(o.codemirror,""smaller"")}function Ri(o){Lr(o.codemirror,""bigger"")}function Hi(o){Lr(o.codemirror,void 0,1)}function Bi(o){Lr(o.codemirror,void 0,2)}function Wi(o){Lr(o.codemirror,void 0,3)}function na(o){Lr(o.codemirror,void 0,4)}function ia(o){Lr(o.codemirror,v"
+public/js/filament/forms/components/markdown-editor.js,51,"Maximum file size is #image_max_size#.`,importError:""Something went wrong when uploading the image #image_name#.""};Te.prototype.uploadImages=function(o,p,v){if(o.length!==0){for(var C=[],b=0;b<o.length;b++)C.push(o[b].name),this.uploadImage(o[b],p,v);this.updateStatusBar(""upload-image"",this.options.imageTexts.sbOnDrop.replace(""#images_names#"",C.join("", "")))}};Te.prototype.uploadImagesUsingCustomFunction=function(o,p){if(p.length!==0){for(var v=[],C=0;C<p.length;C++)v.push(p[C].name),this.uploadI"
+public/js/filament/forms/components/rich-editor.js,1,"var ko=""2.1.19"",It=""[data-trix-attachment]"",Ri={preview:{presentation:""gallery"",caption:{name:!0,size:!0}},file:{caption:{size:!0}}},J={default:{tagName:""div"",parse:!1},quote:{tagName:""blockquote"",nestable:!0},heading1:{tagName:""h1"",terminal:!0,breakOnReturn:!0,group:!1},code:{tagName:""pre"",terminal:!0,htmlAttributes:[""language""],text:{plaintext:!0}},bulletList:{tagName:""ul"",parse:!1},bullet:{tagName:""li"",listAttribute:""bulletList"",group:!1,nestable:!0,test(i){return ir(i.parentNode)===J[this.li"
+public/js/filament/forms/components/rich-editor.js,35,"<input type=""url"" name=""href"" class=""trix-input trix-input--dialog"" placeholder=""`).concat(m.urlPlaceholder,'"" aria-label=""').concat(m.url,`"" data-trix-validate-href required data-trix-input>"
+public/js/filament/forms/components/rich-editor.js,42,"</div>`)},ai={interval:5e3},Ie=Object.freeze({__proto__:null,attachments:Ri,blockAttributes:J,browser:Ne,css:{attachment:""attachment"",attachmentCaption:""attachment__caption"",attachmentCaptionEditor:""attachment__caption-editor"",attachmentMetadata:""attachment__metadata"",attachmentMetadataContainer:""attachment__metadata-container"",attachmentName:""attachment__name"",attachmentProgress:""attachment__progress"",attachmentSize:""attachment__size"",attachmentToolbar:""attachment__toolbar"",attachmentGallery:""a"
+public/js/filament/forms/components/rich-editor.js,43,"`+X),Tt&&be([Oe,Fe,Pe],(C=>{X=Jt(X,C,"" "")})),k&&_e?k.createHTML(X):X},e.setConfig=function(){Nn(arguments.length>0&&arguments[0]!==void 0?arguments[0]:{}),Cn=!0},e.clearConfig=function(){Ht=null,Cn=!1},e.isValidAttribute=function(a,d,h){Ht||Nn({});let v=P(a),y=P(d);return Qi(v,y,h)},e.addHook=function(a,d){typeof d==""function""&&ve(z[a],d)},e.removeHook=function(a,d){if(d!==void 0){let h=$o(z[a],d);return h===-1?void 0:Yo(z[a],h,1)[0]}return gr(z[a])},e.removeHooks=function(a){z[a]=[]},e.removeAl"
+public/js/filament/forms/components/rich-editor.js,57,"`,e))}}getMarginOfBlockElementAtIndex(t){let e=this.blockElements[t];if(e&&e.textContent&&!Ee().includes(q(e))&&!this.processedElements.includes(e))return Fr(e)}getMarginOfDefaultBlockElement(){let t=b(J.default.tagName);return this.containerElement.appendChild(t),Fr(t)}},Or=function(i){let{whiteSpace:t}=window.getComputedStyle(i);return[""pre"",""pre-wrap"",""pre-line""].includes(t)},Bs=i=>i&&!oo(i.textContent),Fr=function(i){let t=window.getComputedStyle(i);if(t.display===""block"")return{top:parseInt"
+public/js/filament/forms/components/rich-editor.js,61,"`)}insertHTML(t){let e=Wt.parse(t,{purifyOptions:{SAFE_FOR_XML:!0}}).getDocument(),n=this.getSelectedRange();this.setDocument(this.document.mergeDocumentAtRange(e,n));let r=n[0],o=r+e.getLength()-1;return this.setSelection(o),this.notifyDelegateOfInsertionAtRange([r,o])}replaceHTML(t){let e=Wt.parse(t).getDocument().copyUsingObjectsFromDocument(this.document),n=this.getLocationRange({strict:!1}),r=this.document.rangeFromLocationRange(n);return this.setDocument(e),this.setSelection(r)}insertFile("
+public/js/filament/forms/components/rich-editor.js,67,"`&&(this.document=this.document.insertBlockBreakAtRange(e[0]),e[0]<this.selectedRange[0]&&this.moveSelectedRangeForward(),e[0]++,t++),this.document=this.document.applyBlockAttributeAtRange(Xn,!0,e))}))}findRangesOfBlocks(){return this.document.findRangesForBlockAttribute(Xn)}findRangesOfPieces(){return this.document.findRangesForTextAttribute(""presentation"",{withValue:""gallery""})}moveSelectedRangeForward(){this.selectedRange[0]+=1,this.selectedRange[1]+=1}},so=function(i){let t=new ln(i);return "
+public/js/filament/forms/components/rich-editor.js,74,"`),this.requestRender(),i.preventDefault()},tab(i){var t,e;(t=this.responder)!==null&&t!==void 0&&t.canDecreaseNestingLevel()&&((e=this.responder)===null||e===void 0||e.decreaseNestingLevel(),this.requestRender(),i.preventDefault())},left(i){if(this.selectionIsInCursorTarget())return i.preventDefault(),this.expandSelectionInDirection(""backward"")},right(i){if(this.selectionIsInCursorTarget())return i.preventDefault(),this.expandSelectionInDirection(""forward"")}},alt:{backspace(i){var t;return this"
+public/js/filament/forms/components/rich-editor.js,98,content: attr(placeholder);
+public/js/filament/forms/components/rich-editor.js,124,"%t `).concat(It,` figcaption[data-trix-placeholder]:empty::before {"
+public/js/filament/forms/components/rich-editor.js,125,content: attr(data-trix-placeholder);
+public/js/filament/forms/components/select.js,1,"var lt=Object.create;var Ge=Object.defineProperty;var ct=Object.getOwnPropertyDescriptor;var ut=Object.getOwnPropertyNames;var ht=Object.getPrototypeOf,dt=Object.prototype.hasOwnProperty;var ft=(se,ie)=>()=>(ie||se((ie={exports:{}}).exports,ie),ie.exports);var pt=(se,ie,X,me)=>{if(ie&&typeof ie==""object""||typeof ie==""function"")for(let j of ut(ie))!dt.call(se,j)&&j!==X&&Ge(se,j,{get:()=>ie[j],enumerable:!(me=ct(ie,j))||me.enumerable});return se};var mt=(se,ie,X)=>(X=se!=null?lt(ht(se)):{},pt(ie||"
+public/js/filament/widgets/components/chart.js,1,"function Ot(){}var Hr=(function(){let s=0;return function(){return s++}})();function L(s){return s===null||typeof s>""u""}function W(s){if(Array.isArray&&Array.isArray(s))return!0;let t=Object.prototype.toString.call(s);return t.slice(0,7)===""[object""&&t.slice(-6)===""Array]""}function P(s){return s!==null&&Object.prototype.toString.call(s)===""[object Object]""}var Y=s=>(typeof s==""number""||s instanceof Number)&&isFinite(+s);function lt(s,t){return Y(s)?s:t}function C(s,t){return typeof s>""u""?t:s}var"
+public/js/filament/widgets/components/stats-overview/stat/chart.js,1,"function rt(){}var Hs=(function(){let i=0;return function(){return i++}})();function T(i){return i===null||typeof i>""u""}function I(i){if(Array.isArray&&Array.isArray(i))return!0;let t=Object.prototype.toString.call(i);return t.slice(0,7)===""[object""&&t.slice(-6)===""Array]""}function D(i){return i!==null&&Object.prototype.toString.call(i)===""[object Object]""}var W=i=>(typeof i==""number""||i instanceof Number)&&isFinite(+i);function Q(i,t){return W(i)?i:t}function C(i,t){return typeof i>""u""?t:i}var "
+public/lottery-history-preview.html,141,"placeholder=""Search Slip ID (TL-BET...) or Number..."""
+public/lotto-discount-preview.html,301,<!-- Footer matching visual mockup -->
+public/national-lottery-preview.html,583,"<input type=""text"" maxlength=""6"" placeholder=""e.g. 482963 or 63"" class=""w-full bg-[#0B0904] border border-[#D4AF37]/30 rounded-xl px-4 py-2.5 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] transition-all"">"
+public/national-lottery-preview.html,588,"<input type=""date"" class=""w-full bg-[#0B0904] border border-[#D4AF37]/30 rounded-xl px-4 py-2.5 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] transition-all"">"
+public/player-profile-preview.html,186,"<input type=""password"" placeholder=""••••••••"" class=""w-full bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-2.5 text-white outline-none"">"
+public/player-profile-preview.html,190,"<input type=""password"" placeholder=""••••••"" maxlength=""6"" class=""w-full bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-2.5 text-white font-mono tracking-widest outline-none"">"
+public/player-settings-preview.html,204,"<input type=""password"" placeholder=""Paste LINE Token..."" class=""bg-[#172233] border border-[#1f2b3e] rounded-xl px-4 py-2 text-white flex-1 outline-none font-mono"">"
+public/prize-verification-preview.html,161,"<input type=""text"" id=""pvTicketNumber"" maxlength=""6"" inputmode=""numeric"" oninput=""handleManualInput(this.value)"" placeholder=""Enter 6 digits"" class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-xl px-4 py-2.5 text-center text-sm font-mono tracking-widest text-white mb-6 focus:outline-none focus:border-amber-400"">"
+public/prize-verification-preview.html,270,<!-- Footer matching visual mockup -->
+public/results-preview.html,324,"<input type=""text"" maxlength=""6"" placeholder=""Enter 6-digit ticket number (e.g. 482963)..."" class=""flex-1 bg-[#0B0904] border border-[#D4AF37]/30 rounded-xl px-4 py-3 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] transition-all"">"
+resources/css/pages/terms.css,87,.terms-search input::placeholder { color: #827969; }
+resources/css/thai-lottery-betting.css,242,.tlb-lcd-display.placeholder {
+resources/css/thailotto-theme.css,3,* Exact match to the official UI mockups:
+resources/js/components/AuthCard.tsx,101,"placeholder=""e.g. somchai or somchai@example.com"""
+resources/js/components/AuthCard.tsx,102,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"""
+resources/js/components/AuthCard.tsx,115,"placeholder=""••••••••"""
+resources/js/components/AuthCard.tsx,116,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 pr-10"""
+resources/js/components/AuthCard.tsx,158,"placeholder=""Somchai Jaidee"""
+resources/js/components/AuthCard.tsx,159,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"""
+resources/js/components/AuthCard.tsx,172,"placeholder=""somchai99"""
+resources/js/components/AuthCard.tsx,173,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"""
+resources/js/components/AuthCard.tsx,183,"placeholder=""0812345678"""
+resources/js/components/AuthCard.tsx,184,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"""
+resources/js/components/AuthCard.tsx,197,"placeholder=""somchai@example.com"""
+resources/js/components/AuthCard.tsx,198,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"""
+resources/js/components/AuthCard.tsx,212,"placeholder=""Min. 8 characters"""
+resources/js/components/AuthCard.tsx,213,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"""
+resources/js/components/AuthCard.tsx,236,"placeholder=""••••••••"""
+resources/js/components/AuthCard.tsx,237,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"""
+resources/js/components/AuthCard.tsx,250,"placeholder=""AG123456"""
+resources/js/components/AuthCard.tsx,251,"className=""w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm uppercase font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"""
+resources/js/components/DepositPortal.tsx,152,"placeholder=""Enter custom amount..."""
+resources/js/components/LotteryHistory.tsx,133,"placeholder=""Search Slip ID (TL-BET...) or Number..."""
+resources/js/components/LottoFinAdminDashboard.tsx,169,"placeholder=""Search"""
+resources/js/components/LottoFinAdminDashboard.tsx,170,"className=""w-full bg-[#0b1118] border border-[#1f2d3d] rounded-xl pl-8 pr-4 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#10b981]"""
+resources/js/components/PlayerProfile.tsx,165,"<input type=""password"" placeholder=""••••••••"" className=""w-full bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-2.5 text-white outline-none focus:border-amber-500"" />"
+resources/js/components/PlayerProfile.tsx,169,"<input type=""password"" placeholder=""••••••••"" className=""w-full bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-2.5 text-white outline-none focus:border-amber-500"" />"
+resources/js/components/PlayerProfile.tsx,173,"<input type=""password"" placeholder=""••••••••"" className=""w-full bg-[#0c121d] border border-[#1f2b3e] rounded-xl px-4 py-2.5 text-white outline-none focus:border-amber-500"" />"
+resources/js/components/PlayerSettings.tsx,305,"placeholder=""Paste LINE Notify Access Token..."""
+resources/js/components/WithdrawalPortal.tsx,153,"placeholder=""Enter custom withdrawal amount..."""
+resources/js/echo.js,24,// Mock/Fallback event bus for environments without active WS server
+resources/js/echo.js,50,// Trigger an event on our internal bus (used when polling or when mock WS fires)
+resources/js/how-to-play-portal.js,74,simDigitInput.placeholder = 'Enter 1 digit (e.g. 7)';
+resources/js/how-to-play-portal.js,77,simDigitInput.placeholder = 'Enter 3 digits (e.g. 921)';
+resources/js/how-to-play-portal.js,80,simDigitInput.placeholder = 'Enter 2 digits (e.g. 21)';
+resources/js/lottery/countdown.js,40,"* ships as its static placeholder, so the layout does not jump when this"
+resources/js/lottery/live-results.js,13,"* which the blade fills with the placeholder text ""All Permutations"", is"
+resources/js/lottery/ticket-selector.js,134,"numberInput.setAttribute('placeholder', new Array(digits + 1).join('-'));"
+resources/views/account-verification/index.blade.php,158,"<input id=""mobile"" name=""mobile"" type=""text"" inputmode=""numeric"" value=""{{ old('mobile') }}"" aria-describedby=""av-mobile-hint"" @if ($errors->has('mobile')) aria-invalid=""true"" @endif class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('mobile') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"" placeholder=""812345678"">"
+resources/views/auth/forgot-password.blade.php,48,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('identifier') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"""
+resources/views/auth/forgot-password.blade.php,49,"placeholder=""{{ __('public_pages.forgot_identifier_placeholder') }}"">"
+resources/views/auth/forgot-password.blade.php,71,"class=""block flex-1 px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('captcha') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"""
+resources/views/auth/forgot-password.blade.php,72,"placeholder=""{{ __('public_pages.captcha_placeholder') }}"">"
+resources/views/auth/forgot-password.blade.php,104,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('email') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/forgot-password.blade.php,117,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('password') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/forgot-password.blade.php,130,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('password_confirmation') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/login.blade.php,82,"placeholder=""e.g. somchai or somchai@example.com"""
+resources/views/auth/login.blade.php,83,"class=""w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/auth/login.blade.php,101,"placeholder=""••••••••"""
+resources/views/auth/login.blade.php,102,"class=""w-full pl-10 pr-10 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/auth/member-login.blade.php,47,"{{ $errors->has('login') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"""
+resources/views/auth/member-login.blade.php,48,"placeholder=""{{ __('public_pages.login_identifier_placeholder') }}"">"
+resources/views/auth/member-login.blade.php,64,"{{ $errors->has('password') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"""
+resources/views/auth/member-login.blade.php,65,"placeholder=""••••••••"">"
+resources/views/auth/member-login.blade.php,86,"{{ $errors->has('captcha') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"""
+resources/views/auth/member-login.blade.php,87,"placeholder=""{{ __('public_pages.captcha_placeholder') }}"">"
+resources/views/auth/member-register.blade.php,44,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('referral_id') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/member-register.blade.php,57,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('mobile') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"""
+resources/views/auth/member-register.blade.php,58,"placeholder=""0812345678"">"
+resources/views/auth/member-register.blade.php,71,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('password') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/member-register.blade.php,83,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('password_confirmation') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/member-register.blade.php,104,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('first_name') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/member-register.blade.php,116,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('last_name') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/member-register.blade.php,147,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('city') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/member-register.blade.php,159,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('country') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/member-register.blade.php,171,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('email') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/member-register.blade.php,204,"class=""block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('nationality') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"">"
+resources/views/auth/register.blade.php,76,"placeholder=""Somchai Jaidee"""
+resources/views/auth/register.blade.php,77,"class=""w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/auth/register.blade.php,91,"placeholder=""somchai99"""
+resources/views/auth/register.blade.php,92,"class=""w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/auth/register.blade.php,105,"placeholder=""0812345678"""
+resources/views/auth/register.blade.php,106,"class=""w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/auth/register.blade.php,120,"placeholder=""somchai@example.com"""
+resources/views/auth/register.blade.php,121,"class=""w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/auth/register.blade.php,134,"placeholder=""Min. 8 characters"""
+resources/views/auth/register.blade.php,135,"class=""w-full pl-10 pr-10 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/auth/register.blade.php,160,"placeholder=""••••••••"""
+resources/views/auth/register.blade.php,161,"class=""w-full pl-10 pr-10 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/auth/register.blade.php,179,"placeholder=""e.g. AGT-88219"""
+resources/views/auth/register.blade.php,180,"class=""w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"">"
+resources/views/components/bingo-lottery/search-form.blade.php,76,"placeholder=""{{ trans('bingo_lottery.search_term_placeholder') }}"""
+resources/views/components/home/quick-check.blade.php,28,"placeholder=""{{ $text['check_placeholder'] ?? 'e.g. 012345' }}"""
+resources/views/components/national-lottery/search-form.blade.php,12,"<div><label class=""mb-2 block text-xs font-semibold text-gray-300"" for=""nl-search-number"">{{ trans('national_lottery.search_number_label') }}</label><input class=""w-full rounded-xl border border-white/10 bg-[#0B0904] px-4 py-3 font-mono text-white"" id=""nl-search-number"" name=""number"" type=""text"" inputmode=""numeric"" maxlength=""{{ $maxLength }}"" value=""{{ $number }}"" placeholder=""{{ trans('national_lottery.search_number_placeholder') }}""></div>"
+resources/views/components/pcso-lottery/search-form.blade.php,75,"placeholder=""{{ trans('pcso_lottery.search_term_placeholder') }}"""
+resources/views/contact-us/index.blade.php,192,"<input type=""text"" id=""contactName"" placeholder=""e.g. Somchai Prasert"" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+resources/views/contact-us/index.blade.php,197,"<input type=""text"" id=""contactContact"" placeholder=""e.g. member@example.com or 0812345678"" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+resources/views/contact-us/index.blade.php,226,"<input type=""text"" id=""contactSubject"" placeholder=""Brief summary of your inquiry..."" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+resources/views/contact-us/index.blade.php,231,"<textarea id=""contactMessage"" rows=""4"" placeholder=""Please describe your question or issue in detail..."" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg p-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400""></textarea>"
+resources/views/contact-us/index.blade.php,262,"<input type=""text"" id=""trackerTicketId"" placeholder=""e.g. TKT-98421"" required class=""w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"">"
+resources/views/contact-us/index.blade.php,284,<!-- Footer matching visual mockup -->
+resources/views/discounts/index.blade.php,31,"<div class=""next-search"" role=""search""><label for=""discount-search"">Search the catalogue</label><div class=""next-search__row""><input id=""discount-search"" type=""search"" data-local-search placeholder=""Search product, market or rule"" autocomplete=""off""><button class=""next-button"" type=""button"" data-clear-search>CLEAR</button></div><p class=""next-search__status"" data-search-status aria-live=""polite"">Showing all catalogue items.</p></div>"
+resources/views/faq/index.blade.php,27,"<div class=""next-search"" role=""search""><label for=""faq-search"">Search questions and answers</label><div class=""next-search__row""><input id=""faq-search"" type=""search"" data-local-search placeholder=""Type a keyword"" autocomplete=""off""><button class=""next-button"" type=""button"" data-clear-search>CLEAR</button></div><p class=""next-search__status"" data-search-status aria-live=""polite"">Showing all {{ count($questions) }} questions.</p></div>"
+resources/views/fees/index.blade.php,47,"<div class=""next-search"" role=""search""><label for=""fees-search"">Search the fee schedule</label><div class=""next-search__row""><input id=""fees-search"" type=""search"" data-local-search placeholder=""Search a category or provider"" autocomplete=""off""><button class=""next-button"" type=""button"" data-clear-search>CLEAR</button></div><p class=""next-search__status"" data-search-status aria-live=""polite"">Showing all {{ count($rows) }} rows.</p></div>"
+resources/views/fees/index.blade.php,48,"<section class=""next-section"" id=""fee-preview"" data-content-section aria-labelledby=""fee-preview-title""><div class=""next-section__heading""><span class=""next-section__number"">ƒ</span><div><p class=""next-eyebrow"">SERVER CALCULATION</p><h2 id=""fee-preview-title"">{{ trans('account_services.fees_preview_title') }}</h2></div></div><div class=""next-section__body""><p>{{ trans('account_services.fees_preview_lead') }}</p><form class=""next-form"" method=""post"" action=""{{ route('api.v1.fees.preview') }}"" dat"
+resources/views/home/check.blade.php,32,"placeholder=""{{ $home['text']['check_placeholder'] ?? __('home.check_placeholder') }}"""
+resources/views/home.blade.php,9,The previous revision of this file was a static marketing mockup: it carried
+resources/views/home.blade.php,12,"empty <div id=""...""> stubs that existed only so a landmark assertion would"
+resources/views/home.blade.php,20,"* An unconfigured section renders its honest message, never a placeholder"
+resources/views/home.blade.php,326,"placeholder=""{{ $text['check_placeholder'] ?? '000000' }}"""
+resources/views/lotto-discount/index.blade.php,304,<!-- Footer matching visual mockup -->
+resources/views/privacy/index.blade.php,39,"<div class=""next-search"" role=""search""><label for=""privacy-search"">{{ trans('public_pages.privacy_search_label') }}</label><div class=""next-search__row""><input id=""privacy-search"" type=""search"" data-local-search placeholder=""{{ trans('public_pages.privacy_search_placeholder') }}"" autocomplete=""off""><button class=""next-button"" type=""button"" data-clear-search>{{ trans('public_pages.privacy_clear') }}</button></div><p class=""next-search__status"" data-search-status aria-live=""polite"">{{ trans('publi"
+resources/views/prize-verification/index.blade.php,28,"<section class=""next-section"" id=""prize-check"" data-content-section aria-labelledby=""prize-check-title""><div class=""next-section__heading""><span class=""next-section__number"">01</span><div><p class=""next-eyebrow"">SOURCE LOOKUP</p><h2 id=""prize-check-title"">Check a supported value</h2></div></div><form class=""next-form"" method=""post"" action=""{{ route('prize-verification.submit') }}"" data-prize-form><input type=""hidden"" name=""_token"" value=""{{ csrf_token() }}""><div class=""next-form__grid""><div><lab"
+resources/views/results/search.blade.php,17,"<input type=""text"" name=""q"" value=""{{ $query ?? '' }}"" placeholder=""Enter 6-digit number, draw number, or date (YYYY-MM-DD)"""
+resources/views/terms/index.blade.php,140,"<input id=""terms-search-input"" type=""search"" placeholder=""Search headings and legal text"" autocomplete=""off"" data-terms-search>"
+routes/api.php,71,"| file as a placeholder, so there was no existing route convention to"
+routes/api.php,100,| later phases and adding an empty stub for them now would imply a contract
+routes/web.php,771,// Payment and withdrawal mutations are not implemented by this browser
+runtime/final-test-failure-inventory.json,45,"""symptom"": ""The route returns 200 and renders a full HTML document, but the document does not contain the string the test demands (prize status badges, lane parity blocks, DB-backed stat panels, countdown placeholders such as TBA)."","
+runtime/final-test-failure-inventory.json,115,"""symptom"": ""Route returns 200 with a full HTML document, but the document lacks the demanded string (prize status badges, lane parity blocks, DB-backed stat panels, TBA countdown placeholders)."","
+tests/Feature/Api/V1/Batch7ApiSurfaceTest.php,348,$stub = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(10));
+tests/Feature/Api/V1/Batch7ApiSurfaceTest.php,351,"'email' => $stub.'.'.\Illuminate\Support\Str::ulid()->toBase32().'@b7.local',"
+tests/Feature/Api/V1/Batch7ApiSurfaceTest.php,352,"'username' => 'b7'.$stub.'.'.\Illuminate\Support\Str::random(6),"
+tests/Feature/Betting/BetPurchaseAtomicityTest.php,1085,"* The failure is injected at the DATABASE level rather than by mocking a service, so"
+tests/Feature/Glo/GloResultFallbackTest.php,44,* WHY THE PROVIDERS ARE MOCKED RATHER THAN REPLAYED
+tests/Feature/Glo/GloResultFallbackTest.php,53,* The mocks are strict about what they are asked: `fetch` is asserted with the
+tests/Feature/Glo/GloResultFallbackTest.php,118,"$this->mock(GloOfficialResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,119,$mock->shouldReceive('name')->andReturn('official');
+tests/Feature/Glo/GloResultFallbackTest.php,120,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,121,$mock->shouldReceive('fetch')->once()->with('DRAW-1')->andReturn(
+tests/Feature/Glo/GloResultFallbackTest.php,126,"$this->mock(GloFixtureResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,127,$mock->shouldReceive('name')->andReturn('fixture');
+tests/Feature/Glo/GloResultFallbackTest.php,128,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,132,$mock->shouldReceive('fetch')->never();
+tests/Feature/Glo/GloResultFallbackTest.php,153,"$this->mock(GloOfficialResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,154,$mock->shouldReceive('name')->andReturn('official');
+tests/Feature/Glo/GloResultFallbackTest.php,155,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,156,$mock->shouldReceive('fetch')->once()->with('DRAW-1')->andReturn(
+tests/Feature/Glo/GloResultFallbackTest.php,161,"$this->mock(GloFixtureResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,162,$mock->shouldReceive('name')->andReturn('fixture');
+tests/Feature/Glo/GloResultFallbackTest.php,163,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,164,$mock->shouldReceive('fetch')->once()->with('DRAW-1')->andReturn(
+tests/Feature/Glo/GloResultFallbackTest.php,198,"$this->mock(GloOfficialResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,199,$mock->shouldReceive('name')->andReturn('official');
+tests/Feature/Glo/GloResultFallbackTest.php,200,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,201,$mock->shouldReceive('fetch')->once()->andReturn(
+tests/Feature/Glo/GloResultFallbackTest.php,206,"$this->mock(GloFixtureResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,207,$mock->shouldReceive('name')->andReturn('fixture');
+tests/Feature/Glo/GloResultFallbackTest.php,208,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,209,$mock->shouldReceive('fetch')->never();
+tests/Feature/Glo/GloResultFallbackTest.php,232,"$this->mock(GloOfficialResultProvider::class, function ($mock) use (&$officialCalls): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,233,$mock->shouldReceive('name')->andReturn('official');
+tests/Feature/Glo/GloResultFallbackTest.php,234,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,237,$mock->shouldReceive('fetch')->once()->andReturnUsing(
+tests/Feature/Glo/GloResultFallbackTest.php,246,"$this->mock(GloFixtureResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,247,$mock->shouldReceive('name')->andReturn('fixture');
+tests/Feature/Glo/GloResultFallbackTest.php,248,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,249,"$mock->shouldReceive('fetch')->times(2)->andReturn($this->payload('imported', 'fixture', 'DRAW-1'));"
+tests/Feature/Glo/GloResultFallbackTest.php,290,"$this->mock(GloOfficialResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,291,$mock->shouldReceive('name')->andReturn('official');
+tests/Feature/Glo/GloResultFallbackTest.php,292,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,293,$mock->shouldReceive('fetch')->twice()->andReturn(
+tests/Feature/Glo/GloResultFallbackTest.php,299,"$this->mock(GloFixtureResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,300,$mock->shouldReceive('name')->andReturn('fixture');
+tests/Feature/Glo/GloResultFallbackTest.php,301,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,302,"$mock->shouldReceive('fetch')->once()->andReturn($this->payload('imported', 'fixture', 'DRAW-1'));"
+tests/Feature/Glo/GloResultFallbackTest.php,335,"$this->mock(GloOfficialResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,336,$mock->shouldReceive('name')->andReturn('official');
+tests/Feature/Glo/GloResultFallbackTest.php,337,$mock->shouldReceive('isConfigured')->andReturn(false);
+tests/Feature/Glo/GloResultFallbackTest.php,338,$mock->shouldReceive('fetch')->never();
+tests/Feature/Glo/GloResultFallbackTest.php,341,"$this->mock(GloFixtureResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,342,$mock->shouldReceive('name')->andReturn('fixture');
+tests/Feature/Glo/GloResultFallbackTest.php,343,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,344,"$mock->shouldReceive('fetch')->once()->andReturn($this->payload('imported', 'fixture', 'DRAW-1'));"
+tests/Feature/Glo/GloResultFallbackTest.php,364,"$this->mock(GloOfficialResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,365,$mock->shouldReceive('name')->andReturn('official');
+tests/Feature/Glo/GloResultFallbackTest.php,366,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,367,"$mock->shouldReceive('fetch')->andReturn($this->failed('official', 'timeout', 'DRAW-1'));"
+tests/Feature/Glo/GloResultFallbackTest.php,370,"$this->mock(GloFixtureResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,371,$mock->shouldReceive('name')->andReturn('fixture');
+tests/Feature/Glo/GloResultFallbackTest.php,372,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,373,"$mock->shouldReceive('fetch')->andReturn($this->failed('fixture', 'fixture file missing', 'DRAW-1'));"
+tests/Feature/Glo/GloResultFallbackTest.php,421,"$this->mock(GloOfficialResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultFallbackTest.php,422,$mock->shouldReceive('name')->andReturn('official');
+tests/Feature/Glo/GloResultFallbackTest.php,423,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultFallbackTest.php,424,$mock->shouldReceive('fetch')->andReturn([
+tests/Feature/Glo/GloResultImportTest.php,280,"$this->mock(GloFixtureResultProvider::class, function ($mock): void {"
+tests/Feature/Glo/GloResultImportTest.php,281,$mock->shouldReceive('name')->andReturn('fixture');
+tests/Feature/Glo/GloResultImportTest.php,282,$mock->shouldReceive('isConfigured')->andReturn(true);
+tests/Feature/Glo/GloResultImportTest.php,283,$mock->shouldReceive('fetch')->andReturn([
+tests/Feature/Glo/GloResultImportTest.php,298,"// Resolved AFTER the mock is bound, so the service receives it."
+tests/Feature/Home/HomePagePublicExperienceTest.php,252,"'key' => 'pk_test_placeholder',"
+tests/Feature/Home/HomePageTest.php,74,// belonged to the static mockup this page replaced - the one that
+tests/Feature/Pages150To250StaticContractTest.php,96,public function test_release_translation_maps_have_exact_key_and_placeholder_parity(): void
+tests/Feature/Pages150To250StaticContractTest.php,102,"self::assertSame(self::placeholders($english), self::placeholders($thai));"
+tests/Feature/Pages150To250StaticContractTest.php,159,"private static function placeholders(array $value, string $prefix = ''): array"
+tests/Feature/Pages150To250StaticContractTest.php,161,$placeholders = [];
+tests/Feature/Pages150To250StaticContractTest.php,165,"$placeholders = array_merge($placeholders, self::placeholders($child, $path));"
+tests/Feature/Pages150To250StaticContractTest.php,171,$placeholders[$path] = $matches[0];
+tests/Feature/Pages150To250StaticContractTest.php,175,ksort($placeholders);
+tests/Feature/Pages150To250StaticContractTest.php,177,return $placeholders;
+tests/Feature/Payment/PaymentTestCase.php,28,protected const STRIPE_SECRET = 'sk_test_mock_secret_key_12345';
+tests/Feature/Payment/PaymentTestCase.php,29,protected const STRIPE_WEBHOOK_SECRET = 'whsec_mock_stripe_webhook_secret_67890';
+tests/Feature/Payment/PaymentTestCase.php,30,protected const BKASH_WEBHOOK_SECRET = 'mock_bkash_webhook_secret_12345';
+tests/Feature/Payment/PaymentTestCase.php,31,protected const NAGAD_WEBHOOK_SECRET = 'mock_nagad_webhook_secret_12345';
+tests/Feature/Payment/PaymentTestCase.php,32,protected const CRYPTO_WEBHOOK_SECRET = 'mock_crypto_webhook_secret_12345';
+tests/Feature/Player/PlayerFrontendModulesTest.php,20,"* empty placeholders, and three of them were not referenced by any template at"
+tests/Feature/Player/PlayerFrontendModulesTest.php,25,*  1. each module must exist and contain real code (not a stub);
+tests/Feature/Player/PlayerFrontendModulesTest.php,82,public function test_no_module_is_left_as_a_placeholder(): void
+tests/Feature/Player/PlayerFrontendModulesTest.php,87,"foreach (['TODO', 'FIXME', 'coming soon', 'not implemented', 'placeholder implementation'] as $marker) {"
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,99,$mockGateway = $this->createMock(PaymentGatewayInterface::class);
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,100,$mockGateway->method('name')->willReturn('mock_instant');
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,101,$mockGateway->method('supportsCurrency')->willReturn(true);
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,102,$mockGateway->method('initiateWithdrawal')->willReturn(
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,106,$gatewayManager = $this->createMock(PaymentGatewayManager::class);
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,107,$gatewayManager->method('forMethod')->willReturn($mockGateway);
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,110,$gatewayManager->method('withdrawalDriver')->willReturn($mockGateway);
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,198,// Mock disbursement service to simulate a transient database deadlock / network failure
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,199,$mockDisbursement = $this->createMock(WithdrawalDisbursementService::class);
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,200,$mockDisbursement->method('disburse')->willThrowException(
+tests/Feature/Queue/ProductionQueueComprehensiveTest.php,210,$job->handle($mockDisbursement);
+tests/Feature/Web/AppLinksTest.php,103,public function test_placeholder_values_fail_closed(): void
+tests/Feature/Web/AppLinksTest.php,112,// whitespace values. A deliberate placeholder URL is an operator
+tests/Feature/Web/PlayerWalletWiringTest.php,225,"// renders exactly what the operator supplied, never a placeholder."
+tests/Unit/Payment/BkashGatewayTest.php,49,"'*/tokenized/checkout/token/grant' => Http::response(['id_token' => 'mock_bkash_token_123'], 200),"
+tests/Unit/Payment/BkashGatewayTest.php,51,"'paymentID' => 'BK_PAY_MOCK_123',"
+tests/Unit/Payment/BkashGatewayTest.php,52,"'bkashURL' => 'https://sandbox.bka.sh/checkout/BK_PAY_MOCK_123',"
+tests/Unit/Payment/BkashGatewayTest.php,70,"$this->assertSame('BK_PAY_MOCK_123', $response->providerReference);"
+tests/Unit/Payment/BkashGatewayTest.php,71,"$this->assertSame('https://sandbox.bka.sh/checkout/BK_PAY_MOCK_123', $response->redirectUrl);"
+tests/Unit/Payment/StripeGatewayTest.php,26,"Config::set('payment.gateways.stripe.secret', 'sk_test_mock_stripe_key_123');"
+tests/Unit/Payment/StripeGatewayTest.php,48,"'id' => 'cs_test_mock_session_id',"
+tests/Unit/Payment/StripeGatewayTest.php,49,"'url' => 'https://checkout.stripe.com/pay/cs_test_mock_session_id',"
+tests/Unit/Payment/StripeGatewayTest.php,50,"'payment_intent' => 'pi_test_mock_intent_id',"
+tests/Unit/Payment/StripeGatewayTest.php,67,"$this->assertSame('cs_test_mock_session_id', $response->providerReference);"
+tests/Unit/Payment/StripeGatewayTest.php,68,"$this->assertSame('https://checkout.stripe.com/pay/cs_test_mock_session_id', $response->redirectUrl);"
+tests/Unit/Services/Home/HomeCountdownServiceTest.php,17,* database connection; no test is skipped or mocked out.

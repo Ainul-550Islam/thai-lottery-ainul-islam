@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotto Discount Rules & Multi-Game Payout Matrix — ThaiLotto Official</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #050b14;
+            color: #cbd5e1;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 10% 80%, rgba(217, 119, 6, 0.04) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .tl-gold-gradient {
+            background: linear-gradient(135deg, #FFF6D6 0%, #F59E0B 50%, #B45309 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tl-gold-bg {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #92400E 100%);
+        }
+        .tl-card {
+            background: linear-gradient(180deg, rgba(16, 27, 45, 0.85) 0%, rgba(10, 18, 30, 0.95) 100%);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            border-radius: 1.25rem;
+            backdrop-filter: blur(12px);
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tl-card:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(217, 119, 6, 0.1);
+        }
+        .calc-panel {
+            background: linear-gradient(135deg, rgba(20, 35, 58, 0.9) 0%, rgba(12, 22, 38, 0.95) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-[#070e1b]/90 backdrop-blur-md border-b border-amber-500/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-xl tl-gold-bg flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-gem text-slate-950 text-xl font-black"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel'] block leading-none">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                        <span class="text-[10px] text-amber-400/80 font-mono tracking-widest uppercase">Pricing & Odds Hub</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Home</a>
+                <a href="/about" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">About Us</a>
+                <a href="/our-fees" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Fees</a>
+                <a href="/prize-verification" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">Prize Verification</a>
+                <a href="/discounts" class="text-sm font-semibold text-amber-400 border-b-2 border-amber-400 pb-1">Lotto Discounts</a>
+                <a href="/account-grade" class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors">VIP Grades</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <a href="/login" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-all">Sign In</a>
+                <a href="/register" class="px-5 py-2.5 rounded-lg text-sm font-black text-slate-950 tl-gold-bg hover:brightness-110 shadow-lg shadow-amber-500/20 transition-all">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <!-- Page Title & Hero Header -->
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono mb-4">
+                <i class="fa-solid fa-percent"></i> Industry-Leading Odds & Multi-Game Discount Matrix
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white font-['Cinzel'] tracking-tight mb-4">
+                Lotto <span class="tl-gold-gradient">Discount Rules</span> & Odds
+            </h1>
+            <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
+                Review transparent payout multipliers and discount rebates across Thai National 3D/2D, Bangkok Weekly, and Mega Bingo markets with up to 900x top rate and 8.00% affiliate commission.
+            </p>
+
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-slate-400">
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-fire text-amber-400"></i> Top 3D Rate: 900.00 THB</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-handshake text-emerald-400"></i> 8.00% Affiliate Share</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-cyan-400"></i> GLO Parity Protected</span>
+            </div>
+        </div>
+
+        <!-- Real-Time Bet & Payout Multiplier Calculator Widget -->
+        <div class="calc-panel p-6 sm:p-10 mb-14">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <!-- Left: Form Controls -->
+                <div class="lg:col-span-7">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-calculator"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-black text-white font-['Cinzel']">Live Payout & Discount Calculator</h2>
+                            <p class="text-xs text-slate-400">Simulate net stake, cashback savings, and winning payout in real time.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1 font-mono">Lottery Game / Market</label>
+                            <select id="calcGameSelect" onchange="calculatePayoutStandalone()" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
+                                <option value="3d_top">Thai 3-Digit Top (3 ตัวบน) — 900x Payout</option>
+                                <option value="3d_bottom">Thai 3-Digit Bottom (3 ตัวล่าง) — 450x Payout</option>
+                                <option value="3d_tod">Thai 3-Digit Tod (3 ตัวโต๊ด) — 150x Payout</option>
+                                <option value="2d_top">Thai 2-Digit Top (2 ตัวบน) — 90x Payout</option>
+                                <option value="2d_bottom">Thai 2-Digit Bottom (2 ตัวล่าง) — 90x Payout</option>
+                                <option value="run_top">Running Number Top (วิ่งบน) — 3.2x Payout</option>
+                                <option value="run_bottom">Running Number Bottom (วิ่งล่าง) — 4.2x Payout</option>
+                                <option value="weekly_4d">Bangkok Weekly 4D Straight — 7,000x Payout</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1 font-mono">Bet Amount (THB)</label>
+                                <input type="number" id="calcBetAmount" value="100" min="1" max="100000" step="10" oninput="calculatePayoutStandalone()" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-amber-400">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1 font-mono">VIP Grade Status</label>
+                                <select id="calcVipTier" onchange="calculatePayoutStandalone()" class="w-full bg-[#0a121e] border border-amber-500/30 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
+                                    <option value="bronze">Bronze VIP (0.00% Rebate)</option>
+                                    <option value="silver">Silver VIP (1.00% Rebate)</option>
+                                    <option value="gold" selected>Gold VIP (2.00% Rebate)</option>
+                                    <option value="platinum">Platinum VIP (3.50% Rebate)</option>
+                                    <option value="diamond">Diamond VIP (5.00% Rebate)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Quick Presets -->
+                        <div class="flex flex-wrap items-center gap-2 pt-2 text-xs">
+                            <span class="text-slate-400 font-mono text-[11px] mr-1">Quick Bet:</span>
+                            <button type="button" onclick="setBetAmount(50)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">50 THB</button>
+                            <button type="button" onclick="setBetAmount(100)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">100 THB</button>
+                            <button type="button" onclick="setBetAmount(500)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">500 THB</button>
+                            <button type="button" onclick="setBetAmount(1000)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 font-mono text-[11px] border border-slate-700">1,000 THB</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Computed Results -->
+                <div class="lg:col-span-5 bg-[#0a1424] border border-amber-500/40 rounded-2xl p-6 sm:p-7 space-y-4">
+                    <div class="flex items-center justify-between border-b border-[#1c2b44] pb-3">
+                        <span class="text-xs font-mono text-slate-400 uppercase">Payout Multiplier</span>
+                        <span id="resMultiplier" class="text-lg font-black text-amber-400 font-mono">900x</span>
+                    </div>
+
+                    <div>
+                        <span class="text-xs text-slate-400 block mb-0.5">Estimated Potential Payout:</span>
+                        <div id="resPotentialWin" class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono">90,000.00 THB</div>
+                        <span class="text-[10px] text-slate-400 font-mono">Paid 100% in full with zero withholding.</span>
+                    </div>
+
+                    <div class="space-y-2 pt-3 border-t border-[#1c2b44] text-xs">
+                        <div class="flex justify-between text-slate-400">
+                            <span>Gross Wager:</span>
+                            <span id="resGrossBet" class="font-mono text-white font-bold">100.00 THB</span>
+                        </div>
+                        <div class="flex justify-between text-slate-400">
+                            <span>VIP Discount Rebate:</span>
+                            <span id="resDiscountSavings" class="font-mono text-emerald-400 font-bold">-2.00 THB (2.00%)</span>
+                        </div>
+                        <div class="flex justify-between pt-2 border-t border-[#1c2b44]/60 text-sm">
+                            <span class="font-bold text-white">Net Debit Cost:</span>
+                            <span id="resNetStake" class="font-mono font-black text-cyan-400">98.00 THB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Filter Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 text-xs font-bold scrollbar-thin">
+            <button type="button" onclick="filterMarket('all', this)" class="m-filter-btn px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black transition-all">All Markets</button>
+            <button type="button" onclick="filterMarket('thai_national', this)" class="m-filter-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Thai National (900x)</button>
+            <button type="button" onclick="filterMarket('bangkok_weekly', this)" class="m-filter-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Bangkok Weekly</button>
+            <button type="button" onclick="filterMarket('affiliate', this)" class="m-filter-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Affiliate Share (8%)</button>
+        </div>
+
+        <!-- Market Tables Container -->
+        <div class="space-y-8 mb-14">
+            <!-- Thai National Table -->
+            <div class="tl-card market-sec" id="sec_thai_national">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-[#1c2b44] pb-3">
+                    <div>
+                        <h3 class="text-base font-black text-white font-['Cinzel']">Thai National Lottery (หวยรัฐบาลไทย)</h3>
+                        <p class="text-xs text-slate-400">Draws on the 1st & 16th of every month with high 900x odds.</p>
+                    </div>
+                    <span class="px-3 py-1 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold">Max 900 THB per 1 THB Stake</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead>
+                            <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                <th class="py-2.5 px-3">Betting Category</th>
+                                <th class="py-2.5 px-3">Payout Multiplier</th>
+                                <th class="py-2.5 px-3">Standard Discount</th>
+                                <th class="py-2.5 px-3">Max VIP Cashback</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#1c2b44]/60 font-mono">
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">3-Digit Top (3 ตัวบน)</td><td class="py-3 px-3 font-bold text-amber-400">900 THB (900x)</td><td class="py-3 px-3 text-slate-400">0.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">5.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">3-Digit Bottom (3 ตัวล่าง)</td><td class="py-3 px-3 font-bold text-amber-400">450 THB (450x)</td><td class="py-3 px-3 text-slate-400">0.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">5.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">3-Digit Front (3 ตัวหน้า)</td><td class="py-3 px-3 font-bold text-amber-400">450 THB (450x)</td><td class="py-3 px-3 text-slate-400">0.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">5.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">3-Digit Tod (3 ตัวโต๊ด)</td><td class="py-3 px-3 font-bold text-amber-400">150 THB (150x)</td><td class="py-3 px-3 text-slate-400">0.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">5.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">2-Digit Top (2 ตัวบน)</td><td class="py-3 px-3 font-bold text-emerald-400">90 THB (90x)</td><td class="py-3 px-3 text-slate-400">0.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">5.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">2-Digit Bottom (2 ตัวล่าง)</td><td class="py-3 px-3 font-bold text-emerald-400">90 THB (90x)</td><td class="py-3 px-3 text-slate-400">0.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">5.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">Running Top (วิ่งบน)</td><td class="py-3 px-3 font-bold text-slate-300">3.2 THB (3.2x)</td><td class="py-3 px-3 text-slate-400">0.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">5.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">Running Bottom (วิ่งล่าง)</td><td class="py-3 px-3 font-bold text-slate-300">4.2 THB (4.2x)</td><td class="py-3 px-3 text-slate-400">0.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">5.00%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Bangkok Weekly Table -->
+            <div class="tl-card market-sec" id="sec_bangkok_weekly">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-[#1c2b44] pb-3">
+                    <div>
+                        <h3 class="text-base font-black text-white font-['Cinzel']">Bangkok Weekly Lottery (หวยรายสัปดาห์)</h3>
+                        <p class="text-xs text-slate-400">Weekly draws featuring 4-digit straight bets and bundle discounts.</p>
+                    </div>
+                    <span class="px-3 py-1 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-mono font-bold">Up to 7,000x Odds</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead>
+                            <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                <th class="py-2.5 px-3">Betting Category</th>
+                                <th class="py-2.5 px-3">Payout Multiplier</th>
+                                <th class="py-2.5 px-3">Standard Discount</th>
+                                <th class="py-2.5 px-3">Max VIP Cashback</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#1c2b44]/60 font-mono">
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">4-Digit Straight (4 ตัวตรง)</td><td class="py-3 px-3 font-bold text-amber-400">7,000 THB (7000x)</td><td class="py-3 px-3 text-emerald-400">10.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">15.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">4-Digit Tod (4 ตัวโต๊ด)</td><td class="py-3 px-3 font-bold text-amber-400">250 THB (250x)</td><td class="py-3 px-3 text-emerald-400">10.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">15.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">3-Digit Straight</td><td class="py-3 px-3 font-bold text-emerald-400">850 THB (850x)</td><td class="py-3 px-3 text-emerald-400">5.00%</td><td class="py-3 px-3 text-emerald-400 font-bold">10.00%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Affiliate Commission Table -->
+            <div class="tl-card market-sec" id="sec_affiliate">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-[#1c2b44] pb-3">
+                    <div>
+                        <h3 class="text-base font-black text-white font-['Cinzel']">Affiliate Partner Commission Tiers</h3>
+                        <p class="text-xs text-slate-400">Earn lifetime recurring revenue share on every wager made by your invited players.</p>
+                    </div>
+                    <span class="px-3 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">Lifetime Revenue Share</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead>
+                            <tr class="text-slate-400 uppercase text-[10px] border-b border-[#1c2b44]">
+                                <th class="py-2.5 px-3">Partner Level</th>
+                                <th class="py-2.5 px-3">Monthly Network Turnover</th>
+                                <th class="py-2.5 px-3">Commission Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#1c2b44]/60 font-mono">
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">Tier 1 — Silver Partner</td><td class="py-3 px-3 text-slate-300">0 - 100,000 THB</td><td class="py-3 px-3 font-bold text-amber-400">4.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">Tier 2 — Gold Partner</td><td class="py-3 px-3 text-slate-300">100,000 - 500,000 THB</td><td class="py-3 px-3 font-bold text-amber-400">6.00%</td></tr>
+                            <tr><td class="py-3 px-3 font-bold text-white font-sans">Tier 3 — Platinum Partner</td><td class="py-3 px-3 text-slate-300">500,000+ THB</td><td class="py-3 px-3 font-bold text-emerald-400 text-sm">8.00% Max</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer matching visual mockup -->
+    <footer class="bg-[#050b14] border-t border-amber-500/20 pt-16 pb-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#1c2b44]">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl tl-gold-bg flex items-center justify-center">
+                            <i class="fa-solid fa-gem text-slate-950 font-black"></i>
+                        </div>
+                        <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel']">Thai<span class="tl-gold-gradient">Lotto</span></span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed max-w-sm mb-6">
+                        Thailand's premier digital lottery platform. Officially licensed and regulated digital gateway providing transparent, instant, and high-security draw access for global players.
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-telegram"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-line"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Quick Navigation</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/" class="hover:text-amber-400 transition-colors">Home Page</a></li>
+                        <li><a href="/about" class="hover:text-amber-400 transition-colors">About ThaiLotto</a></li>
+                        <li><a href="/vision-mission" class="hover:text-amber-400 transition-colors">Vision & Mission</a></li>
+                        <li><a href="/how-to-play" class="hover:text-amber-400 transition-colors">How to Play</a></li>
+                        <li><a href="/faq" class="hover:text-amber-400 transition-colors">Frequently Asked Questions</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Legal & Compliance</h5>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="/terms-conditions" class="hover:text-amber-400 transition-colors">Terms & Conditions</a></li>
+                        <li><a href="/privacy-policy" class="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="/our-fees" class="hover:text-amber-400 transition-colors">Fee Schedules</a></li>
+                        <li><a href="/prize-verification" class="hover:text-amber-400 transition-colors">Prize Verification</a></li>
+                        <li><a href="/discounts" class="text-amber-400 font-bold transition-colors">Discount Rules</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono mb-4">Security & Trust</h5>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-lock text-emerald-400"></i>
+                            <span>256-Bit SSL Encryption</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                            <span>GLO Certified Results</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-300">
+                            <i class="fa-solid fa-server text-blue-400"></i>
+                            <span>99.99% Server Uptime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+                <div>&copy; 2026 ThaiLotto Platform. All Rights Reserved. Regulated lottery entertainment service.</div>
+                <div class="flex gap-6">
+                    <a href="/terms-conditions" class="hover:text-slate-400">Terms</a>
+                    <a href="/privacy-policy" class="hover:text-slate-400">Privacy</a>
+                    <a href="/our-fees" class="hover:text-slate-400">Fees</a>
+                    <a href="/discounts" class="text-amber-400">Discounts</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Standalone Simulation Logic -->
+    <script>
+        var gameData = {
+            '3d_top': { mult: 900, label: '900x' },
+            '3d_bottom': { mult: 450, label: '450x' },
+            '3d_tod': { mult: 150, label: '150x' },
+            '2d_top': { mult: 90, label: '90x' },
+            '2d_bottom': { mult: 90, label: '90x' },
+            'run_top': { mult: 3.2, label: '3.2x' },
+            'run_bottom': { mult: 4.2, label: '4.2x' },
+            'weekly_4d': { mult: 7000, label: '7,000x' }
+        };
+
+        var vipRebates = {
+            'bronze': 0.00,
+            'silver': 0.01,
+            'gold': 0.02,
+            'platinum': 0.035,
+            'diamond': 0.05
+        };
+
+        function calculatePayoutStandalone() {
+            var gKey = document.getElementById('calcGameSelect').value;
+            var amt = parseFloat(document.getElementById('calcBetAmount').value);
+            var vKey = document.getElementById('calcVipTier').value;
+
+            if (isNaN(amt) || amt <= 0) amt = 100;
+
+            var g = gameData[gKey] || gameData['3d_top'];
+            var rebateRate = vipRebates[vKey] || 0.00;
+
+            var savings = amt * rebateRate;
+            var net = amt - savings;
+            var win = amt * g.mult;
+
+            document.getElementById('resMultiplier').textContent = g.label;
+            document.getElementById('resPotentialWin').textContent = win.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' THB';
+            document.getElementById('resGrossBet').textContent = amt.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' THB';
+            document.getElementById('resDiscountSavings').textContent = '-' + savings.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' THB (' + (rebateRate * 100).toFixed(1) + '%)';
+            document.getElementById('resNetStake').textContent = net.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' THB';
+        }
+
+        function setBetAmount(a) {
+            document.getElementById('calcBetAmount').value = a;
+            calculatePayoutStandalone();
+        }
+
+        function filterMarket(target, btn) {
+            var btns = document.querySelectorAll('.m-filter-btn');
+            btns.forEach(function(b) {
+                b.className = 'm-filter-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all';
+            });
+            btn.className = 'm-filter-btn px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black transition-all';
+
+            var secs = document.querySelectorAll('.market-sec');
+            secs.forEach(function(s) {
+                if (target === 'all' || s.id === 'sec_' + target) {
+                    s.style.display = 'block';
+                } else {
+                    s.style.display = 'none';
+                }
+            });
+        }
+
+        // Init
+        calculatePayoutStandalone();
+    </script>
+</body>
+</html>

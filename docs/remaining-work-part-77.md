@@ -1,0 +1,31 @@
+# Part77 completed scope and owner rollout work
+
+Complete default: 5098 cases / 147936 assertions; 256 conditional skips; 333 isolated source files; exact discovery and all previous 5077 IDs retained; zero failures/errors.
+
+Executed native: 1376 cases / 13465 assertions; zero skips/errors/failures. Raw selection: 1377 IDs with one SQLite-only trigger record separately passed default.
+
+Dedicated overlapping native subset: 21 cases / 208 assertions; zero skips/errors/failures. Seventeen feature cases, three genuine two-child transaction PRIMARY-root wait profiles and one actual wrong-store observer refusal.
+
+All previous native case IDs and 109 genuine profiles retained; three new profiles give 112 total: 110 parent/two-child waits and two two-child deadlock cycles. Each new child first reads pending status and zero journals in its own RR snapshot, then is witnessed waiting on the parent financial_transactions PRIMARY record. Native starts after default/auxiliary compilation.
+
+New-winner: one two-leg journal wins, one disjoint-account duplicate is refused. Already-posted: both old-snapshot children refuse the parent journal. Terminal: both old-snapshot children refuse the newly failed transaction. No wallets or external cash movement are involved.
+
+Two isolated qualified omission assertion failures; zero setup errors/skips; shadow paths audited including real child processes. Omitting persisted row reload commits two forbidden terminal-transaction legs. Reverting current duplicate admission to snapshot hasPosting commits six legs across three disjoint account pairs for one transaction. A healthy native shadow executes the same harness successfully with only two legs.
+
+PHP syntax 2201 files; Pint four changed PHP files; Python 100; Node 54; Rust 27 locked tests/release build; genuine Vite build; zero Composer advisories/abandoned and zero npm full-lock-graph vulnerabilities.
+
+Direct post locks and reloads the canonical transaction before the existing ordered account locks; only persisted Pending/Processing states are admitted. Persisted currency, wallet and reference supply defaults; explicit draft overrides remain caller-owned. Missing/deleted roots are refused, current duplicate observation includes tombstones and avoids absent-journal range locks across unrelated transactions, and public read-only hasPosting retains snapshot behavior. Caller model and caller-owned commit/rollback semantics are preserved.
+
+MySQL-style REPEATABLE READ current reads; disposable MariaDB child sessions temporarily set innodb_snapshot_isolation OFF and restore its original value. With MariaDB snapshot isolation ON changed old rows can raise 1020 fail-closed; no retry/certification for every engine mode is claimed.
+
+Not arbitrary draft authorization, journal total-to-transaction-amount authorization, historical repair, tenant permission, upstream coercion recovery, universal local-savepoint rollback or all-writer/driver certification. No migration/backfill, provider request, live transfer, populated production restore, remote CI or worldwide legal approval is claimed.
+
+Runbook: docs/ledger-current-read-part-77.md.
+
+## Full source delivery
+
+File1531 onward includes every agreed implementation, feature/server test, child worker, CI, inventory, documentation and acceptance body in full. Previous complete streams remain byte-exact recoverable.
+
+## Owner deployment work
+
+Provider/merchant configuration, country-specific legal/operational approval, populated-store backup/restore rehearsal and production monitoring remain owner rollout inputs. This application fix was not deferred by missing merchant details.

@@ -1,0 +1,29 @@
+
+   PASS  Tests\Feature\Draw\ChunkedSettlementTest
+  ✓ finalize refuses while bets remain past the cursor                                                                                                                                                                                             4.15s  
+  ✓ the draw stays published until the run is finalized                                                                                                                                                                                            0.40s  
+  ✓ re running a chunk does not pay a bet twice                                                                                                                                                                                                    0.31s  
+  ✓ a completed run cannot settle the draw a second time                                                                                                                                                                                           0.32s  
+  ✓ the monolithic path refuses while a chunked run is in flight                                                                                                                                                                                   0.35s  
+  ✓ only one run can exist for a draw                                                                                                                                                                                                              0.31s  
+  ✓ totals accumulate exactly across chunks                                                                                                                                                                                                        0.37s  
+  ✓ an interrupted run resumes from its cursor and finishes                                                                                                                                                                                        0.40s  
+  ✓ recovery requires a reason and an authorized settlement operator                                                                                                                                                                               0.38s  
+  ✓ queued recovery dispatches only after the reason and actor audit commit                                                                                                                                                                        0.37s  
+  ✓ the chunked path pays only once and only under live                                                                                                                                                                                            0.34s  
+  ✓ reconciliation validates settlement links and reports tampering without repairing history                                                                                                                                                      0.38s  
+  ✓ a run opened under dry run keeps dry run even if config changes mid run                                                                                                                                                                        0.34s  
+  ✓ a run cannot be opened for a draw that is not published                                                                                                                                                                                        0.23s  
+  ✓ the orchestrator clamps the configured chunk size                                                                                                                                                                                              0.19s  
+  ✓ the safety mode is read at open and not per chunk                                                                                                                                                                                              0.28s  
+  ✓ percent complete reports progress and is null without a denominator                                                                                                                                                                            0.35s  
+  ✓ the monolithic job stands aside while a chunked run owns the draw                                                                                                                                                                              0.36s  
+  ✓ result provenance drift rolls back the chunk before money or cursor changes                                                                                                                                                                    0.31s  
+  ✓ failed chunk rolls back payouts and cursor together                                                                                                                                                                                            0.32s  
+  ✓ cancelled and refunded bets are not in the prize participant set                                                                                                                                                                               0.35s  
+  ✓ a purchase validated before draw close is rejected under the draw fence                                                                                                                                                                        0.24s  
+  ✓ the monolithic job stands aside for an aborted resumable run                                                                                                                                                                                   0.36s  
+
+  Tests:    23 passed (123 assertions)
+  Duration: 11.45s
+

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thai Lottery Enterprise API Documentation</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --border: #334155;
+            --badge-get: #10b981;
+            --badge-post: #3b82f6;
+            --badge-del: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin: 0 0 0.5rem 0;
+            color: var(--accent);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .endpoint-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .endpoint-header {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .method {
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .get { background-color: var(--badge-get); }
+        .post { background-color: var(--badge-post); }
+        .delete { background-color: var(--badge-del); }
+
+        .path {
+            font-family: monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .desc {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .endpoint-body {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            background-color: rgba(15, 23, 42, 0.4);
+            font-size: 0.85rem;
+        }
+
+        pre {
+            background-color: #0b1120;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            color: #38bdf8;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Thai Lottery Enterprise API Reference (OpenAPI 3.1)</h1>
+            <div class="subtitle">Complete specification for Financial Double-Entry Ledger, GLO 4-Eyes Draws, PromptPay Gateway & Security Operations Center (SOC).</div>
+        </header>
+
+        <!-- Endpoint: Health -->
+        <div class="endpoint-card">
+            <div class="endpoint-header">
+                <span class="method get">GET</span>
+                <span class="path">/api/v1/health</span>
+                <span class="desc">Operational liveness & readiness check</span>
+            </div>
+            <div class="endpoint-body">
+                <div><strong>Response (200 OK):</strong></div>
+                <pre>{ "status": "UP", "timestamp": "2026-10-16T12:00:00Z" }</pre>
+            </div>
+        </div>
+
+        <!-- Endpoint: PromptPay QR -->
+        <div class="endpoint-card">
+            <div class="endpoint-header">
+                <span class="method post">POST</span>
+                <span class="path">/api/v1/payments/promptpay/generate</span>
+                <span class="desc">Generate dynamic EMVCo PromptPay QR Code with CRC-16</span>
+            </div>
+            <div class="endpoint-body">
+                <div><strong>Request Body:</strong></div>
+                <pre>{ "amount": 150.00, "recipient_id": "0812345678" }</pre>
+                <div><strong>Response (200 OK):</strong></div>
+                <pre>{
+  "success": true,
+  "data": {
+    "reference_id": "PP-9882A1B2C3",
+    "amount": "150.00",
+    "currency": "THB",
+    "qr_raw_payload": "00020101021229370016A000000677010111011300668123456785802TH53037645406150.006304E1F2",
+    "expires_at": "2026-10-16T12:15:00Z"
+  }
+}</pre>
+            </div>
+        </div>
+
+        <!-- Endpoint: Order Placement -->
+        <div class="endpoint-card">
+            <div class="endpoint-header">
+                <span class="method post">POST</span>
+                <span class="path">/api/v1/orders/place</span>
+                <span class="desc">Place batch lottery ticket order (Idempotency & HMAC signed)</span>
+            </div>
+            <div class="endpoint-body">
+                <div><strong>Headers:</strong> <code>X-Idempotency-Key</code>, <code>X-Signature</code>, <code>X-Auth-Timestamp</code></div>
+                <div><strong>Request Body:</strong></div>
+                <pre>{
+  "idempotency_key": "c4b1234e-7e9b-4e1a-a001-123456789abc",
+  "draw_id": "GLO-20261016-01",
+  "entries": [
+    { "number": "000123", "bet_type": "6D_OFFICIAL", "amount": "80.0000" },
+    { "number": "456", "bet_type": "3D_DIRECT", "amount": "100.0000" }
+  ]
+}</pre>
+            </div>
+        </div>
+
+        <!-- Endpoint: Admin IP Blocks -->
+        <div class="endpoint-card">
+            <div class="endpoint-header">
+                <span class="method post">POST</span>
+                <span class="path">/api/v1/admin/security/ip-blocks</span>
+                <span class="desc">Create bitwise IP/CIDR block rule (Admin SOC)</span>
+            </div>
+            <div class="endpoint-body">
+                <div><strong>Request Body:</strong></div>
+                <pre>{
+  "ip_or_cidr": "198.51.100.0/24",
+  "reason_code": "BRUTE_FORCE",
+  "duration_minutes": 1440,
+  "notes": "Targeted brute-force auth attempts"
+}</pre>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

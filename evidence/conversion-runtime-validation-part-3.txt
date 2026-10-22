@@ -1,0 +1,305 @@
+# Runtime validation for the local working tree
+
+This is test output, not evidence of live payments or deployment.
+Full application route listing exited 0 and returned 558 routes. The wallet subset contains 25 routes and is supplied as full JSON separately.
+The source-only preflight still exits 1: four other imported App symbols are unresolved.
+JavaScript syntax: node --check resources/js/wallet-conversion.js exited 0.
+All 25 consolidated PHP source files passed php -l.
+
+
+===== Conversion unit and HTTP/engine regression tests — exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 71 ( 91%)
+......                                                            71 / 71 (100%)
+
+Time: 00:12.273, Memory: 80.50 MB
+
+OK (71 tests, 259 assertions)
+
+
+===== Isolated foundation tests — exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+.............................                                     29 / 29 (100%)
+
+Time: 00:00.155, Memory: 26.00 MB
+
+OK (29 tests, 92 assertions)
+
+
+===== Source scanner tests — exit 0 =====
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.009s
+
+OK
+
+
+===== Formatting checks — exit 0 =====
+
+  ..............
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   .......................................................... 14 files  
+
+
+
+===== Frontend build — exit 0 =====
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                   25.08 kB │ gzip:  3.01 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css               1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                  3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css              4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css            4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css               6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css            6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css             6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css               6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css          7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                 7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css               7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css            7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css              7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                       8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css               8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css             8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css         8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css     9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css              9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                      9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                        10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css           12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                        12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css              12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css          12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                     12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                   12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                    12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                 12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                         12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css        12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                      13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                       14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                       15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-baUnksz1.css                         71.14 kB │ gzip: 12.91 kB
+public/build/assets/account-grades-iqvPnkdB.js                0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js          0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                     0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                           0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                   0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                      0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js            0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js             0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js              0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js          0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js              0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js             0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                   0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                 0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js              0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                     0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                  0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                       0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                     1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                        1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js            1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js            1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                         1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                     1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js          1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                          1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js      1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                   1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js            2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                  2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js          2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js         2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js             2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js             2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                         2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js           2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                  2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-SgmUD3Bq.js               3.13 kB │ gzip:  1.27 kB
+public/build/assets/privacy-portal-DccX1fIk.js                3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                    3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                   4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js     4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js               5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js               6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js   6.34 kB │ gzip:  2.13 kB
+public/build/assets/bet-slip-ByhMJlRF.js                      6.37 kB │ gzip:  2.69 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                   6.62 kB │ gzip:  2.59 kB
+public/build/assets/app-1IIFpSSh.js                          58.45 kB │ gzip: 21.59 kB
+
+✓ built in 1.74s
+
+
+===== Broader payment and finance suites — exit 1; 14 failures remain =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..........F.............................F..FFFF................  63 / 129 ( 48%)
+.......FFFFF.FF....F........................................... 126 / 129 ( 97%)
+...                                                             129 / 129 (100%)
+
+Time: 00:28.910, Memory: 93.00 MB
+
+There were 14 failures:
+
+1) Tests\Feature\Payment\FixturePublicationSafetyTest::test_fixture_sources_default_to_disabled_in_configuration
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/FixturePublicationSafetyTest.php:22
+
+2) Tests\Feature\Payment\PlayerDepositApiTest::authenticated_player_can_initiate_stripe_deposit
+Expected response status code [201] but received 503.
+Failed asserting that 503 is identical to 201.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/PlayerDepositApiTest.php:31
+
+3) Tests\Feature\Payment\PlayerDepositApiTest::configured_cash_in_fee_is_calculated_server_side_exactly_once
+Expected response status code [201] but received 503.
+Failed asserting that 503 is identical to 201.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/PlayerDepositApiTest.php:91
+
+4) Tests\Feature\Payment\PlayerDepositApiTest::client_supplied_fee_fields_are_completely_ignored
+Expected response status code [201] but received 422.
+Failed asserting that 422 is identical to 201.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/PlayerDepositApiTest.php:137
+
+5) Tests\Feature\Payment\PlayerDepositApiTest::default_zero_percent_deposit_fee_keeps_the_deposit_free
+Expected response status code [201] but received 503.
+Failed asserting that 503 is identical to 201.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/PlayerDepositApiTest.php:154
+
+6) Tests\Feature\Payment\PlayerDepositApiTest::an_idempotent_replay_charges_the_fee_exactly_once
+Expected response status code [201] but received 503.
+Failed asserting that 503 is identical to 201.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/PlayerDepositApiTest.php:177
+
+7) Tests\Feature\Payment\WebhookReplayProtectionTest::replay_is_idempotent_even_when_the_cache_is_cleared_between_deliveries
+Expected response status code [200] but received 422.
+Failed asserting that 422 is identical to 200.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/WebhookReplayProtectionTest.php:128
+
+8) Tests\Feature\Payment\WebhookReplayProtectionTest::the_guard_records_the_replay_durably
+Expected response status code [200] but received 422.
+Failed asserting that 422 is identical to 200.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/WebhookReplayProtectionTest.php:159
+
+9) Tests\Feature\Payment\WebhookReplayProtectionTest::a_different_payload_is_not_treated_as_a_replay
+Expected response status code [200] but received 422.
+Failed asserting that 422 is identical to 200.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/WebhookReplayProtectionTest.php:193
+
+10) Tests\Feature\Payment\WebhookReplayProtectionTest::two_gateways_with_identical_bytes_do_not_shadow_each_other
+Expected response status code [200] but received 422.
+Failed asserting that 422 is identical to 200.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/WebhookReplayProtectionTest.php:220
+
+11) Tests\Feature\Payment\WebhookReplayProtectionTest::replay_protection_can_be_switched_off_by_configuration
+Expected response status code [200] but received 422.
+Failed asserting that 422 is identical to 200.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/WebhookReplayProtectionTest.php:262
+
+12) Tests\Feature\Payment\WebhookReplayProtectionTest::an_accepted_delivery_records_observation
+Expected response status code [200] but received 422.
+Failed asserting that 422 is identical to 200.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/WebhookReplayProtectionTest.php:346
+
+13) Tests\Feature\Payment\WebhookReplayProtectionTest::the_replay_guard_is_attached_to_every_webhook_route
+the flood limiter must still be on api.v1.payments.webhook.handle
+Failed asserting that an array contains 'Illuminate\Routing\Middleware\ThrottleRequests'.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/WebhookReplayProtectionTest.php:398
+
+14) Tests\Feature\Payment\WithdrawalDestinationValidationTest::test_bank_transfer_withdrawal_requires_canonical_bank_and_account
+Session has unexpected errors: 
+
+{
+    "default": [
+        "The selected method is invalid."
+    ]
+}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:1695
+/home/user/thai-lottery-ainul-islam/tests/Feature/Payment/WithdrawalDestinationValidationTest.php:47
+
+FAILURES!
+Tests: 129, Assertions: 469, Failures: 14.
+

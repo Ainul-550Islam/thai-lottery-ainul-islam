@@ -1,0 +1,13 @@
+Part64 completed local application acceptance. Counts overlap; do not add suites.
+Complete default: 4231 cases / 143245 assertions; 186 conditional skips; 309 source files, exact current discovery matched, every previous 4176 ID retained; zero failures/errors.
+Selected executed native: 458 cases / 6841 assertions; zero skips/errors/failures; 44 genuine two-child waits, including four new profiles and three actual old-RR snapshots.
+Raw native selection has 459 IDs and exactly one SQLite-trigger-only conditional skip. That exact fault-injection ID passed in default. Executed native count 458 excludes that record rather than inventing native execution.
+Dedicated subset: 55 / 385; 51 feature and four native cases.
+Seven intentional single-assertion omission failures; no setup error/skip. Both native controls audited service and guard file paths in the parent and both actual child processes.
+PHP syntax 2163 files; Pint seven changed PHP files; Python 86.
+Static: {"passed": true, "cases": 35, "assertions": 1692, "skipped": 0, "errors": 0, "failures": 0}; standalone: {"passed": true, "cases": 29, "assertions": 94, "skipped": 0, "errors": 0, "failures": 0}.
+Composer clean; full npm dependency audit clean; 54 Node tests and real Vite build. Rust 27 locked integrity tests and release build; retired worker inactive.
+No new migration; separate empty SQLite up/down/up yields 158 tables. This is not a populated production restore.
+Nine implementation paths frozen and matched. Earlier incomplete prerequisite runs and unscoped NULL diagnostics are excluded from accepted results. Unrelated writers retain their historical posting identities.
+No historical fee-leg adoption/repair, current-balance historical proof, arbitrary-writer cryptographic receipt, provider I/O inside SQL, live transfer/refund, remote CI or worldwide legal approval.
+Runbooks: docs/conversion-original-accounting-part-64.md and docs/remaining-work-part-64.md.

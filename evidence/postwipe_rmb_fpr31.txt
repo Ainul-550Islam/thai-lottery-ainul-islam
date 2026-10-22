@@ -1,0 +1,67 @@
+
+   FAIL  Tests\Feature\RealMoneyBusinessReadinessTest
+  ✓ glo l6 proportional prize calculation and stamp duty                                                                                                                                                                                           4.04s  
+  ✓ glo prize claim lifecycle and approval                                                                                                                                                                                                         0.28s  
+  ✓ multi currency wallet reservation and consumption                                                                                                                                                                                              0.10s  
+  ✓ financial reconciliation engine runs without anomalies                                                                                                                                                                                         0.09s  
+  ✓ payment gateway manager capabilities                                                                                                                                                                                                           0.08s  
+  ✓ withdrawal disbursement failure restores balance                                                                                                                                                                                               0.10s  
+  ✓ responsible gaming limits decrease immediate and increase cooling off                                                                                                                                                                          0.08s  
+  ⨯ bulk bet slip cart partial success and replay idempotency                                                                                                                                                                                      0.13s  
+
+   FAIL  Tests\Feature\FinalProductionReadinessTest
+  ✓ public routes render in en and th                                                                                                                                                                                                              0.32s  
+  ✓ member routes require authentication                                                                                                                                                                                                           0.11s  
+  ✓ result publication and provenance integrity                                                                                                                                                                                                    0.10s  
+  ✓ wallet isolation and balance immutability                                                                                                                                                                                                      0.11s  
+  ✓ payment gateway capability matrix                                                                                                                                                                                                              0.09s  
+  ✓ payment webhook replay protection                                                                                                                                                                                                              0.11s  
+  ⨯ bulk bet placement with idempotency                                                                                                                                                                                                            0.16s  
+  ✓ glo l6 proportional prize calculation                                                                                                                                                                                                          0.10s  
+  ✓ responsible gaming and self exclusion                                                                                                                                                                                                          0.11s  
+  ✓ agent commission settlement                                                                                                                                                                                                                    0.12s  
+  ✓ privacy and legal content versioning                                                                                                                                                                                                           0.10s  
+  ✓ system health and readiness                                                                                                                                                                                                                    0.11s  
+
+   PASS  Tests\Feature\Observability\HealthEndpointTest
+  ✓ health check service returns live status                                                                                                                                                                                                       0.11s  
+  ✓ readiness check validates critical dependencies                                                                                                                                                                                                0.08s  
+  ✓ full health report structure                                                                                                                                                                                                                   0.10s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\RealMoneyBusinessReadinessTest > bulk bet slip cart partial success and replay idempotency                                                                                                                                       
+  Failed asserting that 0 matches expected 2.
+
+  at tests/Feature/RealMoneyBusinessReadinessTest.php:277
+    273▕         $clientKey = 'SLIP-' . uniqid();
+    274▕         $result = $bulkBetService->purchase($user->id, $draw->id, $selections, $clientKey);
+    275▕ 
+    276▕         $this->assertEquals(2, $result['requested']);
+  ➜ 277▕         $this->assertEquals(2, $result['purchased']);
+    278▕         $this->assertEquals('100.00', $result['total_charged']);
+    279▕ 
+    280▕         // Replay same slip with same client key
+    281▕         $replay = $bulkBetService->purchase($user->id, $draw->id, $selections, $clientKey);
+
+  1   tests/Feature/RealMoneyBusinessReadinessTest.php:277
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalProductionReadinessTest > bulk bet placement with idempotency                                                                                                                                                               
+  Failed asserting that 0 matches expected 1.
+
+  at tests/Feature/FinalProductionReadinessTest.php:262
+    258▕ 
+    259▕         $clientKey = 'SLIP-RELEASE-' . uniqid();
+    260▕         $result = $bulkBetService->purchase($user->id, $draw->id, $selections, $clientKey);
+    261▕ 
+  ➜ 262▕         $this->assertEquals(1, $result['purchased']);
+    263▕         $this->assertEquals('100.00', $result['total_charged']);
+    264▕         $this->assertEquals('900.00', (string) $wallet->fresh()->balance);
+    265▕ 
+    266▕         // Replay
+
+  1   tests/Feature/FinalProductionReadinessTest.php:262
+
+
+  Tests:    2 failed, 21 passed (132 assertions)
+  Duration: 6.75s
+

@@ -1,0 +1,276 @@
+{
+ "_comment": "Reviewed loss ledger for cluster #58, written by tools/dangling58.py and guarded by tests/Feature/Infra/DanglingClassReferenceTest.php. These are classes the tree calls and does not have. They are NOT intended absences (that file is for gaps the fleet decided to keep) and they are NOT owned-path skips: every one of them is a live reference from a file that survived a sandbox reset which took the definition. None of them exists in any of the 53 generations in backup/, which is what makes them losses rather than pending restores. Re-authoring a money-moving service from its callers is invention, so the fleet records the gap, keeps it in view, and leaves the decision to a human.",
+ "also_absent": [
+  "app/Console/Commands/ChatHealthCommand.php",
+  "app/Console/Commands/ChatRetentionSweepCommand.php",
+  "app/Services/Chat",
+  "app/Services/Transfer",
+  "database/factories/BalanceTransferFactory.php",
+  "database/migrations/2026_10_12_000100_create_chat_conversations_table.php",
+  "database/migrations/2026_10_12_000200_create_chat_messages_table.php",
+  "database/migrations/2026_10_12_000300_create_chat_agent_presences_table.php",
+  "database/migrations/2026_10_12_000400_create_chat_canned_responses_table.php",
+  "database/migrations/2026_10_12_000500_create_chat_events_table.php",
+  "database/migrations/2026_10_13_000100_create_balance_transfers_table.php",
+  "lang/en/chat.php",
+  "lang/en/pagination.php",
+  "lang/en/transfer.php",
+  "lang/th/chat.php",
+  "lang/th/pagination.php",
+  "lang/th/transfer.php",
+  "resources/css/chat.css",
+  "resources/js/transfer.js",
+  "resources/views/player/transfers.blade.php",
+  "tests/Feature/TranslationGroupCollisionTest.php",
+  "tests/Security/TransferDeskSecurityTest.php",
+  "tests/Security/TransferSecurityTest.php"
+ ],
+ "also_absent_referrers": {
+  "app/Console/Commands/ChatHealthCommand.php": [
+   "chat"
+  ],
+  "app/Console/Commands/ChatRetentionSweepCommand.php": [
+   "chat"
+  ],
+  "app/Services/Chat": [
+   "chat"
+  ],
+  "app/Services/Transfer": [
+   "transfer"
+  ],
+  "database/factories/BalanceTransferFactory.php": [
+   "transfer"
+  ],
+  "database/migrations/2026_10_12_000100_create_chat_conversations_table.php": [
+   "chat"
+  ],
+  "database/migrations/2026_10_12_000200_create_chat_messages_table.php": [
+   "chat"
+  ],
+  "database/migrations/2026_10_12_000300_create_chat_agent_presences_table.php": [
+   "chat"
+  ],
+  "database/migrations/2026_10_12_000400_create_chat_canned_responses_table.php": [
+   "chat"
+  ],
+  "database/migrations/2026_10_12_000500_create_chat_events_table.php": [
+   "chat"
+  ],
+  "database/migrations/2026_10_13_000100_create_balance_transfers_table.php": [
+   "transfer"
+  ],
+  "lang/en/chat.php": [
+   "chat"
+  ],
+  "lang/en/pagination.php": [
+   "transfer"
+  ],
+  "lang/en/transfer.php": [
+   "transfer"
+  ],
+  "lang/th/chat.php": [
+   "chat"
+  ],
+  "lang/th/pagination.php": [
+   "transfer"
+  ],
+  "lang/th/transfer.php": [
+   "transfer"
+  ],
+  "resources/css/chat.css": [
+   "chat"
+  ],
+  "resources/js/transfer.js": [
+   "transfer"
+  ],
+  "resources/views/player/transfers.blade.php": [
+   "transfer"
+  ],
+  "tests/Feature/TranslationGroupCollisionTest.php": [
+   "transfer"
+  ],
+  "tests/Security/TransferDeskSecurityTest.php": [
+   "transfer"
+  ],
+  "tests/Security/TransferSecurityTest.php": [
+   "transfer"
+  ]
+ },
+ "classes": [
+  "App\\Enums\\ReservationStatus",
+  "App\\Enums\\TransferReversalApprovalStatus",
+  "App\\Enums\\TransferStatus",
+  "App\\Http\\Controllers\\Admin\\BalanceTransferDeskController",
+  "App\\Http\\Middleware\\TrustProxies",
+  "App\\Http\\Requests\\Web\\ContactRequest",
+  "App\\Http\\Requests\\Web\\WithdrawRequest",
+  "App\\Jobs\\Draw\\FinalizeDrawSettlementJob",
+  "App\\Models\\BalanceTransfer",
+  "App\\Models\\PaymentMethod",
+  "App\\Policies\\BetCancellationPolicy",
+  "App\\Providers\\ChatServiceProvider",
+  "App\\Providers\\TransferServiceProvider",
+  "App\\Services\\Chat\\ChatAttachmentService",
+  "App\\Services\\Chat\\ChatAvailabilityService",
+  "App\\Services\\Chat\\ChatCannedResponseService",
+  "App\\Services\\Chat\\ChatConversationService",
+  "App\\Services\\Chat\\ChatHealthService",
+  "App\\Services\\Chat\\ChatIdentityService",
+  "App\\Services\\Chat\\ChatMessageService",
+  "App\\Services\\Chat\\ChatPresenceService",
+  "App\\Services\\Chat\\ChatQueueService",
+  "App\\Services\\Chat\\ChatRateLimitService",
+  "App\\Services\\Chat\\ChatRetentionService",
+  "App\\Services\\Chat\\ChatSlaService",
+  "App\\Services\\Chat\\ChatTranscriptService",
+  "App\\Services\\Lottery\\Contracts\\ResultSource",
+  "App\\Services\\Payment\\ProcessPaymentWebhookService",
+  "App\\Services\\Transfer\\BalanceTransferService",
+  "App\\Services\\Transfer\\TransferLimitService",
+  "App\\Services\\Transfer\\TransferPanelService"
+ ],
+ "count": 31,
+ "gaps_total_owned_absent": 31,
+ "generated_by": "tools/dangling58.py gaps --write",
+ "measured_on": "2026-10-17",
+ "provenance": {
+  "base_commit": "5df5d144b8c912f297ece3b809171054a429d881",
+  "base_commit_in_this_clone": true,
+  "captured_at_note": "written the day the census was run; the losses themselves happened at an earlier reset",
+  "captured_at_utc": "2026-10-17",
+  "claims_refreshed_at_utc": "2026-10-17",
+  "claims_refreshed_by_cluster": 58,
+  "clone_commit_count": 7,
+  "clone_head_commit": "b679fe6",
+  "provenance_note": "absences are read from the tree this commit holds and cross-checked against every tar in backup/, so a reader can tell which tree they describe and can re-run the measurement",
+  "written_during_phase": 58
+ },
+ "record_kind": "loss-ledger",
+ "recoverable_from_backup": 0,
+ "referrers": {
+  "App\\Enums\\ReservationStatus": [
+   "tests/Feature/BusinessCriticalInvariantTest.php"
+  ],
+  "App\\Enums\\TransferReversalApprovalStatus": [
+   "app/Http/Requests/Transfer/DecideReversalApprovalRequest.php"
+  ],
+  "App\\Enums\\TransferStatus": [
+   "app/Http/Controllers/Transfer/BalanceTransferController.php",
+   "tests/Feature/Transfer/BalanceTransferServiceTest.php"
+  ],
+  "App\\Http\\Controllers\\Admin\\BalanceTransferDeskController": [
+   "routes/web.php"
+  ],
+  "App\\Http\\Middleware\\TrustProxies": [
+   "tests/Feature/Http/TrustedProxyResolutionTest.php"
+  ],
+  "App\\Http\\Requests\\Web\\ContactRequest": [
+   "tests/Feature/Architecture/FormRequestReachabilityTest.php"
+  ],
+  "App\\Http\\Requests\\Web\\WithdrawRequest": [
+   "tests/Feature/Architecture/FormRequestReachabilityTest.php"
+  ],
+  "App\\Jobs\\Draw\\FinalizeDrawSettlementJob": [
+   "app/Services/Draw/ChunkedSettlementOrchestrator.php"
+  ],
+  "App\\Models\\BalanceTransfer": [
+   "app/DTOs/Transfer/TransferOutcome.php",
+   "app/Http/Controllers/Transfer/BalanceTransferController.php",
+   "tests/Feature/Transfer/BalanceTransferServiceTest.php"
+  ],
+  "App\\Models\\PaymentMethod": [
+   "tests/Feature/RealMoneyBusinessReadinessTest.php"
+  ],
+  "App\\Policies\\BetCancellationPolicy": [
+   "tests/Feature/Security/ExceptionAndPolicyContractTest.php"
+  ],
+  "App\\Providers\\ChatServiceProvider": [
+   "bootstrap/providers.php"
+  ],
+  "App\\Providers\\TransferServiceProvider": [
+   "bootstrap/providers.php"
+  ],
+  "App\\Services\\Chat\\ChatAttachmentService": [
+   "app/Http/Controllers/Chat/ChatAttachmentController.php"
+  ],
+  "App\\Services\\Chat\\ChatAvailabilityService": [
+   "app/Http/Controllers/Chat/ChatVisitorController.php"
+  ],
+  "App\\Services\\Chat\\ChatCannedResponseService": [
+   "app/Http/Controllers/Chat/ChatAdminController.php",
+   "app/Http/Controllers/Chat/ChatOperatorController.php"
+  ],
+  "App\\Services\\Chat\\ChatConversationService": [
+   "app/Http/Controllers/Chat/ChatAttachmentController.php",
+   "app/Http/Controllers/Chat/ChatOperatorController.php",
+   "app/Http/Controllers/Chat/ChatVisitorController.php",
+   "app/Jobs/Chat/CloseIdleChatConversationsJob.php",
+   "tests/Feature/Chat/ChatOperatorApiTest.php",
+   "tests/Feature/Chat/ChatVisitorApiTest.php",
+   "tests/Security/ChatSecurityTest.php"
+  ],
+  "App\\Services\\Chat\\ChatHealthService": [
+   "app/Http/Controllers/Chat/ChatOperatorController.php"
+  ],
+  "App\\Services\\Chat\\ChatIdentityService": [
+   "app/Http/Controllers/Chat/ChatAttachmentController.php",
+   "app/Http/Controllers/Chat/ChatVisitorController.php",
+   "app/Http/Middleware/EnsureChatGuestToken.php",
+   "app/Http/Middleware/PublicLegalHeaders.php",
+   "tests/Feature/Chat/ChatVisitorApiTest.php",
+   "tests/Feature/PublicPages/PublicLegalCachingContractTest.php",
+   "tests/Security/ChatSecurityTest.php"
+  ],
+  "App\\Services\\Chat\\ChatMessageService": [
+   "app/Http/Controllers/Chat/ChatAttachmentController.php",
+   "app/Http/Controllers/Chat/ChatOperatorController.php",
+   "app/Http/Controllers/Chat/ChatVisitorController.php",
+   "app/Jobs/Chat/CloseIdleChatConversationsJob.php",
+   "app/Jobs/Chat/WarnIdleChatConversationsJob.php",
+   "tests/Feature/Chat/ChatVisitorApiTest.php",
+   "tests/Security/ChatSecurityTest.php"
+  ],
+  "App\\Services\\Chat\\ChatPresenceService": [
+   "app/Http/Controllers/Chat/ChatOperatorController.php"
+  ],
+  "App\\Services\\Chat\\ChatQueueService": [
+   "app/Http/Controllers/Chat/ChatOperatorController.php"
+  ],
+  "App\\Services\\Chat\\ChatRateLimitService": [
+   "app/Http/Controllers/Chat/ChatOperatorController.php",
+   "app/Http/Controllers/Chat/ChatVisitorController.php",
+   "app/Jobs/Chat/CloseIdleChatConversationsJob.php"
+  ],
+  "App\\Services\\Chat\\ChatRetentionService": [
+   "app/Jobs/Chat/RedactChatMessagesJob.php"
+  ],
+  "App\\Services\\Chat\\ChatSlaService": [
+   "app/Jobs/Chat/CloseIdleChatConversationsJob.php",
+   "app/Jobs/Chat/ScanChatSlaBreachesJob.php",
+   "app/Jobs/Chat/WarnIdleChatConversationsJob.php"
+  ],
+  "App\\Services\\Chat\\ChatTranscriptService": [
+   "app/Jobs/Chat/DispatchChatTranscriptJob.php"
+  ],
+  "App\\Services\\Lottery\\Contracts\\ResultSource": [
+   "app/Services/Lottery/GloResultProviderChain.php"
+  ],
+  "App\\Services\\Payment\\ProcessPaymentWebhookService": [
+   "tests/Feature/BusinessCriticalInvariantTest.php",
+   "tests/Feature/FinalProductionReadinessTest.php"
+  ],
+  "App\\Services\\Transfer\\BalanceTransferService": [
+   "app/Http/Controllers/Player/PlayerProfilePortalController.php",
+   "app/Http/Controllers/Transfer/BalanceTransferController.php",
+   "tests/Feature/Security/AccountStatusGateConsistencyTest.php",
+   "tests/Feature/Transfer/BalanceTransferServiceTest.php"
+  ],
+  "App\\Services\\Transfer\\TransferLimitService": [
+   "app/Http/Controllers/Transfer/BalanceTransferController.php"
+  ],
+  "App\\Services\\Transfer\\TransferPanelService": [
+   "app/Http/Controllers/Transfer/BalanceTransferController.php",
+   "app/Http/Controllers/Web/PlayerWebController.php"
+  ]
+ }
+}

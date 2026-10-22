@@ -1,0 +1,217 @@
+/*
+ * TYPE: stylesheet
+ * PURPOSE: Blog index and article presentation (D5).
+ *
+ * Imports the shared public-page system rather than restating it, so the blog
+ * cannot drift away from the ten other public pages. Everything below this
+ * line is specific to the blog.
+ */
+@import './public-next-pages.css';
+
+/* The shared system defines one glyph per page variant. Blog gets its own here
+   rather than in the shared file, which ten other pages import. */
+.next-hero-object--blog > span::before { content: "✎"; }
+
+.next-public-page--blog .blog-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+    margin: 0 0 2.5rem;
+}
+
+.next-public-page--blog .blog-chip {
+    padding: .5rem 1rem;
+    border: 1px solid var(--next-line);
+    border-radius: 999px;
+    color: var(--next-muted);
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: border-color .18s ease, color .18s ease;
+}
+
+.next-public-page--blog .blog-chip:hover,
+.next-public-page--blog .blog-chip:focus-visible {
+    border-color: var(--next-line-bright);
+    color: var(--next-cream);
+}
+
+.next-public-page--blog .blog-chip.is-active {
+    border-color: var(--next-gold);
+    color: var(--next-gold);
+}
+
+.next-public-page--blog .blog-grid {
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+}
+
+.next-public-page--blog .blog-card__title {
+    margin: .45rem 0 .6rem;
+    font: 700 1.15rem/1.3 Georgia, "Times New Roman", serif;
+}
+
+.next-public-page--blog .blog-card__title a {
+    color: var(--next-cream);
+    text-decoration: none;
+}
+
+.next-public-page--blog .blog-card__title a:hover,
+.next-public-page--blog .blog-card__title a:focus-visible {
+    color: var(--next-gold);
+    text-decoration: underline;
+}
+
+.next-public-page--blog .blog-card__excerpt {
+    margin: 0 0 .85rem;
+    color: var(--next-muted);
+    font-size: .92rem;
+    line-height: 1.6;
+}
+
+.next-public-page--blog .blog-card__meta {
+    display: flex;
+    gap: .45rem;
+    margin: 0;
+    color: var(--next-muted);
+    font-size: .74rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.next-public-page--blog .blog-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin: 0 0 2rem;
+    color: var(--next-muted);
+    font-size: .78rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.next-public-page--blog .blog-breadcrumb a { color: var(--next-muted); text-decoration: none; }
+.next-public-page--blog .blog-breadcrumb a:hover { color: var(--next-gold); }
+
+.next-public-page--blog .blog-article { max-width: 46rem; }
+
+.next-public-page--blog .blog-article__header h1 {
+    margin: .5rem 0 .9rem;
+    color: var(--next-cream);
+    font: 800 clamp(1.8rem, 4vw, 3rem)/1.08 Georgia, "Times New Roman", serif;
+    letter-spacing: -.03em;
+}
+
+.next-public-page--blog .blog-article__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin: 0;
+    color: var(--next-muted);
+    font-size: .74rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.next-public-page--blog .blog-article__standfirst {
+    margin: 0 0 2rem;
+    padding-left: 1.2rem;
+    border-left: 2px solid var(--next-gold);
+    color: var(--next-text);
+    font-size: 1.08rem;
+    line-height: 1.65;
+}
+
+/*
+ * Article body typography.
+ *
+ * The body is authored HTML that has already been sanitised, so these rules
+ * only need to make it READABLE — they must never try to make it safe. Sizing
+ * is relative to the page so a reader's font-size setting still applies.
+ */
+.next-public-page--blog .blog-article__body { color: var(--next-text); line-height: 1.78; }
+.next-public-page--blog .blog-article__body > * + * { margin-top: 1.15rem; }
+.next-public-page--blog .blog-article__body h2 {
+    margin-top: 2.2rem;
+    color: var(--next-cream);
+    font: 700 1.5rem/1.25 Georgia, serif;
+}
+.next-public-page--blog .blog-article__body h3 {
+    margin-top: 1.8rem;
+    color: var(--next-cream);
+    font: 700 1.2rem/1.3 Georgia, serif;
+}
+.next-public-page--blog .blog-article__body a { color: var(--next-gold); text-decoration: underline; }
+.next-public-page--blog .blog-article__body ul,
+.next-public-page--blog .blog-article__body ol { padding-left: 1.4rem; }
+.next-public-page--blog .blog-article__body li + li { margin-top: .45rem; }
+.next-public-page--blog .blog-article__body blockquote {
+    margin: 1.6rem 0;
+    padding-left: 1.2rem;
+    border-left: 2px solid var(--next-line-bright);
+    color: var(--next-muted);
+    font-style: italic;
+}
+.next-public-page--blog .blog-article__body table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .92rem;
+}
+.next-public-page--blog .blog-article__body th,
+.next-public-page--blog .blog-article__body td {
+    padding: .55rem .7rem;
+    border-bottom: 1px solid var(--next-line);
+    text-align: left;
+}
+.next-public-page--blog .blog-article__body code {
+    padding: .1rem .35rem;
+    background: var(--next-panel-strong);
+    border-radius: .25rem;
+    font-size: .88em;
+}
+
+/*
+ * The responsible-gambling notice.
+ *
+ * Deliberately visually heavier than an ordinary aside: it always sits after
+ * the article body, and it must not look like optional fine print.
+ */
+.next-public-page--blog .blog-notice {
+    margin-top: 2.5rem;
+    border-color: var(--next-gold);
+}
+
+.next-public-page--blog .blog-notice strong {
+    display: block;
+    margin-bottom: .35rem;
+    color: var(--next-gold);
+    font-size: .74rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+
+.next-public-page--blog .blog-notice p { margin: 0; font-size: .9rem; line-height: 1.65; }
+
+.next-public-page--blog .blog-related { margin-top: 3.5rem; }
+.next-public-page--blog .blog-related h2 {
+    margin: 0 0 1.4rem;
+    color: var(--next-cream);
+    font: 700 1.35rem Georgia, serif;
+}
+
+.next-public-page--blog .blog-pagination { margin-top: 2.5rem; }
+.next-public-page--blog .blog-pagination nav { display: flex; gap: .5rem; flex-wrap: wrap; }
+.next-public-page--blog .blog-pagination a,
+.next-public-page--blog .blog-pagination span {
+    padding: .45rem .85rem;
+    border: 1px solid var(--next-line);
+    border-radius: .35rem;
+    color: var(--next-muted);
+    font-size: .8rem;
+    text-decoration: none;
+}
+.next-public-page--blog .blog-pagination span[aria-current="page"] {
+    border-color: var(--next-gold);
+    color: var(--next-gold);
+}

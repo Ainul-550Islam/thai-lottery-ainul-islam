@@ -1,0 +1,16 @@
+{
+  "expected_failure": true,
+  "tests": 3,
+  "failures": 3,
+  "errors": 0,
+  "exit_code": 1,
+  "mutations": "Removed ONLY the current locking reads of journal entry sets and active risk ownership claim sets, retaining wallet/header/account/current risk row locks. Separate three native stale-snapshot scenarios, not a passed money operation.",
+  "correct_source_restored": true,
+  "restored_sha256": {
+    "app/Services/Betting/BetAccountingProof.php": "c1dbb019b7f8b84045fb31a288edc675ba71781204826a4893d204cd191d21b5",
+    "app/Services/Risk/BetRiskOwnershipFloor.php": "b69e026d6f64efaa30ffa5f6fcbffb8ceb35e58a75340f6689e150aef71bb07a"
+  },
+  "scope": "Separate expected-failure mutation control; not a passed financial operation or approval.",
+  "log_sha256": "78b570d18a98f295176fdef348c2bcdad78e2ca5c1e88929cb65e429f643d041",
+  "junit_sha256": "371108e1bc0d33c43058cb183edeaed39c271b14182ac850202327ae0dfa80be"
+}

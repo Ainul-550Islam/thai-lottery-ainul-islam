@@ -12,7 +12,10 @@ use App\Enums\RiskLevel;
 use App\Exceptions\PayoutDocumentException;
 use App\Models\AuditLog;
 use App\Models\Payout;
+use App\Models\PayoutBatch;
 use App\Models\PayoutDocument;
+use App\Services\Finance\TaxCalculationService;
+use App\Services\Prize\PrizeClaimService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -200,9 +203,15 @@ class PayoutStatementService
     {
         $metadata = is_array($payout->metadata) ? $payout->metadata : [];
 
-        $tax = is_array($metadata['tax'] ?? null) ? $metadata['tax'] : null;
-        $claim = is_array($metadata['claim'] ?? null) ? $metadata['claim'] : null;
-        $batch = is_array($metadata['batch'] ?? null) ? $metadata['batch'] : null;
+        $tax = is_array($metadata[TaxCalculationService::METADATA_KEY] ?? null)
+            ? $metadata[TaxCalculationService::METADATA_KEY]
+            : null;
+        $claim = is_array($metadata[PrizeClaimService::METADATA_KEY] ?? null)
+            ? $metadata[PrizeClaimService::METADATA_KEY]
+            : null;
+        $batch = is_array($metadata[PayoutBatch::MEMBER_METADATA_KEY] ?? null)
+            ? $metadata[PayoutBatch::MEMBER_METADATA_KEY]
+            : null;
 
         // MONEY SOURCES. Net is what settled — the payout's face TODAY.
         $net = (string) $payout->amount;
@@ -349,14 +358,29 @@ class PayoutStatementService
 
     private function recordAudit(?Payout $payout, string $description, RiskLevel $riskLevel, ?PayoutDocument $document = null): void
     {
+        // A statement row that is about a document names the document; one that
+        // is about the payout names the payout; one with neither (a preview
+        // before anything was persisted) names nothing. The old fallback wrote
+        // Payout::class with 0, which reads back as "payout number zero".
+        $subjectType = null;
+        $subjectId = null;
+
+        if ($document instanceof PayoutDocument && $document->getKey() !== null) {
+            $subjectType = PayoutDocument::class;
+            $subjectId = (int) $document->getKey();
+        } elseif ($payout instanceof Payout && $payout->getKey() !== null) {
+            $subjectType = Payout::class;
+            $subjectId = (int) $payout->getKey();
+        }
+
         $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,
             'action' => AuditAction::Payout,
             'risk_level' => $riskLevel,
-            'auditable_type' => $document instanceof PayoutDocument ? PayoutDocument::class : Payout::class,
-            'auditable_id' => $document instanceof PayoutDocument ? (int) $document->getKey() : (int) ($payout?->getKey() ?? 0),
+            'auditable_type' => $subjectType,
+            'auditable_id' => $subjectId,
             'description' => $description,
             'metadata' => [
                 'payout_id' => $document instanceof PayoutDocument ? (int) $document->payout_id : (int) ($payout?->getKey() ?? 0),

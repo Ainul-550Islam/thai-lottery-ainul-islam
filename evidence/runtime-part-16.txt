@@ -1,0 +1,2683 @@
+Part16 runtime evidence — 2026-10-14
+Pinned base HEAD a73ad5b8dce6c1f9f777f25ed38b20355d69b3be
+Actual production boot/template/workflow/CI schema-target guard fixes. No gateway or live payout activated.
+Final production+CI-unit matrix:50 tests/123 assertions pass; standalone CI unit:19/53 pass; actual CLI subprocess guards:6 pass.
+Local CI smoke:key generation/real config cache/cached-facts guard pass; no migration/seed/customer funds; generated runtime env/key/cache removed.
+Workflows:8 jobs parsed/41 shell blocks syntax pass; hosted GitHub/MySQL8/Redis/Cargo execution NOT claimed.
+Collection:2380 cases; final serial diagnostic:1869 tests/121537 assertions/one PublicTerms non-affiliation wording failure;511 later collected cases unexecuted.
+Isolated PublicTerms:18 tests/98 assertions/one failure.
+Prior146 delivered paths unchanged.
+Archive includes only two explicitly secret-free blank-credential templates, not a generated runtime .env or any merchant/operator secret.
+All database-writing PHPUnit commands serial. Guard tests never open a DB; no SQL server/merchant/bank contacted.
+Python compile for delivered CLI guard regression script passes.
+Global/multi-country routing remains future implementation, not universal legal/provider approval.
+
+==============================================================================
+Dependency recovery
+Workspace log: part16-composer.log
+==============================================================================
+Installing dependencies from lock file (including require-dev)
+Verifying lock file contents can be installed on current platform.
+Package operations: 140 installs, 0 updates, 0 removals
+  - Downloading voku/portable-ascii (2.1.1)
+  - Downloading symfony/polyfill-php80 (v1.43.0)
+  - Downloading symfony/polyfill-mbstring (v1.43.0)
+  - Downloading symfony/polyfill-ctype (v1.37.0)
+  - Downloading phpoption/phpoption (1.10.0)
+  - Downloading graham-campbell/result-type (v1.2.0)
+  - Downloading vlucas/phpdotenv (v5.7.0)
+  - Downloading symfony/css-selector (v8.1.6)
+  - Downloading tijsverkoyen/css-to-inline-styles (v2.4.0)
+  - Downloading symfony/deprecation-contracts (v3.7.1)
+  - Downloading symfony/var-dumper (v7.4.18)
+  - Downloading symfony/polyfill-uuid (v1.43.0)
+  - Downloading symfony/uid (v7.4.20)
+  - Downloading symfony/routing (v7.4.20)
+  - Downloading symfony/process (v7.4.19)
+  - Downloading symfony/polyfill-php85 (v1.43.0)
+  - Downloading symfony/polyfill-php84 (v1.43.0)
+  - Downloading symfony/polyfill-php83 (v1.43.0)
+  - Downloading symfony/polyfill-intl-normalizer (v1.43.0)
+  - Downloading symfony/polyfill-intl-idn (v1.43.0)
+  - Downloading symfony/mime (v7.4.19)
+  - Downloading psr/container (2.0.2)
+  - Downloading symfony/service-contracts (v3.7.3)
+  - Downloading psr/event-dispatcher (1.0.0)
+  - Downloading symfony/event-dispatcher-contracts (v3.7.1)
+  - Downloading symfony/event-dispatcher (v8.1.5)
+  - Downloading psr/log (3.0.2)
+  - Downloading doctrine/lexer (3.0.2)
+  - Downloading egulias/email-validator (4.0.4)
+  - Downloading symfony/mailer (v7.4.19)
+  - Downloading symfony/http-foundation (v7.4.20)
+  - Downloading symfony/error-handler (v7.4.20)
+  - Downloading symfony/http-kernel (v7.4.20)
+  - Downloading symfony/finder (v7.4.20)
+  - Downloading symfony/polyfill-intl-grapheme (v1.43.0)
+  - Downloading symfony/string (v8.1.7)
+  - Downloading symfony/console (v7.4.20)
+  - Downloading ramsey/collection (2.1.1)
+  - Downloading brick/math (0.14.8)
+  - Downloading ramsey/uuid (4.9.4)
+  - Downloading psr/simple-cache (3.0.0)
+  - Downloading nunomaduro/termwind (v2.4.0)
+  - Downloading symfony/translation-contracts (v3.7.1)
+  - Downloading symfony/translation (v8.1.5)
+  - Downloading psr/clock (1.0.0)
+  - Downloading symfony/clock (v8.1.0)
+  - Downloading carbonphp/carbon-doctrine-types (3.2.1)
+  - Downloading nesbot/carbon (3.14.1)
+  - Downloading monolog/monolog (3.12.1)
+  - Downloading psr/http-message (2.0)
+  - Downloading psr/http-factory (1.1.0)
+  - Downloading league/uri-interfaces (7.8.1)
+  - Downloading league/uri (7.8.1)
+  - Downloading league/mime-type-detection (1.17.0)
+  - Downloading league/flysystem-local (3.35.3)
+  - Downloading league/flysystem (3.36.0)
+  - Downloading nette/utils (v4.1.5)
+  - Downloading nette/schema (v1.3.6)
+  - Downloading dflydev/dot-access-data (v3.0.3)
+  - Downloading league/config (v1.2.0)
+  - Downloading league/commonmark (2.10.3)
+  - Downloading laravel/serializable-closure (v2.1.0)
+  - Downloading laravel/prompts (v0.3.24)
+  - Downloading guzzlehttp/uri-template (v1.0.11)
+  - Downloading psr/http-client (1.0.3)
+  - Downloading ralouphie/getallheaders (3.0.3)
+  - Downloading guzzlehttp/psr7 (2.13.1)
+  - Downloading guzzlehttp/promises (2.5.3)
+  - Downloading guzzlehttp/guzzle (7.15.5)
+  - Downloading fruitcake/php-cors (v1.4.0)
+  - Downloading dragonmantank/cron-expression (v3.6.0)
+  - Downloading doctrine/inflector (2.1.0)
+  - Downloading laravel/framework (v12.69.3)
+  - Downloading anourvalar/eloquent-serialize (1.3.11)
+  - Downloading blade-ui-kit/blade-icons (1.10.1)
+  - Downloading blade-ui-kit/blade-heroicons (2.7.0)
+  - Downloading danharrin/date-format-converter (v0.3.1)
+  - Downloading psr/cache (3.0.0)
+  - Downloading doctrine/deprecations (1.1.6)
+  - Downloading doctrine/dbal (4.4.4)
+  - Downloading fakerphp/faker (v1.24.1)
+  - Downloading spatie/laravel-package-tools (1.93.2)
+  - Downloading masterminds/html5 (2.11.0)
+  - Downloading symfony/html-sanitizer (v7.4.18)
+  - Downloading spatie/invade (2.1.1)
+  - Downloading spatie/color (1.8.0)
+  - Downloading ryangjchandler/blade-capture-directive (v1.1.1)
+  - Downloading livewire/livewire (v3.8.7)
+  - Downloading kirschbaum-development/eloquent-power-joins (4.3.3)
+  - Downloading filament/support (v3.3.55)
+  - Downloading filament/widgets (v3.3.55)
+  - Downloading openspout/openspout (v4.32.0)
+  - Downloading league/csv (9.28.0)
+  - Downloading filament/actions (v3.3.55)
+  - Downloading filament/notifications (v3.3.55)
+  - Downloading filament/infolists (v3.3.55)
+  - Downloading filament/forms (v3.3.55)
+  - Downloading filament/tables (v3.3.55)
+  - Downloading danharrin/livewire-rate-limiting (v2.2.1)
+  - Downloading filament/filament (v3.3.55)
+  - Downloading laravel/pail (v1.2.7)
+  - Downloading laravel/pint (v1.30.5)
+  - Downloading symfony/yaml (v7.4.17)
+  - Downloading laravel/sail (v1.67.0)
+  - Downloading laravel/sanctum (v4.3.3)
+  - Downloading nikic/php-parser (v5.8.0)
+  - Downloading psy/psysh (v0.12.24)
+  - Downloading laravel/tinker (v2.11.1)
+  - Downloading hamcrest/hamcrest-php (v3.0.0)
+  - Downloading mockery/mockery (1.6.15)
+  - Downloading filp/whoops (2.18.4)
+  - Downloading nunomaduro/collision (v8.9.5)
+  - Downloading staabm/side-effects-detector (1.0.5)
+  - Downloading sebastian/version (5.0.2)
+  - Downloading sebastian/type (5.1.3)
+  - Downloading sebastian/recursion-context (6.0.3)
+  - Downloading sebastian/object-reflector (4.0.1)
+  - Downloading sebastian/object-enumerator (6.0.1)
+  - Downloading sebastian/global-state (7.0.2)
+  - Downloading sebastian/exporter (6.3.2)
+  - Downloading sebastian/environment (7.2.1)
+  - Downloading sebastian/diff (6.0.2)
+  - Downloading sebastian/comparator (6.3.3)
+  - Downloading sebastian/code-unit (3.0.3)
+  - Downloading sebastian/cli-parser (3.0.2)
+  - Downloading phpunit/php-timer (7.0.1)
+  - Downloading phpunit/php-text-template (4.0.1)
+  - Downloading phpunit/php-invoker (5.0.1)
+  - Downloading phpunit/php-file-iterator (5.1.1)
+  - Downloading theseer/tokenizer (1.3.1)
+  - Downloading sebastian/lines-of-code (3.0.1)
+  - Downloading sebastian/complexity (4.0.1)
+  - Downloading sebastian/code-unit-reverse-lookup (4.0.1)
+  - Downloading phpunit/php-code-coverage (11.0.12)
+  - Downloading phar-io/version (3.2.1)
+  - Downloading phar-io/manifest (2.0.4)
+  - Downloading myclabs/deep-copy (1.14.0)
+  - Downloading phpunit/phpunit (11.5.56)
+  - Downloading spatie/laravel-permission (6.25.0)
+  - Downloading symfony/polyfill-intl-icu (v1.38.0)
+   0/140 [>---------------------------]   0%
+  22/140 [====>-----------------------]  15%
+  29/140 [=====>----------------------]  20%
+  47/140 [=========>------------------]  33%
+  58/140 [===========>----------------]  41%
+  75/140 [===============>------------]  53%
+  86/140 [=================>----------]  61%
+ 100/140 [====================>-------]  71%
+ 114/140 [======================>-----]  81%
+ 129/140 [=========================>--]  92%
+ 140/140 [============================] 100%
+  - Installing voku/portable-ascii (2.1.1): Extracting archive
+  - Installing symfony/polyfill-php80 (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-mbstring (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-ctype (v1.37.0): Extracting archive
+  - Installing phpoption/phpoption (1.10.0): Extracting archive
+  - Installing graham-campbell/result-type (v1.2.0): Extracting archive
+  - Installing vlucas/phpdotenv (v5.7.0): Extracting archive
+  - Installing symfony/css-selector (v8.1.6): Extracting archive
+  - Installing tijsverkoyen/css-to-inline-styles (v2.4.0): Extracting archive
+  - Installing symfony/deprecation-contracts (v3.7.1): Extracting archive
+  - Installing symfony/var-dumper (v7.4.18): Extracting archive
+  - Installing symfony/polyfill-uuid (v1.43.0): Extracting archive
+  - Installing symfony/uid (v7.4.20): Extracting archive
+  - Installing symfony/routing (v7.4.20): Extracting archive
+  - Installing symfony/process (v7.4.19): Extracting archive
+  - Installing symfony/polyfill-php85 (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-php84 (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-php83 (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-intl-normalizer (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-intl-idn (v1.43.0): Extracting archive
+  - Installing symfony/mime (v7.4.19): Extracting archive
+  - Installing psr/container (2.0.2): Extracting archive
+  - Installing symfony/service-contracts (v3.7.3): Extracting archive
+  - Installing psr/event-dispatcher (1.0.0): Extracting archive
+  - Installing symfony/event-dispatcher-contracts (v3.7.1): Extracting archive
+  - Installing symfony/event-dispatcher (v8.1.5): Extracting archive
+  - Installing psr/log (3.0.2): Extracting archive
+  - Installing doctrine/lexer (3.0.2): Extracting archive
+  - Installing egulias/email-validator (4.0.4): Extracting archive
+  - Installing symfony/mailer (v7.4.19): Extracting archive
+  - Installing symfony/http-foundation (v7.4.20): Extracting archive
+  - Installing symfony/error-handler (v7.4.20): Extracting archive
+  - Installing symfony/http-kernel (v7.4.20): Extracting archive
+  - Installing symfony/finder (v7.4.20): Extracting archive
+  - Installing symfony/polyfill-intl-grapheme (v1.43.0): Extracting archive
+  - Installing symfony/string (v8.1.7): Extracting archive
+  - Installing symfony/console (v7.4.20): Extracting archive
+  - Installing ramsey/collection (2.1.1): Extracting archive
+  - Installing brick/math (0.14.8): Extracting archive
+  - Installing ramsey/uuid (4.9.4): Extracting archive
+  - Installing psr/simple-cache (3.0.0): Extracting archive
+  - Installing nunomaduro/termwind (v2.4.0): Extracting archive
+  - Installing symfony/translation-contracts (v3.7.1): Extracting archive
+  - Installing symfony/translation (v8.1.5): Extracting archive
+  - Installing psr/clock (1.0.0): Extracting archive
+  - Installing symfony/clock (v8.1.0): Extracting archive
+  - Installing carbonphp/carbon-doctrine-types (3.2.1): Extracting archive
+  - Installing nesbot/carbon (3.14.1): Extracting archive
+  - Installing monolog/monolog (3.12.1): Extracting archive
+  - Installing psr/http-message (2.0): Extracting archive
+  - Installing psr/http-factory (1.1.0): Extracting archive
+  - Installing league/uri-interfaces (7.8.1): Extracting archive
+  - Installing league/uri (7.8.1): Extracting archive
+  - Installing league/mime-type-detection (1.17.0): Extracting archive
+  - Installing league/flysystem-local (3.35.3): Extracting archive
+  - Installing league/flysystem (3.36.0): Extracting archive
+  - Installing nette/utils (v4.1.5): Extracting archive
+  - Installing nette/schema (v1.3.6): Extracting archive
+  - Installing dflydev/dot-access-data (v3.0.3): Extracting archive
+  - Installing league/config (v1.2.0): Extracting archive
+  - Installing league/commonmark (2.10.3): Extracting archive
+  - Installing laravel/serializable-closure (v2.1.0): Extracting archive
+  - Installing laravel/prompts (v0.3.24): Extracting archive
+  - Installing guzzlehttp/uri-template (v1.0.11): Extracting archive
+  - Installing psr/http-client (1.0.3): Extracting archive
+  - Installing ralouphie/getallheaders (3.0.3): Extracting archive
+  - Installing guzzlehttp/psr7 (2.13.1): Extracting archive
+  - Installing guzzlehttp/promises (2.5.3): Extracting archive
+  - Installing guzzlehttp/guzzle (7.15.5): Extracting archive
+  - Installing fruitcake/php-cors (v1.4.0): Extracting archive
+  - Installing dragonmantank/cron-expression (v3.6.0): Extracting archive
+  - Installing doctrine/inflector (2.1.0): Extracting archive
+  - Installing laravel/framework (v12.69.3): Extracting archive
+  - Installing anourvalar/eloquent-serialize (1.3.11): Extracting archive
+  - Installing blade-ui-kit/blade-icons (1.10.1): Extracting archive
+  - Installing blade-ui-kit/blade-heroicons (2.7.0): Extracting archive
+  - Installing danharrin/date-format-converter (v0.3.1): Extracting archive
+  - Installing psr/cache (3.0.0): Extracting archive
+  - Installing doctrine/deprecations (1.1.6): Extracting archive
+  - Installing doctrine/dbal (4.4.4): Extracting archive
+  - Installing fakerphp/faker (v1.24.1): Extracting archive
+  - Installing spatie/laravel-package-tools (1.93.2): Extracting archive
+  - Installing masterminds/html5 (2.11.0): Extracting archive
+  - Installing symfony/html-sanitizer (v7.4.18): Extracting archive
+  - Installing spatie/invade (2.1.1): Extracting archive
+  - Installing spatie/color (1.8.0): Extracting archive
+  - Installing ryangjchandler/blade-capture-directive (v1.1.1): Extracting archive
+  - Installing livewire/livewire (v3.8.7): Extracting archive
+  - Installing kirschbaum-development/eloquent-power-joins (4.3.3): Extracting archive
+  - Installing filament/support (v3.3.55): Extracting archive
+  - Installing filament/widgets (v3.3.55): Extracting archive
+  - Installing openspout/openspout (v4.32.0): Extracting archive
+  - Installing league/csv (9.28.0): Extracting archive
+  - Installing filament/actions (v3.3.55): Extracting archive
+  - Installing filament/notifications (v3.3.55): Extracting archive
+  - Installing filament/infolists (v3.3.55): Extracting archive
+  - Installing filament/forms (v3.3.55): Extracting archive
+  - Installing filament/tables (v3.3.55): Extracting archive
+  - Installing danharrin/livewire-rate-limiting (v2.2.1): Extracting archive
+  - Installing filament/filament (v3.3.55): Extracting archive
+  - Installing laravel/pail (v1.2.7): Extracting archive
+  - Installing laravel/pint (v1.30.5): Extracting archive
+  - Installing symfony/yaml (v7.4.17): Extracting archive
+  - Installing laravel/sail (v1.67.0): Extracting archive
+  - Installing laravel/sanctum (v4.3.3): Extracting archive
+  - Installing nikic/php-parser (v5.8.0): Extracting archive
+  - Installing psy/psysh (v0.12.24): Extracting archive
+  - Installing laravel/tinker (v2.11.1): Extracting archive
+  - Installing hamcrest/hamcrest-php (v3.0.0): Extracting archive
+  - Installing mockery/mockery (1.6.15): Extracting archive
+  - Installing filp/whoops (2.18.4): Extracting archive
+  - Installing nunomaduro/collision (v8.9.5): Extracting archive
+  - Installing staabm/side-effects-detector (1.0.5): Extracting archive
+  - Installing sebastian/version (5.0.2): Extracting archive
+  - Installing sebastian/type (5.1.3): Extracting archive
+  - Installing sebastian/recursion-context (6.0.3): Extracting archive
+  - Installing sebastian/object-reflector (4.0.1): Extracting archive
+  - Installing sebastian/object-enumerator (6.0.1): Extracting archive
+  - Installing sebastian/global-state (7.0.2): Extracting archive
+  - Installing sebastian/exporter (6.3.2): Extracting archive
+  - Installing sebastian/environment (7.2.1): Extracting archive
+  - Installing sebastian/diff (6.0.2): Extracting archive
+  - Installing sebastian/comparator (6.3.3): Extracting archive
+  - Installing sebastian/code-unit (3.0.3): Extracting archive
+  - Installing sebastian/cli-parser (3.0.2): Extracting archive
+  - Installing phpunit/php-timer (7.0.1): Extracting archive
+  - Installing phpunit/php-text-template (4.0.1): Extracting archive
+  - Installing phpunit/php-invoker (5.0.1): Extracting archive
+  - Installing phpunit/php-file-iterator (5.1.1): Extracting archive
+  - Installing theseer/tokenizer (1.3.1): Extracting archive
+  - Installing sebastian/lines-of-code (3.0.1): Extracting archive
+  - Installing sebastian/complexity (4.0.1): Extracting archive
+  - Installing sebastian/code-unit-reverse-lookup (4.0.1): Extracting archive
+  - Installing phpunit/php-code-coverage (11.0.12): Extracting archive
+  - Installing phar-io/version (3.2.1): Extracting archive
+  - Installing phar-io/manifest (2.0.4): Extracting archive
+  - Installing myclabs/deep-copy (1.14.0): Extracting archive
+  - Installing phpunit/phpunit (11.5.56): Extracting archive
+  - Installing spatie/laravel-permission (6.25.0): Extracting archive
+  - Installing symfony/polyfill-intl-icu (v1.38.0): Extracting archive
+   0/140 [>---------------------------]   0%
+  30/140 [======>---------------------]  21%
+  59/140 [===========>----------------]  42%
+  78/140 [===============>------------]  55%
+  87/140 [=================>----------]  62%
+ 106/140 [=====================>------]  75%
+ 123/140 [========================>---]  87%
+ 136/140 [===========================>]  97%
+ 140/140 [============================] 100%
+Generating optimized autoload files
+> @putenv APP_ENV=local
+> Illuminate\Foundation\ComposerScripts::postAutoloadDump
+> @php artisan package:discover --ansi
+
+  [37;44m INFO [39;49m Discovering packages.  
+
+  anourvalar/eloquent-serialize [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  blade-ui-kit/blade-heroicons [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  blade-ui-kit/blade-icons [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/actions [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/filament [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/forms [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/infolists [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/notifications [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/support [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/tables [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/widgets [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  kirschbaum-development/eloquent-power-joins [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  laravel/pail [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  laravel/sail [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  laravel/sanctum [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  laravel/tinker [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  livewire/livewire [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  nesbot/carbon [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  nunomaduro/collision [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  nunomaduro/termwind [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  ryangjchandler/blade-capture-directive [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  spatie/laravel-permission [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+
+> @php artisan filament:upgrade
+  ⇂ public/js/filament/forms/components/color-picker.js  
+  ⇂ public/js/filament/forms/components/date-time-picker.js  
+  ⇂ public/js/filament/forms/components/file-upload.js  
+  ⇂ public/js/filament/forms/components/key-value.js  
+  ⇂ public/js/filament/forms/components/markdown-editor.js  
+  ⇂ public/js/filament/forms/components/rich-editor.js  
+  ⇂ public/js/filament/forms/components/select.js  
+  ⇂ public/js/filament/forms/components/tags-input.js  
+  ⇂ public/js/filament/forms/components/textarea.js  
+  ⇂ public/js/filament/tables/components/table.js  
+  ⇂ public/js/filament/widgets/components/chart.js  
+  ⇂ public/js/filament/widgets/components/stats-overview/stat/chart.js  
+  ⇂ public/js/filament/filament/app.js  
+  ⇂ public/js/filament/filament/echo.js  
+  ⇂ public/js/filament/notifications/notifications.js  
+  ⇂ public/js/filament/support/support.js  
+  ⇂ public/css/filament/forms/forms.css  
+  ⇂ public/css/filament/support/support.css  
+  ⇂ public/css/filament/filament/app.css  
+
+   INFO  Successfully published assets!  
+
+   INFO  Configuration cache cleared successfully.  
+
+   INFO  Route cache cleared successfully.  
+
+   INFO  Compiled views cleared successfully.  
+
+   INFO  Successfully upgraded!  
+
+96 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+
+==============================================================================
+Frontend recovery build
+Workspace log: part16-build.log
+==============================================================================
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                   25.08 kB │ gzip:  3.00 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css               1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                  3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css              4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css            4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css               6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css            6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css             6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css               6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css          7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                 7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css               7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css            7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css              7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                       8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css               8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css             8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css         8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css     9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css              9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                      9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                        10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css           12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                        12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css              12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css          12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                     12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                   12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                    12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                 12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                         12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css        12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                      13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                       14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                       15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-baUnksz1.css                         71.14 kB │ gzip: 12.91 kB
+public/build/assets/account-grades-iqvPnkdB.js                0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js          0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                     0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                           0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                   0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                      0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js            0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js             0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js              0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js          0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js              0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js             0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                   0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                 0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js              0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                     0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                  0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                       0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                     1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                        1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js            1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js            1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                         1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                     1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js          1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                          1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js      1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                   1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js            2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                  2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js          2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js         2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js             2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js             2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                         2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js           2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                  2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-BxtEzC2x.js               3.17 kB │ gzip:  1.28 kB
+public/build/assets/privacy-portal-DccX1fIk.js                3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                    3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                   4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js     4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js               5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js               6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js   6.34 kB │ gzip:  2.13 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                   6.62 kB │ gzip:  2.59 kB
+public/build/assets/bet-slip-D0XoVmrB.js                      7.62 kB │ gzip:  3.19 kB
+public/build/assets/app-1IIFpSSh.js                          58.45 kB │ gzip: 21.59 kB
+
+✓ built in 1.59s
+
+==============================================================================
+Unchanged production config baseline
+Workspace log: part16-production-baseline.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.FF....FE..........F                                              20 / 20 (100%)
+
+Time: 00:01.638, Memory: 64.50 MB
+
+There was 1 error:
+
+1) Tests\Feature\Production\ProductionConfigSafetyTest::the_production_template_ships_no_credential_values
+ErrorException: file_get_contents(/home/user/thai-lottery-ainul-islam/.env.production.example): Failed to open stream: No such file or directory
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php:262
+/home/user/thai-lottery-ainul-islam/tests/Feature/Production/ProductionConfigSafetyTest.php:197
+
+--
+
+There were 4 failures:
+
+1) Tests\Feature\Production\ProductionConfigSafetyTest::the_ci_environment_never_enables_a_fixture_lottery_lane
+CI must have a committed environment file so it never copies .env.example.
+Failed asserting that file "/home/user/thai-lottery-ainul-islam/.env.ci" exists.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Production/ProductionConfigSafetyTest.php:69
+
+2) Tests\Feature\Production\ProductionConfigSafetyTest::the_production_template_never_enables_a_fixture_lottery_lane
+Failed asserting that file "/home/user/thai-lottery-ainul-islam/.env.production.example" exists.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Production/ProductionConfigSafetyTest.php:88
+
+3) Tests\Feature\Production\ProductionConfigSafetyTest::continuous_integration_never_copies_the_development_template
+ci.yml copies .env.example into .env. CI must use the committed .env.ci instead.
+Failed asserting that 'name: CI\n
+\n
+on:\n
+  push:\n
+  pull_request:\n
+\n
+jobs:\n
+  test:\n
+    name: PHP tests\n
+    runs-on: ubuntu-latest\n
+\n
+    steps:\n
+      - name: Checkout\n
+        uses: actions/checkout@v4\n
+\n
+      - name: Setup PHP\n
+        uses: shivammathur/setup-php@v2\n
+        with:\n
+          php-version: '8.3'\n
+          # intl is required by filament/support (a transitive composer\n
+          # requirement) and by the Filament resource render assertions. It is\n
+          # already present on the runner image; naming it here makes that a\n
+          # declared dependency rather than a lucky default.\n
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl\n
+          coverage: none\n
+\n
+      - name: Setup Node\n
+        uses: actions/setup-node@v4\n
+        with:\n
+          node-version: '20'\n
+          cache: 'npm'\n
+\n
+      - name: Validate composer.json\n
+        run: composer validate --no-check-publish\n
+\n
+      - name: Install dependencies\n
+        run: composer install --prefer-dist --no-interaction --no-progress\n
+\n
+      - name: Install front-end dependencies\n
+        run: npm ci\n
+\n
+      - name: Build front-end assets\n
+        run: npm run build\n
+\n
+      - name: Assert the Vite manifest and every registered entry were built\n
+        run: |\n
+          set -euo pipefail\n
+          test -f public/build/manifest.json\n
+          # Every input declared in vite.config.js must have produced an asset.\n
+          # An empty or missing module still "builds", so the manifest is\n
+          # checked entry by entry rather than as a whole.\n
+          node -e '\n
+            const fs = require("fs");\n
+            const manifest = JSON.parse(fs.readFileSync("public/build/manifest.json", "utf8"));\n
+            const config = fs.readFileSync("vite.config.js", "utf8");\n
+            const inputs = [...config.matchAll(/["'"'"'](resources\/(?:js|css)\/[^"'"'"']+)["'"'"']/g)].map(m => m[1]);\n
+            let failed = false;\n
+            for (const input of new Set(inputs)) {\n
+              const record = manifest[input];\n
+              if (!record || !record.file || !fs.existsSync("public/build/" + record.file)) {\n
+                console.error("::error::vite entry not built: " + input);\n
+                failed = true;\n
+                continue;\n
+              }\n
+              if (fs.statSync("resources/" + input.slice("resources/".length)).size === 0) {\n
+                console.error("::error::vite entry is an empty file: " + input);\n
+                failed = true;\n
+              }\n
+            }\n
+            process.exit(failed ? 1 : 0);\n
+          '\n
+\n
+      - name: PHP syntax check (php -l on all project PHP files)\n
+        run: |\n
+          set -euo pipefail\n
+          fail=0\n
+          while IFS= read -r -d '' f; do\n
+            if ! php -l "$f" > /dev/null; then\n
+              echo "::error file=$f::syntax error"\n
+              fail=1\n
+            fi\n
+          done < <(find app bootstrap config database routes tests -name '*.php' -print0)\n
+          # Required structural files — fail the build if any are missing\n
+          for req in \\n
+            app/Models/User.php \\n
+            app/Models/Agent.php \\n
+            app/Services/Draw/RealPrizeSettlementService.php \\n
+            app/Services/Finance/FinancialReconciliationService.php \\n
+            app/Services/Finance/WithdrawalService.php \\n
+            app/Console/Commands/GloPublicResultPublishCommand.php \\n
+            app/Console/Commands/Finance/ReconcileFinancialRecordsCommand.php \\n
+            app/Filament/Pages/KycReviewPage.php \\n
+            resources/views/filament/pages/kyc-review-page.blade.php \\n
+            resources/views/home.blade.php \\n
+            resources/views/results/index.blade.php \\n
+            routes/api.php \\n
+            routes/web.php \\n
+            config/finance.php \\n
+            .github/workflows/ci.yml\n
+          do\n
+            if [ ! -f "$req" ]; then\n
+              echo "::error::missing required file: $req"\n
+              fail=1\n
+            fi\n
+          done\n
+          # At least one test file and one migration must exist\n
+          if [ -z "$(find tests -name '*Test.php' -print -quit)" ]; then\n
+            echo "::error::no test files found"\n
+            fail=1\n
+          fi\n
+          if [ -z "$(find database/migrations -name '*.php' -print -quit)" ]; then\n
+            echo "::error::no migrations found"\n
+            fail=1\n
+          fi\n
+          exit $fail\n
+\n
+      - name: Assert the writable runtime directories are present in the checkout\n
+        run: |\n
+          set -euo pipefail\n
+          fail=0\n
+          # These are the directories Laravel writes to at runtime. Git does not\n
+          # track empty directories, so each one needs its own .gitignore marker\n
+          # to survive a clone. A missing marker only shows up as a confusing\n
+          # "Please provide a valid cache path" much later.\n
+          for dir in \\n
+            bootstrap/cache \\n
+            storage/app/private \\n
+            storage/app/public \\n
+            storage/framework/cache/data \\n
+            storage/framework/sessions \\n
+            storage/framework/testing \\n
+            storage/framework/views \\n
+            storage/logs\n
+          do\n
+            if [ ! -d "$dir" ]; then\n
+              echo "::error::missing runtime directory: $dir"\n
+              fail=1\n
+            fi\n
+          done\n
+          exit $fail\n
+\n
+      - name: Assert every model with HasFactory has a factory\n
+        run: |\n
+          set -euo pipefail\n
+          fail=0\n
+          while IFS= read -r -d '' model; do\n
+            name="$(basename "$model" .php)"\n
+            if grep -q 'HasFactory' "$model" && [ ! -f "database/factories/${name}Factory.php" ]; then\n
+              echo "::error file=$model::model declares HasFactory but database/factories/${name}Factory.php is missing"\n
+              fail=1\n
+            fi\n
+          done < <(find app/Models -name '*.php' -print0)\n
+          exit $fail\n
+\n
+      - name: Application key and route optimisation\n
+        run: |\n
+          cp .env.example .env 2>/dev/null || true\n
+          php artisan key:generate --force || true\n
+          php artisan optimize:clear\n
+          php artisan config:cache\n
+          # Fail if config:cache did not produce a bootstrap cache\n
+          test -f bootstrap/cache/config.php\n
+\n
+      - name: Migrate fresh with seed\n
+        run: |\n
+          php artisan migrate:fresh --force --seed\n
+\n
+      - name: Route list (contract smoke)\n
+        run: |\n
+          php artisan route:list\n
+          php artisan route:list --path=/\n
+          php artisan route:list --path=results\n
+\n
+      - name: Run test suite\n
+        env:\n
+          APP_ENV: testing\n
+        run: |\n
+          # A cached config file wins over phpunit.xml's <env> overrides, which\n
+          # points the suite at the development database and connection instead\n
+          # of the in-memory test one. The cache is proven above and discarded\n
+          # here, before the suite runs.\n
+          php artisan config:clear\n
+          test ! -f bootstrap/cache/config.php\n
+          # Tests must never be skipped to go green: suite exit code is authoritative\n
+          php artisan test\n
+\n
+      # ---------------------------------------------------------------------\n
+      # PROMPT 7: the seams between a result lane and the rest of the repo.\n
+      #\n
+      # The full suite above already runs these tests. This step exists\n
+      # because a seam failure is a DIFFERENT KIND of failure: the lane works,\n
+      # every unit passes, and the feature is still unreachable or its\n
+      # configuration undocumented. Naming the contract here means the CI log\n
+      # says which agreement broke instead of just "a test failed".\n
+      #\n
+      # Cheap greps first, so an obvious breach fails in a second rather than\n
+      # after the whole suite.\n
+      # ---------------------------------------------------------------------\n
+      - name: Assert the result-lane seams are closed\n
+        run: |\n
+          set -euo pipefail\n
+\n
+          echo "--- robots.txt: search blocked, content crawlable ---"\n
+          test -f public/robots.txt\n
+          for lane in national-lottery weekly-lottery bingo-lottery pcso-lottery; do\n
+            grep -qx "Disallow: /${lane}/search" public/robots.txt \\n
+              || { echo "::error::robots.txt does not block /${lane}/search"; exit 1; }\n
+            # A bare prefix rule would deindex the entire lane.\n
+            if grep -qE "^Disallow:[[:space:]]*/${lane}/?[[:space:]]*$" public/robots.txt; then\n
+              echo "::error::robots.txt blocks the whole ${lane} lane, not just its search route"\n
+              exit 1\n
+            fi\n
+            if grep -qE "^Disallow:[[:space:]]*/${lane}/year" public/robots.txt; then\n
+              echo "::error::robots.txt blocks the ${lane} year archive"\n
+              exit 1\n
+            fi\n
+          done\n
+\n
+          echo "--- .env.example documents every key each lane config reads ---"\n
+          node -e '\n
+            const fs = require("fs");\n
+            const example = fs.readFileSync(".env.example", "utf8");\n
+            let failed = false;\n
+            for (const lane of ["national_lottery", "weekly_lottery", "bingo_lottery", "pcso_lottery", "contact"]) {\n
+              const config = fs.readFileSync("config/" + lane + ".php", "utf8");\n
+              const prefix = lane === "contact" ? "CONTACT" : lane.toUpperCase();\n
+              const keys = new Set(\n
+                [...config.matchAll(new RegExp("env\\(\\s*[\x27\"](" + prefix + "_[A-Z0-9_]+)[\x27\"]", "g"))]\n
+                  .map(m => m[1])\n
+              );\n
+              if (keys.size === 0) {\n
+                console.error("::error::no env keys parsed out of config/" + lane + ".php");\n
+                failed = true;\n
+                continue;\n
+              }\n
+              for (const key of keys) {\n
+                // A commented-out entry counts: credentials are named but valueless.\n
+                if (!new RegExp("^#?\\s*" + key + "=", "m").test(example)) {\n
+                  console.error("::error::" + key + " is read by config/" + lane + ".php but undocumented in .env.example");\n
+                  failed = true;\n
+                }\n
+                // A credential must never ship with a value.\n
+                if (/(TOKEN|SECRET|KEY)$/.test(key) && new RegExp("^" + key + "=.+", "m").test(example)) {\n
+                  console.error("::error::" + key + " has a value in .env.example");\n
+                  failed = true;\n
+                }\n
+              }\n
+            }\n
+            process.exit(failed ? 1 : 0);\n
+          '\n
+\n
+          echo "--- /contact must stay crawlable ---"\n
+          if grep -qE "^Disallow:[[:space:]]*/contact" public/robots.txt; then\n
+            echo "::error::robots.txt blocks /contact, which is ordinary public content"\n
+            exit 1\n
+          fi\n
+\n
+          echo "--- no competitor string in any public surface ---"\n
+          # The reference pages that motivated these lanes may be named in\n
+          # audit notes and prompts. They must never appear in anything that\n
+          # ships. Scoped to production source so a research note in a report\n
+          # file does not fail the build.\n
+          if grep -rniE "thailotto" \\n
+               app config routes lang public database \\n
+               resources/views resources/css resources/js \\n
+               2>/dev/null | grep -v "^resources/views/vendor/"; then\n
+            echo "::error::a competitor reference reached production source"\n
+            exit 1\n
+          fi\n
+\n
+          echo "--- guest navigation links both public lanes ---"\n
+          for name in national-lottery.index weekly-lottery.index bingo-lottery.index pcso-lottery.index contact; do\n
+            grep -q "route('${name}')" resources/views/layouts/app.blade.php \\n
+              || { echo "::error::guest navigation has no link to ${name}"; exit 1; }\n
+          done\n
+\n
+          echo "Seam contracts hold."\n
+\n
+      - name: Seam and lane test suites (named, so a failure says which)\n
+        env:\n
+          APP_ENV: testing\n
+        run: |\n
+          set -euo pipefail\n
+          php artisan test \\n
+            --filter='NationalLotteryIntegrationSeamTest|NationalLotteryPublicPageTest|WeeklyLotteryPublicPageTest|BingoLotteryPublicPageTest|PcsoLotteryPublicPageTest|ContactPageTest'\n
+\n
+      - name: Pint (if configured)\n
+        run: |\n
+          if [ -f vendor/bin/pint ]; then\n
+            vendor/bin/pint --test\n
+          else\n
+            echo "Pint not installed — skipping style gate"\n
+          fi\n
+\n
+  # ---------------------------------------------------------------------------\n
+  # PROMPT 6: the Weekly Lottery integrity crate.\n
+  #\n
+  # A SEPARATE JOB, not extra steps on the PHP job, for two reasons. It needs a\n
+  # Rust toolchain the PHP job has no use for, and the two must be able to fail\n
+  # independently: a broken canonicalizer and a broken Blade template are\n
+  # different problems and should not hide behind one red cross.\n
+  #\n
+  # --locked everywhere. The lock file is committed, and a CI run that silently\n
+  # resolved a different dependency tree would not be testing what ships - which\n
+  # matters more than usual for a component whose whole job is producing a\n
+  # deterministic hash.\n
+  # ---------------------------------------------------------------------------\n
+  rust-integrity:\n
+    name: Rust integrity verifier\n
+    runs-on: ubuntu-latest\n
+\n
+    defaults:\n
+      run:\n
+        working-directory: security/weekly-result-integrity\n
+\n
+    steps:\n
+      - name: Checkout\n
+        uses: actions/checkout@v4\n
+\n
+      - name: Setup Rust\n
+        uses: dtolnay/rust-toolchain@stable\n
+        with:\n
+          components: rustfmt\n
+\n
+      - name: Cache cargo registry and build output\n
+        uses: actions/cache@v4\n
+        with:\n
+          path: |\n
+            ~/.cargo/registry\n
+            ~/.cargo/git\n
+            security/weekly-result-integrity/target\n
+          key: cargo-${{ runner.os }}-${{ hashFiles('security/weekly-result-integrity/Cargo.lock') }}\n
+          restore-keys: cargo-${{ runner.os }}-\n
+\n
+      - name: Formatting\n
+        run: cargo fmt --check\n
+\n
+      - name: Type check\n
+        run: cargo check --locked --all-targets\n
+\n
+      - name: Tests\n
+        run: cargo test --locked\n
+\n
+      - name: Assert the crate cannot reach the network or a database\n
+        run: |\n
+          set -euo pipefail\n
+          # The "no network" property is enforced by ABSENCE of any such\n
+          # dependency. tests/integrity.rs already asserts this against\n
+          # Cargo.lock; this repeats it against the RESOLVED tree so a\n
+          # transitive addition cannot slip in behind a direct one.\n
+          tree=$(cargo tree --locked --edges normal --prefix none)\n
+          for crate in tokio reqwest hyper curl ureq socket2 mio rustls native-tls sqlx diesel postgres tokio-postgres; do\n
+            if printf '%s\n' "$tree" | grep -qE "^${crate} v"; then\n
+              echo "::error::forbidden dependency in the integrity crate: ${crate}"\n
+              exit 1\n
+            fi\n
+          done\n
+          echo "No networking or database crate is present."\n
+\n
+      - name: Release build (the binary Laravel invokes)\n
+        run: cargo build --release --locked\n
+\n
+      - name: Smoke test the stdin/stdout contract\n
+        run: |\n
+          set -euo pipefail\n
+          # Leading zeros must survive, and a malformed value must be refused\n
+          # with exit code 2 rather than repaired.\n
+          ok=$(printf '%s' '{"draw_reference":"WK-20260918","draw_date":"2026-09-18","first_6":"001234","three_ball":"049","two_ball":"09","source_identifier":"CI","parser_version":"1"}' \\n
+            | ./target/release/weekly-result-integrity)\n
+          echo "$ok"\n
+          printf '%s\n' "$ok" | grep -q '"status":"INTEGRITY_HASH_ONLY"'\n
+          printf '%s\n' "$ok" | grep -q '"acceptable":true'\n
+\n
+          set +e\n
+          printf '%s' '{"draw_reference":"WK-20260918","draw_date":"2026-09-18","first_6":"1234","parser_version":"1"}' \\n
+            | ./target/release/weekly-result-integrity\n
+          code=$?\n
+          set -e\n
+          test "$code" -eq 2\n
+          echo "Malformed payload refused with exit code 2."\n
+\n
+  runtime-and-rust-contracts:\n
+    name: Runtime and Rust contract gates\n
+    runs-on: ubuntu-latest\n
+    steps:\n
+      - name: Checkout\n
+        uses: actions/checkout@v4\n
+\n
+      - name: Setup PHP\n
+        uses: shivammathur/setup-php@v2\n
+        with:\n
+          php-version: '8.3'\n
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl\n
+          coverage: none\n
+\n
+      - name: Setup Node\n
+        uses: actions/setup-node@v4\n
+        with:\n
+          node-version: '20'\n
+          cache: 'npm'\n
+\n
+      - name: Setup Rust\n
+        uses: dtolnay/rust-toolchain@stable\n
+        with:\n
+          toolchain: stable\n
+\n
+      - name: Validate Composer platform and dependencies\n
+        run: |\n
+          set -euo pipefail\n
+          composer validate --no-check-publish\n
+          composer install --prefer-dist --no-interaction --no-progress\n
+          composer check-platform-reqs\n
+          composer audit --no-interaction\n
+\n
+      - name: Install and audit frontend dependencies\n
+        run: |\n
+          set -euo pipefail\n
+          npm ci\n
+          npm audit --audit-level=high\n
+          npm run build\n
+\n
+      - name: Verify Rust integrity crate\n
+        working-directory: security/weekly-result-integrity\n
+        run: |\n
+          set -euo pipefail\n
+          cargo check --locked\n
+          cargo test --locked\n
+          cargo build --release --locked\n
+\n
+  full-runtime-release:\n
+    name: Full runtime release candidate\n
+    runs-on: ubuntu-latest\n
+    services:\n
+      mysql:\n
+        image: mysql:8.0\n
+        env:\n
+          MYSQL_ROOT_PASSWORD: ci_root_password\n
+          MYSQL_DATABASE: thailotto_test\n
+          MYSQL_USER: thailotto_ci\n
+          MYSQL_PASSWORD: ci_database_password\n
+        ports:\n
+          - 3306:3306\n
+        options: >-\n
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci_root_password"\n
+          --health-interval=10s\n
+          --health-timeout=5s\n
+          --health-retries=20\n
+      redis:\n
+        image: redis:7-alpine\n
+        ports:\n
+          - 6379:6379\n
+        options: >-\n
+          --health-cmd="redis-cli ping"\n
+          --health-interval=10s\n
+          --health-timeout=5s\n
+          --health-retries=20\n
+    env:\n
+      APP_ENV: testing\n
+      APP_DEBUG: false\n
+      APP_URL: http://127.0.0.1:8000\n
+      DB_CONNECTION: mysql\n
+      DB_HOST: 127.0.0.1\n
+      DB_PORT: 3306\n
+      DB_DATABASE: thailotto_test\n
+      DB_USERNAME: thailotto_ci\n
+      DB_PASSWORD: ci_database_password\n
+      REDIS_HOST: 127.0.0.1\n
+      REDIS_PORT: 6379\n
+      CACHE_STORE: redis\n
+      QUEUE_CONNECTION: redis\n
+      SESSION_DRIVER: array\n
+      MAIL_MAILER: log\n
+      PAGES_451_550_DESTRUCTIVE_TESTS: '1'\n
+\n
+    steps:\n
+      - name: Checkout\n
+        uses: actions/checkout@v4\n
+\n
+      - name: Setup PHP\n
+        uses: shivammathur/setup-php@v2\n
+        with:\n
+          php-version: '8.3'\n
+          extensions: mbstring, dom, fileinfo, mysqlnd, pdo_mysql, bcmath, sodium, zip, intl, redis\n
+          coverage: none\n
+\n
+      - name: Setup Node\n
+        uses: actions/setup-node@v4\n
+        with:\n
+          node-version: '20'\n
+          cache: 'npm'\n
+\n
+      - name: Setup Rust\n
+        uses: dtolnay/rust-toolchain@stable\n
+        with:\n
+          components: rustfmt\n
+\n
+      - name: Install database client\n
+        run: |\n
+          set -euo pipefail\n
+          sudo apt-get update\n
+          sudo apt-get install --yes mysql-client\n
+\n
+      - name: Prepare controlled Laravel environment\n
+        run: |\n
+          set -euo pipefail\n
+          cp .env.example .env\n
+          php artisan key:generate --force\n
+\n
+      - name: Install and verify Composer dependencies\n
+        run: |\n
+          set -euo pipefail\n
+          composer validate --no-check-publish\n
+          composer install --prefer-dist --no-interaction --no-progress\n
+          composer check-platform-reqs\n
+          composer audit --no-interaction\n
+          composer dump-autoload --optimize\n
+\n
+      - name: Install, audit, and build frontend\n
+        run: |\n
+          set -euo pipefail\n
+          npm ci\n
+          npm audit --audit-level=high\n
+          npm run build\n
+\n
+      - name: Boot, cache, route, and view gates\n
+        run: |\n
+          set -euo pipefail\n
+          php artisan about\n
+          php artisan optimize:clear\n
+          php artisan config:cache\n
+          php artisan route:list\n
+          php artisan route:cache\n
+          php artisan view:cache\n
+\n
+      - name: Controlled schema, seed, and migration gates\n
+        run: |\n
+          set -euo pipefail\n
+          php artisan migrate:status\n
+          php artisan migrate:fresh --force\n
+          php artisan db:seed --force\n
+          php artisan migrate:status\n
+\n
+      - name: Controlled queue and scheduler gates\n
+        run: |\n
+          set -euo pipefail\n
+          redis-cli ping\n
+          php artisan queue:failed\n
+          php artisan schedule:list\n
+\n
+      - name: Full PHP test suite\n
+        run: |\n
+          set -euo pipefail\n
+          php artisan config:clear\n
+          php artisan test\n
+\n
+      - name: Start application and run public browser smoke tests\n
+        run: |\n
+          set -euo pipefail\n
+          nohup php artisan serve --host=0.0.0.0 --port=8000 >/tmp/laravel-server.log 2>&1 &\n
+          server_pid=$!\n
+          trap 'kill "$server_pid" || true' EXIT\n
+          curl --fail --retry 20 --retry-delay 1 --retry-connrefused http://127.0.0.1:8000/up/live\n
+          npx playwright install --with-deps chromium\n
+          npm run e2e:public\n
+\n
+      - name: Backup, restore, and compare controlled database\n
+        env:\n
+          MYSQL_PWD: ci_database_password\n
+        run: |\n
+          set -euo pipefail\n
+          mysqldump --host=127.0.0.1 --port=3306 --user=thailotto_ci thailotto_test > /tmp/thailotto-test.sql\n
+          sha256sum /tmp/thailotto-test.sql | tee /tmp/thailotto-test.sql.sha256\n
+          mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci -e "CREATE DATABASE thailotto_restore"\n
+          mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci thailotto_restore < /tmp/thailotto-test.sql\n
+          DB_DATABASE=thailotto_restore php artisan migrate:status\n
+          test -s /tmp/thailotto-test.sql\n
+\n
+      - name: Rust integrity gates\n
+        working-directory: security/weekly-result-integrity\n
+        run: |\n
+          set -euo pipefail\n
+          cargo fmt --check\n
+          cargo check --locked --all-targets\n
+          cargo test --locked\n
+          cargo build --release --locked\n
+\n
+      - name: Final source hygiene gate\n
+        run: |\n
+          set -euo pipefail\n
+          git diff --check\n
+' does not match PCRE pattern "/cp\s+\.env\.example\s+\.env/".
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Production/ProductionConfigSafetyTest.php:186
+
+4) Tests\Feature\Production\ProductionConfigSafetyTest::the_glo_fixture_priority_is_refused_in_production
+Failed asserting that '' [ASCII](length: 0) contains "glo.sources.priority contains fixture" [ASCII](length: 37).
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Production/ProductionConfigSafetyTest.php:486
+
+ERRORS!
+Tests: 20, Assertions: 46, Errors: 1, Failures: 4.
+
+==============================================================================
+First repaired production + CI unit matrix
+Workspace log: part16-production-first.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..................................................                50 / 50 (100%)
+
+Time: 00:02.691, Memory: 64.50 MB
+
+OK (50 tests, 123 assertions)
+
+==============================================================================
+Final production + CI unit matrix
+Workspace log: part16-production-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..................................................                50 / 50 (100%)
+
+Time: 00:02.670, Memory: 66.50 MB
+
+OK (50 tests, 123 assertions)
+
+==============================================================================
+Standalone CI unit class, no Laravel bootstrap
+Workspace log: part16-ci-unit-standalone-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+...................                                               19 / 19 (100%)
+
+Time: 00:00.011, Memory: 12.00 MB
+
+OK (19 tests, 53 assertions)
+
+==============================================================================
+Actual PHP CLI temp-tree refusal/read-only guards
+Workspace log: part16-ci-cli-final.log
+==============================================================================
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.502s
+
+OK
+
+==============================================================================
+Actual local key/config-cache/guard bootstrap; runtime env removed
+Workspace log: part16-local-ci-bootstrap.log
+==============================================================================
+CI runtime guard passed: disposable testing target, fixtures/providers/live payout disabled. No schema or funds changed.
+
+   INFO  Application key set successfully.  
+
+CI runtime guard passed: disposable testing target, fixtures/providers/live payout disabled. No schema or funds changed.
+
+   INFO  Configuration cached successfully.  
+
+CI runtime guard passed: disposable testing target, fixtures/providers/live payout disabled. No schema or funds changed.
+
+   INFO  Configuration cache cleared successfully.  
+
+
+==============================================================================
+Workflow/template syntax and blank credential checks
+Workspace log: part16-workflow-template-check-final.log
+==============================================================================
+.github/workflows/ci.yml 4 jobs parsed; 36 shell steps syntax pass; NOT executed on GitHub
+.github/workflows/security.yml 4 jobs parsed; 5 shell steps syntax pass; NOT executed on GitHub
+.env.ci 39 keys;credential-valued fields empty
+.env.production.example 77 keys;credential-valued fields empty
+Generated runtime .env/key/cache absent after local CI smoke cleanup.
+
+==============================================================================
+Authoritative serial whole-repository diagnostic
+Workspace log: part16-full-suite-first.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................................   61 / 2380 (  2%)
+.............................................................  122 / 2380 (  5%)
+.............................................................  183 / 2380 (  7%)
+.............................................................  244 / 2380 ( 10%)
+.............................................................  305 / 2380 ( 12%)
+.............................................................  366 / 2380 ( 15%)
+.............................................................  427 / 2380 ( 17%)
+.............................................................  488 / 2380 ( 20%)
+.............................................................  549 / 2380 ( 23%)
+.............................................................  610 / 2380 ( 25%)
+.............................................................  671 / 2380 ( 28%)
+.............................................................  732 / 2380 ( 30%)
+.............................................................  793 / 2380 ( 33%)
+.............................................................  854 / 2380 ( 35%)
+.............................................................  915 / 2380 ( 38%)
+.............................................................  976 / 2380 ( 41%)
+............................................................. 1037 / 2380 ( 43%)
+............................................................. 1098 / 2380 ( 46%)
+............................................................. 1159 / 2380 ( 48%)
+............................................................. 1220 / 2380 ( 51%)
+............................................................. 1281 / 2380 ( 53%)
+............................................................. 1342 / 2380 ( 56%)
+............................................................. 1403 / 2380 ( 58%)
+............................................................. 1464 / 2380 ( 61%)
+............................................................. 1525 / 2380 ( 64%)
+............................................................. 1586 / 2380 ( 66%)
+............................................................. 1647 / 2380 ( 69%)
+............................................................. 1708 / 2380 ( 71%)
+............................................................. 1769 / 2380 ( 74%)
+............................................................. 1830 / 2380 ( 76%)
+......................................F
+
+Time: 06:58.025, Memory: 245.00 MB
+
+There was 1 failure:
+
+1) Tests\Feature\PublicPages\PublicTermsTest::test_legal_disclaimer_independent_platform_and_language_parity
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="y6ECD5PgvPbUYQHX5d3mablQDxls3XK48wYajoz6">\n
+    \n
+    <meta name="app-name" content="Thai Lottery">\n
+    <meta name="theme-color" content="#059669">\n
+\n
+    <title>Thai Lottery - Terms of Use</title>\n
+\n
+    <link rel="manifest" href="/manifest.webmanifest">\n
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">\n
+\n
+    \n
+            <meta name="description" content="Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers.">\n
+                <link rel="canonical" href="http://localhost/terms">\n
+                    <meta property="og:title" content="Terms of Use">\n
+                <meta property="og:description" content="Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers.">\n
+                <meta property="og:type" content="website">\n
+                <meta property="og:url" content="http://localhost/terms">\n
+    \n
+    \n
+    <link rel="preload" as="style" href="http://localhost/build/assets/app-baUnksz1.css" /><link rel="preload" as="style" href="http://localhost/build/assets/lottery-CJ-DF_a5.css" /><link rel="preload" as="style" href="http://localhost/build/assets/home-BZX8okIA.css" /><link rel="preload" as="style" href="http://localhost/build/assets/public-pages-DwHed-9B.css" /><link rel="preload" as="style" href="http://localhost/build/assets/account-services-C3ZF4V86.css" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/app-1IIFpSSh.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/rolldown-runtime-hePW80VL.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/auth-portal-PMrGbyPi.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/mobile-menu-DjyVqvWR.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/wallet-balance-fVmydr9F.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/public-pages-BYwoqYgK.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/account-verification-C8heWaJx.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/account-grade-DVU03bMe.js" /><link rel="stylesheet" href="http://localhost/build/assets/app-baUnksz1.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/lottery-CJ-DF_a5.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/home-BZX8okIA.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/public-pages-DwHed-9B.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/account-services-C3ZF4V86.css" data-navigate-track="reload" /><script type="module" src="http://localhost/build/assets/app-1IIFpSSh.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/mobile-menu-DjyVqvWR.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/wallet-balance-fVmydr9F.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/public-pages-BYwoqYgK.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/account-verification-C8heWaJx.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/account-grade-DVU03bMe.js" data-navigate-track="reload"></script>        <link rel="preload" as="style" href="http://localhost/build/assets/terms-DXyzc3G4.css" /><link rel="stylesheet" href="http://localhost/build/assets/terms-DXyzc3G4.css" data-navigate-track="reload" /><!-- Livewire Styles --><style >[wire\:loading][wire\:loading], [wire\:loading\.delay][wire\:loading\.delay], [wire\:loading\.inline-block][wire\:loading\.inline-block], [wire\:loading\.inline][wire\:loading\.inline], [wire\:loading\.block][wire\:loading\.block], [wire\:loading\.flex][wire\:loading\.flex], [wire\:loading\.table][wire\:loading\.table], [wire\:loading\.grid][wire\:loading\.grid], [wire\:loading\.inline-flex][wire\:loading\.inline-flex] {display: none;}[wire\:loading\.delay\.none][wire\:loading\.delay\.none], [wire\:loading\.delay\.shortest][wire\:loading\.delay\.shortest], [wire\:loading\.delay\.shorter][wire\:loading\.delay\.shorter], [wire\:loading\.delay\.short][wire\:loading\.delay\.short], [wire\:loading\.delay\.default][wire\:loading\.delay\.default], [wire\:loading\.delay\.long][wire\:loading\.delay\.long], [wire\:loading\.delay\.longer][wire\:loading\.delay\.longer], [wire\:loading\.delay\.longest][wire\:loading\.delay\.longest] {display: none;}[wire\:offline][wire\:offline] {display: none;}[wire\:dirty]:not(textarea):not(input):not(select) {display: none;}:root {--livewire-progress-bar-color: #2299dd;}[x-cloak] {display: none !important;}[wire\:cloak] {display: none !important;}dialog#livewire-error::backdrop {background-color: rgba(0, 0, 0, .6);}</style>\n
+</head>\n
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">\n
+    <!-- Header -->\n
+    <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/20">\n
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\n
+            <div class="flex items-center justify-between h-16">\n
+                <!-- Brand Logo -->\n
+                <div class="flex items-center space-x-3">\n
+                    <a href="http://localhost" class="flex items-center space-x-2.5 group">\n
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-teal-400 flex items-center justify-center font-black text-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform duration-200">\n
+                            TL\n
+                        </div>\n
+                        <div class="hidden sm:block">\n
+                            <span class="text-lg font-black tracking-tight bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent">\n
+                                THAI LOTTERY\n
+                            </span>\n
+                            <span class="block text-[10px] text-slate-400 uppercase tracking-widest font-bold">Enterprise Wagering</span>\n
+                        </div>\n
+                    </a>\n
+                </div>\n
+\n
+                <!-- Desktop Navigation -->\n
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2" aria-label="Main navigation">\n
+            <a href="http://localhost/lotteries" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Lotteries\n
+        </a>\n
+        <a href="http://localhost/glo-l6" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            GLO L6\n
+        </a>\n
+        <a href="http://localhost/results" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Results\n
+        </a>\n
+        <a href="http://localhost/check" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Check Ticket\n
+        </a>\n
+        <a href="http://localhost/contact" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Contact\n
+        </a>\n
+    </nav>\n
+\n
+                <!-- Action Controls (Wallet, Auth, Mobile Menu Trigger) -->\n
+                <div class="flex items-center space-x-2.5 sm:space-x-4">\n
+                    <!-- Language Selector (Desktop) -->\n
+                    <div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner">\n
+                        <a href="http://localhost/locale/en" class="px-2.5 py-1 rounded-lg transition bg-emerald-600 text-white shadow">EN</a>\n
+                        <a href="http://localhost/locale/th" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200">TH</a>\n
+                    </div>\n
+\n
+                                            <div class="hidden sm:flex items-center space-x-2">\n
+                            <a href="http://localhost/login" class="px-3.5 py-2 text-sm font-bold text-slate-300 hover:text-white transition">\n
+                                Sign In\n
+                            </a>\n
+                            <a href="http://localhost/register" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold rounded-xl shadow-md transition">\n
+                                Register\n
+                            </a>\n
+                        </div>\n
+                    \n
+                    <!-- Mobile Menu Hamburger Button -->\n
+                    <button type="button"\n
+                            id="btn-open-mobile-menu"\n
+                            class="md:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"\n
+                            aria-label="Open Navigation Menu">\n
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>\n
+                    </button>\n
+                </div>\n
+            </div>\n
+        </div>\n
+    </header>\n
+\n
+    <!-- Mobile Navigation Drawer -->\n
+    <div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="Main navigation">\n
+    <div class="flex items-center justify-between p-4 border-b border-slate-800">\n
+        <div class="flex items-center space-x-2">\n
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">TL</div>\n
+            <span class="font-bold text-white tracking-tight">Thai Lottery</span>\n
+        </div>\n
+        <button type="button" id="btn-close-mobile-menu" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Close menu">\n
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>\n
+        </button>\n
+    </div>\n
+\n
+    <div class="flex-1 overflow-y-auto px-4 py-6 space-y-2">\n
+                    <a href="http://localhost/lotteries" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Lotteries</a>\n
+            <a href="http://localhost/glo-l6" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">GLO L6</a>\n
+            <a href="http://localhost/results" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Results</a>\n
+            <a href="http://localhost/check" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Check Ticket</a>\n
+            <a href="http://localhost/contact" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Contact</a>\n
+            </div>\n
+\n
+    <div class="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3">\n
+        <div class="flex items-center justify-between">\n
+            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Language</span>\n
+            <div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950">\n
+                <a href="http://localhost/locale/en" class="px-3 py-1 rounded text-xs font-bold bg-emerald-600 text-white">EN</a>\n
+                <a href="http://localhost/locale/th" class="px-3 py-1 rounded text-xs font-bold text-slate-400">TH</a>\n
+            </div>\n
+        </div>\n
+\n
+                    <div class="grid grid-cols-2 gap-2">\n
+                <a href="http://localhost/login" class="py-2.5 text-center bg-slate-800 text-slate-200 font-bold text-sm rounded-xl border border-slate-700">Sign In</a>\n
+                <a href="http://localhost/register" class="py-2.5 text-center bg-emerald-600 text-white font-bold text-sm rounded-xl">Register</a>\n
+            </div>\n
+            </div>\n
+</div>\n
+\n
+    <!-- Global Notifications / Flash Feedback -->\n
+        \n
+    <!-- Main Content Container -->\n
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">\n
+        <div class="terms-page" data-terms-page data-terms-status="AVAILABLE" data-locale="en">\n
+    <a class="pp-skip-link" href="#terms-main">Skip to main content</a>\n
+\n
+    <header class="terms-header" role="banner">\n
+        <div class="terms-shell terms-header__inner">\n
+            <a class="terms-brand" href="http://localhost" aria-label="ThaiLotto home">\n
+                <span class="terms-brand__mark" aria-hidden="true"><span>TL</span></span>\n
+                <span class="terms-brand__name">Thai Lottery <small>LEGAL INFORMATION</small></span>\n
+            </a>\n
+            <nav class="terms-nav" aria-label="Primary navigation">\n
+                <a href="http://localhost">HOME</a>\n
+                <a href="http://localhost/results">RESULTS</a>\n
+                <a href="http://localhost/about">ABOUT US</a>\n
+                <a href="http://localhost/vision">VISION</a>\n
+                <a class="is-active" href="http://localhost/terms" aria-current="page">TERMS</a>\n
+                <a href="http://localhost/contact">CONTACT</a>\n
+            </nav>\n
+            <div class="terms-header__actions">\n
+                <button class="terms-button terms-button--quiet terms-print-button" type="button" data-print-terms>PRINT</button>\n
+                                    <a class="terms-button terms-button--gold" href="http://localhost/login">LOGIN</a>\n
+                            </div>\n
+        </div>\n
+    </header>\n
+\n
+    <div id="terms-main" class="terms-shell terms-content" tabindex="-1">\n
+        <section class="terms-hero" aria-labelledby="terms-title">\n
+            <div class="terms-hero__copy">\n
+                <p class="terms-eyebrow">04 · LEGAL AGREEMENT</p>\n
+                <h1 id="terms-title">Terms of Use</h1>\n
+                <p>Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers.</p>\n
+                <p class="terms-identity-note">This page uses the independent platform’s approved public legal content. It does not claim government ownership, official agency status, licensing, or endorsement.</p>\n
+            </div>\n
+            <div class="terms-document" aria-hidden="true">\n
+                <div class="terms-document__sheet">\n
+                    <span class="terms-document__fold"></span>\n
+                    <span class="terms-document__seal">§</span>\n
+                    <span class="terms-document__line terms-document__line--wide"></span>\n
+                    <span class="terms-document__line"></span>\n
+                    <span class="terms-document__line"></span>\n
+                    <span class="terms-document__line terms-document__line--short"></span>\n
+                    <span class="terms-document__clause">01</span>\n
+                    <span class="terms-document__clause terms-document__clause--two">02</span>\n
+                </div>\n
+                <span class="terms-document__glow"></span>\n
+            </div>\n
+        </section>\n
+\n
+        <section class="terms-meta" aria-label="Terms metadata">\n
+            <dl class="terms-meta__grid">\n
+                <div data-pp-version>\n
+                    <dt>Version</dt>\n
+                    <dd data-pp-legal-version="v1.0.0">v1.0.0</dd>\n
+                </div>\n
+                <div data-pp-effective>\n
+                    <dt>Effective date</dt>\n
+                    <dd>2026-09-24</dd>\n
+                </div>\n
+                <div data-pp-updated>\n
+                    <dt>Last updated</dt>\n
+                    <dd>2026-09-24</dd>\n
+                </div>\n
+                <div>\n
+                    <dt>Publication status</dt>\n
+                    <dd>AVAILABLE</dd>\n
+                </div>\n
+            </dl>\n
+            <div class="terms-meta__actions">\n
+                <button class="terms-button terms-button--gold" type="button" data-print-terms>PRINT / SAVE</button>\n
+                <a class="terms-button terms-button--quiet" href="#terms-contents">CONTENTS</a>\n
+            </div>\n
+        </section>\n
+\n
+                    <div class="terms-layout">\n
+                <aside class="terms-sidebar" id="terms-contents" aria-label="Terms contents">\n
+                    <button class="terms-contents-toggle" type="button" data-contents-toggle aria-expanded="false" aria-controls="terms-contents-list">\n
+                        <span>CONTENTS</span><span aria-hidden="true">⌄</span>\n
+                    </button>\n
+                    <div class="terms-sidebar__inner" id="terms-contents-list">\n
+                        <p class="terms-sidebar__eyebrow">DOCUMENT MAP</p>\n
+                        <nav class="terms-contents-nav" data-terms-contents aria-label="Terms section navigation">\n
+                                                                                                                                <a href="#scope" data-section-link="scope">\n
+                                        <span>01</span>\n
+                                        <strong>1. Scope and platform identity</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#products" data-section-link="products">\n
+                                        <span>02</span>\n
+                                        <strong>2. Products and prize rules</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#stamp-duty" data-section-link="stamp-duty">\n
+                                        <span>03</span>\n
+                                        <strong>3. Prize duty and tax treatment</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#accounts" data-section-link="accounts">\n
+                                        <span>04</span>\n
+                                        <strong>4. Accounts and verification</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#age" data-section-link="age">\n
+                                        <span>05</span>\n
+                                        <strong>5. Age rules</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#ticket-ownership" data-section-link="ticket-ownership">\n
+                                        <span>06</span>\n
+                                        <strong>6. Ticket ownership and transfers</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#responsible-gaming" data-section-link="responsible-gaming">\n
+                                        <span>07</span>\n
+                                        <strong>7. Responsible gaming</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#claims" data-section-link="claims">\n
+                                        <span>08</span>\n
+                                        <strong>8. Claims and payouts</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#disclaimer" data-section-link="disclaimer">\n
+                                        <span>09</span>\n
+                                        <strong>9. Legal disclaimer</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#prohibited" data-section-link="prohibited">\n
+                                        <span>10</span>\n
+                                        <strong>10. Prohibited conduct</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#changes" data-section-link="changes">\n
+                                        <span>11</span>\n
+                                        <strong>11. Contact and changes</strong>\n
+                                    </a>\n
+                                                                                    </nav>\n
+                        <div class="terms-sidebar__operator">\n
+                            <span>OPERATOR IDENTITY</span>\n
+                            <strong>NOT_CONFIGURED</strong>\n
+                            <small>Registration: NOT_CONFIGURED</small>\n
+                            <small>Support: NOT_CONFIGURED</small>\n
+                            <small>Only approved configuration is displayed.</small>\n
+                        </div>\n
+                    </div>\n
+                </aside>\n
+\n
+                <div class="terms-main-column">\n
+                    <div class="terms-search" role="search">\n
+                        <label for="terms-search-input">Search within these Terms</label>\n
+                        <div class="terms-search__row">\n
+                            <input id="terms-search-input" type="search" placeholder="Search headings and legal text" autocomplete="off" data-terms-search>\n
+                            <button class="terms-button terms-button--quiet" type="button" data-clear-search>CLEAR</button>\n
+                        </div>\n
+                        <p class="terms-search__status" data-terms-search-status aria-live="polite">Showing all 11 sections.</p>\n
+                    </div>\n
+\n
+                    <div class="terms-sections" data-terms-sections>\n
+                                                                                <section class="terms-section" id="scope" data-term-section data-searchable-text="1. Scope and platform identity These Terms govern your use of this independent lottery information and wagering platform. We are not the Government Lottery Office (GLO), not an official agent, and not a government portal. GLO product rules are referenced only for prize-rule compatibility. " aria-labelledby="scope-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">01</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="scope-title">1. Scope and platform identity</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>These Terms govern your use of this independent lottery information and wagering platform. We are not the Government Lottery Office (GLO), not an official agent, and not a government portal. GLO product rules are referenced only for prize-rule compatibility.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="products" data-term-section data-searchable-text="2. Products and prize rules GLO-compatible L6: ticket price 80.00 THB; full-sale allocation 48,000,000.00 THB across 1,000,000 units; 14,168 prizes in the full-sale schedule; prizes scale proportionally when sales are below full sale. GLO-compatible N3: ticket price 20.00 THB; prize pool is 60% of N3 gross sales; payouts are variable and draw-calculated — never fixed historical amounts. Operator markets (3D, TOD, 2D, Run) are platform products. They are never described as GLO N3 or as government lottery products." aria-labelledby="products-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">02</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="products-title">2. Products and prize rules</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>GLO-compatible L6: ticket price 80.00 THB; full-sale allocation 48,000,000.00 THB across 1,000,000 units; 14,168 prizes in the full-sale schedule; prizes scale proportionally when sales are below full sale.</p>\n
+                                                                            <p>GLO-compatible N3: ticket price 20.00 THB; prize pool is 60% of N3 gross sales; payouts are variable and draw-calculated — never fixed historical amounts.</p>\n
+                                                                            <p>Operator markets (3D, TOD, 2D, Run) are platform products. They are never described as GLO N3 or as government lottery products.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="stamp-duty" data-term-section data-searchable-text="3. Prize duty and tax treatment Stamp duty: 1.00 THB for every 200 THB of gross prize or fraction thereof (ceil(gross/200) × 1.00 THB). Prize income under this rule is treated as stamp-duty only; income tax is exempt on the displayed calculation. No 0.5% or 1% withholding model is used on this platform. " aria-labelledby="stamp-duty-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">03</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="stamp-duty-title">3. Prize duty and tax treatment</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Stamp duty: 1.00 THB for every 200 THB of gross prize or fraction thereof (ceil(gross/200) × 1.00 THB). Prize income under this rule is treated as stamp-duty only; income tax is exempt on the displayed calculation. No 0.5% or 1% withholding model is used on this platform.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="accounts" data-term-section data-searchable-text="4. Accounts and verification One account per verified user where enforced: email, username, and phone are unique at registration. Identity verification requirements may vary by account, product, and channel. We never promise a single fixed verification path for every user." aria-labelledby="accounts-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">04</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="accounts-title">4. Accounts and verification</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>One account per verified user where enforced: email, username, and phone are unique at registration.</p>\n
+                                                                            <p>Identity verification requirements may vary by account, product, and channel. We never promise a single fixed verification path for every user.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="age" data-term-section data-searchable-text="5. Age rules Registration: you confirm you can enter into a binding agreement under applicable law and that the information you provide is accurate. A date of birth may be collected for identity verification and is stored for server-side age checks. Purchase: eligibility to purchase or wager may be checked against product rules, responsible-gaming settings, and account status before an order is accepted. Claim: prize claimants must be 20 years of age or older, calculated from the verified date of birth on file — never from a client-supplied age." aria-labelledby="age-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">05</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="age-title">5. Age rules</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Registration: you confirm you can enter into a binding agreement under applicable law and that the information you provide is accurate. A date of birth may be collected for identity verification and is stored for server-side age checks.</p>\n
+                                                                            <p>Purchase: eligibility to purchase or wager may be checked against product rules, responsible-gaming settings, and account status before an order is accepted.</p>\n
+                                                                            <p>Claim: prize claimants must be 20 years of age or older, calculated from the verified date of birth on file — never from a client-supplied age.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="ticket-ownership" data-term-section data-searchable-text="6. Ticket ownership and transfers Lottery ticket numbers are digit strings with leading zeros preserved. For GLO-style L6 prizes, a claim follows the authorized claimant path for the verified holder; tickets are not freely transferable instruments for claiming purposes on this platform. " aria-labelledby="ticket-ownership-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">06</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="ticket-ownership-title">6. Ticket ownership and transfers</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Lottery ticket numbers are digit strings with leading zeros preserved. For GLO-style L6 prizes, a claim follows the authorized claimant path for the verified holder; tickets are not freely transferable instruments for claiming purposes on this platform.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="responsible-gaming" data-term-section data-searchable-text="7. Responsible gaming Where enabled on your account, you can use self-exclusion, deposit/loss limits, and reality checks from your profile and the responsible-gaming settings. These are player-protection tools, not a statement of regulatory approval. " aria-labelledby="responsible-gaming-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">07</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="responsible-gaming-title">7. Responsible gaming</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Where enabled on your account, you can use self-exclusion, deposit/loss limits, and reality checks from your profile and the responsible-gaming settings. These are player-protection tools, not a statement of regulatory approval.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="claims" data-term-section data-searchable-text="8. Claims and payouts There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is 2 years from the draw under configured GLO-compatible rules. " aria-labelledby="claims-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">08</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="claims-title">8. Claims and payouts</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is 2 years from the draw under configured GLO-compatible rules.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="disclaimer" data-term-section data-searchable-text="9. Legal disclaimer This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only. We do not claim government ownership, operation, endorsement, or agency status. No page on this site should be read as an official GLO website. " aria-labelledby="disclaimer-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">09</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="disclaimer-title">9. Legal disclaimer</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only. We do not claim government ownership, operation, endorsement, or agency status. No page on this site should be read as an official GLO website.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="prohibited" data-term-section data-searchable-text="10. Prohibited conduct Automated abuse of public endpoints, attempted circumvention of rate limits, fraudulent claim or identity information, and attempts to manipulate finalized results may result in account restriction. " aria-labelledby="prohibited-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">10</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="prohibited-title">10. Prohibited conduct</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Automated abuse of public endpoints, attempted circumvention of rate limits, fraudulent claim or identity information, and attempts to manipulate finalized results may result in account restriction.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="changes" data-term-section data-searchable-text="11. Contact and changes Questions about these Terms: use the contact page. Material changes will publish a new version number and updated effective date on this page; historical versions are never silently rewritten in place without a version bump. " aria-labelledby="changes-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">11</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="changes-title">11. Contact and changes</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Questions about these Terms: use the contact page. Material changes will publish a new version number and updated effective date on this page; historical versions are never silently rewritten in place without a version bump.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                            </div>\n
+                </div>\n
+            </div>\n
+\n
+            <section class="terms-facts" aria-labelledby="terms-facts-title">\n
+                <div>\n
+                    <p class="terms-eyebrow">CONFIGURED REFERENCE</p>\n
+                    <h2 id="terms-facts-title">Values used in this document</h2>\n
+                    <p>These values are rendered from the approved legal and GLO-compatible configuration source. They are not replaced with decorative marketing claims.</p>\n
+                </div>\n
+                <dl class="terms-facts__grid">\n
+                                            <div><dt>L6 ticket price</dt><dd>80.00</dd></div>\n
+                                            <div><dt>L6 full-sale allocation</dt><dd>48,000,000.00</dd></div>\n
+                                            <div><dt>L6 full-sale units</dt><dd>1,000,000</dd></div>\n
+                                            <div><dt>L6 prize count</dt><dd>14,168</dd></div>\n
+                                            <div><dt>N3 ticket price</dt><dd>20.00</dd></div>\n
+                                            <div><dt>N3 prize pool</dt><dd>60%</dd></div>\n
+                                            <div><dt>Stamp duty divisor</dt><dd>200</dd></div>\n
+                                            <div><dt>Claim window</dt><dd>2 years</dd></div>\n
+                                    </dl>\n
+            </section>\n
+\n
+            <section class="terms-contact" aria-labelledby="terms-contact-title">\n
+                <div>\n
+                    <p class="terms-eyebrow">QUESTIONS ABOUT THESE TERMS?</p>\n
+                    <h2 id="terms-contact-title">Use the real support route</h2>\n
+                    <p>For questions about the published Terms, contact support. Legal content is versioned and should not be interpreted from a search result excerpt alone.</p>\n
+                </div>\n
+                <div class="terms-contact__links">\n
+                    <a class="terms-button terms-button--gold" href="http://localhost/contact">CONTACT SUPPORT</a>\n
+                    <a class="terms-button terms-button--quiet" href="http://localhost/privacy">PRIVACY POLICY</a>\n
+                    <a class="terms-button terms-button--quiet" href="http://localhost/fees">PLATFORM FEES</a>\n
+                </div>\n
+            </section>\n
+            </div>\n
+</div>\n
+    </main>\n
+\n
+    <!-- Global Platform Footer -->\n
+    <footer class="pp-footer bg-slate-900/60 border-t border-slate-800/80 backdrop-blur-xl py-12 text-xs text-slate-400" role="contentinfo">\n
+    <div class="pp-footer__inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">\n
+        <!-- Top Section: Brand + Links Grid -->\n
+        <div class="pp-footer__nav grid grid-cols-1 md:grid-cols-4 gap-8">\n
+            <!-- Brand Column -->\n
+            <div class="space-y-3 md:col-span-1">\n
+                <div class="flex items-center space-x-2.5">\n
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">\n
+                        TL\n
+                    </div>\n
+                    <a href="http://localhost" class="font-extrabold text-white text-base tracking-tight hover:text-amber-300 transition">\n
+                        Thai Lottery\n
+                    </a>\n
+                </div>\n
+                <p class="text-xs text-slate-400 leading-relaxed">\n
+                    Independent enterprise wagering platform. High-precision lottery results, automated prize calculations, and fintech-grade account management.\n
+                </p>\n
+            </div>\n
+\n
+            <!-- Lottery Lanes -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Lottery Lanes</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/national-lottery" class="hover:text-emerald-400 transition">Government Lottery (GLO)</a></li>\n
+                    <li><a href="http://localhost/weekly-lottery" class="hover:text-emerald-400 transition">Weekly Lottery</a></li>\n
+                    <li><a href="http://localhost/bingo-lottery" class="hover:text-emerald-400 transition">Mega Lottery</a></li>\n
+                    <li><a href="http://localhost/pcso-lottery" class="hover:text-emerald-400 transition">PCSO Lottery</a></li>\n
+                    <li><a href="http://localhost/results" class="hover:text-emerald-400 transition">Official Draw Results</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Public Information -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Information</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/about" class="hover:text-emerald-400 transition">About the Platform</a></li>\n
+                    <li><a href="http://localhost/vision" class="hover:text-emerald-400 transition">Vision &amp; Mission</a></li>\n
+                    <li><a href="http://localhost/check" class="hover:text-emerald-400 transition">Ticket Verification</a></li>\n
+                    <li><a href="http://localhost/sales-points" class="hover:text-emerald-400 transition">Authorized Sales Points</a></li>\n
+                    <li><a href="http://localhost/fees" class="hover:text-emerald-400 transition">Platform Fees</a></li>\n
+                    <li><a href="http://localhost/discounts" class="hover:text-emerald-400 transition">Lottery Discounts</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Legal & Compliance -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Legal &amp; Support</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/terms" class="hover:text-emerald-400 transition">Terms of Service</a></li>\n
+                    <li><a href="http://localhost/privacy" class="hover:text-emerald-400 transition">Privacy Policy</a></li>\n
+                    <li><a href="http://localhost/account-verification-guide" class="hover:text-emerald-400 transition">KYC Verification Guide</a></li>\n
+                    <li><a href="http://localhost/account-grades" class="hover:text-emerald-400 transition">Account Grades</a></li>\n
+                    \n
+                    <li><a href="http://localhost/prize-verification" class="hover:text-emerald-400 transition">Prize Verification</a></li>\n
+                    <li><a href="http://localhost/contact" class="hover:text-emerald-400 transition">Contact Us</a></li>\n
+                </ul>\n
+            </div>\n
+        </div>\n
+\n
+        <!-- Legal Disclaimer & Copyright -->\n
+        <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">\n
+            <p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl">\n
+                &copy; 2026 Thai Lottery.\n
+                All rights reserved. Independent wagering platform, operated by no state authority and endorsed by none. Published draw rules are referenced solely for prize-calculation compatibility.\n
+                \n
+            </p>\n
+            \n
+            <div class="flex items-center space-x-4 shrink-0 text-[11px]">\n
+                <span class="text-slate-600">v1.0.0</span>\n
+            </div>\n
+        </div>\n
+    </div>\n
+</footer>\n
+\n
+    <!-- Core Scripts -->\n
+        <link rel="modulepreload" as="script" href="http://localhost/build/assets/terms-BCCISDCL.js" /><script type="module" src="http://localhost/build/assets/terms-BCCISDCL.js" data-navigate-track="reload"></script><script src="/livewire/livewire.min.js?id=bd51a0a6"   data-csrf="y6ECD5PgvPbUYQHX5d3mablQDxls3XK48wYajoz6" data-update-uri="/livewire/update" data-navigate-once="true"></script>\n
+</body>\n
+</html>\n
+' [UTF-8](length: 49420) contains "not the official GLO website" [ASCII](length: 28).
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/PublicPages/PublicTermsTest.php:234
+
+FAILURES!
+Tests: 1869, Assertions: 121537, Failures: 1.
+
+==============================================================================
+Next unchanged PublicTerms class isolated
+Workspace log: part16-next-blocker-isolated.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.................F                                                18 / 18 (100%)
+
+Time: 00:04.158, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\PublicPages\PublicTermsTest::test_legal_disclaimer_independent_platform_and_language_parity
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="0XAEsYyawcV68x9uv7HbqW98BDpKzD9YUec8xECj">\n
+    \n
+    <meta name="app-name" content="Thai Lottery">\n
+    <meta name="theme-color" content="#059669">\n
+\n
+    <title>Thai Lottery - Terms of Use</title>\n
+\n
+    <link rel="manifest" href="/manifest.webmanifest">\n
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">\n
+\n
+    \n
+            <meta name="description" content="Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers.">\n
+                <link rel="canonical" href="http://localhost/terms">\n
+                    <meta property="og:title" content="Terms of Use">\n
+                <meta property="og:description" content="Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers.">\n
+                <meta property="og:type" content="website">\n
+                <meta property="og:url" content="http://localhost/terms">\n
+    \n
+    \n
+    <link rel="preload" as="style" href="http://localhost/build/assets/app-baUnksz1.css" /><link rel="preload" as="style" href="http://localhost/build/assets/lottery-CJ-DF_a5.css" /><link rel="preload" as="style" href="http://localhost/build/assets/home-BZX8okIA.css" /><link rel="preload" as="style" href="http://localhost/build/assets/public-pages-DwHed-9B.css" /><link rel="preload" as="style" href="http://localhost/build/assets/account-services-C3ZF4V86.css" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/app-1IIFpSSh.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/rolldown-runtime-hePW80VL.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/auth-portal-PMrGbyPi.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/mobile-menu-DjyVqvWR.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/wallet-balance-fVmydr9F.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/public-pages-BYwoqYgK.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/account-verification-C8heWaJx.js" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/account-grade-DVU03bMe.js" /><link rel="stylesheet" href="http://localhost/build/assets/app-baUnksz1.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/lottery-CJ-DF_a5.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/home-BZX8okIA.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/public-pages-DwHed-9B.css" data-navigate-track="reload" /><link rel="stylesheet" href="http://localhost/build/assets/account-services-C3ZF4V86.css" data-navigate-track="reload" /><script type="module" src="http://localhost/build/assets/app-1IIFpSSh.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/mobile-menu-DjyVqvWR.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/wallet-balance-fVmydr9F.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/public-pages-BYwoqYgK.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/account-verification-C8heWaJx.js" data-navigate-track="reload"></script><script type="module" src="http://localhost/build/assets/account-grade-DVU03bMe.js" data-navigate-track="reload"></script>        <link rel="preload" as="style" href="http://localhost/build/assets/terms-DXyzc3G4.css" /><link rel="stylesheet" href="http://localhost/build/assets/terms-DXyzc3G4.css" data-navigate-track="reload" /></head>\n
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">\n
+    <!-- Header -->\n
+    <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/20">\n
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\n
+            <div class="flex items-center justify-between h-16">\n
+                <!-- Brand Logo -->\n
+                <div class="flex items-center space-x-3">\n
+                    <a href="http://localhost" class="flex items-center space-x-2.5 group">\n
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-teal-400 flex items-center justify-center font-black text-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform duration-200">\n
+                            TL\n
+                        </div>\n
+                        <div class="hidden sm:block">\n
+                            <span class="text-lg font-black tracking-tight bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent">\n
+                                THAI LOTTERY\n
+                            </span>\n
+                            <span class="block text-[10px] text-slate-400 uppercase tracking-widest font-bold">Enterprise Wagering</span>\n
+                        </div>\n
+                    </a>\n
+                </div>\n
+\n
+                <!-- Desktop Navigation -->\n
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2" aria-label="Main navigation">\n
+            <a href="http://localhost/lotteries" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Lotteries\n
+        </a>\n
+        <a href="http://localhost/glo-l6" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            GLO L6\n
+        </a>\n
+        <a href="http://localhost/results" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Results\n
+        </a>\n
+        <a href="http://localhost/check" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Check Ticket\n
+        </a>\n
+        <a href="http://localhost/contact" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Contact\n
+        </a>\n
+    </nav>\n
+\n
+                <!-- Action Controls (Wallet, Auth, Mobile Menu Trigger) -->\n
+                <div class="flex items-center space-x-2.5 sm:space-x-4">\n
+                    <!-- Language Selector (Desktop) -->\n
+                    <div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner">\n
+                        <a href="http://localhost/locale/en" class="px-2.5 py-1 rounded-lg transition bg-emerald-600 text-white shadow">EN</a>\n
+                        <a href="http://localhost/locale/th" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200">TH</a>\n
+                    </div>\n
+\n
+                                            <div class="hidden sm:flex items-center space-x-2">\n
+                            <a href="http://localhost/login" class="px-3.5 py-2 text-sm font-bold text-slate-300 hover:text-white transition">\n
+                                Sign In\n
+                            </a>\n
+                            <a href="http://localhost/register" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold rounded-xl shadow-md transition">\n
+                                Register\n
+                            </a>\n
+                        </div>\n
+                    \n
+                    <!-- Mobile Menu Hamburger Button -->\n
+                    <button type="button"\n
+                            id="btn-open-mobile-menu"\n
+                            class="md:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"\n
+                            aria-label="Open Navigation Menu">\n
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>\n
+                    </button>\n
+                </div>\n
+            </div>\n
+        </div>\n
+    </header>\n
+\n
+    <!-- Mobile Navigation Drawer -->\n
+    <div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="Main navigation">\n
+    <div class="flex items-center justify-between p-4 border-b border-slate-800">\n
+        <div class="flex items-center space-x-2">\n
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">TL</div>\n
+            <span class="font-bold text-white tracking-tight">Thai Lottery</span>\n
+        </div>\n
+        <button type="button" id="btn-close-mobile-menu" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Close menu">\n
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>\n
+        </button>\n
+    </div>\n
+\n
+    <div class="flex-1 overflow-y-auto px-4 py-6 space-y-2">\n
+                    <a href="http://localhost/lotteries" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Lotteries</a>\n
+            <a href="http://localhost/glo-l6" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">GLO L6</a>\n
+            <a href="http://localhost/results" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Results</a>\n
+            <a href="http://localhost/check" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Check Ticket</a>\n
+            <a href="http://localhost/contact" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Contact</a>\n
+            </div>\n
+\n
+    <div class="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3">\n
+        <div class="flex items-center justify-between">\n
+            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Language</span>\n
+            <div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950">\n
+                <a href="http://localhost/locale/en" class="px-3 py-1 rounded text-xs font-bold bg-emerald-600 text-white">EN</a>\n
+                <a href="http://localhost/locale/th" class="px-3 py-1 rounded text-xs font-bold text-slate-400">TH</a>\n
+            </div>\n
+        </div>\n
+\n
+                    <div class="grid grid-cols-2 gap-2">\n
+                <a href="http://localhost/login" class="py-2.5 text-center bg-slate-800 text-slate-200 font-bold text-sm rounded-xl border border-slate-700">Sign In</a>\n
+                <a href="http://localhost/register" class="py-2.5 text-center bg-emerald-600 text-white font-bold text-sm rounded-xl">Register</a>\n
+            </div>\n
+            </div>\n
+</div>\n
+\n
+    <!-- Global Notifications / Flash Feedback -->\n
+        \n
+    <!-- Main Content Container -->\n
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">\n
+        <div class="terms-page" data-terms-page data-terms-status="AVAILABLE" data-locale="en">\n
+    <a class="pp-skip-link" href="#terms-main">Skip to main content</a>\n
+\n
+    <header class="terms-header" role="banner">\n
+        <div class="terms-shell terms-header__inner">\n
+            <a class="terms-brand" href="http://localhost" aria-label="ThaiLotto home">\n
+                <span class="terms-brand__mark" aria-hidden="true"><span>TL</span></span>\n
+                <span class="terms-brand__name">Thai Lottery <small>LEGAL INFORMATION</small></span>\n
+            </a>\n
+            <nav class="terms-nav" aria-label="Primary navigation">\n
+                <a href="http://localhost">HOME</a>\n
+                <a href="http://localhost/results">RESULTS</a>\n
+                <a href="http://localhost/about">ABOUT US</a>\n
+                <a href="http://localhost/vision">VISION</a>\n
+                <a class="is-active" href="http://localhost/terms" aria-current="page">TERMS</a>\n
+                <a href="http://localhost/contact">CONTACT</a>\n
+            </nav>\n
+            <div class="terms-header__actions">\n
+                <button class="terms-button terms-button--quiet terms-print-button" type="button" data-print-terms>PRINT</button>\n
+                                    <a class="terms-button terms-button--gold" href="http://localhost/login">LOGIN</a>\n
+                            </div>\n
+        </div>\n
+    </header>\n
+\n
+    <div id="terms-main" class="terms-shell terms-content" tabindex="-1">\n
+        <section class="terms-hero" aria-labelledby="terms-title">\n
+            <div class="terms-hero__copy">\n
+                <p class="terms-eyebrow">04 · LEGAL AGREEMENT</p>\n
+                <h1 id="terms-title">Terms of Use</h1>\n
+                <p>Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers.</p>\n
+                <p class="terms-identity-note">This page uses the independent platform’s approved public legal content. It does not claim government ownership, official agency status, licensing, or endorsement.</p>\n
+            </div>\n
+            <div class="terms-document" aria-hidden="true">\n
+                <div class="terms-document__sheet">\n
+                    <span class="terms-document__fold"></span>\n
+                    <span class="terms-document__seal">§</span>\n
+                    <span class="terms-document__line terms-document__line--wide"></span>\n
+                    <span class="terms-document__line"></span>\n
+                    <span class="terms-document__line"></span>\n
+                    <span class="terms-document__line terms-document__line--short"></span>\n
+                    <span class="terms-document__clause">01</span>\n
+                    <span class="terms-document__clause terms-document__clause--two">02</span>\n
+                </div>\n
+                <span class="terms-document__glow"></span>\n
+            </div>\n
+        </section>\n
+\n
+        <section class="terms-meta" aria-label="Terms metadata">\n
+            <dl class="terms-meta__grid">\n
+                <div data-pp-version>\n
+                    <dt>Version</dt>\n
+                    <dd data-pp-legal-version="v1.0.0">v1.0.0</dd>\n
+                </div>\n
+                <div data-pp-effective>\n
+                    <dt>Effective date</dt>\n
+                    <dd>2026-09-24</dd>\n
+                </div>\n
+                <div data-pp-updated>\n
+                    <dt>Last updated</dt>\n
+                    <dd>2026-09-24</dd>\n
+                </div>\n
+                <div>\n
+                    <dt>Publication status</dt>\n
+                    <dd>AVAILABLE</dd>\n
+                </div>\n
+            </dl>\n
+            <div class="terms-meta__actions">\n
+                <button class="terms-button terms-button--gold" type="button" data-print-terms>PRINT / SAVE</button>\n
+                <a class="terms-button terms-button--quiet" href="#terms-contents">CONTENTS</a>\n
+            </div>\n
+        </section>\n
+\n
+                    <div class="terms-layout">\n
+                <aside class="terms-sidebar" id="terms-contents" aria-label="Terms contents">\n
+                    <button class="terms-contents-toggle" type="button" data-contents-toggle aria-expanded="false" aria-controls="terms-contents-list">\n
+                        <span>CONTENTS</span><span aria-hidden="true">⌄</span>\n
+                    </button>\n
+                    <div class="terms-sidebar__inner" id="terms-contents-list">\n
+                        <p class="terms-sidebar__eyebrow">DOCUMENT MAP</p>\n
+                        <nav class="terms-contents-nav" data-terms-contents aria-label="Terms section navigation">\n
+                                                                                                                                <a href="#scope" data-section-link="scope">\n
+                                        <span>01</span>\n
+                                        <strong>1. Scope and platform identity</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#products" data-section-link="products">\n
+                                        <span>02</span>\n
+                                        <strong>2. Products and prize rules</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#stamp-duty" data-section-link="stamp-duty">\n
+                                        <span>03</span>\n
+                                        <strong>3. Prize duty and tax treatment</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#accounts" data-section-link="accounts">\n
+                                        <span>04</span>\n
+                                        <strong>4. Accounts and verification</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#age" data-section-link="age">\n
+                                        <span>05</span>\n
+                                        <strong>5. Age rules</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#ticket-ownership" data-section-link="ticket-ownership">\n
+                                        <span>06</span>\n
+                                        <strong>6. Ticket ownership and transfers</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#responsible-gaming" data-section-link="responsible-gaming">\n
+                                        <span>07</span>\n
+                                        <strong>7. Responsible gaming</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#claims" data-section-link="claims">\n
+                                        <span>08</span>\n
+                                        <strong>8. Claims and payouts</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#disclaimer" data-section-link="disclaimer">\n
+                                        <span>09</span>\n
+                                        <strong>9. Legal disclaimer</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#prohibited" data-section-link="prohibited">\n
+                                        <span>10</span>\n
+                                        <strong>10. Prohibited conduct</strong>\n
+                                    </a>\n
+                                                                                                                                                                <a href="#changes" data-section-link="changes">\n
+                                        <span>11</span>\n
+                                        <strong>11. Contact and changes</strong>\n
+                                    </a>\n
+                                                                                    </nav>\n
+                        <div class="terms-sidebar__operator">\n
+                            <span>OPERATOR IDENTITY</span>\n
+                            <strong>NOT_CONFIGURED</strong>\n
+                            <small>Registration: NOT_CONFIGURED</small>\n
+                            <small>Support: NOT_CONFIGURED</small>\n
+                            <small>Only approved configuration is displayed.</small>\n
+                        </div>\n
+                    </div>\n
+                </aside>\n
+\n
+                <div class="terms-main-column">\n
+                    <div class="terms-search" role="search">\n
+                        <label for="terms-search-input">Search within these Terms</label>\n
+                        <div class="terms-search__row">\n
+                            <input id="terms-search-input" type="search" placeholder="Search headings and legal text" autocomplete="off" data-terms-search>\n
+                            <button class="terms-button terms-button--quiet" type="button" data-clear-search>CLEAR</button>\n
+                        </div>\n
+                        <p class="terms-search__status" data-terms-search-status aria-live="polite">Showing all 11 sections.</p>\n
+                    </div>\n
+\n
+                    <div class="terms-sections" data-terms-sections>\n
+                                                                                <section class="terms-section" id="scope" data-term-section data-searchable-text="1. Scope and platform identity These Terms govern your use of this independent lottery information and wagering platform. We are not the Government Lottery Office (GLO), not an official agent, and not a government portal. GLO product rules are referenced only for prize-rule compatibility. " aria-labelledby="scope-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">01</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="scope-title">1. Scope and platform identity</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>These Terms govern your use of this independent lottery information and wagering platform. We are not the Government Lottery Office (GLO), not an official agent, and not a government portal. GLO product rules are referenced only for prize-rule compatibility.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="products" data-term-section data-searchable-text="2. Products and prize rules GLO-compatible L6: ticket price 80.00 THB; full-sale allocation 48,000,000.00 THB across 1,000,000 units; 14,168 prizes in the full-sale schedule; prizes scale proportionally when sales are below full sale. GLO-compatible N3: ticket price 20.00 THB; prize pool is 60% of N3 gross sales; payouts are variable and draw-calculated — never fixed historical amounts. Operator markets (3D, TOD, 2D, Run) are platform products. They are never described as GLO N3 or as government lottery products." aria-labelledby="products-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">02</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="products-title">2. Products and prize rules</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>GLO-compatible L6: ticket price 80.00 THB; full-sale allocation 48,000,000.00 THB across 1,000,000 units; 14,168 prizes in the full-sale schedule; prizes scale proportionally when sales are below full sale.</p>\n
+                                                                            <p>GLO-compatible N3: ticket price 20.00 THB; prize pool is 60% of N3 gross sales; payouts are variable and draw-calculated — never fixed historical amounts.</p>\n
+                                                                            <p>Operator markets (3D, TOD, 2D, Run) are platform products. They are never described as GLO N3 or as government lottery products.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="stamp-duty" data-term-section data-searchable-text="3. Prize duty and tax treatment Stamp duty: 1.00 THB for every 200 THB of gross prize or fraction thereof (ceil(gross/200) × 1.00 THB). Prize income under this rule is treated as stamp-duty only; income tax is exempt on the displayed calculation. No 0.5% or 1% withholding model is used on this platform. " aria-labelledby="stamp-duty-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">03</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="stamp-duty-title">3. Prize duty and tax treatment</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Stamp duty: 1.00 THB for every 200 THB of gross prize or fraction thereof (ceil(gross/200) × 1.00 THB). Prize income under this rule is treated as stamp-duty only; income tax is exempt on the displayed calculation. No 0.5% or 1% withholding model is used on this platform.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="accounts" data-term-section data-searchable-text="4. Accounts and verification One account per verified user where enforced: email, username, and phone are unique at registration. Identity verification requirements may vary by account, product, and channel. We never promise a single fixed verification path for every user." aria-labelledby="accounts-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">04</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="accounts-title">4. Accounts and verification</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>One account per verified user where enforced: email, username, and phone are unique at registration.</p>\n
+                                                                            <p>Identity verification requirements may vary by account, product, and channel. We never promise a single fixed verification path for every user.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="age" data-term-section data-searchable-text="5. Age rules Registration: you confirm you can enter into a binding agreement under applicable law and that the information you provide is accurate. A date of birth may be collected for identity verification and is stored for server-side age checks. Purchase: eligibility to purchase or wager may be checked against product rules, responsible-gaming settings, and account status before an order is accepted. Claim: prize claimants must be 20 years of age or older, calculated from the verified date of birth on file — never from a client-supplied age." aria-labelledby="age-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">05</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="age-title">5. Age rules</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Registration: you confirm you can enter into a binding agreement under applicable law and that the information you provide is accurate. A date of birth may be collected for identity verification and is stored for server-side age checks.</p>\n
+                                                                            <p>Purchase: eligibility to purchase or wager may be checked against product rules, responsible-gaming settings, and account status before an order is accepted.</p>\n
+                                                                            <p>Claim: prize claimants must be 20 years of age or older, calculated from the verified date of birth on file — never from a client-supplied age.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="ticket-ownership" data-term-section data-searchable-text="6. Ticket ownership and transfers Lottery ticket numbers are digit strings with leading zeros preserved. For GLO-style L6 prizes, a claim follows the authorized claimant path for the verified holder; tickets are not freely transferable instruments for claiming purposes on this platform. " aria-labelledby="ticket-ownership-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">06</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="ticket-ownership-title">6. Ticket ownership and transfers</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Lottery ticket numbers are digit strings with leading zeros preserved. For GLO-style L6 prizes, a claim follows the authorized claimant path for the verified holder; tickets are not freely transferable instruments for claiming purposes on this platform.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="responsible-gaming" data-term-section data-searchable-text="7. Responsible gaming Where enabled on your account, you can use self-exclusion, deposit/loss limits, and reality checks from your profile and the responsible-gaming settings. These are player-protection tools, not a statement of regulatory approval. " aria-labelledby="responsible-gaming-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">07</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="responsible-gaming-title">7. Responsible gaming</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Where enabled on your account, you can use self-exclusion, deposit/loss limits, and reality checks from your profile and the responsible-gaming settings. These are player-protection tools, not a statement of regulatory approval.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="claims" data-term-section data-searchable-text="8. Claims and payouts There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is 2 years from the draw under configured GLO-compatible rules. " aria-labelledby="claims-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">08</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="claims-title">8. Claims and payouts</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is 2 years from the draw under configured GLO-compatible rules.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="disclaimer" data-term-section data-searchable-text="9. Legal disclaimer This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only. We do not claim government ownership, operation, endorsement, or agency status. No page on this site should be read as an official GLO website. " aria-labelledby="disclaimer-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">09</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="disclaimer-title">9. Legal disclaimer</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only. We do not claim government ownership, operation, endorsement, or agency status. No page on this site should be read as an official GLO website.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="prohibited" data-term-section data-searchable-text="10. Prohibited conduct Automated abuse of public endpoints, attempted circumvention of rate limits, fraudulent claim or identity information, and attempts to manipulate finalized results may result in account restriction. " aria-labelledby="prohibited-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">10</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="prohibited-title">10. Prohibited conduct</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Automated abuse of public endpoints, attempted circumvention of rate limits, fraudulent claim or identity information, and attempts to manipulate finalized results may result in account restriction.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                                                                <section class="terms-section" id="changes" data-term-section data-searchable-text="11. Contact and changes Questions about these Terms: use the contact page. Material changes will publish a new version number and updated effective date on this page; historical versions are never silently rewritten in place without a version bump. " aria-labelledby="changes-title">\n
+                                <div class="terms-section__heading">\n
+                                    <span class="terms-section__number">11</span>\n
+                                    <div>\n
+                                        <p class="terms-eyebrow">LEGAL SECTION</p>\n
+                                        <h2 id="changes-title">11. Contact and changes</h2>\n
+                                    </div>\n
+                                </div>\n
+                                <div class="terms-section__body">\n
+                                    <p>Questions about these Terms: use the contact page. Material changes will publish a new version number and updated effective date on this page; historical versions are never silently rewritten in place without a version bump.</p>\n
+                                                                    </div>\n
+                                <a class="terms-section__back" href="#terms-contents">Back to contents ↑</a>\n
+                            </section>\n
+                                            </div>\n
+                </div>\n
+            </div>\n
+\n
+            <section class="terms-facts" aria-labelledby="terms-facts-title">\n
+                <div>\n
+                    <p class="terms-eyebrow">CONFIGURED REFERENCE</p>\n
+                    <h2 id="terms-facts-title">Values used in this document</h2>\n
+                    <p>These values are rendered from the approved legal and GLO-compatible configuration source. They are not replaced with decorative marketing claims.</p>\n
+                </div>\n
+                <dl class="terms-facts__grid">\n
+                                            <div><dt>L6 ticket price</dt><dd>80.00</dd></div>\n
+                                            <div><dt>L6 full-sale allocation</dt><dd>48,000,000.00</dd></div>\n
+                                            <div><dt>L6 full-sale units</dt><dd>1,000,000</dd></div>\n
+                                            <div><dt>L6 prize count</dt><dd>14,168</dd></div>\n
+                                            <div><dt>N3 ticket price</dt><dd>20.00</dd></div>\n
+                                            <div><dt>N3 prize pool</dt><dd>60%</dd></div>\n
+                                            <div><dt>Stamp duty divisor</dt><dd>200</dd></div>\n
+                                            <div><dt>Claim window</dt><dd>2 years</dd></div>\n
+                                    </dl>\n
+            </section>\n
+\n
+            <section class="terms-contact" aria-labelledby="terms-contact-title">\n
+                <div>\n
+                    <p class="terms-eyebrow">QUESTIONS ABOUT THESE TERMS?</p>\n
+                    <h2 id="terms-contact-title">Use the real support route</h2>\n
+                    <p>For questions about the published Terms, contact support. Legal content is versioned and should not be interpreted from a search result excerpt alone.</p>\n
+                </div>\n
+                <div class="terms-contact__links">\n
+                    <a class="terms-button terms-button--gold" href="http://localhost/contact">CONTACT SUPPORT</a>\n
+                    <a class="terms-button terms-button--quiet" href="http://localhost/privacy">PRIVACY POLICY</a>\n
+                    <a class="terms-button terms-button--quiet" href="http://localhost/fees">PLATFORM FEES</a>\n
+                </div>\n
+            </section>\n
+            </div>\n
+</div>\n
+    </main>\n
+\n
+    <!-- Global Platform Footer -->\n
+    <footer class="pp-footer bg-slate-900/60 border-t border-slate-800/80 backdrop-blur-xl py-12 text-xs text-slate-400" role="contentinfo">\n
+    <div class="pp-footer__inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">\n
+        <!-- Top Section: Brand + Links Grid -->\n
+        <div class="pp-footer__nav grid grid-cols-1 md:grid-cols-4 gap-8">\n
+            <!-- Brand Column -->\n
+            <div class="space-y-3 md:col-span-1">\n
+                <div class="flex items-center space-x-2.5">\n
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">\n
+                        TL\n
+                    </div>\n
+                    <a href="http://localhost" class="font-extrabold text-white text-base tracking-tight hover:text-amber-300 transition">\n
+                        Thai Lottery\n
+                    </a>\n
+                </div>\n
+                <p class="text-xs text-slate-400 leading-relaxed">\n
+                    Independent enterprise wagering platform. High-precision lottery results, automated prize calculations, and fintech-grade account management.\n
+                </p>\n
+            </div>\n
+\n
+            <!-- Lottery Lanes -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Lottery Lanes</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/national-lottery" class="hover:text-emerald-400 transition">Government Lottery (GLO)</a></li>\n
+                    <li><a href="http://localhost/weekly-lottery" class="hover:text-emerald-400 transition">Weekly Lottery</a></li>\n
+                    <li><a href="http://localhost/bingo-lottery" class="hover:text-emerald-400 transition">Mega Lottery</a></li>\n
+                    <li><a href="http://localhost/pcso-lottery" class="hover:text-emerald-400 transition">PCSO Lottery</a></li>\n
+                    <li><a href="http://localhost/results" class="hover:text-emerald-400 transition">Official Draw Results</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Public Information -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Information</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/about" class="hover:text-emerald-400 transition">About the Platform</a></li>\n
+                    <li><a href="http://localhost/vision" class="hover:text-emerald-400 transition">Vision &amp; Mission</a></li>\n
+                    <li><a href="http://localhost/check" class="hover:text-emerald-400 transition">Ticket Verification</a></li>\n
+                    <li><a href="http://localhost/sales-points" class="hover:text-emerald-400 transition">Authorized Sales Points</a></li>\n
+                    <li><a href="http://localhost/fees" class="hover:text-emerald-400 transition">Platform Fees</a></li>\n
+                    <li><a href="http://localhost/discounts" class="hover:text-emerald-400 transition">Lottery Discounts</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Legal & Compliance -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Legal &amp; Support</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/terms" class="hover:text-emerald-400 transition">Terms of Service</a></li>\n
+                    <li><a href="http://localhost/privacy" class="hover:text-emerald-400 transition">Privacy Policy</a></li>\n
+                    <li><a href="http://localhost/account-verification-guide" class="hover:text-emerald-400 transition">KYC Verification Guide</a></li>\n
+                    <li><a href="http://localhost/account-grades" class="hover:text-emerald-400 transition">Account Grades</a></li>\n
+                    \n
+                    <li><a href="http://localhost/prize-verification" class="hover:text-emerald-400 transition">Prize Verification</a></li>\n
+                    <li><a href="http://localhost/contact" class="hover:text-emerald-400 transition">Contact Us</a></li>\n
+                </ul>\n
+            </div>\n
+        </div>\n
+\n
+        <!-- Legal Disclaimer & Copyright -->\n
+        <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">\n
+            <p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl">\n
+                &copy; 2026 Thai Lottery.\n
+                All rights reserved. Independent wagering platform, operated by no state authority and endorsed by none. Published draw rules are referenced solely for prize-calculation compatibility.\n
+                \n
+            </p>\n
+            \n
+            <div class="flex items-center space-x-4 shrink-0 text-[11px]">\n
+                <span class="text-slate-600">v1.0.0</span>\n
+            </div>\n
+        </div>\n
+    </div>\n
+</footer>\n
+\n
+    <!-- Core Scripts -->\n
+        <link rel="modulepreload" as="script" href="http://localhost/build/assets/terms-BCCISDCL.js" /><script type="module" src="http://localhost/build/assets/terms-BCCISDCL.js" data-navigate-track="reload"></script></body>\n
+</html>\n
+' [UTF-8](length: 47942) contains "not the official GLO website" [ASCII](length: 28).
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/PublicPages/PublicTermsTest.php:234
+
+FAILURES!
+Tests: 18, Assertions: 98, Failures: 1.
+
+==============================================================================
+Draw/GLO/operator write matrix
+Workspace log: part16-write-matrix-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 111 ( 56%)
+................................................                111 / 111 (100%)
+
+Time: 00:38.132, Memory: 99.00 MB
+
+OK (111 tests, 683 assertions)
+
+==============================================================================
+Console matrix
+Workspace log: part16-console-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................                     45 / 45 (100%)
+
+Time: 00:13.265, Memory: 78.50 MB
+
+OK (45 tests, 204 assertions)
+
+==============================================================================
+Broad financial/Payment/Finance
+Workspace log: part16-masters-finance-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 209 ( 30%)
+............................................................... 126 / 209 ( 60%)
+............................................................... 189 / 209 ( 90%)
+....................                                            209 / 209 (100%)
+
+Time: 00:51.539, Memory: 109.00 MB
+
+OK (209 tests, 991 assertions)
+
+==============================================================================
+Betting/risk/SQLite retry
+Workspace log: part16-betting-risk-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................   63 / 63 (100%)
+
+Time: 00:21.397, Memory: 80.50 MB
+
+OK (63 tests, 300 assertions)
+
+==============================================================================
+Wallet conversion
+Workspace log: part16-conversion-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 71 ( 91%)
+......                                                            71 / 71 (100%)
+
+Time: 00:13.637, Memory: 82.50 MB
+
+OK (71 tests, 259 assertions)
+
+==============================================================================
+Player application/financial presentation
+Workspace log: part16-player-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 92 ( 70%)
+...........................                                       92 / 92 (100%)
+
+Time: 00:36.567, Memory: 89.00 MB
+
+OK (92 tests, 583 assertions)
+
+==============================================================================
+Standalone static source contracts
+Workspace log: part16-static-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+...............                                                   15 / 15 (100%)
+
+Time: 00:00.021, Memory: 12.00 MB
+
+OK (15 tests, 991 assertions)
+
+==============================================================================
+Passive inventory freshness
+Workspace log: part16-inventory-check-final.log
+==============================================================================
+{
+  "scope": "STATIC_ONLY",
+  "page_slots": 274,
+  "missing_sources": [],
+  "documents_written": false,
+  "stale_documents": [],
+  "runtime_verified": false,
+  "production_verified": false,
+  "live_payment_verified": false
+}
+
+==============================================================================
+Inventory offline guards
+Workspace log: part16-inventory-guards-final.log
+==============================================================================
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.026s
+
+OK
+
+==============================================================================
+Source scanner guards
+Workspace log: part16-scanner-final.log
+==============================================================================
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.013s
+
+OK
+
+==============================================================================
+Offline SQL runner guards: no SQL server contacted
+Workspace log: part16-runner-guards-final.log
+==============================================================================
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.003s
+
+OK
+
+==============================================================================
+Financial source preflight
+Workspace log: part16-preflight-final.log
+==============================================================================
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": true,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": true
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": true
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_quotes": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_audits": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ]
+  },
+  "missing_imported_app_class_count": 0,
+  "missing_imported_app_classes": [],
+  "source_preflight_passed": true,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}
+
+==============================================================================
+PHP syntax
+Workspace log: part16-lint-final.log
+==============================================================================
+No syntax errors detected in app/Providers/ProductionSafetyServiceProvider.php
+No syntax errors detected in app/Support/CiEnvironmentGuard.php
+No syntax errors detected in scripts/ci_runtime_guard.php
+No syntax errors detected in tests/Feature/Production/ProductionConfigSafetyTest.php
+No syntax errors detected in tests/Unit/Production/CiEnvironmentGuardTest.php
+
+==============================================================================
+PHP Pint
+Workspace log: part16-pint-final.log
+==============================================================================
+
+  .....
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   ........................................................... 5 files  
+
+
+==============================================================================
+Tracked whitespace: empty output is clean
+Workspace log: part16-whitespace-final.log
+==============================================================================
+

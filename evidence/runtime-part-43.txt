@@ -1,0 +1,565 @@
+Part43 actual local runtime acceptance — 2026-10-16T09:56:50.588266+00:00
+
+| Executed check | Result |
+|---|---|
+| Complete default PHP / four isolated owned SQLite stores | 3306 cases / 134761 assertions / 0 errors or failures / 82 explicit skips |
+| Test discovery equality | Every discovered PHP test ID executed exactly once in the full default run |
+| Owned MariaDB matrix | 174 tests / 1032 assertions / 0 errors, failures or skips |
+| New coordinated unpaid matrix, included above | 31 cases / 194 assertions, including THB/USD/BDT direct+parent closure, other owned/unowned/paid liabilities, HTTP, corruption, rollback, replay and retention |
+| New native current-read/concurrency matrix, included above | 5 cases / 63 assertions; four selected old-snapshot scenarios and an actual two-child lock-wait race |
+| Actual InnoDB lock witnesses | Two distinct two-child races confirmed simultaneous decisive wallet-lock waits, including attributed cancellation |
+| Negative control, not a positive financial operation | Removing selected current agent/book locks produced 2 expected failures / 0 errors; correct source bytes restored |
+| Static PHP contracts / dependency boundaries | 35 tests / 1402 assertions, passed |
+| Python | 86 tests, passed |
+| PHP syntax | 2008 PHP-suffixed source/template files; 0 failures |
+| Pint | All 9 changed/new PHP files pass |
+| Native verifier | 27 Rust tests and locked release build pass |
+| Full locked npm graph | 149 locked/audited packages; 0 known findings; 54 Node policy tests pass |
+| Actual Vite build | Passed under pinned Node24.22.0/npm11.21.1 |
+| Full locked Composer graph, including development dependencies | 0 advisories / 0 abandoned packages |
+| Source preflight / generated inventory | Passed; no missing imported App classes or stale generated documents |
+| Final source freeze | All 10 implementation/test/generator bodies unchanged throughout final acceptance |
+
+
+===== full-final.log =====
+Part43 complete default regression across four isolated disposable file-backed SQLite shards.
+Each shard executes disjoint source files; no test filter or test source change.
+
+===== shard 1, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 967 (  6%)
+............................................................... 126 / 967 ( 13%)
+.........................................SSSSSSSSSSSSSSSSSS.... 189 / 967 ( 19%)
+............................................................... 252 / 967 ( 26%)
+............................................................... 315 / 967 ( 32%)
+............................................................... 378 / 967 ( 39%)
+............................................................... 441 / 967 ( 45%)
+............................................................... 504 / 967 ( 52%)
+............................................................... 567 / 967 ( 58%)
+............................................................... 630 / 967 ( 65%)
+............................................................... 693 / 967 ( 71%)
+............................................................... 756 / 967 ( 78%)
+............................................................... 819 / 967 ( 84%)
+............................................................... 882 / 967 ( 91%)
+............................................................... 945 / 967 ( 97%)
+......................                                          967 / 967 (100%)
+
+Time: 09:01.635, Memory: 171.00 MB
+
+OK, but some tests were skipped!
+Tests: 967, Assertions: 119260, Skipped: 18.
+
+===== shard 2, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 808 (  7%)
+..........................................SSSSS................ 126 / 808 ( 15%)
+..............SSSSSSSSSS....................................... 189 / 808 ( 23%)
+............................................................... 252 / 808 ( 31%)
+............................................................... 315 / 808 ( 38%)
+............................................................... 378 / 808 ( 46%)
+............................................................... 441 / 808 ( 54%)
+............................................................... 504 / 808 ( 62%)
+............................................................... 567 / 808 ( 70%)
+............................................................... 630 / 808 ( 77%)
+............................................................... 693 / 808 ( 85%)
+............................................................... 756 / 808 ( 93%)
+....................................................            808 / 808 (100%)
+
+Time: 08:52.597, Memory: 171.00 MB
+
+OK, but some tests were skipped!
+Tests: 808, Assertions: 5544, Skipped: 15.
+
+===== shard 3, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...........SSSSS...............................................  63 / 870 (  7%)
+............................................................... 126 / 870 ( 14%)
+.............................SSSSSSSSSSSSS..................... 189 / 870 ( 21%)
+............................................................... 252 / 870 ( 28%)
+............................................................... 315 / 870 ( 36%)
+............................................................... 378 / 870 ( 43%)
+............................................................... 441 / 870 ( 50%)
+............................................................... 504 / 870 ( 57%)
+............................................................... 567 / 870 ( 65%)
+............................................................... 630 / 870 ( 72%)
+............................................................... 693 / 870 ( 79%)
+...............S............................................... 756 / 870 ( 86%)
+............................................................... 819 / 870 ( 94%)
+...................................................             870 / 870 (100%)
+
+Time: 09:08.415, Memory: 157.00 MB
+
+OK, but some tests were skipped!
+Tests: 870, Assertions: 7429, Skipped: 19.
+
+===== shard 4, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................SSS........SSSS  63 / 661 (  9%)
+............................................................... 126 / 661 ( 19%)
+..............................SS............................... 189 / 661 ( 28%)
+...................SS.......................S.................. 252 / 661 ( 38%)
+...................................SS.......................... 315 / 661 ( 47%)
+................SSSS.......................SSSSS............... 378 / 661 ( 57%)
+............................................................... 441 / 661 ( 66%)
+................................SSSSSSS........................ 504 / 661 ( 76%)
+............................................................... 567 / 661 ( 85%)
+............................................................... 630 / 661 ( 95%)
+...............................                                 661 / 661 (100%)
+
+Time: 09:12.411, Memory: 129.00 MB
+
+OK, but some tests were skipped!
+Tests: 661, Assertions: 2528, Skipped: 30.
+
+Combined complete regression: Tests: 3306, Assertions: 134761, Skipped: 82, Errors/failures: 0.
+
+===== native.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 174 ( 36%)
+............................................................... 126 / 174 ( 72%)
+................................................                174 / 174 (100%)
+
+Time: 03:41.273, Memory: 91.00 MB
+
+OK (174 tests, 1032 assertions)
+
+===== current-read-negative.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+FF                                                                  2 / 2 (100%)
+
+Time: 00:08.222, Memory: 72.50 MB
+
+There were 2 failures:
+
+1) Tests\Feature\Agent\CommissionCancellationCurrentReadTest::test_commission_authority_uses_current_rows_not_the_older_snapshot with data set "accrual" ('accrual')
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'1.50'
++'1.00'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Agent/CommissionCancellationCurrentReadTest.php:94
+
+2) Tests\Feature\Agent\CommissionCancellationCurrentReadTest::test_commission_authority_uses_current_rows_not_the_older_snapshot with data set "book_deficit" ('book_deficit')
+Stale commission state authorized an unpaired member refund.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Agent/CommissionCancellationCurrentReadTest.php:88
+
+FAILURES!
+Tests: 2, Assertions: 16, Failures: 2.
+
+===== static.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...................................                               35 / 35 (100%)
+
+Time: 00:00.230, Memory: 14.00 MB
+
+OK (35 tests, 1402 assertions)
+
+===== python.log =====
+......................................................................................
+----------------------------------------------------------------------
+Ran 86 tests in 2.174s
+
+OK
+
+===== pint.log =====
+
+  .........
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   ........................................................... 9 files  
+
+
+===== lint.log =====
+{
+  "php_suffixed_files": 2008,
+  "failures": [],
+  "passed": true
+}
+
+===== rust.log =====
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded block-buffer v0.10.4
+  Downloaded curve25519-dalek-derive v0.1.1
+  Downloaded cfg-if v1.0.5
+  Downloaded digest v0.10.7
+  Downloaded base64ct v1.8.3
+  Downloaded signature v2.2.0
+  Downloaded rustc_version v0.4.1
+  Downloaded const-oid v0.9.6
+  Downloaded version_check v0.9.5
+  Downloaded hex v0.4.3
+  Downloaded generic-array v0.14.7
+  Downloaded itoa v1.0.18
+  Downloaded zmij v1.0.23
+  Downloaded ed25519 v2.2.3
+  Downloaded subtle v2.6.1
+  Downloaded zeroize v1.9.0
+  Downloaded serde_core v1.0.229
+  Downloaded serde_derive v1.0.229
+  Downloaded typenum v1.20.1
+  Downloaded memchr v2.8.3
+  Downloaded ed25519-dalek v2.2.0
+  Downloaded serde_json v1.0.151
+  Downloaded serde v1.0.229
+  Downloaded proc-macro2 v1.0.107
+  Downloaded semver v1.0.28
+  Downloaded pkcs8 v0.10.2
+  Downloaded der v0.7.10
+  Downloaded curve25519-dalek v4.1.3
+  Downloaded unicode-ident v1.0.26
+  Downloaded rand_core v0.6.4
+  Downloaded spki v0.7.3
+  Downloaded syn v3.0.6
+  Downloaded syn v2.0.119
+  Downloaded sha2 v0.10.9
+  Downloaded quote v1.0.47
+  Downloaded crypto-common v0.1.7
+  Downloaded cpufeatures v0.2.17
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling unicode-ident v1.0.26
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling zmij v1.0.23
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling zeroize v1.9.0
+   Compiling serde_json v1.0.151
+   Compiling subtle v2.6.1
+   Compiling signature v2.2.0
+   Compiling serde v1.0.229
+   Compiling ed25519 v2.2.3
+   Compiling serde_derive v1.0.229
+   Compiling sha2 v0.10.9
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling rand_core v0.6.4
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.47s
+     Running unittests src/lib.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-22a456e02c732867)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-80bdcd03109364f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_boundary.rs (security/weekly-result-integrity/target/debug/deps/cli_boundary-067c451bd0c81b0e)
+
+running 5 tests
+test document_ceiling_is_enforced_before_parsing ... ok
+test fingerprint_disagreement_exits_two_without_accepting ... ok
+test malformed_json_exits_one_and_does_not_crash ... ok
+test invalid_utf8_is_a_structured_rejection ... ok
+test unsigned_request_exits_zero_with_exact_library_fingerprint ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/integrity.rs (security/weekly-result-integrity/target/debug/deps/integrity-efe5c4cfa280c0dd)
+
+running 19 tests
+test a_fully_unavailable_result_canonicalizes_without_inventing_zeros ... ok
+test a_different_first_6_produces_a_different_hash ... ok
+test a_matching_expected_fingerprint_is_accepted_and_a_wrong_one_is_not ... ok
+test a_partial_result_triple_is_refused ... ok
+test a_malformed_request_document_is_a_value_not_a_panic ... ok
+test a_value_that_lost_a_leading_zero_hashes_differently ... ok
+test an_invalid_signature_is_rejected ... ok
+test canonical_bytes_are_valid_utf8_including_non_ascii_identifiers ... ok
+test canonical_bytes_start_with_the_version_and_field_count ... ok
+test canonical_field_order_is_fixed_and_documented ... ok
+test half_supplied_signature_material_is_refused_not_downgraded ... ok
+test leading_zeros_are_part_of_the_canonical_bytes ... ok
+test malformed_values_are_rejected_rather_than_repaired ... ok
+test null_and_empty_are_distinct ... ok
+test the_crate_source_contains_no_unsafe_and_no_network_or_process_calls ... ok
+test the_dependency_tree_contains_no_networking_crate ... ok
+test the_same_payload_always_produces_the_same_hash ... ok
+test unsigned_payload_returns_hash_only_and_never_claims_a_signature ... ok
+test a_valid_signature_is_accepted_only_when_a_key_is_configured ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/strict_signature.rs (security/weekly-result-integrity/target/debug/deps/strict_signature-2c56f82fb4fbf60b)
+
+running 3 tests
+test source_identifier_over_191_characters_is_rejected ... ok
+test unicode_source_identifier_counts_characters_but_hashes_utf8_bytes ... ok
+test weak_identity_key_and_signature_cannot_authenticate_any_result ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests weekly_result_integrity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+===== native-build.log =====
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling version_check v0.9.5
+   Compiling quote v1.0.47
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling curve25519-dalek v4.1.3
+   Compiling digest v0.10.7
+   Compiling syn v2.0.119
+   Compiling cpufeatures v0.2.17
+   Compiling zmij v1.0.23
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling subtle v2.6.1
+   Compiling serde_json v1.0.151
+   Compiling zeroize v1.9.0
+   Compiling serde v1.0.229
+   Compiling signature v2.2.0
+   Compiling ed25519 v2.2.3
+   Compiling serde_derive v1.0.229
+   Compiling sha2 v0.10.9
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `release` profile [optimized] target(s) in 17.43s
+
+===== security.log =====
+
+> security:dependencies
+> node scripts/dependency_security_gate.mjs
+
+{
+  "passed": true,
+  "scope": "Known advisories in the complete npm lock graph, not a whole-platform security certification.",
+  "node": "24.22.0",
+  "npm": "11.21.1",
+  "lockedPackages": 149,
+  "auditedPackages": 149,
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  }
+}
+
+===== node-tests.log =====
+
+> test:dependencies
+> node --test tests/dependencies/*.test.mjs
+
+✔ the complete reviewed lock and runtime are accepted (4.543525ms)
+✔ nonzero info is refused even if npm exits0 (0.383394ms)
+✔ missing info count is not a clean audit (0.186759ms)
+✔ nonzero low is refused even if npm exits0 (0.202002ms)
+✔ missing low count is not a clean audit (0.163369ms)
+✔ nonzero moderate is refused even if npm exits0 (0.143396ms)
+✔ missing moderate count is not a clean audit (0.221885ms)
+✔ nonzero high is refused even if npm exits0 (0.191472ms)
+✔ missing high count is not a clean audit (0.319229ms)
+✔ nonzero critical is refused even if npm exits0 (0.287248ms)
+✔ missing critical count is not a clean audit (0.204142ms)
+✔ nonzero total is refused even if npm exits0 (0.135696ms)
+✔ missing total count is not a clean audit (0.153629ms)
+✔ refuses an uncounted advisory (0.200721ms)
+✔ refuses an audit API error (0.109218ms)
+✔ refuses a future unsupported schema (0.124715ms)
+✔ refuses a string zero (0.106783ms)
+✔ refuses an empty graph (0.134929ms)
+✔ refuses a missing graph (0.120852ms)
+✔ refuses an array of vulnerabilities (0.112285ms)
+✔ refuses npm status null with a superficially clean report (0.119584ms)
+✔ refuses npm status 1 with a superficially clean report (0.100648ms)
+✔ refuses npm status 2 with a superficially clean report (0.067897ms)
+✔ refuses npm status 127 with a superficially clean report (0.059874ms)
+✔ runtime 20.20.2 needs review rather than a silently bypassed engine (0.142292ms)
+✔ runtime 22.22.0 needs review rather than a silently bypassed engine (0.063284ms)
+✔ runtime 23.0.0 needs review rather than a silently bypassed engine (0.059438ms)
+✔ runtime 25.0.0 needs review rather than a silently bypassed engine (0.061176ms)
+✔ runtime 24.0.0-preview needs review rather than a silently bypassed engine (0.059729ms)
+✔ runtime unknown needs review rather than a silently bypassed engine (0.118509ms)
+✔ npm 10.8.2 is outside the reviewed major (0.168535ms)
+✔ npm 12.0.0 is outside the reviewed major (0.066692ms)
+✔ npm  is outside the reviewed major (0.104733ms)
+✔ npm 11.0.0-preview is outside the reviewed major (0.098718ms)
+✔ lock policy rejects missing root (1.323546ms)
+✔ lock policy rejects old lock format (0.623179ms)
+✔ lock policy rejects root manifest drift (0.65022ms)
+✔ lock policy rejects old root engine (1.725693ms)
+✔ lock policy rejects missing compiler (1.33216ms)
+✔ lock policy rejects restored unpatched braces (1.178126ms)
+✔ lock policy rejects unreviewed nested compiler (1.36655ms)
+✔ lock policy rejects unreviewed adapter (0.860644ms)
+✔ lock policy rejects remote nonregistry artifact (1.051746ms)
+✔ lock policy rejects missing integrity (1.292815ms)
+✔ lock policy rejects weak hash algorithm (1.884452ms)
+✔ lock policy rejects top-level fake bundle (0.976681ms)
+✔ lock policy rejects undeclared bundled artifact (0.954953ms)
+✔ lock policy rejects unlocked bundle parent (0.746601ms)
+✔ audit invocation explicitly includes development and optional packages and all severities (1.906406ms)
+✔ audit network failure cannot turn green (0.959718ms)
+✔ audit malformed JSON cannot turn green (1.059618ms)
+✔ audit timeout cannot turn green (1.352984ms)
+✔ audit spawn failure cannot turn green (0.898147ms)
+✔ all five CI Node setups follow the reviewed version file; every npm install lane runs the gate (10.402827ms)
+ℹ tests 54
+ℹ suites 0
+ℹ pass 54
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 163.420021
+
+RACE WITNESSES
+[
+  {
+    "class": "Tests\\Feature\\Agent\\CommissionCancellationCurrentReadTest",
+    "name": "test_two_actual_requests_refund_and_cancel_both_commission_levels_once",
+    "table": "wallets",
+    "waiting_children": 2,
+    "child_connections": [
+      66,
+      65
+    ],
+    "parent_blocker": 64,
+    "wallet_ids": [],
+    "blocker_row_id": 3,
+    "lock_index": "PRIMARY",
+    "accepted_before_barrier": [
+      false,
+      false
+    ],
+    "snapshot_owner_counts": [
+      null,
+      null
+    ],
+    "snapshot_reversal_counts": [
+      null,
+      null
+    ]
+  },
+  {
+    "class": "Tests\\Feature\\Betting\\BetCancellationCurrentReadTest",
+    "name": "test_two_actual_cancellers_wait_then_commit_one_refund_and_one_replay",
+    "table": "wallets",
+    "waiting_children": 2,
+    "child_connections": [
+      124,
+      125
+    ],
+    "parent_blocker": 123,
+    "wallet_ids": [],
+    "blocker_row_id": 1,
+    "lock_index": "PRIMARY",
+    "accepted_before_barrier": [
+      false,
+      false
+    ],
+    "snapshot_owner_counts": [
+      null,
+      null
+    ],
+    "snapshot_reversal_counts": [
+      null,
+      null
+    ]
+  }
+]
+FROZEN SOURCES
+{
+  "database/migrations/2026_10_16_000400_create_bet_commission_ownerships_table.php": "d47fe48c9274b30d05dbbc2dd4da129635e25100a644a89955399419f49bb9cc",
+  "app/Services/Agent/BetCommissionCancellation.php": "53376e6c1af2352242e146c894f8fb56adbb400b46f4cb5ee638eef000f0f74f",
+  "app/Services/Agent/AgentCommissionAccrualService.php": "5d16fcd2db3aeaa250510bad71589dc09a78a043688e8ced5e5c4453b0110c3f",
+  "app/Services/Betting/BetPurchaseOwnership.php": "03dbb76bf1a1a84d0b5ad4c0219e241dff5b3b89af4b91ca24e02301deb37f81",
+  "app/Services/Betting/BetCancellationService.php": "556e774b859aafbcc86ddc800b84a71259bb0717929483d19797a78ffaf0212a",
+  "app/Http/Controllers/Api/V1/BetCancellationController.php": "619e0f3887f597ac788fa81239c1bd47b1cef713aa9b9d4ae9711332089a4e0e",
+  "tests/Feature/Agent/Concerns/BuildsCommissionCancellation.php": "44cbeb9aeb5efa0329a3270ba13a66e0dde876ab68817b74d8a115285b99fa6e",
+  "tests/Feature/Agent/CoordinatedUnpaidCancellationTest.php": "213494bdd197abe8c30d27d3301e9c25d7cf3a8da471b4cd7d5ae7679d76e183",
+  "tests/Feature/Agent/CommissionCancellationCurrentReadTest.php": "1cac54dff5c7e937d10b71619a8f714ea9f12d2d987b83d9ebfb3ddd739fd5a1",
+  "scripts/release_source_inventory.py": "27de6ff5a9fbea10ff0dd054786f7f73fb7d1939d01284612ced4d2ee55f50b2"
+}
+LOG SHA256
+{
+  "part43-full-final.log": "96e81df86314274310fb84bdb64362b11c29fdd31973510964994b6c674520d8",
+  "part43-full-final-junit.xml": "b54448cee94496537f6ca6d7c6f9905402f4a13ca1877cc671895fcbd6da6e17",
+  "part43-native.log": "4cba0d5c549b58138083e32b65084d6b8e5d1de87472263003094092cb9adf9b",
+  "part43-native-junit.xml": "8b72b1a7ef46a0b05718cd3c3ed52ba4eb9ff5ae098f3286e44c713f74121d28",
+  "part43-current-read-negative.log": "c1ad8aa01ac6774b60e0952d415e8936fbb11db3a721fc7ab6ea7b81345537ce",
+  "part43-current-read-negative-junit.xml": "d35fe7d3152b4eaa631d5aea4114afa5c9eff88a31de735d1c9a7fa3b4e3e384",
+  "part43-python.log": "caf9878804e9000e79859fc7c8fa61eeb7a791b768eff5a33ea4b3dac9b89eff",
+  "part43-pint.log": "1272b65c171e5f78599410d6177121c64e97e2602f8d21563ceaa93b1adffec0",
+  "part43-lint.log": "caf8aed86224e5ca2b982dde5a8c052b2834662fbecb585240d7a9e046d8ac30",
+  "part43-static.log": "f584630a2741c173bfc7a3d307af510915da5b85905f16505286327cabfbaeb3",
+  "part43-preflight.log": "0fcf9154ecb7334b09c4e73d3c63cb2cf061f4205f626423e65d4e220d5d3da3",
+  "part43-inventory-check.log": "c3ca7077aea26f7e638f32364b8e54c5f60ae419b86daf45f9146eae21e1f437",
+  "part43-rust.log": "04720c7930da9c7a7bdf40dc694583a6be53268ed6380184e061729353022f98",
+  "part43-native-build.log": "77ec9a903f7535dcc0bf94a79c27a9e2dfbb6b8422466fe1cec4b27d3fb8e2c1",
+  "part43-security.log": "78a78368433539f1965723225444c09b4f02704a233fbea0ab59466e925733df",
+  "part43-node-tests.log": "a3f0708a7219a1ab006e180580e13e58d8682dcd96c85c490adae9585ef5abc2",
+  "part43-build.log": "e682f27d256b390a55d753288fd60a1f47b174047a4403d1e472048af3675357",
+  "part43-composer-full-audit.json": "e464a6f19a008d852b61fd0966a47b663d20d70ccfba0b30edd6483a787f15f5",
+  "part43-cancellation-lock-witness.jsonl": "7012ee0d9aea5e6ea1988a2465541b508ad867682e1fcf11217f7fe0d40b3f55"
+}
+
+BOUNDARIES
+UNPAID new ownership only. Paid compensation, history adoption/repair, universal legacy writers, provider/live payment/refund, remote CI/rollout, all-writer/load/multi-host and worldwide permission are not certified. Negative failures are mutation controls, not passed operations. Native matrices overlap the default suite.5 new SQL-only cases actually passed natively; earlier9 also reran;68 other default profile skips remain. Scope: docs/remaining-work-part-43.md.

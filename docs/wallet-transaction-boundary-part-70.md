@@ -1,0 +1,36 @@
+# Part70 — shared wallet physical transaction boundary
+
+## Application changes
+
+A Laravel transaction nesting counter is not evidence that SQL still holds a row lock. A raw PDO commit/rollback, implicit server commit or lost physical transaction can leave the framework counter positive while a subsequent `SELECT ... FOR UPDATE` is immediately released. There is an additional SQLite trap: issuing a nested SAVEPOINT after physical loss can begin a replacement transaction. Checking only after opening that savepoint is too late.
+
+`WalletLockService::insideTransaction()` now requires both a positive framework counter and `inTransaction()` on the same current default connection's **write** PDO. Every existing single/credit/debit/many/relock acquisition uses that predicate. It never uses read-replica state as authority.
+
+`WalletLockService::withinTransaction()` samples that connection before running callbacks or issuing SQL. Counter-positive/PDO-inactive and counter-zero/PDO-active both fail with `wallet_transaction_state_invalid`. It never resets the counter, opens a replacement transaction to repair divergence, rolls back an unmanaged caller transaction or commits caller work to make state agree. PDO connection acquisition can itself fail; such errors propagate rather than authorize money.
+
+Coherent empty state opens an owned root. Coherent active state preserves each existing caller policy:
+
+- WalletService lock/unlock funds and wallet administrative lock/unlock retain nested savepoints.
+- FinancialTransactionService canonical execution, including public WalletService credit/debit and direct canonical execution, retains transaction/savepoint isolation and its existing retry policy.
+- WalletHoldService hold/reserve/release/releaseIfHeld directly join an existing managed transaction without adding a savepoint. A standalone call owns a root. An exception caught by the outer caller therefore retains the original join semantics, not newly invented inner rollback ownership.
+- Low-level applyCredit/applyDebit/applyReversal and hold consume require a currently active framework-and-physical transaction but never open their own one. Their stable `wallet_mutation_outside_transaction` and `wallet_hold_outside_transaction` errors remain. Lock acquisition retains `wallet_lock_outside_transaction`.
+
+The guard is before savepoints and callbacks, not merely a check before the final UPDATE. It does not alter money arithmetic, wallet permissions, hold floors, canonical ledger construction or idempotency proof.
+
+## Verification design
+
+The source-backed feature matrix covers 21 real lock/mutation/wrapper entrypoints against raw commit, raw rollback, nested stale counters and PDO-only caller transactions. Ten low-level paths additionally reject empty transaction state. It asserts zero framework-observed SQL before refusal, unchanged counter/physical state and exact wallet/transaction/journal/account/audit rows after explicit test cleanup. Direct helper tests separately prove callbacks do not run in either join mode. PDO state checks and unchanged financial rows supplement query-log checks, which alone would not capture raw PDO SQL.
+
+Healthy root, savepoint and direct-join callbacks cover success and failure at three caller depths. Tests prove returned values, visible writes, rollback isolation, original nesting depth, physical state, real canonical credits/debits, hold adjustments, balanced journal posting, standalone commit and whole-caller rollback. A raw-PDO caller with an actual pending monetary write retains its own explicit commit/rollback decision.
+
+Eight dedicated native profiles use two separate PHP child sessions and a parent wallet-row mutex. Both children first read the real old repeatable-read balance 1000.00; the parent changes the fixture to 950.00 and actually observes both children simultaneously waiting on its InnoDB row lock. Children then acquire current wallet facts. Six profiles physically end the transaction **after** acquiring the real lock and attempt low-level debit/credit, hold/release or public credit/debit: refusal must occur without additional SQL or money effects. Healthy outer rollback and commit profiles prove money remains possible: canonical credits roll back completely, or commit twice with two transactions/four journal legs and current read progression 950.00 to 980.00 to 1010.00. The parent's balance change is an explicit race fixture, not a claimed deposit receipt.
+
+MariaDB's optional snapshot-conflict mode is disabled only in the disposable native child session and restored on exit, so a server snapshot abort cannot stand in for the tested guard. SQLite is not InnoDB row-lock evidence. The CI step requires all 138 dedicated native cases and eight genuine parent/two-child waits; the workflow is locally parsed/compiled, not claimed remotely executed.
+
+Negative controls run only in copied application trees with audited parent/child autoload origins. The local six low-level/pre-savepoint/pre-join omission controls must produce assertion failures, not setup errors. Two native legacy-boundary controls deliberately remove the physical protections together; disposable SQL receipts record actual effects after loss, with both genuine waits still witnessed. Independent physical hold-floor guards are deliberately retained: some omissions therefore reach a later refusal instead of changing wallet money. Their changed error/no-SQL contract still exposes the missing early boundary; it is not mislabeled as a complete defence bypass. A supplemental repeat of the existing SQLite savepoint-precheck omission proves a physical replacement transaction, an actual staged 30.00 canonical credit, one transaction and two journal legs while the stale framework counter remains two; explicit test cleanup then rolls that replacement back. No independent floor or journal check is removed to manufacture the witness. These intentionally unsafe copies are not production source or live provider transfers.
+
+## Boundary of the guarantee
+
+This is a current default-write-connection state-consistency guard, not cryptographic attestation of the identity or history of a transaction. It cannot reconstruct work already committed or rolled back, detect an externally closed-and-reopened transaction whose current counter/PDO flags now agree, or certify arbitrary upstream wrappers that execute SQL before entering these services. Trusted callers must retain ownership until all dependent money, journal and business state commits atomically. A direct low-level balance caller remains responsible for the canonical journal and supported lifecycle proof; this guard does not invent journal entries for arbitrary code.
+
+Direct FinancialReversalService orchestration, status-only transition wrappers, every other application DB::transaction entrypoint, all database drivers/isolation modes and uncontrolled direct SQL writers are not newly certified by this change. Existing regressions are rerun; that is not blanket physical-boundary adoption. No migration, historical repair, money-provider request, live transfer, merchant approval, populated production restore or worldwide legal permission is implied. Deployment still requires controlled database access and owner-supplied provider/merchant setup.

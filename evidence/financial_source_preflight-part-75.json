@@ -1,0 +1,16 @@
+{
+  "part": 75,
+  "source_preflight_passed": true,
+  "scope": "Canonical financial model connection/table/key routing before integrated mutation and lifecycle SQL.",
+  "current_source_hashes": {
+    "app/Services/Finance/FinancialRecordIdentifier.php": "e754137067f6726dc907aaad72fda073b794922469354ee2ff700b8f41ff1112",
+    "app/Services/Finance/FinancialStateTransitionService.php": "c24ce354e1d7c8c25266fa60a84fa1e34c0b9314ba53f9e981f689c73c79c9c9",
+    "tests/Feature/Finance/FinancialModelRoutingContextTest.php": "751bfd981a62c0db7982f422ec51063288d486d5d15b48b9f0bd4a0f71c2428c",
+    ".github/workflows/financial-concurrency.yml": "3fc077b6925c227a5f2252f45c3ba172a7e90a3eb5ea7f2882e1d14104c65a12",
+    "scripts/release_source_inventory.py": "7f09ede79a006a5b3993294cd1c515ab8e7829bff2ed5ccb0a1a2e2bb60ef4cf"
+  },
+  "new_schema_migrations": 0,
+  "cross_store_model_origin_or_authorization_attested": false,
+  "remote_or_live_provider_execution": false,
+  "runtime_results_are_separate": "evidence/acceptance-part-75.json"
+}

@@ -1,0 +1,15 @@
+{
+  "part": 80,
+  "source_preflight_passed": true,
+  "current_source_hashes": {
+    "app/Services/Finance/LedgerPostingService.php": "6bad439cdf9e5b1dc0d4a05fc90c52a349da7b805fb1e32f6551b8ce2cac431b",
+    "app/Services/Finance/LedgerAccountBalanceProjector.php": "54641f122ce05d403e7ab07692daa3425e339aa5fa1f204dd08cddd82b120509",
+    "tests/Unit/Services/LedgerAccountBalanceProjectorTest.php": "2d49202df55b6374bee7acb06f31e26a9943b14a5d1011620e657357637b977a",
+    "tests/Feature/Finance/LedgerPostingBalanceProjectionTest.php": "7a27add8e7829024ec6d43ec6bf8693ae00cfb9cc17262c61729cdae7e22ea85",
+    ".github/workflows/financial-concurrency.yml": "8fd9a399086b8a7979a2ef5c3b8d6068030c237242beef44412648bfe279de26",
+    "scripts/release_source_inventory.py": "c5301e74252eaacbc19e74d181a44a622347456f2795274406523b82feda0483"
+  },
+  "new_migrations": 0,
+  "live_transfer": false,
+  "scope": "Pure complete ordered account-balance projection and signed DECIMAL(24,2) range admission before any account/journal write."
+}

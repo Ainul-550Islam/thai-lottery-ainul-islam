@@ -1,0 +1,1896 @@
+Part28 executed verification — 2026-10-15
+Base HEAD a73ad5b8dce6c1f9f777f25ed38b20355d69b3be.
+Prior delivered authority Full-Code-All-312-Files.zip SHA256 f80414c6e9f2392de38d12a6d9a48236f4bf981eb6194d47eff9b74196996109.
+Restored128 missing/drifted delivered paths from that authority before implementing. Prior312 paths preserved except9 intentional revisions.
+New production workflow: private encrypted evidence intake, active granular authorization, independent maker/checker decisions, private audited destination inspection, immutable case facts, unique reference binding in this lane and canonical financial completion/failure. No send/reset/retry/TTL takeover action.
+FINAL complete regression rerun on final application sources:2702 tests/131355 assertions;40 explicit server-only skips;zero failures/errors;actual exit0.
+SQLite Payment+comprehensive queue+three readiness/invariant files:288/1248 PASS. MariaDB entire Payment feature directory:229/958 PASS.
+Real all-race profile:3 x25 tests/540 assertions PASS;21 actual parent-owned lock-wait witnesses each, including two new independent reconciliation races.
+Refreshed dispatch SIGKILL/replacement:3 x2/61 PASS;two witnesses each;synthetic acceptance only,no real transfer.
+Refreshed SQL worker recovery:3 x9/444 PASS;seven witnesses each. Private Redis AOF recovery:3 x7/353 PASS;seven hard-restart witnesses each.
+Exact default skips:SQL recovery9,conversion9,Redis7,settlement4,callbacks4,dispatch2,dispatch recovery2,reconciliation2,simulation1. Separately executed server profiles have no skipped cases.
+84 offline Python guards PASS;1691 PHP syntax files PASS;19 Pint files PASS;27 Rust tests PASS;locked native release and production frontend builds PASS.
+CI YAML and11 Bash blocks validated;four SQL-writing profiles serial;all dynamically includes new reconciliation profile. Hosted CI not executed.
+Populated synthetic evidence blocked schema rollback and preserved both tables/case rows. New migration applied only to disposable schemas.
+Initial new HTTP test run had two incorrect default-validation-envelope expectations; corrected to the existing error.details.fields contract,not by weakening application validation. Later destination inspection/schema guards were added,then the complete suite rerun.
+No .env/secrets/customer data/build output/native executable/private evidence blobs/database state packaged. No live deployment,production migration,provider activation or real transfer.
+Current native tests rerun independently; passive source inventory does not execute/verify runtime. Static preflight JSON is embedded verbatim below,not runtime certification.
+Complete30-body tranche File383-412;next413. Cumulative333 paths:303 older unchanged,9 revised,21 first-delivered. Source overlay,not a standalone full repository export.
+The three complete refreshed recovery JSON reports below are delivered inside this file,not separate sequential file labels. Part27 evidence remains unchanged. Separate race JSON is File410.
+An empty whitespace log means git diff --check exited0.
+
+===== part28-scoped-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 288 ( 21%)
+............................................................... 126 / 288 ( 43%)
+............................................................... 189 / 288 ( 65%)
+............................................................... 252 / 288 ( 87%)
+....................................                            288 / 288 (100%)
+
+Time: 01:24.436, Memory: 113.00 MB
+
+OK (288 tests, 1248 assertions)
+
+===== part28-payment-server-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 229 ( 27%)
+............................................................... 126 / 229 ( 55%)
+............................................................... 189 / 229 ( 82%)
+........................................                        229 / 229 (100%)
+
+Time: 01:04.210, Memory: 103.00 MB
+
+OK (229 tests, 958 assertions)
+
+===== part28-full-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................................   61 / 2702 (  2%)
+.............................................................  122 / 2702 (  4%)
+.............................................................  183 / 2702 (  6%)
+.............................................................  244 / 2702 (  9%)
+.............................................................  305 / 2702 ( 11%)
+.............................................................  366 / 2702 ( 13%)
+.............................................................  427 / 2702 ( 15%)
+.............................................................  488 / 2702 ( 18%)
+.............................................................  549 / 2702 ( 20%)
+.....SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS.................  610 / 2702 ( 22%)
+.............................................................  671 / 2702 ( 24%)
+.............................................................  732 / 2702 ( 27%)
+.............................................................  793 / 2702 ( 29%)
+.............................................................  854 / 2702 ( 31%)
+.............................................................  915 / 2702 ( 33%)
+.............................................................  976 / 2702 ( 36%)
+............................................................. 1037 / 2702 ( 38%)
+............................................................. 1098 / 2702 ( 40%)
+............................................................. 1159 / 2702 ( 42%)
+............................................................. 1220 / 2702 ( 45%)
+............................................................. 1281 / 2702 ( 47%)
+............................................................. 1342 / 2702 ( 49%)
+............................................................. 1403 / 2702 ( 51%)
+............................................................. 1464 / 2702 ( 54%)
+............................................................. 1525 / 2702 ( 56%)
+............................................................. 1586 / 2702 ( 58%)
+............................................................. 1647 / 2702 ( 60%)
+............................................................. 1708 / 2702 ( 63%)
+............................................................. 1769 / 2702 ( 65%)
+............................................................. 1830 / 2702 ( 67%)
+............................................................. 1891 / 2702 ( 69%)
+............................................................. 1952 / 2702 ( 72%)
+............................................................. 2013 / 2702 ( 74%)
+............................................................. 2074 / 2702 ( 76%)
+............................................................. 2135 / 2702 ( 79%)
+............................................................. 2196 / 2702 ( 81%)
+............................................................. 2257 / 2702 ( 83%)
+............................................................. 2318 / 2702 ( 85%)
+............................................................. 2379 / 2702 ( 88%)
+.................S........................................... 2440 / 2702 ( 90%)
+............................................................. 2501 / 2702 ( 92%)
+............................................................. 2562 / 2702 ( 94%)
+............................................................. 2623 / 2702 ( 97%)
+............................................................. 2684 / 2702 ( 99%)
+..................                                            2702 / 2702 (100%)
+
+Time: 10:37.693, Memory: 287.50 MB
+
+OK, but some tests were skipped!
+Tests: 2702, Assertions: 131355, Skipped: 40.
+
+===== part28-races-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.........................                                         25 / 25 (100%)
+
+Time: 00:26.282, Memory: 85.00 MB
+
+OK (25 tests, 540 assertions)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.........................                                         25 / 25 (100%)
+
+Time: 00:25.834, Memory: 85.00 MB
+
+OK (25 tests, 540 assertions)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.........................                                         25 / 25 (100%)
+
+Time: 00:26.004, Memory: 85.00 MB
+
+OK (25 tests, 540 assertions)
+
+===== part28-dispatch-recovery-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..                                                                  2 / 2 (100%)
+
+Time: 00:06.582, Memory: 70.50 MB
+
+OK (2 tests, 61 assertions)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..                                                                  2 / 2 (100%)
+
+Time: 00:06.246, Memory: 70.50 MB
+
+OK (2 tests, 61 assertions)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..                                                                  2 / 2 (100%)
+
+Time: 00:06.967, Memory: 70.50 MB
+
+OK (2 tests, 61 assertions)
+
+===== part28-recovery-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.........                                                           9 / 9 (100%)
+
+Time: 00:24.533, Memory: 74.50 MB
+
+OK (9 tests, 444 assertions)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.........                                                           9 / 9 (100%)
+
+Time: 00:23.487, Memory: 74.50 MB
+
+OK (9 tests, 444 assertions)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.........                                                           9 / 9 (100%)
+
+Time: 00:22.660, Memory: 74.50 MB
+
+OK (9 tests, 444 assertions)
+
+===== part28-redis-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.......                                                             7 / 7 (100%)
+
+Time: 00:18.609, Memory: 74.50 MB
+
+OK (7 tests, 353 assertions)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.......                                                             7 / 7 (100%)
+
+Time: 00:18.871, Memory: 74.50 MB
+
+OK (7 tests, 353 assertions)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.......                                                             7 / 7 (100%)
+
+Time: 00:18.447, Memory: 74.50 MB
+
+OK (7 tests, 353 assertions)
+
+===== part28-python-final.log =====
+test_before_key_mode_is_bounded_and_rejects_existing_cache (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_before_key_mode_is_bounded_and_rejects_existing_cache) ... ok
+test_cached_production_target_is_refused_before_framework_boot (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_cached_production_target_is_refused_before_framework_boot) ... ok
+test_ci_marker_and_unknown_arguments_are_refused (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_ci_marker_and_unknown_arguments_are_refused) ... ok
+test_process_database_override_cannot_retarget_the_template (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_process_database_override_cannot_retarget_the_template) ... ok
+test_template_and_cli_do_not_disclose_the_ephemeral_key (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_template_and_cli_do_not_disclose_the_ephemeral_key) ... ok
+test_valid_uncached_and_cached_configuration_is_read_only (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_valid_uncached_and_cached_configuration_is_read_only) ... ok
+test_audit_refuses_non_repository (test_financial_source_preflight.FinancialSourcePreflightTest.test_audit_refuses_non_repository) ... ok
+test_class_path_follows_app_psr4_mapping (test_financial_source_preflight.FinancialSourcePreflightTest.test_class_path_follows_app_psr4_mapping) ... ok
+test_existing_class_is_not_reported_missing (test_financial_source_preflight.FinancialSourcePreflightTest.test_existing_class_is_not_reported_missing) ... ok
+test_grouped_imports (test_financial_source_preflight.FinancialSourcePreflightTest.test_grouped_imports) ... ok
+test_incomplete_repository_fails_without_reading_env (test_financial_source_preflight.FinancialSourcePreflightTest.test_incomplete_repository_fails_without_reading_env) ... ok
+test_migration_table_declaration (test_financial_source_preflight.FinancialSourcePreflightTest.test_migration_table_declaration) ... ok
+test_missing_classes_include_all_referencing_files (test_financial_source_preflight.FinancialSourcePreflightTest.test_missing_classes_include_all_referencing_files) ... ok
+test_namespace_alias_directory_is_not_a_missing_class (test_financial_source_preflight.FinancialSourcePreflightTest.test_namespace_alias_directory_is_not_a_missing_class) ... ok
+test_rejects_external_namespace (test_financial_source_preflight.FinancialSourcePreflightTest.test_rejects_external_namespace) ... ok
+test_resource_directory_does_not_hide_missing_resource_class (test_financial_source_preflight.FinancialSourcePreflightTest.test_resource_directory_does_not_hide_missing_resource_class) ... ok
+test_simple_and_aliased_imports (test_financial_source_preflight.FinancialSourcePreflightTest.test_simple_and_aliased_imports) ... ok
+test_changed_source_changes_hash_and_missing_source_is_explicit (test_release_source_inventory.ReleaseSourceInventoryTest.test_changed_source_changes_hash_and_missing_source_is_explicit) ... ok
+test_duplicate_literal_slot_is_refused (test_release_source_inventory.ReleaseSourceInventoryTest.test_duplicate_literal_slot_is_refused) ... ok
+test_env_and_subprocesses_are_not_read_or_executed (test_release_source_inventory.ReleaseSourceInventoryTest.test_env_and_subprocesses_are_not_read_or_executed) ... ok
+test_executable_dictionary_value_is_not_evaluated (test_release_source_inventory.ReleaseSourceInventoryTest.test_executable_dictionary_value_is_not_evaluated) ... ok
+test_generated_documents_use_only_allowed_outputs_and_do_not_claim_runtime (test_release_source_inventory.ReleaseSourceInventoryTest.test_generated_documents_use_only_allowed_outputs_and_do_not_claim_runtime) ... ok
+test_hashes_are_deterministic_and_attestation_flags_remain_false (test_release_source_inventory.ReleaseSourceInventoryTest.test_hashes_are_deterministic_and_attestation_flags_remain_false) ... ok
+test_missing_recipe_slot_is_refused (test_release_source_inventory.ReleaseSourceInventoryTest.test_missing_recipe_slot_is_refused) ... ok
+test_recipe_is_parsed_without_executing_module_code (test_release_source_inventory.ReleaseSourceInventoryTest.test_recipe_is_parsed_without_executing_module_code) ... ok
+test_traversal_and_symlink_sources_are_refused (test_release_source_inventory.ReleaseSourceInventoryTest.test_traversal_and_symlink_sources_are_refused) ... ok
+test_acknowledgement_is_mandatory (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_acknowledgement_is_mandatory) ... ok
+test_database_must_be_exact_test_name (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_database_must_be_exact_test_name) ... ok
+test_dispatch_profile_requires_both_owned_wallet_races (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_dispatch_profile_requires_both_owned_wallet_races) ... ok
+test_explicit_test_account_is_required (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_explicit_test_account_is_required) ... ok
+test_reconciliation_profile_requires_both_owned_wallet_races (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_reconciliation_profile_requires_both_owned_wallet_races) ... ok
+test_regular_file_and_relative_path_are_not_database_sockets (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_regular_file_and_relative_path_are_not_database_sockets) ... ok
+test_repetition_budget_is_bounded (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_repetition_budget_is_bounded) ... ok
+test_safe_environment_overrides_production_routing_without_printing_password (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_safe_environment_overrides_production_routing_without_printing_password) ... ok
+test_sqlite_or_unknown_driver_is_refused (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_sqlite_or_unknown_driver_is_refused) ... ok
+test_supported_mariadb_connection_uses_same_explicit_database_guard (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_supported_mariadb_connection_uses_same_explicit_database_guard) ... ok
+test_webhook_profile_is_exact_and_included_in_all (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_webhook_profile_is_exact_and_included_in_all) ... ok
+test_all_exact_cases_are_required (test_run_financial_concurrency.RaceEvidenceGuards.test_all_exact_cases_are_required) ... ok
+test_each_money_case_needs_its_own_wait_witness (test_run_financial_concurrency.RaceEvidenceGuards.test_each_money_case_needs_its_own_wait_witness) ... ok
+test_skip_error_failure_and_nonzero_exit_are_refused (test_run_financial_concurrency.RaceEvidenceGuards.test_skip_error_failure_and_nonzero_exit_are_refused) ... ok
+test_suite_inventory_is_exact_and_disjoint (test_run_financial_concurrency.RaceEvidenceGuards.test_suite_inventory_is_exact_and_disjoint) ... ok
+test_wrong_lock_count_same_connection_and_parent_alias_are_refused (test_run_financial_concurrency.RaceEvidenceGuards.test_wrong_lock_count_same_connection_and_parent_alias_are_refused) ... ok
+test_wrong_test_identity_cannot_replace_a_required_race (test_run_financial_concurrency.RaceEvidenceGuards.test_wrong_test_identity_cannot_replace_a_required_race) ... ok
+test_fixed_test_environment_overrides_inherited_production_values (test_run_redis_settlement_recovery.RedisRecoveryDatabaseGuardTest.test_fixed_test_environment_overrides_inherited_production_values) ... ok
+test_refuses_non_socket_test_path (test_run_redis_settlement_recovery.RedisRecoveryDatabaseGuardTest.test_refuses_non_socket_test_path) ... ok
+test_requires_exact_disposable_database_and_acknowledgement (test_run_redis_settlement_recovery.RedisRecoveryDatabaseGuardTest.test_requires_exact_disposable_database_and_acknowledgement) ... ok
+test_accelerated_cache_claim_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_accelerated_cache_claim_is_refused) ... ok
+test_duplicate_or_missing_junit_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_duplicate_or_missing_junit_is_refused) ... ok
+test_duplicate_restart_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_duplicate_restart_is_refused) ... ok
+test_each_fault_boundary_is_exact (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_each_fault_boundary_is_exact) ... ok
+test_exact_passing_junit_is_accepted (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_exact_passing_junit_is_accepted) ... ok
+test_exact_restarts_are_accepted (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_exact_restarts_are_accepted) ... ok
+test_malformed_witness_fields_are_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_malformed_witness_fields_are_refused) ... ok
+test_missing_restart_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_missing_restart_is_refused) ... ok
+test_mixed_redis_versions_are_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_mixed_redis_versions_are_refused) ... ok
+test_non_durable_aof_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_non_durable_aof_is_refused) ... ok
+test_non_list_and_non_object_evidence_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_non_list_and_non_object_evidence_is_refused) ... ok
+test_non_sigkill_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_non_sigkill_is_refused) ... ok
+test_nonzero_exit_cannot_pass (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_nonzero_exit_cannot_pass) ... ok
+test_reused_incarnation_between_cases_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_reused_incarnation_between_cases_is_refused) ... ok
+test_skipped_failed_or_errored_case_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_skipped_failed_or_errored_case_is_refused) ... ok
+test_unchanged_server_incarnation_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_unchanged_server_incarnation_is_refused) ... ok
+test_unexpected_case_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_unexpected_case_is_refused) ... ok
+test_unrecovered_restart_is_refused (test_run_redis_settlement_recovery.RedisRecoveryEvidenceTest.test_unrecovered_restart_is_refused) ... ok
+test_exact_inventory_requires_nine_cases_and_seven_actual_kills (test_run_settlement_recovery.RecoveryEvidenceGuards.test_exact_inventory_requires_nine_cases_and_seven_actual_kills) ... ok
+test_malformed_witness_shapes_fail_closed (test_run_settlement_recovery.RecoveryEvidenceGuards.test_malformed_witness_shapes_fail_closed) ... ok
+test_missing_duplicate_and_extra_witnesses_are_refused (test_run_settlement_recovery.RecoveryEvidenceGuards.test_missing_duplicate_and_extra_witnesses_are_refused) ... ok
+test_money_fault_is_inside_transaction_and_committed_fault_is_outside (test_run_settlement_recovery.RecoveryEvidenceGuards.test_money_fault_is_inside_transaction_and_committed_fault_is_outside) ... ok
+test_process_and_connection_identity_must_be_real_positive_integers (test_run_settlement_recovery.RecoveryEvidenceGuards.test_process_and_connection_identity_must_be_real_positive_integers) ... ok
+test_signal_shared_cache_and_terminal_recovery_are_required (test_run_settlement_recovery.RecoveryEvidenceGuards.test_signal_shared_cache_and_terminal_recovery_are_required) ... ok
+test_skipped_or_replaced_junit_cannot_claim_success (test_run_settlement_recovery.RecoveryEvidenceGuards.test_skipped_or_replaced_junit_cannot_claim_success) ... ok
+test_wrong_test_or_phase_cannot_replace_a_required_fault_point (test_run_settlement_recovery.RecoveryEvidenceGuards.test_wrong_test_or_phase_cannot_replace_a_required_fault_point) ... ok
+test_before_send_phase_cannot_claim_provider_acceptance (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_before_send_phase_cannot_claim_provider_acceptance) ... ok
+test_boolean_is_not_an_acceptance_count (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_boolean_is_not_an_acceptance_count) ... ok
+test_each_security_field_is_required (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_each_security_field_is_required) ... ok
+test_exact_owned_faults_are_accepted (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_exact_owned_faults_are_accepted) ... ok
+test_malformed_evidence_is_refused (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_malformed_evidence_is_refused) ... ok
+test_missing_extra_and_duplicate_faults_are_refused (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_missing_extra_and_duplicate_faults_are_refused) ... ok
+test_passing_junit_still_requires_exact_case_identity (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_passing_junit_still_requires_exact_case_identity) ... ok
+test_reused_process_or_connection_is_refused (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_reused_process_or_connection_is_refused) ... ok
+test_skips_errors_failures_and_nonzero_exit_never_pass (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_skips_errors_failures_and_nonzero_exit_never_pass) ... ok
+test_synthetic_journal_cannot_claim_an_extra_external_invocation (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_synthetic_journal_cannot_claim_an_extra_external_invocation) ... ok
+test_wrong_fault_ownership_and_types_are_refused (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_wrong_fault_ownership_and_types_are_refused) ... ok
+test_wrong_phase_cannot_replace_a_fault_boundary (test_run_withdrawal_dispatch_recovery.DispatchRecoveryEvidenceTest.test_wrong_phase_cannot_replace_a_fault_boundary) ... ok
+
+----------------------------------------------------------------------
+Ran 84 tests in 0.745s
+
+OK
+
+===== part28-lint-final.log =====
+PASS: 1691 PHP files linted, no syntax errors.
+
+===== part28-pint-final.log =====
+
+  ...................
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   .......................................................... 19 files  
+
+
+===== part28-native-tests-final.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-22a456e02c732867)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-80bdcd03109364f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_boundary.rs (security/weekly-result-integrity/target/debug/deps/cli_boundary-067c451bd0c81b0e)
+
+running 5 tests
+test document_ceiling_is_enforced_before_parsing ... ok
+test invalid_utf8_is_a_structured_rejection ... ok
+test malformed_json_exits_one_and_does_not_crash ... ok
+test unsigned_request_exits_zero_with_exact_library_fingerprint ... ok
+test fingerprint_disagreement_exits_two_without_accepting ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/integrity.rs (security/weekly-result-integrity/target/debug/deps/integrity-efe5c4cfa280c0dd)
+
+running 19 tests
+test a_fully_unavailable_result_canonicalizes_without_inventing_zeros ... ok
+test a_different_first_6_produces_a_different_hash ... ok
+test a_malformed_request_document_is_a_value_not_a_panic ... ok
+test a_matching_expected_fingerprint_is_accepted_and_a_wrong_one_is_not ... ok
+test a_partial_result_triple_is_refused ... ok
+test a_value_that_lost_a_leading_zero_hashes_differently ... ok
+test an_invalid_signature_is_rejected ... ok
+test canonical_bytes_are_valid_utf8_including_non_ascii_identifiers ... ok
+test canonical_bytes_start_with_the_version_and_field_count ... ok
+test canonical_field_order_is_fixed_and_documented ... ok
+test half_supplied_signature_material_is_refused_not_downgraded ... ok
+test leading_zeros_are_part_of_the_canonical_bytes ... ok
+test malformed_values_are_rejected_rather_than_repaired ... ok
+test null_and_empty_are_distinct ... ok
+test the_crate_source_contains_no_unsafe_and_no_network_or_process_calls ... ok
+test the_dependency_tree_contains_no_networking_crate ... ok
+test the_same_payload_always_produces_the_same_hash ... ok
+test unsigned_payload_returns_hash_only_and_never_claims_a_signature ... ok
+test a_valid_signature_is_accepted_only_when_a_key_is_configured ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/strict_signature.rs (security/weekly-result-integrity/target/debug/deps/strict_signature-2c56f82fb4fbf60b)
+
+running 3 tests
+test source_identifier_over_191_characters_is_rejected ... ok
+test unicode_source_identifier_counts_characters_but_hashes_utf8_bytes ... ok
+test weak_identity_key_and_signature_cannot_authenticate_any_result ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests weekly_result_integrity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+===== part28-native-build.log =====
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded crypto-common v0.1.7
+  Downloaded curve25519-dalek-derive v0.1.1
+  Downloaded cpufeatures v0.2.17
+  Downloaded cfg-if v1.0.5
+  Downloaded block-buffer v0.10.4
+  Downloaded const-oid v0.9.6
+  Downloaded base64ct v1.8.3
+  Downloaded version_check v0.9.5
+  Downloaded subtle v2.6.1
+  Downloaded signature v2.2.0
+  Downloaded rustc_version v0.4.1
+  Downloaded itoa v1.0.18
+  Downloaded generic-array v0.14.7
+  Downloaded rand_core v0.6.4
+  Downloaded zeroize v1.9.0
+  Downloaded spki v0.7.3
+  Downloaded digest v0.10.7
+  Downloaded sha2 v0.10.9
+  Downloaded unicode-ident v1.0.26
+  Downloaded zmij v1.0.23
+  Downloaded serde_derive v1.0.229
+  Downloaded der v0.7.10
+  Downloaded typenum v1.20.1
+  Downloaded ed25519-dalek v2.2.0
+  Downloaded serde v1.0.229
+  Downloaded memchr v2.8.3
+  Downloaded serde_json v1.0.151
+  Downloaded serde_core v1.0.229
+  Downloaded proc-macro2 v1.0.107
+  Downloaded semver v1.0.28
+  Downloaded curve25519-dalek v4.1.3
+  Downloaded ed25519 v2.2.3
+  Downloaded syn v3.0.6
+  Downloaded syn v2.0.119
+  Downloaded quote v1.0.47
+  Downloaded pkcs8 v0.10.2
+  Downloaded hex v0.4.3
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling curve25519-dalek v4.1.3
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling syn v2.0.119
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling zmij v1.0.23
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling subtle v2.6.1
+   Compiling signature v2.2.0
+   Compiling serde v1.0.229
+   Compiling zeroize v1.9.0
+   Compiling serde_json v1.0.151
+   Compiling serde_derive v1.0.229
+   Compiling ed25519 v2.2.3
+   Compiling sha2 v0.10.9
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `release` profile [optimized] target(s) in 16.37s
+
+===== part28-build.log =====
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                   25.08 kB │ gzip:  3.00 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css               1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                  3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css              4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css            4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css               6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css            6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css             6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css               6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css          7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                 7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css               7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css            7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css              7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                       8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css               8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css             8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css         8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css     9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css              9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                      9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                        10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css           12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                        12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css              12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css          12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                     12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                   12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                    12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                 12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                         12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css        12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                      13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                       14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                       15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-baUnksz1.css                         71.14 kB │ gzip: 12.91 kB
+public/build/assets/account-grades-iqvPnkdB.js                0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js          0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                     0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                           0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                   0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                      0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js            0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js             0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js              0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js          0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js              0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js             0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                   0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                 0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js              0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                     0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                  0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                       0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                     1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                        1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js            1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js            1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                         1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                     1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js          1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                          1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js      1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                   1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js            2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                  2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js          2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js         2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js             2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js             2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                         2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js           2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                  2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-BxtEzC2x.js               3.17 kB │ gzip:  1.28 kB
+public/build/assets/privacy-portal-DccX1fIk.js                3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                    3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                   4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js     4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js               5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js               6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js   6.34 kB │ gzip:  2.13 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                   6.62 kB │ gzip:  2.59 kB
+public/build/assets/bet-slip-D0XoVmrB.js                      7.62 kB │ gzip:  3.19 kB
+public/build/assets/app-1IIFpSSh.js                          58.45 kB │ gzip: 21.59 kB
+
+✓ built in 1.92s
+
+===== part28-workflow-final.log =====
+PASS: YAML parsed; 11 Bash blocks pass bash -n; four SQL-writing profiles serial; all now selects both new reconciliation races. Hosted CI not executed.
+
+===== part28-migration-guard.log =====
+PASS: populated synthetic evidence prevented migration rollback; both tables and all case rows preserved.
+
+===== part28-preflight-final.log =====
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": true,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": true
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": true
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_quotes": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_audits": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ]
+  },
+  "missing_imported_app_class_count": 0,
+  "missing_imported_app_classes": [],
+  "source_preflight_passed": true,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}
+
+===== part28-inventory-final.log =====
+{
+  "scope": "STATIC_ONLY",
+  "page_slots": 274,
+  "missing_sources": [],
+  "documents_written": false,
+  "stale_documents": [],
+  "runtime_verified": false,
+  "production_verified": false,
+  "live_payment_verified": false
+}
+
+===== part28-whitespace-final.log =====
+
+===== COMPLETE JSON: evidence/server-dispatch-recovery-part-28.json =====
+{
+  "scope": "real PHP process death and SQL claim durability; synthetic acceptance only, no provider transfer",
+  "laravel_connection": "mariadb",
+  "server": {
+    "lock_introspection": false,
+    "database": "thai_lottery_test",
+    "pdo_driver": "mysql",
+    "server_version": "11.8.6-MariaDB-0+deb13u1 from Debian",
+    "table_engines": {
+      "wallets": "InnoDB",
+      "number_limits": "InnoDB",
+      "bets": "InnoDB",
+      "bet_items": "InnoDB",
+      "draws": "InnoDB",
+      "tickets": "InnoDB",
+      "financial_transactions": "InnoDB",
+      "ledger_entries": "InnoDB",
+      "ledger_accounts": "InnoDB",
+      "agents": "InnoDB",
+      "agent_commissions": "InnoDB",
+      "audit_logs": "InnoDB",
+      "users": "InnoDB",
+      "wallet_conversions": "InnoDB",
+      "wallet_conversion_quotes": "InnoDB",
+      "settlement_runs": "InnoDB",
+      "payouts": "InnoDB",
+      "jobs": "InnoDB",
+      "failed_jobs": "InnoDB",
+      "deposits": "InnoDB",
+      "payments": "InnoDB",
+      "withdrawal_reconciliations": "InnoDB",
+      "withdrawal_reconciliation_references": "InnoDB"
+    }
+  },
+  "expected_cases_per_iteration": 2,
+  "clock": "no accelerated lease or TTL; committed claims never expire into permission to resend",
+  "production_verified": false,
+  "live_payment_verified": false,
+  "runs": [
+    {
+      "iteration": 1,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_claim_commit_does_not_become_permission_to_send",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_synthetic_acceptance_does_not_send_again_and_reconciles_once",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_claim_commit_does_not_become_permission_to_send",
+          "phase": "claimed",
+          "pid": 25487,
+          "connection": 247,
+          "transaction_level": 0,
+          "signal": 9,
+          "synthetic_acceptances": 0,
+          "replayed_without_resend": true,
+          "reserved_until_reconciled": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_synthetic_acceptance_does_not_send_again_and_reconciles_once",
+          "phase": "accepted",
+          "pid": 25489,
+          "connection": 250,
+          "transaction_level": 0,
+          "signal": 9,
+          "synthetic_acceptances": 1,
+          "replayed_without_resend": true,
+          "reserved_until_reconciled": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n..                                                                  2 / 2 (100%)\n\nTime: 00:06.582, Memory: 70.50 MB\n\nOK (2 tests, 61 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 2,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_claim_commit_does_not_become_permission_to_send",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_synthetic_acceptance_does_not_send_again_and_reconciles_once",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_claim_commit_does_not_become_permission_to_send",
+          "phase": "claimed",
+          "pid": 25499,
+          "connection": 254,
+          "transaction_level": 0,
+          "signal": 9,
+          "synthetic_acceptances": 0,
+          "replayed_without_resend": true,
+          "reserved_until_reconciled": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_synthetic_acceptance_does_not_send_again_and_reconciles_once",
+          "phase": "accepted",
+          "pid": 25501,
+          "connection": 257,
+          "transaction_level": 0,
+          "signal": 9,
+          "synthetic_acceptances": 1,
+          "replayed_without_resend": true,
+          "reserved_until_reconciled": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n..                                                                  2 / 2 (100%)\n\nTime: 00:06.246, Memory: 70.50 MB\n\nOK (2 tests, 61 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 3,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_claim_commit_does_not_become_permission_to_send",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_synthetic_acceptance_does_not_send_again_and_reconciles_once",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_claim_commit_does_not_become_permission_to_send",
+          "phase": "claimed",
+          "pid": 25508,
+          "connection": 261,
+          "transaction_level": 0,
+          "signal": 9,
+          "synthetic_acceptances": 0,
+          "replayed_without_resend": true,
+          "reserved_until_reconciled": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\WithdrawalDispatchRecoveryTest",
+          "name": "test_death_after_synthetic_acceptance_does_not_send_again_and_reconciles_once",
+          "phase": "accepted",
+          "pid": 25510,
+          "connection": 264,
+          "transaction_level": 0,
+          "signal": 9,
+          "synthetic_acceptances": 1,
+          "replayed_without_resend": true,
+          "reserved_until_reconciled": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n..                                                                  2 / 2 (100%)\n\nTime: 00:06.967, Memory: 70.50 MB\n\nOK (2 tests, 61 assertions)\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true
+}
+
+===== COMPLETE JSON: evidence/server-recovery-part-28.json =====
+{
+  "scope": "local process death/recovery with shared database cache; not multi-host or production certification",
+  "laravel_connection": "mariadb",
+  "server": {
+    "lock_introspection": false,
+    "database": "thai_lottery_test",
+    "pdo_driver": "mysql",
+    "server_version": "11.8.6-MariaDB-0+deb13u1 from Debian",
+    "table_engines": {
+      "wallets": "InnoDB",
+      "number_limits": "InnoDB",
+      "bets": "InnoDB",
+      "bet_items": "InnoDB",
+      "draws": "InnoDB",
+      "tickets": "InnoDB",
+      "financial_transactions": "InnoDB",
+      "ledger_entries": "InnoDB",
+      "ledger_accounts": "InnoDB",
+      "agents": "InnoDB",
+      "agent_commissions": "InnoDB",
+      "audit_logs": "InnoDB",
+      "users": "InnoDB",
+      "wallet_conversions": "InnoDB",
+      "wallet_conversion_quotes": "InnoDB",
+      "settlement_runs": "InnoDB",
+      "payouts": "InnoDB",
+      "jobs": "InnoDB",
+      "failed_jobs": "InnoDB",
+      "deposits": "InnoDB",
+      "payments": "InnoDB",
+      "withdrawal_reconciliations": "InnoDB",
+      "withdrawal_reconciliation_references": "InnoDB",
+      "cache": "InnoDB",
+      "cache_locks": "InnoDB"
+    }
+  },
+  "expected_cases_per_iteration": 9,
+  "clock": "accelerated application queue/cache clock; SIGSTOP/SIGKILL and SQL durability are real",
+  "production_verified": false,
+  "live_payment_verified": false,
+  "runs": [
+    {
+      "iteration": 1,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_deadline_is_persisted_and_finite",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_real_exceptions_still_exhaust_a_finite_budget",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "phase": "money",
+          "signal": 9,
+          "pid": 25518,
+          "child_connection": 269,
+          "transaction_level": 2,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 25548,
+          "child_connection": 276,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "phase": "enqueued",
+          "signal": 9,
+          "pid": 25578,
+          "child_connection": 283,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "phase": "finalized",
+          "signal": 9,
+          "pid": 25603,
+          "child_connection": 289,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 25618,
+          "child_connection": 293,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 25648,
+          "child_connection": 300,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "phase": "started",
+          "signal": 9,
+          "pid": 25693,
+          "child_connection": 310,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.........                                                           9 / 9 (100%)\n\nTime: 00:24.533, Memory: 74.50 MB\n\nOK (9 tests, 444 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 2,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_deadline_is_persisted_and_finite",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_real_exceptions_still_exhaust_a_finite_budget",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "phase": "money",
+          "signal": 9,
+          "pid": 25752,
+          "child_connection": 325,
+          "transaction_level": 2,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 25786,
+          "child_connection": 332,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "phase": "enqueued",
+          "signal": 9,
+          "pid": 25817,
+          "child_connection": 339,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "phase": "finalized",
+          "signal": 9,
+          "pid": 25842,
+          "child_connection": 345,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 25857,
+          "child_connection": 349,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 25887,
+          "child_connection": 356,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "phase": "started",
+          "signal": 9,
+          "pid": 25932,
+          "child_connection": 366,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.........                                                           9 / 9 (100%)\n\nTime: 00:23.487, Memory: 74.50 MB\n\nOK (9 tests, 444 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 3,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_deadline_is_persisted_and_finite",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_real_exceptions_still_exhaust_a_finite_budget",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "phase": "money",
+          "signal": 9,
+          "pid": 25990,
+          "child_connection": 381,
+          "transaction_level": 2,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 26020,
+          "child_connection": 388,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "phase": "enqueued",
+          "signal": 9,
+          "pid": 26050,
+          "child_connection": 395,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "phase": "finalized",
+          "signal": 9,
+          "pid": 26077,
+          "child_connection": 401,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 26092,
+          "child_connection": 405,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 26124,
+          "child_connection": 412,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "phase": "started",
+          "signal": 9,
+          "pid": 26169,
+          "child_connection": 422,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.........                                                           9 / 9 (100%)\n\nTime: 00:22.660, Memory: 74.50 MB\n\nOK (9 tests, 444 assertions)\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true
+}
+
+===== COMPLETE JSON: evidence/server-redis-recovery-part-28.json =====
+{
+  "scope": "private single-node Redis AOF hard restart and operator handoff, not remote failover or live certification",
+  "laravel_connection": "mariadb",
+  "server": {
+    "lock_introspection": false,
+    "database": "thai_lottery_test",
+    "pdo_driver": "mysql",
+    "server_version": "11.8.6-MariaDB-0+deb13u1 from Debian",
+    "table_engines": {
+      "wallets": "InnoDB",
+      "number_limits": "InnoDB",
+      "bets": "InnoDB",
+      "bet_items": "InnoDB",
+      "draws": "InnoDB",
+      "tickets": "InnoDB",
+      "financial_transactions": "InnoDB",
+      "ledger_entries": "InnoDB",
+      "ledger_accounts": "InnoDB",
+      "agents": "InnoDB",
+      "agent_commissions": "InnoDB",
+      "audit_logs": "InnoDB",
+      "users": "InnoDB",
+      "wallet_conversions": "InnoDB",
+      "wallet_conversion_quotes": "InnoDB",
+      "settlement_runs": "InnoDB",
+      "payouts": "InnoDB",
+      "jobs": "InnoDB",
+      "failed_jobs": "InnoDB",
+      "deposits": "InnoDB",
+      "payments": "InnoDB",
+      "withdrawal_reconciliations": "InnoDB",
+      "withdrawal_reconciliation_references": "InnoDB"
+    }
+  },
+  "expected_cases_per_iteration": 7,
+  "clock": "application queue visibility may be accelerated; Redis cache TTL and AOF restart are real wall time",
+  "production_verified": false,
+  "live_payment_verified": false,
+  "runs": [
+    {
+      "iteration": 1,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "failed_or_skipped": false
+        }
+      ],
+      "restart_witnesses": [
+        {
+          "before": "8173ec5649161d3bf6fe6529d6445ee627827a19",
+          "after": "3effd7aa829179bda6bdc7975443805abd58138b",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "phase": "queued",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "8d697219545ccd08abea557be70d9d5779001375",
+          "after": "d911326019c68d2487279d2a23cf2f028b281890",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "f255a2810feecd53993dbd5b0869fa5c002d6bb9",
+          "after": "fdb72931d7f91dd7b2831887fe11051990bbc07d",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "phase": "released",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "55446ac388931a8b13ca6414a08b4d54fcf92e92",
+          "after": "6a9d98bd07cc56615a75860436d39008b8d5e4e3",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "065e55e12a964e9945d8a92f39494210a61fc18c",
+          "after": "96daed001defae90a825f9de69a20cba41c3bfd3",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "phase": "worker-death",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "a303080a4c884d787f7d09d80cd0bcf9240ebd19",
+          "after": "a264237f76c1d7fb2145e1feb745c85525606d76",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "phase": "explicit-data-loss",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "59d9c803b9cb28efe1eb0d6c34894694c4648ac6",
+          "after": "ab7cb4685f9258b1dfa82f54813e5630f338b679",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "phase": "broker-unavailable",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        }
+      ],
+      "restarts_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.......                                                             7 / 7 (100%)\n\nTime: 00:18.609, Memory: 74.50 MB\n\nOK (7 tests, 353 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 2,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "failed_or_skipped": false
+        }
+      ],
+      "restart_witnesses": [
+        {
+          "before": "ce2997d03be5d88da9ac4382603dcf57859ffa76",
+          "after": "54c4a5dfcf1453bf02fda284e32c3bc907b0dbe4",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "phase": "queued",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "c0af0943f44b53030c843dfea7ff740fa7ce52a3",
+          "after": "9413da689e0a311fcdc31dd89f63a44944702ba9",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "00efe66df0fe5fb4b9de1bed45a1340c7d036835",
+          "after": "f237d4ccdd42fdb1a9791e1e14fc34fdfa31de3d",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "phase": "released",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "7cb19b0827b2128730205c3d115f4650bd488258",
+          "after": "5a7150fc6128f3460034ecc371bc3fe4ce0c360b",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "6b4a0e0fe64ffab7a5895cd7b9bba2f30df88d26",
+          "after": "91297232f99748bc995316f99bbd8b951a9bbb57",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "phase": "worker-death",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "785ac76fe50cc958700e018b4ac7250ebcc309c0",
+          "after": "60d606fab5437980b3ba0d9fb6e1cb2a2e6098bd",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "phase": "explicit-data-loss",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "2fa37e366d2fb574047e3a25b138b2435f3f4c69",
+          "after": "61037fbe493de9ef2f46ee3a18d6323cd6d474d8",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "phase": "broker-unavailable",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        }
+      ],
+      "restarts_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.......                                                             7 / 7 (100%)\n\nTime: 00:18.871, Memory: 74.50 MB\n\nOK (7 tests, 353 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 3,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "failed_or_skipped": false
+        }
+      ],
+      "restart_witnesses": [
+        {
+          "before": "e8b1e595f6d44ad015dd8419b54ec4e63f319f5c",
+          "after": "76aba00f122babbce3d2bdb3db19ca78a81558b8",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "phase": "queued",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "7a631a126d3e2ba5f9e59ac5a140fb8225900e4a",
+          "after": "377f22a925f926eb88cafb0660bda066ad318648",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "c6b1186238e26ec4fcb82eaa8798a6e90b5ea1b8",
+          "after": "966117ed4e84a0d908dc35815e767596edebfdb5",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "phase": "released",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "5a4ff8d72d84fed701be1e5aeba340b34c0900cd",
+          "after": "bc64bfb56b20befdbc15fc36b255247cad30d4e2",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "50dbf58ada0a4871e53d73e62cedf7780311b811",
+          "after": "f7741f65e4841d8ba84398efd281d614f7831950",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "phase": "worker-death",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "e71a9a2e10cb9830791af6d1b7ef692de65cf2dc",
+          "after": "e121570e94ccff28502f9a1ffd34812b9a7b8eb0",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "phase": "explicit-data-loss",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "3f54a6d3ff49585042202169856cc9f257865504",
+          "after": "afa5f1c8838beb4959cf781252c03fd79f1990e8",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "phase": "broker-unavailable",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        }
+      ],
+      "restarts_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.......                                                             7 / 7 (100%)\n\nTime: 00:18.447, Memory: 74.50 MB\n\nOK (7 tests, 353 assertions)\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true
+}
+
+===== COMPLETE JSON: evidence/financial_source_preflight-part-28.json =====
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": true,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": true
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": true
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_quotes": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_audits": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ]
+  },
+  "missing_imported_app_class_count": 0,
+  "missing_imported_app_classes": [],
+  "source_preflight_passed": true,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}
+

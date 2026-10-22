@@ -1,0 +1,442 @@
+{
+  "scope": "local process death/recovery with shared database cache; not multi-host or production certification",
+  "laravel_connection": "mariadb",
+  "server": {
+    "lock_introspection": false,
+    "database": "thai_lottery_test",
+    "pdo_driver": "mysql",
+    "server_version": "11.8.6-MariaDB-0+deb13u1 from Debian",
+    "table_engines": {
+      "wallets": "InnoDB",
+      "number_limits": "InnoDB",
+      "bets": "InnoDB",
+      "bet_items": "InnoDB",
+      "draws": "InnoDB",
+      "tickets": "InnoDB",
+      "financial_transactions": "InnoDB",
+      "ledger_entries": "InnoDB",
+      "ledger_accounts": "InnoDB",
+      "agents": "InnoDB",
+      "agent_commissions": "InnoDB",
+      "audit_logs": "InnoDB",
+      "users": "InnoDB",
+      "wallet_conversions": "InnoDB",
+      "wallet_conversion_quotes": "InnoDB",
+      "settlement_runs": "InnoDB",
+      "payouts": "InnoDB",
+      "jobs": "InnoDB",
+      "failed_jobs": "InnoDB",
+      "cache": "InnoDB",
+      "cache_locks": "InnoDB"
+    }
+  },
+  "expected_cases_per_iteration": 9,
+  "clock": "accelerated application queue/cache clock; SIGSTOP/SIGKILL and SQL durability are real",
+  "production_verified": false,
+  "live_payment_verified": false,
+  "runs": [
+    {
+      "iteration": 1,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_deadline_is_persisted_and_finite",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_real_exceptions_still_exhaust_a_finite_budget",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "phase": "money",
+          "signal": 9,
+          "pid": 51823,
+          "child_connection": 357,
+          "transaction_level": 2,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 51856,
+          "child_connection": 364,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "phase": "enqueued",
+          "signal": 9,
+          "pid": 51886,
+          "child_connection": 371,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "phase": "finalized",
+          "signal": 9,
+          "pid": 51911,
+          "child_connection": 377,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 51926,
+          "child_connection": 381,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 51956,
+          "child_connection": 388,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "phase": "started",
+          "signal": 9,
+          "pid": 52001,
+          "child_connection": 398,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.........                                                           9 / 9 (100%)\n\nTime: 00:24.066, Memory: 74.50 MB\n\nOK (9 tests, 444 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 2,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_deadline_is_persisted_and_finite",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_real_exceptions_still_exhaust_a_finite_budget",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "phase": "money",
+          "signal": 9,
+          "pid": 52061,
+          "child_connection": 413,
+          "transaction_level": 2,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 52095,
+          "child_connection": 420,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "phase": "enqueued",
+          "signal": 9,
+          "pid": 52126,
+          "child_connection": 427,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "phase": "finalized",
+          "signal": 9,
+          "pid": 52151,
+          "child_connection": 433,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 52166,
+          "child_connection": 437,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 52196,
+          "child_connection": 444,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "phase": "started",
+          "signal": 9,
+          "pid": 52241,
+          "child_connection": 454,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.........                                                           9 / 9 (100%)\n\nTime: 00:24.131, Memory: 74.50 MB\n\nOK (9 tests, 444 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 3,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_deadline_is_persisted_and_finite",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_real_exceptions_still_exhaust_a_finite_budget",
+          "failed_or_skipped": false
+        }
+      ],
+      "kill_witnesses": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_before_money_commit_rolls_back_and_retries",
+          "phase": "money",
+          "signal": 9,
+          "pid": 52301,
+          "child_connection": 469,
+          "transaction_level": 2,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_checkpoint_commit_repairs_missing_handoff",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 52341,
+          "child_connection": 476,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_enqueue_replays_without_duplicate_money",
+          "phase": "enqueued",
+          "signal": 9,
+          "pid": 52372,
+          "child_connection": 483,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_kill_after_finalization_before_ack_is_idempotent",
+          "phase": "finalized",
+          "signal": 9,
+          "pid": 52397,
+          "child_connection": 489,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_manual_approval_survives_commit_and_restart",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 52412,
+          "child_connection": 493,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_stale_overlap_does_not_exhaust_delivery_attempts",
+          "phase": "committed",
+          "signal": 9,
+          "pid": 52442,
+          "child_connection": 500,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\SettlementWorkerRecoveryTest",
+          "name": "test_recovery_entry_run_commit_repairs_handoff_despite_stale_lock",
+          "phase": "started",
+          "signal": 9,
+          "pid": 52487,
+          "child_connection": 510,
+          "transaction_level": 0,
+          "cache": "database",
+          "recovered": true
+        }
+      ],
+      "kills_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.........                                                           9 / 9 (100%)\n\nTime: 00:24.807, Memory: 74.50 MB\n\nOK (9 tests, 444 assertions)\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true
+}

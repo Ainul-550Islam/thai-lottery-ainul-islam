@@ -1,0 +1,874 @@
+name: Financial InnoDB concurrency and recovery
+
+# No production credentials, remote database or payment provider is used.
+# This complements (not replaces) the normal SQLite CI regression.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: financial-races-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  financial-races:
+    name: Dedicated MariaDB financial races
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      DB_CONNECTION: mariadb
+      DB_DATABASE: thai_lottery_test
+      DB_USERNAME: financial_test
+      DB_PASSWORD: ''
+      DB_URL: ''
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: log
+      PRIZE_PAYOUT_SAFETY_MODE: DISABLED
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, pdo_mysql, bcmath, sodium, zip, intl, gd, pcntl, posix, redis
+          coverage: none
+
+      - name: Install locked PHP dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Build browser assets
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run test:dependencies
+          npm run security:dependencies
+          npm run build
+          test -f public/build/manifest.json
+
+      - name: Install local MariaDB and Redis tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --no-install-recommends -y mariadb-server mariadb-client redis-server redis-tools
+
+      - name: Create private socket-only disposable database instance
+        shell: bash
+        run: |
+          set -euo pipefail
+          directory="$RUNNER_TEMP/financial-mariadb"
+          test ! -e "$directory"
+          install -d -m 700 "$directory"
+          mariadb-install-db --no-defaults --datadir="$directory/data" --auth-root-authentication-method=normal --skip-test-db > "$directory/install.log" 2>&1
+          mariadbd --no-defaults --datadir="$directory/data" --socket="$directory/db.sock" --pid-file="$directory/server.pid" --log-error="$directory/server.log" --skip-networking --innodb-lock-wait-timeout=15 &
+          ready=false
+          for attempt in {1..100}; do
+            if mariadb-admin --no-defaults --socket="$directory/db.sock" --user=root ping --silent >/dev/null 2>&1; then
+              ready=true
+              break
+            fi
+            sleep 0.2
+          done
+          test "$ready" = true
+          mariadb --no-defaults --socket="$directory/db.sock" --user=root <<'SQL'
+          CREATE DATABASE thai_lottery_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+          CREATE USER 'financial_test'@'localhost' IDENTIFIED BY '';
+          GRANT ALL PRIVILEGES ON thai_lottery_test.* TO 'financial_test'@'localhost';
+          GRANT PROCESS ON *.* TO 'financial_test'@'localhost';
+          SQL
+          echo "DB_SOCKET=$directory/db.sock" >> "$GITHUB_ENV"
+          echo "APP_KEY=base64:$(php -r 'echo base64_encode(random_bytes(32));')" >> "$GITHUB_ENV"
+
+      - name: Prepare acknowledged disposable schema
+        run: |
+          set -euo pipefail
+          test ! -f bootstrap/cache/config.php
+          test ! -f .env
+          php artisan migrate --force --no-interaction
+
+      - name: Check offline runner refusal and evidence guards
+        run: python3 -m unittest discover -s scripts -p "test_run*py" -v
+
+      - name: Verify financial, callback and outbound dispatch races three times without skips
+        run: |
+          python3 scripts/run_financial_concurrency.py \
+            --suite all \
+            --database thai_lottery_test \
+            --connection mariadb \
+            --socket "$DB_SOCKET" \
+            --username financial_test \
+            --acknowledge-disposable-database \
+            --repeats 3 \
+            --json evidence/server-races-ci.json
+
+      - name: Verify durable deposit checkout custody and real SQL contention
+        run: |
+          set -euo pipefail
+          witness="$(mktemp /tmp/financial-concurrency-checkout.XXXXXX)"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Payment/DurableDepositCheckoutTest.php \
+            tests/Feature/Payment/DurableDepositCheckoutServerTest.php \
+            --log-junit evidence/checkout-custody-ci.xml
+          cp "$witness" evidence/checkout-custody-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases = list(E.parse('evidence/checkout-custody-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 32 and not any(c.find(k) is not None for c in cases for k in ['error', 'failure', 'skipped'])
+          waits = [json.loads(x) for x in Path('evidence/checkout-custody-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits) == 3 and all(w['waiting_children'] == 2 and len(set(w['child_connections'])) == 2 and w['parent_blocker'] not in w['child_connections'] for w in waits)
+          PY
+
+      - name: Verify positive-only Stripe checkout reconciliation
+        run: |
+          set -euo pipefail
+          php vendor/bin/phpunit \
+            tests/Feature/Payment/StripeCheckoutReconciliationTest.php \
+            tests/Feature/Payment/StripeCheckoutReconciliationServerTest.php \
+            --log-junit evidence/checkout-lookup-ci.xml
+          python3 - <<'PY'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/checkout-lookup-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 41 and not any(c.find(k) is not None for c in cases for k in ['error', 'failure', 'skipped'])
+          PY
+
+      - name: Verify original Stripe captured funding and one canonical credit
+        run: |
+          set -euo pipefail
+          witness="$(mktemp /tmp/financial-concurrency-stripe-capture.XXXXXX)"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Payment/StripeDepositSettlementTest.php \
+            tests/Feature/Payment/StripeDepositSettlementServerTest.php \
+            --log-junit evidence/stripe-capture-ci.xml
+          cp "$witness" evidence/stripe-capture-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases = list(E.parse('evidence/stripe-capture-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 57 and not any(c.find(k) is not None for c in cases for k in ['error', 'failure', 'skipped'])
+          waits = [json.loads(x) for x in Path('evidence/stripe-capture-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits) == 1 and waits[0]['waiting_children'] == 2 and len(set(waits[0]['child_connections'])) == 2
+          PY
+
+      - name: Verify signed Stripe inbox, safe original routing and version-bound review
+        run: |
+          set -euo pipefail
+          witness="$(mktemp /tmp/financial-concurrency-stripe-review.XXXXXX)"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Payment/StripeFollowupSweepTest.php \
+            tests/Feature/Payment/StripeFollowupSweepServerTest.php \
+            tests/Feature/Payment/StripeFollowupRoutingTest.php \
+            tests/Feature/Payment/StripeFollowupRoutingServerTest.php \
+            tests/Feature/Payment/StripeDepositReviewTest.php \
+            tests/Feature/Payment/StripeDepositReviewServerTest.php \
+            --log-junit evidence/stripe-review-ci.xml
+          cp "$witness" evidence/stripe-review-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases = list(E.parse('evidence/stripe-review-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 124 and not any(c.find(k) is not None for c in cases for k in ['error', 'failure', 'skipped'])
+          waits = [json.loads(x) for x in Path('evidence/stripe-review-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits) == 9 and all(w['waiting_children'] == 2 and len(set(w['child_connections'])) == 2 for w in waits)
+          assert sum(w['table'] == 'wallets' for w in waits) == 6
+          assert sum(w['table'] == 'stripe_followup_sweep_work' for w in waits) == 2
+          assert sum(w['table'] == 'stripe_deposit_followup_inbox' for w in waits) == 1
+          PY
+
+      - name: Verify confirmed full-refund recovery with genuine wallet contention
+        run: |
+          set -euo pipefail
+          witness="$(mktemp /tmp/financial-concurrency-stripe-refund.XXXXXX)"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Payment/StripeRefundRecoveryTest.php \
+            tests/Feature/Payment/StripeRefundRecoveryServerTest.php \
+            --log-junit evidence/stripe-refund-ci.xml
+          cp "$witness" evidence/stripe-refund-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases = list(E.parse('evidence/stripe-refund-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 42 and not any(c.find(k) is not None for c in cases for k in ['error', 'failure', 'skipped'])
+          waits = [json.loads(x) for x in Path('evidence/stripe-refund-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits) == 2 and all(w['table'] == 'wallets' and w['waiting_children'] == 2 and len(set(w['child_connections'])) == 2 for w in waits)
+          PY
+
+      - name: Verify pending-refund paid-wager admission on distinct wallets
+        run: |
+          set -euo pipefail
+          witness="$(mktemp /tmp/financial-concurrency-refund-wager.XXXXXX)"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Betting/StripeRefundWagerGuardTest.php \
+            tests/Feature/Betting/StripeRefundWagerGuardServerTest.php \
+            --log-junit evidence/refund-wager-ci.xml
+          cp "$witness" evidence/refund-wager-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases = list(E.parse('evidence/refund-wager-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 27 and not any(c.find(k) is not None for c in cases for k in ['error','failure','skipped'])
+          waits = [json.loads(x) for x in Path('evidence/refund-wager-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits) == 3 and all(w['table'] == 'users' and w['waiting_children'] == 2 and len(set(w['child_connections'])) == 2 and len(set(w['wallet_ids'])) == 2 for w in waits)
+          assert sum(w['snapshot_owner_counts'] == [0,0] for w in waits) == 1
+          PY
+
+      - name: Verify new withdrawal refund-exposure request and reservation admission
+        run: |
+          set -euo pipefail
+          witness="$(mktemp /tmp/financial-concurrency-refund-withdrawal.XXXXXX)"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Payment/StripeRefundWithdrawalGuardTest.php \
+            tests/Feature/Payment/StripeRefundWithdrawalGuardServerTest.php \
+            --log-junit evidence/refund-withdrawal-ci.xml
+          cp "$witness" evidence/refund-withdrawal-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/refund-withdrawal-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==25 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/refund-withdrawal-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==4 and all(w['table']=='users' and w['waiting_children']==2 and len(set(w['wallet_ids']))==2 and len(set(w['child_connections']))==2 for w in waits)
+          assert sum(w['snapshot_owner_counts']==[0,0]for w in waits)==1
+          PY
+
+      - name: Verify fresh initial withdrawal hold handoff without double reservation
+        run: |
+          set -euo pipefail
+          witness="$(mktemp /tmp/financial-concurrency-initial-handoff.XXXXXX)"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Payment/WithdrawalInitialHoldHandoffTest.php \
+            tests/Feature/Payment/WithdrawalInitialHoldHandoffServerTest.php \
+            --log-junit evidence/initial-handoff-ci.xml
+          cp "$witness" evidence/initial-handoff-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/initial-handoff-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==32 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/initial-handoff-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==5 and all(w['table']=='wallets' and w['waiting_children']==2 and len(set(w['child_connections']))==2 for w in waits)
+          assert sum(w['snapshot_owner_counts']==[0,0]for w in waits)==1
+          PY
+
+      - name: Verify source-backed new conversion admission without blocking exact replay
+        run: |
+          set -euo pipefail
+          witness="$(mktemp /tmp/financial-concurrency-refund-conversion.XXXXXX)"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Wallet/Conversion/StripeRefundConversionGuardTest.php \
+            tests/Feature/Wallet/Conversion/StripeRefundConversionGuardServerTest.php \
+            --log-junit evidence/refund-conversion-ci.xml
+          cp "$witness" evidence/refund-conversion-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/refund-conversion-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==22 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/refund-conversion-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==4 and all(w['table']=='users' and w['waiting_children']==2 and len(set(w['child_connections']))==2 and len(set(w['wallet_ids']))==2 for w in waits)
+          assert sum(w['snapshot_owner_counts']==[0,0]for w in waits)==1
+          PY
+
+      - name: Verify original conversion accounting and current-read replay before reversal
+        run: |
+          witness="/tmp/financial-concurrency-conversion-proof-ci.jsonl"
+          test ! -e "$witness"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Wallet/Conversion/ConversionOriginalProofTest.php \
+            tests/Feature/Wallet/Conversion/ConversionOriginalProofServerTest.php \
+            --log-junit evidence/conversion-proof-ci.xml
+          cp "$witness" evidence/conversion-proof-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/conversion-proof-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==55 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/conversion-proof-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==4 and all(w['table']=='users' and w['waiting_children']==2 and len(set(w['child_connections']))==2 for w in waits)
+          snapshots=[w['conversion_proof_snapshots'] for w in waits if w['conversion_proof_snapshots']!=[None,None]]
+          assert len(snapshots)==3
+          assert snapshots.count([{'conversion_count':0,'transaction_amount':None}]*2)==1
+          assert snapshots.count([{'conversion_count':1,'transaction_amount':'100.00'}]*2)==2
+          PY
+
+      - name: Verify current reversal operator authority despite old snapshots and caches
+        run: |
+          witness="/tmp/financial-concurrency-conversion-authority-ci.jsonl"
+          test ! -e "$witness"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Wallet/Conversion/ConversionReversalAuthorityTest.php \
+            tests/Feature/Wallet/Conversion/ConversionReversalAuthorityServerTest.php \
+            --log-junit evidence/conversion-authority-ci.xml
+          cp "$witness" evidence/conversion-authority-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/conversion-authority-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==46 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/conversion-authority-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==6 and all(w['table']=='users' and w['waiting_children']==2 and len(set(w['child_connections']))==2 for w in waits)
+          snapshots=[w['conversion_authority_snapshots'] for w in waits]
+          assert snapshots.count([{'actor_status':'active','policy_allowed':True}]*2)==5
+          assert snapshots.count([{'actor_status':'active','policy_allowed':False}]*2)==1
+          PY
+
+      - name: Verify exact rolling conversion allowance despite old repeatable-read snapshots
+        run: |
+          witness="/tmp/financial-concurrency-conversion-limits-ci.jsonl"
+          test ! -e "$witness"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Wallet/Conversion/ConversionRollingLimitTest.php \
+            tests/Feature/Wallet/Conversion/ConversionRollingLimitServerTest.php \
+            --log-junit evidence/conversion-limits-ci.xml
+          cp "$witness" evidence/conversion-limits-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/conversion-limits-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==27 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/conversion-limits-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==4 and all(w['table']=='users' and w['waiting_children']==2 and len(set(w['child_connections']))==2 and w['parent_blocker']not in w['child_connections'] for w in waits)
+          assert all(w['conversion_limit_snapshots']==[{'daily':'0.00','monthly':'0.00'}]*2 for w in waits)
+          PY
+
+      - name: Verify current bounded quote slots despite old repeatable-read counts
+        run: |
+          witness="/tmp/financial-concurrency-conversion-quote-slots-ci.jsonl"
+          test ! -e "$witness"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Wallet/Conversion/ConversionQuoteSlotTest.php \
+            tests/Feature/Wallet/Conversion/ConversionQuoteSlotServerTest.php \
+            --log-junit evidence/conversion-quote-slots-ci.xml
+          cp "$witness" evidence/conversion-quote-slots-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/conversion-quote-slots-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==35 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/conversion-quote-slots-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==4 and all(w['table']=='users' and w['waiting_children']==2 and len(set(w['child_connections']))==2 and w['parent_blocker']not in w['child_connections'] for w in waits)
+          snapshots=[w['conversion_quote_slot_snapshots'] for w in waits]
+          assert snapshots.count([0,0])==2 and snapshots.count([1,1])==2
+          PY
+
+      - name: Verify current member eligibility despite old snapshots and cached principals
+        run: |
+          witness="/tmp/financial-concurrency-conversion-member-ci.jsonl"
+          test ! -e "$witness"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Wallet/Conversion/ConversionMemberEligibilityTest.php \
+            tests/Feature/Wallet/Conversion/ConversionMemberEligibilityServerTest.php \
+            --log-junit evidence/conversion-member-ci.xml
+          cp "$witness" evidence/conversion-member-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PYCODE'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/conversion-member-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==47 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/conversion-member-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==10 and all(w['table']=='users' and w['waiting_children']==2 and len(set(w['child_connections']))==2 and w['parent_blocker']not in w['child_connections'] for w in waits)
+          healthy={'status':'active','self_excluded_until':None,'cool_off_until':None,'canonical_active_count':0,'kyc_status':'verified','kyc_expires_at':None,'phone_verified':True}
+          suspended={**healthy,'status':'suspended'}
+          snapshots=[w['conversion_member_snapshots'] for w in waits]
+          assert snapshots.count([healthy]*2)==9 and snapshots.count([suspended]*2)==1
+          PYCODE
+
+      - name: Verify current conversion wallet identities and facts despite old snapshots
+        run: |
+          witness="/tmp/financial-concurrency-conversion-wallet-ci.jsonl"
+          test ! -e "$witness"
+          FINANCIAL_RACE_WITNESS="$witness" php vendor/bin/phpunit \
+            tests/Feature/Wallet/Conversion/ConversionWalletEligibilityTest.php \
+            tests/Feature/Wallet/Conversion/ConversionWalletEligibilityServerTest.php \
+            --log-junit evidence/conversion-wallet-ci.xml
+          cp "$witness" evidence/conversion-wallet-ci-witness.jsonl
+          rm "$witness"
+          python3 - <<'PYCODE'
+          import json, xml.etree.ElementTree as E
+          from pathlib import Path
+          cases=list(E.parse('evidence/conversion-wallet-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==46 and not any(c.find(k)is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l)for l in Path('evidence/conversion-wallet-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==14 and all(w['table']=='users' and w['waiting_children']==2 and len(set(w['child_connections']))==2 and w['parent_blocker']not in w['child_connections'] for w in waits)
+          pairs=[w['conversion_wallet_snapshots'] for w in waits]
+          assert all(len(p)==2 and p[0]==p[1] for p in pairs)
+          assert sum(len(p[0])==1 for p in pairs)==2
+          assert sum(any(w['status']=='frozen' for w in p[0])for p in pairs)==2
+          assert sum(any(w['type']=='primary'and w['balance']=='10.00'for w in p[0])for p in pairs)==1
+          PYCODE
+
+      - name: Verify real worker death and bounded settlement recovery three times
+        run: |
+          python3 scripts/run_settlement_recovery.py \
+            --database thai_lottery_test \
+            --connection mariadb \
+            --socket "$DB_SOCKET" \
+            --username financial_test \
+            --acknowledge-disposable-database \
+            --repeats 3 \
+            --json evidence/server-recovery-ci.json
+
+      - name: Verify private Redis AOF broker and stale-client recovery three times
+        run: |
+          python3 scripts/run_redis_settlement_recovery.py \
+            --database thai_lottery_test \
+            --connection mariadb \
+            --socket "$DB_SOCKET" \
+            --username financial_test \
+            --acknowledge-disposable-database \
+            --repeats 3 \
+            --json evidence/server-redis-recovery-ci.json
+
+      - name: Verify outbound claim death and synthetic acceptance recovery three times
+        run: |
+          python3 scripts/run_withdrawal_dispatch_recovery.py \
+            --database thai_lottery_test \
+            --connection mariadb \
+            --socket "$DB_SOCKET" \
+            --username financial_test \
+            --acknowledge-disposable-database \
+            --repeats 3 \
+            --json evidence/server-dispatch-recovery-ci.json
+
+      - name: Verify physical wallet transaction boundaries before SQL or savepoints
+        env:
+          FINANCIAL_RACE_WITNESS: /tmp/financial-concurrency-wallet-boundary-ci.jsonl
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/WalletTransactionBoundaryTest.php tests/Feature/Finance/WalletTransactionBoundaryServerTest.php --log-junit evidence/wallet-boundary-ci.xml
+          cp "$FINANCIAL_RACE_WITNESS" evidence/wallet-boundary-ci-witness.jsonl
+          python3 - <<'PYCODE'
+          import json, pathlib, xml.etree.ElementTree as E
+          cases=list(E.parse('evidence/wallet-boundary-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==138 and not any(c.find(k) is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l) for l in pathlib.Path('evidence/wallet-boundary-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==8 and all(w['waiting_children']==2 and len(set(w['child_connections']))==2 and w['table']=='wallets' and w['wallet_boundary_snapshots']==['1000.00','1000.00'] for w in waits)
+          PYCODE
+
+      - name: Verify reversal entry and post-routing physical transaction boundaries
+        env:
+          FINANCIAL_RACE_WITNESS: /tmp/financial-concurrency-reversal-boundary-ci.jsonl
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/ReversalTransactionBoundaryTest.php tests/Feature/Finance/ReversalTransactionBoundaryServerTest.php --log-junit evidence/reversal-boundary-ci.xml
+          cp "$FINANCIAL_RACE_WITNESS" evidence/reversal-boundary-ci-witness.jsonl
+          python3 - <<'PYCODE'
+          import json, pathlib, xml.etree.ElementTree as E
+          cases=list(E.parse('evidence/reversal-boundary-ci.xml').getroot().iter('testcase'))
+          assert len(cases)==131 and not any(c.find(k) is not None for c in cases for k in ['failure','error','skipped'])
+          waits=[json.loads(l) for l in pathlib.Path('evidence/reversal-boundary-ci-witness.jsonl').read_text().splitlines()]
+          assert len(waits)==9 and all(w['waiting_children']==2 and len(set(w['child_connections']))==2 and w['table']=='wallets' and w['reversal_boundary_snapshots'][0] is not None and w['reversal_boundary_snapshots'][0]==w['reversal_boundary_snapshots'][1] for w in waits)
+          PYCODE
+
+      - name: Upload sanitized financial evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: financial-server-race-evidence
+          path: |
+            evidence/reversal-boundary-ci.xml
+            evidence/reversal-boundary-ci-witness.jsonl
+            evidence/wallet-boundary-ci.xml
+            evidence/wallet-boundary-ci-witness.jsonl
+            evidence/server-races-ci.json
+            evidence/server-recovery-ci.json
+            evidence/server-redis-recovery-ci.json
+            evidence/server-dispatch-recovery-ci.json
+            evidence/conversion-authority-ci.xml
+            evidence/conversion-authority-ci-witness.jsonl
+            evidence/conversion-proof-ci.xml
+            evidence/conversion-proof-ci-witness.jsonl
+            evidence/initial-handoff-ci.xml
+            evidence/initial-handoff-ci-witness.jsonl
+            evidence/refund-conversion-ci.xml
+            evidence/refund-conversion-ci-witness.jsonl
+            evidence/refund-withdrawal-ci.xml
+            evidence/refund-withdrawal-ci-witness.jsonl
+            evidence/refund-wager-ci.xml
+            evidence/refund-wager-ci-witness.jsonl
+            evidence/stripe-refund-ci.xml
+            evidence/stripe-refund-ci-witness.jsonl
+            evidence/stripe-capture-ci.xml
+            evidence/stripe-capture-ci-witness.jsonl
+            evidence/checkout-lookup-ci.xml
+            evidence/checkout-custody-ci.xml
+            evidence/checkout-custody-ci-witness.jsonl
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify physical lifecycle boundaries and current locked failure status
+        shell: bash
+        run: |
+          export FINANCIAL_RACE_WITNESS="/tmp/financial-concurrency-lifecycle-ci.jsonl"
+          test ! -e "$FINANCIAL_RACE_WITNESS"
+          php vendor/bin/phpunit tests/Feature/Finance/LifecycleTransactionBoundaryTest.php tests/Feature/Finance/LifecycleTransactionBoundaryServerTest.php --log-junit evidence/lifecycle-boundary-ci.xml
+          cp "$FINANCIAL_RACE_WITNESS" evidence/lifecycle-boundary-ci-witness.jsonl
+          python3 scripts/verify_lifecycle_boundary_ci.py evidence/lifecycle-boundary-ci.xml evidence/lifecycle-boundary-ci-witness.jsonl
+
+      - name: Preserve lifecycle boundary receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifecycle-boundary-receipts
+          path: |
+            evidence/lifecycle-boundary-ci.xml
+            evidence/lifecycle-boundary-ci-witness.jsonl
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify owned-root financial retries and native timeout savepoint cleanup
+        shell: bash
+        run: |
+          export FINANCIAL_RETRY_WITNESS="/tmp/financial-retry-ci.jsonl"
+          test ! -e "$FINANCIAL_RETRY_WITNESS"
+          php vendor/bin/phpunit tests/Feature/Finance/FinancialRetryOwnershipTest.php tests/Feature/Finance/FinancialRetryOwnershipServerTest.php --log-junit evidence/financial-retry-ci.xml
+          cp "$FINANCIAL_RETRY_WITNESS" evidence/financial-retry-ci-witness.jsonl
+          python3 scripts/verify_financial_retry_ci.py evidence/financial-retry-ci.xml evidence/financial-retry-ci-witness.jsonl
+
+      - name: Preserve financial retry ownership receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: financial-retry-ownership-receipts
+          path: |
+            evidence/financial-retry-ci.xml
+            evidence/financial-retry-ci-witness.jsonl
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify canonical financial record routing without key coercion
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Unit/FinancialRecordIdentifierTest.php tests/Feature/Finance/FinancialIdentifierRoutingTest.php --log-junit evidence/financial-identifiers-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/financial-identifiers-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 137
+          assert len({(c.get('class'), c.get('name')) for c in cases}) == 137
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Preserve canonical financial routing checks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-financial-identifiers
+          path: evidence/financial-identifiers-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify canonical financial model writer and aggregate routing
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/FinancialModelRoutingContextTest.php --log-junit evidence/financial-model-context-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/financial-model-context-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 90
+          assert len({(c.get('class'), c.get('name')) for c in cases}) == 90
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Preserve financial model routing verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: financial-model-routing-context
+          path: evidence/financial-model-context-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify direct ledger posting admission
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/LedgerPostingAdmissionTest.php --log-junit evidence/ledger-posting-admission-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-posting-admission-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == 41
+          assert len({(c.get('class'), c.get('name')) for c in cases}) == 41
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Preserve direct ledger admission verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: direct-ledger-posting-admission
+          path: evidence/ledger-posting-admission-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify transaction-root journal serialization and current reads
+        shell: bash
+        run: |
+          FINANCIAL_LEDGER_POSTING_WITNESS=/tmp/financial-ledger-posting-ci.jsonl php vendor/bin/phpunit tests/Feature/Finance/LedgerPostingCurrentReadTest.php tests/Feature/Finance/LedgerPostingCurrentReadServerTest.php --log-junit evidence/ledger-current-read-ci.xml
+          python3 - <<'PYTHON'
+          import json, xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-current-read-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 21
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          rows = [json.loads(line) for line in open('/tmp/financial-ledger-posting-ci.jsonl')]
+          assert len(rows) == 3 and {r['profile'] for r in rows} == {'new-winner', 'already-posted', 'terminal'}
+          assert all(r['waiting_children'] == 2 and r['table'] == 'financial_transactions' and r['lock_index'] == 'PRIMARY' and len(set(r['children'])) == 2 and r['parent'] not in r['children'] for r in rows)
+          PYTHON
+
+      - name: Preserve current-read journal evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transaction-root-journal-current-read
+          path: |
+            evidence/ledger-current-read-ci.xml
+            /tmp/financial-ledger-posting-ci.jsonl
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify journal observer connection ownership
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/LedgerPostingObserverOwnershipTest.php --log-junit evidence/ledger-observer-ownership-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-observer-ownership-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 18
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Verify draft journal storage identities before writes
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/LedgerPostingDraftIdentityTest.php --log-junit evidence/ledger-draft-identity-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-draft-identity-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 25
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain draft journal identity verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-draft-identity
+          path: evidence/ledger-draft-identity-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify complete account balance projection before writes
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Unit/Services/LedgerAccountBalanceProjectorTest.php tests/Feature/Finance/LedgerPostingBalanceProjectionTest.php --log-junit evidence/ledger-balance-projection-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-balance-projection-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 82
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain account balance projection verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-balance-projection
+          path: evidence/ledger-balance-projection-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify complete ledger monetary encoding before writes
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Unit/Services/LedgerEntryMoneyPreflightTest.php tests/Feature/Finance/LedgerPostingEntryMoneyTest.php --log-junit evidence/ledger-entry-money-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-entry-money-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 73
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain ledger monetary encoding verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-entry-money
+          path: evidence/ledger-entry-money-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify complete ledger text and JSON payload before writes
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Unit/Services/LedgerEntryPayloadPreflightTest.php tests/Feature/Finance/LedgerPostingEntryPayloadTest.php --log-junit evidence/ledger-entry-payload-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-entry-payload-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 88
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain ledger text and JSON payload verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-entry-payload
+          path: evidence/ledger-entry-payload-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify ledger write context after payload callbacks
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Unit/Services/LedgerPostingWriteBoundaryTest.php tests/Feature/Finance/LedgerPostingWriteBoundaryTest.php --log-junit evidence/ledger-write-boundary-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-write-boundary-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 88
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain ledger write context verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-write-boundary
+          path: evidence/ledger-write-boundary-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify physical writer ledger reentrancy fence
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Unit/Services/LedgerPostingInvocationLeaseTest.php tests/Feature/Finance/LedgerPostingReentrancyTest.php --log-junit evidence/ledger-reentrancy-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-reentrancy-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 88
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain ledger reentrancy verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-reentrancy
+          path: evidence/ledger-reentrancy-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify locked posting inputs after payload callbacks
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Unit/Services/LedgerPostingInputWitnessTest.php tests/Feature/Finance/LedgerPostingInputDriftTest.php --log-junit evidence/ledger-input-witness-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-input-witness-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 100
+          assert all(int(c.get('assertions', '0')) > 0 for c in cases)
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain posting input witness verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-input-witness
+          path: evidence/ledger-input-witness-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify callback journal admission before posting writes
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/LedgerPostingCallbackJournalTest.php --log-junit evidence/ledger-callback-journal-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-callback-journal-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 72
+          assert all(int(c.get('assertions', '0')) > 0 for c in cases)
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain callback journal admission verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-callback-journal
+          path: evidence/ledger-callback-journal-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify refused model saves stop ledger posting
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/LedgerPostingWriteRefusalTest.php --log-junit evidence/ledger-write-refusal-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/ledger-write-refusal-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 54
+          assert all(int(c.get('assertions', '0')) > 0 for c in cases)
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain refused model save verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-write-refusal
+          path: evidence/ledger-write-refusal-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify refused wallet saves abort money and availability changes
+        shell: bash
+        run: |
+          php vendor/bin/phpunit tests/Feature/Finance/WalletWriteRefusalTest.php --log-junit evidence/wallet-write-refusal-ci.xml
+          python3 - <<'PYTHON'
+          import xml.etree.ElementTree as E
+          cases = list(E.parse('evidence/wallet-write-refusal-ci.xml').getroot().iter('testcase'))
+          assert len(cases) == len({(c.get('class'), c.get('name')) for c in cases}) == 100
+          assert all(int(c.get('assertions', '0')) > 0 for c in cases)
+          assert not any(c.find(k) is not None for c in cases for k in ('error', 'failure', 'skipped'))
+          PYTHON
+
+      - name: Retain refused wallet save verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wallet-write-refusal
+          path: evidence/wallet-write-refusal-ci.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Stop disposable database
+        if: always()
+        shell: bash
+        run: |
+          directory="$RUNNER_TEMP/financial-mariadb"
+          if test -S "$directory/db.sock"; then
+            mariadb-admin --no-defaults --socket="$directory/db.sock" --user=root shutdown
+          fi

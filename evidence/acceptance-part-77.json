@@ -1,0 +1,298 @@
+{
+  "part": 77,
+  "passed": true,
+  "date": "2026-10-21",
+  "scope": "Serialize same-financial-transaction posting at a canonical row lock; use persisted current status/defaults and own pending-row visibility and a fresh same-writer autocommit duplicate observation.",
+  "default": {
+    "passed": true,
+    "cases": 5098,
+    "assertions": 147936,
+    "skipped": 256,
+    "errors": 0,
+    "failures": 0,
+    "source_files": 333,
+    "exact_discovery_matched": true,
+    "all_previous_5077_case_ids_retained": true
+  },
+  "native": {
+    "passed": true,
+    "cases": 1376,
+    "assertions": 13465,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "genuine_parent_two_child_waits": 110,
+    "genuine_two_child_deadlock_cycles": 2,
+    "total_genuine_concurrency_profiles": 112,
+    "retained_parent_waits": 107,
+    "retained_deadlock_cycle_profiles": 2,
+    "new_concurrency_profiles": 3
+  },
+  "focused_subset": {
+    "passed": true,
+    "cases": 21,
+    "assertions": 208,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "suite_counts_overlap": true,
+  "raw_native_cases": 1377,
+  "platform_only_native_record_excluded": 1,
+  "omission_controls": {
+    "passed": true,
+    "qualified_expected_failures": 2,
+    "healthy_native_shadow_passed": true,
+    "runs": [
+      {
+        "mode": "persisted_row_reload_omitted",
+        "phase": "omitted",
+        "driver": "sqlite",
+        "cases": 1,
+        "assertion_failures": 1,
+        "setup_errors": 0,
+        "skipped": 0,
+        "exit": 1,
+        "shadow_source_paths_audited": true,
+        "committed_ledger_rows": 2,
+        "committed_financial_transactions": 1,
+        "wallet_rows": 0,
+        "accounts_at_10": 2,
+        "real_journal_state_independently_inspected": true,
+        "live_transfer": false
+      },
+      {
+        "mode": "current_duplicate_read_omitted",
+        "phase": "healthy",
+        "driver": "mysql",
+        "cases": 1,
+        "assertion_failures": 0,
+        "setup_errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "shadow_source_paths_audited": true,
+        "committed_ledger_rows": 2,
+        "committed_financial_transactions": 1,
+        "wallet_rows": 0,
+        "accounts_at_10": 2,
+        "real_journal_state_independently_inspected": true,
+        "live_transfer": false
+      },
+      {
+        "mode": "current_duplicate_read_omitted",
+        "phase": "omitted",
+        "driver": "mysql",
+        "cases": 1,
+        "assertion_failures": 1,
+        "setup_errors": 0,
+        "skipped": 0,
+        "exit": 1,
+        "shadow_source_paths_audited": true,
+        "committed_ledger_rows": 6,
+        "committed_financial_transactions": 1,
+        "wallet_rows": 0,
+        "accounts_at_10": 6,
+        "real_journal_state_independently_inspected": true,
+        "live_transfer": false
+      }
+    ],
+    "source_bytes_unchanged": true,
+    "no_live_transfer": true
+  },
+  "syntax": {
+    "php_files": 2201,
+    "changed_php_pint_files": 4
+  },
+  "python_tests": 100,
+  "static": {
+    "passed": true,
+    "cases": 35,
+    "assertions": 1792,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "standalone": {
+    "passed": true,
+    "cases": 29,
+    "assertions": 94,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "node": "24.22.0",
+    "npm": "11.21.1",
+    "genuine_vite_build": true
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part77_migrations": 0,
+    "engine": "separate empty SQLite store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 158,
+    "historical_backfill": false,
+    "populated_production_upgrade": false
+  },
+  "ci_workflow_local_parse": {
+    "parsed": true,
+    "new_native_case_gate": 21,
+    "old_131_case_nine_wait_reversal_gate_retained": true,
+    "all_current_python_scripts_compile": true,
+    "remote_ci_executed": false,
+    "retained_identifier_gate": 137,
+    "retained_retry_case_gate": 28,
+    "new_race_profiles": 3
+  },
+  "current_frozen_sources": {
+    "app/Services/Finance/LedgerPostingService.php": "44be42bcf7fd6a8b382a42644d899e62873e846d925a0c6581da0e44687a9687",
+    "tests/Feature/Finance/LedgerPostingCurrentReadTest.php": "e8eda867c86b7eeee9995cd42d15d4356467f105d33ae94ff4eb0a875aef6e27",
+    "tests/Feature/Finance/LedgerPostingCurrentReadServerTest.php": "a9932eafdd28d899144af06ae5939a403494b0487dec7573676970da6869c239",
+    "tests/Support/LedgerPostingProbe.php": "dcb283626bd5f4c9fcaf6a894aa95cfe983e56736084941f3c3fb2255cac5052",
+    ".github/workflows/financial-concurrency.yml": "e3c270b5193fefc275d0d4e96d56a0653bc6ce76fe1e57dc52875f4a2f5e85fc",
+    "scripts/release_source_inventory.py": "3d62a06826faa7af08c0cab5542f844866917403c6ef2cd567108359a1caa5e4"
+  },
+  "php_sources_frozen_before_full_suites": {
+    "app/Services/Finance/LedgerPostingService.php": "44be42bcf7fd6a8b382a42644d899e62873e846d925a0c6581da0e44687a9687",
+    "tests/Feature/Finance/LedgerPostingCurrentReadTest.php": "e8eda867c86b7eeee9995cd42d15d4356467f105d33ae94ff4eb0a875aef6e27",
+    "tests/Feature/Finance/LedgerPostingCurrentReadServerTest.php": "a9932eafdd28d899144af06ae5939a403494b0487dec7573676970da6869c239",
+    "tests/Support/LedgerPostingProbe.php": "dcb283626bd5f4c9fcaf6a894aa95cfe983e56736084941f3c3fb2255cac5052"
+  },
+  "new_transaction_root_profiles": [
+    {
+      "profile": "new-winner",
+      "table": "financial_transactions",
+      "lock_index": "PRIMARY",
+      "parent": 4410,
+      "children": [
+        4412,
+        4411
+      ],
+      "waiting_children": 2,
+      "snapshots": [
+        {
+          "status": "pending",
+          "entries": 0
+        },
+        {
+          "status": "pending",
+          "entries": 0
+        }
+      ],
+      "outcomes": [
+        "refused",
+        "posted"
+      ],
+      "codes": [
+        "ledger_duplicate_posting",
+        null
+      ]
+    },
+    {
+      "profile": "already-posted",
+      "table": "financial_transactions",
+      "lock_index": "PRIMARY",
+      "parent": 4415,
+      "children": [
+        4416,
+        4417
+      ],
+      "waiting_children": 2,
+      "snapshots": [
+        {
+          "status": "pending",
+          "entries": 0
+        },
+        {
+          "status": "pending",
+          "entries": 0
+        }
+      ],
+      "outcomes": [
+        "refused",
+        "refused"
+      ],
+      "codes": [
+        "ledger_duplicate_posting",
+        "ledger_duplicate_posting"
+      ]
+    },
+    {
+      "profile": "terminal",
+      "table": "financial_transactions",
+      "lock_index": "PRIMARY",
+      "parent": 4421,
+      "children": [
+        4422,
+        4423
+      ],
+      "waiting_children": 2,
+      "snapshots": [
+        {
+          "status": "pending",
+          "entries": 0
+        },
+        {
+          "status": "pending",
+          "entries": 0
+        }
+      ],
+      "outcomes": [
+        "refused",
+        "refused"
+      ],
+      "codes": [
+        "ledger_posting_invalid_transaction_status",
+        "ledger_posting_invalid_transaction_status"
+      ]
+    }
+  ],
+  "provenance": {
+    "exact_default_discovery_and_all_previous_5077_default_and_1355_native_executed_ids_retained": true,
+    "existing_assertions_not_weakened": true,
+    "each_default_file_has_unique_process_tmpfs_database_and_storage_token": true,
+    "sqlite_journal_or_synchronous_policy_disabled": false,
+    "all_six_implementation_sources_finalized_before_complete_suites": true,
+    "native_serial_after_default_and_auxiliary_compilation": true,
+    "retained_native_profiles": 109,
+    "new_native_race_profiles": 3,
+    "no_fx_or_cross_currency_sum": true
+  },
+  "canonical_defaults_ignore_stale_currency_wallet_reference_and_status": true,
+  "missing_and_deleted_rows_refused_before_account_writes": true,
+  "tombstoned_postings_still_block_duplicates": true,
+  "root_before_ordered_accounts": true,
+  "caller_model_unchanged_and_rollback_owned": true,
+  "public_hasPosting_remains_read_only_snapshot_helper": true,
+  "native_dialect_scope": "MySQL-style REPEATABLE READ current reads; disposable MariaDB child sessions temporarily set innodb_snapshot_isolation OFF and restore its original value. With MariaDB snapshot isolation ON changed old rows can raise 1020 fail-closed; no retry/certification for every engine mode is claimed.",
+  "wrong_store_observer_refused_without_journal_writes": true,
+  "absent_journal_gap_coupling_avoided": true,
+  "new_migrations": 0,
+  "historical_repairs_or_backfills": false,
+  "remote_ci_executed": false,
+  "live_provider_transfer_or_refund": false,
+  "populated_production_upgrade_restore": false,
+  "worldwide_legal_approval": false
+}

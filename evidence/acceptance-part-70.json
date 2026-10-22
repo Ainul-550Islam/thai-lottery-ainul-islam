@@ -1,0 +1,157 @@
+{
+  "part": 70,
+  "passed": true,
+  "date": "2026-10-20",
+  "scope": "Shared current framework/write-PDO wallet transaction boundary before lock, low-level money mutation and supported canonical/savepoint/direct-join orchestration.",
+  "default": {
+    "passed": true,
+    "cases": 4570,
+    "assertions": 144619,
+    "skipped": 233,
+    "errors": 0,
+    "failures": 0,
+    "source_files": 321,
+    "exact_discovery_matched": true,
+    "all_previous_4432_case_ids_retained": true
+  },
+  "native": {
+    "passed": true,
+    "cases": 797,
+    "assertions": 9217,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "genuine_two_child_parent_waits": 90,
+    "new_physical_boundary_profiles": 8
+  },
+  "focused_subset": {
+    "passed": true,
+    "cases": 138,
+    "assertions": 994,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "suite_counts_overlap": true,
+  "raw_native_cases": 798,
+  "platform_only_native_record_excluded": 1,
+  "omission_controls": {
+    "total": 8,
+    "expected_assertion_failures": 8,
+    "setup_errors": 0,
+    "genuine_two_child_legacy_boundary_controls": 2,
+    "disposable_native_effect_receipts": 2,
+    "sqlite_replacement_transaction_and_staged_canonical_money_proof": true,
+    "independent_native_hold_floor_guards_retained": true,
+    "all_four_parent_and_both_child_shadow_service_paths_proved": true,
+    "individual_defence_omissions_do_not_all_imply_money_loss": true
+  },
+  "syntax": {
+    "php_files": 2184,
+    "changed_php_pint_files": 9
+  },
+  "python_tests": 86,
+  "static": {
+    "passed": true,
+    "cases": 35,
+    "assertions": 1748,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "standalone": {
+    "passed": true,
+    "cases": 29,
+    "assertions": 94,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "node": "24.22.0",
+    "npm": "11.21.1",
+    "genuine_vite_build": true
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true,
+    "retired_settlement_worker_activated": false
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part70_migrations": 0,
+    "engine": "separate empty SQLite store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 158,
+    "historical_backfill": false,
+    "populated_production_upgrade": false
+  },
+  "ci_workflow_local_parse": {
+    "parsed": true,
+    "required_cases": 138,
+    "required_genuine_two_child_waits": 8,
+    "remote_ci_executed": false
+  },
+  "current_frozen_sources": {
+    "app/Services/Finance/WalletLockService.php": "6ac4e2d4234b380d47110eb0a4a9cc867f4b6938969c454124bec3d5a039eb60",
+    "app/Services/Finance/WalletService.php": "25b9b194553658db448cb3fd565d28d043b4ac84a241cf5b719ffaf30469da26",
+    "app/Services/Finance/WalletHoldService.php": "7e053ca91a010baec32f7ea6aca2e11b95105b9fb756ff8c1cb09c9ffe6fcbc6",
+    "app/Services/Finance/FinancialTransactionService.php": "d58ce4b509e40f976f5e6ab65e22555f2d914737e6679f754117064128c56cef",
+    "tests/Support/WalletBoundaryOperation.php": "337846de2112c5d7d72aa41b8b756eeb423b9d2724e9287df7023e2093f17623",
+    "tests/Feature/Finance/WalletTransactionBoundaryTest.php": "91419ca86fc51ca663446a8109ad3ed7342e99a2f05cda7895b2579b1a04520d",
+    "tests/Feature/Finance/WalletTransactionBoundaryServerTest.php": "e77d4b17bc2d4971420c2b67a1e009026cfbf93acda2e450e0ca24d4d899b42a",
+    "tests/Support/FinancialRaceProbe.php": "c5b7630bc94219834abf079679f06d12f958fca2e14f2d14bcccef9e8658880e",
+    "tests/Support/RunsServerFinancialRaces.php": "600a0c8b12f4a85078018565e6e17bd2b420973daa21b273cdb4c6be6e6b0ce8",
+    ".github/workflows/financial-concurrency.yml": "2d2de7fe7bac6dbaa5264fe9d0861e24a17b2662dcb29dac27fdecdbda3044ef",
+    "scripts/release_source_inventory.py": "2b646176770a30dea3db5ae102ffe41881d23e3c4292d2df2d637d7f083ba2c8"
+  },
+  "provenance": {
+    "all_current_default_discovered_ids_executed": true,
+    "all_previous_4432_exact_ids_retained": true,
+    "existing_assertions_not_weakened": true,
+    "each_default_file_has_unique_process_tmpfs_sqlite_and_test_token": true,
+    "journal_or_synchronous_policy_disabled": false,
+    "genuine_parent_lock_waits_observed_before_release": true,
+    "native_children_read_old_balance_before_parent_change": true,
+    "native_children_lose_physical_transaction_after_actual_current_lock": true,
+    "healthy_managed_commit_and_whole_root_rollback_proved": true,
+    "native_parent_wallet_change_is_fixture_not_deposit_receipt": true
+  },
+  "write_pdo_not_read_replica_authority": true,
+  "positive_counter_alone_cannot_authorize_shared_wallet_locks_or_low_level_money": true,
+  "canonical_execute_and_wallet_wrappers_check_before_savepoint_or_callback": true,
+  "both_directions_of_divergence_refused": true,
+  "lost_transaction_silently_reopened": false,
+  "raw_pdo_caller_ownership_adopted": false,
+  "counter_repaired_or_reset_by_production_guard": false,
+  "original_savepoint_and_direct_join_policies_preserved": true,
+  "low_level_error_codes_preserved": true,
+  "original_transaction_identity_history_attested": false,
+  "all_upstream_transaction_wrappers_certified": false,
+  "low_level_arbitrary_caller_complete_ledger_guarantee": false,
+  "new_migrations": 0,
+  "historical_repairs_or_backfills": false,
+  "provider_io_inside_sql": false,
+  "remote_ci_executed": false,
+  "live_provider_transfer_or_refund": false,
+  "populated_production_upgrade_restore": false,
+  "worldwide_legal_approval": false
+}

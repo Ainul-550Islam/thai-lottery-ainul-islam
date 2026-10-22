@@ -1,0 +1,712 @@
+{
+  "passed": true,
+  "part": 85,
+  "default": {
+    "cases": 5660,
+    "assertions": 153301,
+    "skipped": 265,
+    "errors": 0,
+    "failures": 0
+  },
+  "default_isolated_source_files": 347,
+  "native": {
+    "cases": 1938,
+    "assertions": 18995,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "native_raw": {
+    "cases": 1939,
+    "assertions": 18995,
+    "skipped": 1,
+    "errors": 0,
+    "failures": 0
+  },
+  "focused_subset": {
+    "cases": 100,
+    "assertions": 900,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "focused_unit": {
+    "cases": 48,
+    "assertions": 112,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "focused_feature": {
+    "cases": 52,
+    "assertions": 788,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "overlapping_not_additive": true,
+  "retained_case_ids": {
+    "part84-full-final-junit.xml": {
+      "case_ids": 5560,
+      "all_retained": true,
+      "old_errors_failures": 0
+    },
+    "part84-native-junit.xml": {
+      "case_ids": 1838,
+      "all_retained": true,
+      "old_errors_failures": 0
+    }
+  },
+  "genuine_two_child_parent_wait_profiles": 112,
+  "all_previous_profiles_retained": true,
+  "new_contention_profiles": 0,
+  "counterfactual": {
+    "passed": true,
+    "healthy_controls": 6,
+    "qualified_expected_failures": 6,
+    "exact_original_part84_baseline": true,
+    "production_source_and_test_unchanged": true,
+    "production_sha256": "19a5e4bbfbf55ac7be6b6c77d97d759c8cdcbc8c4b658120894aaacd0aaf28c2",
+    "part84_source_sha256": "e99c4df5cad40485f007fe01b9f932692ad8f3e210a1a3b226688086cedca483",
+    "runs": [
+      {
+        "driver": "sqlite",
+        "kind": "account-balance",
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "19a5e4bbfbf55ac7be6b6c77d97d759c8cdcbc8c4b658120894aaacd0aaf28c2",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0",
+            "1"
+          ],
+          [
+            "123",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "pending"
+          ]
+        ],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "sqlite",
+        "kind": "account-balance",
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "e99c4df5cad40485f007fe01b9f932692ad8f3e210a1a3b226688086cedca483",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10",
+            "1"
+          ],
+          [
+            "10",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "pending"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "exception_code": null,
+          "committed_journal_rows": 2,
+          "caller_depth_before_commit": 1,
+          "physical_before_commit": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "sqlite",
+        "kind": "account-active",
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "19a5e4bbfbf55ac7be6b6c77d97d759c8cdcbc8c4b658120894aaacd0aaf28c2",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "0"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "pending"
+          ]
+        ],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "sqlite",
+        "kind": "account-active",
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "e99c4df5cad40485f007fe01b9f932692ad8f3e210a1a3b226688086cedca483",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10",
+            "1"
+          ],
+          [
+            "10",
+            "0"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "pending"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "exception_code": null,
+          "committed_journal_rows": 2,
+          "caller_depth_before_commit": 1,
+          "physical_before_commit": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "sqlite",
+        "kind": "tx-status",
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "19a5e4bbfbf55ac7be6b6c77d97d759c8cdcbc8c4b658120894aaacd0aaf28c2",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "completed"
+          ]
+        ],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "sqlite",
+        "kind": "tx-status",
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "e99c4df5cad40485f007fe01b9f932692ad8f3e210a1a3b226688086cedca483",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10",
+            "1"
+          ],
+          [
+            "10",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "completed"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "exception_code": null,
+          "committed_journal_rows": 2,
+          "caller_depth_before_commit": 1,
+          "physical_before_commit": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "mysql",
+        "kind": "account-balance",
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "19a5e4bbfbf55ac7be6b6c77d97d759c8cdcbc8c4b658120894aaacd0aaf28c2",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "123.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "pending"
+          ]
+        ],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "mysql",
+        "kind": "account-balance",
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "e99c4df5cad40485f007fe01b9f932692ad8f3e210a1a3b226688086cedca483",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10.00",
+            "1"
+          ],
+          [
+            "10.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "pending"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "exception_code": null,
+          "committed_journal_rows": 2,
+          "caller_depth_before_commit": 1,
+          "physical_before_commit": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "mysql",
+        "kind": "account-active",
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "19a5e4bbfbf55ac7be6b6c77d97d759c8cdcbc8c4b658120894aaacd0aaf28c2",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "0"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "pending"
+          ]
+        ],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "mysql",
+        "kind": "account-active",
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "e99c4df5cad40485f007fe01b9f932692ad8f3e210a1a3b226688086cedca483",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10.00",
+            "1"
+          ],
+          [
+            "10.00",
+            "0"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "pending"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "exception_code": null,
+          "committed_journal_rows": 2,
+          "caller_depth_before_commit": 1,
+          "physical_before_commit": true,
+          "committed_caller_marker_rows": 1
+        }
+      },
+      {
+        "driver": "mysql",
+        "kind": "tx-status",
+        "phase": "healthy",
+        "cases": 1,
+        "exit": 0,
+        "expected_assertion_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "19a5e4bbfbf55ac7be6b6c77d97d759c8cdcbc8c4b658120894aaacd0aaf28c2",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 0,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "completed"
+          ]
+        ],
+        "caught_diagnostic": null
+      },
+      {
+        "driver": "mysql",
+        "kind": "tx-status",
+        "phase": "baseline",
+        "cases": 1,
+        "exit": 1,
+        "expected_assertion_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "effective_source_sha256": "e99c4df5cad40485f007fe01b9f932692ad8f3e210a1a3b226688086cedca483",
+        "shadow_test_sha256": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+        "committed_journal_rows": 2,
+        "committed_journal_imbalance": "0.00",
+        "committed_caller_marker_rows": 1,
+        "independent_account_values": [
+          [
+            "10.00",
+            "1"
+          ],
+          [
+            "10.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ],
+          [
+            "0.00",
+            "1"
+          ]
+        ],
+        "independent_transaction_statuses": [
+          [
+            "completed"
+          ]
+        ],
+        "caught_diagnostic": {
+          "exception": null,
+          "exception_code": null,
+          "committed_journal_rows": 2,
+          "caller_depth_before_commit": 1,
+          "physical_before_commit": true,
+          "committed_caller_marker_rows": 1
+        }
+      }
+    ],
+    "scope": "Disposable synthetic books. Baseline posts stale plan after callback balance, active flag or status DML; witness leaves zero journal rows and preserves callback effect. Caller commits prove ownership only; real failed money operation must normally roll back callback and earlier wallet work."
+  },
+  "auxiliary": {
+    "passed": true,
+    "php_linted": 2222,
+    "pint_files": 4,
+    "python_tests": 100,
+    "genuine_locked_vite_build": true,
+    "rust_locked_tests": 27,
+    "rust_release_build": true,
+    "workflow_parsed_not_remotely_run": true,
+    "new_100_case_input_witness_gate": true,
+    "retained_88_case_reentrancy_gate": true,
+    "retained_88_case_boundary_gate": true,
+    "retained_88_case_payload_gate": true,
+    "retained_73_case_gate": true,
+    "retained_82_case_gate": true,
+    "retained_25_case_gate": true,
+    "retained_18_and_21_case_gates": true,
+    "frozen_implementation_files": 6,
+    "no_new_javascript_test_execution_claim": true
+  },
+  "tested_source_sha256": {
+    "app/Services/Finance/LedgerPostingService.php": "19a5e4bbfbf55ac7be6b6c77d97d759c8cdcbc8c4b658120894aaacd0aaf28c2",
+    "app/Services/Finance/LedgerPostingInputWitness.php": "163e387f1236ad6bac6f1ecad2fd91dbd9863f2a2fec19ff9335bd7ba0d679d3",
+    "tests/Unit/Services/LedgerPostingInputWitnessTest.php": "d64ce94bc5eb5a46ae6d788f03f3d50690f4764e4f8b61589b60a127c314358b",
+    "tests/Feature/Finance/LedgerPostingInputDriftTest.php": "74926ea8adf0d85b72ba2ebb6a4a6f70d96deb503f3fa0fd23fb06256f917352",
+    ".github/workflows/financial-concurrency.yml": "0b29bc185a154af7dcd56ac91dc510b457fdbe2fb723de3f7d410842ec7bcc82",
+    "scripts/release_source_inventory.py": "28fa4cc58ad238b53589b556b3e690a953069866e3df79c5fca346b112c1bac0"
+  },
+  "source_preflight_sha256": "fe7e01beac6dbe84a0c5c46f9760dab59f43754b57ecc141cab30d582480da48",
+  "harness_adjustment": "Initial independent control SQL selected seeded chart accounts; corrected to disposable ACC-% fixture accounts. Test/application bytes unchanged. Initial native waiter stopped before tests when that control summary was absent; final waiter requires successful control qualification. Initial acceptance harness also counted all 112 profiles in the general witness rather than its 105 entries plus four verified retry profiles and three ledger profiles; classification corrected without changing tests/application. Raw initial diagnostics retained.",
+  "scope": "Observed financial input drift refuses additional service posting DML; callback/earlier wallet work is not undone. Owner must handle whole failed operation. No callback sandbox, distributed generation proof, provider transfer, remote CI, production restore or legal approval."
+}

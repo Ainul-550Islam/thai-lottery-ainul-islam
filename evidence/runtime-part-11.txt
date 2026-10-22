@@ -1,0 +1,1006 @@
+Part 11 runtime evidence — 2026-10-14
+Base HEAD: a73ad5b8dce6c1f9f777f25ed38b20355d69b3be
+Disposable sandbox tests only; no production or live-payment approval.
+Final collection: 2310 cases, not proof of execution.
+Serial repository diagnostic: 1176 executed / 115651 assertions / one audit foreign-key error; later cases not executed.
+Isolated next-blocker GloWriteBoundaryTest: 22 tests / 57 assertions / four errors / two failures.
+Production sources, prior 105 overlay paths and source fixture unchanged; no guard relaxation.
+Matched synthetic fixture second=5, third=10, exact lists checked.
+Fixture SHA256: 159af378484a4aea5d0978214204d3c6d16e2a35f8a29e82c764ff4518838241
+All database-writing PHPUnit runs were serial. Part9 MariaDB evidence remains historical, not rerun.
+Scoped suites overlap; do not sum as unique coverage.
+
+==============================================================================
+Dependency recovery
+Workspace log: part11-composer.log
+==============================================================================
+Installing dependencies from lock file (including require-dev)
+Verifying lock file contents can be installed on current platform.
+Package operations: 140 installs, 0 updates, 0 removals
+  - Downloading voku/portable-ascii (2.1.1)
+  - Downloading symfony/polyfill-php80 (v1.43.0)
+  - Downloading symfony/polyfill-mbstring (v1.43.0)
+  - Downloading symfony/polyfill-ctype (v1.37.0)
+  - Downloading phpoption/phpoption (1.10.0)
+  - Downloading graham-campbell/result-type (v1.2.0)
+  - Downloading vlucas/phpdotenv (v5.7.0)
+  - Downloading symfony/css-selector (v8.1.6)
+  - Downloading tijsverkoyen/css-to-inline-styles (v2.4.0)
+  - Downloading symfony/deprecation-contracts (v3.7.1)
+  - Downloading symfony/var-dumper (v7.4.18)
+  - Downloading symfony/polyfill-uuid (v1.43.0)
+  - Downloading symfony/uid (v7.4.20)
+  - Downloading symfony/routing (v7.4.20)
+  - Downloading symfony/process (v7.4.19)
+  - Downloading symfony/polyfill-php85 (v1.43.0)
+  - Downloading symfony/polyfill-php84 (v1.43.0)
+  - Downloading symfony/polyfill-php83 (v1.43.0)
+  - Downloading symfony/polyfill-intl-normalizer (v1.43.0)
+  - Downloading symfony/polyfill-intl-idn (v1.43.0)
+  - Downloading symfony/mime (v7.4.19)
+  - Downloading psr/container (2.0.2)
+  - Downloading symfony/service-contracts (v3.7.3)
+  - Downloading psr/event-dispatcher (1.0.0)
+  - Downloading symfony/event-dispatcher-contracts (v3.7.1)
+  - Downloading symfony/event-dispatcher (v8.1.5)
+  - Downloading psr/log (3.0.2)
+  - Downloading doctrine/lexer (3.0.2)
+  - Downloading egulias/email-validator (4.0.4)
+  - Downloading symfony/mailer (v7.4.19)
+  - Downloading symfony/http-foundation (v7.4.20)
+  - Downloading symfony/error-handler (v7.4.20)
+  - Downloading symfony/http-kernel (v7.4.20)
+  - Downloading symfony/finder (v7.4.20)
+  - Downloading symfony/polyfill-intl-grapheme (v1.43.0)
+  - Downloading symfony/string (v8.1.7)
+  - Downloading symfony/console (v7.4.20)
+  - Downloading ramsey/collection (2.1.1)
+  - Downloading brick/math (0.14.8)
+  - Downloading ramsey/uuid (4.9.4)
+  - Downloading psr/simple-cache (3.0.0)
+  - Downloading nunomaduro/termwind (v2.4.0)
+  - Downloading symfony/translation-contracts (v3.7.1)
+  - Downloading symfony/translation (v8.1.5)
+  - Downloading psr/clock (1.0.0)
+  - Downloading symfony/clock (v8.1.0)
+  - Downloading carbonphp/carbon-doctrine-types (3.2.1)
+  - Downloading nesbot/carbon (3.14.1)
+  - Downloading monolog/monolog (3.12.1)
+  - Downloading psr/http-message (2.0)
+  - Downloading psr/http-factory (1.1.0)
+  - Downloading league/uri-interfaces (7.8.1)
+  - Downloading league/uri (7.8.1)
+  - Downloading league/mime-type-detection (1.17.0)
+  - Downloading league/flysystem-local (3.35.3)
+  - Downloading league/flysystem (3.36.0)
+  - Downloading nette/utils (v4.1.5)
+  - Downloading nette/schema (v1.3.6)
+  - Downloading dflydev/dot-access-data (v3.0.3)
+  - Downloading league/config (v1.2.0)
+  - Downloading league/commonmark (2.10.3)
+  - Downloading laravel/serializable-closure (v2.1.0)
+  - Downloading laravel/prompts (v0.3.24)
+  - Downloading guzzlehttp/uri-template (v1.0.11)
+  - Downloading psr/http-client (1.0.3)
+  - Downloading ralouphie/getallheaders (3.0.3)
+  - Downloading guzzlehttp/psr7 (2.13.1)
+  - Downloading guzzlehttp/promises (2.5.3)
+  - Downloading guzzlehttp/guzzle (7.15.5)
+  - Downloading fruitcake/php-cors (v1.4.0)
+  - Downloading dragonmantank/cron-expression (v3.6.0)
+  - Downloading doctrine/inflector (2.1.0)
+  - Downloading laravel/framework (v12.69.3)
+  - Downloading anourvalar/eloquent-serialize (1.3.11)
+  - Downloading blade-ui-kit/blade-icons (1.10.1)
+  - Downloading blade-ui-kit/blade-heroicons (2.7.0)
+  - Downloading danharrin/date-format-converter (v0.3.1)
+  - Downloading psr/cache (3.0.0)
+  - Downloading doctrine/deprecations (1.1.6)
+  - Downloading doctrine/dbal (4.4.4)
+  - Downloading fakerphp/faker (v1.24.1)
+  - Downloading spatie/laravel-package-tools (1.93.2)
+  - Downloading masterminds/html5 (2.11.0)
+  - Downloading symfony/html-sanitizer (v7.4.18)
+  - Downloading spatie/invade (2.1.1)
+  - Downloading spatie/color (1.8.0)
+  - Downloading ryangjchandler/blade-capture-directive (v1.1.1)
+  - Downloading livewire/livewire (v3.8.7)
+  - Downloading kirschbaum-development/eloquent-power-joins (4.3.3)
+  - Downloading filament/support (v3.3.55)
+  - Downloading filament/widgets (v3.3.55)
+  - Downloading openspout/openspout (v4.32.0)
+  - Downloading league/csv (9.28.0)
+  - Downloading filament/actions (v3.3.55)
+  - Downloading filament/notifications (v3.3.55)
+  - Downloading filament/infolists (v3.3.55)
+  - Downloading filament/forms (v3.3.55)
+  - Downloading filament/tables (v3.3.55)
+  - Downloading danharrin/livewire-rate-limiting (v2.2.1)
+  - Downloading filament/filament (v3.3.55)
+  - Downloading laravel/pail (v1.2.7)
+  - Downloading laravel/pint (v1.30.5)
+  - Downloading symfony/yaml (v7.4.17)
+  - Downloading laravel/sail (v1.67.0)
+  - Downloading laravel/sanctum (v4.3.3)
+  - Downloading nikic/php-parser (v5.8.0)
+  - Downloading psy/psysh (v0.12.24)
+  - Downloading laravel/tinker (v2.11.1)
+  - Downloading hamcrest/hamcrest-php (v3.0.0)
+  - Downloading mockery/mockery (1.6.15)
+  - Downloading filp/whoops (2.18.4)
+  - Downloading nunomaduro/collision (v8.9.5)
+  - Downloading staabm/side-effects-detector (1.0.5)
+  - Downloading sebastian/version (5.0.2)
+  - Downloading sebastian/type (5.1.3)
+  - Downloading sebastian/recursion-context (6.0.3)
+  - Downloading sebastian/object-reflector (4.0.1)
+  - Downloading sebastian/object-enumerator (6.0.1)
+  - Downloading sebastian/global-state (7.0.2)
+  - Downloading sebastian/exporter (6.3.2)
+  - Downloading sebastian/environment (7.2.1)
+  - Downloading sebastian/diff (6.0.2)
+  - Downloading sebastian/comparator (6.3.3)
+  - Downloading sebastian/code-unit (3.0.3)
+  - Downloading sebastian/cli-parser (3.0.2)
+  - Downloading phpunit/php-timer (7.0.1)
+  - Downloading phpunit/php-text-template (4.0.1)
+  - Downloading phpunit/php-invoker (5.0.1)
+  - Downloading phpunit/php-file-iterator (5.1.1)
+  - Downloading theseer/tokenizer (1.3.1)
+  - Downloading sebastian/lines-of-code (3.0.1)
+  - Downloading sebastian/complexity (4.0.1)
+  - Downloading sebastian/code-unit-reverse-lookup (4.0.1)
+  - Downloading phpunit/php-code-coverage (11.0.12)
+  - Downloading phar-io/version (3.2.1)
+  - Downloading phar-io/manifest (2.0.4)
+  - Downloading myclabs/deep-copy (1.14.0)
+  - Downloading phpunit/phpunit (11.5.56)
+  - Downloading spatie/laravel-permission (6.25.0)
+  - Downloading symfony/polyfill-intl-icu (v1.38.0)
+   0/140 [>---------------------------]   0%
+  17/140 [===>------------------------]  12%
+  28/140 [=====>----------------------]  20%
+  48/140 [=========>------------------]  34%
+  58/140 [===========>----------------]  41%
+  75/140 [===============>------------]  53%
+  88/140 [=================>----------]  62%
+  99/140 [===================>--------]  70%
+ 120/140 [========================>---]  85%
+ 130/140 [==========================>-]  92%
+ 140/140 [============================] 100%
+  - Installing voku/portable-ascii (2.1.1): Extracting archive
+  - Installing symfony/polyfill-php80 (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-mbstring (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-ctype (v1.37.0): Extracting archive
+  - Installing phpoption/phpoption (1.10.0): Extracting archive
+  - Installing graham-campbell/result-type (v1.2.0): Extracting archive
+  - Installing vlucas/phpdotenv (v5.7.0): Extracting archive
+  - Installing symfony/css-selector (v8.1.6): Extracting archive
+  - Installing tijsverkoyen/css-to-inline-styles (v2.4.0): Extracting archive
+  - Installing symfony/deprecation-contracts (v3.7.1): Extracting archive
+  - Installing symfony/var-dumper (v7.4.18): Extracting archive
+  - Installing symfony/polyfill-uuid (v1.43.0): Extracting archive
+  - Installing symfony/uid (v7.4.20): Extracting archive
+  - Installing symfony/routing (v7.4.20): Extracting archive
+  - Installing symfony/process (v7.4.19): Extracting archive
+  - Installing symfony/polyfill-php85 (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-php84 (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-php83 (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-intl-normalizer (v1.43.0): Extracting archive
+  - Installing symfony/polyfill-intl-idn (v1.43.0): Extracting archive
+  - Installing symfony/mime (v7.4.19): Extracting archive
+  - Installing psr/container (2.0.2): Extracting archive
+  - Installing symfony/service-contracts (v3.7.3): Extracting archive
+  - Installing psr/event-dispatcher (1.0.0): Extracting archive
+  - Installing symfony/event-dispatcher-contracts (v3.7.1): Extracting archive
+  - Installing symfony/event-dispatcher (v8.1.5): Extracting archive
+  - Installing psr/log (3.0.2): Extracting archive
+  - Installing doctrine/lexer (3.0.2): Extracting archive
+  - Installing egulias/email-validator (4.0.4): Extracting archive
+  - Installing symfony/mailer (v7.4.19): Extracting archive
+  - Installing symfony/http-foundation (v7.4.20): Extracting archive
+  - Installing symfony/error-handler (v7.4.20): Extracting archive
+  - Installing symfony/http-kernel (v7.4.20): Extracting archive
+  - Installing symfony/finder (v7.4.20): Extracting archive
+  - Installing symfony/polyfill-intl-grapheme (v1.43.0): Extracting archive
+  - Installing symfony/string (v8.1.7): Extracting archive
+  - Installing symfony/console (v7.4.20): Extracting archive
+  - Installing ramsey/collection (2.1.1): Extracting archive
+  - Installing brick/math (0.14.8): Extracting archive
+  - Installing ramsey/uuid (4.9.4): Extracting archive
+  - Installing psr/simple-cache (3.0.0): Extracting archive
+  - Installing nunomaduro/termwind (v2.4.0): Extracting archive
+  - Installing symfony/translation-contracts (v3.7.1): Extracting archive
+  - Installing symfony/translation (v8.1.5): Extracting archive
+  - Installing psr/clock (1.0.0): Extracting archive
+  - Installing symfony/clock (v8.1.0): Extracting archive
+  - Installing carbonphp/carbon-doctrine-types (3.2.1): Extracting archive
+  - Installing nesbot/carbon (3.14.1): Extracting archive
+  - Installing monolog/monolog (3.12.1): Extracting archive
+  - Installing psr/http-message (2.0): Extracting archive
+  - Installing psr/http-factory (1.1.0): Extracting archive
+  - Installing league/uri-interfaces (7.8.1): Extracting archive
+  - Installing league/uri (7.8.1): Extracting archive
+  - Installing league/mime-type-detection (1.17.0): Extracting archive
+  - Installing league/flysystem-local (3.35.3): Extracting archive
+  - Installing league/flysystem (3.36.0): Extracting archive
+  - Installing nette/utils (v4.1.5): Extracting archive
+  - Installing nette/schema (v1.3.6): Extracting archive
+  - Installing dflydev/dot-access-data (v3.0.3): Extracting archive
+  - Installing league/config (v1.2.0): Extracting archive
+  - Installing league/commonmark (2.10.3): Extracting archive
+  - Installing laravel/serializable-closure (v2.1.0): Extracting archive
+  - Installing laravel/prompts (v0.3.24): Extracting archive
+  - Installing guzzlehttp/uri-template (v1.0.11): Extracting archive
+  - Installing psr/http-client (1.0.3): Extracting archive
+  - Installing ralouphie/getallheaders (3.0.3): Extracting archive
+  - Installing guzzlehttp/psr7 (2.13.1): Extracting archive
+  - Installing guzzlehttp/promises (2.5.3): Extracting archive
+  - Installing guzzlehttp/guzzle (7.15.5): Extracting archive
+  - Installing fruitcake/php-cors (v1.4.0): Extracting archive
+  - Installing dragonmantank/cron-expression (v3.6.0): Extracting archive
+  - Installing doctrine/inflector (2.1.0): Extracting archive
+  - Installing laravel/framework (v12.69.3): Extracting archive
+  - Installing anourvalar/eloquent-serialize (1.3.11): Extracting archive
+  - Installing blade-ui-kit/blade-icons (1.10.1): Extracting archive
+  - Installing blade-ui-kit/blade-heroicons (2.7.0): Extracting archive
+  - Installing danharrin/date-format-converter (v0.3.1): Extracting archive
+  - Installing psr/cache (3.0.0): Extracting archive
+  - Installing doctrine/deprecations (1.1.6): Extracting archive
+  - Installing doctrine/dbal (4.4.4): Extracting archive
+  - Installing fakerphp/faker (v1.24.1): Extracting archive
+  - Installing spatie/laravel-package-tools (1.93.2): Extracting archive
+  - Installing masterminds/html5 (2.11.0): Extracting archive
+  - Installing symfony/html-sanitizer (v7.4.18): Extracting archive
+  - Installing spatie/invade (2.1.1): Extracting archive
+  - Installing spatie/color (1.8.0): Extracting archive
+  - Installing ryangjchandler/blade-capture-directive (v1.1.1): Extracting archive
+  - Installing livewire/livewire (v3.8.7): Extracting archive
+  - Installing kirschbaum-development/eloquent-power-joins (4.3.3): Extracting archive
+  - Installing filament/support (v3.3.55): Extracting archive
+  - Installing filament/widgets (v3.3.55): Extracting archive
+  - Installing openspout/openspout (v4.32.0): Extracting archive
+  - Installing league/csv (9.28.0): Extracting archive
+  - Installing filament/actions (v3.3.55): Extracting archive
+  - Installing filament/notifications (v3.3.55): Extracting archive
+  - Installing filament/infolists (v3.3.55): Extracting archive
+  - Installing filament/forms (v3.3.55): Extracting archive
+  - Installing filament/tables (v3.3.55): Extracting archive
+  - Installing danharrin/livewire-rate-limiting (v2.2.1): Extracting archive
+  - Installing filament/filament (v3.3.55): Extracting archive
+  - Installing laravel/pail (v1.2.7): Extracting archive
+  - Installing laravel/pint (v1.30.5): Extracting archive
+  - Installing symfony/yaml (v7.4.17): Extracting archive
+  - Installing laravel/sail (v1.67.0): Extracting archive
+  - Installing laravel/sanctum (v4.3.3): Extracting archive
+  - Installing nikic/php-parser (v5.8.0): Extracting archive
+  - Installing psy/psysh (v0.12.24): Extracting archive
+  - Installing laravel/tinker (v2.11.1): Extracting archive
+  - Installing hamcrest/hamcrest-php (v3.0.0): Extracting archive
+  - Installing mockery/mockery (1.6.15): Extracting archive
+  - Installing filp/whoops (2.18.4): Extracting archive
+  - Installing nunomaduro/collision (v8.9.5): Extracting archive
+  - Installing staabm/side-effects-detector (1.0.5): Extracting archive
+  - Installing sebastian/version (5.0.2): Extracting archive
+  - Installing sebastian/type (5.1.3): Extracting archive
+  - Installing sebastian/recursion-context (6.0.3): Extracting archive
+  - Installing sebastian/object-reflector (4.0.1): Extracting archive
+  - Installing sebastian/object-enumerator (6.0.1): Extracting archive
+  - Installing sebastian/global-state (7.0.2): Extracting archive
+  - Installing sebastian/exporter (6.3.2): Extracting archive
+  - Installing sebastian/environment (7.2.1): Extracting archive
+  - Installing sebastian/diff (6.0.2): Extracting archive
+  - Installing sebastian/comparator (6.3.3): Extracting archive
+  - Installing sebastian/code-unit (3.0.3): Extracting archive
+  - Installing sebastian/cli-parser (3.0.2): Extracting archive
+  - Installing phpunit/php-timer (7.0.1): Extracting archive
+  - Installing phpunit/php-text-template (4.0.1): Extracting archive
+  - Installing phpunit/php-invoker (5.0.1): Extracting archive
+  - Installing phpunit/php-file-iterator (5.1.1): Extracting archive
+  - Installing theseer/tokenizer (1.3.1): Extracting archive
+  - Installing sebastian/lines-of-code (3.0.1): Extracting archive
+  - Installing sebastian/complexity (4.0.1): Extracting archive
+  - Installing sebastian/code-unit-reverse-lookup (4.0.1): Extracting archive
+  - Installing phpunit/php-code-coverage (11.0.12): Extracting archive
+  - Installing phar-io/version (3.2.1): Extracting archive
+  - Installing phar-io/manifest (2.0.4): Extracting archive
+  - Installing myclabs/deep-copy (1.14.0): Extracting archive
+  - Installing phpunit/phpunit (11.5.56): Extracting archive
+  - Installing spatie/laravel-permission (6.25.0): Extracting archive
+  - Installing symfony/polyfill-intl-icu (v1.38.0): Extracting archive
+   0/140 [>---------------------------]   0%
+  30/140 [======>---------------------]  21%
+  59/140 [===========>----------------]  42%
+  70/140 [==============>-------------]  50%
+  87/140 [=================>----------]  62%
+ 102/140 [====================>-------]  72%
+ 114/140 [======================>-----]  81%
+ 130/140 [==========================>-]  92%
+ 140/140 [============================] 100%
+Generating optimized autoload files
+> @putenv APP_ENV=local
+> Illuminate\Foundation\ComposerScripts::postAutoloadDump
+> @php artisan package:discover --ansi
+
+  [37;44m INFO [39;49m Discovering packages.  
+
+  anourvalar/eloquent-serialize [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  blade-ui-kit/blade-heroicons [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  blade-ui-kit/blade-icons [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/actions [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/filament [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/forms [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/infolists [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/notifications [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/support [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/tables [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  filament/widgets [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  kirschbaum-development/eloquent-power-joins [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  laravel/pail [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  laravel/sail [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  laravel/sanctum [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  laravel/tinker [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  livewire/livewire [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  nesbot/carbon [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  nunomaduro/collision [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  nunomaduro/termwind [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  ryangjchandler/blade-capture-directive [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+  spatie/laravel-permission [90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m[90m.[39m [32;1mDONE[39;22m
+
+> @php artisan filament:upgrade
+  ⇂ public/js/filament/forms/components/color-picker.js  
+  ⇂ public/js/filament/forms/components/date-time-picker.js  
+  ⇂ public/js/filament/forms/components/file-upload.js  
+  ⇂ public/js/filament/forms/components/key-value.js  
+  ⇂ public/js/filament/forms/components/markdown-editor.js  
+  ⇂ public/js/filament/forms/components/rich-editor.js  
+  ⇂ public/js/filament/forms/components/select.js  
+  ⇂ public/js/filament/forms/components/tags-input.js  
+  ⇂ public/js/filament/forms/components/textarea.js  
+  ⇂ public/js/filament/tables/components/table.js  
+  ⇂ public/js/filament/widgets/components/chart.js  
+  ⇂ public/js/filament/widgets/components/stats-overview/stat/chart.js  
+  ⇂ public/js/filament/filament/app.js  
+  ⇂ public/js/filament/filament/echo.js  
+  ⇂ public/js/filament/notifications/notifications.js  
+  ⇂ public/js/filament/support/support.js  
+  ⇂ public/css/filament/forms/forms.css  
+  ⇂ public/css/filament/support/support.css  
+  ⇂ public/css/filament/filament/app.css  
+
+   INFO  Successfully published assets!  
+
+   INFO  Configuration cache cleared successfully.  
+
+   INFO  Route cache cleared successfully.  
+
+   INFO  Compiled views cleared successfully.  
+
+   INFO  Successfully upgraded!  
+
+96 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+
+==============================================================================
+Frontend build recovery
+Workspace log: part11-build.log
+==============================================================================
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                   25.08 kB │ gzip:  3.01 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css               1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                  3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css              4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css            4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css               6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css            6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css             6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css               6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css          7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                 7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css               7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css            7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css              7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                       8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css               8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css             8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css         8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css     9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css              9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                      9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                        10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css           12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                        12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css              12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css          12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                     12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                   12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                    12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                 12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                         12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css        12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                      13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                       14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                       15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-baUnksz1.css                         71.14 kB │ gzip: 12.91 kB
+public/build/assets/account-grades-iqvPnkdB.js                0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js          0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                     0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                           0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                   0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                      0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js            0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js             0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js              0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js          0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js              0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js             0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                   0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                 0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js              0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                     0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                  0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                       0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                     1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                        1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js            1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js            1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                         1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                     1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js          1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                          1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js      1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                   1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js            2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                  2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js          2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js         2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js             2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js             2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                         2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js           2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                  2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-SgmUD3Bq.js               3.13 kB │ gzip:  1.27 kB
+public/build/assets/privacy-portal-DccX1fIk.js                3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                    3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                   4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js     4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js               5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js               6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js   6.34 kB │ gzip:  2.13 kB
+public/build/assets/bet-slip-ByhMJlRF.js                      6.37 kB │ gzip:  2.69 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                   6.62 kB │ gzip:  2.59 kB
+public/build/assets/app-1IIFpSSh.js                          58.45 kB │ gzip: 21.59 kB
+
+✓ built in 2.09s
+
+==============================================================================
+Import baseline: two known failures
+Workspace log: part11-import-baseline.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..........F.F.........                                            22 / 22 (100%)
+
+Time: 00:07.332, Memory: 74.50 MB
+
+There were 2 failures:
+
+1) Tests\Feature\Glo\GloResultImportTest::test_import_stages_pending_ingestion_and_writes_no_draw_result
+Failed asserting that 5 is identical to 1.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloResultImportTest.php:259
+
+2) Tests\Feature\Glo\GloResultImportTest::test_import_into_a_published_draw_is_refused_by_the_lifecycle_guard
+Failed asserting that 'Draw-result row #0 is result_published and cannot be ingested a result.' [ASCII](length: 71) contains "refused" [ASCII](length: 7).
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloResultImportTest.php:334
+
+FAILURES!
+Tests: 22, Assertions: 112, Failures: 2.
+
+==============================================================================
+Repaired import test first pass
+Workspace log: part11-import-first.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+......................                                            22 / 22 (100%)
+
+Time: 00:07.767, Memory: 74.50 MB
+
+OK (22 tests, 145 assertions)
+
+==============================================================================
+Import/list-contract first pass
+Workspace log: part11-import-contract-first.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.....................................                             37 / 37 (100%)
+
+Time: 00:09.950, Memory: 74.50 MB
+
+OK (37 tests, 254 assertions)
+
+==============================================================================
+Import/list-contract final after formatting
+Workspace log: part11-import-contract-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.....................................                             37 / 37 (100%)
+
+Time: 00:10.320, Memory: 74.50 MB
+
+OK (37 tests, 254 assertions)
+
+==============================================================================
+Full serial stop-first: next boundary error
+Workspace log: part11-full-suite-first.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................................   61 / 2310 (  2%)
+.............................................................  122 / 2310 (  5%)
+.............................................................  183 / 2310 (  7%)
+.............................................................  244 / 2310 ( 10%)
+.............................................................  305 / 2310 ( 13%)
+.............................................................  366 / 2310 ( 15%)
+.............................................................  427 / 2310 ( 18%)
+.............................................................  488 / 2310 ( 21%)
+.............................................................  549 / 2310 ( 23%)
+.............................................................  610 / 2310 ( 26%)
+.............................................................  671 / 2310 ( 29%)
+.............................................................  732 / 2310 ( 31%)
+.............................................................  793 / 2310 ( 34%)
+.............................................................  854 / 2310 ( 36%)
+.............................................................  915 / 2310 ( 39%)
+.............................................................  976 / 2310 ( 42%)
+............................................................. 1037 / 2310 ( 44%)
+............................................................. 1098 / 2310 ( 47%)
+............................................................. 1159 / 2310 ( 50%)
+................E
+
+Time: 05:02.220, Memory: 211.00 MB
+
+There was 1 error:
+
+1) Tests\Feature\Glo\GloWriteBoundaryTest::test_zero_or_malformed_maker_identity_cannot_be_confirmed
+Illuminate\Database\QueryException: SQLSTATE[23000]: Integrity constraint violation: 19 FOREIGN KEY constraint failed (Connection: sqlite, Database: database/thai_lottery_test, SQL: insert into "audit_logs" ("user_id", "action", "risk_level", "auditable_type", "auditable_id", "description", "metadata", "request_id", "old_values", "new_values", "created_at") values (0, update, low, App\Models\Draw, 1, Draw GLO-WRITE-BOUNDARY: Ingested new official result into Pending confirmation state — first prize 123456, bottom two 58 (source operator)., {"draw_id":1,"draw_number":"GLO-WRITE-BOUNDARY","ingestion_status":"pending","fingerprint":"2920028c27b1e692c89a42f4f5e37ed75989099b1e1238a49a132e7fb6c0d361","source":"operator","action":"IngestedDrawResult"}, 92158ba8-fa3e-4c4b-8cb2-fb827cfb5813, ?, ?, 2026-10-14 15:05:22))
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:794
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:573
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:537
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php:32
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php:4170
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:2237
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1436
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1401
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1240
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:536
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:147
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:80
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:227
+
+Caused by
+PDOException: SQLSTATE[23000]: Integrity constraint violation: 19 FOREIGN KEY constraint failed
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:584
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:827
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:794
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:573
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:537
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php:32
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php:4170
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:2237
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1436
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1401
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1240
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:536
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:147
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:80
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:227
+
+ERRORS!
+Tests: 1176, Assertions: 115651, Errors: 1.
+
+==============================================================================
+Unchanged next-blocker class isolated: four errors and two failures
+Workspace log: part11-next-blocker-isolated.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+....E....F...F..EE.E..                                            22 / 22 (100%)
+
+Time: 00:06.912, Memory: 74.50 MB
+
+There were 4 errors:
+
+1) Tests\Feature\Glo\GloWriteBoundaryTest::test_zero_or_malformed_maker_identity_cannot_be_confirmed
+Illuminate\Database\QueryException: SQLSTATE[23000]: Integrity constraint violation: 19 FOREIGN KEY constraint failed (Connection: sqlite, Database: database/thai_lottery_test, SQL: insert into "audit_logs" ("user_id", "action", "risk_level", "auditable_type", "auditable_id", "description", "metadata", "request_id", "old_values", "new_values", "created_at") values (0, update, low, App\Models\Draw, 1, Draw GLO-WRITE-BOUNDARY: Ingested new official result into Pending confirmation state — first prize 123456, bottom two 58 (source operator)., {"draw_id":1,"draw_number":"GLO-WRITE-BOUNDARY","ingestion_status":"pending","fingerprint":"2920028c27b1e692c89a42f4f5e37ed75989099b1e1238a49a132e7fb6c0d361","source":"operator","action":"IngestedDrawResult"}, aabcb7e1-c14e-4cdd-a5b0-ab9fb7c5eb20, ?, ?, 2026-10-14 15:06:24))
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:794
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:573
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:537
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php:32
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php:4170
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:2237
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1436
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1401
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1240
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:536
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:147
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:80
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:227
+
+Caused by
+PDOException: SQLSTATE[23000]: Integrity constraint violation: 19 FOREIGN KEY constraint failed
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:584
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:827
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:794
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:573
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Connection.php:537
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php:32
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php:4170
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:2237
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1436
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1401
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1240
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:536
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:147
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultIngestionService.php:80
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:227
+
+2) Tests\Feature\Glo\GloWriteBoundaryTest::test_imported_second_and_third_prizes_are_persisted_only_after_confirmation
+App\Exceptions\DrawResultException: Draw-result row #1 stores first_prize=[123456] but the confirmation claimed [042042]; the two are reported, not reconciled silently.
+
+/home/user/thai-lottery-ainul-islam/app/Exceptions/DrawResultException.php:175
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultConfirmationService.php:445
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultConfirmationService.php:152
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultConfirmationService.php:97
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:596
+
+3) Tests\Feature\Glo\GloWriteBoundaryTest::test_the_source_lane_is_written_only_by_the_confirming_operator
+App\Exceptions\DrawResultException: Draw-result row #1 stores first_prize=[123456] but the confirmation claimed [042042]; the two are reported, not reconciled silently.
+
+/home/user/thai-lottery-ainul-islam/app/Exceptions/DrawResultException.php:175
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultConfirmationService.php:445
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultConfirmationService.php:152
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/home/user/thai-lottery-ainul-islam/app/Services/Draw/DrawResultConfirmationService.php:97
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:620
+
+4) Tests\Feature\Glo\GloWriteBoundaryTest::test_an_independent_bottom_two_is_accepted_and_stored_verbatim
+ErrorException: Undefined array key "first_prize"
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php:262
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:712
+
+--
+
+There were 2 failures:
+
+1) Tests\Feature\Glo\GloWriteBoundaryTest::test_fixture_provenance_is_refused_in_production
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'RESULT_PROVENANCE_FORBIDDEN'
++'RESULT_MISMATCH_CONFIRMED'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:394
+
+2) Tests\Feature\Glo\GloWriteBoundaryTest::test_the_full_gated_journey_requires_two_operators
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'042042'
++'123456'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Glo/GloWriteBoundaryTest.php:479
+
+ERRORS!
+Tests: 22, Assertions: 57, Errors: 4, Failures: 2.
+
+==============================================================================
+Final import/contract/GLO console/Filament operator matrix
+Workspace log: part11-matrix-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 83 ( 78%)
+..................                                                83 / 83 (100%)
+
+Time: 00:28.053, Memory: 99.00 MB
+
+OK (83 tests, 531 assertions)
+
+==============================================================================
+Final automation/guard/grade console regression
+Workspace log: part11-console-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................                     45 / 45 (100%)
+
+Time: 00:12.154, Memory: 78.50 MB
+
+OK (45 tests, 204 assertions)
+
+==============================================================================
+Final financial/readiness/Payment/Finance regression
+Workspace log: part11-masters-finance-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 209 ( 30%)
+............................................................... 126 / 209 ( 60%)
+............................................................... 189 / 209 ( 90%)
+....................                                            209 / 209 (100%)
+
+Time: 00:46.416, Memory: 109.00 MB
+
+OK (209 tests, 991 assertions)
+
+==============================================================================
+Final betting/risk/SQLite retry regression
+Workspace log: part11-betting-risk-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................   63 / 63 (100%)
+
+Time: 00:20.402, Memory: 78.50 MB
+
+OK (63 tests, 300 assertions)
+
+==============================================================================
+Final wallet conversion regression
+Workspace log: part11-conversion-final.log
+==============================================================================
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 71 ( 91%)
+......                                                            71 / 71 (100%)
+
+Time: 00:11.387, Memory: 80.50 MB
+
+OK (71 tests, 259 assertions)
+
+==============================================================================
+PHP lint
+Workspace log: part11-lint-final.log
+==============================================================================
+No syntax errors detected in tests/Feature/Glo/GloResultImportTest.php
+No syntax errors detected in tests/Feature/Glo/GloPrizeListIngestionContractTest.php
+
+==============================================================================
+PHP Pint
+Workspace log: part11-pint-final.log
+==============================================================================
+
+  ..
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   ........................................................... 2 files  
+
+
+==============================================================================
+Source scanner regression guards
+Workspace log: part11-scanner-final.log
+==============================================================================
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.011s
+
+OK
+
+==============================================================================
+Offline server runner guards: no SQL server contacted
+Workspace log: part11-runner-guards-final.log
+==============================================================================
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.003s
+
+OK
+
+==============================================================================
+Static financial source preflight
+Workspace log: part11-preflight-final.log
+==============================================================================
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": true,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": true
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": true
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_quotes": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_audits": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ]
+  },
+  "missing_imported_app_class_count": 0,
+  "missing_imported_app_classes": [],
+  "source_preflight_passed": true,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}
+
+==============================================================================
+Tracked whitespace check: empty output means clean
+Workspace log: part11-whitespace-final.log
+==============================================================================
+

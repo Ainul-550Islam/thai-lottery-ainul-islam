@@ -1,0 +1,652 @@
+INSTALLMENT 8 — LEGACY GLO WRITER QUARANTINE / ENTERPRISE CONTRACT EVIDENCE
+Date: 2026-10-14 Asia/Dhaka
+Base commit: a73ad5b8dce6c1f9f777f25ed38b20355d69b3be
+Environment: dedicated disposable SQLite, with in-memory test configuration and no live merchant.
+
+The restored application baseline and controlled original-writer probes are intentionally failing.
+The below-cap probe observed a 995.00 wallet credit with an Open draw and no recorded result.
+The guarded final method always refuses and does not mutate accounting.
+The full Betting/Risk run has ONE UNRESOLVED SQLite concurrency failure. It is not hidden by the explicitly filtered serial subset.
+Settlement retains one existing SQLite concurrency skip. Server-SQL locking is not verified.
+Selected runs overlap: do not sum them as unique coverage or claim all repository tests passed.
+Recovery/intermediate scratch logs are not represented as application baselines or final evidence.
+No production deployment, migration, live payment, payout or repository push occurred.
+
+===== Restored same-environment two-master baseline before edits =====
+Command: php vendor/bin/phpunit tests/Feature/FinalWholeSystemNoSkipTest.php tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.E.EEEEE..EEEE.EEE..E.E                                           23 / 23 (100%)
+
+Time: 00:04.199, Memory: 74.50 MB
+
+There were 15 errors:
+
+1) Tests\Feature\FinalWholeSystemNoSkipTest::test_02_deposit_funding_and_balance_crediting
+Error: Unknown named parameter $referenceType
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:100
+
+2) Tests\Feature\FinalWholeSystemNoSkipTest::test_04_bulk_bet_placement_with_idempotency_and_satang_math
+TypeError: App\Services\Finance\WalletService::credit(): Argument #2 ($amount) must be of type App\Services\Finance\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php on line 134
+
+/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106
+/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:134
+
+3) Tests\Feature\FinalWholeSystemNoSkipTest::test_05_proportional_prize_calculation_and_settlement
+Error: Call to undefined method App\Services\Lottery\GloL6ProportionalPrizeCalculator::calculatePrizePools()
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:195
+
+4) Tests\Feature\FinalWholeSystemNoSkipTest::test_06_withdrawal_request_and_disbursement_lifecycle
+TypeError: App\Services\Finance\WalletService::credit(): Argument #2 ($amount) must be of type App\Services\Finance\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php on line 211
+
+/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106
+/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:211
+
+5) Tests\Feature\FinalWholeSystemNoSkipTest::test_07_agent_referral_and_settlement_journal
+App\Exceptions\FinancialException: Agent AGT-9386f0 (User #1) has no wallet in THB to receive commission.
+
+/home/user/thai-lottery-ainul-islam/app/Exceptions/FinancialException.php:55
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:153
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:93
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:44
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentSettlementService.php:49
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentSettlementService.php:58
+/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:280
+
+6) Tests\Feature\FinalWholeSystemNoSkipTest::test_08_responsible_gaming_and_self_exclusion_safeguards
+Error: Call to undefined method App\Services\Compliance\SelfExclusionService::isSelfExcluded()
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/FinalWholeSystemNoSkipTest.php:296
+
+7) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_01_glo_l6_official_ticket_business_flow
+TypeError: App\Services\Finance\WalletService::credit(): Argument #2 ($amount) must be of type App\Services\Finance\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 111
+
+/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:111
+
+8) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_02_glo_proportional_payout_and_direct_wallet_settlement
+App\Exceptions\GloClaimException: Claimant identity must be fully KYC verified prior to prize disbursement.
+
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:379
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:355
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:218
+
+9) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_03_payment_hub_deposit_and_withdrawal_execution
+InvalidArgumentException: The account has no wallet for the requested currency.
+
+/home/user/thai-lottery-ainul-islam/app/Services/Payment/ProductionPaymentExecutionHubService.php:59
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:237
+
+10) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_04_wallet_canonical_double_entry_and_single_source
+TypeError: App\Services\Finance\WalletService::credit(): Argument #2 ($amount) must be of type App\Services\Finance\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 291
+
+/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:291
+
+11) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_06_financial_idempotency_protection
+TypeError: App\Services\Finance\WalletService::credit(): Argument #2 ($amount) must be of type App\Services\Finance\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 325
+
+/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:325
+
+12) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_07_cross_currency_wallet_isolation
+TypeError: App\Services\Finance\WalletService::credit(): Argument #2 ($amount) must be of type App\Services\Finance\Money, string given, called in /home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 355
+
+/home/user/thai-lottery-ainul-islam/app/Services/Finance/WalletService.php:106
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:355
+
+13) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p0_08_responsible_gaming_canonical_enforcement
+Error: Call to undefined method App\Services\Compliance\SelfExclusionService::isSelfExcluded()
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:374
+
+14) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p1_14_kyc_document_storage_and_verification
+Illuminate\Database\Eloquent\MassAssignmentException: Add fillable property [kyc_status] to allow mass assignment on [App\Models\User].
+
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:1090
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:439
+
+15) Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest::test_p2_22_agent_and_draw_reconciliation
+App\Exceptions\FinancialException: Agent AGT-REC-001 (User #1) has no wallet in THB to receive commission.
+
+/home/user/thai-lottery-ainul-islam/app/Exceptions/FinancialException.php:55
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:153
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:93
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentCommissionSettlementService.php:44
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentSettlementService.php:49
+/home/user/thai-lottery-ainul-islam/app/Services/Agent/AgentSettlementService.php:58
+/home/user/thai-lottery-ainul-islam/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:534
+
+ERRORS!
+Tests: 23, Assertions: 24, Errors: 15.
+
+
+===== Original alternate writer: larger prize hit independent maximum-balance protection =====
+Command: php vendor/bin/phpunit tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php (original engine, initial larger-prize fixture)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+FEEF                                                                4 / 4 (100%)
+
+Time: 00:03.496, Memory: 70.50 MB
+
+There were 2 errors:
+
+1) Tests\Feature\Finance\LegacyGloSettlementBoundaryTest::test_alternate_wallet_settlement_refuses_every_claim_state_without_mutation with data set "pending" (App\Enums\GloClaimStatus Enum (Pending, 'pending'))
+App\Exceptions\GloClaimException: Only Approved claims can be settled for payment.
+
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:364
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:355
+/home/user/thai-lottery-ainul-islam/tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php:61
+
+2) Tests\Feature\Finance\LegacyGloSettlementBoundaryTest::test_alternate_wallet_settlement_refuses_every_claim_state_without_mutation with data set "eligible" (App\Enums\GloClaimStatus Enum (Eligible, 'eligible'))
+App\Exceptions\GloClaimException: Only Approved claims can be settled for payment.
+
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:364
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:355
+/home/user/thai-lottery-ainul-islam/tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php:61
+
+--
+
+There were 2 failures:
+
+1) Tests\Feature\Finance\LegacyGloSettlementBoundaryTest::test_alternate_wallet_settlement_refuses_every_claim_state_without_mutation with data set "approved without winner proof" (App\Enums\GloClaimStatus Enum (Approved, 'approved'))
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'glo_l6_direct_wallet_settlement_disabled'
++'wallet_maximum_balance_exceeded'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php:64
+
+2) Tests\Feature\Finance\LegacyGloSettlementBoundaryTest::test_alternate_wallet_settlement_refuses_every_claim_state_without_mutation with data set "paid legacy row" (App\Enums\GloClaimStatus Enum (Paid, 'paid'))
+The alternate GLO wallet writer must remain disabled.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php:62
+
+ERRORS!
+Tests: 4, Assertions: 2, Errors: 2, Failures: 2.
+
+
+===== Original alternate writer: below-cap 995.00 credit without published winning result =====
+Command: php vendor/bin/phpunit tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php (original engine, half-sold back-two fixture; four original state variants)
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+FEEF                                                                4 / 4 (100%)
+
+Time: 00:03.415, Memory: 70.50 MB
+
+There were 2 errors:
+
+1) Tests\Feature\Finance\LegacyGloSettlementBoundaryTest::test_alternate_wallet_settlement_refuses_every_claim_state_without_mutation with data set "pending" (App\Enums\GloClaimStatus Enum (Pending, 'pending'))
+App\Exceptions\GloClaimException: Only Approved claims can be settled for payment.
+
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:364
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:355
+/home/user/thai-lottery-ainul-islam/tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php:61
+
+2) Tests\Feature\Finance\LegacyGloSettlementBoundaryTest::test_alternate_wallet_settlement_refuses_every_claim_state_without_mutation with data set "eligible" (App\Enums\GloClaimStatus Enum (Eligible, 'eligible'))
+App\Exceptions\GloClaimException: Only Approved claims can be settled for payment.
+
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:364
+/home/user/thai-lottery-ainul-islam/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/thai-lottery-ainul-islam/app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:355
+/home/user/thai-lottery-ainul-islam/tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php:61
+
+--
+
+There were 2 failures:
+
+1) Tests\Feature\Finance\LegacyGloSettlementBoundaryTest::test_alternate_wallet_settlement_refuses_every_claim_state_without_mutation with data set "approved without winner proof" (App\Enums\GloClaimStatus Enum (Approved, 'approved'))
+The alternate GLO wallet writer must remain disabled. Balance: 995.00
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php:62
+
+2) Tests\Feature\Finance\LegacyGloSettlementBoundaryTest::test_alternate_wallet_settlement_refuses_every_claim_state_without_mutation with data set "paid legacy row" (App\Enums\GloClaimStatus Enum (Paid, 'paid'))
+The alternate GLO wallet writer must remain disabled. Balance: 0.00
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php:62
+
+ERRORS!
+Tests: 4, Assertions: 2, Errors: 2, Failures: 2.
+
+
+===== Final repaired two-master suites =====
+Command: php vendor/bin/phpunit tests/Feature/FinalWholeSystemNoSkipTest.php tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.......................                                           23 / 23 (100%)
+
+Time: 00:09.377, Memory: 80.50 MB
+
+OK (23 tests, 106 assertions)
+
+
+===== Final all five named masters (includes preceding two-master run) =====
+Command: php vendor/bin/phpunit tests/Feature/BusinessCriticalInvariantTest.php tests/Feature/FinalProductionReadinessTest.php tests/Feature/RealMoneyBusinessReadinessTest.php tests/Feature/FinalWholeSystemNoSkipTest.php tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..........................................................        58 / 58 (100%)
+
+Time: 00:19.206, Memory: 93.00 MB
+
+OK (58 tests, 321 assertions)
+
+
+===== Final nine new boundary cases (also included in Payment/Finance) =====
+Command: php vendor/bin/phpunit tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php tests/Feature/Payment/EnterprisePaymentBoundaryTest.php
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.........                                                           9 / 9 (100%)
+
+Time: 00:05.071, Memory: 74.50 MB
+
+OK (9 tests, 49 assertions)
+
+
+===== Final Payment and Finance =====
+Command: php vendor/bin/phpunit tests/Feature/Payment tests/Feature/Finance
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 151 ( 41%)
+............................................................... 126 / 151 ( 83%)
+.........................                                       151 / 151 (100%)
+
+Time: 00:38.872, Memory: 99.00 MB
+
+OK (151 tests, 670 assertions)
+
+
+===== Final canonical GLO claims and L6 calculator =====
+Command: php vendor/bin/phpunit tests/Feature/Glo/GloPrizeClaimTest.php tests/Feature/Glo/GloL6ProportionalCalculatorTest.php
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................                                   31 / 31 (100%)
+
+Time: 00:12.620, Memory: 76.50 MB
+
+OK (31 tests, 100 assertions)
+
+
+===== Final Settlement and Draw: one existing SQLite concurrency skip =====
+Command: php vendor/bin/phpunit tests/Feature/Settlement tests/Feature/Draw
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 155 ( 40%)
+..........................................S.................... 126 / 155 ( 81%)
+.............................                                   155 / 155 (100%)
+
+Time: 00:54.993, Memory: 84.50 MB
+
+OK, but some tests were skipped!
+Tests: 155, Assertions: 1706, Skipped: 1.
+
+
+===== Final conversion feature/unit =====
+Command: php vendor/bin/phpunit tests/Feature/Wallet/Conversion tests/Unit/Wallet/Conversion
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................................. 65 / 71 ( 91%)
+......                                                            71 / 71 (100%)
+
+Time: 00:12.831, Memory: 80.50 MB
+
+OK (71 tests, 259 assertions)
+
+
+===== Final isolated foundation =====
+Command: php vendor/bin/phpunit --no-configuration --bootstrap vendor/autoload.php tests/Standalone/ConversionFoundationTest.php
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+.............................                                     29 / 29 (100%)
+
+Time: 00:00.162, Memory: 26.00 MB
+
+OK (29 tests, 92 assertions)
+
+
+===== Full Betting/Risk regression: observed concurrency failure, NOT a green run =====
+Command: php vendor/bin/phpunit tests/Feature/Betting/BetPurchaseAtomicityTest.php tests/Feature/Risk/NumberLimitProvisioningTest.php
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+............................F............................         57 / 57 (100%)
+
+Time: 00:19.931, Memory: 78.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Betting\BetPurchaseAtomicityTest::ab2_replays_rather_than_duplicates_two_concurrent_identical_requests
+Concurrency probe outcomes: [{"outcome":"refused","exception":"Illuminate\\Database\\QueryException","message":"SQLSTATE[HY000]: General error: 5 database is locked (Connection: sqlite, Database: database\/thai_lottery_test, SQL: update \"number_limits\" set \"current_amount\" = 10.00, \"current_payout_exposure\" = 9000.00, \"updated_at\" = 2026-10-14 10:02:22 where \"id\" = 1)"},{"outcome":"purchased","bet_id":1,"ticket_id":1,"financial_transaction_id":1}]
+Failed asserting that 1 is identical to 0.
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/Betting/BetPurchaseAtomicityTest.php:550
+
+FAILURES!
+Tests: 57, Assertions: 220, Failures: 1.
+
+
+===== Separate NON-CONCURRENT Betting/Risk subset; three concurrent methods explicitly excluded =====
+Command: php vendor/bin/phpunit tests/Feature/Betting/BetPurchaseAtomicityTest.php tests/Feature/Risk/NumberLimitProvisioningTest.php --filter '/^(?!.*concurrent).*$/'
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+......................................................            54 / 54 (100%)
+
+Time: 00:16.373, Memory: 78.50 MB
+
+OK (54 tests, 211 assertions)
+
+
+===== Final scoped PHP syntax =====
+Command: while read -r f; do php -l "$f"; done < /home/user/part8-code-file-list.txt
+No syntax errors detected in app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php
+No syntax errors detected in tests/Feature/FinalWholeSystemNoSkipTest.php
+No syntax errors detected in tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php
+No syntax errors detected in tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php
+No syntax errors detected in tests/Feature/Payment/EnterprisePaymentBoundaryTest.php
+
+
+===== Final scoped Pint =====
+Command: php vendor/bin/pint --test app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php tests/Feature/FinalWholeSystemNoSkipTest.php tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php tests/Feature/Finance/LegacyGloSettlementBoundaryTest.php tests/Feature/Payment/EnterprisePaymentBoundaryTest.php
+
+  .....
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   ........................................................... 5 files  
+
+
+
+===== Final scanner regressions =====
+Command: python3 -m unittest discover -s scripts -p 'test_financial_source_preflight.py'
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.009s
+
+OK
+
+
+===== Final static preflight, not live/runtime certification =====
+Command: python3 scripts/financial_source_preflight.py --json evidence/financial_source_preflight-part-8.json
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": true,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": true
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": true
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_quotes": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_audits": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ]
+  },
+  "missing_imported_app_class_count": 0,
+  "missing_imported_app_classes": [],
+  "source_preflight_passed": true,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}
+
+
+===== Final Vite build after source restoration =====
+Command: npm run build
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                   25.08 kB │ gzip:  3.01 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css               1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                  3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css              4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css            4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css               6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css            6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css             6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css               6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css          7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                 7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css               7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css            7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css              7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                       8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css               8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css             8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css         8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css     9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css              9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                      9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                        10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css           12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                        12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css              12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css          12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                     12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                   12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                    12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                 12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                         12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css        12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                      13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                       14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                       15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-baUnksz1.css                         71.14 kB │ gzip: 12.91 kB
+public/build/assets/account-grades-iqvPnkdB.js                0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js          0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                     0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                           0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                   0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                      0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js            0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js             0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js              0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js          0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js              0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js             0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                   0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                 0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js              0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                     0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                  0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                       0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                     1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                        1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js            1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js            1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                         1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                     1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js          1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                          1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js      1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                   1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js            2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                  2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js          2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js         2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js             2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js             2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                         2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js           2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                  2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-SgmUD3Bq.js               3.13 kB │ gzip:  1.27 kB
+public/build/assets/privacy-portal-DccX1fIk.js                3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                    3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                   4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js     4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js               5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js               6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js   6.34 kB │ gzip:  2.13 kB
+public/build/assets/bet-slip-ByhMJlRF.js                      6.37 kB │ gzip:  2.69 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                   6.62 kB │ gzip:  2.59 kB
+public/build/assets/app-1IIFpSSh.js                          58.45 kB │ gzip: 21.59 kB
+
+✓ built in 1.68s
+
+
+===== Final repository whitespace check =====
+Command: git diff --check
+No output; whitespace check passed.
+
+

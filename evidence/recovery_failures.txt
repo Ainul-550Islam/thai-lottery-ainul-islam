@@ -1,0 +1,132 @@
+50 failing tests across 15 classes
+
+### ConversionAcceptanceJourneyTest (6)
+  - journey one a member moves money out of cash into win and back again   []
+      A completed conversion must leave the member a notification. | Failed asserting that false is true.
+  - journey two a brand new member converts for the very first time   []
+      Expected response status code [201, 301, 302, 303, 307, 308] but received 500. | Failed asserting that false is true. | The following exception occurred during the last request:
+  - journey five a stale price cannot be used to move money at yesterdays rate   []
+      Expected response status code [201, 301, 302, 303, 307, 308] but received 500. | Failed asserting that false is true. | The following exception occurred during the last request:
+  - journey six an operator reverses a mistake and the money comes home   []
+      A reversal pair must reconcile. Mismatches: [{"reference":"CONV-REV-E52D2E92C9","conversion_id":2,"amount_in":"396.00","fee_amount":"0.00","amount_out":"396.00" | Failed asserting that 1 is identical to 0.
+  - journey seven the lane closes mid journey and the member keeps their money   []
+      Expected response status code [201, 301, 302, 303, 307, 308] but received 503. | Failed asserting that false is true.
+  - journey eight the members daily allowance runs out and is reported honestly   []
+      Session is missing expected key [error]. | Failed asserting that false is true. | The following exception occurred during the last request:
+
+### ConversionAuditTrailTest (4)
+  - a completed conversion writes both trails   []
+      The platform audit trail must carry the completion. | Failed asserting that null is not null.
+  - a refusal is audited even though no conversion row exists   []
+      Failed asserting that two strings are identical. | -'failed' | +''
+  - a reversal is audited at medium risk and names both conversions   []
+      Failed asserting that null is not null.
+  - a quote is recorded when it is issued   []
+      Failed asserting that two strings are identical. | -'quoted' | +''
+
+### ConversionCommandTest (4)
+  - the reconcile command passes on a healthy ledger                                                                                                                                                                                                                                                                            ErrorException   []
+      Trying to access array offset on int
+  - the reconcile command fails loudly when a conversion disagrees                                                                                                                                                                                                                                                              ErrorException   []
+      Trying to access array offset on int
+  - the reconcile command changes nothing even when it finds a problem                                                                                                                                                                                                                                                          ErrorException   []
+      Trying to access array offset on int
+  - the reconcile command emits json for monitoring                                                                                                                                                                                                                                                                                  TypeError   []
+      App\Console\Commands\Conversions\ReconcileConversionLedgerCommand::exitCode(): Argument #1 ($report) must be of type array, int given, called in /home/user/repo
+
+### ConversionEnumsTest (2)
+  - every label key an enum can produce resolves in every locale   []
+      The translation key [wallet_conversion.channel_web] is missing in locale [en]. | Failed asserting that two strings are not identical.
+  - every reconciliation description key resolves in every locale   []
+      Failed asserting that two strings are not identical.
+
+### ConversionEventDispatchTest (8)
+  - a conversion announces that it was requested and then completed   []
+      The expected [App\Events\Wallet\ConversionRequested] event was not dispatched. | Failed asserting that false is true.
+  - a refusal is announced with the code the member was given   []
+      The expected [App\Events\Wallet\ConversionRejected] event was not dispatched. | Failed asserting that false is true.
+  - a failure inside the transaction is announced too   []
+      The expected [App\Events\Wallet\ConversionRejected] event was not dispatched. | Failed asserting that false is true.
+  - a reversal is announced with both references   []
+      The expected [App\Events\Wallet\ConversionReversed] event was not dispatched. | Failed asserting that false is true.
+  - every event has somebody listening   []
+      App\Listeners\Wallet\PublishConversionMetrics is registered 2 times for App\Events\Wallet\ConversionRequested; it must run exactly once. | Failed asserting that 2 is identical to 1.
+  - the metrics listener counts what it receives   []
+      Failed asserting that 0 is identical to 1.
+  - the refusal counter is keyed by reason   []
+      Failed asserting that 0 is identical to 1.
+  - an operator fault refusal alerts on its first occurrence   []
+      The operator-fault refusal must still be counted and announced. | Failed asserting that 0 is identical to 1.
+
+### ConversionFeatureContractTest (2)
+  - the daily and monthly allowances are published and enforced at pricing time   []
+      Failed asserting that null is not null.
+  - the two wallets share one currency and a conversion never crosses money                                                                                                                                                                                                                                    MassAssignmentException   []
+      Add fillable property [status, balance, locked_balance, version] to allow mass assignment on [App\Models\Wallet].
+
+### ConversionJobTest (3)
+  - running the expiry job twice expires nothing the second time   []
+      Failed asserting that 1 is identical to 0.
+  - a reversal is not reported as a mismatch   []
+      Failed asserting that 1 is identical to 2.
+  - the mismatch list is capped so one bad night cannot exhaust memory   []
+      Failed asserting that 2 is identical to 4.
+
+### ConversionLedgerIntegrityTest (1)
+  - nothing is posted against a conversion that never completed   []
+      Three balanced transactions, two rows each. | Failed asserting that 4 is identical to 6.
+
+### ConversionLimitsTest (2)
+  - a disabled ceiling is not enforced but is still published   []
+      Turning enforcement off must actually stop refusing; a switch that only changes the copy is a trap. | Failed asserting that two arrays are identical. | -Array &0 []
+  - the whole shape survives a round trip to the api   []
+      A limits object returned in a JSON response must serialise to these fields, not to {}. An empty object here is a field the API client cannot read. | Failed asserting that two arrays are identical. | -Array &0 [
+
+### ConversionNotificationTest (7)
+  - a completed conversion leaves exactly one message   []
+      Failed asserting that actual size 0 matches expected size 1.
+  - the message is fingerprinted so a retry cannot produce a second one   []
+      Failed asserting that 0 is identical to 1.
+  - a refused conversion leaves a message that says no money moved   []
+      A refusal should be explained to the member. | Failed asserting that null is not null.
+  - a reversed conversion raises the priority of its message   []
+      Failed asserting that null is not null.
+  - notifications can be switched off without touching the engine   []
+      Failed asserting that 0 is identical to 1.
+  - a delivery failure is swallowed rather than thrown   []
+      The real message is still there. | Failed asserting that null is not null.
+  - messages are written in the platform locale not the request locale                                                                                                                                                                                                                                             ModelNotFoundException   []
+      No query results for model [App\Models\Notification].
+
+### ConversionQuoteAndLimitTest (2)
+  - an expired quote is refused even though its row still exists                                                                                                                                                                                                                                                               TypeError   []
+      App\Exceptions\Wallet\ConversionQuoteExpiredException::forReference(): Argument #2 ($expiredAt) must be of type DateTimeImmutable, Illuminate\Support\Carbon giv
+  - a quote priced by a superseded rule is refused                                                                                                                                                                                                                                                                             TypeError   []
+      App\Exceptions\Wallet\ConversionQuoteExpiredException::forSupersededRule(): Argument #2 ($expiredAt) must be of type DateTimeImmutable, Illuminate\Support\Carbo
+
+### ConversionReconciliationTest (2)
+  - a reversed conversion reconciles as balanced rather than as a false mismatch   []
+      Failed asserting that 1 is identical to 2.
+  - the mismatch detail is capped but the count is not   []
+      Failed asserting that 1 is identical to 3.
+
+### ConversionValidationTest (2)
+  - a currency other than the one the wallets hold is refused   []
+      Expected response status code [422] but received 500. | Failed asserting that 500 is identical to 422. | The following exception occurred during the last request:
+  - an expired quote is refused at the execution boundary not silently repriced   []
+      Failed asserting that an array contains 500.
+
+### ConversionViewContractTest (4)
+  - a closed direction stays visible in the switch as a disabled label   []
+      Expected: <!DOCTYPE html>\n | <html lang="en" class="h-full bg-slate-950 text-slate-100">\n | <head>\n
+  - the page shows a suspended member the reason rather than a form   []
+      Expected: <!DOCTYPE html>\n | <html lang="en" class="h-full bg-slate-950 text-slate-100">\n | <head>\n
+  - an unverified member is shown the reason instead of the form   []
+      Expected: <!DOCTYPE html>\n | <html lang="en" class="h-full bg-slate-950 text-slate-100">\n | <head>\n
+  - a member whose balance is below the floor is told that no amount works   []
+      Expected: <!DOCTYPE html>\n | <html lang="en" class="h-full bg-slate-950 text-slate-100">\n | <head>\n
+
+### ConversionWiringTest (1)
+  - the lanes config block carries every key the code reads   []
+      config('conversions.reconciliation.enabled') must be present. | Failed asserting that null is not null.
+

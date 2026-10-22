@@ -1,0 +1,1218 @@
+Part48 accepted final-source local synthetic evidence. Matrices overlap; preliminary/interrupted runs are diagnostics, not acceptance. Complete source/log hashes and exact boundaries are in the accompanying acceptance JSON.
+
+===== full-final.log =====
+Part48 complete default regression across four isolated disposable file-backed SQLite shards.
+Each shard executes disjoint source files; no test filter or test source change.
+
+===== shard 1, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 987 (  6%)
+....SSSSSSS.................................................... 126 / 987 ( 12%)
+..SSSSS........................................................ 189 / 987 ( 19%)
+......................................SSSSSSSSSS............... 252 / 987 ( 25%)
+............................................................... 315 / 987 ( 31%)
+............................................................... 378 / 987 ( 38%)
+............................................................... 441 / 987 ( 44%)
+............................................................... 504 / 987 ( 51%)
+............................................................... 567 / 987 ( 57%)
+............................................................... 630 / 987 ( 63%)
+............................................................... 693 / 987 ( 70%)
+............................................................... 756 / 987 ( 76%)
+............................................................... 819 / 987 ( 82%)
+............................................................... 882 / 987 ( 89%)
+............................................................... 945 / 987 ( 95%)
+..........................................                      987 / 987 (100%)
+
+Time: 14:42.118, Memory: 173.00 MB
+
+OK, but some tests were skipped!
+Tests: 987, Assertions: 16260, Skipped: 22.
+
+===== shard 2, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+..............................SSSSS..........................   61 / 1036 (  5%)
+.............................................................  122 / 1036 ( 11%)
+..................................................SSS........  183 / 1036 ( 17%)
+.............SSSSSSSSSSSSSSSSSS..............................  244 / 1036 ( 23%)
+.....................................SSSSSS..................  305 / 1036 ( 29%)
+.............................................................  366 / 1036 ( 35%)
+.............................................................  427 / 1036 ( 41%)
+.............................................................  488 / 1036 ( 47%)
+.............................................................  549 / 1036 ( 52%)
+.............................................................  610 / 1036 ( 58%)
+.............................................................  671 / 1036 ( 64%)
+.............................................................  732 / 1036 ( 70%)
+.............................................................  793 / 1036 ( 76%)
+..............................................S..............  854 / 1036 ( 82%)
+.............................................................  915 / 1036 ( 88%)
+.............................................................  976 / 1036 ( 94%)
+............................................................  1036 / 1036 (100%)
+
+Time: 14:26.894, Memory: 167.00 MB
+
+OK, but some tests were skipped!
+Tests: 1036, Assertions: 109736, Skipped: 33.
+
+===== shard 3, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.....................SSSSS.....................................  63 / 877 (  7%)
+............................................................... 126 / 877 ( 14%)
+............................................................SSS 189 / 877 ( 21%)
+S...................................SSSSSSSSSSSSS.............. 252 / 877 ( 28%)
+............................................................... 315 / 877 ( 35%)
+............................................................... 378 / 877 ( 43%)
+............................................................... 441 / 877 ( 50%)
+............................................................... 504 / 877 ( 57%)
+............................................................... 567 / 877 ( 64%)
+............................................................... 630 / 877 ( 71%)
+............................................................... 693 / 877 ( 79%)
+............................................................... 756 / 877 ( 86%)
+............................................................... 819 / 877 ( 93%)
+..........................................................      877 / 877 (100%)
+
+Time: 14:49.565, Memory: 177.00 MB
+
+OK, but some tests were skipped!
+Tests: 877, Assertions: 8007, Skipped: 22.
+
+===== shard 4, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................SSS........SSSS  63 / 661 (  9%)
+............................................................... 126 / 661 ( 19%)
+..............................SS............................... 189 / 661 ( 28%)
+...................SS.......................S.................. 252 / 661 ( 38%)
+...................................SS.......................... 315 / 661 ( 47%)
+................SSSS.......................SSSSS............... 378 / 661 ( 57%)
+............................................................... 441 / 661 ( 66%)
+................................SSSSSSS........................ 504 / 661 ( 76%)
+............................................................... 567 / 661 ( 85%)
+............................................................... 630 / 661 ( 95%)
+...............................                                 661 / 661 (100%)
+
+Time: 14:06.137, Memory: 129.00 MB
+
+OK, but some tests were skipped!
+Tests: 661, Assertions: 2528, Skipped: 30.
+
+Combined complete regression: Tests: 3561, Assertions: 136531, Skipped: 107, Errors/failures: 0.
+
+===== native.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 438 ( 14%)
+............................................................... 126 / 438 ( 28%)
+............................................................... 189 / 438 ( 43%)
+............................................................... 252 / 438 ( 57%)
+............................................................... 315 / 438 ( 71%)
+............................................................... 378 / 438 ( 86%)
+............................................................    438 / 438 (100%)
+
+Time: 13:13.801, Memory: 117.00 MB
+
+OK (438 tests, 2559 assertions)
+
+===== static.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+...................................                               35 / 35 (100%)
+
+Time: 00:00.117, Memory: 14.00 MB
+
+OK (35 tests, 1490 assertions)
+
+===== standalone.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+
+.............................                                     29 / 29 (100%)
+
+Time: 00:00.791, Memory: 26.00 MB
+
+OK (29 tests, 94 assertions)
+
+===== python.log =====
+......................................................................................
+----------------------------------------------------------------------
+Ran 86 tests in 2.423s
+
+OK
+
+===== pint-check.log =====
+
+  ...........
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   .......................................................... 11 files  
+
+
+===== lint.log =====
+{
+  "php_suffixed_files": 2080,
+  "excluded_generated_directories": [
+    ".cache",
+    ".git",
+    "build",
+    "node_modules",
+    "storage",
+    "target",
+    "vendor"
+  ],
+  "failures": [],
+  "passed": true
+}
+
+===== negative-header-seal.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part48-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:16.855, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Draw\OwnedDrawCancellationTest::test_terminal_replay_needs_original_member_accounting_and_sealed_header_not_saved_labels with data set #0 ('actor')
+Failed asserting that an instance of class PHPUnit\Framework\AssertionFailedError is not an instance of class PHPUnit\Framework\AssertionFailedError.
+
+/home/user/.cache/part48-negative-isolated/tests/Feature/Draw/OwnedDrawCancellationTest.php:83
+/home/user/.cache/part48-negative-isolated/tests/Feature/Draw/OwnedDrawCancellationTest.php:331
+
+FAILURES!
+Tests: 1, Assertions: 2, Failures: 1.
+
+===== negative-original-journal.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part48-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:14.251, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Draw\OwnedDrawCancellationTest::test_terminal_replay_needs_original_member_accounting_and_sealed_header_not_saved_labels with data set #14 ('original_journal')
+Failed asserting that an instance of class PHPUnit\Framework\AssertionFailedError is not an instance of class PHPUnit\Framework\AssertionFailedError.
+
+/home/user/.cache/part48-negative-isolated/tests/Feature/Draw/OwnedDrawCancellationTest.php:83
+/home/user/.cache/part48-negative-isolated/tests/Feature/Draw/OwnedDrawCancellationTest.php:331
+
+FAILURES!
+Tests: 1, Assertions: 2, Failures: 1.
+
+===== negative-lifecycle-gate.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part48-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:14.509, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Draw\OwnedDrawCancellationTest::test_all_bet_history_requires_coordinator_even_when_already_cancelled_or_client_context_claims_refunded
+Failed asserting that an instance of class PHPUnit\Framework\AssertionFailedError is not an instance of class PHPUnit\Framework\AssertionFailedError.
+
+/home/user/.cache/part48-negative-isolated/tests/Feature/Draw/OwnedDrawCancellationTest.php:83
+/home/user/.cache/part48-negative-isolated/tests/Feature/Draw/OwnedDrawCancellationTest.php:227
+
+FAILURES!
+Tests: 1, Assertions: 2, Failures: 1.
+
+===== negative-atomic-root.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part48-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:14.618, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Draw\OwnedDrawCancellationTest::test_later_member_accounting_failure_rolls_back_earlier_refund_risk_audit_and_header
+Failed asserting that two arrays are identical.
+--- Expected
++++ Actual
+@@ @@
+             'type' => 'primary',
+             'status' => 'active',
+             'currency' => 'THB',
+-            'balance' => 90,
++            'balance' => 100,
+             'locked_balance' => 0,
+             'total_deposited' => 100,
+             'total_withdrawn' => 0,
+             'total_wagered' => 10,
+             'total_won' => 0,
+-            'version' => 3,
++            'version' => 4,
+             'locked_at' => null,
+             'locked_reason' => null,
+             'created_at' => '2026-10-17 09:11:50',
+-            'updated_at' => '2026-10-17 09:11:50',
++            'updated_at' => '2026-10-17 09:11:51',
+             'deleted_at' => null,
+         ],
+         1 => Array &5 [
+@@ @@
+             'ticket_id' => 1,
+             'payout_id' => null,
+             'type' => '3d',
+-            'status' => 'active',
++            'status' => 'cancelled',
+             'currency' => 'THB',
+             'stake_amount' => 10,
+             'potential_payout' => 9000,
+@@ @@
+             'idempotency_key' => 'betpurchase:85cc95b3d30bd89165ae222e96f8feb6149a6f77d23eaccba9af0abf8f31d012',
+             'placed_at' => '2026-10-17 09:11:50',
+             'won_at' => null,
+-            'cancelled_at' => null,
+-            'cancelled_reason' => null,
++            'cancelled_at' => '2026-10-17 09:11:51',
++            'cancelled_reason' => 'draw_cancelled',
+             'metadata' => '{"phase":"4.3","market":"3d_direct","market_family":"3d","selection_type":"direct","side":"top","position":"top","bet_type":"3d","number":"007","digits":3,"stake":"10.00","payout_multiplier":"900.0000","potential_payout":"9000.00","exact_product":"9000.000000000000","rounded_up":false,"permutation_count":1,"permutations":[],"logical_selections":1,"idempotency_key":"betpurchase:85cc95b3d30bd89165ae222e96f8feb6149a6f77d23eaccba9af0abf8f31d012","ignored_client_fields":[],"client":[]}',
+             'created_at' => '2026-10-17 09:11:50',
+-            'updated_at' => '2026-10-17 09:11:50',
++            'updated_at' => '2026-10-17 09:11:51',
+             'deleted_at' => null,
+         ],
+         1 => Array &8 [
+@@ @@
+             'ticket_number' => 'TK-20261017-75C392019528',
+             'user_id' => 1,
+             'draw_id' => 1,
+-            'status' => 'confirmed',
++            'status' => 'cancelled',
+             'currency' => 'THB',
+             'total_amount' => 10,
+             'total_bets' => 1,
+@@ @@
+             'total_numbers' => 1,
+             'issued_at' => '2026-10-17 09:11:50',
+             'confirmed_at' => '2026-10-17 09:11:50',
+-            'cancelled_at' => null,
++            'cancelled_at' => '2026-10-17 09:11:51',
+             'expired_at' => null,
+             'metadata' => '{"market":"3d_direct","bet_type":"3d","number":"007","stake":"10.00","potential_payout":"9000.00","idempotency_key":"betpurchase:85cc95b3d30bd89165ae222e96f8feb6149a6f77d23eaccba9af0abf8f31d012","purchase_phase":"4.3"}',
+             'created_at' => '2026-10-17 09:11:50',
+-            'updated_at' => '2026-10-17 09:11:50',
++            'updated_at' => '2026-10-17 09:11:51',
+             'deleted_at' => null,
+         ],
+         1 => Array &14 [
+@@ @@
+             'bet_type' => '3d',
+             'number' => '007',
+             'max_amount' => 100000,
+-            'current_amount' => 20,
++            'current_amount' => 10,
+             'maximum_payout_exposure' => null,
+-            'current_payout_exposure' => 18000,
++            'current_payout_exposure' => 9000,
+             'status' => 'active',
+             'exceeded_at' => null,
+             'metadata' => null,
+             'created_at' => '2026-10-17 09:11:50',
+-            'updated_at' => '2026-10-17 09:11:50',
++            'updated_at' => '2026-10-17 09:11:51',
+             'deleted_at' => null,
+         ],
+     ],
+@@ @@
+             'wallet_id' => 1,
+             'number_limit_id' => 1,
+             'original_transaction_id' => 2,
+-            'refund_transaction_id' => null,
++            'refund_transaction_id' => 5,
+             'currency' => 'THB',
+             'stake_amount' => '10.00',
+             'potential_payout' => '9000.00',
+             'terms_hash' => '45f53fecf6f1d698f847b888a385c496c2b552b06573af54e0d094f704c4dca2',
+             'original_hash' => '0bd052edebc667f7f2d030b315a0d0303e59e9eaef1ffd2f932497a729b118d9',
+-            'refund_hash' => null,
+-            'state' => 'active',
+-            'cancelled_at' => null,
+-            'cancelled_reason' => null,
++            'refund_hash' => 'aa5cd581f717a3bd125e84569c839cb6551e067928bbcc7a76ab32c68b73f4aa',
++            'state' => 'cancelled',
++            'cancelled_at' => '2026-10-17 09:11:51',
++            'cancelled_reason' => 'draw_cancelled',
+             'created_at' => '2026-10-17 09:11:50',
+-            'updated_at' => '2026-10-17 09:11:50',
++            'updated_at' => '2026-10-17 09:11:51',
+             'commission_snapshot_hash' => '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
+             'commission_snapshot_count' => 0,
+         ],
+@@ @@
+     ],
+     'bet_commission_ownerships' => Array &23 [],
+     'agent_commissions' => Array &24 [],
+-    'draw_cancellation_ownerships' => Array &25 [],
+-    'financial_transactions' => Array &26 [
+-        0 => Array &27 [
++    'draw_cancellation_ownerships' => Array &25 [
++        0 => Array &26 [
+             'id' => 1,
++            'draw_id' => 1,
++            'actor_user_id' => 3,
++            'previous_status' => 'open',
++            'reason' => 'Synthetic local operator cancellation',
++            'participants' => '[{"bet_id":1,"user_id":1,"deleted":false,"ownership_id":1,"wallet_id":1,"original_transaction_id":2,"original_hash":"0bd052edebc667f7f2d030b315a0d0303e59e9eaef1ffd2f932497a729b118d9","terms_hash":"45f53fecf6f1d698f847b888a385c496c2b552b06573af54e0d094f704c4dca2","initial_state":"active","initial_refund_id":null},{"bet_id":2,"user_id":2,"deleted":false,"ownership_id":2,"wallet_id":2,"original_transaction_id":4,"original_hash":"0000000000000000000000000000000000000000000000000000000000000000","terms_hash":"b38419fa8a8e970da73707c0c875a11ad6e81586b46fed6dd6b543aa0ba49a70","initial_state":"active","initial_refund_id":null}]',
++            'terms_hash' => '009560d16dd4c9b622d8d9df0267db06ae0fff2c7ba979b2c7992d9fafe0d2aa',
++            'outcomes' => null,
++            'outcome_hash' => null,
++            'state' => 'preparing',
++            'completed_at' => null,
++            'created_at' => '2026-10-17 09:11:50',
++            'updated_at' => '2026-10-17 09:11:50',
++        ],
++    ],
++    'financial_transactions' => Array &27 [
++        0 => Array &28 [
++            'id' => 1,
+             'uuid' => 'b6b71cae-7a58-4d8f-a974-26fd48fe5d19',
+             'reference_number' => 'TX-20261017-5E21D22264EF',
+             'user_id' => 1,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        1 => Array &28 [
++        1 => Array &29 [
+             'id' => 2,
+             'uuid' => '52f2c4e3-f568-42cb-bc1a-adf48dc7c7a3',
+             'reference_number' => 'TX-20261017-072B328B4B52',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        2 => Array &29 [
++        2 => Array &30 [
+             'id' => 3,
+             'uuid' => '34b5b132-9d89-48d7-9db7-43187d12ad86',
+             'reference_number' => 'TX-20261017-22EDF8E1DF66',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        3 => Array &30 [
++        3 => Array &31 [
+             'id' => 4,
+             'uuid' => 'e605117b-d54f-401c-8787-448352c0e0f1',
+             'reference_number' => 'TX-20261017-452812AC676B',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
++        4 => Array &32 [
++            'id' => 5,
++            'uuid' => '056f2480-b70b-4e49-bf32-7fabce49b066',
++            'reference_number' => 'TX-20261017-79B1FBE55FDD',
++            'user_id' => 1,
++            'wallet_id' => 1,
++            'type' => 'bet_refund',
++            'status' => 'completed',
++            'currency' => 'THB',
++            'amount' => 10,
++            'fee' => 0,
++            'description' => 'Refund for cancelled bet BT-20261017-E8BD8FF3E4D4',
++            'metadata' => '{"bet_id":1,"draw_id":1,"purchase_ownership_id":1,"original_transaction_id":2,"draw_cancellation_id":1,"engine_type":"bet_refund"}',
++            'idempotency_key' => 'bet-refund-000000000001',
++            'reference_type' => 'App\Models\Bet',
++            'reference_id' => 1,
++            'reversed_by' => null,
++            'reversed_at' => null,
++            'processed_at' => '2026-10-17 09:11:51',
++            'created_at' => '2026-10-17 09:11:51',
++            'updated_at' => '2026-10-17 09:11:51',
++            'deleted_at' => null,
++        ],
+     ],
+-    'ledger_entries' => Array &31 [
+-        0 => Array &32 [
++    'ledger_entries' => Array &33 [
++        0 => Array &34 [
+             'id' => 1,
+             'ledger_account_id' => 3,
+             'financial_transaction_id' => 1,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        1 => Array &33 [
++        1 => Array &35 [
+             'id' => 2,
+             'ledger_account_id' => 1,
+             'financial_transaction_id' => 1,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        2 => Array &34 [
++        2 => Array &36 [
+             'id' => 3,
+             'ledger_account_id' => 3,
+             'financial_transaction_id' => 2,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        3 => Array &35 [
++        3 => Array &37 [
+             'id' => 4,
+             'ledger_account_id' => 5,
+             'financial_transaction_id' => 2,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        4 => Array &36 [
++        4 => Array &38 [
+             'id' => 5,
+             'ledger_account_id' => 3,
+             'financial_transaction_id' => 3,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        5 => Array &37 [
++        5 => Array &39 [
+             'id' => 6,
+             'ledger_account_id' => 1,
+             'financial_transaction_id' => 3,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        6 => Array &38 [
++        6 => Array &40 [
+             'id' => 7,
+             'ledger_account_id' => 3,
+             'financial_transaction_id' => 4,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        7 => Array &39 [
++        7 => Array &41 [
+             'id' => 8,
+             'ledger_account_id' => 5,
+             'financial_transaction_id' => 4,
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
++        8 => Array &42 [
++            'id' => 9,
++            'ledger_account_id' => 3,
++            'financial_transaction_id' => 5,
++            'wallet_id' => 1,
++            'type' => 'credit',
++            'amount' => 10,
++            'currency' => 'THB',
++            'balance_after' => 100,
++            'description' => 'Refund for cancelled bet BT-20261017-E8BD8FF3E4D4',
++            'reference_type' => 'App\Models\Bet',
++            'reference_id' => 1,
++            'metadata' => null,
++            'posted_at' => '2026-10-17 09:11:51',
++            'created_at' => '2026-10-17 09:11:51',
++            'updated_at' => '2026-10-17 09:11:51',
++            'deleted_at' => null,
++        ],
++        9 => Array &43 [
++            'id' => 10,
++            'ledger_account_id' => 5,
++            'financial_transaction_id' => 5,
++            'wallet_id' => 1,
++            'type' => 'debit',
++            'amount' => 10,
++            'currency' => 'THB',
++            'balance_after' => 10,
++            'description' => 'Refund for cancelled bet BT-20261017-E8BD8FF3E4D4',
++            'reference_type' => 'App\Models\Bet',
++            'reference_id' => 1,
++            'metadata' => null,
++            'posted_at' => '2026-10-17 09:11:51',
++            'created_at' => '2026-10-17 09:11:51',
++            'updated_at' => '2026-10-17 09:11:51',
++            'deleted_at' => null,
++        ],
+     ],
+-    'ledger_accounts' => Array &40 [
+-        0 => Array &41 [
++    'ledger_accounts' => Array &44 [
++        0 => Array &45 [
+             'id' => 1,
+             'code' => '1000',
+             'name' => 'System Cash',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:50',
+             'deleted_at' => null,
+         ],
+-        1 => Array &42 [
++        1 => Array &46 [
+             'id' => 2,
+             'code' => '1100',
+             'name' => 'Withdrawal Clearing',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        2 => Array &43 [
++        2 => Array &47 [
+             'id' => 3,
+             'code' => '2000',
+             'name' => 'Player Liability',
+@@ @@
+             'is_active' => 1,
+             'parent_account_id' => null,
+             'opening_balance' => 0,
+-            'current_balance' => 180,
++            'current_balance' => 190,
+             'metadata' => null,
+             'created_at' => '2026-10-17 09:11:48',
+-            'updated_at' => '2026-10-17 09:11:50',
++            'updated_at' => '2026-10-17 09:11:51',
+             'deleted_at' => null,
+         ],
+-        3 => Array &44 [
++        3 => Array &48 [
+             'id' => 4,
+             'code' => '3000',
+             'name' => 'Manual Adjustments',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        4 => Array &45 [
++        4 => Array &49 [
+             'id' => 5,
+             'code' => '4000',
+             'name' => 'Bet Revenue',
+@@ @@
+             'is_active' => 1,
+             'parent_account_id' => null,
+             'opening_balance' => 0,
+-            'current_balance' => 20,
++            'current_balance' => 10,
+             'metadata' => null,
+             'created_at' => '2026-10-17 09:11:48',
+-            'updated_at' => '2026-10-17 09:11:50',
++            'updated_at' => '2026-10-17 09:11:51',
+             'deleted_at' => null,
+         ],
+-        5 => Array &46 [
++        5 => Array &50 [
+             'id' => 6,
+             'code' => '4100',
+             'name' => 'Fee Revenue',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        6 => Array &47 [
++        6 => Array &51 [
+             'id' => 7,
+             'code' => '5000',
+             'name' => 'Prize Expense',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        7 => Array &48 [
++        7 => Array &52 [
+             'id' => 8,
+             'code' => '5100',
+             'name' => 'Agent Commission',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        8 => Array &49 [
++        8 => Array &53 [
+             'id' => 9,
+             'code' => '1000:USD',
+             'name' => 'System Cash (USD)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        9 => Array &50 [
++        9 => Array &54 [
+             'id' => 10,
+             'code' => '1100:USD',
+             'name' => 'Withdrawal Clearing (USD)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        10 => Array &51 [
++        10 => Array &55 [
+             'id' => 11,
+             'code' => '2000:USD',
+             'name' => 'Player Liability (USD)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        11 => Array &52 [
++        11 => Array &56 [
+             'id' => 12,
+             'code' => '3000:USD',
+             'name' => 'Manual Adjustments (USD)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        12 => Array &53 [
++        12 => Array &57 [
+             'id' => 13,
+             'code' => '4000:USD',
+             'name' => 'Bet Revenue (USD)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        13 => Array &54 [
++        13 => Array &58 [
+             'id' => 14,
+             'code' => '4100:USD',
+             'name' => 'Fee Revenue (USD)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        14 => Array &55 [
++        14 => Array &59 [
+             'id' => 15,
+             'code' => '5000:USD',
+             'name' => 'Prize Expense (USD)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        15 => Array &56 [
++        15 => Array &60 [
+             'id' => 16,
+             'code' => '5100:USD',
+             'name' => 'Agent Commission (USD)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        16 => Array &57 [
++        16 => Array &61 [
+             'id' => 17,
+             'code' => '1000:BDT',
+             'name' => 'System Cash (BDT)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        17 => Array &58 [
++        17 => Array &62 [
+             'id' => 18,
+             'code' => '1100:BDT',
+             'name' => 'Withdrawal Clearing (BDT)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        18 => Array &59 [
++        18 => Array &63 [
+             'id' => 19,
+             'code' => '2000:BDT',
+             'name' => 'Player Liability (BDT)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        19 => Array &60 [
++        19 => Array &64 [
+             'id' => 20,
+             'code' => '3000:BDT',
+             'name' => 'Manual Adjustments (BDT)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        20 => Array &61 [
++        20 => Array &65 [
+             'id' => 21,
+             'code' => '4000:BDT',
+             'name' => 'Bet Revenue (BDT)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        21 => Array &62 [
++        21 => Array &66 [
+             'id' => 22,
+             'code' => '4100:BDT',
+             'name' => 'Fee Revenue (BDT)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        22 => Array &63 [
++        22 => Array &67 [
+             'id' => 23,
+             'code' => '5000:BDT',
+             'name' => 'Prize Expense (BDT)',
+@@ @@
+             'updated_at' => '2026-10-17 09:11:48',
+             'deleted_at' => null,
+         ],
+-        23 => Array &64 [
++        23 => Array &68 [
+             'id' => 24,
+             'code' => '5100:BDT',
+             'name' => 'Agent Commission (BDT)',
+@@ @@
+             'deleted_at' => null,
+         ],
+     ],
+-    'audit_logs' => Array &65 [],
++    'audit_logs' => Array &69 [
++        0 => Array &70 [
++            'id' => 1,
++            'user_id' => 3,
++            'action' => 'cancel_bet',
++            'risk_level' => 'low',
++            'auditable_type' => 'App\Models\Bet',
++            'auditable_id' => 1,
++            'description' => 'Cancelled bet BT-20261017-E8BD8FF3E4D4 (draw_cancelled); refunded 10.00 THB via TX-20261017-79B1FBE55FDD.',
++            'old_values' => null,
++            'new_values' => null,
++            'ip_address' => null,
++            'user_agent' => null,
++            'url' => null,
++            'method' => null,
++            'request_id' => '3de7aa9e-cfde-4b19-974f-2e95d998e224',
++            'metadata' => '{"bet_id":1,"draw_id":1,"reason":"draw_cancelled","refund_transaction_id":5,"draw_cancellation_id":1}',
++            'created_at' => '2026-10-17 09:11:51',
++        ],
++    ],
+ ]
+
+/home/user/.cache/part48-negative-isolated/tests/Feature/Draw/OwnedDrawCancellationTest.php:90
+/home/user/.cache/part48-negative-isolated/tests/Feature/Draw/OwnedDrawCancellationTest.php:163
+
+FAILURES!
+Tests: 1, Assertions: 3, Failures: 1.
+
+===== native-build.log =====
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded const-oid v0.9.6
+  Downloaded ed25519 v2.2.3
+  Downloaded cfg-if v1.0.5
+  Downloaded version_check v0.9.5
+  Downloaded zeroize v1.9.0
+  Downloaded itoa v1.0.18
+  Downloaded sha2 v0.10.9
+  Downloaded subtle v2.6.1
+  Downloaded generic-array v0.14.7
+  Downloaded serde_derive v1.0.229
+  Downloaded serde_core v1.0.229
+  Downloaded rand_core v0.6.4
+  Downloaded memchr v2.8.3
+  Downloaded semver v1.0.28
+  Downloaded digest v0.10.7
+  Downloaded cpufeatures v0.2.17
+  Downloaded syn v3.0.6
+  Downloaded base64ct v1.8.3
+  Downloaded rustc_version v0.4.1
+  Downloaded proc-macro2 v1.0.107
+  Downloaded syn v2.0.119
+  Downloaded spki v0.7.3
+  Downloaded typenum v1.20.1
+  Downloaded crypto-common v0.1.7
+  Downloaded hex v0.4.3
+  Downloaded zmij v1.0.23
+  Downloaded serde_json v1.0.151
+  Downloaded pkcs8 v0.10.2
+  Downloaded signature v2.2.0
+  Downloaded der v0.7.10
+  Downloaded block-buffer v0.10.4
+  Downloaded serde v1.0.229
+  Downloaded ed25519-dalek v2.2.0
+  Downloaded unicode-ident v1.0.26
+  Downloaded quote v1.0.47
+  Downloaded curve25519-dalek-derive v0.1.1
+  Downloaded curve25519-dalek v4.1.3
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling unicode-ident v1.0.26
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling zmij v1.0.23
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling serde_json v1.0.151
+   Compiling zeroize v1.9.0
+   Compiling signature v2.2.0
+   Compiling subtle v2.6.1
+   Compiling serde v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling ed25519 v2.2.3
+   Compiling sha2 v0.10.9
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `release` profile [optimized] target(s) in 40.71s
+
+===== rust.log =====
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling cfg-if v1.0.5
+   Compiling cpufeatures v0.2.17
+   Compiling zmij v1.0.23
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling signature v2.2.0
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling subtle v2.6.1
+   Compiling zeroize v1.9.0
+   Compiling serde_derive v1.0.229
+   Compiling ed25519 v2.2.3
+   Compiling sha2 v0.10.9
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling rand_core v0.6.4
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 34.74s
+     Running unittests src/lib.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-22a456e02c732867)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-80bdcd03109364f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_boundary.rs (security/weekly-result-integrity/target/debug/deps/cli_boundary-067c451bd0c81b0e)
+
+running 5 tests
+test fingerprint_disagreement_exits_two_without_accepting ... ok
+test invalid_utf8_is_a_structured_rejection ... ok
+test malformed_json_exits_one_and_does_not_crash ... ok
+test unsigned_request_exits_zero_with_exact_library_fingerprint ... ok
+test document_ceiling_is_enforced_before_parsing ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/integrity.rs (security/weekly-result-integrity/target/debug/deps/integrity-efe5c4cfa280c0dd)
+
+running 19 tests
+test a_fully_unavailable_result_canonicalizes_without_inventing_zeros ... ok
+test a_different_first_6_produces_a_different_hash ... ok
+test a_malformed_request_document_is_a_value_not_a_panic ... ok
+test a_matching_expected_fingerprint_is_accepted_and_a_wrong_one_is_not ... ok
+test a_partial_result_triple_is_refused ... ok
+test a_value_that_lost_a_leading_zero_hashes_differently ... ok
+test an_invalid_signature_is_rejected ... ok
+test canonical_bytes_are_valid_utf8_including_non_ascii_identifiers ... ok
+test canonical_bytes_start_with_the_version_and_field_count ... ok
+test canonical_field_order_is_fixed_and_documented ... ok
+test half_supplied_signature_material_is_refused_not_downgraded ... ok
+test leading_zeros_are_part_of_the_canonical_bytes ... ok
+test a_valid_signature_is_accepted_only_when_a_key_is_configured ... ok
+test malformed_values_are_rejected_rather_than_repaired ... ok
+test the_crate_source_contains_no_unsafe_and_no_network_or_process_calls ... ok
+test null_and_empty_are_distinct ... ok
+test the_same_payload_always_produces_the_same_hash ... ok
+test the_dependency_tree_contains_no_networking_crate ... ok
+test unsigned_payload_returns_hash_only_and_never_claims_a_signature ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/strict_signature.rs (security/weekly-result-integrity/target/debug/deps/strict_signature-2c56f82fb4fbf60b)
+
+running 3 tests
+test source_identifier_over_191_characters_is_rejected ... ok
+test weak_identity_key_and_signature_cannot_authenticate_any_result ... ok
+test unicode_source_identifier_counts_characters_but_hashes_utf8_bytes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests weekly_result_integrity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+===== security.log =====
+
+> security:dependencies
+> node scripts/dependency_security_gate.mjs
+
+{
+  "passed": true,
+  "scope": "Known advisories in the complete npm lock graph, not a whole-platform security certification.",
+  "node": "24.22.0",
+  "npm": "11.21.1",
+  "lockedPackages": 149,
+  "auditedPackages": 149,
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  }
+}
+
+===== node-tests.log =====
+
+> test:dependencies
+> node --test tests/dependencies/*.test.mjs
+
+✔ the complete reviewed lock and runtime are accepted (4.708697ms)
+✔ nonzero info is refused even if npm exits0 (0.57837ms)
+✔ missing info count is not a clean audit (0.342041ms)
+✔ nonzero low is refused even if npm exits0 (0.37777ms)
+✔ missing low count is not a clean audit (0.203796ms)
+✔ nonzero moderate is refused even if npm exits0 (0.163357ms)
+✔ missing moderate count is not a clean audit (0.426899ms)
+✔ nonzero high is refused even if npm exits0 (0.281731ms)
+✔ missing high count is not a clean audit (0.335167ms)
+✔ nonzero critical is refused even if npm exits0 (0.252459ms)
+✔ missing critical count is not a clean audit (0.218019ms)
+✔ nonzero total is refused even if npm exits0 (0.281028ms)
+✔ missing total count is not a clean audit (0.190808ms)
+✔ refuses an uncounted advisory (0.266459ms)
+✔ refuses an audit API error (0.133739ms)
+✔ refuses a future unsupported schema (0.415049ms)
+✔ refuses a string zero (0.284489ms)
+✔ refuses an empty graph (0.348921ms)
+✔ refuses a missing graph (0.11234ms)
+✔ refuses an array of vulnerabilities (0.104604ms)
+✔ refuses npm status null with a superficially clean report (0.138954ms)
+✔ refuses npm status 1 with a superficially clean report (0.101325ms)
+✔ refuses npm status 2 with a superficially clean report (0.183852ms)
+✔ refuses npm status 127 with a superficially clean report (0.112345ms)
+✔ runtime 20.20.2 needs review rather than a silently bypassed engine (0.479808ms)
+✔ runtime 22.22.0 needs review rather than a silently bypassed engine (0.175108ms)
+✔ runtime 23.0.0 needs review rather than a silently bypassed engine (0.075959ms)
+✔ runtime 25.0.0 needs review rather than a silently bypassed engine (0.16878ms)
+✔ runtime 24.0.0-preview needs review rather than a silently bypassed engine (0.084902ms)
+✔ runtime unknown needs review rather than a silently bypassed engine (0.111133ms)
+✔ npm 10.8.2 is outside the reviewed major (0.549364ms)
+✔ npm 12.0.0 is outside the reviewed major (0.315115ms)
+✔ npm  is outside the reviewed major (0.407993ms)
+✔ npm 11.0.0-preview is outside the reviewed major (0.339553ms)
+✔ lock policy rejects missing root (3.106994ms)
+✔ lock policy rejects old lock format (2.095114ms)
+✔ lock policy rejects root manifest drift (0.920625ms)
+✔ lock policy rejects old root engine (2.097371ms)
+✔ lock policy rejects missing compiler (1.194405ms)
+✔ lock policy rejects restored unpatched braces (1.59309ms)
+✔ lock policy rejects unreviewed nested compiler (2.423769ms)
+✔ lock policy rejects unreviewed adapter (2.70211ms)
+✔ lock policy rejects remote nonregistry artifact (2.807292ms)
+✔ lock policy rejects missing integrity (2.641621ms)
+✔ lock policy rejects weak hash algorithm (2.839349ms)
+✔ lock policy rejects top-level fake bundle (1.187224ms)
+✔ lock policy rejects undeclared bundled artifact (1.081373ms)
+✔ lock policy rejects unlocked bundle parent (0.748125ms)
+✔ audit invocation explicitly includes development and optional packages and all severities (2.610102ms)
+✔ audit network failure cannot turn green (1.248873ms)
+✔ audit malformed JSON cannot turn green (1.128742ms)
+✔ audit timeout cannot turn green (2.390224ms)
+✔ audit spawn failure cannot turn green (3.254956ms)
+✔ all five CI Node setups follow the reviewed version file; every npm install lane runs the gate (1.43083ms)
+ℹ tests 54
+ℹ suites 0
+ℹ pass 54
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 254.86477
+
+===== build.log =====
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                    25.08 kB │ gzip:  3.00 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                 1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css                1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css              1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                       2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                   3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css               4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css             4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css                6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css             6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css              6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css                6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css           7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                  7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css                7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css             7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css               7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                        8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css                8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css              8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css          8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css      9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css               9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                       9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                         10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                 12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css            12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                         12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css               12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css           12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                      12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                      12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                    12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                  12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                          12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css         12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                       13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                        14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                        15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-DCximxvo.css                         110.83 kB │ gzip: 17.76 kB
+public/build/assets/account-grades-iqvPnkdB.js                 0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js           0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                        0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                            0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                    0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                        0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                       0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                  0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js         0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                  0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js         0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                 0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js              0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                  0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js               0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js           0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js               0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js              0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                    0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                  0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js               0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                 0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                      0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                   0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                        0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                      1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                         1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js             1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js             1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                          1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                      1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js           1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                           1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js       1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                 1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                    1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js             2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                   2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js           2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js          2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js              2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js              2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                          2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                 2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js            2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                   2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-BxtEzC2x.js                3.17 kB │ gzip:  1.28 kB
+public/build/assets/privacy-portal-DccX1fIk.js                 3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                     3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                    4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                 4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js      4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js                5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js                6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js    6.34 kB │ gzip:  2.13 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                    6.62 kB │ gzip:  2.59 kB
+public/build/assets/bet-slip-D0XoVmrB.js                       7.62 kB │ gzip:  3.19 kB
+public/build/assets/app-1IIFpSSh.js                           58.45 kB │ gzip: 21.59 kB
+
+✓ built in 1.66s

@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fintech-horizon-deployment
+  namespace: fintech-production
+  labels:
+    app: fintech-horizon
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: fintech-horizon
+  template:
+    metadata:
+      labels:
+        app: fintech-horizon
+    spec:
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: horizon-worker
+          image: ghcr.io/ainul-550islam/thai-lottery-app:latest
+          command: ["php", "artisan", "horizon"]
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "4000m"
+              memory: "4Gi"
+          envFrom:
+            - configMapRef:
+                name: fintech-config
+            - secretRef:
+                name: fintech-secrets

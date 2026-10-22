@@ -1,0 +1,1 @@
+(function(){document.addEventListener(`DOMContentLoaded`,function(){let e=document.querySelector(`[data-wl-search]`);if(!e)return;let t=e.querySelector(`input[name="term"]`);t&&t.addEventListener(`input`,function(){t.value=t.value.replace(/[^0-9-]/g,``)})})})();

@@ -1,0 +1,14 @@
+Part62 completed local application acceptance; overlapping counts are not additive.
+Default: 4154 exact discovered cases; 142423 assertions; 178 explicit conditional skips; 305 complete source files; zero errors/failures; 6 workers and independent process/named tmpfs SQLite store per file.
+Affected MariaDB native: 282 cases; 4079 assertions; zero skips/errors/failures; 27 genuine two-child wallet/player waits, including five new initial-handoff profiles.
+Dedicated subset: 32 cases / 291 assertions; 27 feature cases and five native profiles; not extra unique cases.
+Omission controls: nine deliberate single assertion failures; zero setup errors; old-RR generic unlock and parent/both-child shadow autoload source proved.
+PHP syntax: 2156 files; Pint: 12 changed PHP files; Python: 86 tests.
+Static: {"passed": true, "cases": 35, "assertions": 1674, "skipped": 0, "errors": 0, "failures": 0}; standalone: {"passed": true, "cases": 29, "assertions": 94, "skipped": 0, "errors": 0, "failures": 0}.
+Composer advisory/abandoned: 0/0; npm locked/audited: 149, zero vulnerabilities; 54 Node tests and genuine Vite build.
+Rust: 27 locked integrity tests and release build; retired settlement worker remains inactive.
+Separate empty SQLite and MariaDB up/down/up succeeded. SQLite second-up table count: 158. New unique-FK rollback order corrected, no history backfill, nonempty history rollback refused.
+Final default and affected native rerun used the current 14 frozen implementation paths; early diagnostics are excluded.
+Fresh API ownership/handoff and closures are implemented. Historical anonymous holds require independently proved controlled review, not aggregate adoption.
+No live provider/bank transfer or refund POST, remote CI, populated production restore, arbitrary-writer clearance, power-loss certification or worldwide legal approval.
+Runbooks: docs/withdrawal-initial-hold-handoff-part-62.md and docs/remaining-work-part-62.md.

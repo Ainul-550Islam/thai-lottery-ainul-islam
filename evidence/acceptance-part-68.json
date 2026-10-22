@@ -1,0 +1,156 @@
+{
+  "part": 68,
+  "passed": true,
+  "date": "2026-10-19",
+  "scope": "Current conversion member eligibility and real old-RR owner-wait qualification; original replay remains observational.",
+  "default": {
+    "passed": true,
+    "cases": 4386,
+    "assertions": 143731,
+    "skipped": 211,
+    "errors": 0,
+    "failures": 0,
+    "source_files": 317,
+    "exact_discovery_matched": true,
+    "all_previous_4339_case_ids_retained": true
+  },
+  "native": {
+    "passed": true,
+    "cases": 613,
+    "assertions": 7840,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "genuine_two_child_parent_waits": 68,
+    "new_old_rr_member_profiles": 10
+  },
+  "focused_subset": {
+    "passed": true,
+    "cases": 47,
+    "assertions": 337,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "suite_counts_overlap": true,
+  "raw_native_cases": 614,
+  "platform_only_native_record_excluded": 1,
+  "omission_controls": {
+    "total": 14,
+    "expected_assertion_failures": 14,
+    "setup_errors": 0,
+    "genuine_two_child_current_read_controls": 9,
+    "parent_and_both_child_shadow_member_guard_and_policy_sources_proved": true
+  },
+  "syntax": {
+    "php_files": 2177,
+    "changed_php_pint_files": 7
+  },
+  "python_tests": 86,
+  "static": {
+    "passed": true,
+    "cases": 35,
+    "assertions": 1728,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "standalone": {
+    "passed": true,
+    "cases": 29,
+    "assertions": 94,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "node": "24.22.0",
+    "npm": "11.21.1",
+    "genuine_vite_build": true
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true,
+    "retired_settlement_worker_activated": false
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part68_migrations": 0,
+    "engine": "separate empty SQLite store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 158,
+    "historical_backfill": false,
+    "populated_production_upgrade": false
+  },
+  "ci_workflow_local_parse": {
+    "parsed": true,
+    "new_case_gate": 47,
+    "required_new_genuine_two_child_parent_waits": 10,
+    "explicit_old_member_snapshots_required": true,
+    "remote_ci_executed": false
+  },
+  "current_frozen_sources": {
+    "app/Services/Wallet/Conversion/ConversionMemberEligibility.php": "8db203fb4b9ec918e6e76897fc16ef638062684b05b9b4fa02d17337f97a70a9",
+    "app/Services/Wallet/Conversion/ConversionPolicyGuard.php": "38c63408c0ebadaad2fd73b11a5ce766a77cf50c1bb977154390ad31700625b6",
+    "tests/Support/ConversionMemberEligibilityFixture.php": "55bfce6ed82e1b7663180a2797d06f533796b9a8a302f13fe0dc03c0a9ba876d",
+    "tests/Feature/Wallet/Conversion/ConversionMemberEligibilityTest.php": "cfc9ff448053ccfbabcca9a7c1873f41eed0ad720f49d65a3cef7725c6e31a44",
+    "tests/Feature/Wallet/Conversion/ConversionMemberEligibilityServerTest.php": "08b863e2b4602544db20f2b623e310818b5d35d9951dd981cd0bbc065f6d2f60",
+    "tests/Support/FinancialRaceProbe.php": "e8fb3d6732d3081b0dfefe13c0dc68ee48807a8a03482df54029713879da9037",
+    "tests/Support/RunsServerFinancialRaces.php": "39a07658aa9ec497e867ef1063206d88b4c5b6a4d3eba703700b604c3bc7641b",
+    ".github/workflows/financial-concurrency.yml": "0097d28cd7a6d517a1f227700c1e085e4f0597ca4b4a6becb63c64a6ef66bea2",
+    "scripts/release_source_inventory.py": "346f867c1ad63f5ab66b85a7f36870f2bee9a7a9e6b3b5d79d8a053daeb11fb2"
+  },
+  "provenance": {
+    "complete_current_discovery_executed": true,
+    "all_previous_4339_ids_retained": true,
+    "existing_assertions_not_weakened": true,
+    "each_default_file_has_unique_process_tmpfs_sqlite_and_test_token": true,
+    "gd_loaded_before_full_regression": true,
+    "journal_or_synchronous_policy_disabled": false,
+    "two_real_old_rr_member_snapshots_before_each_parent_mutation": true,
+    "owner_mutex_retained_through_actual_quote_or_money_commit": true,
+    "new_authority_refused_without_quote_consumption_or_money_changes": true,
+    "restored_member_positive_current_authority_proved": true,
+    "original_two_direction_replay_after_revocation_remains_observational": true,
+    "native_impossible_date_writes_rejected_by_strict_storage_and_sqlite_guard_proof_separate": true
+  },
+  "exact_active_account_required": true,
+  "current_canonical_and_legacy_exclusion_and_cooling_off_checked": true,
+  "deleted_live_legacy_safety_row_does_not_cancel_exclusion": true,
+  "current_live_non_deleted_verified_document_required_when_configured": true,
+  "null_expiry_verified_legacy_evidence_retained": true,
+  "current_mobile_removal_checked_when_configured": true,
+  "raw_principal_or_relation_cache_is_authority": false,
+  "hydrated_page_maximum": 250,
+  "total_database_scan_work_or_all_locks_bounded": false,
+  "quote_is_wallet_hold_or_reservation": false,
+  "all_account_kyc_exclusion_or_wallet_writers_certified": false,
+  "ordinary_wallet_advisory_reads_newly_certified_current": false,
+  "other_isolation_or_custom_dst_timezone_certification": false,
+  "qualified_accounting_timezone": "Asia/Bangkok fixed offset",
+  "new_migrations": 0,
+  "historical_repairs_or_backfills": false,
+  "provider_io_inside_sql": false,
+  "remote_ci_executed": false,
+  "live_provider_transfer_or_refund": false,
+  "populated_production_upgrade_restore": false,
+  "worldwide_legal_approval": false
+}

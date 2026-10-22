@@ -1,0 +1,298 @@
+
+   FAIL  Tests\Feature\FinalWholeSystemNoSkipTest
+  ✓ 01 user registration and wallet initialization                                                                                                                                                                                                 4.44s  
+  ⨯ 02 deposit funding and balance crediting                                                                                                                                                                                                       0.32s  
+  ✓ 03 draw creation and lifecycle                                                                                                                                                                                                                 0.24s  
+  ⨯ 04 bulk bet placement with idempotency and satang math                                                                                                                                                                                         0.24s  
+  ⨯ 05 proportional prize calculation and settlement                                                                                                                                                                                               0.22s  
+  ⨯ 06 withdrawal request and disbursement lifecycle                                                                                                                                                                                               0.34s  
+  ⨯ 07 agent referral and settlement journal                                                                                                                                                                                                       0.23s  
+  ⨯ 08 responsible gaming and self exclusion safeguards                                                                                                                                                                                            0.21s  
+  ✓ 09 kyc document submission and lifecycle                                                                                                                                                                                                       0.21s  
+  ✓ 10 system observability and health integrity                                                                                                                                                                                                   0.21s  
+
+   FAIL  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest
+  ⨯ p0 01 glo l6 official ticket business flow                                                                                                                                                                                                     0.26s  
+  ⨯ p0 02 glo proportional payout and direct wallet settlement                                                                                                                                                                                     0.24s  
+  ⨯ p0 03 payment hub deposit and withdrawal execution                                                                                                                                                                                             0.25s  
+  ⨯ p0 04 wallet canonical double entry and single source                                                                                                                                                                                          0.24s  
+  ✓ p0 05 health route mismatch resolution                                                                                                                                                                                                         0.24s  
+  ⨯ p0 06 financial idempotency protection                                                                                                                                                                                                         0.25s  
+  ⨯ p0 07 cross currency wallet isolation                                                                                                                                                                                                          0.25s  
+  ⨯ p0 08 responsible gaming canonical enforcement                                                                                                                                                                                                 0.23s  
+  ✓ p0 09 result provenance validation                                                                                                                                                                                                             0.24s  
+  ✓ p0 10 multi lane historical data integrity                                                                                                                                                                                                     0.23s  
+  ⨯ p1 14 kyc document storage and verification                                                                                                                                                                                                    0.25s  
+  ✓ p1 20 prize claim lifecycle state machine                                                                                                                                                                                                      0.21s  
+  ⨯ p2 22 agent and draw reconciliation                                                                                                                                                                                                            0.22s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 02 deposit funding and balance crediting                                                                                                                                                    Error   
+  Unknown named parameter $referenceType
+
+  at tests/Feature/FinalWholeSystemNoSkipTest.php:104
+    100▕ 
+    101▕         $walletService->credit(
+    102▕             wallet: $wallet,
+    103▕             amount: '5000.00',
+  ➜ 104▕             referenceType: 'payment_transaction',
+    105▕             referenceId: (string) $tx->id,
+    106▕             description: 'PromptPay Wallet Deposit'
+    107▕         );
+    108▕
+
+  1   tests/Feature/FinalWholeSystemNoSkipTest.php:104
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 04 bulk bet placement with idempotency and satang math                                                                                                                                  TypeError   
+  App\Services\Finance\WalletService::credit(): Argument #5 ($options) must be of type array, string given, called in /home/user/repo/tests/Feature/FinalWholeSystemNoSkipTest.php on line 138
+
+  at app/Services/Finance/WalletService.php:249
+    245▕      *                                         reference_id, fee, actor_user_id
+    246▕      *
+    247▕      * @throws FinancialException
+    248▕      */
+  ➜ 249▕     public function credit(
+    250▕         Wallet|int|User $wallet,
+    251▕         Money|string|int|float $amount,
+    252▕         FinancialTransactionType|string|null $type = null,
+    253▕         ?string $idempotencyKey = null,
+
+  1   app/Services/Finance/WalletService.php:249
+  2   tests/Feature/FinalWholeSystemNoSkipTest.php:138
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 05 proportional prize calculation and settlement                                                                                                                                            Error   
+  Call to undefined method App\Services\Lottery\GloL6ProportionalPrizeCalculator::calculatePrizePools()
+
+  at tests/Feature/FinalWholeSystemNoSkipTest.php:199
+    195▕     {
+    196▕         /** @var GloL6ProportionalPrizeCalculator $calc */
+    197▕         $calc = $this->app->make(GloL6ProportionalPrizeCalculator::class);
+    198▕ 
+  ➜ 199▕         $results = $calc->calculatePrizePools(
+    200▕             totalRevenue: '10000000.00',
+    201▕             prizePoolAllocationPercent: '60.00'
+    202▕         );
+    203▕
+
+  1   tests/Feature/FinalWholeSystemNoSkipTest.php:199
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 06 withdrawal request and disbursement lifecycle                                                                                                                                        TypeError   
+  App\Services\Finance\WalletService::credit(): Argument #5 ($options) must be of type array, string given, called in /home/user/repo/tests/Feature/FinalWholeSystemNoSkipTest.php on line 215
+
+  at app/Services/Finance/WalletService.php:249
+    245▕      *                                         reference_id, fee, actor_user_id
+    246▕      *
+    247▕      * @throws FinancialException
+    248▕      */
+  ➜ 249▕     public function credit(
+    250▕         Wallet|int|User $wallet,
+    251▕         Money|string|int|float $amount,
+    252▕         FinancialTransactionType|string|null $type = null,
+    253▕         ?string $idempotencyKey = null,
+
+  1   app/Services/Finance/WalletService.php:249
+  2   tests/Feature/FinalWholeSystemNoSkipTest.php:215
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 07 agent referral and settlement journal                                                                                                                                       FinancialException   
+  Agent AGT-03994c (User #1) has no wallet in THB to receive commission.
+
+  at app/Exceptions/FinancialException.php:55
+     51▕         string $message,
+     52▕         array $context = [],
+     53▕         ?Throwable $previous = null,
+     54▕     ): static {
+  ➜  55▕         return new static($message, $errorCode, $context, $previous);
+     56▕     }
+     57▕ 
+     58▕     /**
+     59▕      * Stable identifier for this failure, or null when none was supplied.
+
+  1   app/Exceptions/FinancialException.php:55
+  2   app/Services/Agent/AgentCommissionSettlementService.php:153
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 08 responsible gaming and self exclusion safeguards                                                                                                                                         Error   
+  Call to undefined method App\Services\Compliance\SelfExclusionService::isSelfExcluded()
+
+  at tests/Feature/FinalWholeSystemNoSkipTest.php:300
+    296▕ 
+    297▕         /** @var SelfExclusionService $exclusionService */
+    298▕         $exclusionService = $this->app->make(SelfExclusionService::class);
+    299▕ 
+  ➜ 300▕         $this->assertFalse($exclusionService->isSelfExcluded($user->id));
+    301▕ 
+    302▕         $exclusionService->exclude(new SelfExclusionData(
+    303▕             userId: $user->id,
+    304▕             durationDays: 30,
+
+  1   tests/Feature/FinalWholeSystemNoSkipTest.php:300
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 01 glo l6 official ticket business flow                                                                                                                                  TypeError   
+  App\Services\Finance\WalletService::credit(): Argument #5 ($options) must be of type array, string given, called in /home/user/repo/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 115
+
+  at app/Services/Finance/WalletService.php:249
+    245▕      *                                         reference_id, fee, actor_user_id
+    246▕      *
+    247▕      * @throws FinancialException
+    248▕      */
+  ➜ 249▕     public function credit(
+    250▕         Wallet|int|User $wallet,
+    251▕         Money|string|int|float $amount,
+    252▕         FinancialTransactionType|string|null $type = null,
+    253▕         ?string $idempotencyKey = null,
+
+  1   app/Services/Finance/WalletService.php:249
+  2   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:115
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 02 glo proportional payout and direct wallet settlement                                                                                                          GloClaimException   
+  Claimant identity must be fully KYC verified prior to prize disbursement.
+
+  at app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:379
+    375▕             }
+    376▕ 
+    377▕             // 2. Verify KYC Standing
+    378▕             if (! $claimant->kycStatus()->isVerified()) {
+  ➜ 379▕                 throw new GloClaimException('Claimant identity must be fully KYC verified prior to prize disbursement.');
+    380▕             }
+    381▕ 
+    382▕             // 3. Verify Claim Window (2 Years from Draw Date)
+    383▕             $deadline = $draw->scheduled_at->copy()->addYears(self::CLAIM_WINDOW_YEARS)->endOfDay();
+
+  1   app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:379
+      [2m+1 vendor frames [22m
+  3   app/Services/Lottery/GloL6AuthoritativeTicketEngineService.php:355
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 03 payment hub deposit and withdrawal execution                                                                                                           InvalidArgumentException   
+  The account has no wallet for the requested currency.
+
+  at app/Services/Payment/ProductionPaymentExecutionHubService.php:59
+     55▕             ->where('currency', $currency->value)
+     56▕             ->first();
+     57▕ 
+     58▕         if (! $wallet instanceof Wallet) {
+  ➜  59▕             throw new InvalidArgumentException('The account has no wallet for the requested currency.');
+     60▕         }
+     61▕ 
+     62▕         $result = $this->initiations->initiateDeposit(
+     63▕             wallet: $wallet,
+
+  1   app/Services/Payment/ProductionPaymentExecutionHubService.php:59
+  2   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:241
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 04 wallet canonical double entry and single source                                                                                                                       TypeError   
+  App\Services\Finance\WalletService::credit(): Argument #5 ($options) must be of type array, string given, called in /home/user/repo/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 295
+
+  at app/Services/Finance/WalletService.php:249
+    245▕      *                                         reference_id, fee, actor_user_id
+    246▕      *
+    247▕      * @throws FinancialException
+    248▕      */
+  ➜ 249▕     public function credit(
+    250▕         Wallet|int|User $wallet,
+    251▕         Money|string|int|float $amount,
+    252▕         FinancialTransactionType|string|null $type = null,
+    253▕         ?string $idempotencyKey = null,
+
+  1   app/Services/Finance/WalletService.php:249
+  2   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:295
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 06 financial idempotency protection                                                                                                                                      TypeError   
+  App\Services\Finance\WalletService::credit(): Argument #5 ($options) must be of type array, string given, called in /home/user/repo/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 329
+
+  at app/Services/Finance/WalletService.php:249
+    245▕      *                                         reference_id, fee, actor_user_id
+    246▕      *
+    247▕      * @throws FinancialException
+    248▕      */
+  ➜ 249▕     public function credit(
+    250▕         Wallet|int|User $wallet,
+    251▕         Money|string|int|float $amount,
+    252▕         FinancialTransactionType|string|null $type = null,
+    253▕         ?string $idempotencyKey = null,
+
+  1   app/Services/Finance/WalletService.php:249
+  2   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:329
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 07 cross currency wallet isolation                                                                                                                                       TypeError   
+  App\Services\Finance\WalletService::credit(): Argument #5 ($options) must be of type array, string given, called in /home/user/repo/tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php on line 359
+
+  at app/Services/Finance/WalletService.php:249
+    245▕      *                                         reference_id, fee, actor_user_id
+    246▕      *
+    247▕      * @throws FinancialException
+    248▕      */
+  ➜ 249▕     public function credit(
+    250▕         Wallet|int|User $wallet,
+    251▕         Money|string|int|float $amount,
+    252▕         FinancialTransactionType|string|null $type = null,
+    253▕         ?string $idempotencyKey = null,
+
+  1   app/Services/Finance/WalletService.php:249
+  2   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:359
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 08 responsible gaming canonical enforcement                                                                                                                                  Error   
+  Call to undefined method App\Services\Compliance\SelfExclusionService::isSelfExcluded()
+
+  at tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:378
+    374▕         $enforcement = $this->app->make(ResponsibleGamingEnforcementService::class);
+    375▕         /** @var SelfExclusionService $exclusion */
+    376▕         $exclusion = $this->app->make(SelfExclusionService::class);
+    377▕ 
+  ➜ 378▕         $this->assertFalse($exclusion->isSelfExcluded($user->id));
+    379▕ 
+    380▕         $exclusion->exclude(new SelfExclusionData(
+    381▕             userId: $user->id,
+    382▕             durationDays: 30,
+
+  1   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:378
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p1 14 kyc document storage and verification                                                                                                                   MassAssignmentException   
+  Add fillable property [kyc_status] to allow mass assignment on [App\Models\User].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+2 vendor frames [22m
+  3   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:443
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p2 22 agent and draw reconciliation                                                                                                                                FinancialException   
+  Agent AGT-REC-001 (User #1) has no wallet in THB to receive commission.
+
+  at app/Exceptions/FinancialException.php:55
+     51▕         string $message,
+     52▕         array $context = [],
+     53▕         ?Throwable $previous = null,
+     54▕     ): static {
+  ➜  55▕         return new static($message, $errorCode, $context, $previous);
+     56▕     }
+     57▕ 
+     58▕     /**
+     59▕      * Stable identifier for this failure, or null when none was supplied.
+
+  1   app/Exceptions/FinancialException.php:55
+  2   app/Services/Agent/AgentCommissionSettlementService.php:153
+
+
+  Tests:    15 failed, 8 passed (24 assertions)
+  Duration: 9.83s
+

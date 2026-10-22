@@ -35,6 +35,12 @@ export default defineConfig({
                 'resources/css/pages/download.css',
                 'resources/css/auth-portal.css',
                 'resources/css/admin-lottofin.css',
+        // Standalone documents that do not extend layouts.app, and therefore never
+        // see app.css's Tailwind layer. Each imports a hand-written design system and
+        // adds the directives; the design systems stay separate so the pages that use
+        // them WITHOUT Tailwind (lotteries/index) are unaffected.
+                'resources/css/standalone-tailwind.css',
+                'resources/css/admin-tailwind.css',
                 'resources/css/glo-results-checker.css',
                 'resources/css/glo-l6.css',
                 'resources/css/player-security-settings.css',
@@ -111,6 +117,10 @@ export default defineConfig({
                 'resources/js/wallet/wallet-balance.js',
                 'resources/js/home/countdown.js',
                 'resources/js/home/live-draw.js',
+                // Live Chat Support: visitor widget + operator console.
+                'resources/js/chat/widget.js',
+                'resources/js/chat/operator.js',
+                // PROMPT: Cash <-> Win balance transfer panel.
             ],
             refresh: true,
         }),

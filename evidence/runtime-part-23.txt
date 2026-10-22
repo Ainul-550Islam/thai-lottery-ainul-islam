@@ -1,0 +1,982 @@
+Part23 runtime evidence — 2026-10-15
+Repository base a73ad5b8dce6c1f9f777f25ed38b20355d69b3be
+Final default full suite: 2525 tests/130406 assertions; no errors/failures; 14 explicit shared-server skips; process exit 0.
+Native Rust agreement no longer skipped. Final whole suite has the rebuilt actual release binary available.
+Database-writing suites serial; guarded disposable repository SQLite store only. No production database or customer funds.
+Corrected original-source baseline: 37 PHP tests/57 assertions/31 failures; Rust regressions 1 PASS/2 FAIL.
+Initial new positive assertion used the version row instead of the result row for number fields; fixed before restoring original application/binary and rerunning the authoritative baseline below.
+Initial incomplete PHPUnit dependency-tree warnings were not a test execution or valid exit-0 result; locked Composer restoration superseded them.
+Restored 102 delivered snapshot-drift paths from the prior verified 231-path archive before implementation.
+Actual application fixes: signature material cannot downgrade; malformed signatures fail before writes; native protocol/exit/state validated; required/disabled and signed/missing paths fail closed; strict Ed25519 low-order rejection; Unicode identifier character limit matches PHP/database while canonical bytes remain unchanged.
+Native toolchain: Rust/Cargo 1.85.1. Existing locked dependencies retained; manifest floor corrected to 1.85.
+Final Rust: 27 tests PASS, no failures/ignored; release build, cargo fmt and Clippy -D warnings PASS. Final test/build/Clippy used --locked --offline after dependency restoration.
+Focused PHP: 100 tests/648 assertions PASS, zero skips, --fail-on-skipped; 23 fault-injection protocol, 14 real native/import, 63 existing Weekly cases.
+Real PHP Sodium signatures verified by release Rust binary; modified result, weak identity point and malformed signing material refused without draw/result/version writes.
+Thai/Bangla identifiers at legitimate character bounds accepted; raw direct-native 192-character identifier refused.
+CI build-before-PHP and native-no-skip gates added. YAML/all Bash syntax and ordering invariants checked; hosted CI not executed.
+Offline Python guards 40 PASS. Project PHP syntax 1656 files PASS. Pint 5 files PASS. Frontend build PASS.
+Part22 server financial race evidence preserved, not rerun here. Its 14 server-only cases explain the remaining SQLite skips; they are not Part23 server passes.
+Passive inventory expanded to native/PHP boundary modules and current separate evidence links; static reports remain static, not runtime certification.
+No approved provider/country, official live-source authentication, live merchant transfer or universal production readiness established.
+Private signing material, runtime SQL stores, native executable, compiler/dependency/build caches and runtime environment are not packaged.
+
+===== part23-boundary-baseline.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.FFFFFF.FFFFFFFFF.FFFFF..FFFFFFFFFFF.                             37 / 37 (100%)
+
+Time: 00:06.310, Memory: 70.50 MB
+
+There were 31 failures:
+
+1) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "unknown status" (['MADE_UP'], 0)
+{"status":"MADE_UP","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+2) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "string truthiness" (['false'], 0)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+3) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "integer truthiness" ([1], 0)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+4) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "status boolean disagreement" (['REJECTED'], 0)
+{"status":"REJECTED","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+5) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "unearned signature" (['SIGNED_VERIFIED'], 0)
+{"status":"SIGNED_VERIFIED","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+6) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "missing fingerprint" ([null], 0)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+7) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "wrong version" (['WKLY2'], 0)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY2","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+8) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "missing version" ([null], 0)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+9) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "wrong canonical length" ([1], 0)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+10) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "missing canonical length" ([null], 0)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+11) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "error attached to success" (['SIGNATURE_MISMATCH'], 0)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":"SIGNATURE_MISMATCH"}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+12) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_invalid_native_protocol_never_authorizes_import with data set "nonzero success exit" ([], 2)
+{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"ea2922ad374e16bc353f1ffaa117c247e8597b4b60dc8387d172d6a7bf076574","canonical_version":"WKLY1","native":true,"error_code":null}
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:95
+
+13) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_hash_only_reply_cannot_satisfy_a_configured_signature
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:103
+
+14) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_signature_without_a_trusted_key_is_not_dropped
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:110
+
+15) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_trusted_key_without_a_signature_is_not_dropped
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:119
+
+16) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_missing_verifier_cannot_downgrade_a_signed_request
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:137
+
+17) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_required_verifier_cannot_be_bypassed_by_disabled_flag
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:143
+
+18) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_signed_request_cannot_be_bypassed_by_disabled_flag
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:150
+
+19) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_configured_version_cannot_relabel_wkly1_bytes
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:157
+
+20) Tests\Unit\Lottery\WeeklyIntegrityProtocolTest::test_unreadable_output_from_installed_verifier_is_not_an_optional_bypass
+Failed asserting that true is false.
+
+/home/user/thai-lottery-ainul-islam/tests/Unit/Lottery/WeeklyIntegrityProtocolTest.php:166
+
+21) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_configured_signing_key_requires_a_signature_before_any_write
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:98
+
+22) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_supplied_signature_requires_a_trusted_key_before_any_write
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:105
+
+23) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_malformed_signature_is_not_normalized_to_unsigned with data set "empty" ('')
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:119
+
+24) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_malformed_signature_is_not_normalized_to_unsigned with data set "non-hex" ('zzzzzzzzzzzzzzzzzzzzzzzzzzzzz...zzzzzz')
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:119
+
+25) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_malformed_signature_is_not_normalized_to_unsigned with data set "short" ('ab')
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:119
+
+26) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_malformed_signature_is_not_normalized_to_unsigned with data set "number" (123)
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:119
+
+27) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_malformed_signature_is_not_normalized_to_unsigned with data set "array" (['ab'])
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:119
+
+28) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_malformed_signature_is_not_normalized_to_unsigned with data set "boolean" (false)
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"INTEGRITY_HASH_ONLY","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:119
+
+29) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_weak_identity_key_and_trivial_signature_are_refused
+{"status":"imported","draw_reference":"WK-20260918","version":1,"source_state":"FIXTURE_ONLY","result_status":"published","published":true,"integrity":{"status":"SIGNED_VERIFIED","acceptable":true,"fingerprint":"5fdd7cd7ed10c23e6c67a1d905d4f91d06d2c7700d56709aa12026a13fd8335a","canonical_version":"WKLY1","native":true,"error_code":null},"errors":[],"message":"Version imported and published."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'rejected'
++'imported'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:60
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:128
+
+30) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_international_identifier_uses_the_database_character_limit with data set "Thai identifier" ('ผลผลผลผลผลผลผลผลผลผลผลผลผลผลผ...ผลผลผล')
+{"status":"rejected","draw_reference":"WK-20260918","version":null,"source_state":"FIXTURE_ONLY","result_status":"published","published":false,"integrity":{"status":"REJECTED","acceptable":false,"fingerprint":"281bdce17bd9e23f1b58789979c92fc177429d8a1bd54ca8972c306bda47d0ee","canonical_version":"WKLY1","native":true,"error_code":"INVALID_ENCODING"},"errors":["INTEGRITY_REJECTED"],"message":"Payload refused by the integrity verifier."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'imported'
++'rejected'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:143
+
+31) Tests\Feature\WeeklyLottery\WeeklyNativeIntegrityBoundaryTest::test_international_identifier_uses_the_database_character_limit with data set "191-character boundary" ('ককককককককককককককককককককককককককককক...কককককক')
+{"status":"rejected","draw_reference":"WK-20260918","version":null,"source_state":"FIXTURE_ONLY","result_status":"published","published":false,"integrity":{"status":"REJECTED","acceptable":false,"fingerprint":"4b9c21f8909329c2ad0e2b03aa96a3d785437eadcdc5e5b21035713cbb9dd57b","canonical_version":"WKLY1","native":true,"error_code":"INVALID_ENCODING"},"errors":["INTEGRITY_REJECTED"],"message":"Payload refused by the integrity verifier."}
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'imported'
++'rejected'
+
+/home/user/thai-lottery-ainul-islam/tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php:143
+
+FAILURES!
+Tests: 37, Assertions: 57, Failures: 31.
+
+===== part23-weak-key-baseline.log =====
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.70s
+     Running tests/strict_signature.rs (security/weekly-result-integrity/target/debug/deps/strict_signature-2c56f82fb4fbf60b)
+
+running 3 tests
+test unicode_source_identifier_counts_characters_but_hashes_utf8_bytes ... FAILED
+test source_identifier_over_191_characters_is_rejected ... ok
+test weak_identity_key_and_signature_cannot_authenticate_any_result ... FAILED
+
+failures:
+
+---- unicode_source_identifier_counts_characters_but_hashes_utf8_bytes stdout ----
+
+thread 'unicode_source_identifier_counts_characters_but_hashes_utf8_bytes' panicked at tests/strict_signature.rs:28:9:
+assertion `left == right` failed
+  left: "REJECTED"
+ right: "INTEGRITY_HASH_ONLY"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- weak_identity_key_and_signature_cannot_authenticate_any_result stdout ----
+
+thread 'weak_identity_key_and_signature_cannot_authenticate_any_result' panicked at tests/strict_signature.rs:15:9:
+assertion `left == right` failed
+  left: "SIGNED_VERIFIED"
+ right: "SIGNATURE_INVALID"
+
+
+failures:
+    unicode_source_identifier_counts_characters_but_hashes_utf8_bytes
+    weak_identity_key_and_signature_cannot_authenticate_any_result
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test strict_signature`
+
+===== part23-rust-baseline.log =====
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded crypto-common v0.1.7
+  Downloaded pkcs8 v0.10.2
+  Downloaded rustc_version v0.4.1
+  Downloaded cpufeatures v0.2.17
+  Downloaded version_check v0.9.5
+  Downloaded hex v0.4.3
+  Downloaded itoa v1.0.18
+  Downloaded block-buffer v0.10.4
+  Downloaded generic-array v0.14.7
+  Downloaded curve25519-dalek-derive v0.1.1
+  Downloaded cfg-if v1.0.5
+  Downloaded subtle v2.6.1
+  Downloaded zeroize v1.9.0
+  Downloaded sha2 v0.10.9
+  Downloaded ed25519 v2.2.3
+  Downloaded base64ct v1.8.3
+  Downloaded zmij v1.0.23
+  Downloaded unicode-ident v1.0.26
+  Downloaded const-oid v0.9.6
+  Downloaded quote v1.0.47
+  Downloaded serde_derive v1.0.229
+  Downloaded serde_core v1.0.229
+  Downloaded typenum v1.20.1
+  Downloaded serde v1.0.229
+  Downloaded memchr v2.8.3
+  Downloaded ed25519-dalek v2.2.0
+  Downloaded der v0.7.10
+  Downloaded serde_json v1.0.151
+  Downloaded semver v1.0.28
+  Downloaded proc-macro2 v1.0.107
+  Downloaded spki v0.7.3
+  Downloaded signature v2.2.0
+  Downloaded syn v3.0.6
+  Downloaded syn v2.0.119
+  Downloaded curve25519-dalek v4.1.3
+  Downloaded rand_core v0.6.4
+  Downloaded digest v0.10.7
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling cfg-if v1.0.5
+   Compiling zmij v1.0.23
+   Compiling cpufeatures v0.2.17
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling zeroize v1.9.0
+   Compiling serde v1.0.229
+   Compiling subtle v2.6.1
+   Compiling signature v2.2.0
+   Compiling serde_json v1.0.151
+   Compiling ed25519 v2.2.3
+   Compiling serde_derive v1.0.229
+   Compiling sha2 v0.10.9
+   Compiling memchr v2.8.3
+   Compiling rand_core v0.6.4
+   Compiling itoa v1.0.18
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.14s
+     Running unittests src/lib.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-22a456e02c732867)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-80bdcd03109364f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/integrity.rs (security/weekly-result-integrity/target/debug/deps/integrity-efe5c4cfa280c0dd)
+
+running 19 tests
+test a_different_first_6_produces_a_different_hash ... ok
+test a_fully_unavailable_result_canonicalizes_without_inventing_zeros ... ok
+test a_malformed_request_document_is_a_value_not_a_panic ... ok
+test a_partial_result_triple_is_refused ... ok
+test a_matching_expected_fingerprint_is_accepted_and_a_wrong_one_is_not ... ok
+test a_value_that_lost_a_leading_zero_hashes_differently ... ok
+test an_invalid_signature_is_rejected ... ok
+test canonical_bytes_are_valid_utf8_including_non_ascii_identifiers ... ok
+test canonical_bytes_start_with_the_version_and_field_count ... ok
+test canonical_field_order_is_fixed_and_documented ... ok
+test half_supplied_signature_material_is_refused_not_downgraded ... ok
+test leading_zeros_are_part_of_the_canonical_bytes ... ok
+test malformed_values_are_rejected_rather_than_repaired ... ok
+test null_and_empty_are_distinct ... ok
+test the_crate_source_contains_no_unsafe_and_no_network_or_process_calls ... ok
+test the_dependency_tree_contains_no_networking_crate ... ok
+test the_same_payload_always_produces_the_same_hash ... ok
+test unsigned_payload_returns_hash_only_and_never_claims_a_signature ... ok
+test a_valid_signature_is_accepted_only_when_a_key_is_configured ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+   Doc-tests weekly_result_integrity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+===== part23-rust-final.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/lib.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-22a456e02c732867)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-80bdcd03109364f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_boundary.rs (security/weekly-result-integrity/target/debug/deps/cli_boundary-067c451bd0c81b0e)
+
+running 5 tests
+test fingerprint_disagreement_exits_two_without_accepting ... ok
+test invalid_utf8_is_a_structured_rejection ... ok
+test document_ceiling_is_enforced_before_parsing ... ok
+test unsigned_request_exits_zero_with_exact_library_fingerprint ... ok
+test malformed_json_exits_one_and_does_not_crash ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/integrity.rs (security/weekly-result-integrity/target/debug/deps/integrity-efe5c4cfa280c0dd)
+
+running 19 tests
+test a_fully_unavailable_result_canonicalizes_without_inventing_zeros ... ok
+test a_different_first_6_produces_a_different_hash ... ok
+test a_matching_expected_fingerprint_is_accepted_and_a_wrong_one_is_not ... ok
+test a_partial_result_triple_is_refused ... ok
+test a_malformed_request_document_is_a_value_not_a_panic ... ok
+test a_value_that_lost_a_leading_zero_hashes_differently ... ok
+test an_invalid_signature_is_rejected ... ok
+test canonical_bytes_are_valid_utf8_including_non_ascii_identifiers ... ok
+test canonical_bytes_start_with_the_version_and_field_count ... ok
+test canonical_field_order_is_fixed_and_documented ... ok
+test half_supplied_signature_material_is_refused_not_downgraded ... ok
+test leading_zeros_are_part_of_the_canonical_bytes ... ok
+test malformed_values_are_rejected_rather_than_repaired ... ok
+test null_and_empty_are_distinct ... ok
+test the_crate_source_contains_no_unsafe_and_no_network_or_process_calls ... ok
+test the_dependency_tree_contains_no_networking_crate ... ok
+test the_same_payload_always_produces_the_same_hash ... ok
+test unsigned_payload_returns_hash_only_and_never_claims_a_signature ... ok
+test a_valid_signature_is_accepted_only_when_a_key_is_configured ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/strict_signature.rs (security/weekly-result-integrity/target/debug/deps/strict_signature-2c56f82fb4fbf60b)
+
+running 3 tests
+test unicode_source_identifier_counts_characters_but_hashes_utf8_bytes ... ok
+test source_identifier_over_191_characters_is_rejected ... ok
+test weak_identity_key_and_signature_cannot_authenticate_any_result ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests weekly_result_integrity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+===== part23-rust-build-final.log =====
+    Finished `release` profile [optimized] target(s) in 0.02s
+
+===== part23-rust-tree-final.log =====
+weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+ed25519-dalek v2.2.0
+curve25519-dalek v4.1.3
+cfg-if v1.0.5
+cpufeatures v0.2.17
+curve25519-dalek-derive v0.1.1 (proc-macro)
+proc-macro2 v1.0.107
+unicode-ident v1.0.26
+quote v1.0.47
+proc-macro2 v1.0.107 (*)
+syn v2.0.119
+proc-macro2 v1.0.107 (*)
+quote v1.0.47 (*)
+unicode-ident v1.0.26
+digest v0.10.7
+block-buffer v0.10.4
+generic-array v0.14.7
+typenum v1.20.1
+crypto-common v0.1.7
+generic-array v0.14.7 (*)
+typenum v1.20.1
+subtle v2.6.1
+zeroize v1.9.0
+ed25519 v2.2.3
+signature v2.2.0
+sha2 v0.10.9
+cfg-if v1.0.5
+cpufeatures v0.2.17
+digest v0.10.7 (*)
+subtle v2.6.1
+zeroize v1.9.0
+hex v0.4.3
+serde v1.0.229
+serde_core v1.0.229
+serde_derive v1.0.229 (proc-macro)
+proc-macro2 v1.0.107 (*)
+quote v1.0.47 (*)
+syn v3.0.6
+proc-macro2 v1.0.107 (*)
+quote v1.0.47 (*)
+unicode-ident v1.0.26
+serde_json v1.0.151
+itoa v1.0.18
+memchr v2.8.3
+serde_core v1.0.229
+zmij v1.0.23
+sha2 v0.10.9 (*)
+
+===== part23-clippy-final.log =====
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+===== part23-rust-format-final.log =====
+
+===== part23-weekly-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 100 ( 63%)
+.....................................                           100 / 100 (100%)
+
+Time: 00:14.771, Memory: 80.50 MB
+
+OK (100 tests, 648 assertions)
+PHPUNIT_EXIT=0
+
+===== part23-full-suite-final.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................................   61 / 2525 (  2%)
+.............................................................  122 / 2525 (  4%)
+.............................................................  183 / 2525 (  7%)
+.............................................................  244 / 2525 (  9%)
+.............................................................  305 / 2525 ( 12%)
+.............................................................  366 / 2525 ( 14%)
+.............................................................  427 / 2525 ( 16%)
+.............................................................  488 / 2525 ( 19%)
+.............................................................  549 / 2525 ( 21%)
+.....SSSSSSSSSSSSS...........................................  610 / 2525 ( 24%)
+.............................................................  671 / 2525 ( 26%)
+.............................................................  732 / 2525 ( 28%)
+.............................................................  793 / 2525 ( 31%)
+.............................................................  854 / 2525 ( 33%)
+.............................................................  915 / 2525 ( 36%)
+.............................................................  976 / 2525 ( 38%)
+............................................................. 1037 / 2525 ( 41%)
+............................................................. 1098 / 2525 ( 43%)
+............................................................. 1159 / 2525 ( 45%)
+............................................................. 1220 / 2525 ( 48%)
+............................................................. 1281 / 2525 ( 50%)
+............................................................. 1342 / 2525 ( 53%)
+............................................................. 1403 / 2525 ( 55%)
+............................................................. 1464 / 2525 ( 57%)
+............................................................. 1525 / 2525 ( 60%)
+............................................................. 1586 / 2525 ( 62%)
+............................................................. 1647 / 2525 ( 65%)
+............................................................. 1708 / 2525 ( 67%)
+............................................................. 1769 / 2525 ( 70%)
+............................................................. 1830 / 2525 ( 72%)
+............................................................. 1891 / 2525 ( 74%)
+............................................................. 1952 / 2525 ( 77%)
+............................................................. 2013 / 2525 ( 79%)
+............................................................. 2074 / 2525 ( 82%)
+............................................................. 2135 / 2525 ( 84%)
+............................................................. 2196 / 2525 ( 86%)
+.......................S..................................... 2257 / 2525 ( 89%)
+............................................................. 2318 / 2525 ( 91%)
+............................................................. 2379 / 2525 ( 94%)
+............................................................. 2440 / 2525 ( 96%)
+............................................................. 2501 / 2525 ( 99%)
+........................                                      2525 / 2525 (100%)
+
+Time: 08:46.826, Memory: 277.00 MB
+
+There were 14 skipped tests:
+
+1) Tests\Feature\Concurrency\SettlementServerRaceTest::test_concurrent_run_start_returns_one_durable_identity
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+2) Tests\Feature\Concurrency\SettlementServerRaceTest::test_concurrent_duplicate_checkpoint_credits_a_winner_only_once
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+3) Tests\Feature\Concurrency\SettlementServerRaceTest::test_concurrent_checkpoint_keeps_manual_approval_obligations_uncredited
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+4) Tests\Feature\Concurrency\SettlementServerRaceTest::test_concurrent_serialized_workers_consume_duplicate_envelopes_without_duplicate_payout
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+5) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_last_balance_allows_only_one_debit
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+6) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_identical_thb_requests_replay_once
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+7) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_identical_usd_requests_replay_once
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+8) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_identical_bdt_requests_replay_once
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+9) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_quote_reuse_with_different_keys_is_refused
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+10) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_rolling_limit_is_rechecked_after_the_owner_lock
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+11) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_opposite_directions_preserve_both_balances_and_fees
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+12) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_reversal_retries_restore_money_only_once
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+13) Tests\Feature\Concurrency\WalletConversionServerRaceTest::test_concurrent_same_key_for_different_intents_does_not_move_money_twice
+This race requires the separately acknowledged local InnoDB test server; SQLite is not row-lock proof.
+
+14) Tests\Feature\Settlement\SettlementSimulationTest::point_20_lets_only_one_of_two_concurrent_settlements_write
+Real multi-process concurrency requires a shared server with equivalent row locks; SQLite does not implement that row-lock protocol, regardless of file or in-memory storage.
+
+OK, but some tests were skipped!
+Tests: 2525, Assertions: 130406, Skipped: 14.
+PHPUNIT_EXIT=0
+
+===== part23-offline-guards-final.log =====
+test_before_key_mode_is_bounded_and_rejects_existing_cache (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_before_key_mode_is_bounded_and_rejects_existing_cache) ... ok
+test_cached_production_target_is_refused_before_framework_boot (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_cached_production_target_is_refused_before_framework_boot) ... ok
+test_ci_marker_and_unknown_arguments_are_refused (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_ci_marker_and_unknown_arguments_are_refused) ... ok
+test_process_database_override_cannot_retarget_the_template (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_process_database_override_cannot_retarget_the_template) ... ok
+test_template_and_cli_do_not_disclose_the_ephemeral_key (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_template_and_cli_do_not_disclose_the_ephemeral_key) ... ok
+test_valid_uncached_and_cached_configuration_is_read_only (test_ci_runtime_guard.CiRuntimeGuardCliTest.test_valid_uncached_and_cached_configuration_is_read_only) ... ok
+test_audit_refuses_non_repository (test_financial_source_preflight.FinancialSourcePreflightTest.test_audit_refuses_non_repository) ... ok
+test_class_path_follows_app_psr4_mapping (test_financial_source_preflight.FinancialSourcePreflightTest.test_class_path_follows_app_psr4_mapping) ... ok
+test_existing_class_is_not_reported_missing (test_financial_source_preflight.FinancialSourcePreflightTest.test_existing_class_is_not_reported_missing) ... ok
+test_grouped_imports (test_financial_source_preflight.FinancialSourcePreflightTest.test_grouped_imports) ... ok
+test_incomplete_repository_fails_without_reading_env (test_financial_source_preflight.FinancialSourcePreflightTest.test_incomplete_repository_fails_without_reading_env) ... ok
+test_migration_table_declaration (test_financial_source_preflight.FinancialSourcePreflightTest.test_migration_table_declaration) ... ok
+test_missing_classes_include_all_referencing_files (test_financial_source_preflight.FinancialSourcePreflightTest.test_missing_classes_include_all_referencing_files) ... ok
+test_namespace_alias_directory_is_not_a_missing_class (test_financial_source_preflight.FinancialSourcePreflightTest.test_namespace_alias_directory_is_not_a_missing_class) ... ok
+test_rejects_external_namespace (test_financial_source_preflight.FinancialSourcePreflightTest.test_rejects_external_namespace) ... ok
+test_resource_directory_does_not_hide_missing_resource_class (test_financial_source_preflight.FinancialSourcePreflightTest.test_resource_directory_does_not_hide_missing_resource_class) ... ok
+test_simple_and_aliased_imports (test_financial_source_preflight.FinancialSourcePreflightTest.test_simple_and_aliased_imports) ... ok
+test_changed_source_changes_hash_and_missing_source_is_explicit (test_release_source_inventory.ReleaseSourceInventoryTest.test_changed_source_changes_hash_and_missing_source_is_explicit) ... ok
+test_duplicate_literal_slot_is_refused (test_release_source_inventory.ReleaseSourceInventoryTest.test_duplicate_literal_slot_is_refused) ... ok
+test_env_and_subprocesses_are_not_read_or_executed (test_release_source_inventory.ReleaseSourceInventoryTest.test_env_and_subprocesses_are_not_read_or_executed) ... ok
+test_executable_dictionary_value_is_not_evaluated (test_release_source_inventory.ReleaseSourceInventoryTest.test_executable_dictionary_value_is_not_evaluated) ... ok
+test_generated_documents_use_only_allowed_outputs_and_do_not_claim_runtime (test_release_source_inventory.ReleaseSourceInventoryTest.test_generated_documents_use_only_allowed_outputs_and_do_not_claim_runtime) ... ok
+test_hashes_are_deterministic_and_attestation_flags_remain_false (test_release_source_inventory.ReleaseSourceInventoryTest.test_hashes_are_deterministic_and_attestation_flags_remain_false) ... ok
+test_missing_recipe_slot_is_refused (test_release_source_inventory.ReleaseSourceInventoryTest.test_missing_recipe_slot_is_refused) ... ok
+test_recipe_is_parsed_without_executing_module_code (test_release_source_inventory.ReleaseSourceInventoryTest.test_recipe_is_parsed_without_executing_module_code) ... ok
+test_traversal_and_symlink_sources_are_refused (test_release_source_inventory.ReleaseSourceInventoryTest.test_traversal_and_symlink_sources_are_refused) ... ok
+test_acknowledgement_is_mandatory (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_acknowledgement_is_mandatory) ... ok
+test_database_must_be_exact_test_name (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_database_must_be_exact_test_name) ... ok
+test_explicit_test_account_is_required (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_explicit_test_account_is_required) ... ok
+test_regular_file_and_relative_path_are_not_database_sockets (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_regular_file_and_relative_path_are_not_database_sockets) ... ok
+test_repetition_budget_is_bounded (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_repetition_budget_is_bounded) ... ok
+test_safe_environment_overrides_production_routing_without_printing_password (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_safe_environment_overrides_production_routing_without_printing_password) ... ok
+test_sqlite_or_unknown_driver_is_refused (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_sqlite_or_unknown_driver_is_refused) ... ok
+test_supported_mariadb_connection_uses_same_explicit_database_guard (test_run_financial_concurrency.ConcurrencyRunnerGuards.test_supported_mariadb_connection_uses_same_explicit_database_guard) ... ok
+test_all_exact_cases_are_required (test_run_financial_concurrency.RaceEvidenceGuards.test_all_exact_cases_are_required) ... ok
+test_each_money_case_needs_its_own_wait_witness (test_run_financial_concurrency.RaceEvidenceGuards.test_each_money_case_needs_its_own_wait_witness) ... ok
+test_skip_error_failure_and_nonzero_exit_are_refused (test_run_financial_concurrency.RaceEvidenceGuards.test_skip_error_failure_and_nonzero_exit_are_refused) ... ok
+test_suite_inventory_is_exact_and_disjoint (test_run_financial_concurrency.RaceEvidenceGuards.test_suite_inventory_is_exact_and_disjoint) ... ok
+test_wrong_lock_count_same_connection_and_parent_alias_are_refused (test_run_financial_concurrency.RaceEvidenceGuards.test_wrong_lock_count_same_connection_and_parent_alias_are_refused) ... ok
+test_wrong_test_identity_cannot_replace_a_required_race (test_run_financial_concurrency.RaceEvidenceGuards.test_wrong_test_identity_cannot_replace_a_required_race) ... ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 0.684s
+
+OK
+
+===== part23-workflow-final.log =====
+CI YAML, all Bash block syntax, pinned toolchain, build-before-test and native-no-skip acceptance invariants PASS.
+Hosted CI job not executed in this conversation.
+
+===== part23-pint-final.log =====
+
+  .....
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   ........................................................... 5 files  
+
+
+===== part23-lint-final.log =====
+PHP syntax PASS: 1656 files
+
+===== part23-whitespace-final.log =====
+
+===== part23-build-final.log =====
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                   25.08 kB │ gzip:  3.00 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css               1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css             1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                      2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                  3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css              4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css            4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css               6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css            6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css             6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css               6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css          7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                 7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css               7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css            7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css              7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                       8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css               8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css             8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css         8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css     9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css              9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                      9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                        10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css           12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                        12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css              12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css          12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                     12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                   12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                    12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                 12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                         12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css        12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                      13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                       14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                       15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-baUnksz1.css                         71.14 kB │ gzip: 12.91 kB
+public/build/assets/account-grades-iqvPnkdB.js                0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js          0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                     0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                           0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                   0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                      0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js        0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js            0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js             0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js              0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js          0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js              0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js             0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                   0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                 0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js              0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                     0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                  0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                       0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                     1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                        1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js            1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js            1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                         1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                     1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js          1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                          1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js      1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                   1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js            2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                  2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js          2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js         2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js             2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js             2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                         2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js           2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                  2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-BxtEzC2x.js               3.17 kB │ gzip:  1.28 kB
+public/build/assets/privacy-portal-DccX1fIk.js                3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                    3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                   4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js     4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js               5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js               6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js   6.34 kB │ gzip:  2.13 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                   6.62 kB │ gzip:  2.59 kB
+public/build/assets/bet-slip-D0XoVmrB.js                      7.62 kB │ gzip:  3.19 kB
+public/build/assets/app-1IIFpSSh.js                          58.45 kB │ gzip: 21.59 kB
+
+✓ built in 2.24s
+
+===== part23-preflight-final.log =====
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": true,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": true
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": true
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": true
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": true
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": true
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_quotes": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ],
+    "wallet_conversion_audits": [
+      "database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php"
+    ]
+  },
+  "missing_imported_app_class_count": 0,
+  "missing_imported_app_classes": [],
+  "source_preflight_passed": true,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}
+
+===== part23-inventory-check-final.log =====
+{
+  "scope": "STATIC_ONLY",
+  "page_slots": 274,
+  "missing_sources": [],
+  "documents_written": false,
+  "stale_documents": [],
+  "runtime_verified": false,
+  "production_verified": false,
+  "live_payment_verified": false
+}
+
+===== part23-source-preservation-final.log =====
+224 previously delivered bodies unchanged; 7 intentionally revised:
+scripts/release_source_inventory.py
+audit.md
+RUNTIME-VERIFICATION-REPORT.md
+FINANCIAL-INTEGRITY-REPORT.md
+RUST-RUNTIME-REPORT.md
+evidence/release-source-inventory-part-13.json
+.github/workflows/ci.yml
+Part22 financial concurrency bodies/evidence preserved; not rerun in Part23.
+

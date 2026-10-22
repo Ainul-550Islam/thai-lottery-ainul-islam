@@ -1,0 +1,1 @@
+(function(){document.addEventListener(`DOMContentLoaded`,function(){let e=document.querySelector(`[data-nl-search]`);if(!e)return;let t=e.querySelector(`input[name="number"]`);t&&t.addEventListener(`input`,function(){t.value=t.value.replace(/[^0-9]/g,``)})})})();

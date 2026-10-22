@@ -1,0 +1,1 @@
+var e=class{init(){document.querySelectorAll(`[data-place-wagers], [data-confirm-bet], #placeWagersBtn, #confirmBetBtn`).forEach(e=>{e.addEventListener(`click`,()=>window.location.assign(`/bet`))})}};if(typeof document<`u`){let t=()=>new e().init();document.readyState===`loading`?document.addEventListener(`DOMContentLoaded`,t):t()}

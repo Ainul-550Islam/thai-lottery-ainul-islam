@@ -1,0 +1,309 @@
+{
+  "scope": "Static source audit only; no Laravel boot, database, .env, credentials or network access",
+  "commit": "a73ad5b8dce6c1f9f777f25ed38b20355d69b3be",
+  "provider_registered": true,
+  "provider_present": false,
+  "conversion_routes_declared": {
+    "api_quote": true,
+    "api_execute": true,
+    "web_quote": true,
+    "web_execute": true
+  },
+  "legacy_transfer_returns_not_configured": true,
+  "required_conversion_sources": [
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "file": "app/Providers/WalletConversionServiceProvider.php",
+      "present": false
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "present": false
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "file": "app/Enums/WalletConversionDirection.php",
+      "present": false
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "file": "app/Enums/WalletConversionStatus.php",
+      "present": false
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "file": "app/Enums/WalletConversionChannel.php",
+      "present": false
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "file": "app/Enums/WalletConversionRejectionReason.php",
+      "present": false
+    },
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "file": "app/Enums/ConversionFeeBearer.php",
+      "present": false
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "file": "app/Models/WalletConversion.php",
+      "present": false
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "file": "app/Models/WalletConversionQuote.php",
+      "present": false
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "present": false
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "present": false
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "present": false
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "present": false
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "present": false
+    }
+  ],
+  "conversion_table_create_declarations": {
+    "wallet_conversions": [],
+    "wallet_conversion_quotes": [],
+    "wallet_conversion_audits": []
+  },
+  "missing_imported_app_class_count": 20,
+  "missing_imported_app_classes": [
+    {
+      "class": "App\\Enums\\ConversionFeeBearer",
+      "expected_file": "app/Enums/ConversionFeeBearer.php",
+      "referenced_by": [
+        "app/DTOs/Wallet/ConversionFeeBreakdownData.php",
+        "app/DTOs/Wallet/ConversionQuoteData.php",
+        "config/conversions.php",
+        "tests/Unit/Wallet/Conversion/ConversionFeeCalculatorTest.php"
+      ]
+    },
+    {
+      "class": "App\\Enums\\ReservationStatus",
+      "expected_file": "app/Enums/ReservationStatus.php",
+      "referenced_by": [
+        "tests/Feature/BusinessCriticalInvariantTest.php"
+      ]
+    },
+    {
+      "class": "App\\Enums\\WalletConversionChannel",
+      "expected_file": "app/Enums/WalletConversionChannel.php",
+      "referenced_by": [
+        "app/DTOs/Wallet/ConversionAuditContextData.php",
+        "app/DTOs/Wallet/ConversionRequestData.php",
+        "app/Events/Wallet/ConversionCompleted.php",
+        "app/Events/Wallet/ConversionRejected.php",
+        "app/Events/Wallet/ConversionRequested.php",
+        "app/Events/Wallet/ConversionReversed.php",
+        "app/Http/Controllers/Wallet/WalletConversionActionController.php",
+        "app/Http/Controllers/Wallet/WalletConversionPageController.php",
+        "app/Http/Requests/Wallet/ConversionExecuteRequest.php",
+        "app/Http/Requests/Wallet/ConversionReversalRequest.php",
+        "tests/Feature/Wallet/Conversion/ConversionTestCase.php"
+      ]
+    },
+    {
+      "class": "App\\Enums\\WalletConversionDirection",
+      "expected_file": "app/Enums/WalletConversionDirection.php",
+      "referenced_by": [
+        "app/Console/Commands/Conversions/ConversionStatusCommand.php",
+        "app/Contracts/Wallet/ConversionFeeProviderContract.php",
+        "app/Contracts/Wallet/WalletConversionServiceContract.php",
+        "app/DTOs/Wallet/ConversionFeeBreakdownData.php",
+        "app/DTOs/Wallet/ConversionHistoryFilterData.php",
+        "app/DTOs/Wallet/ConversionQuoteData.php",
+        "app/DTOs/Wallet/ConversionRequestData.php",
+        "app/DTOs/Wallet/ConversionResultData.php",
+        "app/Events/Wallet/ConversionCompleted.php",
+        "app/Events/Wallet/ConversionRejected.php",
+        "app/Events/Wallet/ConversionRequested.php",
+        "app/Events/Wallet/ConversionReversed.php",
+        "app/Exceptions/Wallet/ConversionDisabledException.php",
+        "app/Exceptions/Wallet/ConversionInsufficientBalanceException.php",
+        "app/Http/Controllers/Wallet/WalletConversionPageController.php",
+        "app/Http/Middleware/EnsureWalletConversionEnabled.php",
+        "app/Http/Requests/Wallet/ConversionQuoteRequest.php",
+        "app/Rules/ConversionDirectionRule.php",
+        "config/conversions.php",
+        "tests/Feature/Wallet/Conversion/ConversionFeatureTest.php",
+        "tests/Feature/Wallet/Conversion/ConversionFeeParityTest.php",
+        "tests/Feature/Wallet/Conversion/ConversionTestCase.php",
+        "tests/Unit/Wallet/Conversion/ConversionFeeCalculatorTest.php"
+      ]
+    },
+    {
+      "class": "App\\Enums\\WalletConversionReconciliationState",
+      "expected_file": "app/Enums/WalletConversionReconciliationState.php",
+      "referenced_by": [
+        "app/DTOs/Wallet/ConversionReconciliationData.php",
+        "app/Jobs/Wallet/ReconcileConversionLedgerJob.php"
+      ]
+    },
+    {
+      "class": "App\\Enums\\WalletConversionRejectionReason",
+      "expected_file": "app/Enums/WalletConversionRejectionReason.php",
+      "referenced_by": [
+        "app/DTOs/Wallet/ConversionPolicyDecisionData.php",
+        "app/Exceptions/Wallet/ConversionAccountRestrictedException.php",
+        "app/Exceptions/Wallet/ConversionDisabledException.php",
+        "app/Exceptions/Wallet/ConversionException.php",
+        "app/Exceptions/Wallet/ConversionIdempotencyConflictException.php",
+        "app/Exceptions/Wallet/ConversionInsufficientBalanceException.php",
+        "app/Exceptions/Wallet/ConversionKycRequiredException.php",
+        "app/Exceptions/Wallet/ConversionLimitExceededException.php",
+        "app/Exceptions/Wallet/ConversionQuoteExpiredException.php",
+        "app/Http/Controllers/Wallet/WalletConversionPageController.php",
+        "app/ValueObjects/ConversionLimits.php",
+        "tests/Unit/Wallet/Conversion/ConversionLimitsTest.php"
+      ]
+    },
+    {
+      "class": "App\\Enums\\WalletConversionStatus",
+      "expected_file": "app/Enums/WalletConversionStatus.php",
+      "referenced_by": [
+        "app/Console/Commands/Conversions/ConversionStatusCommand.php",
+        "app/Contracts/Wallet/ConversionRepositoryContract.php",
+        "app/DTOs/Wallet/ConversionHistoryFilterData.php",
+        "app/DTOs/Wallet/ConversionResultData.php",
+        "app/Filament/Widgets/ConversionVolumeWidget.php",
+        "app/Repositories/Wallet/WalletConversionRepository.php",
+        "tests/Feature/Wallet/Conversion/ConversionFeatureTest.php"
+      ]
+    },
+    {
+      "class": "App\\Http\\Controllers\\Api\\V1\\WalletConversionController",
+      "expected_file": "app/Http/Controllers/Api/V1/WalletConversionController.php",
+      "referenced_by": [
+        "routes/api.php"
+      ]
+    },
+    {
+      "class": "App\\Jobs\\Draw\\FinalizeDrawSettlementJob",
+      "expected_file": "app/Jobs/Draw/FinalizeDrawSettlementJob.php",
+      "referenced_by": [
+        "app/Services/Draw/ChunkedSettlementOrchestrator.php"
+      ]
+    },
+    {
+      "class": "App\\Models\\PaymentMethod",
+      "expected_file": "app/Models/PaymentMethod.php",
+      "referenced_by": [
+        "tests/Feature/RealMoneyBusinessReadinessTest.php"
+      ]
+    },
+    {
+      "class": "App\\Models\\WalletConversion",
+      "expected_file": "app/Models/WalletConversion.php",
+      "referenced_by": [
+        "app/Console/Commands/Conversions/ConversionStatusCommand.php",
+        "app/Contracts/Wallet/ConversionRepositoryContract.php",
+        "app/Contracts/Wallet/WalletConversionServiceContract.php",
+        "app/Events/Wallet/ConversionCompleted.php",
+        "app/Events/Wallet/ConversionReversed.php",
+        "app/Filament/Widgets/ConversionVolumeWidget.php",
+        "app/Http/Requests/Wallet/ConversionReversalRequest.php",
+        "app/Http/Resources/Wallet/WalletConversionResource.php",
+        "app/Jobs/Wallet/ReconcileConversionLedgerJob.php",
+        "app/Policies/WalletConversionPolicy.php",
+        "app/Repositories/Wallet/WalletConversionRepository.php",
+        "tests/Feature/Wallet/Conversion/ConversionFeatureTest.php",
+        "tests/Feature/Wallet/Conversion/ConversionFeeParityTest.php",
+        "tests/Feature/Wallet/Conversion/ConversionTestCase.php"
+      ]
+    },
+    {
+      "class": "App\\Models\\WalletConversionAudit",
+      "expected_file": "app/Models/WalletConversionAudit.php",
+      "referenced_by": [
+        "app/Repositories/Wallet/WalletConversionAuditRepository.php"
+      ]
+    },
+    {
+      "class": "App\\Models\\WalletConversionQuote",
+      "expected_file": "app/Models/WalletConversionQuote.php",
+      "referenced_by": [
+        "app/Console/Commands/Conversions/ConversionStatusCommand.php",
+        "app/Repositories/Wallet/WalletConversionQuoteRepository.php"
+      ]
+    },
+    {
+      "class": "App\\Providers\\WalletConversionServiceProvider",
+      "expected_file": "app/Providers/WalletConversionServiceProvider.php",
+      "referenced_by": [
+        "bootstrap/providers.php"
+      ]
+    },
+    {
+      "class": "App\\Services\\Payment\\ProcessPaymentWebhookService",
+      "expected_file": "app/Services/Payment/ProcessPaymentWebhookService.php",
+      "referenced_by": [
+        "tests/Feature/BusinessCriticalInvariantTest.php",
+        "tests/Feature/FinalProductionReadinessTest.php"
+      ]
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionFeeCalculator",
+      "expected_file": "app/Services/Wallet/Conversion/ConversionFeeCalculator.php",
+      "referenced_by": [
+        "app/Http/Controllers/Wallet/WalletConversionPageController.php",
+        "tests/Feature/Wallet/Conversion/ConversionTestCase.php",
+        "tests/Unit/Wallet/Conversion/ConversionFeeCalculatorTest.php"
+      ]
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionHistoryService",
+      "expected_file": "app/Services/Wallet/Conversion/ConversionHistoryService.php",
+      "referenced_by": [
+        "app/Console/Commands/Conversions/ConversionStatusCommand.php"
+      ]
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionLimitService",
+      "expected_file": "app/Services/Wallet/Conversion/ConversionLimitService.php",
+      "referenced_by": [
+        "app/Console/Commands/Conversions/ConversionStatusCommand.php",
+        "app/Http/Controllers/Wallet/WalletConversionPageController.php"
+      ]
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\ConversionQuoteService",
+      "expected_file": "app/Services/Wallet/Conversion/ConversionQuoteService.php",
+      "referenced_by": [
+        "app/Jobs/Wallet/ExpireConversionQuotesJob.php",
+        "tests/Feature/Wallet/Conversion/ConversionTestCase.php"
+      ]
+    },
+    {
+      "class": "App\\Services\\Wallet\\Conversion\\WalletConversionService",
+      "expected_file": "app/Services/Wallet/Conversion/WalletConversionService.php",
+      "referenced_by": [
+        "tests/Feature/Wallet/Conversion/ConversionTestCase.php"
+      ]
+    }
+  ],
+  "source_preflight_passed": false,
+  "runtime_verified": false,
+  "live_payment_verified": false,
+  "note": "A passing static check is not production approval; dynamic references and runtime failures need separate testing."
+}

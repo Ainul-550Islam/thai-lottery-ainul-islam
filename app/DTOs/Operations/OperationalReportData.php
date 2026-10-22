@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\DTOs\Operations;
 
+use App\Enums\Currency;
+use App\Enums\DrawLifecycleState;
+use App\Enums\KycStatus;
 use App\Enums\ReportType;
+use App\Enums\RiskLevel;
+use App\Enums\WalletType;
 use App\Exceptions\OperationalReportException;
 use Illuminate\Support\Carbon;
 
@@ -16,14 +21,29 @@ final class OperationalReportData
 {
     private const MAX_HORIZON_DAYS = 366;
 
+    /**
+     * A key may be asked for ONLY if the reader that receives it narrows rows
+     * with it, on a column or metadata lane that some writer in app/ stamps.
+     *
+     * WHY THE RULE IS HERE AND NOT IN A COMMENT
+     * This list used to carry 14 keys no reader consulted, out of 29. Asking for one
+     * was accepted, sealed into the job fingerprint, dropped on the floor, and the
+     * job reported Completed - for a money report that is a wrong total presented as
+     * a right one. Two more of the 15 that WERE consulted could not narrow anything:
+     * entry_purpose filtered a metadata lane no writer stamps, and user_id compiled to
+     * a predicate true of every row. Cluster #50 measured all 29, wired up the 7 that
+     * have data behind them, dropped the 7 that do not, and repaired the 2 that were
+     * consulted and broken. The gate asserts both halves for every key kept: the reader
+     * consults it, and consulting it changes the rows.
+     */
     private const ALLOWED_FILTERS = [
-        'financial' => ['currency', 'wallet_kind', 'entry_purpose', 'user_id'],
-        'payment' => ['provider', 'method', 'status', 'channel', 'user_id'],
-        'draw' => ['draw_id', 'draw_type', 'lifecycle_state', 'winner_only'],
-        'prize' => ['draw_id', 'tier', 'claim_status', 'winning_status'],
+        'financial' => ['currency', 'wallet_kind', 'user_id'],
+        'payment' => ['provider', 'method', 'status', 'user_id'],
+        'draw' => ['draw_id', 'draw_type', 'lifecycle_state'],
+        'prize' => [],
         'compliance' => ['case_type', 'risk_level', 'status', 'user_id'],
-        'player' => ['kyc_status', 'risk_level', 'user_id', 'registered_within'],
-        'operational' => ['lane', 'risk_rating', 'auditable_type', 'user_id'],
+        'player' => ['kyc_status', 'user_id', 'registered_within'],
+        'operational' => ['lane', 'risk_rating', 'user_id', 'auditable_type'],
     ];
 
     public function __construct(
@@ -58,7 +78,7 @@ final class OperationalReportData
                 throw OperationalReportException::unsupportedFilter($type->value, (string) $key);
             }
         }
-        // Whitelist + string trim: sealed, stable order.
+        // Whitelist + value vocabulary + string trim: sealed, stable order.
         $sealed = [];
         foreach ($allowed as $key) {
             if (array_key_exists($key, $filters) && $filters[$key] !== null && $filters[$key] !== '') {
@@ -78,6 +98,8 @@ final class OperationalReportData
             throw OperationalReportException::malformed('Horizon wider than the desk ceiling of '.self::MAX_HORIZON_DAYS.' days');
         }
 
+        self::assertFilterVocabulary($type, $sealed);
+
         return new self(
             requesterUserId: (int) ($data['requester_user_id'] ?? 0),
             reportType: $type,
@@ -85,6 +107,50 @@ final class OperationalReportData
             horizonStart: $start,
             horizonEnd: $end,
         );
+    }
+
+    /**
+     * Every filter whose target column is an enum vocabulary must name a case of it.
+     *
+     * A typo and a genuinely quiet horizon must not look alike. Before this rule
+     * `currency=THB` (an upper-case slip) sealed, applied, matched nothing, and
+     * reported "completed, 0 rows" - the same answer the desk gives when nobody
+     * moved money this week.
+     */
+    private static function assertFilterVocabulary(ReportType $type, array $sealed): void
+    {
+        /** @var array<string, class-string<\BackedEnum>|'days'> $vocab */
+        $vocab = match ($type) {
+            ReportType::Financial => ['currency' => Currency::class, 'wallet_kind' => WalletType::class],
+            ReportType::Draw => ['lifecycle_state' => DrawLifecycleState::class],
+            ReportType::Player => ['kyc_status' => KycStatus::class, 'registered_within' => 'days'],
+            ReportType::Operational => ['risk_rating' => RiskLevel::class],
+            default => [],
+        };
+
+        foreach ($vocab as $key => $vocabulary) {
+            if (! array_key_exists($key, $sealed)) {
+                continue;
+            }
+
+            $value = (string) $sealed[$key];
+
+            if ($vocabulary === 'days') {
+                if (! ctype_digit($value) || (int) $value < 1) {
+                    throw OperationalReportException::malformed(
+                        sprintf('The %s filter needs a whole number of days of at least 1.', $key)
+                    );
+                }
+
+                continue;
+            }
+
+            if ($vocabulary::tryFrom($value) === null) {
+                throw OperationalReportException::malformed(
+                    sprintf('"%s" is not a value the %s filter can hold.', $value, $key)
+                );
+            }
+        }
     }
 
     /**

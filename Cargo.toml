@@ -1,0 +1,3 @@
+[workspace]
+members = ["security/weekly-result-integrity"]
+resolver = "2"

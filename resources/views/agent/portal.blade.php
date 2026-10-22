@@ -38,7 +38,7 @@
         <div><span>{{ trans('agent.agent_reference') }}</span><strong>{{ $agent->agent_code }}</strong></div>
         <div><span>{{ trans('agent.status') }}</span><strong>{{ $state }}</strong></div>
         <div><span>{{ trans('agent.currency') }}</span><strong>{{ $agent->currency?->value ?? trans('agent.not_configured') }}</strong></div>
-        <div><span>{{ trans('agent.referrals') }}</span><strong>{{ (string) $agent->total_referrals }}</strong></div>
+        <div><span>{{ trans('agent.referrals') }}</span><strong>{{ $agent->referredPlayerCount() }}</strong></div>
     </section>
 
     @if ($surface === 'dashboard' && $report !== null)

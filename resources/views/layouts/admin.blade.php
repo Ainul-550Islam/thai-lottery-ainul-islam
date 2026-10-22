@@ -7,13 +7,55 @@
 
     <title>@yield('title', 'Executive Analytics Dashboard') — LOTTOFIN ADMIN</title>
 
-    <!-- Tailwind & Design System Roots -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    @vite(['resources/css/admin-lottofin.css'])
+    {{--
+        Design system roots plus the Tailwind utility layer, built locally. The
+        <script src="https://cdn.tailwindcss.com"> that used to sit here is a
+        development tool that compiles CSS in the browser at runtime; it was being
+        served to every visitor of the executive dashboard and release-operations
+        screens, and it was the only reason script-src could not be 'self'.
+        resources/css/admin-tailwind.css imports admin-lottofin.css and adds the
+        directives in the order the CDN's injected <style> already had.
+    --}}
+    @vite(['resources/css/admin-tailwind.css'])
 
     @stack('styles')
 </head>
 <body class="lf-admin-body">
+    {{--
+        Everything the chrome shows about WHERE you are and WHO you are is derived here
+        rather than written into the markup.
+
+        $panel comes from LottoFinExecutiveDashboardController, which resolves it from the
+        route name and passes it to the view; it is the same value the controller used to
+        pick the panel's data and to authorize it. It is nullable because
+        admin/release-operations extends this layout and is rendered by a different
+        controller that passes no panel - on that screen nothing here is current, which is
+        true, and is why the default must not be 'dashboard'.
+
+        AdminConsoleNav::visibleFor() asks AdminAccess::mayOpenPanel(), the exact
+        predicate the controller applies before serving a panel, so a link rendered here
+        cannot lead to a 403.
+    --}}
+    @php
+        $operator = \App\Support\Admin\AdminAccess::operator();
+        $activePanel = $panel ?? null;
+        $navItems = \App\Support\Admin\AdminConsoleNav::visibleFor($operator, $activePanel);
+
+        $operatorName = $operator?->name ?? '';
+        $operatorRoles = $operator?->getRoleNames()?->all() ?? [];
+        $operatorRole = implode(', ', $operatorRoles);
+
+        // Initials for the avatar, taken from the operator's own name. The previous
+        // markup showed a stock photograph of a person and the name "Somchai" to every
+        // operator who logged in, which in an audit-sensitive console is worse than no
+        // identity at all: it asserts who is acting when it does not know.
+        $initials = collect(preg_split('/\s+/', trim($operatorName)) ?: [])
+            ->filter(fn ($part) => $part !== '')
+            ->take(2)
+            ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+            ->implode('');
+    @endphp
+
     <div class="lf-admin-shell">
         <!-- Left Sidebar Navigation -->
         <aside class="lf-sidebar" id="adminSidebar">
@@ -27,89 +69,29 @@
 
             <!-- Primary Nav Items -->
             <div class="lf-nav-section">
-                <!-- Dashboard Active Item -->
-                <a href="{{ route('admin.dashboard') }}" class="lf-nav-item active">
-                    <div class="lf-nav-item-content">
-                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                        </svg>
-                        <span>Dashboard</span>
-                    </div>
-                    <span class="lf-active-badge">Active</span>
-                </a>
+                {{--
+                    Rendered from AdminConsoleNav so that the items, the group headers,
+                    the active state and the permission gate all come from one place.
+                    `aria-current="page"` marks the current item for assistive tech, which
+                    the hardcoded `active` class alone did not do.
+                --}}
+                @foreach($navItems as $navItem)
+                    @if(! $loop->first && $navItem['group'] !== $navItems[$loop->index - 1]['group'])
+                        <span class="lf-nav-header-label">{{ $navItem['group'] }}</span>
+                    @endif
 
-                <!-- Financial Section Header -->
-                <span class="lf-nav-header-label">Financial</span>
-
-                <!-- Draw Lifecycle -->
-                <a href="{{ route('admin.draws.index') }}" class="lf-nav-item">
-                    <div class="lf-nav-item-content">
-                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <span>Draw Lifecycle</span>
-                    </div>
-                </a>
-
-                <!-- Number Limits & Risk -->
-                <a href="{{ route('admin.risk.index') }}" class="lf-nav-item">
-                    <div class="lf-nav-item-content">
-                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"/>
-                        </svg>
-                        <span>Number Limits &amp; Risk</span>
-                    </div>
-                </a>
-
-                <!-- Bets Ledger -->
-                <a href="{{ route('admin.bets.index') }}" class="lf-nav-item">
-                    <div class="lf-nav-item-content">
-                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <span>Bets Ledger</span>
-                    </div>
-                </a>
-
-                <!-- Wallet Controls -->
-                <a href="{{ route('admin.wallets.index') }}" class="lf-nav-item">
-                    <div class="lf-nav-item-content">
-                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                        </svg>
-                        <span>Wallet Controls</span>
-                    </div>
-                </a>
-
-                <!-- Ledger Accounts -->
-                <a href="{{ route('admin.ledger.index') }}" class="lf-nav-item">
-                    <div class="lf-nav-item-content">
-                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
-                        </svg>
-                        <span>Ledger Accounts</span>
-                    </div>
-                </a>
-
-                <!-- Double-Entry Reconciliation -->
-                <a href="{{ route('admin.reconciliation.index') }}" class="lf-nav-item">
-                    <div class="lf-nav-item-content">
-                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                        </svg>
-                        <span>Double-Entry Reconciliation</span>
-                    </div>
-                </a>
-
-                <!-- Audit Logs -->
-                <a href="{{ route('admin.audits.index') }}" class="lf-nav-item">
-                    <div class="lf-nav-item-content">
-                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                        </svg>
-                        <span>Audit Logs</span>
-                    </div>
-                </a>
+                    <a href="{{ route($navItem['route']) }}" class="lf-nav-item{{ $navItem['active'] ? ' active' : '' }}"@if($navItem['active']) aria-current="page"@endif>
+                        <div class="lf-nav-item-content">
+                            <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $navItem['icon'] }}"/>
+                            </svg>
+                            <span>{{ $navItem['label'] }}</span>
+                        </div>
+                        @if($navItem['active'])
+                            <span class="lf-active-badge">Active</span>
+                        @endif
+                    </a>
+                @endforeach
             </div>
         </aside>
 
@@ -127,24 +109,30 @@
 
                 <div class="lf-header-right">
                     <!-- User Profile Dropdown -->
+                    {{--
+                        The operator's own identity. There is no dropdown behind this: the
+                        chevron and `cursor: pointer` that used to sit here promised one
+                        that no markup and no script implements, so both are gone.
+                    --}}
                     <div class="lf-user-profile">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Admin" class="lf-user-avatar">
+                        <span class="lf-user-avatar" aria-hidden="true">{{ $initials }}</span>
                         <div class="lf-user-info">
-                            <span class="lf-user-role">Admin</span>
-                            <span class="lf-user-name">Somchai</span>
+                            @if($operatorRole !== '')
+                                <span class="lf-user-role">{{ $operatorRole }}</span>
+                            @endif
+                            <span class="lf-user-name">{{ $operatorName }}</span>
                         </div>
-                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
                     </div>
 
-                    <!-- Notification Bell with Badge -->
-                    <button type="button" class="lf-notification-btn" aria-label="Notifications">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        <span class="lf-notification-badge">1</span>
-                    </button>
+                    {{--
+                        The notification bell is gone rather than wired up. Its badge was a
+                        literal `1` that never changed: this application has no operator
+                        notification feed. The Notification, NotificationTemplate and
+                        NotificationDeliveryAttempt models are about telling WINNERS their
+                        results, not about an inbox for staff, so there was nothing for the
+                        bell to open. A control that always reports exactly one unread item
+                        teaches the operator to ignore it.
+                    --}}
 
                     <!-- Logout / Exit -->
                     <form method="POST" action="{{ route('logout') }}" class="inline">
@@ -165,10 +153,14 @@
         </main>
     </div>
 
-    <!-- Floating Help Button -->
-    <button type="button" class="lf-floating-help" title="Platform Help Desk">
-        ?
-    </button>
+    {{--
+        The floating help button is gone rather than wired up. It was a <button type="button">
+        with no handler: resources/js/admin-lottofin.js binds only #sidebarToggle,
+        #reconciliationSearch and #mainActionsBtn, and none of those is this. The nearest
+        real destination is route('support.index'), but that is the authenticated user's own
+        support-ticket portal - a player-facing surface - and pointing an operator's "help"
+        control at it would be a guess about intent rather than a fix.
+    --}}
 
     <!-- Admin Interactive Script -->
     @vite(['resources/js/admin-lottofin.js'])

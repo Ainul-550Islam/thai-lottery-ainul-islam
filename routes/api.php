@@ -490,8 +490,11 @@ Route::prefix('v1')
         // Cancellation and amendment of the caller's own bet. The {bet}
         // identifier carries the same conservative constraint as the read
         // endpoints; ownership is enforced by the services' user-scoped
-        // resolution (a foreign bet is a 404, indistinguishable from unknown).
+        // resolution (a foreign bet is refused with the very body an unknown bet gets: 422
+        // bet_cancellation_unavailable, measured in BetCancellationOwnershipTest - not the 404
+        // this comment used to promise, which ApiResponse::error() never returns).
         Route::post('/bets/{bet}/cancel', [BetCancellationController::class, 'store'])
+            ->middleware('throttle:financial-critical')
             ->where('bet', '[A-Za-z0-9-]{1,64}')
             ->name('bets.cancel');
         Route::post('/bets/{bet}/amend', [BetAmendmentController::class, 'store'])
@@ -801,7 +804,9 @@ Route::prefix('v1/withdrawals')
         Route::get('/', [WithdrawalController::class, 'index'])->name('index');
         Route::post('/', [WithdrawalController::class, 'store'])->middleware('throttle:withdrawal')->name('store');
         Route::get('/{withdrawal}', [WithdrawalController::class, 'show'])->name('show');
-        Route::post('/{withdrawal}/cancel', [WithdrawalController::class, 'cancel'])->name('cancel');
+        Route::post('/{withdrawal}/cancel', [WithdrawalController::class, 'cancel'])
+            ->middleware('throttle:financial-critical')
+            ->name('cancel');
     });
 
 /*
@@ -822,7 +827,9 @@ Route::prefix('v1/payouts')
     ->group(function (): void {
         Route::get('/', [PayoutController::class, 'index'])->name('index');
         Route::get('/{payout}', [PayoutController::class, 'show'])->name('show');
-        Route::post('/{payout}/cancel', [PayoutController::class, 'cancel'])->name('cancel');
+        Route::post('/{payout}/cancel', [PayoutController::class, 'cancel'])
+            ->middleware('throttle:financial-critical')
+            ->name('cancel');
     });
 
 /*

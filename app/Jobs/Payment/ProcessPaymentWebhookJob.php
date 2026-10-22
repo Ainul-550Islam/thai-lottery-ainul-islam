@@ -119,8 +119,8 @@ class ProcessPaymentWebhookJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Deposit,
             'risk_level' => RiskLevel::High,
-            'auditable_type' => AuditLog::class,
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'ProcessPaymentWebhookJob failed permanently for %s event %s after %d attempts: %s',
                 strtoupper($this->payload->gateway),
@@ -129,6 +129,7 @@ class ProcessPaymentWebhookJob implements ShouldBeUnique, ShouldQueue
                 $exception->getMessage(),
             ),
             'metadata' => [
+                'lane' => 'payment_webhook',
                 'gateway' => $this->payload->gateway,
                 'event_id' => $this->payload->eventId,
                 'event_type' => $this->payload->eventType->value,

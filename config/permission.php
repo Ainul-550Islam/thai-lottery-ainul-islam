@@ -46,7 +46,14 @@ return [
         'expiration_time' => DateInterval::createFromDateString(
             env('PERMISSION_CACHE_EXPIRATION', '24 hours')
         ),
-        'key' => env('PERMISSION_CACHE_KEY', 'spatie.permission.cache'),
+        // `?:` rather than env()'s default argument. Both committed templates
+        // ship this key VALUELESS: ProductionConfigSafetyTest refuses any
+        // `*_KEY=` line that carries a value in .env.production.example, and
+        // this key is name-shaped like a credential even though it is only the
+        // NAME of a cache entry. With env()'s second argument an empty string
+        // is a present value, so the default would never be reached and the
+        // permission cache would run under an empty key.
+        'key' => env('PERMISSION_CACHE_KEY') ?: 'spatie.permission.cache',
         'store' => env('PERMISSION_CACHE_STORE', 'default'),
     ],
 
@@ -98,6 +105,29 @@ return [
         'publish glo public status',
         'review glo dealer requests',
         'manage glo sales points',
+        // Live chat desk: five separate grants because they are five separate
+        // mistakes when given to the wrong person. The console reads these
+        // names through config('chat.operator.permissions').
+        'chat.view',
+        'chat.reply',
+        'chat.assign',
+        'chat.close',
+        'chat.manage_canned',
+        // Balance-transfer desk. Two grants, not one: reading any player's
+        // transfer history is a privacy-sensitive power, while reversing a
+        // completed transfer MOVES MONEY and must be grantable separately.
+        // A player transferring their own balance needs neither - that lane is
+        // gated by session auth and by ownership inside the service.
+        'transfer.view_any',
+        'transfer.reverse',
+        // The checker's half of the four-eyes lane on large reversals
+        // (config/transfer.php's reversal_approval). Separate from
+        // transfer.reverse so the two halves can be granted to different people,
+        // and so an installation that wants every reversal double-controlled can
+        // hand `reverse` to a wider group and `approve_reverse` to a narrower one.
+        // Independence itself is enforced per actor by
+        // TransferReversalApprovalService, not by the grant.
+        'transfer.approve_reverse',
     ],
 
 ];

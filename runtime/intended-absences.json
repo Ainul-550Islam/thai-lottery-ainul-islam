@@ -1,0 +1,352 @@
+{
+  "generated_by": "tools/patch53manifest.py",
+  "record_kind": "intended-absences",
+  "captured_at_utc": "2026-10-16",
+  "provenance": {
+    "written_during_phase": 53,
+    "captured_at_utc": "2026-10-16",
+    "captured_at_note": "generated at run time by tools/patch53manifest.py; the date is when this file was written, not when the deletions happened",
+    "base_commit": "5df5d144b8c912f297ece3b809171054a429d881",
+    "base_commit_in_this_clone": true,
+    "clone_head_commit": "5df5d14",
+    "clone_commit_count": 1,
+    "provenance_note": "the absences are read from `git diff --name-only --diff-filter=D` against this commit, so a reader can tell which tree they describe",
+    "claims_refreshed_at_utc": "2026-10-16",
+    "claims_refreshed_by_cluster": 53
+  },
+  "measured_from": "git diff --name-only --diff-filter=D, repo/tests/**/*Test.php, every registered pair",
+  "census": "logs/measure53absence.txt",
+  "paths_deleted_and_intended": 31,
+  "paths_from_git_deletions": 31,
+  "blind_spot": "a deletion that is restored leaves no git trace and no archive entry, so this record cannot see it; the gates that assert the absence do, which is why the census is run before a bulk restore and not after it | gate columns re-derived from the tree on 2026-10-17 by --regate; the path list is re-derived from `git log --diff-filter=D` in the repo worktree whenever no deletion is pending, which is the state cluster #54 created by committing the 31 deliberate deletions, so the run is idempotent instead of appending a clause each time",
+  "pairs_documenting_it_in_prose": 6,
+  "paths_with_a_test_gate": 4,
+  "paths_still_listed_by_a_pair": 0,
+  "paths_declared_deleted_by_a_pair": 2,
+  "paths_still_in_an_archive": 0,
+  "entries": [
+    {
+      "path": "app/Http/Middleware/TrustProxies.php",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [
+        "tests/Feature/Http/TrustedProxyResolutionTest.php"
+      ],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "absence is asserted by TrustedProxyResolutionTest.php"
+    },
+    {
+      "path": "app/Http/Requests/Web/ContactRequest.php",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [
+        "tests/Feature/Architecture/FormRequestReachabilityTest.php"
+      ],
+      "listed_by": [],
+      "declared_deleted_by": [
+        "withdrawal-destination-shape"
+      ],
+      "in_archives": 0,
+      "why": "absence is asserted by FormRequestReachabilityTest.php"
+    },
+    {
+      "path": "app/Http/Requests/Web/WithdrawRequest.php",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [
+        "tests/Feature/Architecture/FormRequestReachabilityTest.php"
+      ],
+      "listed_by": [],
+      "declared_deleted_by": [
+        "withdrawal-destination-shape"
+      ],
+      "in_archives": 0,
+      "why": "absence is asserted by FormRequestReachabilityTest.php"
+    },
+    {
+      "path": "app/Policies/BetCancellationPolicy.php",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [
+        "tests/Feature/Infra/IntendedAbsenceTruthTest.php",
+        "tests/Feature/Security/ExceptionAndPolicyContractTest.php"
+      ],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "absence is asserted by IntendedAbsenceTruthTest.php, ExceptionAndPolicyContractTest.php"
+    },
+    {
+      "path": "public/about-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/account-grade-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/account-verification-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/bingo-lottery-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/contact-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/deposit-portal-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/download-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/faq-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/fees-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/home-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/how-to-play-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/lottery-history-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/lotto-discount-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/national-lottery-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/pcso-lottery-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/player-dashboard-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/player-profile-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/player-security-settings-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/player-settings-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/privacy-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/prize-verification-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/results-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/thai-lottery-betting-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/vision-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/wallet-management-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/weekly-lottery-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    },
+    {
+      "path": "public/withdrawal-portal-preview.html",
+      "kind": "git-deleted",
+      "present_in_tree": false,
+      "gate": [],
+      "listed_by": [],
+      "declared_deleted_by": [],
+      "in_archives": 0,
+      "why": "no test in the current tree names this path; the deletion is recorded from the census and enforced by the pair, not asserted by a gate"
+    }
+  ]
+}

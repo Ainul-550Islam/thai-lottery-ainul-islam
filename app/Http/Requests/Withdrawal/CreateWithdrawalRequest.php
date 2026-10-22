@@ -55,11 +55,17 @@ final class CreateWithdrawalRequest extends FormRequest
             // (THB, the GLO operating currency), not client-side.
             'currency' => ['nullable', 'string', 'in:THB,USD,BDT'],
 
-            // Destination details are a free-form label blob at this layer;
-            // the operator's disbursement court re-checks them. Tighten only
-            // the shapes the serializer uses downstream.
+            // Destination details stay a free-form label blob at this layer; the
+            // operator's disbursement court re-checks them, and a client that sends
+            // "Siam Commercial Bank, Branch: Sukhumvit 21" must keep working. What is
+            // refused is the set of characters that do not survive the trip from this
+            // JSON field to the person who copy-pastes it into a wallet or a payout
+            // sheet: control and format characters (newline, tab, and the RTL overrides
+            // that make an address render as something else), and a leading = + @ that a
+            // spreadsheet turns into a formula. destination() still trims, and still
+            // rejects nothing a human could actually pay to.
             'payout_details' => ['nullable', 'array'],
-            'payout_details.*' => ['nullable', 'string', 'max:256'],
+            'payout_details.*' => ['nullable', 'string', 'max:256', 'regex:/\A[^\p{C}=+@][^\p{C}]*+\z/u'],
 
             // Idempotency mirrors: body field OR header, never both
             // disagreeing. The header wins only when the body is absent.

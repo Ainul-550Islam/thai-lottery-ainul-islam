@@ -1,0 +1,20 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - config
+        - database
+        - routes
+
+    # The level 8 is the highest level of strictness in PHPStan
+    level: 8
+
+    ignoreErrors:
+        - '#PHPDoc tag @var#'
+
+    checkMissingIterableValueType: true
+    checkGenericClassInNonGenericObjectType: false
+    checkExplicitMixed: true
+    reportUnmatchedIgnoredErrors: false

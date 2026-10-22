@@ -1,0 +1,15 @@
+{
+  "part": 82,
+  "source_preflight_passed": true,
+  "current_source_hashes": {
+    "app/Services/Finance/LedgerPostingService.php": "108ce5e5c232cccf80708698bfcb6c0710d4dfdefe6a01baa8252c87b788c206",
+    "app/Services/Finance/LedgerEntryPayloadPreflight.php": "806533f02f66de343f282a84593cc5b7a782d7e1a8716b8d83f04e934ae86075",
+    "tests/Unit/Services/LedgerEntryPayloadPreflightTest.php": "19951b4136756b41a0e228eac653b47bddf9bc60962aa68cc569f69f6b1ab2bb",
+    "tests/Feature/Finance/LedgerPostingEntryPayloadTest.php": "af3a2f8ce6f6f96d1fe55022014450a714aa8e3c665a7b3b540f8d521e23e092",
+    ".github/workflows/financial-concurrency.yml": "8007ea47154d67e4ff860a9f2d8df1bf8366757a62274a6b1993768cc71af802",
+    "scripts/release_source_inventory.py": "73e6ce3bbb5acc23e4f5f8563f2e9f0a9440945cfafed6fb8a2e665a85fb4ea7"
+  },
+  "new_migrations": 0,
+  "live_transfer": false,
+  "scope": "Complete lossless text and single-encoding JSON ledger payload preflight before posting DML."
+}

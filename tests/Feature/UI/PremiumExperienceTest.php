@@ -25,6 +25,7 @@ class PremiumExperienceTest extends TestCase
      */
     public function test_public_pages_render_without_raw_keys_in_en_and_th(): void
     {
+        $this->withoutVite(); // asserts translated copy, not the compiled asset graph (no npm build in the test image)
         $routes = [
             'home',
             'results.index',
@@ -80,6 +81,7 @@ class PremiumExperienceTest extends TestCase
      */
     public function test_authenticated_dashboard_and_wallet_render_exact_balances(): void
     {
+        $this->withoutVite(); // asserts page content, not the compiled asset tags
         $user = User::factory()->create(['name' => 'Somchai Jaidee']);
         $walletService = app(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
@@ -106,6 +108,7 @@ class PremiumExperienceTest extends TestCase
      */
     public function test_results_search_escapes_xss_and_renders_cleanly(): void
     {
+        $this->withoutVite(); // the assertion is that the injected payload is ABSENT; Vite tags are unrelated
         $xssQuery = '<script>alert(1)</script>';
         $response = $this->get(route('results.search', ['q' => $xssQuery]));
 

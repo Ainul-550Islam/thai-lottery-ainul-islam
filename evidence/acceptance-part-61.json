@@ -1,0 +1,140 @@
+{
+  "part": 61,
+  "passed": true,
+  "scope": "Known-source authenticated succeeded full Stripe refund exposure fences new withdrawal requests and new owned reservations across original-player/currency wallets; atomic replay-safe initial API hold through finance orchestration, not a generic debit freeze.",
+  "default": {
+    "passed": true,
+    "cases": 4122,
+    "assertions": 142223,
+    "skipped": 173,
+    "source_files": 303,
+    "errors": 0,
+    "failures": 0,
+    "exact_discovered_data_set_ids": true,
+    "per_source_file_process_and_database": true,
+    "current_source_affected_files_reexecuted": 9,
+    "current_source_replaced_case_ids": 158,
+    "superseded_failed_records": [],
+    "raw_main_shard_exits": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "reason": "Identical initial-hold transaction extracted from HTTP into finance to preserve the existing no-controller-SQL architecture contract; all affected HTTP routes and static/architecture files rerun with unchanged assertions. Source-hash inventory refreshed. Nine core service/test/native/CI files remained byte-identical."
+  },
+  "native": {
+    "passed": true,
+    "cases": 250,
+    "assertions": 3788,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "genuine_two_child_parent_waits": 22,
+    "new_distinct_wallet_profiles": 4,
+    "actual_request_old_rr_snapshots": 2,
+    "current_source_25_case_confirmation_replaced_not_added": true
+  },
+  "overlap": "Default/native/focused/static/standalone/confirmation runs overlap; do not add their totals.",
+  "default_skipped_ids_executed_in_selected_native": 22,
+  "default_skipped_ids_not_executed_in_selected_native": 151,
+  "focused_feature": {
+    "cases": 21,
+    "assertions": 554
+  },
+  "omission_controls": {
+    "total": 11,
+    "expected_assertion_failures": 11,
+    "setup_errors": 0,
+    "actual_request_old_rr_native_omission_verified": true
+  },
+  "syntax": {
+    "php_files": 2152,
+    "changed_php_pint_files": 10
+  },
+  "python_tests": 86,
+  "static": {
+    "cases": 35,
+    "assertions": 1662
+  },
+  "standalone": {
+    "cases": 29,
+    "assertions": 94
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "genuine_vite_build": true
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true,
+    "retired_settlement_worker_activated": false
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part61_migrations": 0,
+    "engine": "isolated empty SQLite test store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 157,
+    "production_or_populated_upgrade": false
+  },
+  "ci_workflow_local_parse": {
+    "yaml_parsed": true,
+    "mandatory_25_case_step_python_compiled": true,
+    "four_waits_required": true,
+    "remote_ci_executed": false
+  },
+  "current_frozen_sources": {
+    "app/Services/Finance/StripeRefundWithdrawalGuard.php": "66002232c3d370df914d3f46dba50ef118fde96ccfd40b6d4bc7e1dba86fb484",
+    "app/Services/Finance/WithdrawalRequestWithHoldService.php": "3d47e4418dd068ea3166a7e133c00e0fe20fc05aafc7ecbb5839d79685c5f81f",
+    "app/Services/Finance/WithdrawalService.php": "092731a4b21cf93b61db12390866f771c4e1792ca330acab143eface41cd55e7",
+    "app/Services/Finance/WithdrawalReservationService.php": "4da6912547e8b8ea5e06f9fb48ab77e30495df9e3a308fce2f9b2f7f9aae9739",
+    "app/Services/Payment/StripeRefundRecoveryService.php": "77a2eb9bd72a92c479500bff3cffdbefd1a404c5ba48c186c5325e2974113f9e",
+    "app/Http/Controllers/Api/V1/WithdrawalController.php": "2c3f16b427705d5b41bdbea8eff688c9711f2a2590ea581032b9c2b279085deb",
+    "tests/Feature/Payment/StripeRefundWithdrawalGuardTest.php": "8e28318f836487e8b6e8173a81c2a102fcc7222508388855b942bceacf434dc0",
+    "tests/Feature/Payment/StripeRefundWithdrawalGuardServerTest.php": "eec0d1ed6f83e1acf8579a4be022e928857e161ed1fbedef9f8dd39176f38cae",
+    "tests/Support/FinancialRaceProbe.php": "1c83c40a3821b4c34c21cef535a195dc73d64b9c4678069f1d8ef97e31d04aec",
+    "tests/Support/RunsServerFinancialRaces.php": "134b78a80524fa851538483e5db4858fc29fbc55056ceb938178a2519cfe4a2e",
+    ".github/workflows/financial-concurrency.yml": "5ff910d135dbaa33fc37122eb25a92475c671ac72990d455c595507e02ca3ef2",
+    "scripts/release_source_inventory.py": "6a83f5f0549f4be6243c0522a62527aa2828aa3e5397346df67dbe41cd26e00c"
+  },
+  "provenance": {
+    "controller_transaction_extracted_into_finance_service": true,
+    "all_preexisting_test_assertions_retained": true,
+    "nine_affected_default_source_files_reexecuted": true,
+    "native_25_current_source_ids_reexecuted": true,
+    "overlapping_ids_replaced_not_added": true,
+    "nine_core_frozen_paths_byte_identical_across_extraction": true,
+    "earlier_partial_and_diagnostic_runs_not_counted": true,
+    "owned_socket_unavailable_native_setup_errors_excluded": 25,
+    "interrupted_native_partial_schema_setup_errors_excluded": 25,
+    "interrupted_default_partial_schema_setup_errors_excluded": 33,
+    "fresh_disposable_stores_rebuilt_without_source_or_assertion_changes": true,
+    "current_native_exact_case_ids_retry_passed": true,
+    "passive_inventory_prerequisite_refreshed": true
+  },
+  "new_refund_admission_hook_on_existing_settlement_release_reconciliation": false,
+  "legacy_api_to_approved_owned_reservation_handoff_globally_certified": false,
+  "remote_ci_executed": false,
+  "live_provider_refund_or_transfer": false,
+  "populated_production_migration_restore": false,
+  "power_loss_or_all_writer_global_risk_certification": false,
+  "worldwide_legal_approval": false
+}

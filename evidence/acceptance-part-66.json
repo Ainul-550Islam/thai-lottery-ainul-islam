@@ -1,0 +1,151 @@
+{
+  "part": 66,
+  "passed": true,
+  "scope": "Owner-serialized current rolling allowance for new conversion admission; exact raw per-row BCMath, one inclusive second-resolution 24-hour/30-day cutoff, malformed eligible amount refusal; original/reversal replay semantics and all prior accounting/authority proof retained.",
+  "default": {
+    "passed": true,
+    "cases": 4304,
+    "assertions": 143503,
+    "skipped": 197,
+    "errors": 0,
+    "failures": 0,
+    "source_files": 313,
+    "exact_discovery_matched": true,
+    "all_previous_4277_case_ids_retained": true
+  },
+  "native": {
+    "passed": true,
+    "cases": 531,
+    "assertions": 7312,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "genuine_two_child_parent_waits": 54,
+    "new_actual_old_empty_rr_profiles": 4
+  },
+  "dedicated_rolling_allowance": {
+    "passed": true,
+    "cases": 27,
+    "assertions": 150,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "overlap": "Default/native/focused/static/standalone overlap; never add counts.",
+  "omission_controls": {
+    "total": 8,
+    "expected_assertion_failures": 8,
+    "setup_errors": 0,
+    "genuine_two_child_current_read_controls": 3,
+    "parent_and_both_child_shadow_service_and_guard_sources_proved": true
+  },
+  "syntax": {
+    "php_files": 2170,
+    "changed_php_pint_files": 7
+  },
+  "python_tests": 86,
+  "static": {
+    "passed": true,
+    "cases": 35,
+    "assertions": 1708,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "standalone": {
+    "passed": true,
+    "cases": 29,
+    "assertions": 94,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "node": "24.22.0",
+    "npm": "11.21.1",
+    "genuine_vite_build": true
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true,
+    "retired_settlement_worker_activated": false
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part66_migrations": 0,
+    "engine": "separate empty SQLite store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 158,
+    "historical_backfill": false,
+    "populated_production_upgrade": false
+  },
+  "ci_workflow_local_parse": {
+    "parsed": true,
+    "mandatory_previous_22_case_step_python_compiled": true,
+    "four_distinct_wallet_owner_waits_required": true,
+    "mandatory_new_55_case_step_python_compiled": true,
+    "three_old_rr_proof_profiles_required": true,
+    "mandatory_current_46_case_step_python_compiled": true,
+    "six_old_rr_cached_authority_profiles_required": true,
+    "remote_ci_executed": false,
+    "new_27_case_step_python_compiled": true,
+    "four_old_empty_rr_two_child_profiles_matched": true
+  },
+  "current_frozen_sources": {
+    "app/Services/Wallet/Conversion/ConversionLimitService.php": "e70d3c774a993cfd8c38e849a476504c03fd3012213d9ec8bf6c45e8e0694110",
+    "tests/Support/ConversionRollingLimitFixture.php": "26c7bd314eb0eaf772d87cb23e28a3ebefbd0cf0d8ea4ff2c52beb0d0c24bccc",
+    "tests/Support/FinancialRaceProbe.php": "e39a3ede151b40b425dae3ee23fd2ea1f5684056cc70ab7dd0c937352526aeef",
+    "tests/Support/RunsServerFinancialRaces.php": "658a7e82809db6db5c09c43c31c7dd3148073be94f1a1ce27ee53ab534434dd1",
+    "tests/Feature/Wallet/Conversion/ConversionRollingLimitTest.php": "6492ba6245d01dd512f0a575d559773a2f8a036040d4f36609c4e90f79169f7d",
+    "tests/Feature/Wallet/Conversion/ConversionRollingLimitServerTest.php": "5d8b749692f53767f5a9e5290a1641923030c2afcca86beca11c1347ee5c0e82",
+    "tests/Feature/Payment/StripeDepositReviewTest.php": "8df843be2e7f21eabc43755ee7ed2c972fa0099535eaa7c28b7990fe46821dfe",
+    ".github/workflows/financial-concurrency.yml": "9489c2712d1121da7b16671d090a30da7f014a69aca5a1b11c4ca2cdc409ff1c",
+    "scripts/release_source_inventory.py": "a4d20141dc421daabb7f555a3c65dbe29e01597b853c4d3c4f3df4d2ab342cc0"
+  },
+  "provenance": {
+    "complete_current_discovery_executed": true,
+    "all_previous_4277_ids_retained": true,
+    "no_assertions_weakened": true,
+    "each_default_source_file_has_separate_process_and_named_tmpfs_sqlite_database": true,
+    "no_journaling_or_synchronous_policy_disabled": true,
+    "real_parent_conversion_posting_not_faked_eligibility_rows_for_native_rr_profiles": true,
+    "exact_aggregate_fixture_synthetic_not_claimed_as_original_receipts": true,
+    "initial_stale_generated_inventory_diagnostic_excluded": true,
+    "initial_http_fixture_prohibited_fields_diagnostic_excluded": true,
+    "complete_default_and_native_rerun_after_transport_fixture_fix": true,
+    "final_default_changed_clock_fixture_and_static_contract_files_reexecuted": true,
+    "native_selected_sources_unchanged_by_final_unselected_clock_fixture_fix": true
+  },
+  "memory_bounded_per_batch": true,
+  "total_eligible_scan_work_bounded": false,
+  "all_historical_positive_rows_accounting_certified": false,
+  "qualified_accounting_timezone": "Asia/Bangkok fixed offset",
+  "custom_dst_accounting_timezones_certified": false,
+  "arbitrary_privileged_writer_or_other_isolation_certification": false,
+  "historical_repairs_or_backfills": false,
+  "new_migrations": 0,
+  "provider_io_inside_sql": false,
+  "remote_ci_executed": false,
+  "live_provider_transfer_or_refund": false,
+  "populated_production_upgrade_restore": false,
+  "all_writer_or_cross_currency_global_risk_certification": false,
+  "worldwide_legal_approval": false
+}

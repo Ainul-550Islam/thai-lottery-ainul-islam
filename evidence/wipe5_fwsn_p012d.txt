@@ -1,0 +1,118 @@
+
+   FAIL  Tests\Feature\FinalWholeSystemNoSkipTest
+  ✓ 01 user registration and wallet initialization                                                                                                                                                                                                 4.22s  
+  ✓ 02 deposit funding and balance crediting                                                                                                                                                                                                       0.30s  
+  ✓ 03 draw creation and lifecycle                                                                                                                                                                                                                 0.24s  
+  ⨯ 04 bulk bet placement with idempotency and satang math                                                                                                                                                                                         0.27s  
+  ✓ 05 proportional prize calculation and settlement                                                                                                                                                                                               0.23s  
+  ⨯ 06 withdrawal request and disbursement lifecycle                                                                                                                                                                                               0.22s  
+  ⨯ 07 agent referral and settlement journal                                                                                                                                                                                                       0.24s  
+  ✓ 08 responsible gaming and self exclusion safeguards                                                                                                                                                                                            0.23s  
+  ✓ 09 kyc document submission and lifecycle                                                                                                                                                                                                       0.25s  
+  ✓ 10 system observability and health integrity                                                                                                                                                                                                   0.24s  
+
+   FAIL  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest
+  ✓ p0 01 glo l6 official ticket business flow                                                                                                                                                                                                     0.30s  
+  ✓ p0 02 glo proportional payout and direct wallet settlement                                                                                                                                                                                     0.27s  
+  ⨯ p0 03 payment hub deposit and withdrawal execution                                                                                                                                                                                             0.30s  
+  ✓ p0 04 wallet canonical double entry and single source                                                                                                                                                                                          0.22s  
+  ✓ p0 05 health route mismatch resolution                                                                                                                                                                                                         0.24s  
+  ⨯ p0 06 financial idempotency protection                                                                                                                                                                                                         0.22s  
+  ✓ p0 07 cross currency wallet isolation                                                                                                                                                                                                          0.23s  
+  ✓ p0 08 responsible gaming canonical enforcement                                                                                                                                                                                                 0.22s  
+  ✓ p0 09 result provenance validation                                                                                                                                                                                                             0.21s  
+  ✓ p0 10 multi lane historical data integrity                                                                                                                                                                                                     0.21s  
+  ✓ p1 14 kyc document storage and verification                                                                                                                                                                                                    0.20s  
+  ✓ p1 20 prize claim lifecycle state machine                                                                                                                                                                                                      0.21s  
+  ✓ p2 22 agent and draw reconciliation                                                                                                                                                                                                            0.22s  
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 04 bulk bet placement with idempotency and satang math                                                                                                                                              
+  Failed asserting that an array is not empty.
+
+  at tests/Feature/FinalWholeSystemNoSkipTest.php:177
+    173▕             selections: $items,
+    174▕             clientKey: $clientKey
+    175▕         );
+    176▕ 
+  ➜ 177▕         $this->assertNotEmpty($result->bets);
+    178▕         $this->assertCount(2, $result->bets);
+    179▕         $this->assertSame('150.00', (string) $result->totalStake);
+    180▕ 
+    181▕         $wallet->refresh();
+
+  1   tests/Feature/FinalWholeSystemNoSkipTest.php:177
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 06 withdrawal request and disbursement lifecycle                                                                                                                          MassAssignmentException   
+  Add fillable property [requested_at] to allow mass assignment on [App\Models\Withdrawal].
+
+  at vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+    635▕ 
+    636▕             if (isset(static::$discardedAttributeViolationCallback)) {
+    637▕                 call_user_func(static::$discardedAttributeViolationCallback, $this, $keys);
+    638▕             } else {
+  ➜ 639▕                 throw new MassAssignmentException(sprintf(
+    640▕                     'Add fillable property [%s] to allow mass assignment on [%s].',
+    641▕                     implode(', ', $keys),
+    642▕                     get_class($this)
+    643▕                 ));
+
+      [2m+4 vendor frames [22m
+  5   tests/Feature/FinalWholeSystemNoSkipTest.php:220
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\FinalWholeSystemNoSkipTest > 07 agent referral and settlement journal                                                                                                                                                    Error   
+  Class "Tests\Feature\CommissionStatus" not found
+
+  at tests/Feature/FinalWholeSystemNoSkipTest.php:322
+    318▕         $comm->refresh();
+    319▕         $agent->refresh();
+    320▕ 
+    321▕         // The model casts this column to the enum; the enum is the comparable form.
+  ➜ 322▕         $this->assertSame(CommissionStatus::Paid, $comm->status);
+    323▕         $this->assertSame('50.00', (string) $agent->total_commission_paid);
+    324▕     }
+    325▕ 
+    326▕     public function test_08_responsible_gaming_and_self_exclusion_safeguards(): void
+
+  1   tests/Feature/FinalWholeSystemNoSkipTest.php:322
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 03 payment hub deposit and withdrawal execution                                                                                                                 FinancialException   
+  Payment method [bank_transfer] is not allowed for deposits.
+
+  at app/Exceptions/FinancialException.php:55
+     51▕         string $message,
+     52▕         array $context = [],
+     53▕         ?Throwable $previous = null,
+     54▕     ): static {
+  ➜  55▕         return new static($message, $errorCode, $context, $previous);
+     56▕     }
+     57▕ 
+     58▕     /**
+     59▕      * Stable identifier for this failure, or null when none was supplied.
+
+  1   app/Exceptions/FinancialException.php:55
+  2   app/Services/Payment/PaymentInitiationService.php:55
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest > p0 06 financial idempotency protection                                                                                                                                                  
+  Failed asserting that actual size 0 matches expected size 1.
+
+  at tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:398
+    394▕ 
+    395▕         $r1 = $bulkService->placeBulkBet($user, $draw, $items, $key);
+    396▕         $r2 = $bulkService->placeBulkBet($user, $draw, $items, $key);
+    397▕ 
+  ➜ 398▕         $this->assertCount(1, $r1->bets);
+    399▕         $this->assertCount(1, $r2->bets);
+    400▕ 
+    401▕         $wallet->refresh();
+    402▕         $this->assertSame('400.00', (string) $wallet->balance); // Debited once only
+
+  1   tests/Feature/P0P1P2ComprehensiveEnterpriseSuiteTest.php:398
+
+
+  Tests:    5 failed, 18 passed (53 assertions)
+  Duration: 9.56s
+

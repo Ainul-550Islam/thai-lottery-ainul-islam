@@ -60,6 +60,9 @@
             "@php -r \"if (file_exists('.env')) { fwrite(STDERR, '.env already exists; refusing to overwrite.' . PHP_EOL); exit(1); } copy('.env.example', '.env'); echo '.env created from the DEVELOPMENT template.' . PHP_EOL;\"",
             "@php artisan key:generate --ansi"
         ],
+        "env:templates": [
+            "@python3 scripts/gen_env_templates.py ."
+        ],
         "lint": [
             "@php vendor/bin/pint --test"
         ],

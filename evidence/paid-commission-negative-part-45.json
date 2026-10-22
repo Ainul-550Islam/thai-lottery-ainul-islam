@@ -1,0 +1,56 @@
+{
+  "expected_failure_controls": [
+    {
+      "mode": "retroactive-policy",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "log_sha256": "0e746e5636fa8aa4c69316ba6fed0cf1cabd4871d967a5de36dc9eff49bab2b1"
+    },
+    {
+      "mode": "late-unsorted-wallet",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "log_sha256": "8466105cc45adfc325c3a1100000a1f813ed95902512b40c52a5beffe0bec538"
+    },
+    {
+      "mode": "stale-counter",
+      "exit": 1,
+      "cases": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "log_sha256": "ac4b9e5c1bae49fa35e1a12042dab7571351eb8886651c356ac59ce0059c8c50"
+    },
+    {
+      "mode": "terminal-digest",
+      "exit": 1,
+      "cases": 11,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "log_sha256": "5ab4dd004e157fd4eaab8740429360ef6777f1252a891bc371de9dd7e24799fb"
+    }
+  ],
+  "total_failures": 4,
+  "total_errors": 0,
+  "correct_source_restored": true,
+  "restored_source_sha256": {
+    "app/Services/Agent/BetCommissionCancellation.php": "d8aecb32aaf5f61d17dbfdcbf8d132ac23a0f5bda485a7cfd55bae7734e598bb",
+    "app/Services/Agent/BetCommissionCompensation.php": "77a7ccae65439d0b9e094b884f5eb59b59a86275d3e32fd98f653ec16cf23869"
+  },
+  "scope": "Expected-failure synthetic guard controls, not successful financial operations.",
+  "log_sha256": {
+    "negative-results.json": "f2acf054515ceac65d2c786359ce2105fdfe9ae2fc3c393bacfcb8c49d58416d",
+    "negative-retroactive-policy.log": "0e746e5636fa8aa4c69316ba6fed0cf1cabd4871d967a5de36dc9eff49bab2b1",
+    "negative-late-unsorted-wallet.log": "8466105cc45adfc325c3a1100000a1f813ed95902512b40c52a5beffe0bec538",
+    "negative-stale-counter.log": "ac4b9e5c1bae49fa35e1a12042dab7571351eb8886651c356ac59ce0059c8c50",
+    "negative-terminal-digest.log": "5ab4dd004e157fd4eaab8740429360ef6777f1252a891bc371de9dd7e24799fb"
+  },
+  "initial_control_setup_note": "The first late-wallet mutation omitted enrolling its late-locked model into the local wallet map, producing an undefined-map-key error rather than a useful assertion. That incomplete control was not accepted. The corrected explicit unsafe late-lock/map-enrollment control produced exactly one intended assertion failure and0 errors. Raw initial setup logs remain separate."
+}

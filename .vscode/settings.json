@@ -1,0 +1,12 @@
+{
+    "php.validate.executablePath": "",
+    "intelephense.environment.phpVersion": "8.4.0",
+    "editor.formatOnSave": false,
+    "files.eol": "\n",
+    "[php]": {
+        "editor.defaultFormatter": "bmewburn.vscode-intelephense-client"
+    },
+    "terminal.integrated.env.windows": {
+        "PHP_CLI_SERVER_WORKERS": "4"
+    }
+}

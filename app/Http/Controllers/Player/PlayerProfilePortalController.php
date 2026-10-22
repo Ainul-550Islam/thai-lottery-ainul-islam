@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Player;
 
+use App\Enums\TransferDirection;
+use App\Exceptions\BalanceTransferException;
 use App\Http\Controllers\Api\V1\ProfileController as CanonicalProfileController;
+use App\Services\Transfer\BalanceTransferService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,8 +17,10 @@ use Illuminate\Routing\Controller;
  * Compatibility adapter for the retired profile portal.
  *
  * Profile reads and updates delegate to the canonical owner-scoped profile
- * controller. Banking, PIN, balance-transfer and session mutations are not
- * claimed here because this legacy surface has no verified contract for them.
+ * controller. Balance transfers delegate to BalanceTransferService, the same
+ * implementation the player wallet UI uses. Banking, PIN and session mutations
+ * are still not claimed here, because this legacy surface has no verified
+ * contract for them.
  */
 final class PlayerProfilePortalController extends Controller
 {
@@ -85,9 +90,105 @@ final class PlayerProfilePortalController extends Controller
         return $this->bindBankAccountApi($request);
     }
 
+    /**
+     * Legacy cross-balance transfer.
+     *
+     * This endpoint used to answer 503 NOT_CONFIGURED for every call. The lane
+     * now exists, so it delegates to the same BalanceTransferService the player
+     * wallet UI uses — one implementation, two entry points. It deliberately does
+     * NOT reimplement validation, pricing or locking here.
+     *
+     * Accepted payload (all names this retired surface was known to use):
+     *   direction | transferDirection | type : cash_to_win | win_to_cash
+     *   amount    | transferAmount           : plain decimal string
+     *   idempotency_key | requestId, or the Idempotency-Key header
+     *
+     * The response keeps THIS surface's envelope (`status` + `message`) rather
+     * than the canonical ApiResponse shape, because the whole reason this class
+     * exists is that an old client is still calling it and expects that shape.
+     */
     public function transferBalanceApi(Request $request): JsonResponse
     {
-        return $this->notConfigured('Cross-balance transfers are not configured. No wallet state was changed.');
+        $user = $request->user();
+
+        if ($user === null) {
+            return $this->authenticationRequired();
+        }
+
+        $direction = TransferDirection::tryFromInput(
+            $request->input('direction')
+                ?? $request->input('transferDirection')
+                ?? $request->input('type'),
+        );
+
+        if ($direction === null) {
+            return response()->json([
+                'status' => 'VALIDATION_FAILED',
+                'message' => (string) trans('transfer.validation.direction_invalid', [
+                    'allowed' => implode(', ', TransferDirection::values()),
+                ]),
+                'errors' => ['direction' => [(string) trans('transfer.validation.direction_required')]],
+            ], 422);
+        }
+
+        $amount = $request->input('amount') ?? $request->input('transferAmount');
+
+        if (! is_string($amount) && ! is_int($amount) && ! is_float($amount)) {
+            return response()->json([
+                'status' => 'VALIDATION_FAILED',
+                'message' => (string) trans('transfer.validation.amount_required'),
+                'errors' => ['amount' => [(string) trans('transfer.validation.amount_required')]],
+            ], 422);
+        }
+
+        $key = $request->input('idempotency_key')
+            ?? $request->input('requestId')
+            ?? $request->header((string) config('transfer.idempotency.header', 'Idempotency-Key'));
+
+        try {
+            $outcome = app(BalanceTransferService::class)->transfer(
+                user: $user,
+                direction: $direction,
+                amount: is_string($amount) ? trim($amount) : (string) $amount,
+                idempotencyKey: is_string($key) && trim($key) !== '' ? trim($key) : null,
+                requestContext: [
+                    'ip' => $request->ip(),
+                    'user_agent' => (string) $request->userAgent(),
+                ],
+            );
+        } catch (BalanceTransferException $e) {
+            $headers = [];
+
+            if ($e->retryAfter() !== null) {
+                $headers['Retry-After'] = (string) $e->retryAfter();
+            }
+
+            return response()->json([
+                'status' => 'REFUSED',
+                'code' => $e->machineCode(),
+                // Same sentence and same filter as the player controller. This legacy
+                // surface used to return getMessage() and the FULL diagnostic context,
+                // which put an internal wallet id on the wire and answered in English on
+                // a Thai site - two different responses to one refusal.
+                'message' => $e->translatedMessage(),
+                'context' => $e->publicContext(),
+            ], $e->httpStatus(), $headers);
+        }
+
+        $transfer = $outcome->transfer;
+
+        return response()->json([
+            'status' => 'SUCCESS',
+            'message' => $outcome->isReplay()
+                ? (string) trans('transfer.messages.already_applied')
+                : (string) trans('transfer.messages.completed'),
+            'replayed' => $outcome->isReplay(),
+            'data' => $transfer->toPlayerArray(),
+            'balances' => [
+                'source_after' => $transfer->source_balance_after,
+                'destination_after' => $transfer->destination_balance_after,
+            ],
+        ], $outcome->httpStatus());
     }
 
     public function balanceTransferApi(Request $request): JsonResponse

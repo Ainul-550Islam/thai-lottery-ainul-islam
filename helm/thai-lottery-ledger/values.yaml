@@ -1,0 +1,78 @@
+replicaCount: 10
+
+image:
+  repository: 123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/thai-lottery-app
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:123456789012:certificate/abc-123
+  hosts:
+    - host: api.thai-lottery.internal
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4096Mi
+  requests:
+    cpu: 1000m
+    memory: 2048Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 10
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+horizon:
+  enabled: true
+  replicaCount: 5
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4096Mi
+    requests:
+      cpu: 1000m
+      memory: 2048Mi
+
+reverb:
+  enabled: true
+  replicaCount: 4
+  port: 8080
+
+clamav:
+  enabled: true
+  replicaCount: 2
+  image: clamav/clamav:1.0
+  port: 3310
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4096Mi
+    requests:
+      cpu: 1000m
+      memory: 2048Mi
+
+env:
+  APP_ENV: production
+  APP_DEBUG: false
+  DB_CONNECTION: pgsql
+  CACHE_DRIVER: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  BOT_DETECTION_MODE: enforce
+  FRAUD_DETECTION_MODE: enforce

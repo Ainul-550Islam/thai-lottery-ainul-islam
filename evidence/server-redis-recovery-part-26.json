@@ -1,0 +1,433 @@
+{
+  "scope": "private single-node Redis AOF hard restart and operator handoff, not remote failover or live certification",
+  "laravel_connection": "mariadb",
+  "server": {
+    "lock_introspection": false,
+    "database": "thai_lottery_test",
+    "pdo_driver": "mysql",
+    "server_version": "11.8.6-MariaDB-0+deb13u1 from Debian",
+    "table_engines": {
+      "wallets": "InnoDB",
+      "number_limits": "InnoDB",
+      "bets": "InnoDB",
+      "bet_items": "InnoDB",
+      "draws": "InnoDB",
+      "tickets": "InnoDB",
+      "financial_transactions": "InnoDB",
+      "ledger_entries": "InnoDB",
+      "ledger_accounts": "InnoDB",
+      "agents": "InnoDB",
+      "agent_commissions": "InnoDB",
+      "audit_logs": "InnoDB",
+      "users": "InnoDB",
+      "wallet_conversions": "InnoDB",
+      "wallet_conversion_quotes": "InnoDB",
+      "settlement_runs": "InnoDB",
+      "payouts": "InnoDB",
+      "jobs": "InnoDB",
+      "failed_jobs": "InnoDB",
+      "deposits": "InnoDB",
+      "payments": "InnoDB"
+    }
+  },
+  "expected_cases_per_iteration": 7,
+  "clock": "application queue visibility may be accelerated; Redis cache TTL and AOF restart are real wall time",
+  "production_verified": false,
+  "live_payment_verified": false,
+  "runs": [
+    {
+      "iteration": 1,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "failed_or_skipped": false
+        }
+      ],
+      "restart_witnesses": [
+        {
+          "before": "4088efb6c3728fa1eb1ce1a17f6ed68be9facc6b",
+          "after": "bf8d8efeac509c736305715d7c9002d367e2d86b",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "phase": "queued",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "7a4b7905bf3e767fae94da820b4482d8a6c8688a",
+          "after": "72a98d156e410d42605bdd60e6a5902763133b57",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "92d6ccfc68b7183347c8defc646731bcaa4d37a3",
+          "after": "58970591408679f3ca0f5bd3c6dddc2d80f26de1",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "phase": "released",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "e09c5506d2bb055bd310c7059cc2775a4da94f03",
+          "after": "fbd10d8c8e67a8b7ce827d08b4f35e19ec483cfc",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "08a04401a9f25970cb637478960eefcea2a41d9d",
+          "after": "137009a02188a01a43bf38ed8959e163bd8fb09f",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "phase": "worker-death",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "c674e0c0700f7296575cd0e8ae497815b0875851",
+          "after": "7dc6feea8fd65d7de6a01b0f047e9246d7642688",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "phase": "explicit-data-loss",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "aed007ec9ee4539e2bb0398b1898f8a44379adbe",
+          "after": "525a939bfc39a3742c8bfe00309859c868028a8d",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "phase": "broker-unavailable",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        }
+      ],
+      "restarts_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.......                                                             7 / 7 (100%)\n\nTime: 00:18.661, Memory: 74.50 MB\n\nOK (7 tests, 353 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 2,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "failed_or_skipped": false
+        }
+      ],
+      "restart_witnesses": [
+        {
+          "before": "419a9a284697f7a8e59e20fe22f2df7135507d04",
+          "after": "dae118d604341e5588a9675c88655894c9a2cb3b",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "phase": "queued",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "bdfe7ef656083232c53451a62873e873fb84bd53",
+          "after": "c3043a8e5692498c583b8de51460dbdfbe45f721",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "8f20a8686969f9b36b2591f61852fff2b10af173",
+          "after": "bd342c905841dddba3f0ed328ee2f03b8a1af4a5",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "phase": "released",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "851443d78e45a408b4d77b4df4cbafce04883084",
+          "after": "11ef667afe95934f311825a6aa3dc5178e3e493c",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "2a22e275c2fc591a9d13c8cce0271ff25a0c945c",
+          "after": "ec7934b5b1f6c9a512c5203d5f376cd4c70a098f",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "phase": "worker-death",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "c09a605923973da5812e9886e33175b255b12a27",
+          "after": "cc5a7988040f5462fa08a626e91df172d879ba89",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "phase": "explicit-data-loss",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "28dd1a34b871da2576c15d83418223318fba7615",
+          "after": "112762ff2c9d2b9481382a75c38d58022162944f",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "phase": "broker-unavailable",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        }
+      ],
+      "restarts_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.......                                                             7 / 7 (100%)\n\nTime: 00:18.771, Memory: 74.50 MB\n\nOK (7 tests, 353 assertions)\n",
+      "stderr": ""
+    },
+    {
+      "iteration": 3,
+      "exit_code": 0,
+      "cases": [
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "failed_or_skipped": false
+        },
+        {
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "failed_or_skipped": false
+        }
+      ],
+      "restart_witnesses": [
+        {
+          "before": "fdc6e5cbfb16c9007e5ff485b63a0013a87eb260",
+          "after": "3ac5f3b834a70689f26b708c6e2dde4fa0bdad18",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_retains_queued_work",
+          "phase": "queued",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "d654078cd6e7bb58fe28eaa2d35eb69384ca1dd5",
+          "after": "7570685a702c30711d0b0f0ef5ab63397f90cda9",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_after_commit_releases_stale_client_lock",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "11d3f9fd037e2163f43ced0a2e8acfb9b82d97a2",
+          "after": "34ba7bb2bbbf7e9edde0e7605cfb0a128440a57e",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_before_ack_reconnects_live_worker",
+          "phase": "released",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "8da64fa459e3d17c2029fa80e140ab0e87ae00f4",
+          "after": "22f546ac2b22c779a89e5759c9034ff3e95f535b",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_manual_approval_remains_uncredited",
+          "phase": "committed",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "42583d7b879b0aa02ce811bec75b7d6cf96eed17",
+          "after": "dc95ac68de988f849f723bbb376853e6cfb90964",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_restart_and_worker_death_replays_reserved_job",
+          "phase": "worker-death",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "59aab448651d690e6bfe320d0a471fccf5a54f87",
+          "after": "874d273d4668bb3aee84f12166a3e558f8e69abc",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_queue_loss_requires_operator_handoff_without_duplicate_credit",
+          "phase": "explicit-data-loss",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        },
+        {
+          "before": "da688dc29ecf4c93a2a3de1e709cec67a88693a3",
+          "after": "0652c9f8edc8a25cadaf9a3ba4bd458a5bc645bf",
+          "version": "8.0.2",
+          "signal": 9,
+          "class": "Tests\\Feature\\Concurrency\\RedisSettlementRecoveryTest",
+          "name": "test_redis_unavailable_handoff_is_a_controlled_failure",
+          "phase": "broker-unavailable",
+          "recovered": true,
+          "aof_fsync": "always",
+          "cache_ttl": "real wall time"
+        }
+      ],
+      "restarts_passed": true,
+      "passed": true,
+      "stdout": "PHPUnit 11.5.56 by Sebastian Bergmann and contributors.\n\nRuntime:       PHP 8.4.26\nConfiguration: /home/user/thai-lottery-ainul-islam/phpunit.xml\n\n.......                                                             7 / 7 (100%)\n\nTime: 00:19.228, Memory: 74.50 MB\n\nOK (7 tests, 353 assertions)\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true
+}

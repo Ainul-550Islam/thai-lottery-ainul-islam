@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Thai Lottery</string>
+    <string name="offline_title">Connection unavailable</string>
+    <string name="offline_message">Connect to the internet and try again.</string>
+    <string name="retry">Retry</string>
+    <string name="download_started">Your download has started.</string>
+    <string name="download_failed">This file could not be downloaded in the app.</string>
+    <string name="external_link_failed">No browser is available to open this link.</string>
+</resources>

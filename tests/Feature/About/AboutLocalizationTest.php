@@ -9,6 +9,13 @@ use Tests\TestCase;
 
 final class AboutLocalizationTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite(); // asserts page content; public/build/manifest.json is a build artefact
+    }
+
     use RefreshDatabase;
 
     public function test_public_pages_localization_files_have_exact_key_parity(): void

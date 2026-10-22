@@ -137,8 +137,7 @@ final class AgentPortalController extends Controller
     public function referrals(Request $request): View
     {
         $agent = $this->agentFor($request);
-        $users = User::query()
-            ->whereJsonContains('preferences->referred_by_agent_id', $agent->getKey())
+        $users = $agent->referredPlayersQuery()
             ->latest('id')
             ->limit(100)
             ->get(['id', 'status', 'created_at'])
@@ -161,8 +160,7 @@ final class AgentPortalController extends Controller
     public function referralDetail(Request $request, string $reference): View
     {
         $agent = $this->agentFor($request);
-        $user = User::query()
-            ->whereJsonContains('preferences->referred_by_agent_id', $agent->getKey())
+        $user = $agent->referredPlayersQuery()
             ->get(['id', 'status', 'created_at'])
             ->first(static fn (User $candidate): bool => hash_equals(
                 hash('sha256', 'agent-referral|'.$agent->getKey().'|'.$candidate->getKey()),

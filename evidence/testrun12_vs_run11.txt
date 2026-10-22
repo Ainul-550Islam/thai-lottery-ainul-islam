@@ -1,0 +1,43 @@
+RUN 12 vs RUN 11 — failing-class comparison
+========================================================================
+
+run 11 (baseline, before Part 4B): 111 failed / 2 skipped / 2186 passed (112,773 assertions)
+run 12 (all 18 Part-4B test files added): 111 failed / 2 skipped / 2412 passed (114,725 assertions)
+
+failing totals: identical (111 = 111). New failures introduced by Part 4B: 0.
+
+Classes that failed in the baseline and fail again in run 12 (count in run 12):
+    1  Tests\Feature\Api\V1\Batch7ApiSurfaceTest
+    8  Tests\Feature\BusinessCriticalInvariantTest
+   15  Tests\Feature\Draw\ChunkedSettlementTest
+    6  Tests\Feature\FinalProductionReadinessTest
+    6  Tests\Feature\FinalWholeSystemNoSkipTest
+    2  Tests\Feature\Glo\GloConsoleCommandsTest
+   11  Tests\Feature\Glo\GloResultFallbackTest
+    8  Tests\Feature\Glo\GloResultImportTest
+    4  Tests\Feature\Glo\GloWriteBoundaryTest
+    9  Tests\Feature\P0P1P2ComprehensiveEnterpriseSuiteTest
+    1  Tests\Feature\Pages150To250StaticContractTest
+    1  Tests\Feature\Pages77To100StaticContractTest
+    1  Tests\Feature\Payment\FixturePublicationSafetyTest
+    3  Tests\Feature\Payment\PaymentWebhookSignatureVerificationTest
+    5  Tests\Feature\Payment\PlayerDepositApiTest
+    1  Tests\Feature\Payment\WebhookReplayGuardRetentionTest
+    9  Tests\Feature\Payment\WebhookReplayProtectionTest
+    1  Tests\Feature\Payment\WithdrawalDestinationValidationTest
+    2  Tests\Feature\Player\PlayerExperienceComprehensiveTest
+    3  Tests\Feature\Player\PlayerFrontendModulesTest
+    5  Tests\Feature\Production\ProductionConfigSafetyTest
+    1  Tests\Feature\PublicPages\PublicTermsTest
+    1  Tests\Feature\PublicSite\PublicResultsAnonymousTest
+    6  Tests\Feature\RealMoneyBusinessReadinessTest
+
+Classes failing in run 12 that were NOT in the baseline:
+  (none)
+
+Any Wallet\Conversion class in the failing set: NO
+
+Note on per-class counts: the baseline file was captured with the runner's
+default terminal width, so long class names were truncated and several tests of
+one class collapsed into a single line. Only the class SET is comparable; the
+reliable comparison is the failing TOTAL, which is unchanged at 111.

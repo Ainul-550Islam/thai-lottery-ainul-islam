@@ -75,7 +75,7 @@
                                     @if(in_array($st, ['pending', 'under_review']))
                                         <form method="POST" action="{{ route('admin.kyc.approve', $doc->id) }}">
                                             @csrf
-                                            <button type="submit" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition" onclick="return confirm('Approve verification document?')">
+                                            <button type="submit" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition" data-confirm="Approve verification document?">
                                                 Approve
                                             </button>
                                         </form>
@@ -83,7 +83,7 @@
                                         <form method="POST" action="{{ route('admin.kyc.reject', $doc->id) }}">
                                             @csrf
                                             <input type="hidden" name="reason" value="Document unreadable or invalid format.">
-                                            <button type="submit" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg transition" onclick="return confirm('Reject verification document?')">
+                                            <button type="submit" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg transition" data-confirm="Reject verification document?">
                                                 Reject
                                             </button>
                                         </form>

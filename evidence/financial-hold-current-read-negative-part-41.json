@@ -1,0 +1,12 @@
+{
+  "expected_failure": true,
+  "removed_only_current_read_locks": true,
+  "tests": 4,
+  "failures": 4,
+  "errors": 0,
+  "correct_source_restored": true,
+  "restored_sha256": "77b82b7c10bbb14959e4a797253c40d339483e6f997ef88e9165e6f544a99ed0",
+  "scope": "Expected-failure control only; not a passed financial operation or a deployment approval.",
+  "log_sha256": "27c13ac6c09af682f0e8f2b038fd7c0ca17af3e90ad74331ca1fb9d4d8798e73",
+  "junit_sha256": "913e813f5822ca7afa1b963a12b9d8c2d8d39ddff6056b7d91b2653548846d87"
+}

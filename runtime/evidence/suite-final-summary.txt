@@ -1,0 +1,216 @@
+evidence for the release record, measured 2026-10-16, reproduced by: php artisan test
+  command : php artisan test   (the command CI runs)
+  summary : Tests:    5 skipped, 2868 passed (118125 assertions)
+  exit    : 0
+  duration: 374.45s  (printed by the run itself, /home/user/logs/suite45.txt)
+  lineage : 2857 passed after cluster 44 first half; 2860 after its three gate tests; 2868 now, the +8
+            being this cluster's CommittedEvidenceTruthTest. Nothing was removed to get the number up:
+            /home/user/logs/suite45.txt holds the run, /home/user/logs/suite44.txt the 2857 run.
+  note    : this file is the only place the release record may read a suite number from; a claim that
+            cites a number absent here fails CommittedEvidenceTruthTest.
+
+evidence for the release record, measured 2026-10-16 in cluster 46, reproduced by: php artisan test
+  command : php artisan test   (the command CI runs; run as the only test process, no overlap)
+  summary : Tests:    5 skipped, 2880 passed (118376 assertions)
+  exit    : 0
+  duration: 375.18s  (printed by the run itself, /home/user/logs/suite46.txt)
+  lineage : 2880 = 2868 (the cluster-45 number above) + 12 tests added in cluster 46: 10 in
+            tests/Feature/Console/OperationalLaneTruthTest.php, one exemption verifier in
+            ScheduledClockProducersTest, one disabled-control case in
+            ProductionObservabilityComprehensiveTest. Nothing was removed to move the count.
+  note    : the block above this one is the cluster-45 measurement and is kept as history; the
+            release record reads a suite number from this file only, and a claim quoting a
+            number absent here fails CommittedEvidenceTruthTest.
+
+evidence for the release record, measured 2026-10-16 in cluster 47, reproduced by: php artisan test
+  command : php artisan test   (the command CI runs; run as the only test process, no overlap)
+  summary : Tests:    5 skipped, 2897 passed (118475 assertions)
+  exit    : 0
+  duration: 366.01s  (printed by the run itself, /home/user/logs/suite47.txt)
+  lineage : 2897 = 2880 (the cluster-46 number above) + 17 tests, all of them in the new
+            tests/Feature/Audit/AuditSubjectTruthTest.php. The 8 failures the first cluster-47 run
+            reported (AccountServicesPagesTest, before the subject pair rule had a writer to
+            point at) are fixed in the tree, not removed: the file still holds its own count.
+            Nothing was deleted to move the number.
+  note    : the blocks above this one are earlier clusters' measurements and stay as history; the
+            release record reads a suite number from this file only, and a claim quoting a number
+            absent here fails CommittedEvidenceTruthTest.
+
+evidence for the release record, measured 2026-10-16 in cluster 48, reproduced by: php artisan test
+  command : php artisan test   (the command CI runs; run as the only test process, no overlap)
+  summary : Tests:    5 skipped, 2908 passed (118476 assertions)
+  exit    : 0
+  duration: 372.97s  (printed by the run itself, /home/user/logs/suite48-final.txt)
+  lineage : 2908 = 2897 (the cluster-47 number above) + 11 tests, all of them in the new
+            tests/Feature/Audit/AuditAnchorTruthTest.php. Two runs are in play and both are recorded:
+            the first clean run reported 2908 passed / 118469 assertions in 384.44s
+            (/home/user/logs/suite48.txt), then the gate file's docblock was reworded (a comment, no
+            behaviour) and the suite was run again to measure the shipped tree. The test and skip counts
+            are identical; the assertion total moved by 7, which is what randomized
+            tests do in this suite - the record therefore compares test and skip counts, never
+            assertion totals (§10.23 item 6 says so, and this cluster is why). A third run, the first
+            measurement attempt, was THROWN AWAY rather than quoted: a temp probe truncated the same
+            sqlite file underneath it.
+  note    : the blocks above this one are earlier clusters' measurements and stay as history; the
+            release record reads a suite number from this file only, and a claim quoting a number
+            absent here fails CommittedEvidenceTruthTest.
+
+evidence for the release record, measured 2026-10-16 in cluster 49, reproduced by: php artisan test
+  command : php artisan test   (the command CI runs; run as the only test process, no overlap)
+  summary : Tests:    5 skipped, 2917 passed (118516 assertions)
+  exit    : 0
+  duration: 418.77s  (printed by the run itself, /home/user/logs/suite49-final.txt)
+  lineage : 2917 = 2908 (the cluster-48 number above) + 9 tests, all of them in the new
+            tests/Feature/Agent/AgentReferralCountTruthTest.php. Nothing pre-existing moved: the fix
+            changed how the count is kept, not what any earlier gate asserted, so the +9 is the whole
+            difference. Two runs are in play and both are recorded: the first measured the code and
+            reported 2917 passed (118510 assertions) in 410.39s (/home/user/logs/suite49.txt), then the
+            release record's own floors were raised (33 -> 36 claims, 31 -> 34 re-checked) and the shipped
+            tree was run again for the number quoted above. Test and skip counts identical, assertion
+            total moved by 6, which is what randomized tests do in this suite - the record therefore
+            compares test and skip counts, never assertion totals (section 10.23 item 6 says so).
+  gate    : the new file alone: 9 tests, 43 assertions, green
+  red     : 11 of 11 plants red-as-intended, 0 unproven (/home/user/logs/red49.txt), and the gate was
+            run again after every plant was reverted
+  suites  : Agent+Filament+Compliance+Auth+Betting before the record edits: 3 skipped, 335 passed
+            (1761 assertions) (/home/user/logs/families49.txt)
+  numbers : stored=2 / derived=1 / report=1 after one member was removed, and a moved player counted by
+            both agents, are the measurements this cluster exists for; the gate re-measures all of them
+            green on the shipped tree, and one harness artifact found on the way is recorded honestly: a
+            restore that preserved mtimes left a compiled Blade view newer than its source, so a view
+            assertion read the planted template. view:clear (or a fresh mtime) is now part of the proof
+            harness, and of this pair's restore.
+
+evidence for the release record, measured 2026-10-16 in cluster 50, reproduced by: php artisan test
+  command : php artisan test   (the command CI runs; run as the only test process, no overlap)
+  summary : Tests:    4 skipped, 2932 passed (118671 assertions)
+  exit    : not carried inside suite50-raw.txt; the log holds 0 failure markers and ends with the summary and the duration line, which is what a green run of this command leaves behind
+  duration: 431.97s  (printed by the run itself, /home/user/logs/suite50-raw.txt)
+  lineage : 2932 = 2917 (the cluster-49 number above, 2917) + 14 tests in the new
+            tests/Feature/Operations/OperationalReportFilterTruthTest.php + 1 test that skipped in cluster 49
+            and ran this time: BetPurchaseAtomicityTest::ab_lets_only_one_of_two_concurrent_purchases_consume_the_last_capacity
+            skips on its own probe result, so the skip count moved 5 -> 4 for the same reason. Both halves were
+            checked against the two logs rather than assumed, because a silent +1 in a suite total is exactly what
+            the claim floors exist to catch.
+  gate    : the new file alone: 14 tests, 155 assertions, green
+  suites  : Operations+Console+Finance before the record edits: Tests:    192 passed (1177 assertions) (/home/user/logs/families50.txt),
+            which is where a change to a shared reader shows up first
+  red     : 11 plants of a regression each, 11 PROVES, 0 unproven (/home/user/logs/red50.txt); the
+            gate was run whole after every plant and the tree ended byte-identical to how it started
+  before  : what the pre-fix readers did was re-created and measured, not remembered
+            (/home/user/logs/before50.txt): of 29 advertised filter keys 14 were never consulted by the reader
+            that receives them, filtering THB on a two-currency seed returned 2 rows (every row), and the one
+            player's user_id filter returned 2 rows when that player owned 1. The prize family seated
+            completed with row_count 0 and no failure_reason.
+  numbers : after the fix the whitelist holds 21 slots, 16 distinct names (status by 2 families, user_id by 5); every slot is consulted by the reader that receives it, 21 of 21 seen in the shipped reader bodies. Of the 29 names advertised before this cluster, 7 are consulted for the first time (draw.lifecycle_state, financial.currency, financial.wallet_kind, operational.lane, operational.risk_rating, player.kyc_status, player.registered_within), 8 were dropped instead of wired (draw.winner_only, financial.entry_purpose, payment.channel, player.risk_level, prize.claim_status, prize.draw_id, prize.tier, prize.winning_status), and the two that were consulted but could not narrow anything were handled one at a time: the metadata lane nothing stamps was dropped, the LIKE of pure wildcards was rewritten to reach the wallet the player owns. A generation refusal now commits its Failed seat before it throws. These counts come from tools/measure50delta.py reading logs/measure50filters.txt against the shipped tree; the sentence they replace carried numbers typed into a patch script, which is why the replacement is called out rather than slipped through.
+  final   : Tests: 5 skipped, 2931 passed (118673 assertions) - the canonical run for this cluster, the same command taken after the record was patched, 394.72s, 0 failure markers, no exit code carried in suite50-final.txt. The pair of runs differs by +1 skip and -1 passed - one concurrency test in tests/Feature/Betting/BetPurchaseAtomicityTest.php skips on its own database probe - and by +2 assertions, which the Infra measurement above ties to this cluster record additions being counted by the committed-evidence gate. Neither run supersedes the other code-wise; this one is the state of the tree.
+evidence for the release record, measured 2026-10-16 in cluster 51, reproduced by: php artisan test
+  command : php artisan test   (the command CI runs; run as the only test process, no overlap)
+  summary : Tests:    5 skipped, 2939 passed (118730 assertions)
+  exit    : 0
+  duration: 598.35s  (printed by the run itself, /home/user/logs/suite51-final.txt)
+  failure : 0 FAIL/ERROR marker line(s) in the whole log
+  close   : a second green full-suite run taken after every edit in this cluster had landed read
+            5 skipped, 2939 passed (118724 assertions) in 545.98s -
+            the same 2939 tests as the canonical run, 6
+            fewer assertions - a difference with no code
+            change behind it, which is why this record calls the suite-context swing what it is: unattributed
+  lineage : the sweep taken before the release record was patched read 2940 passed
+            (118725 assertions); the canonical run reads 2939 passed
+            (118730 assertions) - both sit at #50's 2932 plus this cluster's
+            8 gate tests. The two runs differ by 5 assertions
+            for reasons measured one at a time rather than asserted: 2 of them is
+            tests/Feature/Infra gaining this cluster's record work, measured by running that directory with
+            and without it (295 -> 297 assertions, three runs each way and all six landed
+            on those two numbers, so the directory itself is not what swings - logs/infra51-repeats.txt); 1 is the gate gaining one
+            assert of its own (52 -> 53, logs/gate51-prefix.txt and
+            logs/gate51-final.txt); the rest (2) is not attributed beyond the fact that the
+            directory holds env-conditional concurrency tests which are stable at 297 in three
+            isolated runs and move inside a full suite - cluster #50 measured 118673 and 118676 between two
+            identical full runs. This cluster's 3 full runs (118724, 118725, 118730) span a band of
+            6 assertions, so any single run sits inside it; the itemised term above is the only part of
+            the 5-assertion step that is attributed. Skips read 4 then
+            5 because one concurrency test skips itself when SQLite answers SQLITE_BUSY; it
+            ran in the sweep and skipped in the canonical run.
+  census  : 63 hand-typed metadata-lane spellings before the fix (34 inside the seven
+            bound lanes, across 13 files; 29 in lanes with no single owner),
+            29 after (0 bound, 29 owner-less). One rule, both trees:
+            tools/measure51prefix.py rebuilds the "before" tree by running the fix in reverse on a copy,
+            so the number is reproducible rather than remembered. The gate measured the same 34
+            from its own failure line before the fix, and 29 owner-less afterwards by having
+            OWNERLESS_CEILING read zero (logs/proof51red.txt).
+  red     : 6 planted regressions turned exactly the predicted tests red and restored clean
+            (0 problems) - logs/proof51red.txt. The first version of that script under-counted
+            reds because its parser required two spaces before a test's duration and PHPUnit truncates long
+            names with one; the fix is in the script's comment.
+  pair    : 10 plantings, 0 problems (logs/pairproof51.txt); fleet
+            51 pairs clean / 0 recovered / 0 drifted
+            (logs/setup-env51-fleet3.txt), and archives-agree 53 shared paths with
+            0 disputed (logs/agree51.txt) - the pair's verdict, not archive byte counts.
+cluster 52 2026-10-16T16:32Z
+  provenance : tools/patch52record.py wrote this block and every figure in the three #52 claims, reading each
+               from the command named on its own line below and refusing to write the record at all if one of
+               them disagreed with another. No number in the #52 claims was typed from memory.
+  as of      : byte sizes here are the sizes at the moment of writing. No #52 claim quotes the archive's
+               size: this pair archives the record and the evidence file being appended to, so a claim about
+               that number is false the instant the save that satisfies it runs. The claims quote the pair's
+               own verdict (changed / absent / regressions) instead - it is the answer to "is the tree what the
+               archive says", and a save is exactly what keeps it true.
+  gap        : the record and the fleet's own tooling were held by 0 archives: FINAL-REPORT-BN.md
+               664692 bytes, setup-env.sh, and the 52 pair scripts sat in one copy each.
+  census     : python3 tools/measure52fleet.py -> 52 pairs, 366 owned paths present,
+               0 archives named but not on disk, 0 pairs with no coverage
+               of a tree file, 2 verify bodies that never read their archive
+               (logs/census52fleet.txt). Fixing the parser mattered: an extension whitelist dropped the 12
+               python tools this pair owns and called a 73-path archive "covered 61/61".
+  fixed      : bash docs-and-fleet-truth-backup.sh verify -> changed=0 absent=0
+               regressions=0; 82 owned paths (3 shared
+               markers), 10915 bytes of script, 452197 bytes of archive. Restore is
+               resurrect-only, so a recovery run cannot revert newer work, and sync re-adopts the tree.
+  report     : python3 tools/fix52fleet6.py -> pairs 52, clean 52, recovered
+               0, drifted 0; wrong-script characters
+               4 -> 0 (logs/patch52report.txt); the report's
+               index agrees with itself: 40 ledger rows, 40 sections.
+  guards     : python3 tools/fleet-guards52.py -> 9 of 9 pass; the gate
+               php artisan test tests/Feature/Infra/FleetDurabilityTest.php -> 9 tests, which
+               re-implement each invariant instead of shelling out to the guard, so a deleted guard cannot
+               pass a suite run.
+  red        : bash tools/proof52red.sh -> 10 plantings, 0 problems
+               (logs/proof52red.txt); every planting went red in both implementations for the named reason and
+               came back clean, including the owned file first mis-read as covered and the pair script that
+               cannot check its own syntax.
+  figures    : {"absent": 0, "archive_bytes": 452197, "blind_verify": 2, "changed": 0, "fleet_clean": 52, "fleet_drift": 0, "fleet_pairs": 52, "fleet_recovered": 0, "gate_tests": 9, "guards_pass": 9, "guards_total": 9, "ledger_rows": 40, "missing_archives": 0, "owned_all": 366, "owned_here": 82, "pair_bytes": 10915, "pairs": 52, "proof_problems": 0, "proves": 10, "regressions": 0, "report_bytes": 664692, "script_chars_after": 0, "script_chars_before": 4, "script_chars_now": 0, "sections": 40, "shared_here": 3, "uncovered": 0}
+
+  suite      : php artisan test (full sweep, the canonical run of this cluster) -> 3 skipped, 2950 passed (119263 assertions), 619.87s (logs/suite52-final.txt); lineage 2950 = 2939 + 9
+
+  close      : php artisan test again on the shipped bytes -> 5 skipped, 2948 passed (119258 assertions), 565.68s, 0 failure markers (logs/suite52-close.txt); 2 test(s) skipped here and ran in the canonical run (aa lets only one of two concurrent purchases spend the last balance, ab2 replays rather than duplicates two concurrent identical request). The name set, not a guess about the cause, is what is recorded: those probes skip only when the driver refuses a second concurrent writer, so which of them skip moves from run to run - see BetPurchaseAtomicityTest::skipIfTheDatabaseRefusedToRunTheProbe. Against the canonical run: assertion delta -5; the tests and skips are identical, so the difference is in the files the record-reading tests count, not in what is asserted about them.
+
+cluster 53 2026-10-16 (tools/patch53record.py):
+  provenance : tools/patch53record.py wrote this block and every figure in the three #53 claims, each
+               one read from a named log; where two logs disagreed the run stopped instead of a number
+               being chosen. No figure in the #53 claims was typed from memory.
+  absences   : the repo is meant to be without them; the manifest is what makes that sayable.
+  figures    : {"absence_declared_by_pair": 2, "absence_deleted": 31, "absence_gated": 4, "absence_ungated": 27, "fleet_owned": 375, "fleet_pairs": 53, "guards_pass": 12, "guards_total": 12, "infra_assertions": 929, "infra_tests": 42, "manifest_declared": 2, "manifest_entries": 31, "manifest_gates": 4, "messages_made_truthful": 8, "new_gate_tests": 11, "overwrite_before": 20, "overwrite_now": 0, "pair_owned_paths": 1, "pairs_at_census": 52, "proof_problems": 0, "proof_proves": 10, "restore_fixed": 0, "restore_repaired": 20, "resurrect_before": 32, "resurrect_now": 52, "suite_assertions": 119359, "suite_passed": 2959, "suite_seconds": "520.20", "suite_skipped": 5}
+  guards     : python3 tools/intended-absence-guards53.py -> 12 of 12 pass
+  red        : bash tools/proof53red.sh -> 10 plantings, 0 problems; each of the
+               resurrected file, the unrecorded deletion, the overwrite-shaped restore, the pair running
+               first, the vanished manifest, the rotted gate citation and the contradiction between a
+               deleted list and an owned list went red, and each came back clean.
+  gate       : php artisan test tests/Feature/Infra -> 42 passed
+               (929 assertions), of which IntendedAbsenceTruthTest contributes
+               11 tests including a temp-fleet run of the pair: a newer owned file
+               survives restore, a resurrected recorded absence does not.
+  suite      : php artisan test (full sweep, the canonical run of this cluster) ->
+               5 skipped, 2959 passed (119359 assertions), 520.20s
+               (logs/suite53-final.txt).
+  close      : php artisan test again on the shipped bytes -> 4 skipped, 2960 passed (119366 assertions),
+               510.53s, exit 0, no FAILED marker (logs/suite53-close.txt); the canonical run of this cluster
+               read 5 skipped, 2959 passed (119359 assertions), 520.20s, so the total is 2964 both ways and
+               the assertion delta is +7. One skip differs, by name: "aa lets only one of two concurrent
+               purchases spend the last balance" skipped in the canonical run and ran in this one, which is
+               what that probe does when the driver allows a second writer - see BetPurchaseAtomicityTest::
+               skipIfTheDatabaseRefusedToRunTheProbe. This sweep is the last green measurement in this file
+               and it predates the root dot-dir loss told in section 10.41; no gate turned red for that loss,
+               which is why its two consequences are recorded as prose rather than as a failing assertion.
+               While appending, the file was found to carry the same #52 close line three times (five duplicate
+               close lines in total); they were deduped to one copy each before this line was written.

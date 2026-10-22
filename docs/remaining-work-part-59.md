@@ -1,0 +1,20 @@
+# Remaining work after Part59
+
+## Completed in this continuation
+
+The formerly observation-only Stripe follow-up stack now has a **separate actual financial recovery workflow** for an original zero-fee, canonically credited deposit with one authenticated succeeded full provider refund. It proves the original captured funding and signed event, performs fixed read-only provider lookups outside SQL, commits independent immutable provider custody, and applies exactly one original-wallet debit with balanced player-liability/system-cash compensation. Available balance, held-funds ownership, fresh explicit direct-user financial duty and default-off activation are mandatory. Insufficient funds retain proof for an explicit fresh retry without negative balance or partial collection.
+
+The shared Deposit list/detail action reaches the real service; observational inspection, acknowledgements and scheduled routing do not gain financial authority. Exact financial replay verifies actual header/journal custody and makes no further provider request or debit. Orphaned/tampered custody refuses rather than manufacturing a new original or adopting an unlinked transaction. Managed compensation cannot be generically reversed through removed morph labels. Additive tables, focused refusal/fault tests, genuine native contention profiles, isolated omission controls and cumulative full source bodies accompany this work.
+
+See `docs/stripe-confirmed-refund-recovery-part-59.md` for the precise supported policy, activation, locking, accounting, custody bounds and refusal behavior. Current executed counts are recorded in `evidence/runtime-part-59.txt`; historical Part58 results remain historical.
+
+## Not represented as complete
+
+1. **Provider refund initiation:** this delivery does not send Stripe refund POSTs or transfer money to a customer/provider. It accounts locally only after independently proving an existing provider refund. Initiation needs durable request ownership, unknown-outcome recovery, idempotent provider dispatch, current independent approval and merchant-specific refund authorization.
+2. **Broader refund accounting:** partial/multiple refunds, original nonzero fees, chargebacks/disputes, application/Connect fees, currency/fee losses and refund cancellation/reversal require explicit policy and their own source-owned journals. No silently invented fee allocation or negative debt ledger is enabled.
+3. **Exposure and risk operations:** insufficient spendable balance remains pending exposure, not a cleared account. No automatic debt collection, unbounded retries, risk/withdrawal clearance, case financially-resolved projection or global refund ingress/spend fence is claimed. An original confirmed deposit is historical funding, not a claim that its provider refund is absent forever.
+4. **Worldwide deployment:** server code and currency-specific custody do not confer merchant access, provider coverage in every country, bank settlement confirmation, licensing, AML/KYC/geolocation/responsible-gaming approval, taxes or local gambling legality. Country/provider/currency rollouts require separately verified configuration and approval.
+5. **Production acceptance:** real merchant credentials/account scopes/webhook secrets, explicit direct-user duties, production database migration and backup/restore rehearsal, deployed scheduler/queue workers, bank reconciliation, monitoring, remote CI, production volume and OS-kill/power-loss behavior are not established by local synthetic tests. Inherited bounded scan/history capacities are not universal absence/fairness/SLA guarantees.
+6. **Privileged compromise:** encrypted current custody and linked immutable rows are not external anti-rollback certification or protection against schema/DB administrator and encryption-key compromise.
+
+Keep new financial recovery and existing provider execution lanes off until their corresponding activation, operational rehearsal and merchant/legal approval are deliberately completed. Provider details can be supplied later; their absence did not prevent implementing and exercising the actual local money mutation now.

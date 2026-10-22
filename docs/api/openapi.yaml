@@ -1,0 +1,174 @@
+openapi: 3.1.0
+info:
+  title: Thai Lottery Enterprise Financial Ledger & Security Operations API
+  description: High-concurrency financial double-entry ledger, GLO 4-Eyes draw certification, PromptPay payments, agent hierarchy, and Phase 01–05 security suite API.
+  version: 2026.10.16
+  contact:
+    name: Security & Architecture Lead
+    email: secops@thai-lottery.internal
+
+servers:
+  - url: https://api.thai-lottery.internal/api/v1
+    description: Production Cluster
+  - url: https://staging-api.thai-lottery.internal/api/v1
+    description: Staging Environment
+
+paths:
+  /health:
+    get:
+      summary: Health & Readiness Probe
+      operationId: getHealth
+      tags: [System]
+      responses:
+        '200':
+          description: System operational
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: UP }
+                  timestamp: { type: string, format: date-time }
+
+  /metrics:
+    get:
+      summary: Prometheus Operational Telemetry Metrics
+      operationId: getMetrics
+      tags: [System]
+      responses:
+        '200':
+          description: Prometheus exposition format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /payments/promptpay/generate:
+    post:
+      summary: Generate Dynamic EMVCo PromptPay QR Code
+      operationId: generatePromptPayQr
+      tags: [Payments]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number, minimum: 1.0, maximum: 500000.0, example: 150.0 }
+                recipient_id: { type: string, example: "0812345678" }
+      responses:
+        '200':
+          description: QR Payload Generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      reference_id: { type: string }
+                      amount: { type: string, example: "150.00" }
+                      currency: { type: string, example: "THB" }
+                      qr_raw_payload: { type: string }
+                      expires_at: { type: string, format: date-time }
+
+  /orders/place:
+    post:
+      summary: Place Batch Lottery Ticket Order with Redlock & HMAC
+      operationId: placeOrder
+      tags: [Lottery Orders]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+        - name: X-Signature
+          in: header
+          required: true
+          schema: { type: string }
+        - name: X-Auth-Timestamp
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotency_key, draw_id, entries]
+              properties:
+                idempotency_key: { type: string, format: uuid }
+                draw_id: { type: string, example: "GLO-20261016-01" }
+                agent_id: { type: string }
+                entries:
+                  type: array
+                  items:
+                    type: object
+                    required: [number, bet_type, amount]
+                    properties:
+                      number: { type: string, example: "000123" }
+                      bet_type: { type: string, enum: [6D_OFFICIAL, 3D_DIRECT, 3D_TOAD, 2D_TOP, 2D_BOTTOM, RUNNING_TOP, RUNNING_BOTTOM] }
+                      amount: { type: string, example: "80.0000" }
+      responses:
+        '201':
+          description: Order placed and debited from double-entry ledger
+        '403':
+          description: Automated bot or blocklisted IP rejected
+        '422':
+          description: Validation error or insufficient balance
+
+  /admin/security/overview:
+    get:
+      summary: Security Operations Center (SOC) Telemetry
+      operationId: getSecurityOverview
+      tags: [Admin Security]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Overview metrics
+
+  /admin/security/ip-blocks:
+    get:
+      summary: List Active IP & Subnet Blocks
+      operationId: listIpBlocks
+      tags: [Admin Security]
+      security:
+        - BearerAuth: []
+    post:
+      summary: Block an Offending IP or CIDR Subnet
+      operationId: createIpBlock
+      tags: [Admin Security]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ip_or_cidr, reason_code]
+              properties:
+                ip_or_cidr: { type: string, example: "198.51.100.0/24" }
+                reason_code: { type: string, enum: [BRUTE_FORCE, REPEATED_AUTH_FAIL, FRAUD_ATTEMPT, BOT_ABUSE, MANUAL_ADMIN, THREAT_FEED] }
+                duration_minutes: { type: integer, example: 1440 }
+                notes: { type: string }
+      responses:
+        '201':
+          description: Block rule created and cached in Redis
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: SanctumToken

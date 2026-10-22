@@ -1,0 +1,707 @@
+Part51 accepted final-source local synthetic evidence. Default/native overlap. Exact scope and hashes are in the acceptance JSON. Earlier timezone/snapshot and absent runner-path errors are diagnostics, not acceptance. Final complete matrices and the corrected source profiles below are authoritative.
+
+===== full-final.log =====
+Part51 complete default regression across four isolated disposable file-backed SQLite shards.
+Each shard executes disjoint source files; no test filter or test source change.
+
+===== shard 1, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 947 (  6%)
+....................................................SSSSSSS.... 126 / 947 ( 13%)
+..................SSSSS........................................ 189 / 947 ( 19%)
+..................SSSSSSSSSSSSSSSSSS......SSSSSS............... 252 / 947 ( 26%)
+............................................................... 315 / 947 ( 33%)
+............................................................... 378 / 947 ( 39%)
+............................................................... 441 / 947 ( 46%)
+............................................................... 504 / 947 ( 53%)
+............................................................... 567 / 947 ( 59%)
+............................................................... 630 / 947 ( 66%)
+............................................................... 693 / 947 ( 73%)
+............................................................... 756 / 947 ( 79%)
+............................................................... 819 / 947 ( 86%)
+............................................................... 882 / 947 ( 93%)
+............................................................... 945 / 947 ( 99%)
+..                                                              947 / 947 (100%)
+
+Time: 10:44.868, Memory: 169.00 MB
+
+OK, but some tests were skipped!
+Tests: 947, Assertions: 108889, Skipped: 36.
+
+===== shard 2, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............SSSSSSSSSS......................................  63 / 939 (  6%)
+............................................................... 126 / 939 ( 13%)
+............................................................... 189 / 939 ( 20%)
+..............................................................S 252 / 939 ( 26%)
+SSSSSSSSSSSS................................................... 315 / 939 ( 33%)
+.............................SSSSSSSSSSSSS..................... 378 / 939 ( 40%)
+............................................................... 441 / 939 ( 46%)
+............................................................... 504 / 939 ( 53%)
+............................................................... 567 / 939 ( 60%)
+............................................................... 630 / 939 ( 67%)
+.............................................................S. 693 / 939 ( 73%)
+............................................................... 756 / 939 ( 80%)
+............................................................... 819 / 939 ( 87%)
+............................................................... 882 / 939 ( 93%)
+.........................................................       939 / 939 (100%)
+
+Time: 11:01.120, Memory: 167.00 MB
+
+OK, but some tests were skipped!
+Tests: 939, Assertions: 6420, Skipped: 37.
+
+===== shard 3, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................................................   61 / 1180 (  5%)
+............................SSSS.............................  122 / 1180 ( 10%)
+.............................................................  183 / 1180 ( 15%)
+............SSSSSSSSSSSSSSSS.................................  244 / 1180 ( 20%)
+.............................................................  305 / 1180 ( 25%)
+.............................................................  366 / 1180 ( 31%)
+.............................................................  427 / 1180 ( 36%)
+.............................................................  488 / 1180 ( 41%)
+.............................................................  549 / 1180 ( 46%)
+.............................................................  610 / 1180 ( 51%)
+.............................................................  671 / 1180 ( 56%)
+.............................................................  732 / 1180 ( 62%)
+.............................................................  793 / 1180 ( 67%)
+.............................................................  854 / 1180 ( 72%)
+.............................................................  915 / 1180 ( 77%)
+.............................................................  976 / 1180 ( 82%)
+...........SSSSSSSSSSSSSSS................................... 1037 / 1180 ( 87%)
+............................................................. 1098 / 1180 ( 93%)
+............................................................. 1159 / 1180 ( 98%)
+.....................                                         1180 / 1180 (100%)
+
+Time: 11:01.347, Memory: 187.00 MB
+
+OK, but some tests were skipped!
+Tests: 1180, Assertions: 19325, Skipped: 35.
+
+===== shard 4, exit 0 =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+................................................SSS........SSSS  63 / 661 (  9%)
+............................................................... 126 / 661 ( 19%)
+..............................SS............................... 189 / 661 ( 28%)
+...................SS.......................S.................. 252 / 661 ( 38%)
+...................................SS.......................... 315 / 661 ( 47%)
+................SSSS.......................SSSSS............... 378 / 661 ( 57%)
+............................................................... 441 / 661 ( 66%)
+................................SSSSSSS........................ 504 / 661 ( 76%)
+............................................................... 567 / 661 ( 85%)
+............................................................... 630 / 661 ( 95%)
+...............................                                 661 / 661 (100%)
+
+Time: 09:42.833, Memory: 131.00 MB
+
+OK, but some tests were skipped!
+Tests: 661, Assertions: 2528, Skipped: 30.
+
+Combined complete regression: Tests: 3727, Assertions: 137162, Skipped: 138, Errors/failures: 0.
+
+===== native.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...............................................................  63 / 604 ( 10%)
+............................................................... 126 / 604 ( 20%)
+............................................................... 189 / 604 ( 31%)
+............................................................... 252 / 604 ( 41%)
+............................................................... 315 / 604 ( 52%)
+............................................................... 378 / 604 ( 62%)
+............................................................... 441 / 604 ( 73%)
+............................................................... 504 / 604 ( 83%)
+............................................................... 567 / 604 ( 93%)
+.....................................                           604 / 604 (100%)
+
+Time: 10:42.500, Memory: 123.00 MB
+
+OK (604 tests, 3699 assertions)
+
+===== focus-current.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.......................................                           39 / 39 (100%)
+
+Time: 00:24.028, Memory: 81.00 MB
+
+OK (39 tests, 166 assertions)
+
+===== native-focus-current.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+....................................                              36 / 36 (100%)
+
+Time: 00:19.360, Memory: 78.50 MB
+
+OK (36 tests, 249 assertions)
+
+===== static.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+...................................                               35 / 35 (100%)
+
+Time: 00:00.347, Memory: 14.00 MB
+
+OK (35 tests, 1528 assertions)
+
+===== standalone.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/thai-lottery-ainul-islam/phpunit.xml
+
+.............................                                     29 / 29 (100%)
+
+Time: 00:00.411, Memory: 26.00 MB
+
+OK (29 tests, 94 assertions)
+
+===== python.log =====
+......................................................................................
+----------------------------------------------------------------------
+Ran 86 tests in 1.717s
+
+OK
+
+===== pint.log =====
+
+  ..........
+
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   .......................................................... 10 files  
+
+
+===== lint.log =====
+{
+  "php_suffixed_files": 2091,
+  "excluded_generated_directories": [
+    ".cache",
+    ".git",
+    "build",
+    "node_modules",
+    "storage",
+    "target",
+    "vendor"
+  ],
+  "failures": [],
+  "passed": true
+}
+
+===== negative-cancel-pending.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part51-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:16.128, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Compliance\ResponsibleGamingLimitLifecycleTest::test_fresh_reduction_overrides_pending_increase_and_old_request_replay_cannot_undo_it with data set #0 (App\Enums\Currency Enum (THB, 'THB'))
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'cancelled'
++'pending'
+
+/home/user/.cache/part51-negative-isolated/tests/Feature/Compliance/ResponsibleGamingLimitLifecycleTest.php:63
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+
+===== negative-payload.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part51-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:14.426, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Compliance\ResponsibleGamingLimitLifecycleTest::test_one_explicit_request_identity_cannot_change_its_original_definition with data set #3 ('end')
+An explicit request identity changed payload.
+
+/home/user/.cache/part51-negative-isolated/tests/Feature/Compliance/ResponsibleGamingLimitLifecycleTest.php:112
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+
+===== negative-binding-failure.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part51-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:15.126, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Compliance\ResponsibleGamingLimitLifecycleTest::test_summary_and_all_submitted_types_are_atomic_and_report_binding_not_pending_amount
+The conflicting increase should refuse the WHOLE summary operation.
+
+/home/user/.cache/part51-negative-isolated/tests/Feature/Compliance/ResponsibleGamingLimitLifecycleTest.php:195
+
+FAILURES!
+Tests: 1, Assertions: 2, Failures: 1.
+
+===== negative-basis.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part51-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:13.441, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Compliance\ResponsibleGamingLimitLifecycleTest::test_due_pending_cannot_loosen_through_protection_expiry_changed_basis_or_unknown_history with data set #5 ('basis')
+Failed asserting that 1 is identical to 0.
+
+/home/user/.cache/part51-negative-isolated/tests/Feature/Compliance/ResponsibleGamingLimitLifecycleTest.php:144
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+
+===== negative-expiry.log =====
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /home/user/.cache/part51-negative-isolated/phpunit.xml
+
+F                                                                   1 / 1 (100%)
+
+Time: 00:13.964, Memory: 72.50 MB
+
+There was 1 failure:
+
+1) Tests\Feature\Compliance\ResponsibleGamingLimitLifecycleTest::test_due_pending_cannot_loosen_through_protection_expiry_changed_basis_or_unknown_history with data set #4 ('expired')
+Failed asserting that 1 is identical to 0.
+
+/home/user/.cache/part51-negative-isolated/tests/Feature/Compliance/ResponsibleGamingLimitLifecycleTest.php:144
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+
+===== native-build.log =====
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded crypto-common v0.1.7
+  Downloaded const-oid v0.9.6
+  Downloaded cpufeatures v0.2.17
+  Downloaded cfg-if v1.0.5
+  Downloaded block-buffer v0.10.4
+  Downloaded curve25519-dalek-derive v0.1.1
+  Downloaded hex v0.4.3
+  Downloaded signature v2.2.0
+  Downloaded version_check v0.9.5
+  Downloaded subtle v2.6.1
+  Downloaded spki v0.7.3
+  Downloaded generic-array v0.14.7
+  Downloaded digest v0.10.7
+  Downloaded zmij v1.0.23
+  Downloaded sha2 v0.10.9
+  Downloaded serde_derive v1.0.229
+  Downloaded unicode-ident v1.0.26
+  Downloaded serde_core v1.0.229
+  Downloaded proc-macro2 v1.0.107
+  Downloaded typenum v1.20.1
+  Downloaded serde v1.0.229
+  Downloaded serde_json v1.0.151
+  Downloaded memchr v2.8.3
+  Downloaded ed25519-dalek v2.2.0
+  Downloaded der v0.7.10
+  Downloaded quote v1.0.47
+  Downloaded pkcs8 v0.10.2
+  Downloaded semver v1.0.28
+  Downloaded rand_core v0.6.4
+  Downloaded curve25519-dalek v4.1.3
+  Downloaded syn v3.0.6
+  Downloaded ed25519 v2.2.3
+  Downloaded syn v2.0.119
+  Downloaded base64ct v1.8.3
+  Downloaded zeroize v1.9.0
+  Downloaded itoa v1.0.18
+  Downloaded rustc_version v0.4.1
+   Compiling proc-macro2 v1.0.107
+   Compiling version_check v0.9.5
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling serde_core v1.0.229
+   Compiling digest v0.10.7
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling cpufeatures v0.2.17
+   Compiling zmij v1.0.23
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling subtle v2.6.1
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling signature v2.2.0
+   Compiling zeroize v1.9.0
+   Compiling serde_derive v1.0.229
+   Compiling ed25519 v2.2.3
+   Compiling sha2 v0.10.9
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `release` profile [optimized] target(s) in 19.55s
+
+===== rust.log =====
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling unicode-ident v1.0.26
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling serde_core v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v2.0.119
+   Compiling zmij v1.0.23
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling signature v2.2.0
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling serde_json v1.0.151
+   Compiling serde v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling ed25519 v2.2.3
+   Compiling sha2 v0.10.9
+   Compiling memchr v2.8.3
+   Compiling rand_core v0.6.4
+   Compiling itoa v1.0.18
+   Compiling ed25519-dalek v2.2.0
+   Compiling hex v0.4.3
+   Compiling weekly-result-integrity v0.1.0 (/home/user/thai-lottery-ainul-islam/security/weekly-result-integrity)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.59s
+     Running unittests src/lib.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-22a456e02c732867)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (security/weekly-result-integrity/target/debug/deps/weekly_result_integrity-80bdcd03109364f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_boundary.rs (security/weekly-result-integrity/target/debug/deps/cli_boundary-067c451bd0c81b0e)
+
+running 5 tests
+test document_ceiling_is_enforced_before_parsing ... ok
+test fingerprint_disagreement_exits_two_without_accepting ... ok
+test malformed_json_exits_one_and_does_not_crash ... ok
+test invalid_utf8_is_a_structured_rejection ... ok
+test unsigned_request_exits_zero_with_exact_library_fingerprint ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/integrity.rs (security/weekly-result-integrity/target/debug/deps/integrity-efe5c4cfa280c0dd)
+
+running 19 tests
+test a_fully_unavailable_result_canonicalizes_without_inventing_zeros ... ok
+test a_different_first_6_produces_a_different_hash ... ok
+test a_matching_expected_fingerprint_is_accepted_and_a_wrong_one_is_not ... ok
+test a_partial_result_triple_is_refused ... ok
+test a_malformed_request_document_is_a_value_not_a_panic ... ok
+test a_value_that_lost_a_leading_zero_hashes_differently ... ok
+test an_invalid_signature_is_rejected ... ok
+test canonical_bytes_are_valid_utf8_including_non_ascii_identifiers ... ok
+test canonical_bytes_start_with_the_version_and_field_count ... ok
+test canonical_field_order_is_fixed_and_documented ... ok
+test half_supplied_signature_material_is_refused_not_downgraded ... ok
+test leading_zeros_are_part_of_the_canonical_bytes ... ok
+test malformed_values_are_rejected_rather_than_repaired ... ok
+test null_and_empty_are_distinct ... ok
+test the_crate_source_contains_no_unsafe_and_no_network_or_process_calls ... ok
+test the_dependency_tree_contains_no_networking_crate ... ok
+test the_same_payload_always_produces_the_same_hash ... ok
+test unsigned_payload_returns_hash_only_and_never_claims_a_signature ... ok
+test a_valid_signature_is_accepted_only_when_a_key_is_configured ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/strict_signature.rs (security/weekly-result-integrity/target/debug/deps/strict_signature-2c56f82fb4fbf60b)
+
+running 3 tests
+test source_identifier_over_191_characters_is_rejected ... ok
+test unicode_source_identifier_counts_characters_but_hashes_utf8_bytes ... ok
+test weak_identity_key_and_signature_cannot_authenticate_any_result ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests weekly_result_integrity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+===== security.log =====
+
+> security:dependencies
+> node scripts/dependency_security_gate.mjs
+
+{
+  "passed": true,
+  "scope": "Known advisories in the complete npm lock graph, not a whole-platform security certification.",
+  "node": "24.22.0",
+  "npm": "11.21.1",
+  "lockedPackages": 149,
+  "auditedPackages": 149,
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  }
+}
+
+===== node-tests.log =====
+
+> test:dependencies
+> node --test tests/dependencies/*.test.mjs
+
+✔ the complete reviewed lock and runtime are accepted (3.573609ms)
+✔ nonzero info is refused even if npm exits0 (0.385329ms)
+✔ missing info count is not a clean audit (0.272536ms)
+✔ nonzero low is refused even if npm exits0 (0.199933ms)
+✔ missing low count is not a clean audit (0.23511ms)
+✔ nonzero moderate is refused even if npm exits0 (0.132766ms)
+✔ missing moderate count is not a clean audit (0.264237ms)
+✔ nonzero high is refused even if npm exits0 (0.127434ms)
+✔ missing high count is not a clean audit (0.206521ms)
+✔ nonzero critical is refused even if npm exits0 (0.366007ms)
+✔ missing critical count is not a clean audit (0.217379ms)
+✔ nonzero total is refused even if npm exits0 (0.108975ms)
+✔ missing total count is not a clean audit (0.086639ms)
+✔ refuses an uncounted advisory (0.161955ms)
+✔ refuses an audit API error (0.156499ms)
+✔ refuses a future unsupported schema (0.17481ms)
+✔ refuses a string zero (0.140946ms)
+✔ refuses an empty graph (0.112545ms)
+✔ refuses a missing graph (0.105131ms)
+✔ refuses an array of vulnerabilities (0.119959ms)
+✔ refuses npm status null with a superficially clean report (0.192987ms)
+✔ refuses npm status 1 with a superficially clean report (0.107433ms)
+✔ refuses npm status 2 with a superficially clean report (0.088764ms)
+✔ refuses npm status 127 with a superficially clean report (0.088521ms)
+✔ runtime 20.20.2 needs review rather than a silently bypassed engine (0.207458ms)
+✔ runtime 22.22.0 needs review rather than a silently bypassed engine (0.107898ms)
+✔ runtime 23.0.0 needs review rather than a silently bypassed engine (0.183848ms)
+✔ runtime 25.0.0 needs review rather than a silently bypassed engine (0.091918ms)
+✔ runtime 24.0.0-preview needs review rather than a silently bypassed engine (0.084221ms)
+✔ runtime unknown needs review rather than a silently bypassed engine (0.150322ms)
+✔ npm 10.8.2 is outside the reviewed major (0.272619ms)
+✔ npm 12.0.0 is outside the reviewed major (0.155225ms)
+✔ npm  is outside the reviewed major (0.147428ms)
+✔ npm 11.0.0-preview is outside the reviewed major (0.13828ms)
+✔ lock policy rejects missing root (1.904416ms)
+✔ lock policy rejects old lock format (1.004233ms)
+✔ lock policy rejects root manifest drift (0.991429ms)
+✔ lock policy rejects old root engine (1.978234ms)
+✔ lock policy rejects missing compiler (1.543031ms)
+✔ lock policy rejects restored unpatched braces (1.405172ms)
+✔ lock policy rejects unreviewed nested compiler (2.004551ms)
+✔ lock policy rejects unreviewed adapter (2.286597ms)
+✔ lock policy rejects remote nonregistry artifact (1.771818ms)
+✔ lock policy rejects missing integrity (1.6284ms)
+✔ lock policy rejects weak hash algorithm (2.235064ms)
+✔ lock policy rejects top-level fake bundle (1.41919ms)
+✔ lock policy rejects undeclared bundled artifact (1.386983ms)
+✔ lock policy rejects unlocked bundle parent (1.147337ms)
+✔ audit invocation explicitly includes development and optional packages and all severities (2.718146ms)
+✔ audit network failure cannot turn green (1.472905ms)
+✔ audit malformed JSON cannot turn green (1.295864ms)
+✔ audit timeout cannot turn green (1.195782ms)
+✔ audit spawn failure cannot turn green (1.733325ms)
+✔ all five CI Node setups follow the reviewed version file; every npm install lane runs the gate (1.338823ms)
+ℹ tests 54
+ℹ suites 0
+ℹ pass 54
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 157.995512
+
+===== build.log =====
+
+> build
+> vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 171 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                    25.08 kB │ gzip:  3.00 kB
+public/build/assets/bingo-lottery-DcRhy8pR.css                 1.51 kB │ gzip:  0.68 kB
+public/build/assets/weekly-lottery-CvRR7OgT.css                1.66 kB │ gzip:  0.75 kB
+public/build/assets/national-lottery-DUzkSC9_.css              1.96 kB │ gzip:  0.82 kB
+public/build/assets/contact-CnzCsQ7K.css                       2.86 kB │ gzip:  1.03 kB
+public/build/assets/auth-portal-D_fBALKk.css                   3.66 kB │ gzip:  1.23 kB
+public/build/assets/player-settings-CcQjgnGN.css               4.82 kB │ gzip:  1.45 kB
+public/build/assets/wallet-conversion-CI0TeR6s.css             4.85 kB │ gzip:  1.64 kB
+public/build/assets/prize-discount-XR_0p4pR.css                6.51 kB │ gzip:  1.79 kB
+public/build/assets/withdrawal-portal-DTIrqnd7.css             6.58 kB │ gzip:  1.76 kB
+public/build/assets/account-services-C3ZF4V86.css              6.64 kB │ gzip:  1.96 kB
+public/build/assets/player-profile-BBtsCzo5.css                6.68 kB │ gzip:  1.87 kB
+public/build/assets/glo-results-checker-CVwaH7EQ.css           7.34 kB │ gzip:  2.23 kB
+public/build/assets/public-pages-DwHed-9B.css                  7.77 kB │ gzip:  2.10 kB
+public/build/assets/deposit-portal-DrkRming.css                7.81 kB │ gzip:  1.99 kB
+public/build/assets/wallet-management-B9AnBVpE.css             7.82 kB │ gzip:  2.02 kB
+public/build/assets/lottery-history-BcIBMRCv.css               7.90 kB │ gzip:  1.90 kB
+public/build/assets/glo-l6-D9lQorNn.css                        8.49 kB │ gzip:  2.39 kB
+public/build/assets/admin-lottofin-CMbsWr2Y.css                8.64 kB │ gzip:  2.13 kB
+public/build/assets/player-dashboard-B_07Plr5.css              8.81 kB │ gzip:  2.23 kB
+public/build/assets/thai-lottery-betting-B5ajkW3q.css          8.98 kB │ gzip:  2.33 kB
+public/build/assets/player-security-settings-C0iOjrmo.css      9.09 kB │ gzip:  2.21 kB
+public/build/assets/thailotto-theme-Bp57fmJ-.css               9.51 kB │ gzip:  2.48 kB
+public/build/assets/lottery-CJ-DF_a5.css                       9.66 kB │ gzip:  2.80 kB
+public/build/assets/home-BZX8okIA.css                         10.03 kB │ gzip:  2.39 kB
+public/build/assets/pcso-lottery-BrEco0RY.css                 12.11 kB │ gzip:  3.18 kB
+public/build/assets/public-next-pages-CuyCltwt.css            12.89 kB │ gzip:  3.47 kB
+public/build/assets/fees-DeLDGMDU.css                         12.95 kB │ gzip:  3.48 kB
+public/build/assets/account-grades-tABPk35W.css               12.95 kB │ gzip:  3.49 kB
+public/build/assets/prize-verification-DigFLw9_.css           12.95 kB │ gzip:  3.48 kB
+public/build/assets/contact-gesx-Obr.css                      12.95 kB │ gzip:  3.49 kB
+public/build/assets/privacy-D6EP8zpL.css                      12.95 kB │ gzip:  3.48 kB
+public/build/assets/discounts-Dtyfd7v7.css                    12.95 kB │ gzip:  3.48 kB
+public/build/assets/download-wcYagyQr.css                     12.95 kB │ gzip:  3.49 kB
+public/build/assets/how-to-play-D4ESlSIs.css                  12.95 kB │ gzip:  3.48 kB
+public/build/assets/faq--x2b-Xf9.css                          12.95 kB │ gzip:  3.49 kB
+public/build/assets/account-verification-BPPUEu3L.css         12.96 kB │ gzip:  3.49 kB
+public/build/assets/vision-C4_NXAnm.css                       13.89 kB │ gzip:  3.53 kB
+public/build/assets/terms-DXyzc3G4.css                        14.12 kB │ gzip:  3.62 kB
+public/build/assets/about-mD4LtnlG.css                        15.37 kB │ gzip:  3.96 kB
+public/build/assets/app-DCximxvo.css                         110.83 kB │ gzip: 17.76 kB
+public/build/assets/account-grades-iqvPnkdB.js                 0.04 kB │ gzip:  0.06 kB
+public/build/assets/account-verification-iqvPnkdB.js           0.04 kB │ gzip:  0.06 kB
+public/build/assets/contact-iqvPnkdB.js                        0.04 kB │ gzip:  0.06 kB
+public/build/assets/discounts-iqvPnkdB.js                      0.04 kB │ gzip:  0.06 kB
+public/build/assets/download-iqvPnkdB.js                       0.04 kB │ gzip:  0.06 kB
+public/build/assets/faq-iqvPnkdB.js                            0.04 kB │ gzip:  0.06 kB
+public/build/assets/how-to-play-iqvPnkdB.js                    0.04 kB │ gzip:  0.06 kB
+public/build/assets/privacy-iqvPnkdB.js                        0.04 kB │ gzip:  0.06 kB
+public/build/assets/AuthCard-BQKdu6To.js                       0.09 kB │ gzip:  0.10 kB
+public/build/assets/DepositPortal-BQKdu6To.js                  0.09 kB │ gzip:  0.10 kB
+public/build/assets/GloResultsChecker-BQKdu6To.js              0.09 kB │ gzip:  0.10 kB
+public/build/assets/LotteryHistory-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/LottoFinAdminDashboard-BQKdu6To.js         0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerDashboard-BQKdu6To.js                0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerProfile-BQKdu6To.js                  0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSecuritySettings-BQKdu6To.js         0.09 kB │ gzip:  0.10 kB
+public/build/assets/PlayerSettings-BQKdu6To.js                 0.09 kB │ gzip:  0.10 kB
+public/build/assets/ThaiLotteryBetting-BQKdu6To.js             0.09 kB │ gzip:  0.10 kB
+public/build/assets/WalletManagement-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/WithdrawalPortal-BQKdu6To.js               0.09 kB │ gzip:  0.10 kB
+public/build/assets/deposit-portal-BTkZAXu7.js                 0.23 kB │ gzip:  0.18 kB
+public/build/assets/withdrawal-portal-C_HkmiNh.js              0.23 kB │ gzip:  0.19 kB
+public/build/assets/weekly-lottery-zufHxTcU.js                 0.26 kB │ gzip:  0.18 kB
+public/build/assets/bingo-lottery-Wfl133xR.js                  0.26 kB │ gzip:  0.18 kB
+public/build/assets/national-lottery-DR-8R4iq.js               0.26 kB │ gzip:  0.18 kB
+public/build/assets/thai-lottery-betting-fLIFn8Yw.js           0.30 kB │ gzip:  0.22 kB
+public/build/assets/player-dashboard-DQXHBi75.js               0.38 kB │ gzip:  0.25 kB
+public/build/assets/wallet-management-Cf9qvsz7.js              0.44 kB │ gzip:  0.27 kB
+public/build/assets/mobile-menu-DjyVqvWR.js                    0.54 kB │ gzip:  0.27 kB
+public/build/assets/account-grade-DVU03bMe.js                  0.57 kB │ gzip:  0.31 kB
+public/build/assets/rolldown-runtime-hePW80VL.js               0.71 kB │ gzip:  0.42 kB
+public/build/assets/admin-lottofin-CRxNTz2z.js                 0.80 kB │ gzip:  0.39 kB
+public/build/assets/live-draw-CY6WfIYI.js                      0.87 kB │ gzip:  0.43 kB
+public/build/assets/pcso-lottery-BZxI8kF8.js                   0.93 kB │ gzip:  0.54 kB
+public/build/assets/contact-Dl3hcSwo.js                        0.96 kB │ gzip:  0.45 kB
+public/build/assets/countdown-DVmu-DsQ.js                      1.02 kB │ gzip:  0.55 kB
+public/build/assets/vision-DyVb2t6y.js                         1.10 kB │ gzip:  0.56 kB
+public/build/assets/prize-verification-awFdLfRe.js             1.10 kB │ gzip:  0.64 kB
+public/build/assets/prize-verification-B7DKRudH.js             1.12 kB │ gzip:  0.55 kB
+public/build/assets/about-FWU8Goo0.js                          1.26 kB │ gzip:  0.59 kB
+public/build/assets/countdown-DCWNt0sQ.js                      1.30 kB │ gzip:  0.67 kB
+public/build/assets/account-verification-C8heWaJx.js           1.31 kB │ gzip:  0.70 kB
+public/build/assets/fees-9NKFmMOQ.js                           1.37 kB │ gzip:  0.75 kB
+public/build/assets/player-security-settings-DQfmjqb0.js       1.39 kB │ gzip:  0.56 kB
+public/build/assets/player-profile-CBe58ENT.js                 1.65 kB │ gzip:  0.65 kB
+public/build/assets/auth-portal-PMrGbyPi.js                    1.66 kB │ gzip:  0.79 kB
+public/build/assets/how-to-play-portal-DBYvsWSp.js             2.14 kB │ gzip:  1.04 kB
+public/build/assets/live-results-C2bDv2D2.js                   2.15 kB │ gzip:  1.01 kB
+public/build/assets/account-grade-portal-QYMb6qRl.js           2.29 kB │ gzip:  1.02 kB
+public/build/assets/lotto-discount-portal-DVPDCBVQ.js          2.36 kB │ gzip:  0.99 kB
+public/build/assets/wallet-conversion-DdyvICy_.js              2.37 kB │ gzip:  1.11 kB
+public/build/assets/public-next-pages-aqQO7lKm.js              2.41 kB │ gzip:  0.93 kB
+public/build/assets/terms-BCCISDCL.js                          2.49 kB │ gzip:  0.99 kB
+public/build/assets/wallet-balance-fVmydr9F.js                 2.52 kB │ gzip:  1.15 kB
+public/build/assets/glo-results-checker-DE1GgEQG.js            2.58 kB │ gzip:  1.23 kB
+public/build/assets/public-pages-BYwoqYgK.js                   2.87 kB │ gzip:  1.28 kB
+public/build/assets/ticket-selector-BxtEzC2x.js                3.17 kB │ gzip:  1.28 kB
+public/build/assets/privacy-portal-DccX1fIk.js                 3.23 kB │ gzip:  1.38 kB
+public/build/assets/faq-portal-DJT8wFEx.js                     3.24 kB │ gzip:  1.34 kB
+public/build/assets/fees-portal-BSDiPx2M.js                    4.20 kB │ gzip:  1.72 kB
+public/build/assets/contact-portal-CcnVKTkU.js                 4.80 kB │ gzip:  1.60 kB
+public/build/assets/prize-verification-portal--sqHcNQa.js      4.84 kB │ gzip:  1.90 kB
+public/build/assets/lottery-history-Bv3fZHif.js                5.18 kB │ gzip:  1.82 kB
+public/build/assets/player-settings-BmDrzCUv.js                6.01 kB │ gzip:  1.53 kB
+public/build/assets/account-verification-portal-Dnal4Jj2.js    6.34 kB │ gzip:  2.13 kB
+public/build/assets/jsx-runtime-C7VpfOrh.js                    6.62 kB │ gzip:  2.59 kB
+public/build/assets/bet-slip-D0XoVmrB.js                       7.62 kB │ gzip:  3.19 kB
+public/build/assets/app-1IIFpSSh.js                           58.45 kB │ gzip: 21.59 kB
+
+✓ built in 998ms

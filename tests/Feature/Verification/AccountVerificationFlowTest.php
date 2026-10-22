@@ -36,6 +36,7 @@ final class AccountVerificationFlowTest extends TestCase
     {
         parent::setUp();
 
+        $this->withoutVite();
         $this->player = User::factory()->create([
             'email' => 'verify-me@example.test',
             'phone' => '0812345678',

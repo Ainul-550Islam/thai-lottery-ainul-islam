@@ -1,0 +1,15 @@
+{
+  "part": 83,
+  "source_preflight_passed": true,
+  "current_source_hashes": {
+    "app/Services/Finance/LedgerPostingService.php": "e889323d202069c7457b8aeea813a882f0a4226fed09dfa3bfe7291dfa3a056d",
+    "app/Services/Finance/LedgerPostingWriteBoundary.php": "d414675f909a9ae9c25ef52bb89f882220a779c3194a3c5260264fb72a8df649",
+    "tests/Unit/Services/LedgerPostingWriteBoundaryTest.php": "66b8d620c2eb478d200413ecd822150d3365577a288425f6ef89a0ccedc67087",
+    "tests/Feature/Finance/LedgerPostingWriteBoundaryTest.php": "46c6077bf3c28a5253035784d835aa6311ef43912d1bfa099f793055365c63f8",
+    ".github/workflows/financial-concurrency.yml": "d1b48081c3ba1b9f9d4c691c77a772d4a9994f3b81979010e951cf152fe7eb51",
+    "scripts/release_source_inventory.py": "c00ebbf41352f29c123287a7eb3937dbd4979d5f2509a6a5c25388da178624b5"
+  },
+  "new_migrations": 0,
+  "live_transfer": false,
+  "scope": "Invocation-local caller write-context witness across complete metadata payload preparation, checked before posting DML."
+}

@@ -1,0 +1,202 @@
+{
+  "part": 78,
+  "passed": true,
+  "date": "2026-10-21",
+  "scope": "Journal observer admission, cleanup ownership and real autocommit validation.",
+  "default": {
+    "cases": 5116,
+    "assertions": 148123,
+    "skipped": 262,
+    "errors": 0,
+    "failures": 0
+  },
+  "default_test_files": 334,
+  "native": {
+    "cases": 1394,
+    "assertions": 13759,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "raw_native_cases": 1395,
+  "platform_only_record_excluded": 1,
+  "focused_subset": {
+    "cases": 18,
+    "assertions": 294,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "suite_counts_overlap": true,
+  "previous_default_case_ids_retained": 5098,
+  "previous_native_case_ids_retained": 1376,
+  "retained_genuine_concurrency_profiles": 112,
+  "new_concurrency_profiles": 0,
+  "source_frozen_before_complete_suites": {
+    "app/Services/Finance/LedgerPostingService.php": "6362e32e2d0dc6a34b83dfdadb84173c342c49144a66104e0aac56e8d86867cd",
+    "app/Services/Finance/LedgerPostingObserver.php": "7135e61ce59aafe5117d341fa7611ddfa164236abfe85232e65529cc55320d7e",
+    "tests/Feature/Finance/LedgerPostingObserverOwnershipTest.php": "153d6a7c6c283d2229945f61685014649dc1c3bdffb8c9fb8ab7e600420c579c",
+    ".github/workflows/financial-concurrency.yml": "7d8facad7b100f75c1ed8b8b5c80f2dcd70ecbfb9ca56cc960944fda1781bd56",
+    "scripts/release_source_inventory.py": "0d7f860488feeeded600d33ef9005164fa000c695c81794fa0d40581462c8697"
+  },
+  "auxiliary": {
+    "passed": true,
+    "workflow_parsed_not_remotely_run": true,
+    "retained_21_case_gate": true,
+    "new_18_case_gate": true,
+    "frozen_implementation_files": 5,
+    "php_linted": 2203
+  },
+  "composer_advisories": 0,
+  "composer_abandoned": 0,
+  "genuine_vite_build": true,
+  "new_javascript_test_claim": false,
+  "rust": {
+    "locked_tests": 27,
+    "release_build": true,
+    "native_verifier_prerequisite_recovered": true
+  },
+  "prerequisite_replay": {
+    "passed": true,
+    "initial_conditional_skips": 277,
+    "accepted_conditional_skips": 262,
+    "new_test_assertions_unchanged": true,
+    "replayed_files": [
+      {
+        "file": "tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php",
+        "original_run": {
+          "index": 309,
+          "file": "tests/Feature/WeeklyLottery/WeeklyNativeIntegrityBoundaryTest.php",
+          "database": "/dev/shm/part78-default-v6/309/thai_lottery_test",
+          "exit": 0,
+          "directory": "/home/user/.cache/part78-per-file-final-v7/309"
+        },
+        "new_database": "/home/user/.cache/part78-prerequisite-replay/1/thai_lottery_test",
+        "replayed_case_ids": 14,
+        "source_sha256": "de6ff4f060d5e22f651f3c00e7a050f5be13ede61a30495e2a00147d6d694ae4"
+      },
+      {
+        "file": "tests/Feature/WeeklyLottery/WeeklyLotteryPublicPageTest.php",
+        "original_run": {
+          "index": 308,
+          "file": "tests/Feature/WeeklyLottery/WeeklyLotteryPublicPageTest.php",
+          "database": "/dev/shm/part78-default-v6/308/thai_lottery_test",
+          "exit": 0,
+          "directory": "/home/user/.cache/part78-per-file-final-v7/308"
+        },
+        "new_database": "/home/user/.cache/part78-prerequisite-replay/2/thai_lottery_test",
+        "replayed_case_ids": 63,
+        "source_sha256": "928e3078877498fce9f2107cd2f0f0afe37cdc1e1fc266f5e7cc9f0eeee054a2"
+      }
+    ],
+    "all_replay_cases_executed_without_skips": true,
+    "native_financial_acceptance_not_concurrent_with_replay": true
+  },
+  "omission_controls": {
+    "passed": true,
+    "qualified_expected_failures": 2,
+    "healthy_shadow_controls": 2,
+    "production_source_unchanged": true,
+    "runs": [
+      {
+        "mode": "borrowed_cleanup",
+        "phase": "healthy",
+        "driver": "sqlite",
+        "cases": 1,
+        "expected_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "exit": 0,
+        "effective_shadow_source_audited": true,
+        "observed_states": [
+          {
+            "caller_depth": 1,
+            "same_caller_handle": true,
+            "physical": true
+          }
+        ]
+      },
+      {
+        "mode": "borrowed_cleanup",
+        "phase": "omitted",
+        "driver": "sqlite",
+        "cases": 1,
+        "expected_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "exit": 1,
+        "effective_shadow_source_audited": true,
+        "observed_states": [
+          {
+            "caller_depth": 0,
+            "same_caller_handle": false,
+            "physical": true
+          }
+        ]
+      },
+      {
+        "mode": "autocommit_admission",
+        "phase": "healthy",
+        "driver": "mysql",
+        "cases": 1,
+        "expected_failures": 0,
+        "setup_errors": 0,
+        "skips": 0,
+        "exit": 0,
+        "effective_shadow_source_audited": true,
+        "observed_states": [
+          {
+            "caller_depth": 1,
+            "same_caller_handle": true,
+            "physical": true
+          }
+        ]
+      },
+      {
+        "mode": "autocommit_admission",
+        "phase": "omitted",
+        "driver": "mysql",
+        "cases": 1,
+        "expected_failures": 1,
+        "setup_errors": 0,
+        "skips": 0,
+        "exit": 1,
+        "effective_shadow_source_audited": true,
+        "observed_states": [
+          {
+            "unexpected_kind": "autocommit-off",
+            "staged_journal_rows": 2,
+            "caller_depth": 1,
+            "physical": true
+          }
+        ]
+      }
+    ],
+    "live_transfer": false
+  },
+  "borrowed_profiles": [
+    "same object",
+    "shared writer PDO",
+    "registered idle object",
+    "registered active object",
+    "unregistered active object",
+    "read-side borrowed PDO"
+  ],
+  "root_and_savepoint_modes": true,
+  "owned_profiles": [
+    "successful query",
+    "autocommit disabled",
+    "observation query exception"
+  ],
+  "sqlite_scope": "12 genuine-PDO ownership helper cases; six native-only cases skipped. SQLite posting retains its existing no-observer path.",
+  "native_scope": "All 18 new cases exercise the actual posting path on the disposable MariaDB writer; retained MySQL-style RR profiles keep their documented MariaDB session-mode boundary.",
+  "no_pdo_state_repair": true,
+  "no_new_begin_commit_or_rollback_in_observer": true,
+  "registered_lazy_handles_not_resolved": true,
+  "factory_contract_boundary": "An otherwise unregistered idle object with a distinct PDO is accepted under the trusted factory fresh-instance contract; arbitrary hostile custom factories or historical handle provenance are not certified.",
+  "new_migrations": 0,
+  "live_provider_transfer": false,
+  "remote_ci_executed": false,
+  "populated_production_restore": false,
+  "worldwide_legal_approval": false
+}

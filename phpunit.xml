@@ -80,9 +80,5 @@
              must therefore state one explicitly, exactly as a production
              operator must. -->
         <env name="RISK_MAX_STAKE_PER_NUMBER" value="100000.00"/>
-        <env name="WEEKLY_LOTTERY_FIXTURE_ENABLED" value="true"/>
-        <env name="NATIONAL_LOTTERY_FIXTURE_ENABLED" value="true"/>
-        <env name="PCSO_LOTTERY_FIXTURE_ENABLED" value="true"/>
-        <env name="BINGO_LOTTERY_FIXTURE_ENABLED" value="true"/>
     </php>
 </phpunit>

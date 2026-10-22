@@ -1,0 +1,15 @@
+{
+  "part": 81,
+  "source_preflight_passed": true,
+  "current_source_hashes": {
+    "app/Services/Finance/LedgerPostingService.php": "27ae6610604363b6f0008c5dba405c707596da2e5e4e1d9c2a6f62d3a2bcaf92",
+    "app/Services/Finance/LedgerEntryMoneyPreflight.php": "761e358cf665215525d54fb9695b139fb13f1be85a34643c83126d9aebf26df5",
+    "tests/Unit/Services/LedgerEntryMoneyPreflightTest.php": "af4d6e1a1c1082950e34a50d2bf36d89c0b6168ea1fbd0a2468f87e96e1ba2d1",
+    "tests/Feature/Finance/LedgerPostingEntryMoneyTest.php": "d20d6a9c13c236300c4d0d6ebde0ac6958a32ee49e1f4adbed7478fe4386d4a9",
+    ".github/workflows/financial-concurrency.yml": "8347fa7f9e8146861533775e3bed60173b099041cca964f5c070157e46913390",
+    "scripts/release_source_inventory.py": "afac5deae0aaf06d834f5d62f9cf1d734d0aa05f9de6cdaec107c91d4e846030"
+  },
+  "new_migrations": 0,
+  "live_transfer": false,
+  "scope": "Complete canonical monetary encoding of ledger amounts and selected balance snapshots before any journal/account write."
+}

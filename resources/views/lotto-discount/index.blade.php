@@ -6,12 +6,19 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Lotto Discount Rules & Multi-Game Payout Matrix — ThaiLotto Official</title>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    {{--
+        The Tailwind Play CDN used to be loaded here as
+        <script src="https://cdn.tailwindcss.com">. It is a development tool: it
+        compiles CSS in the visitor's browser at runtime, and shipping it meant a
+        third-party JavaScript compiler executing on every request plus a script-src
+        that could not be narrowed to 'self'. The utilities are now built locally by
+        resources/css/standalone-tailwind.css, which imports the same theme and adds
+        the Tailwind directives in the order the CDN's injected <style> already had.
+    --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-    @vite(['resources/css/thailotto-theme.css'])
+    @vite(['resources/css/standalone-tailwind.css'])
     <style>
         body {
             background-color: #050b14;

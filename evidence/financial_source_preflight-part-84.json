@@ -1,0 +1,15 @@
+{
+  "part": 84,
+  "source_preflight_passed": true,
+  "current_source_hashes": {
+    "app/Services/Finance/LedgerPostingService.php": "e99c4df5cad40485f007fe01b9f932692ad8f3e210a1a3b226688086cedca483",
+    "app/Services/Finance/LedgerPostingInvocationLease.php": "c141b41bde4b27c4ca72bcc32885cf9e9966e5d0d34a8fda2181f09e20d0fe6d",
+    "tests/Unit/Services/LedgerPostingInvocationLeaseTest.php": "3a82eeb368e827cf3ad841e33c30ceeb26e521309b4c47bdc249e491b215e08d",
+    "tests/Feature/Finance/LedgerPostingReentrancyTest.php": "bd57b541f02f93aa29c38d7452161d96ee84329301ed945505d594f6e90cebd3",
+    ".github/workflows/financial-concurrency.yml": "85bb0479b976ddad99010305d5be765c6c18e5cdb65818bf7f4d5459aaa5fbc5",
+    "scripts/release_source_inventory.py": "6a38cb8c5dea1020d797d37c8cebc110e91b04d377b6d126aab5ecaea88ce5fe"
+  },
+  "new_migrations": 0,
+  "live_transfer": false,
+  "scope": "Synchronous physical-write-PDO ledger reentrancy fence with owner-token finally release."
+}

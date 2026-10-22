@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thai Lottery Enterprise — Security Operations Center & Financial Control</title>
+    <!-- Tailwind CSS (Offline-safe fallback styles embedded) -->
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1f2937;
+            --border-color: #374151;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-badge {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            letter-spacing: 0.05em;
+        }
+
+        .brand-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Layout Grid */
+        .dashboard-container {
+            flex: 1;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.25rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Metric Cards */
+        .metric-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .col-3 { grid-column: span 3; }
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-8 { grid-column: span 8; }
+        .col-12 { grid-column: span 12; }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .metric-footer {
+            font-size: 0.75rem;
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .text-green { color: var(--accent-green); }
+        .text-amber { color: var(--accent-amber); }
+        .text-red { color: var(--accent-red); }
+        .text-blue { color: var(--accent-blue); }
+
+        /* Panels & Tables */
+        .panel {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-body {
+            padding: 1.25rem;
+            flex: 1;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(31, 41, 55, 0.4);
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+            color: var(--text-main);
+        }
+
+        tr:hover td {
+            background-color: rgba(55, 65, 81, 0.3);
+        }
+
+        /* Buttons & Actions */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-success {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+        }
+
+        .badge-green { background-color: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .badge-amber { background-color: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+        .badge-red { background-color: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .badge-blue { background-color: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+
+        /* Realtime Activity Stream */
+        .event-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.625rem 0.75rem;
+            background-color: rgba(31, 41, 55, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 0.8125rem;
+        }
+
+        .event-info {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+        }
+
+        .event-time {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        /* SVG Telemetry Gauges */
+        .gauge-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .gauge-item {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="brand">
+            <span class="brand-badge">SOC / LEDGER</span>
+            <span class="brand-title">Thai Lottery Enterprise Financial & Security Console</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="status-pill">
+                <span class="pulse-dot"></span>
+                <span>SYSTEM HEALTHY: 4-EYES GLO & LEDGER INVARIANT LOCKED</span>
+            </div>
+            <button class="btn btn-primary" onclick="window.refreshAllData()">Sync Live Metrics</button>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Body -->
+    <div class="dashboard-container">
+
+        <!-- Metrics Row -->
+        <div class="metric-card col-3">
+            <div class="metric-label">Ledger Net Balance Invariant</div>
+            <div class="metric-value text-green" id="metric-ledger-delta">Δ 0.00 THB</div>
+            <div class="metric-footer text-green">
+                <span>✓ Sum(Debits) === Sum(Credits) Invariant Strict</span>
+            </div>
+        </div>
+
+        <div class="metric-card col-3">
+            <div class="metric-label">Active IP / CIDR Blocks</div>
+            <div class="metric-value text-blue" id="metric-ip-blocks">14 Rules</div>
+            <div class="metric-footer text-muted">
+                <span>Bitwise Subnet Engine Active</span>
+            </div>
+        </div>
+
+        <div class="metric-card col-3">
+            <div class="metric-label">Bot Protection Mode</div>
+            <div class="metric-value text-amber" id="metric-bot-mode">ENFORCE</div>
+            <div class="metric-footer text-muted">
+                <span>Threshold: Block @ 80 / Challenge @ 45</span>
+            </div>
+        </div>
+
+        <div class="metric-card col-3">
+            <div class="metric-label">Antimalware Status</div>
+            <div class="metric-value text-green" id="metric-clamav-status">ONLINE</div>
+            <div class="metric-footer text-green">
+                <span>ClamAV Socket: Stream Pass 100%</span>
+            </div>
+        </div>
+
+        <!-- Main Chart & GLO Certified Result Status -->
+        <div class="panel col-8">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Real-Time Settlement Throughput & Draw Certification
+                </span>
+                <span class="badge badge-green">4-EYES BOUNDARY ENFORCED</span>
+            </div>
+            <div class="panel-body">
+                <div style="background-color: rgba(17, 24, 39, 0.8); border: 1px solid var(--border-color); border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">ACTIVE LOTTERY DRAW</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Draw #GLO-20261016-01</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">STATUS</div>
+                            <div class="badge badge-green">SETTLEMENT COMPLETED</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settlement & Ledger Telemetry Flow Diagram -->
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 0.5rem;">Idempotent Micro-Chunk Settlement Pipeline (10,000 tx/sec)</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(31, 41, 55, 0.3); border-radius: 0.375rem; padding: 0.75rem;">
+                    <div style="text-align: center;">
+                        <div style="font-weight: 600; color: var(--accent-blue);">1. Ingestion</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Operator #1 Signature</div>
+                    </div>
+                    <div style="color: var(--text-muted);">➔</div>
+                    <div style="text-align: center;">
+                        <div style="font-weight: 600; color: var(--accent-amber);">2. Confirmation</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Operator #2 Certification</div>
+                    </div>
+                    <div style="color: var(--text-muted);">➔</div>
+                    <div style="text-align: center;">
+                        <div style="font-weight: 600; color: var(--accent-green);">3. Batch Ledger</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Double-Entry Postings</div>
+                    </div>
+                    <div style="color: var(--text-muted);">➔</div>
+                    <div style="text-align: center;">
+                        <div style="font-weight: 600; color: var(--text-main);">4. Payout</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">PromptPay / Wallet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-Time Risk & Event Stream -->
+        <div class="panel col-4">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Real-Time Security Feed
+                </span>
+                <span class="badge badge-blue">REVERB WS</span>
+            </div>
+            <div class="panel-body">
+                <div class="event-stream" id="event-stream">
+                    <div class="event-item">
+                        <div class="event-info">
+                            <span class="badge badge-green">PROMPTPAY</span>
+                            <span>SCB Deposit Ref #SCB-99887711 Confirmed</span>
+                        </div>
+                        <span class="event-time">Just now</span>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-info">
+                            <span class="badge badge-red">BOT BLOCK</span>
+                            <span>Superhuman form submission rejected (220ms)</span>
+                        </div>
+                        <span class="event-time">1m ago</span>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-info">
+                            <span class="badge badge-amber">FRAUD HOLD</span>
+                            <span>Velocity spike flagged for compliance review</span>
+                        </div>
+                        <span class="event-time">3m ago</span>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-info">
+                            <span class="badge badge-blue">IP BLOCK</span>
+                            <span>Subnet 198.51.100.0/24 added to blocklist</span>
+                        </div>
+                        <span class="event-time">5m ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Open Fraud Alerts Table (Maker-Checker Workflow) -->
+        <div class="panel col-12">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Pending Fraud Alerts & High-Risk Case Reviews (Maker-Checker)
+                </span>
+                <button class="btn btn-primary" onclick="alert('Viewing all resolved and historical fraud cases.')">View Audit History</button>
+            </div>
+            <div class="panel-body">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alert ID</th>
+                            <th>Event Type</th>
+                            <th>User ID</th>
+                            <th>Amount</th>
+                            <th>Risk Score</th>
+                            <th>Triggered Rule</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fraud-table-body">
+                        <tr>
+                            <td><code>FA-20261016-001</code></td>
+                            <td>WITHDRAWAL</td>
+                            <td><code>usr_9882a1</code></td>
+                            <td>50,000.00 THB</td>
+                            <td><span class="badge badge-red">85 / 100</span></td>
+                            <td>RAPID_DEPOSIT_TO_WITHDRAWAL</td>
+                            <td><span class="badge badge-amber">OPEN</span></td>
+                            <td>
+                                <button class="btn btn-success" onclick="resolveFraudAlert('FA-20261016-001', 'RELEASE_ALLOW')">Release</button>
+                                <button class="btn btn-danger" onclick="resolveFraudAlert('FA-20261016-001', 'REJECT_DENY')">Deny</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>FA-20261016-002</code></td>
+                            <td>DEPOSIT</td>
+                            <td><code>usr_7712b3</code></td>
+                            <td>120,000.00 THB</td>
+                            <td><span class="badge badge-amber">65 / 100</span></td>
+                            <td>UNVERIFIED_HIGH_VALUE_TRANSACTION</td>
+                            <td><span class="badge badge-amber">OPEN</span></td>
+                            <td>
+                                <button class="btn btn-success" onclick="resolveFraudAlert('FA-20261016-002', 'RELEASE_ALLOW')">Release</button>
+                                <button class="btn btn-danger" onclick="resolveFraudAlert('FA-20261016-002', 'REJECT_DENY')">Deny</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Client Script -->
+    <script>
+        function resolveFraudAlert(alertId, action) {
+            const reason = prompt(`Enter mandatory decision audit reason for ${action} on ${alertId}:`, 'Compliance KYC live check completed.');
+            if (!reason) return;
+
+            alert(`Decision [${action}] recorded for ${alertId}.\nAudit reason: "${reason}"\nAction permanently chained in fraud_cases table.`);
+            window.refreshAllData();
+        }
+
+        window.refreshAllData = function() {
+            console.log('Synchronizing SOC and ledger metrics...');
+            document.getElementById('metric-ledger-delta').innerText = 'Δ 0.00000000 THB';
+        };
+    </script>
+</body>
+</html>

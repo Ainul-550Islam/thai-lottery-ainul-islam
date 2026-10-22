@@ -1,0 +1,17 @@
+ROUND 42 TARGET (measured): 16 unresolved rows are mine-able (keys whose lang file exists)
+  - player.nav_national_lottery (en) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_national_lottery (th) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_weekly_lottery (en) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_weekly_lottery (th) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_bingo_lottery (en) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_bingo_lottery (th) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_pcso_lottery (en) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_pcso_lottery (th) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_national_lottery (en) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_national_lottery (th) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_weekly_lottery (en) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_weekly_lottery (th) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_bingo_lottery (en) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_bingo_lottery (th) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_pcso_lottery (en) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php
+  - player.nav_pcso_lottery (th) in /home/user/repo/resources/views/components/navigation/main-nav.blade.php

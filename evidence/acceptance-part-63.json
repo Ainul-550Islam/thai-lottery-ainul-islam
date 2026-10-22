@@ -1,0 +1,144 @@
+{
+  "part": 63,
+  "passed": true,
+  "scope": "Mandatory original-player/current-currency known full-refund source admission before NEW Cash/Win conversion money/quote writes; replay, quotes and original reversal remain separate.",
+  "default": {
+    "passed": true,
+    "cases": 4176,
+    "assertions": 142931,
+    "skipped": 182,
+    "errors": 0,
+    "failures": 0,
+    "source_files": 307,
+    "exact_discovered_data_set_ids": true,
+    "per_source_file_process_and_database": true,
+    "frozen_source_complete_final_rerun": true
+  },
+  "native": {
+    "passed": true,
+    "cases": 403,
+    "assertions": 6456,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "raw_native_cases": 404,
+    "raw_native_platform_skips": 1,
+    "sqlite_only_case_executed_in_complete_default": {
+      "class": "Tests\\Feature\\Wallet\\Conversion\\ConversionEngineSafetyTest",
+      "name": "a_failed_completed_audit_write_rolls_back_the_entire_movement"
+    },
+    "genuine_two_child_parent_waits": 40,
+    "new_refund_conversion_profiles": 4,
+    "new_old_empty_rr_profiles": 1
+  },
+  "dedicated_refund_conversion": {
+    "passed": true,
+    "cases": 22,
+    "assertions": 674,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "overlap": "Default/native/dedicated/static/standalone overlap and must not be added.",
+  "default_skipped_ids_executed_in_selected_native": 40,
+  "default_skipped_ids_not_executed_in_selected_native": 142,
+  "omission_controls": {
+    "total": 4,
+    "expected_assertion_failures": 4,
+    "setup_errors": 0,
+    "actual_conversion_old_rr_native_omission_verified": true,
+    "parent_and_two_children_mutated_service_source_proved": true
+  },
+  "syntax": {
+    "php_files": 2160,
+    "changed_php_pint_files": 7
+  },
+  "python_tests": 86,
+  "static": {
+    "passed": true,
+    "cases": 35,
+    "assertions": 1684,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "standalone": {
+    "passed": true,
+    "cases": 29,
+    "assertions": 94,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0
+  },
+  "dependencies": {
+    "composer_advisories": 0,
+    "composer_abandoned": 0,
+    "npm_audited_packages": 149,
+    "npm_vulnerabilities": 0,
+    "node_tests": 54,
+    "node": "24.22.0",
+    "npm": "11.21.1",
+    "genuine_vite_build": true
+  },
+  "rust": {
+    "locked_integrity_tests": 27,
+    "release_build": true,
+    "retired_settlement_worker_activated": false
+  },
+  "empty_store_schema": {
+    "passed": true,
+    "new_part63_migrations": 0,
+    "engine": "separate empty SQLite store",
+    "steps": [
+      {
+        "step": "empty-up",
+        "exit": 0
+      },
+      {
+        "step": "empty-down",
+        "exit": 0
+      },
+      {
+        "step": "empty-up-again",
+        "exit": 0
+      }
+    ],
+    "tables_after_second_up": 158,
+    "historical_backfill": false,
+    "populated_production_upgrade": false
+  },
+  "ci_workflow_local_parse": {
+    "parsed": true,
+    "mandatory_22_case_step_python_compiled": true,
+    "four_distinct_wallet_owner_waits_required": true,
+    "remote_ci_executed": false
+  },
+  "current_frozen_sources": {
+    "app/Services/Wallet/Conversion/StripeRefundConversionGuard.php": "0fbacc61b1969a2911d1df881afc6b174e8594112091d3f9153723e9cc22dcbd",
+    "app/Services/Wallet/Conversion/WalletConversionService.php": "20f3a82f8e34d461f014bb0395a65c2be71c826a4350af83fe4be6c2095c5a9a",
+    "tests/Support/StripeRefundConversionFixture.php": "d6ce51debabe55412626494dffd9eac7ea820c64f1e0e31303e4953981b2c0e8",
+    "tests/Feature/Wallet/Conversion/StripeRefundConversionGuardTest.php": "5e239dc252d7162e7e01611bcb16ef2a46b61290c0bf22a5df1c08c5f965cd95",
+    "tests/Feature/Wallet/Conversion/StripeRefundConversionGuardServerTest.php": "f6e21d02c9fc66d373c15633cef4e9e2f9b62c2c07a1f71df8c682697d39d03e",
+    "tests/Support/FinancialRaceProbe.php": "ab8ee41893f4fbf9cc87996502ce0ec33c2efe150af444ff06d74bfe9fd1c0b5",
+    "tests/Support/RunsServerFinancialRaces.php": "24b5dcee046ddde609a3851ee42cefd32c0cce344ba71f1ad534ddfbc7b7191d",
+    ".github/workflows/financial-concurrency.yml": "341a3e03cfb846cb79003600f3fac1283c6da32cc0bb6bc448ff0c18a3e3fb33",
+    "scripts/release_source_inventory.py": "6b4dcee68deddfa19aa4bbb10b285d42632c116474c0d82cf13f3e039e0d4d9f"
+  },
+  "provenance": {
+    "complete_default_and_selected_native_executed_against_frozen_current_sources": true,
+    "old_test_assertions_retained": true,
+    "existing_conversion_owner_first_then_wallet_pair_order_preserved": true,
+    "no_original_deposit_wallet_lock_added": true,
+    "no_weakened_race_expectations": true,
+    "no_disabling_sqlite_journaling_or_synchronous_policy": true,
+    "real_vite_and_integrity_binary_prerequisites_built_before_default": true,
+    "early_new_fixture_diagnostics_excluded": true
+  },
+  "new_refund_hook_on_generic_debit_or_original_conversion_reversal": false,
+  "historical_anonymous_holds_adopted": false,
+  "remote_ci_executed": false,
+  "live_provider_refund_or_transfer": false,
+  "populated_production_migration_restore": false,
+  "all_writer_or_cross_currency_global_risk_certification": false,
+  "worldwide_legal_approval": false
+}

@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "seven_mutation_saves_require_true": true,
+  "added_private_helper": "persistWallet",
+  "admitted_id_captured_before_events": true,
+  "no_event_bypass_or_forced_save": true,
+  "public_credit_debit_and_transaction_wrapper_bodies_unchanged": true,
+  "changed_original_mutation_methods": [
+    "applyCredit",
+    "applyDebit",
+    "applyReversal",
+    "lockFunds",
+    "lockWallet",
+    "unlockFunds",
+    "unlockWallet"
+  ],
+  "unchanged_original_methods": {
+    "__construct": "205f81a12adc513f2102422de6a539db1bcc115b989beac50477d0761861aa6a",
+    "getOrCreateWallet": "d37d8616bdce7f60c526cc4d600175da72e33c985f6111060aef1e69e0cd3ddb",
+    "credit": "674bfaf19258731785f6556f147fbaa8155bdac31292cb0df1db4e868f72979b",
+    "debit": "eeb948dce582e225876020aa3d3e6a7b32b4be148e9262ea0e936bee3af93532",
+    "lock": "8eace7fe3129c9c51ce875c6461b257307253cfe4c4a818a431ae5c1d7a57494",
+    "unlock": "620604d0283b5b97fac0e0ae4efd1eb4db254290c8b6679b29b8d432b3193ed1",
+    "availableBalance": "80ee02ec701ea75a8cea08c88fb484ee3e3cef401771fc50ad8875b8aa0d1682",
+    "counterpartAccountCode": "01e9c4c152e11d65d7179efc9ce145c27f23af331aa46ff35355b995401eaa93",
+    "walletAccountCode": "6f2b3fb0086965cf3df3c08830d5569202bc295d678395c246a43ca83ea4d8b4",
+    "transactions": "aec9424aeec6b402c944afc2085313b0cbbcc43558493395d0c5784f9cf5fd9d",
+    "withinTransaction": "9f7869dbd6b811f08ffe936eb55d8e41e83d8f07607dcebc50d983bfbbf247ce",
+    "accumulateRunningTotal": "71d8329058b0ca3cebac2d78c601faca60d1adfdc37f0d687bda3ab97809b43f",
+    "assertWithinMaximumBalance": "8a28326f880e7b00cad92b67b2856a54c53722ca9b2c648f5e6001e043c960d9",
+    "assertCurrency": "469b66e81ce9f70440e9c03d3d98104df1019805a1cb4e67879bd7e825dec1b0",
+    "assertInsideTransaction": "dee075d09e21ced62bfa6c395aa93aec3d6fbd43021e777ff4f178ce59491d3c",
+    "money": "e2da93a7109bf1f58fa580c26381b8371e8a6d87607cfff0365edec4e3196bc5"
+  },
+  "all_ledger_guards_and_orchestrators_unchanged": true,
+  "tested_source_sha256": {
+    "app/Services/Finance/WalletService.php": "385af4e0dfcf120601c9ab51285b8b20dee78e008e58250d99193f0700885547",
+    "tests/Feature/Finance/WalletWriteRefusalTest.php": "8511e7eb26c890431d9c0d4aca8b5be08b1e4abeeae8fd3279cb5ad2fec9c17d",
+    ".github/workflows/financial-concurrency.yml": "d03083f9cca9adc2785203ab72832b8e3c4a43a68b95b6770a8375dd0afe72ea",
+    "scripts/release_source_inventory.py": "c7674ba090894612f5d04ae968f79ee824f07a28512edb7bd3d6be8cb416afcb"
+  },
+  "baseline_wallet_source_sha256": "80c05be390cb03b7cd8b647f5dc8e2d43564e09eca30d898591c541ca9a96582",
+  "no_migration_schema_widening_new_lock_or_transaction_management": true
+}

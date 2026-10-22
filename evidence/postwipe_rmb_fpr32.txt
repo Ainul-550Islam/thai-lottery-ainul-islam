@@ -1,0 +1,28 @@
+
+   PASS  Tests\Feature\RealMoneyBusinessReadinessTest
+  ✓ glo l6 proportional prize calculation and stamp duty                                                                                                                                                                                           3.87s  
+  ✓ glo prize claim lifecycle and approval                                                                                                                                                                                                         0.47s  
+  ✓ multi currency wallet reservation and consumption                                                                                                                                                                                              0.23s  
+  ✓ financial reconciliation engine runs without anomalies                                                                                                                                                                                         0.22s  
+  ✓ payment gateway manager capabilities                                                                                                                                                                                                           0.21s  
+  ✓ withdrawal disbursement failure restores balance                                                                                                                                                                                               0.22s  
+  ✓ responsible gaming limits decrease immediate and increase cooling off                                                                                                                                                                          0.23s  
+  ✓ bulk bet slip cart partial success and replay idempotency                                                                                                                                                                                      0.30s  
+
+   PASS  Tests\Feature\FinalProductionReadinessTest
+  ✓ public routes render in en and th                                                                                                                                                                                                              0.47s  
+  ✓ member routes require authentication                                                                                                                                                                                                           0.21s  
+  ✓ result publication and provenance integrity                                                                                                                                                                                                    0.20s  
+  ✓ wallet isolation and balance immutability                                                                                                                                                                                                      0.22s  
+  ✓ payment gateway capability matrix                                                                                                                                                                                                              0.20s  
+  ✓ payment webhook replay protection                                                                                                                                                                                                              0.21s  
+  ✓ bulk bet placement with idempotency                                                                                                                                                                                                            0.26s  
+  ✓ glo l6 proportional prize calculation                                                                                                                                                                                                          0.25s  
+  ✓ responsible gaming and self exclusion                                                                                                                                                                                                          0.20s  
+  ✓ agent commission settlement                                                                                                                                                                                                                    0.22s  
+  ✓ privacy and legal content versioning                                                                                                                                                                                                           0.23s  
+  ✓ system health and readiness                                                                                                                                                                                                                    0.20s  
+
+  Tests:    20 passed (127 assertions)
+  Duration: 8.66s
+

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Observability;
 
+use App\Console\Scheduling\ReconciliationCadence;
 use App\Models\AuditLog;
 use App\Services\Queue\QueueHealthService;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -111,10 +112,27 @@ class SystemHealthService
         }
 
         // 4. Financial Reconciliation Freshness
+        //
+        // Evaluated only while something is scheduled to run the control. When
+        // finance.ledger.auto_reconcile is off, the status says "disabled" and no
+        // warning is added: a freshness alarm about a control an operator switched off
+        // is not a finding about the platform, and it used to be loud -
+        // ops:evaluate-alerts turns a "warn" here into a HIGH-severity audit row, so the
+        // scheduled lane would have written one false incident per hour on any deployment
+        // whose .env copies the shipped template, which sets FINANCE_LEDGER_AUTO_RECONCILE
+        // to false. Silence in the warnings list is deliberate too: the list is what an
+        // operator reads to decide what to act on, and "you turned this off" is not an
+        // action, while a real staleness breach still is one.
         $reconciliationInfo = $this->checkReconciliationFreshness();
-        if ($reconciliationInfo['is_stale']) {
+        if ($reconciliationInfo['enabled'] && $reconciliationInfo['is_stale']) {
             $isDegraded = true;
-            $warnings[] = sprintf('Financial reconciliation is stale (last run: %s, %s hours ago).', $reconciliationInfo['last_run_at'] ?? 'NEVER', $reconciliationInfo['staleness_hours'] ?? 'N/A');
+            $warnings[] = sprintf(
+                'Financial reconciliation is stale (last run: %s, %s hours ago; bound %s hours = %dx the scheduled interval).',
+                $reconciliationInfo['last_run_at'] ?? 'NEVER',
+                $reconciliationInfo['staleness_hours'] ?? 'N/A',
+                $reconciliationInfo['threshold_hours'],
+                ReconciliationCadence::STALENESS_GRACE_FACTOR
+            );
         }
         if ($reconciliationInfo['last_status'] === 'critical') {
             $isDegraded = true;
@@ -144,7 +162,11 @@ class SystemHealthService
                     'stuck_count' => $queueReport->stuckCount,
                 ],
                 'reconciliation' => [
-                    'status' => $reconciliationInfo['is_stale'] ? 'warn' : 'pass',
+                    'status' => ! $reconciliationInfo['enabled']
+                        ? 'disabled'
+                        : ($reconciliationInfo['is_stale'] ? 'warn' : 'pass'),
+                    'enabled' => $reconciliationInfo['enabled'],
+                    'threshold_hours' => $reconciliationInfo['threshold_hours'],
                     'last_run_at' => $reconciliationInfo['last_run_at'],
                     'staleness_hours' => $reconciliationInfo['staleness_hours'],
                     'last_status' => $reconciliationInfo['last_status'],
@@ -189,13 +211,60 @@ class SystemHealthService
     }
 
     /**
-     * @return array{is_stale: bool, last_run_at: ?string, staleness_hours: ?float, last_status: string}
+     * Is the ledger reconciliation control both switched on and actually running?
+     *
+     * Two numbers used to decide this and only one of them was real. The bound was a
+     * literal 24.0 hours written here, while the cadence the same control schedules
+     * itself on lives in finance.ledger.reconciliation_interval (hourly by default, and
+     * the schedule honours it through ReconciliationCadence). A bound that is not derived
+     * from the cadence it is watching cannot mean anything: at a 15-minute interval it
+     * would call a 23-hour outage healthy, and at a monthly interval it would raise a
+     * HIGH alert every hour about a control nobody expected to run today.
+     *
+     * So the bound comes from ReconciliationCadence::stalenessThresholdSeconds(), the
+     * same class that turns the interval into the cron field, and the switch comes from
+     * the same strict reading the schedule uses. Both halves of the freshness question
+     * now have exactly one source.
+     *
+     * @return array{enabled: bool, is_stale: bool, last_run_at: ?string, staleness_hours: ?float, last_status: string, threshold_hours: float}
      */
     private function checkReconciliationFreshness(): array
     {
+        $enabled = ReconciliationCadence::isAutoReconcileEnabled(
+            $this->config->get('finance.ledger.auto_reconcile', false)
+        );
+
+        $thresholdHours = round(
+            ReconciliationCadence::stalenessThresholdSeconds(
+                $this->config->get('finance.ledger.reconciliation_interval', ReconciliationCadence::DEFAULT_INTERVAL_SECONDS)
+            ) / 3600.0,
+            2
+        );
+
+        if (! $enabled) {
+            // Not stale, and not fresh either: unevaluated. Reporting pass here would be
+            // the lie - it would tell an operator reading /api/health that the ledger had
+            // been checked recently when nothing has checked it at all.
+            return [
+                'enabled' => false,
+                'is_stale' => false,
+                'last_run_at' => null,
+                'staleness_hours' => null,
+                'last_status' => 'disabled',
+                'threshold_hours' => $thresholdHours,
+            ];
+        }
+
         try {
             if (! DB::getSchemaBuilder()->hasTable('audit_logs')) {
-                return ['is_stale' => true, 'last_run_at' => null, 'staleness_hours' => null, 'last_status' => 'unknown'];
+                return [
+                    'enabled' => true,
+                    'is_stale' => true,
+                    'last_run_at' => null,
+                    'staleness_hours' => null,
+                    'last_status' => 'unknown',
+                    'threshold_hours' => $thresholdHours,
+                ];
             }
 
             $lastAudit = AuditLog::query()
@@ -204,7 +273,14 @@ class SystemHealthService
                 ->first();
 
             if (! $lastAudit instanceof AuditLog || $lastAudit->created_at === null) {
-                return ['is_stale' => true, 'last_run_at' => null, 'staleness_hours' => null, 'last_status' => 'never_run'];
+                return [
+                    'enabled' => true,
+                    'is_stale' => true,
+                    'last_run_at' => null,
+                    'staleness_hours' => null,
+                    'last_status' => 'never_run',
+                    'threshold_hours' => $thresholdHours,
+                ];
             }
 
             $hours = round(abs(Carbon::now()->diffInMinutes($lastAudit->created_at)) / 60.0, 2);
@@ -212,13 +288,22 @@ class SystemHealthService
             $status = (string) ($metadata['status'] ?? 'pass');
 
             return [
-                'is_stale' => $hours > 24.0,
+                'is_stale' => $hours > $thresholdHours,
+                'enabled' => true,
                 'last_run_at' => $lastAudit->created_at->toIso8601String(),
                 'staleness_hours' => $hours,
                 'last_status' => $status,
+                'threshold_hours' => $thresholdHours,
             ];
         } catch (Throwable) {
-            return ['is_stale' => true, 'last_run_at' => null, 'staleness_hours' => null, 'last_status' => 'error'];
+            return [
+                'enabled' => true,
+                'is_stale' => true,
+                'last_run_at' => null,
+                'staleness_hours' => null,
+                'last_status' => 'error',
+                'threshold_hours' => $thresholdHours,
+            ];
         }
     }
 }

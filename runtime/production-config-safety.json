@@ -4,7 +4,12 @@
   "enforcement_point": "app/Providers/ProductionSafetyServiceProvider.php, registered in bootstrap/providers.php. Throws RuntimeException during boot when APP_ENV=production and any invariant is violated. Inert in every other environment.",
   "rationale": "The repository previously relied on documentation and reviewer discipline. .env.example shipped all four fixture lanes ENABLED and composer.json copied .env.example to .env on install, so the unsafe state was the DEFAULT state. config/security.php declared session policies that no code ever read.",
   "fixture_lane_contract": {
-    "lanes": ["national_lottery", "weekly_lottery", "bingo_lottery", "pcso_lottery"],
+    "lanes": [
+      "national_lottery",
+      "weekly_lottery",
+      "bingo_lottery",
+      "pcso_lottery"
+    ],
     "layer_1_env_example": "All four *_LOTTERY_FIXTURE_ENABLED values flipped true -> false, with an inline comment stating they are development only.",
     "layer_2_config": "Each config/*_lottery.php now resolves 'enabled' => env('APP_ENV') === 'production' ? false : (bool) env(...). A production .env that sets the flag true is overridden, not obeyed.",
     "layer_3_boot": "ProductionSafetyServiceProvider refuses to boot if any lane still reports enabled.",
@@ -16,7 +21,7 @@
     "requirement": "The stock deploy path must never create .env from .env.example.",
     "removed": "composer.json scripts.post-root-package-install previously ran @php -r \"file_exists('.env') || copy('.env.example','.env');\". It now prints guidance and creates nothing. post-create-project-cmd no longer runs key:generate against a non-existent .env.",
     "replacement": "A new, explicit, opt-in script: composer run env:local. It refuses to overwrite an existing .env, states that it is using the DEVELOPMENT template, and then runs key:generate.",
-    "still_open": ".github/workflows/ci.yml lines 157 and 506 still run cp .env.example .env. That is a CI-only path, not the stock deploy path, but it is the reason the shipped example was never noticed to be unsafe. Flagged, not yet changed, because ci.yml lines 219-244 already run a guard asserting every lane key is documented in .env.example with no value, and reconciling the two guards needs a hosted CI run to verify -- which is unavailable (see phase 13)."
+    "status_of_the_flagged_item": "The gap described in history.as_written_at_phase_5 is closed, and the check is a pattern rather than a line number because the two line numbers quoted there were accurate for one commit only. See claims_current_state.ci_uses_the_committed_ci_environment."
   },
   "additional_invariants_enforced": [
     "APP_DEBUG must be false in production.",
@@ -30,5 +35,72 @@
   "test_evidence": {
     "file": "tests/Feature/Production/ProductionConfigSafetyTest.php",
     "result": "6 passed, 21 assertions, 1.02s"
+  },
+  "provenance": {
+    "written_during_phase": 5,
+    "captured_at_utc": null,
+    "captured_at_note": "No date in the original; phase 5 ran in the same window as the phase-4 to 8 measurements, dated 2026-10-01 in the logs of this workspace.",
+    "base_commit": "1c21115b615dd37fb0ad17f3a4704445cdef4ce0",
+    "base_commit_in_this_clone": false,
+    "clone_head_commit": "5df5d14",
+    "clone_commit_count": 1,
+    "provenance_note": "This clone has exactly one commit (5df5d14) and 1c21115 is not an object in it, so the commit this record was measured against cannot be checked out here. Stated instead of assumed: a reader can tell which tree these numbers describe only if the record says so.",
+    "claims_refreshed_at_utc": "2026-10-16",
+    "claims_refreshed_by_cluster": 45
+  },
+  "superseded_facts": [
+    {
+      "was": "still_open: \".github/workflows/ci.yml lines 157 and 506 still run cp .env.example .env. Flagged, not yet changed.\"",
+      "now": "Both jobs now copy the committed CI template: ci.yml runs `cp .env.ci .env` at two steps and no workflow contains `cp .env.example .env` anymore (2026-10-16). The item is closed, and the phrasing changed too: a claim that cites line numbers rots the moment anyone edits the file above it, which is what happened here -- the numbers 157 and 506 were still accurate when this record was saved and were wrong a week later.",
+      "changed_by_clusters": "43 (env templates) and 45 (this correction)"
+    },
+    {
+      "was": "layer_4_test: \"... ProductionConfigSafetyTest.php -- release-blocking, 6 tests, 21 assertions, PASSING.\"",
+      "now": "The file holds 20 test methods today; another artifact of the same phase counted 16. The number is therefore recorded as a lower bound and re-checked, because \"PASSING\" with a stale count is the kind of line nobody re-reads.",
+      "changed_by_clusters": "45"
+    }
+  ],
+  "claims_current_state": {
+    "ci_uses_the_committed_ci_environment": {
+      "statement": "Every workflow that needs an environment copies .env.ci, and none copies .env.example.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "workflow_env_copy",
+        "must_contain": "cp .env.ci .env",
+        "must_not_contain": "cp .env.example .env"
+      }
+    },
+    "fixture_lanes_off_in_every_shipped_template": {
+      "statement": "Neither .env.example, .env.ci nor .env.production.example enables a fixture lane.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "fixture_lanes_disabled_in",
+        "files": [
+          ".env.example",
+          ".env.ci",
+          ".env.production.example"
+        ],
+        "forbidden": "^[A-Z_]*LOTTERY_FIXTURE_ENABLED=true"
+      }
+    },
+    "four_lanes_are_the_contract": {
+      "statement": "The four fixture lanes named by this record are exactly the four *_lottery config files with a sources.fall_through_to_fixture key.",
+      "as_of": "2026-10-16",
+      "verification": {
+        "kind": "lane_count_matches",
+        "config_glob": "config/*_lottery.php",
+        "expected": [
+          "national_lottery",
+          "weekly_lottery",
+          "bingo_lottery",
+          "pcso_lottery"
+        ]
+      }
+    }
+  },
+  "history": {
+    "as_written_at_phase_5": {
+      "env_copy_contract.still_open": ".github/workflows/ci.yml lines 157 and 506 still run cp .env.example .env. That is a CI-only path, not the stock deploy path, but it is the reason the shipped example was never noticed to be unsafe. Flagged, not yet changed, because ci.yml lines 219-244 already run a guard asserting every lane key is documented in .env.example with no value, and reconciling the two guards needs a hosted CI run to verify -- which is unavailable (see phase 13)."
+    }
   }
 }
