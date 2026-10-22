@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Wallet;
 
-use App\DTOs\Wallet\ConversionRequestData;
 use App\Enums\Currency;
-use App\Enums\WalletConversionChannel;
 use App\Enums\WalletConversionDirection;
+use App\DTOs\Wallet\ConversionRequestData;
 use App\Rules\ConversionAmountRule;
 use App\Rules\ConversionDirectionRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -105,7 +104,7 @@ class ConversionQuoteRequest extends FormRequest
      * and guarantees the controller cannot accidentally pass an unvalidated
      * field through.
      */
-    public function toEngineRequest(int $userId, WalletConversionChannel $channel): ConversionRequestData
+    public function toEngineRequest(int $userId, \App\Enums\WalletConversionChannel $channel): ConversionRequestData
     {
         return ConversionRequestData::fromArray([
             'direction' => (string) $this->validated('direction'),

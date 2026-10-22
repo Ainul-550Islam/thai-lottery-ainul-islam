@@ -109,6 +109,18 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
         ];
     }
 
+    /** @return HasMany<UserConsent> */
+    public function consents(): HasMany
+    {
+        return $this->hasMany(UserConsent::class);
+    }
+
+    /** @return HasOne<AgeVerification> */
+    public function ageVerification(): HasOne
+    {
+        return $this->hasOne(AgeVerification::class);
+    }
+
     /**
      * The primary spendable wallet of the user.
      *

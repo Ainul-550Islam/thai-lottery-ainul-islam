@@ -49,7 +49,7 @@ class GloResultTrustPolicyTest extends TestCase
      */
     private function makeResult(Draw $draw, string $firstPrize, array $metadata): DrawResult
     {
-        $result = new DrawResult;
+        $result = new DrawResult();
         $result->forceFill([
             'draw_id' => $draw->id,
             'first_prize' => $firstPrize,

@@ -1,6 +1,21 @@
 <?php
 
-declare(strict_types=1);
+/*
+|--------------------------------------------------------------------------
+| Bangla (bn) homepage strings
+|--------------------------------------------------------------------------
+|
+| Deliberately a SUBSET of lang/en/home.php. Only factual, neutral UI copy is
+| translated. Marketing claims that the codebase cannot back (licensing,
+| certifications, "instant automated payouts", "provably fair", 24/7 VIP
+| support channels, native mobile apps, 4D/speed-round markets) are NOT
+| translated. Missing keys fall back to English via fallback_locale.
+|
+| tests/Unit/Lang/BanglaHomeTranslationTest.php enforces that every key here
+| exists in English, keeps the same placeholders, and contains no claim
+| phrases from the banned list.
+|
+*/
 
 return [
     'meta_title' => 'ThaiLotto Club - থাই লটারির ফলাফল ও তথ্য',
@@ -86,13 +101,4 @@ return [
         'draw_number' => 'ড্র নম্বর',
         'btn_all_results' => 'পুরনো ফলাফল দেখুন',
     ],
-    'hero_badge' => 'স্বতন্ত্র থাই লটারি ফলাফল ও এন্ট্রি টার্মিনাল',
-    'hero_cta_download' => 'মোবাইল অ্যাপ ডাউনলোড করুন',
-    'bonuses_level' => 'সদস্য স্তর',
-    'payments_note' => 'প্রতিটি লেনদেন যাচাইযোগ্য ডাবল-এন্ট্রি লেজারের মাধ্যমে সম্পন্ন হয়।',
-    'app_cta_view' => 'অ্যাপের বিস্তারিত ও SHA-256 চেকসাম দেখুন',
-    'trust_note' => 'প্রতিটি ড্র ফলাফল, টিকিট যাচাই এবং লেজার এন্ট্রি সম্পূর্ণ অডিট ট্রেইলসহ সংরক্ষিত থাকে।',
-    'heritage_eyebrow' => 'প্ল্যাটফর্ম মানদণ্ড',
-    'heritage_title' => 'স্বচ্ছ ড্র যাচাইকরণ ও নিবন্ধিত নিষ্পত্তি ব্যবস্থা',
-    'heritage_body' => 'যাচাইযোগ্য ড্র রেকর্ড, প্রকাশিত পেআউট নিয়ম এবং কঠোর ডাবল-এন্ট্রি হিসাবরক্ষণের ওপর নির্মিত।',
 ];

@@ -35,12 +35,8 @@ final class DepositRequest extends FormRequest
             'user_id' => ['prohibited'],
             'wallet_id' => ['prohibited'],
             'status' => ['prohibited'],
-            // Fee figures are ignored, not rejected. This is the house rule the fee-preview lane
-            // already documents (a_client_supplied_fee_figure_is_ignored_not_validated): a smuggled
-            // fee must not be answered with a 422 as an unexpected key, and it must not change the
-            // number the endpoint records - the answer is the service's computation whatever else
-            // arrives in the body. The guard below stays intact: identity, ownership, settlement
-            // state, provider evidence and balance remain things a caller may never name.
+            // Client-supplied fee and net figures are NOT validated and NOT read: the fee is the
+            // server-computed value, and any smuggled field is simply absent from validated().
             'exchange_rate' => ['prohibited'],
             'provider' => ['prohibited'],
             'provider_reference' => ['prohibited'],

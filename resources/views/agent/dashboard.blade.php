@@ -57,7 +57,7 @@
                 <span class="tl-metric-badge tl-metric-badge--verified">Active</span>
             </div>
             <div class="tl-metric-card__value">
-                {{ $agent->referredPlayerCount() }}
+                {{ $agent->total_referrals ?? 0 }}
             </div>
             <div class="tl-metric-card__footer">
                 <span>Intake: Open</span>

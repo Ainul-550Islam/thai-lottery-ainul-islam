@@ -4,74 +4,92 @@ declare(strict_types=1);
 
 namespace App\Services\Auth;
 
+use App\Enums\AuditAction;
+use App\Enums\RiskLevel;
 use App\Models\User;
-use App\Services\Security\TotpActionProofInvalidationService;
+use App\Services\Audit\AuditLogService;
+use App\Support\Admin\AdminAccess;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use SensitiveParameter;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 /**
- * An operator setting a member's password from the admin panel.
+ * Changes another account's password on an operator's behalf, from the admin panel.
  *
- * One of the few services allowed to write a password hash (the allowlist in
- * PasswordWriteCoverageService). An admin-set password is a credential
- * takeover-grade action, so the write carries the full password-write
- * ceremony, in one transaction and then its post-commit effects:
- *
- *   1. the target row is locked and re-read — the panel rendered its form
- *      from a possibly stale model, and the write must land on the account
- *      as it is now;
- *   2. the profile fields the operator submitted are applied together with
- *      the new hash, so the record never shows new details under an old
- *      credential or the reverse;
- *   3. the credential generation advances, ending every session and API
- *      credential the account holds (SessionGenerationRevocationService) —
- *      an operator who sets a password because an account is compromised
- *      must not leave the attacker's session alive;
- *   4. every outstanding TOTP action proof is invalidated.
- *
- * Authorization (who may do this to whom) is the caller's decision and is
- * checked before this service is invoked; this service owns the write.
+ * GUARDS
+ *  - The operator must hold MANAGE_USERS, checked here and not only by the page.
+ *  - The password must be at least 8 characters, matching the form rule, and is
+ *    never written to the audit trail.
+ *  - Only name and email change through this path. Status, roles and every other
+ *    attribute are dropped, because those are decisions with their own audit lines.
+ *  - User::casts() hashes the password on assignment. Hashing here as well would
+ *    hash the hash and lock the account out, so the value is assigned plain.
+ *  - The target row is locked, the change and its audit row commit together, and
+ *    the credential generation is advanced when the schema records one. A schema
+ *    without that column keeps hash-only session behaviour.
  */
 final class AdminPasswordChangeService
 {
+    private const MIN_LENGTH = 8;
+
+    /** @var list<string> */
+    private const EDITABLE = ['name', 'email'];
+
     public function __construct(
-        private readonly SessionGenerationRevocationService $revocations,
-        private readonly TotpActionProofInvalidationService $proofs,
+        private readonly AuditLogService $audit,
     ) {}
 
     /**
-     * @param  array<string, mixed>  $data  profile fields submitted alongside the password
+     * @param  array<string, mixed>  $attributes
      */
-    public function change(
-        User $operator,
-        User $target,
-        #[SensitiveParameter] string $password,
-        array $data = [],
-    ): User {
-        unset($data['password']);
+    public function change(User $operator, User $target, string $password, array $attributes = []): User
+    {
+        if (! AdminAccess::allows($operator, AdminAccess::MANAGE_USERS)) {
+            throw new AuthorizationException('You may not change this account\'s password.');
+        }
 
-        $updated = DB::transaction(function () use ($target, $password, $data): User {
-            $locked = User::query()->lockForUpdate()->find((int) $target->getKey());
+        if (mb_strlen($password) < self::MIN_LENGTH) {
+            throw ValidationException::withMessages([
+                'password' => sprintf('The password must be at least %d characters.', self::MIN_LENGTH),
+            ]);
+        }
 
-            if (! $locked instanceof User) {
-                throw new \RuntimeException('The account no longer exists.');
+        $editable = array_intersect_key($attributes, array_flip(self::EDITABLE));
+
+        return DB::transaction(function () use ($operator, $target, $password, $editable): User {
+            /** @var User $locked */
+            $locked = User::query()->whereKey($target->getKey())->lockForUpdate()->firstOrFail();
+
+            $before = ['password_changed' => false];
+
+            $locked->fill($editable);
+            $locked->password = $password;
+
+            $hasEpoch = Schema::hasColumn($locked->getTable(), 'credential_epoch');
+
+            if ($hasEpoch) {
+                $locked->credential_epoch = (int) $locked->credential_epoch + 1;
             }
 
-            foreach ($data as $key => $value) {
-                $locked->setAttribute((string) $key, $value);
-            }
-
-            $locked->password = Hash::make($password);
-            $locked->remember_token = null;
             $locked->save();
 
-            return $locked;
+            $this->audit->log(
+                (int) $operator->getKey(),
+                AuditAction::Update,
+                RiskLevel::High,
+                $locked,
+                'Operator changed the password for '.$locked->username.'.',
+                [
+                    'operation' => 'admin_password_change',
+                    'changed_fields' => array_values(array_merge(array_keys($editable), ['password'])),
+                    'credential_generation_advanced' => $hasEpoch,
+                ],
+                $before,
+                ['password_changed' => true],
+            );
+
+            return $locked->refresh();
         });
-
-        $this->revocations->revoke($operator, $updated, SessionGenerationRevocationService::REASON_PASSWORD_CHANGE);
-        $this->proofs->invalidate($updated, TotpActionProofInvalidationService::PASSWORD_CHANGED);
-
-        return $updated->refresh();
     }
 }

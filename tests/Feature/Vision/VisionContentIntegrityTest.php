@@ -9,13 +9,6 @@ use Tests\TestCase;
 
 final class VisionContentIntegrityTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->withoutVite(); // asserts page content; public/build/manifest.json is a build artefact
-    }
-
     use RefreshDatabase;
 
     public function test_vision_page_does_not_claim_unverified_institutional_identity(): void

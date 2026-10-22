@@ -19,7 +19,6 @@ final class SupportCaseOwnerIsolationTest extends TestCase
 
     public function test_authenticated_owner_can_create_and_read_a_support_case(): void
     {
-        $this->withoutVite(); // asserts page content, not the compiled asset tags
         $owner = User::factory()->create();
 
         $response = $this->actingAs($owner)->post(route('support.store'), [

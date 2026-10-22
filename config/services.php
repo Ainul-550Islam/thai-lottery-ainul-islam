@@ -45,4 +45,33 @@ return [
         'webhook_secret' => env('CRYPTO_GATEWAY_WEBHOOK_SECRET'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | External CAPTCHA providers (server-side Siteverify)
+    |--------------------------------------------------------------------------
+    | Endpoints are pinned in ExternalCaptchaVerifier and are not configurable.
+    | `allowed_hostnames` is the exact set of hostnames a Turnstile response may
+    | carry. `actions` maps each server purpose to the widget action that must
+    | match. Secrets stay server-side and are never echoed to the browser.
+    */
+    'captcha' => [
+        'turnstile' => [
+            'site_key' => env('TURNSTILE_SITE_KEY'),
+            'secret' => env('TURNSTILE_SECRET_KEY'),
+            'allowed_hostnames' => array_values(array_filter(array_map(
+                'trim',
+                explode(',', (string) env('TURNSTILE_ALLOWED_HOSTNAMES', (string) env('APP_HOST', 'localhost'))),
+            ), static fn (string $host): bool => $host !== '')),
+            'actions' => [
+                'login' => 'login',
+                'register' => 'register',
+                'password_reset' => 'password_reset',
+            ],
+        ],
+        'hcaptcha' => [
+            'site_key' => env('HCAPTCHA_SITE_KEY'),
+            'secret' => env('HCAPTCHA_SECRET_KEY'),
+        ],
+    ],
+
 ];

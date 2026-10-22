@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Parity;
 
-use App\Http\Requests\Web\RegisterRequest;
 use App\Support\SupportedLocale;
 use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -91,7 +90,7 @@ final class CompetitorParityMatrixTest extends TestCase
 
     public function test_the_register_form_collects_the_referral_and_contact_fields_c16(): void
     {
-        $rules = (new RegisterRequest)->rules();
+        $rules = (new \App\Http\Requests\Web\RegisterRequest())->rules();
 
         foreach (['referral_id', 'mobile', 'date_of_birth', 'nationality', 'gender', 'city', 'country', 'terms'] as $field) {
             $this->assertArrayHasKey($field, $rules, "register form lost the {$field} field");

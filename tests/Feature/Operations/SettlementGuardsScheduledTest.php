@@ -5,15 +5,26 @@ declare(strict_types=1);
 namespace Tests\Feature\Operations;
 
 use App\Services\Operations\ScheduleCoverageService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
+/**
+ * Part 64 — the guards Part 62 and 63 built are now on the schedule.
+ *
+ * Part 63 measured that 38 application commands were registered and most were
+ * never run, including `settlement:verify-guards`, which
+ * config/operations-readiness.php lists as required. That measurement is what
+ * this suite pins down: the same read that exposed the gap now shows it closed.
+ *
+ * WHAT IS NOT PROVEN
+ * A schedule entry is not evidence that the deployed host runs `schedule:run`.
+ * This suite reads the schedule this application builds; it cannot see cron, a
+ * queue worker, or whether the entry ever fires in production.
+ */
 final class SettlementGuardsScheduledTest extends TestCase
 {
-    use RefreshDatabase;
-
     /**
      * The scheduled artisan command names, read through the product's own entry
      * point so the answer does not depend on what else ran in this process.
@@ -96,8 +107,29 @@ final class SettlementGuardsScheduledTest extends TestCase
     #[Test]
     public function the_settlement_guard_command_runs_and_reports_when_there_is_nothing_settled(): void
     {
-        $this->artisan('settlement:verify-guards')
-            ->expectsOutputToContain('No settled draws to verify.')
-            ->assertExitCode(0);
+        // The test database is persistent and not reset between runs, so a completed
+        // draw committed by another suite would make this precondition false. The
+        // test therefore establishes "nothing settled" itself, inside a transaction
+        // that is always rolled back, so the shared database is left exactly as found.
+        // Foreign keys must be off to clear draws that have children, and SQLite
+        // ignores that pragma inside a transaction, so it is set before BEGIN.
+        DB::statement('PRAGMA foreign_keys = OFF');
+
+        try {
+            DB::beginTransaction();
+
+            try {
+                DB::table('draw_results')->whereIn('draw_id', DB::table('draws')->where('status', 'completed')->select('id'))->delete();
+                DB::table('draws')->where('status', 'completed')->delete();
+
+                $this->artisan('settlement:verify-guards')
+                    ->expectsOutputToContain('No settled draws to verify.')
+                    ->assertExitCode(0);
+            } finally {
+                DB::rollBack();
+            }
+        } finally {
+            DB::statement('PRAGMA foreign_keys = ON');
+        }
     }
 }

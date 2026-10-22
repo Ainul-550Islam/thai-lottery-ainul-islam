@@ -80,7 +80,7 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
         process.stdout.write(
             execFileSync(
                 php,
-                ["tests/browser/Support/ip-rule-live.php", "prepare"],
+                ["tests/Browser/Support/ip-rule-live.php", "prepare"],
                 { cwd: repo, env, encoding: "utf8" },
             ),
         );
@@ -91,7 +91,7 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
                 "0.0.0.0:8091",
                 "-t",
                 "public",
-                "tests/browser/Support/ip-rule-live.php",
+                "tests/Browser/Support/ip-rule-live.php",
             ],
             { cwd: repo, env, stdio: ["ignore", "pipe", "pipe"] },
         );
@@ -131,7 +131,7 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
         });
         const child = (browserChild = spawn(
             process.execPath,
-            ["tests/browser/ip-rule-management-live.cjs"],
+            ["tests/Browser/ip-rule-management-live.cjs"],
             { cwd: repo, env, stdio: "inherit" },
         ));
         browserExit = new Promise((resolve) => child.once("close", resolve));

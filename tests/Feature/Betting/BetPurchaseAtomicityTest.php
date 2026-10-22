@@ -30,9 +30,11 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Betting\BetPurchaseService;
 use App\Services\Finance\Money;
+use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use App\Services\Finance\WalletService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
+use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use Throwable;
@@ -143,6 +145,32 @@ final class BetPurchaseAtomicityTest extends TestCase
 
         $this->assertSame('7', $result->item->number);
         $this->assertSame('bottom', $result->item->position);
+    }
+
+    #[Test]
+    public function purchase_rechecks_responsible_gaming_limits_inside_its_wallet_transaction(): void
+    {
+        $fixture = $this->fixture();
+        $this->ensureLimit($fixture['draw'], '3d_direct', '123');
+
+        $gate = Mockery::mock(ResponsibleGamingEnforcementService::class);
+        $calls = 0;
+        $gate->shouldReceive('assertBetAllowed')->twice()->andReturnUsing(function () use (&$calls): void {
+            $calls++;
+
+            if ($calls === 1) {
+                $this->assertSame(0, DB::transactionLevel(), 'The initial responsible-gaming check remains a fast preflight.');
+
+                return;
+            }
+
+            $this->assertGreaterThan(0, DB::transactionLevel(), 'The authoritative check must run inside the wallet transaction.');
+        });
+        $this->app->instance(ResponsibleGamingEnforcementService::class, $gate);
+
+        $result = $this->purchase($fixture, '3d_direct', '123', '10.00');
+
+        $this->assertSame(BetPurchaseStatus::Purchased, $result->status);
     }
 
     // -----------------------------------------------------------------------------

@@ -4,126 +4,71 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
-use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Facades\Log;
 
-class ProviderAttemptRecorder
+/**
+ * Structured, non-sensitive operational record for a GLO provider attempt.
+ *
+ * Provider response bodies, credentials, full URLs and raw result numbers are
+ * intentionally excluded. The owning import service persists the accepted
+ * result/provenance; this recorder explains why a rung was skipped, answered or
+ * failed without turning application logs into another copy of payment/result
+ * data.
+ */
+final class ProviderAttemptRecorder
 {
-    /**
-     * @var list<array{source: string, outcome: string, reason: string|null}>
-     */
-    private array $attempts = [];
-
-    /**
-     * @param  array<string, mixed>  $result
-     */
-    public function answered(string $source, ?string $drawNumber, array $result = []): void
+    public function skipped(string $source, ?string $drawNumber, string $reason): void
     {
-        $outcome = isset($result['status']) && is_string($result['status']) && $result['status'] !== ''
-            ? $result['status']
-            : 'answered';
-
-        $this->attempts[] = [
-            'source' => $source,
-            'outcome' => $outcome,
-            'reason' => null,
-        ];
-
-        $this->safeLog('info', 'glo.provider_attempt.answered', $this->context($source, $drawNumber, null));
+        Log::notice('glo.provider_attempt.skipped', $this->context($source, $drawNumber, $reason));
     }
 
-    public function skipped(string $source, ?string $drawNumber, string $code): void
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function answered(string $source, ?string $drawNumber, array $payload): void
     {
-        $reason = match ($code) {
-            'circuit_open' => 'Provider skipped because circuit open.',
-            'not_configured' => 'Provider is not configured for this environment.',
-            default => $code,
-        };
-
-        $this->attempts[] = [
+        Log::info('glo.provider_attempt.answered', [
             'source' => $source,
-            'outcome' => 'skipped',
-            'reason' => $reason,
-        ];
-
-        $this->safeLog('notice', 'glo.provider_attempt.skipped', $this->context($source, $drawNumber, $reason));
+            'draw_number' => $drawNumber,
+            'fingerprint' => isset($payload['fingerprint']) ? (string) $payload['fingerprint'] : null,
+        ]);
     }
 
     public function failed(string $source, ?string $drawNumber, string $reason): void
     {
-        $sanitized = trim($reason) === ''
-            ? 'failed without a reason'
-            : mb_substr($this->redactReason($reason), 0, 500);
-
-        $this->attempts[] = [
-            'source' => $source,
-            'outcome' => 'failed',
-            'reason' => $sanitized,
-        ];
-
-        $this->safeLog('warning', 'glo.provider_attempt.failed', $this->context($source, $drawNumber, $sanitized));
+        Log::warning('glo.provider_attempt.failed', $this->context($source, $drawNumber, $reason));
     }
 
     /**
-     * @return list<array{source: string, outcome: string, reason: string|null}>
+     * @return array{source: string, draw_number: string|null, reason: string}
      */
-    public function attempts(): array
-    {
-        return $this->attempts;
-    }
-
-    public function count(): int
-    {
-        return count($this->attempts);
-    }
-
-    /**
-     * @return array{source: string, outcome: string, reason: string|null}|null
-     */
-    public function last(): ?array
-    {
-        if ($this->attempts === []) {
-            return null;
-        }
-
-        return $this->attempts[array_key_last($this->attempts)];
-    }
-
-    public function reset(): void
-    {
-        $this->attempts = [];
-    }
-
-    private function redactReason(string $reason): string
-    {
-        $clean = preg_replace('/([?&](?:api[_-]?key|token|secret|password|sig|signature|key)=)[^&\s]+/i', '$1[REDACTED]', $reason) ?? $reason;
-        $clean = preg_replace('/\bBearer\s+[A-Za-z0-9\-._~+\/]+=*/i', 'Bearer [REDACTED]', $clean) ?? $clean;
-
-        return trim($clean);
-    }
-
-    /**
-     * @return array{source: string, draw_number: string|null, reason: string|null}
-     */
-    private function context(string $source, ?string $drawNumber, ?string $reason): array
+    private function context(string $source, ?string $drawNumber, string $reason): array
     {
         return [
             'source' => $source,
             'draw_number' => $drawNumber,
-            'reason' => $reason,
+            'reason' => mb_substr($this->redactReason($reason), 0, 500),
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $context
-     */
-    private function safeLog(string $level, string $message, array $context): void
+    private function redactReason(string $reason): string
     {
-        $app = Facade::getFacadeApplication();
-        if ($app === null || ! $app->bound('log')) {
-            return;
-        }
+        $redacted = preg_replace(
+            '/([?&](?:authorization|access[_-]?token|token|api[_-]?key|client[_-]?secret|secret|password|signature)=)[^&#\\s]*/i',
+            '$1[redacted]',
+            $reason,
+        ) ?? $reason;
 
-        Log::log($level, $message, $context);
+        $redacted = preg_replace(
+            '/\bauthorization\s*[:=]\s*(?:bearer\s+)?[^\s,;&]+/i',
+            'authorization=[redacted]',
+            $redacted,
+        ) ?? $redacted;
+
+        return preg_replace(
+            '/\b(access[_-]?token|token|api[_-]?key|client[_-]?secret|secret|password|signature)\s*[:=]\s*[^\s,;&]+/i',
+            '$1=[redacted]',
+            $redacted,
+        ) ?? $redacted;
     }
 }

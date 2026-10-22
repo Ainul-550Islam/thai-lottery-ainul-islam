@@ -15,8 +15,11 @@
 
 return [
 
-    // Semantic version shown on /terms. Bump when terms content changes.
+    // Semantic versions shown on the fallback Terms and Privacy pages. Bump
+    // the relevant value whenever the corresponding public text changes.
     'version' => (string) env('LEGAL_VERSION', 'v1.0.0'),
+    'privacy_version' => (string) env('LEGAL_PRIVACY_VERSION', env('LEGAL_VERSION', 'v1.0.0')),
+    'minimum_age' => min(255, max(18, (int) env('LEGAL_MINIMUM_AGE', 18))),
 
     // Fixed ISO dates (Y-m-d). Do not use date() / now() for these.
     'effective_at' => (string) env('LEGAL_EFFECTIVE_AT', '2026-09-24'),

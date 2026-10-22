@@ -63,7 +63,7 @@ final class ConversionQuoteExpiredException extends ConversionException
     ) {
         $this->quoteReference = $quoteReference;
         $this->expiredAt = self::immutable($expiredAt);
-        $this->attemptedAt = self::immutable($attemptedAt ?? new DateTimeImmutable);
+        $this->attemptedAt = self::immutable($attemptedAt ?? new \DateTimeImmutable());
         $this->currentRuleVersion = $currentRuleVersion;
         $this->quotedRuleVersion = $quotedRuleVersion;
 

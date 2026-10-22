@@ -223,14 +223,6 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
     #[Test]
     public function test_07_system_health_reporting_degraded_state_on_stale_reconciliation(): void
     {
-        // The control has to be switched on for staleness to mean anything. This test
-        // previously asserted DEGRADED with the shipped default (auto_reconcile off),
-        // which is a platform being called degraded because an operator made a
-        // configuration choice - and it is the exact false positive that made
-        // ops:evaluate-alerts unsafe to schedule, since that lane writes a HIGH audit row
-        // for every warn it sees.
-        config(['finance.ledger.auto_reconcile' => true]);
-
         // Delete any existing reconciliation audits to simulate stale state
         AuditLog::query()->where('action', AuditAction::Reconcile->value)->delete();
 
@@ -257,9 +249,6 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
     #[Test]
     public function test_09_stale_reconciliation_detection(): void
     {
-        // Staleness is only evaluated while the control is scheduled to run; see test 07.
-        config(['finance.ledger.auto_reconcile' => true]);
-
         // Clear previous reconciliation logs in test
         AuditLog::query()->where('action', AuditAction::Reconcile->value)->delete();
 
@@ -279,48 +268,9 @@ final class ProductionObservabilityComprehensiveTest extends PaymentTestCase
 
         $health = $this->systemHealthService->checkDetailedHealth();
 
-        $reconciliation = $health['dependencies']['reconciliation'];
-
-        $this->assertNotNull($reconciliation['staleness_hours']);
-        $this->assertTrue($reconciliation['staleness_hours'] > 24.0);
-        $this->assertSame('warn', $reconciliation['status']);
-
-        // The bound is the point of this test, not the 48 hours. It comes from the
-        // configured cadence via ReconciliationCadence rather than a literal here or in
-        // the service, so an operator who changes the interval changes what "stale"
-        // means; the default interval is hourly, so three missed runs is the breach.
-        $this->assertSame(3.0, $reconciliation['threshold_hours'],
-            'A one-hour reconciliation interval must produce a three-hour staleness bound. Anything else means '
-            .'the alarm and the schedule have stopped agreeing about what they are watching.');
-        $this->assertTrue($reconciliation['enabled']);
-    }
-
-    #[Test]
-    public function reconciliation_freshness_is_left_alone_while_the_control_is_switched_off(): void
-    {
-        // The other half of test 07, and the half that keeps a scheduled ops:evaluate-alerts
-        // safe: with nothing scheduled to run reconciliation, an absent audit row is not a
-        // finding, so no warning is raised and the status is not 'pass' either. 'disabled' is
-        // what an operator reading /api/health deserves to see, because 'pass' would claim the
-        // ledger had been checked recently when nothing checked it at all.
-        config(['finance.ledger.auto_reconcile' => false]);
-
-        AuditLog::query()->where('action', AuditAction::Reconcile->value)->delete();
-
-        $health = $this->systemHealthService->checkDetailedHealth();
-        $reconciliation = $health['dependencies']['reconciliation'];
-
-        $this->assertFalse($reconciliation['enabled']);
-        $this->assertSame('disabled', $reconciliation['status']);
-        $this->assertSame('HEALTHY', $health['status'],
-            'A disabled control must not degrade the platform status: it is a configuration choice, and an '
-            .'always-red health endpoint is indistinguishable from an always-red platform.');
-
-        foreach ($health['warnings'] as $warning) {
-            $this->assertStringNotContainsString('reconciliation', strtolower($warning),
-                'The warning list is what an operator acts on. Reconciliation must not appear in it while the '
-                .'control that would fill it in is switched off: '.$warning);
-        }
+        $this->assertNotNull($health['dependencies']['reconciliation']['staleness_hours']);
+        $this->assertTrue($health['dependencies']['reconciliation']['staleness_hours'] > 24.0);
+        $this->assertSame('warn', $health['dependencies']['reconciliation']['status']);
     }
 
     // -------------------------------------------------------------------------

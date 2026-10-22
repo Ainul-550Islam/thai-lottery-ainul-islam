@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Observability;
 
-use App\Console\Scheduling\ReconciliationCadence;
 use App\Enums\RiskLevel;
 use App\Jobs\Notification\SendFinancialAlertJob;
 use App\Services\Queue\QueueHealthService;
@@ -111,12 +110,7 @@ class OperationalAlertService
             if ($this->shouldSendAlert($key, 3600)) { // 1 hour cooldown for staleness
                 SendFinancialAlertJob::dispatch(
                     title: 'WARNING: Financial Reconciliation Stale',
-                    message: sprintf(
-                        'Financial reconciliation has not completed in %s hours (bound: %s hours, %dx the scheduled interval).',
-                        $recInfo['staleness_hours'] ?? 'unknown',
-                        $recInfo['threshold_hours'] ?? 'unknown',
-                        ReconciliationCadence::STALENESS_GRACE_FACTOR
-                    ),
+                    message: sprintf('Financial reconciliation has not completed in %s hours.', $recInfo['staleness_hours'] ?? '24+'),
                     severity: RiskLevel::High,
                     metadata: $recInfo,
                 );

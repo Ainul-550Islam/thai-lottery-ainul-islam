@@ -68,7 +68,6 @@ final class PrizeVerificationAndDiscountTest extends TestCase
     {
         parent::setUp();
 
-        $this->withoutVite();
         // The limiter is real middleware on the POST route; tests that are not
         // about throttling must not trip it.
         RateLimiter::clear('ticket-verification');

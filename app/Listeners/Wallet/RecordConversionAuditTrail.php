@@ -81,8 +81,7 @@ class RecordConversionAuditTrail
      * @return array{0: string, 1: string, 2: int, 3: array<string, mixed>}
      */
     private function describe(ConversionCompleted|ConversionReversed|ConversionRejected $event): array
-    {
-        if ($event instanceof ConversionCompleted) {
+    {        if ($event instanceof ConversionCompleted) {
             return [
                 'wallet_conversion.completed',
                 $event->reference,

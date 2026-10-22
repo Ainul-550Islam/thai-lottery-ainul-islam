@@ -17,7 +17,6 @@ use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class FormTimingSignalTest extends TestCase
 {
@@ -143,7 +142,7 @@ final class FormTimingSignalTest extends TestCase
 
     public function test_issue_requires_session(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->signal->issue(Request::create('/register'), 'register');
     }
 

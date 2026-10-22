@@ -12,6 +12,7 @@ use App\Services\Auth\CaptchaService;
 use App\Services\Auth\LoginService;
 use App\Services\Auth\PasswordResetService;
 use App\Services\Auth\RegistrationService;
+use App\Services\Legal\LegalDocumentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,7 @@ use Illuminate\View\View;
  *   GET  /login             anonymous  — Account ID/email + password + CAPTCHA
  *   POST /login             anonymous  — throttle:login
  *   GET  /register          anonymous  — benchmark registration fields
- *   POST /register          anonymous  — throttle:login
+ *   POST /register          anonymous  — throttle:register
  *   POST /logout            auth       — session invalidation
  *   GET  /forgot-password   anonymous  — Account No./email + CAPTCHA
  *   POST /forgot-password   anonymous  — throttle:password-reset
@@ -42,6 +43,7 @@ class MemberAuthController
         private readonly RegistrationService $registration,
         private readonly PasswordResetService $passwordReset,
         private readonly CaptchaService $captcha,
+        private readonly LegalDocumentService $legalDocuments,
     ) {}
 
     /*
@@ -92,6 +94,14 @@ class MemberAuthController
         return view('auth.member-register', [
             'meta' => $this->meta('register'),
             'genders' => ['male', 'female', 'unspecified'],
+            'captchaEnabled' => $this->captcha->isEnabled()
+                && (bool) config('auth_security.captcha.register', true),
+            'captcha' => $this->captcha->isEnabled() && (bool) config('auth_security.captcha.register', true)
+                ? $this->captcha->issue($request, 'register') : [],
+            'legal' => [
+                'terms' => $this->legalDocuments->currentData('terms', (string) app()->getLocale()),
+                'privacy' => $this->legalDocuments->currentData('privacy', (string) app()->getLocale()),
+            ],
         ]);
     }
 
@@ -138,7 +148,7 @@ class MemberAuthController
 
         return view('auth.forgot-password', [
             'meta' => $this->meta('forgot'),
-            'captcha' => $this->captcha->issue($request),
+            'captcha' => $this->captcha->issue($request, 'password_reset'),
             'captchaEnabled' => $this->captcha->isEnabled()
                 && (bool) config('auth_security.captcha.password_reset', true),
             'resetToken' => null,
@@ -168,7 +178,7 @@ class MemberAuthController
 
         return view('auth.forgot-password', [
             'meta' => $this->meta('reset'),
-            'captcha' => $this->captcha->issue($request),
+            'captcha' => [],
             'captchaEnabled' => false,
             'resetToken' => $token,
             'resetEmail' => (string) $request->query('email', ''),

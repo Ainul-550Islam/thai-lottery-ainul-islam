@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Support;
 
 use App\Models\ContactMessage;
+use App\Services\Security\HoneypotService;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\RateLimiter;
@@ -48,7 +49,7 @@ class ContactSpamProtectionService
      */
     public function isHoneypotTripped(?string $honeypotValue): bool
     {
-        return is_string($honeypotValue) && trim($honeypotValue) !== '';
+        return HoneypotService::hasValue($honeypotValue);
     }
 
     /**

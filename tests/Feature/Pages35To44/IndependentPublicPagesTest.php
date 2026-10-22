@@ -30,7 +30,6 @@ final class IndependentPublicPagesTest extends TestCase
 
     public function test_pcso_purchase_page_is_fail_closed(): void
     {
-        $this->withoutVite(); // asserts page content, not the compiled asset tags
         $this->get(route('pcso-lottery.buy'))
             ->assertOk()
             ->assertSee('NOT_CONFIGURED', false)
@@ -40,7 +39,6 @@ final class IndependentPublicPagesTest extends TestCase
 
     public function test_dedicated_glo_l6_home_is_not_the_legacy_results_route(): void
     {
-        $this->withoutVite(); // asserts page content, not the compiled asset tags
         $this->get(route('glo-l6.index'))
             ->assertOk()
             ->assertSee('GLO L6', false)

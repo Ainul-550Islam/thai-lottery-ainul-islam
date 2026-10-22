@@ -6,6 +6,7 @@ namespace Tests\Feature\Glo\Concerns;
 
 use App\Enums\DrawConfirmationStatus;
 use App\Models\Draw;
+use App\Models\DrawResult;
 use App\Models\GloResultImport;
 use App\Models\User;
 use App\Services\Draw\DrawResultIngestionService;
@@ -46,15 +47,17 @@ trait CreatesTrustedGloResult
     ): array {
         $mode ??= $provider;
         $importReference ??= 'glo-'.$provider.'-'.$draw->getKey().'-'.bin2hex(random_bytes(6));
-        $providerFingerprint ??= hash('sha256', json_encode([
-            'draw' => (string) $draw->draw_number,
-            'first_prize' => $firstPrize,
-            'bottom_two' => $bottomTwo,
-            'second_prize' => array_values($secondPrize),
-            'third_prize' => array_values($thirdPrize),
-            'tiers' => $tiers,
-            'n3' => $n3,
+        $expectedProviderFingerprint = hash('sha256', json_encode([
+            (string) $draw->draw_number,
+            $firstPrize,
+            array_values($secondPrize),
+            array_values($thirdPrize),
+            $n3,
+            $tiers,
         ], JSON_THROW_ON_ERROR));
+
+        $providerFingerprint ??= $expectedProviderFingerprint;
+        $providerFingerprint = strtolower($providerFingerprint);
 
         $sourceLane = [];
 
@@ -78,6 +81,7 @@ trait CreatesTrustedGloResult
             'source_lane' => $sourceLane,
         ];
         $ingestionFingerprint = DrawResultIngestionService::fingerprintFor($payload);
+        $ingestedAt = now()->subMinute()->toIso8601String();
 
         $drawMetadata = is_array($draw->metadata) ? $draw->metadata : [];
         $drawMetadata[DrawResultIngestionService::METADATA_KEY] = [
@@ -85,7 +89,7 @@ trait CreatesTrustedGloResult
             'fingerprint' => $ingestionFingerprint,
             'source' => 'glo_import:'.$provider,
             'payload' => $payload,
-            'ingested_at' => now()->subMinute()->toIso8601String(),
+            'ingested_at' => $ingestedAt,
             'ingested_by' => (int) $maker->getKey(),
             'confirmed_at' => now()->toIso8601String(),
             'confirmed_by' => (int) $checker->getKey(),
@@ -110,12 +114,15 @@ trait CreatesTrustedGloResult
             'status' => 'imported',
             'result_fingerprint' => strtolower($providerFingerprint),
             'payload_summary' => [
+                'draw_number' => (string) $draw->draw_number,
                 'first_prize' => $firstPrize,
                 'bottom_two' => $bottomTwo,
                 'second_prize_count' => count($secondPrize),
                 'third_prize_count' => count($thirdPrize),
                 'n3_counts' => $this->fixtureGroupCounts($n3),
                 'tier_counts' => $this->fixtureGroupCounts($tiers),
+                'provider_fingerprint' => strtolower($providerFingerprint),
+                'ingestion_fingerprint' => $ingestionFingerprint,
             ],
             'import_reference' => $importReference,
             'imported_by' => (int) $maker->getKey(),
@@ -134,7 +141,7 @@ trait CreatesTrustedGloResult
 
         $gloLane['import_provider'] = $provider;
         $gloLane['import_fingerprint'] = strtolower($providerFingerprint);
-        $gloLane['imported_at'] = now()->subMinute()->toIso8601String();
+        $gloLane['imported_at'] = $ingestedAt;
         $gloLane['lane_confirmed_by'] = (int) $checker->getKey();
 
         return [
@@ -148,6 +155,28 @@ trait CreatesTrustedGloResult
             'bottom_two' => $bottomTwo,
             'glo' => $gloLane,
         ];
+    }
+
+    /**
+     * Complete the fixture's confirmation link after its result row is inserted.
+     *
+     * Production writes this link inside DrawResultConfirmationService's
+     * transaction. The test helper creates the two persisted records separately,
+     * so it must explicitly reproduce that final cross-reference.
+     */
+    protected function linkTrustedDrawResult(Draw $draw, DrawResult $result): void
+    {
+        $metadata = is_array($draw->metadata) ? $draw->metadata : [];
+        $record = $metadata[DrawResultIngestionService::METADATA_KEY] ?? null;
+
+        if (! is_array($record)) {
+            throw new \LogicException('A trusted result fixture requires its confirmed ingestion record.');
+        }
+
+        $record['draw_result_id'] = (int) $result->getKey();
+        $metadata[DrawResultIngestionService::METADATA_KEY] = $record;
+        $draw->metadata = $metadata;
+        $draw->save();
     }
 
     /**

@@ -255,6 +255,20 @@
         @if (! empty($liveDraw['message']))
             <p class="mt-2 text-slate-300">{{ $liveDraw['message'] }}</p>
         @endif
+
+        @if (($liveDraw['live_status'] ?? '') === 'configured' && ! empty($liveDraw['embed_url']))
+            {{-- Only the operator-validated embed from GloLiveDrawService is rendered, inside a sandbox. --}}
+            <div class="mt-4 aspect-video w-full overflow-hidden rounded-xl border border-slate-800 bg-black">
+                <iframe class="h-full w-full"
+                        src="{{ $liveDraw['embed_url'] }}"
+                        title="{{ $text['live_title'] ?? __('Live draw') }}"
+                        loading="lazy"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allowfullscreen></iframe>
+            </div>
+        @endif
     </section>
 
     {{-- ----------------------------------------------------------------

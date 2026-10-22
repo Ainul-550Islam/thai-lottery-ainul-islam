@@ -467,14 +467,7 @@ test("missing server retry acknowledgement disables create rather than assuming 
     }
 });
 (async () => {
-    const executablePath =
-        process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ||
-        (fs.existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined);
-    browser = await chromium.launch({
-        headless: true,
-        ...(executablePath ? { executablePath } : {}),
-        args: ["--no-sandbox", "--disable-dev-shm-usage"],
-    });
+    browser = await chromium.launch({ headless: true });
     try {
         for (const { name, run } of tests) {
             await run();

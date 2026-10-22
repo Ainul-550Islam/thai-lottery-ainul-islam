@@ -9,9 +9,13 @@ use App\Enums\Currency;
 use App\Enums\PaymentMethod;
 use App\Enums\WebhookEventType;
 use App\Http\Middleware\VerifyWebhookSignature;
+use App\Models\PaymentWebhook;
 use App\Models\WebhookReplayGuard;
+use App\Services\Payment\PaymentWebhookVerificationService;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
@@ -180,9 +184,55 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
             'the guard row must not already be expired',
         );
 
-        // The signature is stored so an operator can see WHAT was replayed. It is
-        // not a secret — it is the value the provider sent us.
-        $this->assertNotEmpty((string) $guard->signature);
+        // Replay control needs only a one-way fingerprint of the provider
+        // signature. The reusable signature value itself is never retained.
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/D', (string) $guard->signature);
+        $this->assertNotSame($delivery['header'], (string) $guard->signature);
+    }
+
+    #[Test]
+    public function accepted_webhook_body_and_signature_are_encrypted_at_rest(): void
+    {
+        Queue::fake();
+        $marker = 'private-provider-payload-marker-9d1e8c';
+        $payload = [
+            'id' => 'evt_encrypted_001',
+            'type' => 'payment_intent.succeeded',
+            'timestamp' => time(),
+            'provider' => 'stripe',
+            'private_field' => $marker,
+        ];
+        $signature = app(PaymentWebhookVerificationService::class)
+            ->expectedSignatureFor('stripe', $payload);
+
+        $this->assertIsString($signature);
+
+        $response = $this->withHeaders(['X-Signature' => $signature])
+            ->postJson('/api/v1/payments/webhook/v2/stripe', $payload);
+
+        $response->assertStatus(202)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.outcome', 'verified');
+
+        $webhook = PaymentWebhook::query()
+            ->where('provider', 'stripe')
+            ->where('event_id', $payload['id'])
+            ->firstOrFail();
+        $stored = DB::table('payment_webhooks')->where('id', $webhook->getKey())->first();
+
+        $this->assertNotNull($stored);
+        $this->assertStringNotContainsString($marker, (string) $stored->payload);
+        $this->assertStringNotContainsString($marker, (string) $stored->payload_ciphertext);
+        $this->assertNull($stored->signature, 'The plaintext signature column must remain empty.');
+        $this->assertStringNotContainsString($signature, (string) $stored->signature_ciphertext);
+        $this->assertSame($payload, $webhook->payload, 'The model decrypts the accepted payload for verified application.');
+        $this->assertSame($signature, $webhook->signature, 'The model decrypts the accepted signature for re-verification.');
+
+        $replay = $this->withHeaders(['X-Signature' => $signature])
+            ->postJson('/api/v1/payments/webhook/v2/stripe', $payload);
+        $replay->assertStatus(200)->assertJsonPath('duplicate', true);
+        $this->assertSame(2, WebhookReplayGuard::query()->where('gateway', 'stripe')->firstOrFail()->deliveries);
+        Queue::assertPushed(\App\Jobs\ProcessPaymentWebhookJob::class, 1);
     }
 
     #[Test]
@@ -231,10 +281,15 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
             WebhookReplayGuard::query()->where('gateway', 'stripe')->count(),
         );
 
-        // The same header value sent to a different gateway must occupy its own
-        // nonce space, not be refused as a Stripe replay.
-        $this->withHeaders(['X-Bkash-Signature' => $delivery['header']])
-            ->postJson('/api/v1/payments/webhook/bkash', $delivery['payload']);
+        // The same payload bytes, signed independently with bKash's secret,
+        // occupy a separate gateway-scoped nonce space. The driver—not this
+        // middleware—decides whether the provider signature is valid.
+        $body = json_encode($delivery['payload'], JSON_THROW_ON_ERROR);
+        $bkashSignature = hash_hmac('sha256', $body, self::BKASH_WEBHOOK_SECRET);
+
+        $this->withHeaders(['X-Bkash-Signature' => $bkashSignature])
+            ->postJson('/api/v1/payments/webhook/bkash', $delivery['payload'])
+            ->assertStatus(200);
 
         $this->assertSame(
             1,

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Listeners\Wallet;
 
-use App\Enums\WalletConversionRejectionReason;
 use App\Events\Wallet\ConversionCompleted;
 use App\Events\Wallet\ConversionRejected;
 use App\Events\Wallet\ConversionRequested;
@@ -101,7 +100,7 @@ class PublishConversionMetrics
         // read is derived from the enum rather than by listing cache keys.
         $counts = [];
 
-        foreach (WalletConversionRejectionReason::cases() as $reason) {
+        foreach (\App\Enums\WalletConversionRejectionReason::cases() as $reason) {
             $value = $this->count('rejected:'.$reason->value);
 
             if ($value > 0) {

@@ -14,10 +14,6 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
-        // Not the api surface's authentication path: zero routes name `auth:api` and zero
-        // call guard('api') (measured over the registered route table). The api routes
-        // authenticate with `auth:sanctum`, whose guard Sanctum's own service provider
-        // registers, which is why this entry is also redundant with it rather than in use.
         'api' => [
             'driver' => 'sanctum',
             'provider' => 'users',

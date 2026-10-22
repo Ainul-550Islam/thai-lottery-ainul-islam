@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Notifications\AuthPasswordResetNotification;
 use App\Services\Agent\AgentReferralService;
 use App\Services\Auth\CaptchaService;
+use App\Services\Legal\LegalDocumentService;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,7 +98,9 @@ final class MemberAuthParityTest extends TestCase
             'Active Email',
             'Date of Birth',
             'Nationality',
+            __('public_pages.register_age_attestation', ['age' => min(255, max(18, (int) config('legal.minimum_age', 18)))]),
             'Terms and Conditions',
+            'Privacy Notice',
         ] as $needle) {
             $this->assertStringContainsString($needle, $content, 'Registration page must expose: '.$needle);
         }
@@ -506,6 +509,10 @@ final class MemberAuthParityTest extends TestCase
     public function test_valid_full_registration(): void
     {
         $agent = $this->activeAgent('PROMO1');
+        $legalDocuments = app(LegalDocumentService::class);
+        $locale = (string) app()->getLocale();
+        $terms = $legalDocuments->currentData('terms', $locale);
+        $privacy = $legalDocuments->currentData('privacy', $locale);
 
         $this->post(route('register.attempt'), [
             'referral_id' => 'promo1',
@@ -520,7 +527,13 @@ final class MemberAuthParityTest extends TestCase
             'email' => 'niran@example.test',
             'date_of_birth' => '1995-05-15',
             'nationality' => 'Thai',
+            'age_attestation' => '1',
             'terms' => '1',
+            'privacy_notice' => '1',
+            'terms_version' => $terms['version'],
+            'terms_hash' => $terms['content_hash'],
+            'privacy_version' => $privacy['version'],
+            'privacy_hash' => $privacy['content_hash'],
         ])->assertRedirect(route('player.dashboard'));
 
         $user = User::query()->where('email', 'niran@example.test')->firstOrFail();
@@ -541,6 +554,25 @@ final class MemberAuthParityTest extends TestCase
         $prefs = (array) $user->preferences;
         $this->assertArrayHasKey('terms_accepted_at', $prefs);
         $this->assertArrayHasKey('terms_version', $prefs);
+        $this->assertDatabaseHas('age_verifications', [
+            'user_id' => $user->id,
+            'status' => 'eligible',
+            'method' => 'self_declaration',
+            'source' => 'registration',
+        ]);
+        $this->assertDatabaseHas('user_consents', [
+            'user_id' => $user->id,
+            'document_type' => 'terms',
+            'action' => 'accepted',
+            'source' => 'registration',
+        ]);
+        $this->assertDatabaseHas('user_consents', [
+            'user_id' => $user->id,
+            'document_type' => 'privacy',
+            'action' => 'acknowledged',
+            'source' => 'registration',
+        ]);
+        $this->assertSame(2, \DB::table('user_consents')->where('user_id', $user->id)->count());
 
         // The server resolved the referral relationship.
         $this->assertSame($agent->id, (int) $prefs['referred_by_agent_id']);
@@ -667,6 +699,39 @@ final class MemberAuthParityTest extends TestCase
     {
         $this->post(route('register.attempt'), $this->registrationPayload(['terms' => null]))
             ->assertSessionHasErrors('terms');
+    }
+
+    public function test_privacy_notice_acknowledgement_is_separate_and_required(): void
+    {
+        $this->post(route('register.attempt'), $this->registrationPayload(['privacy_notice' => null]))
+            ->assertSessionHasErrors('privacy_notice');
+
+        $this->assertDatabaseMissing('users', ['email' => 'niran@example.test']);
+    }
+
+    public function test_age_attestation_is_separate_and_required(): void
+    {
+        $this->post(route('register.attempt'), $this->registrationPayload(['age_attestation' => null]))
+            ->assertSessionHasErrors('age_attestation');
+
+        $this->assertDatabaseMissing('users', ['email' => 'niran@example.test']);
+    }
+
+    public function test_registration_accepts_the_exact_minimum_age_birthday(): void
+    {
+        Date::setTestNow(now()->setDate(2026, 10, 16)->setTime(12, 0));
+
+        try {
+            $this->post(route('register.attempt'), $this->registrationPayload([
+                'email' => 'birthday@example.test',
+                'mobile' => '0898765000',
+                'date_of_birth' => '2008-10-16',
+            ]))->assertRedirect(route('player.dashboard'));
+        } finally {
+            Date::setTestNow();
+        }
+
+        $this->assertDatabaseHas('users', ['email' => 'birthday@example.test']);
     }
 
     public function test_invalid_dob_rejected(): void
@@ -1086,6 +1151,10 @@ final class MemberAuthParityTest extends TestCase
     private function registrationPayload(array $overrides = []): array
     {
         $this->activeAgent('PROMO1');
+        $legalDocuments = app(LegalDocumentService::class);
+        $locale = (string) app()->getLocale();
+        $terms = $legalDocuments->currentData('terms', $locale);
+        $privacy = $legalDocuments->currentData('privacy', $locale);
 
         return array_merge([
             'referral_id' => 'PROMO1',
@@ -1100,7 +1169,13 @@ final class MemberAuthParityTest extends TestCase
             'email' => 'niran@example.test',
             'date_of_birth' => '1995-05-15',
             'nationality' => 'Thai',
+            'age_attestation' => '1',
             'terms' => '1',
+            'privacy_notice' => '1',
+            'terms_version' => $terms['version'],
+            'terms_hash' => $terms['content_hash'],
+            'privacy_version' => $privacy['version'],
+            'privacy_hash' => $privacy['content_hash'],
         ], $overrides);
     }
 

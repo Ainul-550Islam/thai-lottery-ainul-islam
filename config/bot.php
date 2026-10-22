@@ -7,139 +7,79 @@ declare(strict_types=1);
 | Bot detection
 |--------------------------------------------------------------------------
 |
-| Signal-based, deterministic bot assessment for the public and auth
-| surfaces. Every score is a weighted sum of named signals against two
-| thresholds; there is no heuristic black box, because a decision nobody
-| can reproduce is a decision nobody can appeal or test.
+| Every signal ships in `log` mode. In log mode the score is recorded and an
+| assessment is written, but no request is challenged or blocked. Moving a signal
+| to `enforce` is a deliberate operator decision made after reviewing the logged
+| assessments for false positives.
 |
-| DEFAULT POSTURE IS OBSERVATION. `mode` stays `log` and HTTP observation
-| stays OFF until an operator explicitly opts in with production traffic
-| in view. Observation failures are recorded as "unavailable", never as a
-| fabricated high score and never as a block.
-|
+| Environment booleans are parsed with FILTER_VALIDATE_BOOLEAN. A plain (bool)
+| cast would read the string "false" as true and silently enable the flag.
 */
 
-return [
-    // Master switch. False = the engine answers an empty Allow without
-    // resolving the database, the cache, or any signal store.
-    'enabled' => env('BOT_ENABLED', true),
+$booleanEnv = static fn (string $key, bool $default): bool => filter_var(
+    env($key, $default ? 'true' : 'false'),
+    FILTER_VALIDATE_BOOLEAN,
+);
 
-    // log = assess and record only. enforce = assessed blocks may refuse.
+return [
+
+    'enabled' => $booleanEnv('BOT_ENABLED', true),
+
     'mode' => env('BOT_MODE', 'log'),
 
-    // HTTP observation middleware. Deliberately OPT-IN (default false): a
-    // deployment gets bot telemetry only when an operator asked for it.
-    'http_observation' => [
-        'enabled' => env('BOT_HTTP_OBSERVATION_ENABLED', false),
-    ],
-
-    // Score thresholds (BotScoreCalculator enforces challenge < block).
     'thresholds' => [
-        'challenge' => 40,
-        'block' => 80,
+        // A score at or above `challenge` is assessed as BotDecision::Challenge.
+        'challenge' => (int) env('BOT_CHALLENGE_THRESHOLD', 40),
+        // A score at or above `block` is assessed as BotDecision::Block.
+        'block' => (int) env('BOT_BLOCK_THRESHOLD', 80),
     ],
 
-    // Registered signals. A signal answers only when 'enabled' is true;
-    // 'weight' is its share of the 0-100 score when it fires at full
-    // strength, and its own 'mode' decides whether it may enforce.
-    'signals' => [
-        'user_agent' => [
-            'enabled' => env('BOT_SIGNAL_USER_AGENT_ENABLED', true),
-            'mode' => 'log',
-            'weight' => 15,
-        ],
-        'header_consistency' => [
-            'enabled' => env('BOT_SIGNAL_HEADER_CONSISTENCY_ENABLED', true),
-            'mode' => 'log',
-            'weight' => 20,
-        ],
-        'form_timing' => [
-            'enabled' => env('BOT_SIGNAL_FORM_TIMING_ENABLED', true),
-            'mode' => 'log',
-            'weight' => 25,
-        ],
-        'request_rate' => [
-            'enabled' => env('BOT_SIGNAL_REQUEST_RATE_ENABLED', true),
-            'mode' => 'log',
-            'weight' => 35,
-        ],
-        'device_reuse' => [
-            'enabled' => env('BOT_SIGNAL_DEVICE_REUSE_ENABLED', true),
-            'mode' => 'log',
-            'weight' => 30,
-        ],
-        // B1 FIX — TWO SIGNALS EXISTED, WERE BROKEN, AND WERE NEVER LISTED.
-        //
-        // FailedAuthenticationSignal and RequestVelocitySignal were written
-        // against an older BotSignal contract (getKey/getWeight/evaluate) that
-        // no longer matches the interface (score(): SignalResult). Because both
-        // are concrete classes, PHP rejects them at CLASS LOAD with a fatal,
-        // not an exception — the only reason they never took the site down is
-        // that nothing ever loaded them, and nothing loaded them because they
-        // were absent from this map.
-        //
-        // Both are now ported onto the current contract and registered here.
-        // Both default to ENABLED = FALSE on purpose.
-        //
-        // Enabling a signal changes the score every request receives, and the
-        // thresholds below (challenge 40 / block 80) were tuned against the
-        // five signals that were actually running. Turning on two more, neither
-        // of which has ever executed against real traffic, risks challenging or
-        // blocking legitimate members — and a shared NAT or a mobile carrier
-        // puts hundreds of real members behind one IP, which is exactly what
-        // these two measure. Ship them on in 'log' mode first, read the scores
-        // for a week, then decide.
-        'failed_auth' => [
-            'enabled' => env('BOT_SIGNAL_FAILED_AUTH_ENABLED', false),
-            // Weak, shared-IP evidence: informs, never blocks on its own.
-            'mode' => 'log',
-            'weight' => 20,
-        ],
-        'request_velocity' => [
-            'enabled' => env('BOT_SIGNAL_REQUEST_VELOCITY_ENABLED', false),
-            'mode' => 'log',
-            'weight' => 15,
-        ],
-    ],
-
-    // Verified search-engine crawlers are identified by more than a
-    // user-agent string (reverse DNS / published ranges). A UA-only claim
-    // must never bypass assessment on its own.
-    'search_bots' => [
-        'allow_user_agent_only_bypass' => false,
-    ],
-
-    // Form-timing signal: a form submitted faster than a human can fill it
-    // is evidence, not proof — hence a single signal among several.
-    'form_timing' => [
-        'field' => '_bot_timing',
-        'min_submit_seconds' => 2,
-        'ttl_seconds' => 600,
-        'max_tokens_per_session' => 10,
-    ],
-
-    // Request-rate signal (per device fingerprint).
-    'request_rate' => [
-        'max_requests' => 60,
-        'window_seconds' => 60,
-    ],
-
-    // Device-reuse signal: one fingerprint behind too many accounts.
-    'device_reuse' => [
-        'max_accounts' => 3,
-        'lookback_days' => 30,
-    ],
-
-    // HMAC key for device fingerprints. Falls back to the app key inside
-    // DeviceFingerprintService; a dedicated key lets fingerprints be
-    // rotated without invalidating sessions.
+    // Key for keyed device fingerprints. Required before any signal that uses
+    // fingerprints can be enforced. The value must be at least 32 bytes, or
+    // base64:-prefixed.
     'fingerprint' => [
         'key' => env('BOT_FINGERPRINT_KEY'),
     ],
 
-    // Security-event recording of non-Allow assessments.
+    'search_bots' => [
+        // A bare, non-browser user agent must never bypass detection on its own.
+        'allow_user_agent_only_bypass' => false,
+    ],
+
     'audit' => [
-        'enabled' => env('BOT_AUDIT_ENABLED', true),
-        'min_score' => 1,
+        'enabled' => $booleanEnv('BOT_AUDIT_ENABLED', true),
+        // Only assessments at or above this score are written to the security log.
+        'min_score' => (int) env('BOT_AUDIT_MIN_SCORE', 40),
+    ],
+
+    // Records HTTP-level observations for each request. Off by default because it
+    // adds a write per request.
+    'http_observation' => [
+        'enabled' => $booleanEnv('BOT_HTTP_OBSERVATION_ENABLED', false),
+    ],
+
+    'form_timing' => [
+        'field' => env('BOT_FORM_TIMING_FIELD', '_bot_timing'),
+        'min_submit_seconds' => (int) env('BOT_FORM_MIN_SUBMIT_SECONDS', 2),
+        'ttl_seconds' => (int) env('BOT_FORM_TTL_SECONDS', 600),
+        'max_tokens_per_session' => (int) env('BOT_FORM_MAX_TOKENS_PER_SESSION', 10),
+    ],
+
+    'device_reuse' => [
+        'max_accounts' => (int) env('BOT_DEVICE_MAX_ACCOUNTS', 3),
+        'lookback_days' => (int) env('BOT_DEVICE_LOOKBACK_DAYS', 30),
+    ],
+
+    'request_rate' => [
+        'window_seconds' => (int) env('BOT_RATE_WINDOW_SECONDS', 60),
+        'max_requests' => (int) env('BOT_RATE_MAX_REQUESTS', 60),
+    ],
+
+    'signals' => [
+        'user_agent' => ['enabled' => true, 'mode' => 'log', 'weight' => 15],
+        'header_consistency' => ['enabled' => true, 'mode' => 'log', 'weight' => 20],
+        'form_timing' => ['enabled' => true, 'mode' => 'log', 'weight' => 25],
+        'request_rate' => ['enabled' => true, 'mode' => 'log', 'weight' => 35],
+        'device_reuse' => ['enabled' => true, 'mode' => 'log', 'weight' => 30],
     ],
 ];

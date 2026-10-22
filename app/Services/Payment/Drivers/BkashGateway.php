@@ -74,7 +74,7 @@ class BkashGateway extends AbstractPaymentGateway
 
         $payload = [
             'mode' => '0011',
-            'payerReference' => (string) $deposit->user_id,
+            'payerReference' => $deposit->reference_number,
             'callbackURL' => $this->successUrl().'?reference='.$deposit->reference_number,
             'amount' => (string) $deposit->amount,
             'currency' => 'BDT',
@@ -107,13 +107,25 @@ class BkashGateway extends AbstractPaymentGateway
             }
 
             $errorData = $response->json();
-            $msg = $errorData['statusMessage'] ?? 'bKash payment creation failed: '.$response->body();
+            $providerCode = is_array($errorData) ? ($errorData['statusCode'] ?? null) : null;
 
-            return GatewayDepositResponse::failed($msg, is_array($errorData) ? $errorData : []);
+            Log::warning('bKash checkout request was refused', [
+                'http_status' => $response->status(),
+                'provider_error_code' => is_string($providerCode) ? substr($providerCode, 0, 64) : null,
+            ]);
+
+            return GatewayDepositResponse::failed(
+                'bKash payment creation failed.',
+                [],
+                ['gateway' => 'bkash', 'http_status' => $response->status()],
+            );
         } catch (\Throwable $e) {
-            Log::error('bKash deposit initiation failed', ['exception' => $e->getMessage()]);
+            Log::error('bKash deposit initiation failed', [
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
+            ]);
 
-            return GatewayDepositResponse::failed('bKash connection error: '.$e->getMessage());
+            return GatewayDepositResponse::failed('bKash could not be reached to create checkout.');
         }
     }
 
@@ -211,7 +223,10 @@ class BkashGateway extends AbstractPaymentGateway
                 return $response->json('id_token');
             }
         } catch (\Throwable $e) {
-            Log::error('bKash token grant error', ['exception' => $e->getMessage()]);
+            Log::error('bKash token grant failed', [
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
+            ]);
         }
 
         return null;

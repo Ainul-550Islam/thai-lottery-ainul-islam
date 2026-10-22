@@ -71,6 +71,24 @@
 
         <!-- Legal Disclaimer & Copyright -->
         <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            @php($socialLinks = [
+                'facebook' => ['label' => 'Facebook', 'icon' => 'fa-brands fa-facebook-f', 'url' => \App\Services\Web\SocialLinkService::url('facebook')],
+                'youtube' => ['label' => 'YouTube', 'icon' => 'fa-brands fa-youtube', 'url' => \App\Services\Web\SocialLinkService::url('youtube')],
+                'tiktok' => ['label' => 'TikTok', 'icon' => 'fa-brands fa-tiktok', 'url' => \App\Services\Web\SocialLinkService::url('tiktok')],
+            ])
+            @if (collect($socialLinks)->contains(fn ($link) => $link['url'] !== null))
+                <nav aria-label="Social media" class="flex items-center gap-3">
+                    @foreach ($socialLinks as $platform => $link)
+                        @if ($link['url'] !== null)
+                            <a href="{{ $link['url'] }}" rel="noopener noreferrer" target="_blank"
+                               aria-label="{{ $link['label'] }}" data-social="{{ $platform }}"
+                               class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors">
+                                <i class="{{ $link['icon'] }}" aria-hidden="true"></i>
+                            </a>
+                        @endif
+                    @endforeach
+                </nav>
+            @endif
             <p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl">
                 &copy; {{ date('Y') }} {{ config('app.name', 'Thai Lottery Enterprise Wagering Platform') }}.
                 All rights reserved. Independent wagering platform, operated by no state authority and endorsed by none. Published draw rules are referenced solely for prize-calculation compatibility.

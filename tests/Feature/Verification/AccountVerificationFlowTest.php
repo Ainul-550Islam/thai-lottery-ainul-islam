@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
+use Tests\Concerns\RecordsCurrentLegalConsent;
 use Tests\TestCase;
 
 /*
@@ -28,6 +29,7 @@ use Tests\TestCase;
  */
 final class AccountVerificationFlowTest extends TestCase
 {
+    use RecordsCurrentLegalConsent;
     use RefreshDatabase;
 
     private User $player;
@@ -36,12 +38,12 @@ final class AccountVerificationFlowTest extends TestCase
     {
         parent::setUp();
 
-        $this->withoutVite();
         $this->player = User::factory()->create([
             'email' => 'verify-me@example.test',
             'phone' => '0812345678',
         ]);
 
+        $this->recordCurrentLegalConsent($this->player);
         Storage::fake('local');
     }
 

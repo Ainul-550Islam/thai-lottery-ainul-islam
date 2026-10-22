@@ -8,59 +8,44 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
-
 /**
- * The HTTP boundary around a password write.
+ * Brackets an admin password change so the session side effects cannot run early.
  *
- * A password change owns its commit (the writer services run their own
- * transaction, for the same reason settlement chunks do). A caller sitting
- * inside an enclosing HTTP transaction would silently annex that commit:
- * the password, the session revocation and the audit row would all ride on
- * a transaction the caller might roll back AFTER the browser has been told
- * the password changed — or commit later than the response that logged the
- * browser out. prepare() therefore refuses enclosing transactions before
- * anything mutates.
+ * prepare() runs before anything is mutated. It refuses to start inside an
+ * enclosing database transaction: a change that is still uncommitted when the
+ * session is torn down could be rolled back after the browser was logged out.
  *
- * finish() is the post-commit half: when the account whose password changed
- * is the account holding THIS browser session (an operator editing their own
- * record, a member changing their own password), the current session must
- * die with the old credential. It is invalidated only after the write has
- * committed — logging the browser out pre-commit would strand the member if
- * the write then failed.
+ * finish() runs after the change has committed. When the operator edited their own
+ * account, the current session no longer matches the stored credential, so it is
+ * ended here. Other sessions of the target are retired by the credential
+ * generation, when the schema records one. A session that is not the operator's
+ * is never touched by this class.
  */
 final class PasswordSessionBoundary
 {
-    /**
-     * Refuse to begin a password write inside a caller's transaction.
-     */
     public function prepare(Request $request, User $target): void
     {
         if (DB::transactionLevel() > 0) {
-            throw new RuntimeException(
-                'Refusing to change a password inside an enclosing transaction: the password write must own its commit.',
+            throw new \RuntimeException(
+                'A password change cannot start inside an enclosing database transaction.',
             );
         }
     }
 
-    /**
-     * After a committed password write, end the current browser session if
-     * it belongs to the account whose credential changed.
-     */
     public function finish(Request $request, User $target): void
     {
-        if (! $request->hasSession()) {
+        $operatorIsTarget = $request->user() !== null
+            && (int) $request->user()->getAuthIdentifier() === (int) $target->getKey();
+
+        if (! $operatorIsTarget) {
             return;
         }
 
-        $current = Auth::guard('web')->user();
+        Auth::guard()->logout();
 
-        if (! $current instanceof User || ! $current->is($target)) {
-            return;
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
-
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
     }
 }

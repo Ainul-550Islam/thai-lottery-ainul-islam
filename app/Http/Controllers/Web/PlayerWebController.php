@@ -29,12 +29,10 @@ use App\Services\Finance\WithdrawalService;
 use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\PaymentInitiationService;
 use App\Services\Security\ResponsibleGamingService;
-use App\Services\Transfer\TransferPanelService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -60,30 +58,6 @@ final class PlayerWebController
      * @param  list<string>  $allowed
      * @return array<string, string>
      */
-    /**
-     * Data for the Cash <-> Win transfer panel.
-     *
-     * Returns null on ANY failure. The wallet page shows the player's balance,
-     * deposit total and ledger; a misconfigured secondary panel must not be able
-     * to take that page down with it. A null panel renders the honest
-     * "transfers are not available" state rather than a broken form.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function transferPanelData(User $user): ?array
-    {
-        try {
-            return app(TransferPanelService::class)->panelData($user);
-        } catch (\Throwable $e) {
-            Log::warning('player.wallet.transfer_panel_unavailable', [
-                'user_id' => (int) $user->getKey(),
-                'reason' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
-    }
-
     private function configuredFinanceCurrency(): Currency
     {
         return Currency::from((string) config('payment.currency.default'));
@@ -390,14 +364,6 @@ final class PlayerWebController
             'totalDeposited' => $totalDeposited,
             'totalPrizesWon' => $totalPrizesWon,
             'selectedCurrency' => $selectedCurrency,
-            // The Cash <-> Win panel. Built by the SAME service the panel's JSON
-            // endpoint uses, so the server-rendered page and the live refresh can
-            // never disagree about a balance.
-            //
-            // Wrapped in a try/catch because the wallet page must still render if
-            // the transfer lane is misconfigured: a broken secondary panel is not
-            // a reason to hide the player's balance from them.
-            'transferPanel' => $this->transferPanelData($user),
         ]);
     }
 

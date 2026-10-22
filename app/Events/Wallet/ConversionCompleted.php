@@ -46,7 +46,8 @@ final class ConversionCompleted
         // itself carries it: telemetry that cannot say where a conversion came
         // from cannot separate a member's mistake from an integration's.
         public readonly ?WalletConversionChannel $channel = null,
-    ) {}
+    ) {
+    }
 
     /**
      * Project an event straight off a persisted conversion row.

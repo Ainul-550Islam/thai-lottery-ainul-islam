@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Jobs\Draw;
 
 use App\Models\Bet;
-use App\Models\DrawResult;
 use App\Services\Draw\ChunkedSettlementOrchestrator;
 use App\Services\Draw\RealPrizeSettlementService;
 use App\Services\Draw\SelectionSettlementResolver;
@@ -133,7 +132,7 @@ final class SettleDrawChunkJob implements ShouldQueue
 
     private function fingerprintStillMatches(): bool
     {
-        $fingerprint = DrawResult::query()
+        $fingerprint = \App\Models\DrawResult::query()
             ->where('draw_id', $this->drawId)
             ->value('result_fingerprint');
 

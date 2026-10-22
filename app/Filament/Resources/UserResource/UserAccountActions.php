@@ -9,6 +9,7 @@ use App\Enums\RiskLevel;
 use App\Enums\UserStatus;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Auth\SessionGenerationRevocationService;
 use App\Support\Admin\AdminAccess;
 use Closure;
 use Filament\Actions as PageActions;
@@ -46,6 +47,20 @@ use Throwable;
  * UserModerationService is eventually built, applyStatus() is the single body to replace
  * and every caller here follows automatically. This is recorded as a gap in
  * FILAMENT-PROGRESS-identity.md.
+ *
+ * PART 58 — ENDING THE SESSIONS A DECISION LEFT BEHIND
+ * Suspending or banning an account changed `users.status`, and nothing on the web
+ * session path re-checked it: `EnsureUserIsActive` is the `active` alias and is only
+ * applied to the Sanctum API routes, while the existing operation sweep clears
+ * `security_sessions` and not the framework `sessions` row that `auth.session` reads.
+ * So the status decision was recorded but not immediately effective for someone already
+ * signed in. Suspend, ban and deactivate now also advance the account's credential
+ * generation and revoke its persisted credentials through
+ * `App\Services\Auth\SessionGenerationRevocationService`, and the same service backs an
+ * explicit "Revoke all sessions" action for the cases where no status change is wanted.
+ * The panel does not implement that logic itself; it delegates, so the button and the
+ * status path cannot drift apart. A revocation failure does not roll a status change
+ * back — that write already committed — and is reported as a separate, visible fact.
  *
  * WHAT IS DELIBERATELY NOT DONE
  * - No soft delete, no hard delete, no anonymisation. A user owns wallets, bets and
@@ -155,6 +170,94 @@ final class UserAccountActions
         }
 
         return true;
+    }
+
+    /**
+     * May this operator revoke every session belonging to this record?
+     *
+     * Public for the same reason canOffer() is: a test asserts the offered set,
+     * and a caller should not have to reverse-engineer a rendered button.
+     *
+     * The same two protections as a status transition apply, plus one more.
+     * An operator never revokes their own sessions from here: the request they
+     * are standing on is backed by one of the rows this deletes, and ending it
+     * without the password flow's logout handling is not a supported path.
+     */
+    public static function canRevokeSessions(User $record): bool
+    {
+        if (! AdminAccess::current(AdminAccess::MANAGE_USERS)) {
+            return false;
+        }
+
+        if (! $record->exists) {
+            return false;
+        }
+
+        $operator = AdminAccess::operator();
+
+        if ($operator instanceof User && $operator->getKey() === $record->getKey()) {
+            return false;
+        }
+
+        // Only a super-admin may end a super-admin's sessions. Otherwise any admin
+        // could lock out the one account that can undo them.
+        if ($record->hasRole('super-admin') && ! ($operator?->hasRole('super-admin') ?? false)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * The one place the panel ends an account's sessions.
+     *
+     * It delegates: the epoch increment, the credential deletion and the audit
+     * row all live in SessionGenerationRevocationService, so the explicit
+     * button and the automatic revocation on suspend/ban/deactivate cannot
+     * drift apart. What stays here is presentation — the confirmation form and
+     * the notification that reports what was actually removed.
+     */
+    private static function applySessionRevocation(User $record, string $reason, string $cause): void
+    {
+        $operator = AdminAccess::operator();
+
+        if (! $operator instanceof User || ! self::canRevokeSessions($record)) {
+            throw new \RuntimeException('You may not revoke this account\'s sessions.');
+        }
+
+        // Re-read before deciding: the visibility closure ran when the page was
+        // rendered, possibly before another operator acted.
+        $record->refresh();
+
+        $result = app(SessionGenerationRevocationService::class)->revoke($operator, $record, $cause);
+
+        $counts = $result['counts'];
+
+        Notification::make()
+            ->success()
+            ->title('Sessions revoked')
+            ->body(sprintf(
+                '%s: %d session row(s), %d API token(s), %d security session(s) removed; credential generation %d → %d. The password was not changed.',
+                $record->username,
+                (int) ($counts['database_sessions'] ?? 0),
+                (int) ($counts['api_access_count'] ?? 0),
+                (int) ($counts['security_sessions'] ?? 0),
+                (int) $result['previous_epoch'],
+                (int) $result['credential_epoch'],
+            ))
+            ->send();
+
+        // The service writes the authoritative revocation row (operator, reason
+        // code, generation delta, removal counts). This row is the panel's own
+        // trail entry and is what carries the operator's typed explanation, the
+        // same way every other action here records it.
+        self::audit(
+            $record,
+            AuditAction::Update,
+            ['credential_epoch' => (int) $result['previous_epoch']],
+            ['credential_epoch' => (int) $result['credential_epoch']],
+            trim(sprintf('Operator session revocation (%s). %s', $cause, trim($reason))),
+        );
     }
 
     /**
@@ -284,6 +387,31 @@ final class UserAccountActions
                 'visible' => static fn (User $record): bool => self::canOffer('ban', $record),
                 'action' => static function (User $record, array $data): void {
                     self::run(static fn () => self::applyStatus($record, 'ban', (string) $data['reason']));
+                },
+            ],
+            [
+                'name' => 'revokeSessions',
+                'label' => 'Revoke all sessions',
+                'icon' => 'heroicon-o-arrow-path',
+                'color' => 'danger',
+                'heading' => 'Revoke every session for this account',
+                'description' => 'Ends this person\'s signed-in sessions, API tokens and remember-me credentials, and advances the account\'s credential generation so a session that comes back from an in-flight write or a restored backup is refused too. The password is NOT changed — the account holder simply signs in again. Use this when a device is shared, an account is under investigation, or a restriction was applied after the session started.',
+                'submitLabel' => 'Revoke sessions',
+                'form' => [
+                    Forms\Components\Textarea::make('reason')
+                        ->label('Reason (recorded in the audit trail)')
+                        ->required()
+                        ->minLength(5)
+                        ->maxLength(500)
+                        ->helperText('Name the decision this follows, for example the case reference.'),
+                ],
+                'visible' => static fn (User $record): bool => self::canRevokeSessions($record),
+                'action' => static function (User $record, array $data): void {
+                    self::run(static fn () => self::applySessionRevocation(
+                        $record,
+                        (string) $data['reason'],
+                        SessionGenerationRevocationService::REASON_OPERATOR_ACTION,
+                    ));
                 },
             ],
             [
@@ -443,6 +571,25 @@ final class UserAccountActions
         $record->status = $to;
         $record->save();
 
+        // Removing access is not enough while a session issued earlier is still
+        // valid: `EnsureUserIsActive` only guards the Sanctum API routes, so a
+        // suspended account's web session would keep working until it expired.
+        // Ending it here is what makes the status decision effective at once.
+        // A failure does NOT roll the status back — that write already committed
+        // — so it is reported as a second, separate fact instead of being hidden
+        // behind a green notification.
+        $sessionNote = '';
+        if (in_array($transitionName, ['suspend', 'ban', 'deactivate'], true)) {
+            try {
+                self::applySessionRevocation($record, $reason, SessionGenerationRevocationService::REASON_STATUS_CHANGE);
+            } catch (Throwable $exception) {
+                $sessionNote = ' The status was changed, but the sessions were NOT revoked: '.$exception->getMessage();
+            }
+        }
+
+        // The status entry is written last, so it stays the most recent row for
+        // this account and describes the decision together with the effect it
+        // had, rather than being buried under the revocation entries.
         self::audit(
             $record,
             AuditAction::Update,
@@ -452,9 +599,10 @@ final class UserAccountActions
         );
 
         Notification::make()
-            ->success()
+            ->when($sessionNote === '', static fn (Notification $notification): Notification => $notification->success())
+            ->when($sessionNote !== '', static fn (Notification $notification): Notification => $notification->danger())
             ->title('Account '.$transitionName.'d')
-            ->body(sprintf('%s: %s → %s.', $record->username, $from->label(), $to->label()))
+            ->body(sprintf('%s: %s → %s.%s', $record->username, $from->label(), $to->label(), $sessionNote))
             ->send();
     }
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Events\Wallet;
 
 use App\Enums\Currency;
-use App\Enums\WalletConversionChannel;
 use App\Enums\WalletConversionDirection;
+use App\Enums\WalletConversionChannel;
 use App\Models\WalletConversion;
 use Illuminate\Foundation\Events\Dispatchable;
 
@@ -50,7 +50,8 @@ final class ConversionReversed
         // built by hand (a repair script, a test) is still constructible.
         public readonly ?WalletConversionDirection $direction = null,
         public readonly ?WalletConversionChannel $channel = null,
-    ) {}
+    ) {
+    }
 
     public static function fromConversions(
         WalletConversion $original,

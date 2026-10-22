@@ -59,6 +59,7 @@ class WithdrawalDisbursementService
         $preparation = DB::transaction(function () use ($withdrawal): array {
             $wallet = $this->locks->lock((int) $withdrawal->wallet_id);
             $current = $this->transitions->lockWithdrawal($withdrawal);
+            $startedProcessingNow = false;
 
             if ($current->status === WithdrawalStatus::Completed) {
                 throw WithdrawalException::alreadyCompleted(
@@ -80,11 +81,30 @@ class WithdrawalDisbursementService
 
             if ($current->status === WithdrawalStatus::Approved) {
                 $current = $this->approvalService->markProcessing($current);
+                $startedProcessingNow = true;
             }
 
             if ($current->status !== WithdrawalStatus::Processing) {
                 throw WithdrawalException::notCompletable($current->id, $current->status);
             }
+
+            // Processing is a one-shot external side-effect boundary. A retry
+            // that sees an already-processing row cannot know whether the
+            // provider received the prior request, so it must not transmit a
+            // second payout; the operator reconciles this pending obligation.
+            if (! $startedProcessingNow) {
+                return [
+                    'withdrawal' => $current,
+                    'payment' => null,
+                    'driver' => null,
+                    'already_in_flight' => true,
+                ];
+            }
+
+            $currentMetadata = is_array($current->metadata) ? $current->metadata : [];
+            $currentMetadata['disbursement_attempt_started_at'] = Carbon::now()->toIso8601String();
+            $current->metadata = $currentMetadata;
+            $current->save();
 
             // FINAL AUDIT #5: withdrawal payout resolves through the
             // fail-closed guard - a disabled or non-withdrawal-capable
@@ -130,12 +150,13 @@ class WithdrawalDisbursementService
             $this->recordAudit(
                 action: AuditAction::Withdraw,
                 auditable: $current,
-                description: sprintf('Withdrawal %s dispatched for disbursement via %s.', $current->reference_number, $driver->name()),
+                description: sprintf('Withdrawal %s prepared for a one-time disbursement attempt via %s.', $current->reference_number, $driver->name()),
                 metadata: [
                     'withdrawal_id' => $current->getKey(),
                     'amount' => (string) $current->amount,
                     'net_amount' => (string) $current->net_amount,
                     'gateway' => $driver->name(),
+                    'attempt_started' => true,
                 ],
             );
 
@@ -148,6 +169,21 @@ class WithdrawalDisbursementService
 
         /** @var Withdrawal $currentWithdrawal */
         $currentWithdrawal = $preparation['withdrawal'];
+
+        if (($preparation['already_in_flight'] ?? false) === true) {
+            $providerReference = trim((string) $currentWithdrawal->provider_reference);
+
+            return new GatewayWithdrawalResponse(
+                successful: true,
+                isPending: true,
+                providerReference: $providerReference !== '' ? $providerReference : null,
+                metadata: [
+                    'state' => 'already_in_flight',
+                    'reconciliation_required' => true,
+                ],
+            );
+        }
+
         /** @var Payment $payment */
         $payment = $preparation['payment'];
         /** @var \App\Services\Payment\Contracts\PaymentGatewayInterface $driver */
@@ -156,19 +192,53 @@ class WithdrawalDisbursementService
         // -------------------------------------------------------------
         // PHASE 2: Gateway Call (NO DB Transaction / Locks held)
         // -------------------------------------------------------------
+        $outcomeUnknown = false;
+
         try {
             $gatewayResponse = $driver->initiateWithdrawal($currentWithdrawal, $options);
         } catch (\Throwable $e) {
-            Log::error('Outbound withdrawal disbursement failed at gateway', [
+            $outcomeUnknown = true;
+            Log::error('Outbound withdrawal outcome is unknown; reconciliation is required', [
                 'withdrawal_id' => $currentWithdrawal->id,
                 'gateway' => $driver->name(),
-                'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
             ]);
 
-            $gatewayResponse = GatewayWithdrawalResponse::failed(
-                'Gateway communication failure: '.$e->getMessage(),
-                ['exception' => $e->getMessage()],
+            // A timeout or connection loss is ambiguous: the provider may have
+            // accepted the payout before the response vanished. Keep the wallet
+            // hold and the withdrawal pending; never release funds or retry an
+            // unkeyed transfer based on an unknown outcome.
+            $gatewayResponse = new GatewayWithdrawalResponse(
+                successful: true,
+                isPending: true,
+                metadata: [
+                    'state' => 'outcome_unknown',
+                    'reconciliation_required' => true,
+                ],
             );
+        }
+
+        // Do not persist or return provider-controlled raw bodies, credentials,
+        // payer details, or free-form error strings. Only retain the fields
+        // required to settle or reconcile the payout.
+        if ($gatewayResponse->successful && $gatewayResponse->isPending) {
+            $gatewayResponse = new GatewayWithdrawalResponse(
+                successful: true,
+                isPending: true,
+                providerReference: $gatewayResponse->providerReference,
+                metadata: [
+                    'state' => $outcomeUnknown ? 'outcome_unknown' : 'provider_pending',
+                    'reconciliation_required' => true,
+                ],
+            );
+        } elseif ($gatewayResponse->successful) {
+            $gatewayResponse = new GatewayWithdrawalResponse(
+                successful: true,
+                providerReference: $gatewayResponse->providerReference,
+            );
+        } else {
+            $gatewayResponse = GatewayWithdrawalResponse::failed('The payout provider declined the disbursement.');
         }
 
         // -------------------------------------------------------------
@@ -188,7 +258,11 @@ class WithdrawalDisbursementService
                 $payment->status = PaymentStatus::Captured;
                 $payment->captured_at = Carbon::now();
                 $payment->gateway_reference = $gatewayResponse->providerReference;
-                $payment->gateway_response = $gatewayResponse->rawResponse;
+                $payment->gateway_response = [
+                    'gateway' => $driver->name(),
+                    'outcome' => 'completed',
+                    'provider_reference' => $gatewayResponse->providerReference,
+                ];
                 $payment->save();
 
                 $this->completionService->complete($lockedWithdrawal, null, [
@@ -209,7 +283,13 @@ class WithdrawalDisbursementService
             } elseif ($gatewayResponse->successful && $gatewayResponse->isPending) {
                 // Asynchronous pending disbursement (awaits webhook / payout completion)
                 $payment->gateway_reference = $gatewayResponse->providerReference;
-                $payment->gateway_response = $gatewayResponse->rawResponse;
+                $payment->gateway_response = [
+                    'gateway' => $driver->name(),
+                    'outcome' => 'pending',
+                    'provider_reference' => $gatewayResponse->providerReference,
+                    'state' => (string) ($gatewayResponse->metadata['state'] ?? 'provider_pending'),
+                    'reconciliation_required' => (bool) ($gatewayResponse->metadata['reconciliation_required'] ?? false),
+                ];
                 $payment->save();
 
                 $lockedWithdrawal->provider = $driver->name();
@@ -217,6 +297,8 @@ class WithdrawalDisbursementService
                 $metadata = is_array($lockedWithdrawal->metadata) ? $lockedWithdrawal->metadata : [];
                 $metadata['disbursed_pending_at'] = Carbon::now()->toIso8601String();
                 $metadata['provider_reference'] = $gatewayResponse->providerReference;
+                $metadata['disbursement_outcome'] = (string) ($gatewayResponse->metadata['state'] ?? 'provider_pending');
+                $metadata['reconciliation_required'] = (bool) ($gatewayResponse->metadata['reconciliation_required'] ?? false);
                 $lockedWithdrawal->metadata = $metadata;
                 $lockedWithdrawal->save();
 
@@ -230,26 +312,31 @@ class WithdrawalDisbursementService
                     ],
                 );
             } else {
-                // Provider declined or failed disbursement: release hold and mark failed
-                $failureReason = $gatewayResponse->errorMessage ?? 'Withdrawal payout failed by provider.';
+                // Only a definitive provider decline reaches this branch. The
+                // response has already been reduced to a generic, non-sensitive
+                // result; transport errors are retained as pending for review.
+                $failureReason = 'The payout provider declined the disbursement.';
 
                 $payment->status = PaymentStatus::Failed;
                 $payment->failed_at = Carbon::now();
                 $payment->failure_reason = $failureReason;
-                $payment->gateway_response = $gatewayResponse->rawResponse;
+                $payment->gateway_response = [
+                    'gateway' => $driver->name(),
+                    'outcome' => 'failed',
+                ];
                 $payment->save();
 
-                $this->approvalService->markFailed($lockedWithdrawal, $failureReason);
+                $this->approvalService->markProviderFailed($lockedWithdrawal);
 
                 $this->recordAudit(
                     action: AuditAction::Withdraw,
                     auditable: $lockedWithdrawal,
-                    description: sprintf('Withdrawal %s disbursement failed by %s: %s', $lockedWithdrawal->reference_number, $driver->name(), $failureReason),
+                    description: sprintf('Withdrawal %s disbursement was declined by %s.', $lockedWithdrawal->reference_number, $driver->name()),
                     oldValues: ['status' => 'processing'],
                     newValues: ['status' => 'failed'],
                     metadata: [
                         'gateway' => $driver->name(),
-                        'reason' => $failureReason,
+                        'reason_code' => 'provider_declined',
                     ],
                 );
             }

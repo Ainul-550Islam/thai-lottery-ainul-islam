@@ -8,7 +8,9 @@ use App\DTOs\Wallet\ConversionAuditContextData;
 use App\Enums\WalletConversionChannel;
 use App\Models\User;
 use App\Models\WalletConversion;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 /**
  * An operator undoing a completed conversion.
@@ -124,5 +126,22 @@ class ConversionReversalRequest extends FormRequest
     public function auditContext(): ConversionAuditContextData
     {
         return ConversionAuditContextData::fromRequest($this, WalletConversionChannel::Admin, $this->user()?->getKey());
+    }
+
+    /**
+     * JSON callers get the platform envelope with the stable code
+     * `reversal_not_permitted`; web callers keep the framework's 403.
+     */
+    protected function failedAuthorization(): void
+    {
+        if (! $this->expectsJson()) {
+            parent::failedAuthorization();
+        }
+
+        throw new HttpResponseException(ApiResponse::error(
+            code: 'reversal_not_permitted',
+            message: 'Only an operator with the wallet permission can reverse a conversion.',
+            status: 403,
+        ));
     }
 }

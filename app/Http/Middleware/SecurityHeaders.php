@@ -6,23 +6,26 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Emits the response headers that a browser needs in order to treat this
- * application as a hardened origin: framing, sniffing, referrer, permissions,
- * HSTS and the Content Security Policy.
- *
- * Registered globally in bootstrap/app.php, so it applies to web, api and the
- * framework's own /up health route alike.
- */
-class SecurityHeaders
+final class SecurityHeaders
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $response = $next($request);
-
         $config = (array) config('security.security_headers', []);
+        $cspConfig = is_array($config['content_security_policy'] ?? null)
+            ? $config['content_security_policy']
+            : [];
+        $cspEnabled = (bool) ($cspConfig['enabled'] ?? false);
+
+        if ($cspEnabled) {
+            // Generate before Blade renders, so @cspNonce and the response
+            // policy share the same request-scoped nonce.
+            Vite::useCspNonce();
+        }
+
+        $response = $next($request);
 
         $headers = array_filter([
             'X-Frame-Options' => $config['x_frame_options'] ?? null,
@@ -46,126 +49,78 @@ class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', $hsts);
         }
 
-        $this->applyContentSecurityPolicy($response);
+        if ($cspEnabled) {
+            $nonce = Vite::cspNonce();
+            $policy = $this->buildContentSecurityPolicy($cspConfig, is_string($nonce) ? $nonce : null);
+
+            if ($policy !== '') {
+                $header = (bool) ($cspConfig['report_only'] ?? false)
+                    ? 'Content-Security-Policy-Report-Only'
+                    : 'Content-Security-Policy';
+
+                $response->headers->set($header, $policy);
+            }
+        }
 
         return $response;
     }
 
-    /**
-     * Build the policy from config/security.php and attach it.
-     *
-     * Nothing about the policy is hardcoded here: the directive list lives in
-     * config so it can be cached, inspected and overridden per environment, and
-     * ContentSecurityPolicyTest asserts that what goes out on the wire matches
-     * what the view tree actually needs.
-     */
-    private function applyContentSecurityPolicy(Response $response): void
+    /** @param array<string, mixed> $config */
+    private function buildContentSecurityPolicy(array $config, ?string $nonce): string
     {
-        $csp = (array) config('security.content_security_policy', []);
+        $directives = is_array($config['directives'] ?? null) ? $config['directives'] : [];
+        $nonceDirectives = is_array($config['nonce_directives'] ?? null)
+            ? $config['nonce_directives']
+            : [];
+        $nonceDirectives = array_fill_keys(array_filter(
+            array_map(static fn (mixed $directive): string => is_string($directive) ? strtolower(trim($directive)) : '', $nonceDirectives),
+            static fn (string $directive): bool => preg_match('/^[a-z][a-z0-9-]*$/D', $directive) === 1,
+        ), true);
 
-        if (! ($csp['enabled'] ?? true)) {
-            return;
-        }
-
-        $directives = $this->directives($csp);
-
-        if ($directives === []) {
-            return;
-        }
-
-        $policy = $this->compose($directives, isset($csp['report_uri']) ? (string) $csp['report_uri'] : null);
-
-        $response->headers->set(
-            ! empty($csp['report_only']) ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy',
-            $policy,
-        );
-    }
-
-    /**
-     * @param  array<string, mixed>  $csp
-     * @return array<string, list<string>>
-     */
-    private function directives(array $csp): array
-    {
-        $directives = [];
-
-        foreach ((array) ($csp['directives'] ?? []) as $name => $sources) {
-            $sources = is_array($sources) ? array_values($sources) : [(string) $sources];
-            $sources = array_values(array_filter(array_map('strval', $sources), static fn (string $s): bool => $s !== ''));
-
-            if ($sources !== []) {
-                $directives[(string) $name] = $sources;
-            }
-        }
-
-        $this->allowViteDevServer($directives);
-
-        if (! empty($csp['upgrade_insecure_requests']) || app()->isProduction()) {
-            // A valueless directive. Represented as an empty list so compose() emits
-            // the name on its own rather than skipping it.
-            $directives['upgrade-insecure-requests'] = [];
-        }
-
-        return $directives;
-    }
-
-    /**
-     * Widen the policy for the Vite dev server while one is running.
-     *
-     * When public/hot exists, @vite() emits absolute URLs pointing at the dev
-     * server instead of hashed /build/assets paths, and HMR opens a websocket back
-     * to it. Under script-src 'self' both would be blocked and `npm run dev` would
-     * serve an unstyled, unscripted page - which is how a CSP ends up disabled in
-     * development and then shipped untested. The file is written by `npm run dev`
-     * and removed when it stops, so this branch is never taken in production.
-     *
-     * @param  array<string, list<string>>  $directives
-     */
-    private function allowViteDevServer(array &$directives): void
-    {
-        $hot = public_path('hot');
-
-        if (! is_file($hot)) {
-            return;
-        }
-
-        $origin = trim((string) file_get_contents($hot));
-
-        if ($origin === '' || ! preg_match('#^https?://#', $origin)) {
-            return;
-        }
-
-        $origin = rtrim($origin, '/');
-
-        foreach (['script-src', 'style-src', 'img-src', 'connect-src', 'font-src', 'media-src'] as $name) {
-            if (! isset($directives[$name])) {
-                continue;
-            }
-
-            $directives[$name][] = $origin;
-
-            if ($name === 'connect-src') {
-                // HMR uses a websocket to the same host. Deriving it from the origin
-                // rather than allowing ws: wholesale keeps the policy tied to the dev
-                // server that is actually running.
-                $directives[$name][] = preg_replace('#^http#', 'ws', $origin);
-            }
-        }
-    }
-
-    /**
-     * @param  array<string, list<string>>  $directives
-     */
-    private function compose(array $directives, ?string $reportUri): string
-    {
         $parts = [];
 
         foreach ($directives as $name => $sources) {
-            $parts[] = $sources === [] ? $name : $name.' '.implode(' ', $sources);
-        }
+            if (! is_string($name)) {
+                continue;
+            }
 
-        if ($reportUri !== null && $reportUri !== '') {
-            $parts[] = 'report-uri '.$reportUri;
+            $name = strtolower(trim($name));
+
+            if (preg_match('/^[a-z][a-z0-9-]*$/D', $name) !== 1) {
+                continue;
+            }
+
+            if (! is_array($sources)) {
+                continue;
+            }
+
+            $values = [];
+
+            foreach ($sources as $source) {
+                if (! is_string($source)) {
+                    continue;
+                }
+
+                $source = trim($source);
+
+                if ($source === '' || preg_match('/[;\r\n]/', $source) === 1) {
+                    continue;
+                }
+
+                $values[] = $source;
+            }
+
+            if (isset($nonceDirectives[$name]) && $nonce !== null && $nonce !== '') {
+                $values[] = "'nonce-{$nonce}'";
+            }
+
+            $values = array_values(array_unique($values));
+
+            if ($values === []) {
+                continue;
+            }
+
+            $parts[] = $name.' '.implode(' ', $values);
         }
 
         return implode('; ', $parts);

@@ -91,13 +91,25 @@ class NagadGateway extends AbstractPaymentGateway
             }
 
             $errorData = $response->json();
-            $msg = $errorData['message'] ?? 'Nagad initialization failed: '.$response->body();
+            $providerCode = is_array($errorData) ? ($errorData['reason'] ?? $errorData['code'] ?? null) : null;
 
-            return GatewayDepositResponse::failed($msg, is_array($errorData) ? $errorData : []);
+            Log::warning('Nagad checkout request was refused', [
+                'http_status' => $response->status(),
+                'provider_error_code' => is_string($providerCode) ? substr($providerCode, 0, 64) : null,
+            ]);
+
+            return GatewayDepositResponse::failed(
+                'Nagad payment initialization failed.',
+                [],
+                ['gateway' => 'nagad', 'http_status' => $response->status()],
+            );
         } catch (\Throwable $e) {
-            Log::error('Nagad deposit initiation failed', ['exception' => $e->getMessage()]);
+            Log::error('Nagad deposit initiation failed', [
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
+            ]);
 
-            return GatewayDepositResponse::failed('Nagad connection error: '.$e->getMessage());
+            return GatewayDepositResponse::failed('Nagad could not be reached to create checkout.');
         }
     }
 

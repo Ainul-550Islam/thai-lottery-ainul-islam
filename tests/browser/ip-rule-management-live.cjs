@@ -27,7 +27,7 @@ assert.equal(meta.ready, true);
 const fixtureCommand = (mode) =>
     execFileSync(
         process.env.PHP_BINARY || "php",
-        ["tests/browser/Support/ip-rule-live.php", mode],
+        ["tests/Browser/Support/ip-rule-live.php", mode],
         {
             cwd: repo,
             env: {
@@ -96,14 +96,7 @@ async function login(context, actor, testBadPassword = false) {
         "Prepare a NEW fixture before each run; do not reuse mutated fixtures.",
     );
     assert.deepEqual(initial.audits, []);
-    const executablePath =
-        process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ||
-        (fs.existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined);
-    const browser = await chromium.launch({
-        headless: true,
-        ...(executablePath ? { executablePath } : {}),
-        args: ["--no-sandbox", "--disable-dev-shm-usage"],
-    });
+    const browser = await chromium.launch({ headless: true });
     let auditOffline = false;
     try {
         const context = await browser.newContext();

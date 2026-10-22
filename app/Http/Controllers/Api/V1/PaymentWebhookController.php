@@ -52,8 +52,10 @@ final class PaymentWebhookController
             );
         } catch (\Throwable $e) {
             Log::error('Unhandled webhook exception', [
-                'gateway' => $gateway,
-                'exception' => $e->getMessage(),
+                'gateway' => strtolower($gateway),
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
+                'correlation_id' => $request->attributes->get('correlation_id'),
             ]);
 
             return ApiResponse::error(
@@ -94,7 +96,7 @@ final class PaymentWebhookController
                 payload: is_array($payload) ? $payload : [],
             );
 
-            ['webhook' => $webhook, 'outcome' => $outcome] = $this->webhookService->processEnvelope($envelope);
+            ['webhook' => $webhook, 'outcome' => $outcome] = $this->webhookService->processEnvelope($envelope, $request);
 
             // Async application is replay-safe at every layer; dispatch
             // regardless of inline outcome so the job stands as the

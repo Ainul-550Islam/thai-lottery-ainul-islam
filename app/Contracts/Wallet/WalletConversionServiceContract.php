@@ -10,14 +10,6 @@ use App\DTOs\Wallet\ConversionQuoteData;
 use App\DTOs\Wallet\ConversionRequestData;
 use App\DTOs\Wallet\ConversionResultData;
 use App\Enums\WalletConversionDirection;
-use App\Exceptions\Wallet\ConversionAccountRestrictedException;
-use App\Exceptions\Wallet\ConversionDisabledException;
-use App\Exceptions\Wallet\ConversionException;
-use App\Exceptions\Wallet\ConversionIdempotencyConflictException;
-use App\Exceptions\Wallet\ConversionInsufficientBalanceException;
-use App\Exceptions\Wallet\ConversionKycRequiredException;
-use App\Exceptions\Wallet\ConversionLimitExceededException;
-use App\Exceptions\Wallet\ConversionQuoteExpiredException;
 use App\Models\WalletConversion;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -55,7 +47,7 @@ interface WalletConversionServiceContract
      * member saw can be produced again, and so an execution against a stale
      * reference is refused with QuoteExpired rather than silently re-priced.
      *
-     * @throws ConversionException when the request cannot be priced
+     * @throws \App\Exceptions\Wallet\ConversionException when the request cannot be priced
      */
     public function quote(ConversionRequestData $request): ConversionQuoteData;
 
@@ -68,14 +60,14 @@ interface WalletConversionServiceContract
      * DIFFERENT request, nothing moves and an
      * ConversionIdempotencyConflictException is thrown.
      *
-     * @throws ConversionDisabledException when the feature or direction is off
-     * @throws ConversionInsufficientBalanceException when the source wallet cannot cover the amount
-     * @throws ConversionLimitExceededException when a configured envelope is breached
-     * @throws ConversionKycRequiredException when identity verification is missing
-     * @throws ConversionAccountRestrictedException when the member is suspended or self-excluded
-     * @throws ConversionQuoteExpiredException when the supplied quote is stale
-     * @throws ConversionIdempotencyConflictException when the key was reused for a different request
-     * @throws ConversionException for any other refusal
+     * @throws \App\Exceptions\Wallet\ConversionDisabledException when the feature or direction is off
+     * @throws \App\Exceptions\Wallet\ConversionInsufficientBalanceException when the source wallet cannot cover the amount
+     * @throws \App\Exceptions\Wallet\ConversionLimitExceededException when a configured envelope is breached
+     * @throws \App\Exceptions\Wallet\ConversionKycRequiredException when identity verification is missing
+     * @throws \App\Exceptions\Wallet\ConversionAccountRestrictedException when the member is suspended or self-excluded
+     * @throws \App\Exceptions\Wallet\ConversionQuoteExpiredException when the supplied quote is stale
+     * @throws \App\Exceptions\Wallet\ConversionIdempotencyConflictException when the key was reused for a different request
+     * @throws \App\Exceptions\Wallet\ConversionException for any other refusal
      */
     public function convert(ConversionRequestData $request): ConversionResultData;
 
@@ -86,7 +78,7 @@ interface WalletConversionServiceContract
      * window, without a reason, or when the original movement is not in a
      * reversible state. The original conversion row is never modified.
      *
-     * @throws ConversionException when the conversion cannot be reversed
+     * @throws \App\Exceptions\Wallet\ConversionException when the conversion cannot be reversed
      */
     public function reverse(
         int $conversionId,
@@ -113,4 +105,18 @@ interface WalletConversionServiceContract
      * Whether conversions are available at all, or for one specific direction.
      */
     public function isEnabled(?WalletConversionDirection $direction = null): bool;
+
+    /**
+     * Quotes the member still holds, unexpired and unconsumed.
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Models\WalletConversionQuote>
+     */
+    public function openQuotesForUser(int $userId): \Illuminate\Support\Collection;
+
+    /**
+     * Count of conversions per status for one member, every status present.
+     *
+     * @return array<string, int>
+     */
+    public function summaryForUser(int $userId): array;
 }

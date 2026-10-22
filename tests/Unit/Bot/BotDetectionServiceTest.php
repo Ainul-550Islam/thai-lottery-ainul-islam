@@ -16,7 +16,6 @@ use LogicException;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use RuntimeException;
 
 final class BotDetectionServiceTest extends TestCase
 {
@@ -111,7 +110,7 @@ final class BotDetectionServiceTest extends TestCase
     public function test_observation_failure_is_visible_without_blocking_or_leaking_exception(): void
     {
         $signal = $this->createMock(BotSignal::class);
-        $signal->method('score')->willThrowException(new RuntimeException('sensitive-query-password'));
+        $signal->method('score')->willThrowException(new \RuntimeException('sensitive-query-password'));
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::once())->method('info')->with('bot.assessment', self::callback(function (array $context): bool {
             self::assertStringNotContainsString('sensitive-query-password', json_encode($context));
@@ -128,8 +127,8 @@ final class BotDetectionServiceTest extends TestCase
     public function test_enforcement_failure_does_not_return_false_allow(): void
     {
         $signal = $this->createMock(BotSignal::class);
-        $signal->method('score')->willThrowException(new RuntimeException('database unavailable'));
-        $this->expectException(RuntimeException::class);
+        $signal->method('score')->willThrowException(new \RuntimeException('database unavailable'));
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('enforcement assessment aborted');
         $this->engine($this->config('enforce'), ['a' => $signal])->detect(Request::create('/'));
     }
@@ -137,7 +136,7 @@ final class BotDetectionServiceTest extends TestCase
     public function test_log_only_signal_failure_does_not_abort_other_enforcement(): void
     {
         $signal = $this->createMock(BotSignal::class);
-        $signal->method('score')->willThrowException(new RuntimeException('cache unavailable'));
+        $signal->method('score')->willThrowException(new \RuntimeException('cache unavailable'));
         $config = $this->config('enforce');
         $config->set('bot.signals.a.mode', 'log');
         $result = $this->engine($config, ['a' => $signal])->detect(Request::create('/'));
@@ -150,7 +149,7 @@ final class BotDetectionServiceTest extends TestCase
         $signal = $this->createMock(BotSignal::class);
         $signal->method('score')->willReturn(new SignalResult('a', 100));
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->method('info')->willThrowException(new RuntimeException('disk full'));
+        $logger->method('info')->willThrowException(new \RuntimeException('disk full'));
         $result = $this->engine($this->config(), ['a' => $signal], $logger)->detect(Request::create('/'));
         self::assertSame(BotDecision::Allow, $result->decision);
         self::assertContains('BOT_OBSERVABILITY_UNAVAILABLE', $result->reasons);

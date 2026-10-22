@@ -45,14 +45,15 @@ final readonly class ConversionQuoteData
         public DateTimeImmutable $issuedAt,
         public DateTimeImmutable $expiresAt,
         public ?string $description = null,
-    ) {}
+    ) {
+    }
 
     /**
      * Seconds of validity remaining at the given moment; never negative.
      */
     public function secondsRemaining(?DateTimeImmutable $now = null): int
     {
-        $now ??= new DateTimeImmutable;
+        $now ??= new DateTimeImmutable();
 
         return max(0, $this->expiresAt->getTimestamp() - $now->getTimestamp());
     }

@@ -13,6 +13,7 @@ use App\Enums\WalletConversionChannel;
 use App\Enums\WalletConversionDirection;
 use App\Enums\WalletStatus;
 use App\Enums\WalletType;
+use App\Models\AgeVerification;
 use App\Models\KycDocument;
 use App\Models\User;
 use App\Models\Wallet;
@@ -20,11 +21,13 @@ use App\Models\WalletConversion;
 use App\Services\Wallet\Conversion\ConversionFeeCalculator;
 use App\Services\Wallet\Conversion\ConversionQuoteService;
 use App\Services\Wallet\Conversion\WalletConversionService;
-use App\Support\Admin\AdminAccess;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
+use App\Support\Admin\AdminAccess;
+use Database\Seeders\WalletConversionLedgerSeeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\Concerns\RecordsCurrentLegalConsent;
 use Tests\TestCase;
 
 /**
@@ -47,7 +50,18 @@ use Tests\TestCase;
  */
 abstract class ConversionTestCase extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The ledger refuses to post without its conversion accounts (the 2000
+        // liability, the 3000 counterpart and the 4100 fee revenue). Seeding them
+        // here keeps every test on the same reference data.
+        $this->seed(WalletConversionLedgerSeeder::class);
+    }
+
     use DatabaseTruncation;
+    use RecordsCurrentLegalConsent;
 
     /**
      * A member who is allowed to convert: active, and identity-verified the way
@@ -58,7 +72,19 @@ abstract class ConversionTestCase extends TestCase
      */
     protected function makeVerifiedMember(array $attributes = []): User
     {
-        $user = User::factory()->create($attributes);
+        $user = User::factory()->create(array_merge(['date_of_birth' => '1990-02-03'], $attributes));
+
+        AgeVerification::query()->create([
+            'user_id' => $user->getKey(),
+            'status' => 'eligible',
+            'minimum_age' => 18,
+            'method' => 'self_declaration',
+            'attested_at' => now(),
+            'source' => 'test',
+        ]);
+        $user->unsetRelation('ageVerification');
+
+        $this->recordCurrentLegalConsent($user);
 
         KycDocument::query()->create([
             'user_id' => $user->getKey(),

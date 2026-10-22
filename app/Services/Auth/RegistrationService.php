@@ -10,6 +10,8 @@ use App\Enums\WalletStatus;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Agent\AgentReferralService;
+use App\Services\Legal\AgeVerificationService;
+use App\Services\Legal\ConsentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -47,6 +49,9 @@ final class RegistrationService
 {
     public function __construct(
         private readonly AgentReferralService $referrals,
+        private readonly CaptchaService $captcha,
+        private readonly ConsentService $consents,
+        private readonly AgeVerificationService $ageVerification,
     ) {}
 
     /**
@@ -58,6 +63,18 @@ final class RegistrationService
      */
     public function register(Request $request, array $validated): User
     {
+        // Gate before username lookup, transaction, user/wallet creation or referral.
+        // Native external response comes from the request through CaptchaService.
+        if ($this->captcha->isEnabled() && (bool) config('auth_security.captcha.register', true)) {
+            $token = is_string($validated['captcha_token'] ?? null) ? $validated['captcha_token'] : null;
+            $answer = is_string($validated['captcha_answer'] ?? null) ? $validated['captcha_answer'] : null;
+            if (! $this->captcha->verify($request, $token, $answer, 'register')) {
+                throw ValidationException::withMessages([
+                    'captcha' => (string) config('auth_security.messages.captcha_failed'),
+                ]);
+            }
+        }
+
         $referralCode = strtoupper(trim((string) ($validated['referral_id'] ?? '')));
         $mobile = $this->normalizeMobile((string) ($validated['mobile'] ?? ''));
         $email = mb_strtolower(trim((string) ($validated['email'] ?? '')));
@@ -114,6 +131,13 @@ final class RegistrationService
                     'referral_id' => $exception->getMessage(),
                 ]);
             }
+
+            // Age eligibility is an explicit self-declaration record, not an
+            // identity-document verification. Registration persists it and
+            // the immutable version/hash of the Terms and Privacy Notice in
+            // this same transaction as the account and wallet.
+            $this->ageVerification->attestFromRegistration($user, $request);
+            $this->consents->recordRegistration($user, $request);
 
             return $user;
         });

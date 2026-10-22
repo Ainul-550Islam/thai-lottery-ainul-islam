@@ -15,10 +15,8 @@ use App\Enums\WalletConversionRejectionReason;
 use App\Http\Requests\Wallet\ConversionQuoteRequest;
 use App\Models\Wallet;
 use App\Services\Wallet\Conversion\ConversionFeeCalculator;
-use App\Services\Wallet\Conversion\ConversionHistoryService;
 use App\Services\Wallet\Conversion\ConversionLimitService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Throwable;
@@ -56,7 +54,8 @@ class WalletConversionPageController
         private readonly ConversionFeeCalculator $fees,
         private readonly ConversionLimitService $limits,
         private readonly ConversionPolicyContract $policy,
-    ) {}
+    ) {
+    }
 
     public function index(Request $request): View
     {
@@ -128,7 +127,7 @@ class WalletConversionPageController
 
         return view('wallet.conversion.show', [
             'conversion' => $conversion,
-            'timeline' => app(ConversionHistoryService::class)
+            'timeline' => app(\App\Services\Wallet\Conversion\ConversionHistoryService::class)
                 ->auditTimeline($reference, $userId),
         ]);
     }
@@ -141,7 +140,7 @@ class WalletConversionPageController
      * and only one of them is authoritative. The endpoint is thin and read-only,
      * and validates through the same request class the quote endpoint uses.
      */
-    public function preview(ConversionQuoteRequest $request): JsonResponse
+    public function preview(ConversionQuoteRequest $request): \Illuminate\Http\JsonResponse
     {
         $currency = $request->currency();
         $direction = $request->direction();

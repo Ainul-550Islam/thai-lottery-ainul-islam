@@ -39,7 +39,8 @@ final class ConversionRequested
         public readonly WalletConversionChannel $channel,
         public readonly ?string $quoteReference = null,
         public readonly ?string $idempotencyKey = null,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array<string, mixed>

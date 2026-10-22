@@ -18,7 +18,6 @@ use Illuminate\Support\Carbon;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class ExternalCaptchaChallengeServiceTest extends TestCase
 {
@@ -161,7 +160,7 @@ final class ExternalCaptchaChallengeServiceTest extends TestCase
     public function test_cache_failure_never_calls_provider_or_grants_success(): void
     {
         $cache = $this->createMock(CacheContract::class);
-        $cache->expects(self::once())->method('add')->willThrowException(new RuntimeException('private-cache-details'));
+        $cache->expects(self::once())->method('add')->willThrowException(new \RuntimeException('private-cache-details'));
         $adapter = $this->adapter($cache);
         $widget = $adapter->issue($this->request, 'turnstile', 'login');
         $result = $adapter->verify($this->request, 'turnstile', 'login', $widget['nonce'], 'token');

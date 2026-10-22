@@ -37,24 +37,6 @@ use Tests\TestCase;
  */
 final class BingoLotteryPublicPageTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->withoutVite();
-        // Turn on this suite's fixture lanes. phpunit.xml documents why the four flags are not set globally:
-        // Payment\FixturePublicationSafetyTest pins the shipped default (fixture sources off) for every lane, so
-        // a global <env> override would trade a green lottery suite for a red publication-safety suite. A lane
-        // importer called with the 'fixture' provider returns ['status' => 'rejected', 'source_state' =>
-        // 'NOT_CONFIGURED'] while its flag is off, which publishes nothing and leaves every public page in its
-        // empty state - so the suites that read published results are exactly the ones that must enable it.
-        // Production cannot be reached this way: each lane config force-disables the fixture source when
-        // APP_ENV is production.
-        foreach (['weekly', 'national', 'bingo', 'pcso'] as $lane) {
-            config([$lane.'_lottery.sources.fixture.enabled' => true]);
-        }
-    }
-
     use RefreshDatabase;
 
     private function importer(): BingoLotteryImportService

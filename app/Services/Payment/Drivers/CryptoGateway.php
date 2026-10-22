@@ -16,20 +16,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Real Cryptocurrency Webhook & Payment Gateway Driver.
+ * Fail-closed boundary for the crypto rail until an actual provider is selected.
  *
- * SPECIFICATION & OFFICIAL PROTOCOL
- * ---------------------------------
- * 1. Signature Verification:
- *    Header: `X-Crypto-Signature` / HMAC-SHA256 with webhook_secret.
- *
- * 2. Invoice & Address Generation:
- *    Generates crypto payment invoice session.
- *
- * 3. Webhook Events:
- *    `confirmed`, `completed`, `paid` -> DepositSuccess
- *    `expired` -> DepositExpired
- *    `failed` -> DepositFailed
+ * This repository has no provider-specific invoice API, address assignment,
+ * webhook signature contract, or payout API. Generating an application URL
+ * that looks like checkout would falsely imply that a payment can be collected.
+ * The driver therefore exposes no payable capability and refuses callbacks;
+ * provider integration must be implemented against the contracted provider's
+ * verified protocol before this rail can be enabled.
  */
 class CryptoGateway extends AbstractPaymentGateway
 {
@@ -45,54 +39,45 @@ class CryptoGateway extends AbstractPaymentGateway
 
     public function status(): GatewayIntegrationStatus
     {
-        return GatewayIntegrationStatus::FullyImplemented;
+        return GatewayIntegrationStatus::Unsupported;
+    }
+
+    public function supportsDeposit(): bool
+    {
+        return false;
+    }
+
+    public function supportsWithdrawal(): bool
+    {
+        return false;
     }
 
     public function supportsCurrency(Currency $currency): bool
     {
-        return $currency === Currency::USD;
+        return false;
     }
 
     public function initiateDeposit(Deposit $deposit, array $options = []): GatewayDepositResponse
     {
-        $invoiceId = 'CRYPTO-INV-'.strtoupper(bin2hex(random_bytes(6)));
-
-        return GatewayDepositResponse::redirect(
-            url: $this->successUrl().'?invoice='.$invoiceId.'&reference='.$deposit->reference_number,
-            providerReference: $invoiceId,
-            rawResponse: ['invoice_id' => $invoiceId],
-            metadata: ['invoice_id' => $invoiceId],
+        return GatewayDepositResponse::failed(
+            'Crypto payments are unavailable because no verified provider integration is configured.',
+            [],
+            ['gateway' => $this->name(), 'state' => 'unsupported'],
         );
     }
 
     public function initiateWithdrawal(Withdrawal $withdrawal, array $options = []): GatewayWithdrawalResponse
     {
-        return GatewayWithdrawalResponse::pending(
-            providerReference: 'CRYPTO-TX-'.strtoupper(bin2hex(random_bytes(6))),
-            rawResponse: [],
-            metadata: ['crypto_payout' => true],
+        return GatewayWithdrawalResponse::failed(
+            'Crypto payouts are unavailable because no verified provider integration is configured.',
         );
     }
 
     public function verifyWebhookSignature(Request $request): bool
     {
-        $secret = $this->webhookSecret();
+        Log::warning('Crypto webhook rejected: no provider-specific signature verifier is configured.');
 
-        if (empty($secret)) {
-            Log::warning('Crypto webhook rejected: webhook_secret is not configured.');
-
-            return false;
-        }
-
-        $provided = (string) ($request->header('X-Crypto-Signature') ?: $request->header('X-Signature', ''));
-
-        if ($provided === '') {
-            return false;
-        }
-
-        $expected = hash_hmac('sha256', $request->getContent(), $secret);
-
-        return hash_equals($expected, $provided);
+        return false;
     }
 
     public function parseWebhook(Request $request): WebhookPayload

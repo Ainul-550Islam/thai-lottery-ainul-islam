@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\Conversions;
 
-use App\Enums\WalletConversionStatus;
 use App\Jobs\Wallet\ExpireConversionQuotesJob;
-use App\Models\WalletConversionQuote;
 use Illuminate\Console\Command;
 
 /**
@@ -77,7 +75,7 @@ class ExpireConversionQuotesCommand extends Command
         // lies about it, which is worse than a sweep that fails loudly. Calling
         // the job's handle through the container keeps the single implementation
         // and lets the command report what actually happened.
-        $expired = (int) $this->laravel->call([new ExpireConversionQuotesJob, 'handle']);
+        $expired = (int) $this->laravel->call([new ExpireConversionQuotesJob(), 'handle']);
 
         if ($expired === 0) {
             $this->components->info('No quotes were past their expiry.');
@@ -97,16 +95,16 @@ class ExpireConversionQuotesCommand extends Command
 
     private function staleCount(): int
     {
-        return (int) WalletConversionQuote::query()
-            ->where('status', '=', WalletConversionStatus::Quoted->value)
+        return (int) \App\Models\WalletConversionQuote::query()
+            ->where('status', '=', \App\Enums\WalletConversionStatus::Quoted->value)
             ->where('expires_at', '<=', now())
             ->count();
     }
 
     private function openCount(): int
     {
-        return (int) WalletConversionQuote::query()
-            ->where('status', '=', WalletConversionStatus::Quoted->value)
+        return (int) \App\Models\WalletConversionQuote::query()
+            ->where('status', '=', \App\Enums\WalletConversionStatus::Quoted->value)
             ->count();
     }
 }

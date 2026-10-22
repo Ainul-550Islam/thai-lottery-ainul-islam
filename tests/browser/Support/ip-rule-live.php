@@ -171,9 +171,6 @@ if (! is_string($path) || (! in_array($path, ['/admin/login', '/login', '/logout
     return;
 }
 header('X-Test-Fixture: disposable-only');
-$_SERVER['SCRIPT_NAME'] = '/index.php';
-$_SERVER['PHP_SELF'] = '/index.php';
-$_SERVER['SCRIPT_FILENAME'] = $public.'/index.php';
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 $request = Request::capture();
 $response = $kernel->handle($request);

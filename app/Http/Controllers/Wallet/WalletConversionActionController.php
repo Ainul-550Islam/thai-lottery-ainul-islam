@@ -34,7 +34,8 @@ class WalletConversionActionController
 {
     public function __construct(
         private readonly WalletConversionServiceContract $conversions,
-    ) {}
+    ) {
+    }
 
     /**
      * POST /wallet/convert/quote

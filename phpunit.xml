@@ -35,6 +35,7 @@
         <env name="AUTH_CAPTCHA_ENABLED" value="false"/>
         <env name="APP_KEY" value="base64:ZdZRVoeGZh2IQXa67+qdQzaPbjnFovX4CCE0YgWHJI8="/>
         <env name="APP_DEBUG" value="false"/>
+        <env name="REAL_MONEY_ENABLED" value="true"/>
         <!--
             A FILE-BACKED SQLite database, not :memory:.
             The Phase 4.3+ suites use DatabaseTruncation (not RefreshDatabase) because a
@@ -50,30 +51,18 @@
         <env name="DB_DATABASE" value="database/thai_lottery_test"/>
         <env name="DB_FOREIGN_KEYS" value="true"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="SESSION_DRIVER" value="array"/>
+        <!-- Password logout policy requires transactional database-backed sessions. -->
+        <env name="SESSION_DRIVER" value="database"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="BROADCAST_CONNECTION" value="log"/>
         <!-- `array` is not a configured disk in config/filesystems.php; using it made any
              Storage call in a test fail with "Disk [array] does not have a configured driver". -->
         <env name="FILESYSTEM_DISK" value="local"/>
 
-        <!-- LOTTERY FIXTURE LANES: REQUIRED BY THE PUBLIC-PAGE SUITES.
-             Every public-page and lane-parity test seeds its data by calling
-             the lane importer with the 'fixture' provider, e.g.
-             $this->importer()->import($payload, 'fixture').
-
-             config/{lane}_lottery.php defaults each fixture lane to false and
-             phpunit.xml never turned them on, so those imports returned
-             ['status' => 'rejected', 'source_state' => 'NOT_CONFIGURED'],
-             nothing was ever published, and every public page rendered its
-             empty state. That is the root cause of the public-page content
-             assertions, not a missing view.
-
-             Enabling them here is scoped to PHPUnit only. It cannot leak into
-             a deployment: each lane config force-disables the fixture source
-             whenever APP_ENV === 'production', .env.example / .env.ci /
-             .env.production.example all ship these flags off, and
-             ProductionConfigSafetyTest asserts all of that independently. -->
+        <!-- LOTTERY FIXTURE LANES: intentionally NOT set here.
+             Fixture sources are disabled by default in config/{lane}_lottery.php, and
+             production must stay that way. Fixture-dependent test classes opt in per class
+             with Tests\Support\EnablesFixtureLanes (see tests/Support/EnablesFixtureLanes.php). -->
         <!-- risk.exposure.max_stake_per_number has no default by design:
              a silently invented real-money ceiling would look configured
              while expressing nobody's risk appetite. The test environment

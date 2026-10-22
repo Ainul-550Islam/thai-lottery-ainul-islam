@@ -8,15 +8,6 @@
          in configuration rather than in compiled JavaScript. --}}
     <meta name="app-name" content="{{ config('app.name') }}">
     <meta name="theme-color" content="#059669">
-    {{-- The real-time bridge subscribes to the private channel named by this id (see
-         resources/js/echo.js). The id is not a secret - it is the viewer's own, and the gate is
-         /broadcasting/auth plus the ownership predicate in routes/channels.php, which refuse any
-         other user's subscription. But it is identity, so it is rendered only for an authenticated
-         viewer, and this layout must never be served from a public cache: an id inside a cached
-         entry is cluster 10.26's bug reopened. --}}
-    @auth
-        <meta name="user-id" content="{{ auth()->id() }}">
-    @endauth
 
     <title>{{ config('app.name', 'Thai Lottery Enterprise Wagering Platform') }} - @yield('title', 'Player Portal')</title>
 
@@ -53,14 +44,13 @@
         'resources/css/home.css',
         'resources/css/public-pages.css',
         'resources/css/account-services.css',
-                'resources/js/app.js',
+        'resources/js/app.js',
         'resources/js/layout/mobile-menu.js',
         'resources/js/wallet/wallet-balance.js',
         'resources/js/public-pages.js',
         'resources/js/account-verification.js',
         'resources/js/account-grade.js',
-        'resources/js/chat/widget.js',
-            ])
+    ])
     @stack('styles')
 </head>
 <body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">
@@ -171,8 +161,5 @@
 
     <!-- Core Scripts -->
     @stack('scripts')
-
-    {{-- Live chat widget: mounts itself from config('chat.widget.show_on'). --}}
-    @include('chat.partials.widget')
 </body>
 </html>

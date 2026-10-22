@@ -8,13 +8,6 @@ use Tests\TestCase;
 
 final class AboutLegacyRouteTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->withoutVite(); // asserts page content; public/build/manifest.json is a build artefact
-    }
-
     public function test_legacy_about_url_redirects_to_the_canonical_about_route(): void
     {
         $this->get('/about.php')

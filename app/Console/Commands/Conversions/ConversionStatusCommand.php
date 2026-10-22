@@ -8,7 +8,6 @@ use App\Enums\WalletConversionDirection;
 use App\Enums\WalletConversionStatus;
 use App\Models\WalletConversion;
 use App\Models\WalletConversionQuote;
-use App\Services\Wallet\Conversion\ConversionFeeCalculator;
 use App\Services\Wallet\Conversion\ConversionHistoryService;
 use App\Services\Wallet\Conversion\ConversionLimitService;
 use Illuminate\Console\Command;
@@ -208,7 +207,7 @@ class ConversionStatusCommand extends Command
      */
     private function rates(): array
     {
-        $calculator = app(ConversionFeeCalculator::class);
+        $calculator = app(\App\Services\Wallet\Conversion\ConversionFeeCalculator::class);
         $rates = [];
 
         foreach (WalletConversionDirection::cases() as $direction) {

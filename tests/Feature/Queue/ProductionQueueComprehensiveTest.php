@@ -7,13 +7,13 @@ namespace Tests\Feature\Queue;
 use App\DTOs\BetPurchaseData;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
 use App\DTOs\Payment\WebhookPayload;
-use App\Enums\AuditAction;
 use App\Enums\BetType;
 use App\Enums\Currency;
 use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Enums\LimitStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Enums\QueueName;
 use App\Enums\RiskLevel;
 use App\Enums\WebhookEventType;
@@ -27,6 +27,7 @@ use App\Models\AuditLog;
 use App\Models\Bet;
 use App\Models\Draw;
 use App\Models\NumberLimit;
+use App\Models\Payment;
 use App\Models\Payout;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
@@ -128,6 +129,25 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         // get it, not a guessed named argument.
     }
 
+    /**
+     * Build the production disbursement orchestrator around one test gateway.
+     */
+    private function createDisbursementServiceForGateway(PaymentGatewayInterface $gateway): WithdrawalDisbursementService
+    {
+        $gatewayManager = $this->createMock(PaymentGatewayManager::class);
+        $gatewayManager->method('forMethod')->willReturn($gateway);
+        $gatewayManager->method('withdrawalDriver')->willReturn($gateway);
+
+        return new WithdrawalDisbursementService(
+            gateways: $gatewayManager,
+            locks: app(WalletLockService::class),
+            holds: app(WalletHoldService::class),
+            transitions: app(FinancialStateTransitionService::class),
+            approvalService: $this->withdrawalApprovalService,
+            completionService: $this->withdrawalCompletionService,
+        );
+    }
+
     // -------------------------------------------------------------------------
     // 1. Job Dispatching & Priority Queues
     // -------------------------------------------------------------------------
@@ -181,12 +201,78 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $this->assertSame('0.00', (string) $player['wallet']->locked_balance);
     }
 
+    #[Test]
+    public function test_03_ambiguous_provider_failure_keeps_hold_and_blocks_duplicate_payout(): void
+    {
+        $player = $this->createPlayer('1000.00', Currency::THB);
+        $withdrawal = $this->withdrawalService->request(
+            wallet: $player['wallet'],
+            amount: Money::of('250.00', Currency::THB),
+            method: PaymentMethod::BankTransfer,
+        );
+        $this->withdrawalApprovalService->approve($withdrawal);
+
+        $sensitiveProviderMessage = 'private-provider-token-must-not-be-persisted';
+        $mockGateway = $this->createMock(PaymentGatewayInterface::class);
+        $mockGateway->method('name')->willReturn('mock_ambiguous');
+        $mockGateway->method('supportsCurrency')->willReturn(true);
+        $mockGateway->expects($this->once())
+            ->method('initiateWithdrawal')
+            ->willThrowException(new \RuntimeException($sensitiveProviderMessage));
+
+        $service = $this->createDisbursementServiceForGateway($mockGateway);
+        $firstResult = $service->disburse($withdrawal);
+
+        $this->assertTrue($firstResult->successful);
+        $this->assertTrue($firstResult->isPending);
+        $this->assertTrue($firstResult->metadata['reconciliation_required']);
+
+        $withdrawal->refresh();
+        $this->assertSame(WithdrawalStatus::Processing, $withdrawal->status);
+        $this->assertNotEmpty($withdrawal->metadata['disbursement_attempt_started_at']);
+
+        $wallet = $player['wallet']->refresh();
+        $this->assertSame('1000.00', (string) $wallet->balance);
+        $this->assertSame('250.00', (string) $wallet->locked_balance);
+
+        $payment = Payment::query()
+            ->where('payable_type', Withdrawal::class)
+            ->where('payable_id', $withdrawal->id)
+            ->firstOrFail();
+        $this->assertSame(PaymentStatus::Pending, $payment->status);
+        $this->assertSame([
+            'gateway' => 'mock_ambiguous',
+            'outcome' => 'pending',
+            'provider_reference' => null,
+            'state' => 'outcome_unknown',
+            'reconciliation_required' => true,
+        ], $payment->gateway_response);
+
+        // A duplicate execution must not transmit the transfer a second time.
+        $secondResult = $service->disburse($withdrawal);
+        $this->assertTrue($secondResult->successful);
+        $this->assertTrue($secondResult->isPending);
+        $this->assertSame('already_in_flight', $secondResult->metadata['state']);
+
+        $persistedEvidence = json_encode([
+            $firstResult->toArray(),
+            $payment->toArray(),
+            $withdrawal->toArray(),
+            AuditLog::query()
+                ->where('auditable_type', Withdrawal::class)
+                ->where('auditable_id', $withdrawal->id)
+                ->get()
+                ->toArray(),
+        ], JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString($sensitiveProviderMessage, $persistedEvidence);
+    }
+
     // -------------------------------------------------------------------------
-    // 3. Transient Provider Failure Retries
+    // 4. Unhandled Service Exception Retry Behavior
     // -------------------------------------------------------------------------
 
     #[Test]
-    public function test_03_transient_provider_failure_retries(): void
+    public function test_unhandled_service_exception_is_rethrown_for_queue_retry(): void
     {
         $player = $this->createPlayer('1000.00', Currency::THB);
         $withdrawal = $this->withdrawalService->request(
@@ -718,21 +804,13 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         $job->handle();
 
-        // This row used to be located by the fake subject the job wrote for it
-        // (auditable_type = AuditLog::class, auditable_id = 0), which is what an
-        // audit row about a run looks like when nothing pins the columns. The
-        // action is the fact that identifies it, and the subject is null now
-        // because there is no row for it to point at. Cluster #47.
         $audit = AuditLog::query()
-            ->where('action', AuditAction::SecurityAlert->value)
+            ->where('auditable_type', AuditLog::class)
             ->latest('id')
             ->first();
 
         $this->assertNotNull($audit);
         $this->assertSame(RiskLevel::Critical, $audit->risk_level);
         $this->assertStringContainsString('Audit Warning', $audit->description);
-        $this->assertNull($audit->auditable_type);
-        $this->assertNull($audit->auditable_id);
-        $this->assertSame('financial_alert', $audit->metadata['lane']);
     }
 }

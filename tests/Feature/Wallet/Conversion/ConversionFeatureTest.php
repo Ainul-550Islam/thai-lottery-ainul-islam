@@ -7,6 +7,7 @@ namespace Tests\Feature\Wallet\Conversion;
 use App\Enums\WalletConversionDirection;
 use App\Enums\WalletConversionStatus;
 use App\Models\LedgerEntry;
+use App\Models\User;
 use App\Models\WalletConversion;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -50,7 +51,7 @@ class ConversionFeatureTest extends ConversionTestCase
         $response->assertRedirect();
 
         $breakdown = $this->calculator()->breakdownFor(
-            WalletConversionDirection::CashToWin,
+            \App\Enums\WalletConversionDirection::CashToWin,
             '100.00',
             'THB',
         );

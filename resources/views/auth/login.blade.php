@@ -4,7 +4,7 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/auth-portal.css') }}">
-<style>
+<style @cspNonce>
     .tl-auth-input-icon {
         position: absolute;
         left: 1rem;
@@ -134,7 +134,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script src="{{ asset('js/auth-portal.js') }}"></script>
-@endpush

@@ -15,11 +15,6 @@ use Illuminate\Database\Eloquent\Model;
  * Ensures all security, financial, and compliance events are recorded
  * with immutable timestamps and automatic sanitization of sensitive data
  * (passwords, tokens, CVVs, API secrets, private keys).
- *
- * The $auditable argument takes a persisted model or null: null means the
- * row is evidence about a run, and the caller names the run in
- * $metadata['lane']. It deliberately no longer takes a string, because a
- * label put in the subject columns cannot be resolved back to anything.
  */
 class AuditLogService
 {
@@ -49,7 +44,7 @@ class AuditLogService
         ?int $userId,
         AuditAction|string $action,
         RiskLevel|string $riskLevel,
-        ?Model $auditable,
+        Model|string|null $auditable,
         string $description,
         array $metadata = [],
         array $oldValues = [],
@@ -58,12 +53,8 @@ class AuditLogService
         $actionEnum = is_string($action) ? (AuditAction::tryFrom($action) ?? AuditAction::Update) : $action;
         $riskEnum = is_string($riskLevel) ? (RiskLevel::tryFrom($riskLevel) ?? RiskLevel::Medium) : $riskLevel;
 
-        // The string arm of this parameter used to accept a lane label and write it
-        // into auditable_type with no id behind it, which is exactly the row shape
-        // AuditLog::creating now rejects. A subject is a model with a key, or null.
-        $subjectKey = $auditable instanceof Model ? $auditable->getKey() : null;
-        $auditableType = $subjectKey === null ? null : get_class($auditable);
-        $auditableId = $subjectKey === null ? null : (int) $subjectKey;
+        $auditableType = $auditable instanceof Model ? get_class($auditable) : (is_string($auditable) ? $auditable : null);
+        $auditableId = $auditable instanceof Model ? (int) $auditable->getKey() : null;
 
         $log = new AuditLog;
         $log->fill([

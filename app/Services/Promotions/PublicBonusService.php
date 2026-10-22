@@ -77,8 +77,8 @@ class PublicBonusService
                 'cta_label' => isset($raw['cta_label']) && is_string($raw['cta_label']) && $raw['cta_label'] !== ''
                     ? $raw['cta_label']
                     : null,
-                'cta_url' => isset($raw['cta_url']) && is_string($raw['cta_url']) && $raw['cta_url'] !== ''
-                    ? $raw['cta_url']
+                'cta_url' => isset($raw['cta_url']) && is_string($raw['cta_url'])
+                    ? $this->safeCtaUrl($raw['cta_url'])
                     : null,
             ];
 
@@ -113,5 +113,38 @@ class PublicBonusService
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Only two destinations are admitted for a promotion call-to-action: an absolute
+     * https URL with a host, or a single-slash site-relative path. Protocol-relative
+     * and backslash forms, other schemes, control characters and anything unparseable
+     * are dropped to null. The campaign still shows; only the link is withheld.
+     */
+    private function safeCtaUrl(string $value): ?string
+    {
+        $url = trim($value);
+
+        if ($url === '' || preg_match('/[\x00-\x1F\x7F]/', $url) === 1) {
+            return null;
+        }
+
+        if (str_starts_with($url, '/')) {
+            if (str_starts_with($url, '//') || str_starts_with($url, '/\\')) {
+                return null;
+            }
+
+            return $url;
+        }
+
+        $parts = parse_url($url);
+
+        if (! is_array($parts)
+            || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
+            || ! isset($parts['host']) || $parts['host'] === '') {
+            return null;
+        }
+
+        return $url;
     }
 }

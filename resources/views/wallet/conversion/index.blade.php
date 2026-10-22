@@ -151,7 +151,7 @@
                 <h2 class="wc-card__title" id="wc-blocked-heading">{{ __('wallet_conversion.blocked_title') }}</h2>
 
                 <p class="wc-notice wc-notice--warn" role="status">
-                    {{ \Illuminate\Support\Facades\Lang::has($blockedReason->messageKey()) ? __($blockedReason->messageKey()) : $blockedReason->label() }}
+                    {{ ($blockedReason->messageKey() !== null && \Illuminate\Support\Facades\Lang::has($blockedReason->messageKey())) ? __($blockedReason->messageKey()) : $blockedReason->label() }}
                 </p>
 
                 <p class="wc-card__hint">{{ __('wallet_conversion.blocked_hint') }}</p>

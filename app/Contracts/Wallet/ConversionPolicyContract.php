@@ -6,7 +6,6 @@ namespace App\Contracts\Wallet;
 
 use App\DTOs\Wallet\ConversionPolicyDecisionData;
 use App\DTOs\Wallet\ConversionRequestData;
-use App\Exceptions\Wallet\ConversionException;
 
 /**
  * Decides whether a conversion request may proceed, before any money moves.
@@ -44,7 +43,7 @@ interface ConversionPolicyContract
      * so a caller that wants "just do it or tell me why" does not have to
      * translate a decision object itself.
      *
-     * @throws ConversionException
+     * @throws \App\Exceptions\Wallet\ConversionException
      */
     public function assertAllowed(ConversionRequestData $request): void;
 }

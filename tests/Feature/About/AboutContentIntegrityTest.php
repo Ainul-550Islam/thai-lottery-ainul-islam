@@ -12,13 +12,6 @@ use Tests\TestCase;
  */
 final class AboutContentIntegrityTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->withoutVite(); // asserts page content; public/build/manifest.json is a build artefact
-    }
-
     public function test_timeline_is_ordered_and_source_labelled(): void
     {
         $content = (string) $this->get(route('about'))->assertOk()->getContent();

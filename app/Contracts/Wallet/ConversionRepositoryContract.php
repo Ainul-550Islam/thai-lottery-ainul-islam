@@ -6,7 +6,6 @@ namespace App\Contracts\Wallet;
 
 use App\DTOs\Wallet\ConversionHistoryFilterData;
 use App\Enums\WalletConversionStatus;
-use App\Exceptions\Wallet\ConversionException;
 use App\Models\WalletConversion;
 use DateTimeImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -65,7 +64,7 @@ interface ConversionRepositoryContract
      *
      * @param  array<string, mixed>  $attributes
      *
-     * @throws ConversionException when the transition is not in the state graph
+     * @throws \App\Exceptions\Wallet\ConversionException when the transition is not in the state graph
      */
     public function transition(
         WalletConversion $conversion,
@@ -123,4 +122,10 @@ interface ConversionRepositoryContract
      * @return array<string, int>
      */
     public function statusCountsForUser(int $userId): array;
+
+    /**
+     * Exact total of amount_in across the member's completed conversions, as a
+     * two-decimal string. Summed in PHP with bcmath, never with floating point.
+     */
+    public function completedVolumeInForUser(int $userId): string;
 }

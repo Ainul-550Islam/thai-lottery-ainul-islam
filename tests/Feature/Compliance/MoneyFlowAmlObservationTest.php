@@ -10,7 +10,6 @@ use App\Enums\UserStatus;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Services\Compliance\AmlRiskAssessmentService;
 use App\Services\Compliance\AmlRiskService;
 use App\Services\Compliance\MoneyFlowAmlObservationService;
 use App\Services\Finance\Money;
@@ -19,7 +18,6 @@ use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Support\Facades\Hash;
-use RuntimeException;
 
 /**
  * Part 61 — the AML orchestrator now has callers on the money side.
@@ -51,9 +49,6 @@ final class MoneyFlowAmlObservationTest extends TestCase
         parent::setUp();
         $this->seed(LedgerAccountSeeder::class);
         config(['aml.freshness_seconds' => 0]);
-        // Suite convention (see Tests\TestCase): money paths run with the
-        // real-money launch gate open; RealMoneyGateTest closes it on purpose.
-        config(['real_money.enabled' => true]);
     }
 
     private function account(): User
@@ -71,13 +66,13 @@ final class MoneyFlowAmlObservationTest extends TestCase
         {
             public function __construct(private readonly ?AmlRiskLevel $level, private readonly bool $throws)
             {
-                parent::__construct(app(AmlRiskAssessmentService::class));
+                parent::__construct(app(\App\Services\Compliance\AmlRiskAssessmentService::class));
             }
 
             public function measure(int $userId): array
             {
                 if ($this->throws) {
-                    throw new RuntimeException('assessment backend unavailable');
+                    throw new \RuntimeException('assessment backend unavailable');
                 }
 
                 return [
@@ -127,7 +122,7 @@ final class MoneyFlowAmlObservationTest extends TestCase
         $this->reportingAml(AmlRiskLevel::Critical);
         config(['aml.mode' => 'enforce']);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('prohibited');
 
         app(MoneyFlowAmlObservationService::class)
@@ -168,7 +163,7 @@ final class MoneyFlowAmlObservationTest extends TestCase
         $this->reportingAml(null, throws: true);
         config(['aml.mode' => 'enforce']);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('unavailable');
 
         app(MoneyFlowAmlObservationService::class)

@@ -39,7 +39,8 @@ final class ConversionLimits implements JsonSerializable
         private readonly Currency $currency,
         private readonly bool $enforceDaily = true,
         private readonly bool $enforceMonthly = true,
-    ) {}
+    ) {
+    }
 
     /**
      * @param  array<string, mixed>  $limits  the `limits` block of config/conversions.php

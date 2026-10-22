@@ -7,7 +7,6 @@ namespace App\Listeners\Wallet;
 use App\Enums\RiskLevel;
 use App\Events\Wallet\ConversionRejected;
 use App\Services\Observability\OperationalAlertService;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -63,7 +62,8 @@ class AlertOnConversionFailureSpike
 
     public function __construct(
         private readonly OperationalAlertService $alerts,
-    ) {}
+    ) {
+    }
 
     public function handle(ConversionRejected $event): void
     {
@@ -121,6 +121,6 @@ class AlertOnConversionFailureSpike
      */
     private function windowCount(string $errorCode): int
     {
-        return (int) (Cache::get('conversion:metrics:rejected:'.$errorCode) ?? 0);
+        return (int) (\Illuminate\Support\Facades\Cache::get('conversion:metrics:rejected:'.$errorCode) ?? 0);
     }
 }

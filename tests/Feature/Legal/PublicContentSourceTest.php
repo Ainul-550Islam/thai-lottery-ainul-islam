@@ -16,13 +16,6 @@ use Tests\TestCase;
  */
 class PublicContentSourceTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->withoutVite(); // asserts page content; public/build/manifest.json is a build artefact
-    }
-
     use RefreshDatabase;
 
     /**

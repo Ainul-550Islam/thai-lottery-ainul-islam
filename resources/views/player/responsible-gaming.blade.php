@@ -72,7 +72,7 @@
                     <option value="365_days">{{ __('player.self_exclusion_365') }}</option>
                 </select>
             </div>
-            <button type="submit" class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-500" onclick="return confirm(@json(__('player.self_exclusion_confirm'))) ">{{ __('player.self_exclusion_submit') }}</button>
+            <button type="submit" class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-500" data-confirm="{{ __('player.self_exclusion_confirm') }}">{{ __('player.self_exclusion_submit') }}</button>
         </form>
     </section>
 </div>

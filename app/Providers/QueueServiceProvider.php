@@ -59,7 +59,14 @@ class QueueServiceProvider extends ServiceProvider
      *
      * @var list<string>
      */
-    private const MONEY_QUEUES = ['settlement', 'payouts', 'finance'];
+    private const MONEY_QUEUES = [
+        'financial-critical',
+        'settlement',
+        'payouts',
+        'finance',
+        'finance-reconciliation',
+        'finance-webhooks',
+    ];
 
     public function boot(): void
     {

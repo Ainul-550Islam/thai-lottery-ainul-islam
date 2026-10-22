@@ -48,7 +48,8 @@ final class ConversionRejected
         public readonly WalletConversionChannel $channel,
         public readonly string $errorCode,
         public readonly array $context = [],
-    ) {}
+    ) {
+    }
 
     public static function fromException(
         ConversionException $exception,

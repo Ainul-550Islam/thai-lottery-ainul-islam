@@ -3,22 +3,19 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountGradeController;
-use App\Http\Controllers\Admin\BalanceTransferDeskController;
 use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
 use App\Http\Controllers\Admin\ReleaseOperationsController;
 use App\Http\Controllers\Agent\AgentPortalController;
 use App\Http\Controllers\Auth\MemberAuthController;
 use App\Http\Controllers\Betting\ThaiLotteryBettingController;
 use App\Http\Controllers\BingoLotteryController;
-use App\Http\Controllers\Chat\ChatAdminController;
-use App\Http\Controllers\Chat\ChatAttachmentController;
-use App\Http\Controllers\Chat\ChatOperatorController;
-use App\Http\Controllers\Chat\ChatVisitorController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\GloL6Controller;
 use App\Http\Controllers\GloResultsPageController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Legal\AccountAgeVerificationController;
+use App\Http\Controllers\Legal\LegalConsentController;
 use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\LotteryHubController;
 use App\Http\Controllers\LotteryPurchasePageController;
@@ -38,11 +35,12 @@ use App\Http\Controllers\PublicVerificationController;
 use App\Http\Controllers\ResultsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Support\SupportPortalController;
-use App\Http\Controllers\Transfer\BalanceTransferController;
 use App\Http\Controllers\Verification\AccountVerificationController as MemberAccountVerificationController;
 use App\Http\Controllers\Web\BetPurchaseController;
 use App\Http\Controllers\Web\PaymentCallbackController;
 use App\Http\Controllers\Web\PlayerWebController;
+use App\Http\Controllers\Wallet\WalletConversionActionController;
+use App\Http\Controllers\Wallet\WalletConversionPageController;
 use App\Http\Controllers\WeeklyLotteryController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,7 +87,7 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/login', [MemberAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [MemberAuthController::class, 'login'])->name('login.attempt')->middleware('throttle:login');
     Route::get('/register', [MemberAuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [MemberAuthController::class, 'register'])->name('register.attempt')->middleware('throttle:login');
+    Route::post('/register', [MemberAuthController::class, 'register'])->name('register.attempt')->middleware('throttle:register');
 
     // Password recovery: account no./email + CAPTCHA request, then the
     // token-gated new-password form. Throttled on both POSTs.
@@ -106,62 +104,59 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [MemberAuthController::class, 'logout'])->name('logout');
 
+    // Legal acknowledgement and age-attestation recovery routes are deliberately
+    // outside the transaction gates so existing users can complete them.
+    Route::get('/legal/consent', [LegalConsentController::class, 'show'])->name('legal.consent.form');
+    Route::post('/legal/consent', [LegalConsentController::class, 'store'])
+        ->middleware('throttle:account-verification')
+        ->name('legal.consent.store');
+    Route::get('/account/age-verification', [AccountAgeVerificationController::class, 'show'])
+        ->name('account.age-verification.form');
+    Route::post('/account/age-verification', [AccountAgeVerificationController::class, 'store'])
+        ->middleware('throttle:account-verification')
+        ->name('account.age-verification.store');
+
     Route::get('/dashboard', [PlayerWebController::class, 'dashboard'])->name('player.dashboard');
     Route::get('/draws', [PlayerWebController::class, 'draws'])->name('player.draws');
     Route::get('/draws/{id}', [PlayerWebController::class, 'drawDetail'])->name('player.draws.detail');
 
     Route::get('/bet', [PlayerWebController::class, 'betSlip'])->name('player.bet');
     Route::post('/bet/purchase', [BetPurchaseController::class, 'store'])
-        ->middleware('throttle:bet')
+        ->middleware(['active', 'throttle:bet', 'adult', 'legal.current'])
         ->name('player.bets.purchase');
     Route::post('/player/bets/purchase', [BetPurchaseController::class, 'store'])
-        ->middleware('throttle:bet')
+        ->middleware(['active', 'throttle:bet', 'adult', 'legal.current'])
         ->name('player.bets.purchase.alias');
     Route::get('/bets', [PlayerWebController::class, 'bets'])->name('player.bets');
 
     Route::get('/wallet', [PlayerWebController::class, 'wallet'])->name('player.wallet');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Balance transfers (Cash <-> Win)
-    |--------------------------------------------------------------------------
-    |
-    | All four endpoints are inside the `auth` group, so an anonymous caller
-    | never reaches the controller. They resolve the player from the session and
-    | never from the payload: there is no user id or wallet id parameter to
-    | tamper with, and `show` filters by the caller's own rows before matching
-    | the reference, so another player's reference is a 404 rather than a leak.
-    |
-    | `transfer-submit` is the tight limiter (two wallet row locks per call);
-    | `transfer-quote` is loose because it reads and prices only.
-    */
-    Route::get('/wallet/transfer/panel', [BalanceTransferController::class, 'panel'])
-        ->middleware('throttle:transfer-quote')
-        ->name('player.transfer.panel');
-
-    Route::match(['get', 'post'], '/wallet/transfer/quote', [BalanceTransferController::class, 'quote'])
-        ->middleware('throttle:transfer-quote')
-        ->name('player.transfer.quote');
-
-    Route::post('/wallet/transfer', [BalanceTransferController::class, 'store'])
-        ->middleware('throttle:transfer-submit')
-        ->name('player.transfer.store');
-
-    Route::get('/wallet/transfers', [BalanceTransferController::class, 'index'])
-        ->middleware('throttle:transfer-quote')
-        ->name('player.transfer.index');
-
-    Route::get('/wallet/transfers/{reference}', [BalanceTransferController::class, 'show'])
-        ->where('reference', '[A-Za-z0-9_\\-]{1,32}')
-        ->middleware('throttle:transfer-quote')
-        ->name('player.transfer.show');
+    // Wallet conversion moves money between the member's own wallets and can fund
+    // betting, so every money-moving action carries the 18+ attestation and the
+    // current legal-consent gates, as deposits and bets do. The read-only pages
+    // stay open to any active member. KYC, standing and self-exclusion are also
+    // enforced inside the policy service.
+    Route::get('/wallet/convert', [WalletConversionPageController::class, 'index'])
+        ->name('player.wallet.conversion');
+    Route::get('/wallet/convert/{reference}', [WalletConversionPageController::class, 'show'])
+        ->where('reference', '[A-Za-z0-9-]{1,64}')
+        ->name('player.wallet.conversion.show');
+    Route::post('/wallet/convert/preview', [WalletConversionPageController::class, 'preview'])
+        ->middleware(['active', 'adult', 'legal.current', 'throttle:wallet-conversion-quote'])
+        ->name('player.wallet.conversion.preview');
+    Route::post('/wallet/convert/quote', [WalletConversionActionController::class, 'quote'])
+        ->middleware(['active', 'adult', 'legal.current', 'conversion.enabled', 'throttle:wallet-conversion-quote'])
+        ->name('player.wallet.conversion.quote');
+    Route::post('/wallet/convert', [WalletConversionActionController::class, 'store'])
+        ->middleware(['active', 'adult', 'legal.current', 'conversion.enabled', 'conversion.idempotency', 'throttle:wallet-conversion-execute'])
+        ->name('player.wallet.conversion.store');
 
     Route::get('/deposit', [PlayerWebController::class, 'deposit'])->name('player.deposit');
     Route::get('/deposit/status/{deposit}', [PlayerWebController::class, 'depositStatus'])
         ->where('deposit', '[A-Za-z0-9_\\-]{1,80}')
         ->name('player.deposit.status');
     Route::post('/deposit', [PlayerWebController::class, 'storeDeposit'])
-        ->middleware('throttle:deposit')
+        ->middleware(['active', 'throttle:deposit', 'adult', 'legal.current'])
         ->name('player.deposit.store');
 
     Route::get('/withdraw', [PlayerWebController::class, 'withdraw'])->name('player.withdraw');
@@ -169,7 +164,7 @@ Route::middleware('auth')->group(function (): void {
         ->where('withdrawal', '[A-Za-z0-9_\\-]{1,80}')
         ->name('player.withdrawal.status');
     Route::post('/withdraw', [PlayerWebController::class, 'storeWithdraw'])
-        ->middleware('throttle:withdrawal')
+        ->middleware(['active', 'throttle:withdrawal', 'adult', 'legal.current'])
         ->name('player.withdraw.store');
 
     Route::get('/profile', [PlayerWebController::class, 'profile'])->name('player.profile');
@@ -207,7 +202,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/account/verification', [MemberAccountVerificationController::class, 'show'])
         ->name('account.verification');
     Route::post('/account/verification', [MemberAccountVerificationController::class, 'submit'])
-        ->middleware('throttle:account-verification')
+        ->middleware(['throttle:account-verification', 'legal.current'])
         ->name('account.verification.submit');
     Route::get('/account/verification/document/{document}', [MemberAccountVerificationController::class, 'download'])
         ->middleware('throttle:account-verification')
@@ -314,7 +309,7 @@ Route::post('/check', [HomeController::class, 'checkSubmit'])
 // Public sales-point search UI (uses existing GloSalesPointService).
 Route::get('/sales-points', [HomeController::class, 'salesPoints'])->name('sales-points');
 
-// Public informational + legal pages (versioned Terms from config/legal.php).
+// Public informational + legal pages (published database version with config fallback).
 // public.legal = PublicLegalHeaders middleware: safe guest GET cache only.
 Route::get('/about', [PublicPagesController::class, 'about'])
     ->middleware('public.legal')
@@ -769,9 +764,11 @@ Route::middleware('auth')->group(function (): void {
 
 // User-facing locale switch route (session & cookie persistence)
 Route::get('/locale/{locale}', function (string $locale) {
-    if (in_array($locale, ['en', 'th'], true)) {
-        session(['locale' => $locale]);
-        cookie()->queue(cookie('locale', $locale, 60 * 24 * 365));
+    $supported = \App\Support\SupportedLocale::normalise($locale);
+
+    if ($supported !== null) {
+        session(['locale' => $supported]);
+        cookie()->queue(cookie('locale', $supported, 60 * 24 * 365));
     }
 
     return redirect()->back();
@@ -1039,73 +1036,6 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'can:access-ad
     Route::get('/compliance-audit', [ReleaseOperationsController::class, 'show'])
         ->defaults('surface', 'compliance-audit')
         ->name('compliance-audit.index');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Balance-transfer desk
-    |--------------------------------------------------------------------------
-    | The operator surface the two grants in config/permission.php were written
-    | for. They are checked SEPARATELY and on purpose:
-    |
-    |   transfer.view_any  reads ANY player's transfer history - balances,
-    |                      timestamps and request ips for people who never
-    |                      consented to this particular staff member seeing them.
-    |   transfer.reverse   MOVES MONEY.
-    |
-    | RolePermissionSeeder gives an auditor the first and withholds the second,
-    | so collapsing them into one "is staff" test here would hand an auditor a
-    | money movement they were deliberately not granted.
-    |
-    | Bound by {reference}, not by numeric id: a reference is what support reads
-    | aloud and what an operator pastes out of a ticket, and using the id would
-    | leak table volume.
-    */
-    Route::middleware('throttle:transfer-desk')->group(function (): void {
-        Route::get('/transfers', [BalanceTransferDeskController::class, 'index'])
-            ->middleware('can:transfer.view_any')
-            ->name('transfers.index');
-
-        Route::get('/transfers/{reference}', [BalanceTransferDeskController::class, 'show'])
-            ->where('reference', '[A-Za-z0-9_\\-]{1,32}')
-            ->middleware('can:transfer.view_any')
-            ->name('transfers.show');
-
-        Route::post('/transfers/{reference}/reverse', [BalanceTransferDeskController::class, 'reverse'])
-            ->where('reference', '[A-Za-z0-9_\\-]{1,32}')
-            // The tightest limiter in the application, on the only admin route here
-            // that moves money. ReverseBalanceTransferRequest::authorize() checks the
-            // same permission again, and so does the controller: three layers, because
-            // a middleware re-order must not be able to make this endpoint public.
-            ->middleware(['throttle:transfer-reverse', 'can:transfer.reverse'])
-            ->name('transfers.reverse');
-
-        /*
-        | The checker's half of the four-eyes lane. A reversal at or above
-        | config('transfer.reversal_approval.require_at_or_above') does not execute on
-        | the POST above - it opens a pending request, and only these two endpoints move
-        | the money.
-        |
-        | The decision rides on a route DEFAULT, not on the request body, so a caller
-        | cannot turn an approval into a rejection by adding a field. Both routes share
-        | one controller method for that reason: DecideReversalApprovalRequest reads the
-        | default and the two differ in one rule (a rejection must state why).
-        |
-        | Gated by transfer.approve_reverse, a distinct grant from transfer.reverse, so
-        | the maker and the checker can be different people by role as well as by
-        | accident. Independence per ACTOR is enforced in the service under a row lock.
-        */
-        Route::post('/transfers/{reference}/reverse/approve', [BalanceTransferDeskController::class, 'decideReversal'])
-            ->where('reference', '[A-Za-z0-9_\\-]{1,32}')
-            ->middleware(['throttle:transfer-reverse-decide', 'can:transfer.approve_reverse'])
-            ->defaults('approval_decision', 'approved')
-            ->name('transfers.reverse.approve');
-
-        Route::post('/transfers/{reference}/reverse/reject', [BalanceTransferDeskController::class, 'decideReversal'])
-            ->where('reference', '[A-Za-z0-9_\\-]{1,32}')
-            ->middleware(['throttle:transfer-reverse-decide', 'can:transfer.approve_reverse'])
-            ->defaults('approval_decision', 'rejected')
-            ->name('transfers.reverse.reject');
-    });
 });
 
 /*
@@ -1144,122 +1074,6 @@ Route::prefix('agent')->name('agent.')->middleware('auth')->group(function (): v
         ->where('reference', '[a-f0-9]{64}')
         ->name('referrals.show');
 });
-
-/*
-|--------------------------------------------------------------------------
-| Live Chat Support — visitor API + operator console
-|--------------------------------------------------------------------------
-|
-| The visitor surface is intentionally reachable WITHOUT auth: the whole
-| point of live chat is that a visitor can ask before signing in. Identity
-| is carried by the HttpOnly guest-token cookie that the chat.guest
-| middleware issues on first contact, so every visitor endpoint resolves
-| the conversation from that hash. CSRF still applies (this is the web
-| group), which is what keeps a third-party page from forging a send.
-|
-| The operator console is the opposite: auth + the access-admin gate, and
-| then per-action permission checks inside ChatConversationPolicy.
-|
-| Rate limiting is applied twice on purpose. The named `throttle:` limiter
-| is the coarse, IP/user-keyed backstop registered in ChatServiceProvider;
-| ChatRateLimitService adds the conversation-scoped bucket on top.
-|
-*/
-
-// -- Visitor-facing chat (anonymous-friendly) --------------------------------
-Route::prefix('chat')->name('chat.')->middleware(['chat.guest'])->group(function (): void {
-    // Availability + widget config are safe to poll and need no conversation.
-    Route::get('/availability', [ChatVisitorController::class, 'availability'])
-        ->middleware('throttle:chat-poll')
-        ->name('availability');
-    Route::get('/widget', [ChatVisitorController::class, 'widgetConfig'])
-        ->name('widget');
-
-    // Opening / resuming a conversation.
-    Route::post('/start', [ChatVisitorController::class, 'start'])
-        ->middleware('throttle:chat-start')
-        ->name('start');
-
-    // The visitor's own conversation.
-    Route::get('/conversation', [ChatVisitorController::class, 'current'])
-        ->name('conversation');
-    Route::get('/conversation/poll', [ChatVisitorController::class, 'poll'])
-        ->middleware('throttle:chat-poll')
-        ->name('conversation.poll');
-    Route::get('/conversation/transcript', [ChatVisitorController::class, 'transcript'])
-        ->name('conversation.transcript');
-    Route::post('/conversation/messages', [ChatVisitorController::class, 'sendMessage'])
-        ->middleware('throttle:chat-send')
-        ->name('conversation.send');
-    Route::post('/conversation/read', [ChatVisitorController::class, 'markRead'])
-        ->name('conversation.read');
-    Route::post('/conversation/close', [ChatVisitorController::class, 'close'])
-        ->name('conversation.close');
-
-    // Attachments: upload returns metadata; download streams from the
-    // private disk after an ownership check on every request.
-    Route::post('/conversation/attachments', [ChatAttachmentController::class, 'upload'])
-        ->middleware('throttle:chat-send')
-        ->name('conversation.attachments.upload');
-    Route::get('/conversation/{conversationId}/messages/{messageId}/attachments/{index}', [ChatAttachmentController::class, 'download'])
-        ->whereNumber(['conversationId', 'messageId', 'index'])
-        ->name('conversation.attachments.download');
-});
-
-// -- Operator console --------------------------------------------------------
-Route::prefix('operator/chat')->name('operator.chat.')
-    ->middleware(['auth', 'can:access-admin', 'throttle:chat-operator'])
-    ->group(function (): void {
-        Route::get('/', [ChatOperatorController::class, 'console'])->name('console');
-        Route::get('/dashboard', [ChatOperatorController::class, 'dashboard'])->name('dashboard');
-        Route::get('/health', [ChatOperatorController::class, 'health'])->name('health');
-        Route::get('/canned', [ChatOperatorController::class, 'cannedIndex'])->name('canned');
-        Route::post('/take', [ChatOperatorController::class, 'takeNext'])->name('take');
-        Route::post('/pause', [ChatOperatorController::class, 'pause'])->name('pause');
-        Route::post('/resume', [ChatOperatorController::class, 'resume'])->name('resume');
-
-        Route::post('/{conversationId}/poll', [ChatOperatorController::class, 'poll'])
-            ->whereNumber('conversationId')
-            ->name('poll');
-        Route::post('/{conversationId}/take', [ChatOperatorController::class, 'takeSpecific'])
-            ->whereNumber('conversationId')
-            ->name('take.specific');
-        Route::post('/{conversationId}/message', [ChatOperatorController::class, 'sendMessage'])
-            ->whereNumber('conversationId')
-            ->name('message');
-        Route::post('/{conversationId}/read', [ChatOperatorController::class, 'markRead'])
-            ->whereNumber('conversationId')
-            ->name('read');
-        Route::post('/{conversationId}/assign', [ChatOperatorController::class, 'assign'])
-            ->whereNumber('conversationId')
-            ->name('assign');
-        Route::post('/{conversationId}/release', [ChatOperatorController::class, 'release'])
-            ->whereNumber('conversationId')
-            ->name('release');
-        Route::post('/{conversationId}/close', [ChatOperatorController::class, 'close'])
-            ->whereNumber('conversationId')
-            ->name('close');
-        Route::post('/{conversationId}/priority', [ChatOperatorController::class, 'setPriority'])
-            ->whereNumber('conversationId')
-            ->name('priority');
-    });
-
-// -- Canned response administration -----------------------------------------
-// A distinct permission (chat.manage_canned) guards these, so the console
-// can hold reply/assign/close without ever granting authorship of the saved
-// replies themselves.
-Route::prefix('admin/chat/canned')->name('admin.chat.canned.')
-    ->middleware(['auth', 'can:access-admin', 'throttle:chat-operator'])
-    ->group(function (): void {
-        Route::get('/', [ChatAdminController::class, 'index'])->name('index');
-        Route::post('/', [ChatAdminController::class, 'store'])->name('store');
-        Route::put('/{cannedResponse}', [ChatAdminController::class, 'update'])
-            ->whereNumber('cannedResponse')
-            ->name('update');
-        Route::post('/{cannedResponse}/disable', [ChatAdminController::class, 'disable'])
-            ->whereNumber('cannedResponse')
-            ->name('disable');
-    });
 
 /*
 |--------------------------------------------------------------------------

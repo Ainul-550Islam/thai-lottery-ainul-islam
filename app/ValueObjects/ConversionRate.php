@@ -36,7 +36,8 @@ final class ConversionRate implements JsonSerializable, Stringable
 
     private function __construct(
         private readonly string $rate,
-    ) {}
+    ) {
+    }
 
     /**
      * Build a rate from a decimal string, int or float.

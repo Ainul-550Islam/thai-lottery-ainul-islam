@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Glo;
 
-use App\Exceptions\GloDealerException;
 use App\Services\Lottery\GloLiveDrawService;
 use App\Services\Lottery\YouTubeEmbedUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -133,7 +132,7 @@ final class GloLiveDrawConfiguredTest extends TestCase
     {
         $this->configureLive('configured', self::RAW_URL);
 
-        $this->expectException(GloDealerException::class);
+        $this->expectException(\App\Exceptions\GloDealerException::class);
 
         app(GloLiveDrawService::class)->replays();
     }

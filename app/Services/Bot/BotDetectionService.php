@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use InvalidArgumentException;
 use LogicException;
 use Psr\Log\LoggerInterface;
-use RuntimeException;
 use Throwable;
 use WeakMap;
 
@@ -29,56 +28,18 @@ final class BotDetectionService
     /** @var WeakMap<Request, BotDecisionData> */
     private WeakMap $decisions;
 
-    private readonly Repository $config;
-
-    private readonly LoggerInterface $logger;
-
-    private readonly BotScoreCalculator $calculator;
-
-    /** @var array<string, BotSignal> */
-    private readonly array $signals;
-
-    private readonly bool $directSignalListMode;
-
-    /**
-     * @param  Repository|array<int|string, BotSignal>  $config
-     * @param  array<string, BotSignal>  $signals
-     */
+    /** @param array<string, BotSignal> $signals */
     public function __construct(
-        mixed $config = null,
-        ?BotScoreCalculator $calculator = null,
-        ?LoggerInterface $logger = null,
-        array $signals = [],
+        private readonly Repository $config,
+        private readonly BotScoreCalculator $calculator,
+        private readonly LoggerInterface $logger,
+        private readonly array $signals,
     ) {
-        $calculator ??= app(BotScoreCalculator::class);
-        $this->calculator = $calculator;
-        if (is_array($config)) {
-            $this->config = app('config');
-            $this->logger = $logger ?? app('log');
-            $mapped = [];
-            foreach ($config as $key => $signal) {
-                if (! $signal instanceof BotSignal) {
-                    throw new InvalidArgumentException('Bot signals must implement BotSignal.');
-                }
-                $name = is_string($key) ? $key : $signal->score(Request::create('/'))->signal;
-                $mapped[$name] = $signal;
+        foreach ($signals as $name => $signal) {
+            if (! is_string($name) || ! $signal instanceof BotSignal) {
+                throw new InvalidArgumentException('Bot signals must be keyed BotSignal instances.');
             }
-            $this->signals = $mapped;
-            $this->directSignalListMode = true;
-        } else {
-            if (! $logger instanceof LoggerInterface) {
-                throw new InvalidArgumentException('LoggerInterface is required.');
-            }
-            foreach ($signals as $name => $signal) {
-                if (! is_string($name) || ! $signal instanceof BotSignal) {
-                    throw new InvalidArgumentException('Bot signals must be keyed BotSignal instances.');
-                }
-                new SignalResult($name, 0);
-            }
-            $this->config = $config;
-            $this->logger = $logger;
-            $this->signals = $signals;
-            $this->directSignalListMode = false;
+            new SignalResult($name, 0);
         }
         $this->decisions = new WeakMap;
     }
@@ -88,27 +49,6 @@ final class BotDetectionService
         if (isset($this->decisions[$request])) {
             return $this->decisions[$request];
         }
-
-        if ($this->directSignalListMode) {
-            foreach ($this->signals as $name => $_signal) {
-                $existing = $this->config->get('bot.signals.'.$name);
-                if (! is_array($existing)) {
-                    $this->config->set('bot.signals.'.$name, [
-                        'enabled' => true,
-                        'weight' => 70,
-                        'mode' => 'enforce',
-                    ]);
-                } else {
-                    if ($this->config->get('bot.mode') === 'enforce') {
-                        $this->config->set('bot.signals.'.$name.'.mode', 'enforce');
-                    }
-                    if (((int) ($existing['weight'] ?? 0)) < 70) {
-                        $this->config->set('bot.signals.'.$name.'.weight', 70);
-                    }
-                }
-            }
-        }
-
         // Validate global config even when disabled; do not call any signal then.
         $empty = $this->calculator->calculate([]);
         if ($this->config->get('bot.enabled', true) === false) {
@@ -124,9 +64,6 @@ final class BotDetectionService
                 throw new InvalidArgumentException('Invalid bot signal registry.');
             }
             $zeroes[] = new SignalResult($name, 0);
-            if ($this->directSignalListMode && ! isset($this->signals[$name])) {
-                continue;
-            }
             if (($settings['enabled'] ?? null) === true && ! isset($this->signals[$name])) {
                 throw new InvalidArgumentException('An enabled bot signal has no implementation.');
             }
@@ -136,7 +73,7 @@ final class BotDetectionService
         $results = [];
         $unavailable = [];
         foreach ($configured as $name => $settings) {
-            if (! $settings['enabled'] || ($this->directSignalListMode && ! isset($this->signals[$name]))) {
+            if (! $settings['enabled']) {
                 continue;
             }
             try {
@@ -151,7 +88,7 @@ final class BotDetectionService
             } catch (Throwable $error) {
                 if ($empty->mode === 'enforce' && ($settings['mode'] ?? 'log') === 'enforce') {
                     // Future middleware must map this to service-unavailable, not a bot verdict.
-                    throw new RuntimeException('Bot evidence unavailable; enforcement assessment aborted.', 0, $error);
+                    throw new \RuntimeException('Bot evidence unavailable; enforcement assessment aborted.', 0, $error);
                 }
                 // Observation failure is explicit, not a fabricated high score or block.
                 $unavailable[] = $name;
@@ -167,7 +104,7 @@ final class BotDetectionService
                 $this->logger->info('bot.assessment', $decision->toArray() + ['unavailable_signals' => $unavailable]);
             } catch (Throwable $error) {
                 if ($empty->mode === 'enforce') {
-                    throw new RuntimeException('Bot observability unavailable.', 0, $error);
+                    throw new \RuntimeException('Bot observability unavailable.', 0, $error);
                 }
                 $decision = $this->withReason($decision, 'BOT_OBSERVABILITY_UNAVAILABLE');
             }

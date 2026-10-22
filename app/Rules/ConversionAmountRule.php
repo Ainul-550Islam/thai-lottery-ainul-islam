@@ -32,7 +32,8 @@ class ConversionAmountRule implements ValidationRule
 {
     public function __construct(
         private readonly Currency $currency = Currency::THB,
-    ) {}
+    ) {
+    }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {

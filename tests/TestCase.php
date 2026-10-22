@@ -5,8 +5,6 @@ namespace Tests;
 use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
-use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 /**
@@ -120,48 +118,20 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Clean up after a truncating suite, so its last test cannot leak into the
-     * next test FILE.
-     *
-     * WHY THIS EXISTS
-     * DatabaseTruncation truncates in setUp, never in tearDown. So whatever a
-     * truncating suite's LAST test commits stays in the shared disposable database
-     * for the rest of the PHPUnit process. That would be survivable on its own,
-     * except for the interaction with RefreshDatabase: DatabaseTruncation's first
-     * run executes migrate:fresh and sets RefreshDatabaseState::$migrated, and
-     * RefreshDatabase::refreshTestDatabase() skips migrate:fresh whenever that flag
-     * is already set. A RefreshDatabase suite that runs later therefore inherits the
-     * leaked rows instead of rebuilding over them.
-     *
-     * The failure this caused was invisible from inside either suite. Every
-     * DatabaseTruncation and every RefreshDatabase suite passed on its own, and both
-     * passed under the per-suite invocation, because each `--testsuite=` run is its
-     * own process. Under a single `php artisan test` - which is what CI runs -
-     * ProductionObservabilityComprehensiveTest seeded RolePermissionSeeder, left the
-     * five roles and their 91 grants committed, and nine authorization tests in
-     * TransferDeskSecurityTest then failed: `Role::findOrCreate('admin')` found the
-     * SEEDED admin, so every operator inherited transfer.reverse and reversals that
-     * must have been refused answered 201.
-     *
-     * WHAT IT DOES
-     * Calls the trait's low-level truncateTablesForAllConnections() rather than
-     * truncateDatabaseTables(), deliberately: the public entry point would re-enter
-     * the migrate:fresh branch when the flag is unset and would re-run any configured
-     * seeder. Only the tables are cleared here, and only for suites that actually
-     * truncate - a RefreshDatabase suite must not have its wrapping transaction's
-     * contents deleted out from under it.
-     *
-     * Nothing inside a truncating suite can depend on rows surviving to its own next
-     * test, because setUp already truncates, so this changes no behaviour within one;
-     * it only restores the boundary between files that the trait was assumed to
-     * provide.
+     * DatabaseTruncation commits its rows and only clears tables BEFORE each
+     * test. Without clearing after the class, committed rows leak into the next
+     * RefreshDatabase suite (for example a fixed username collides). Clearing
+     * after each such test keeps the suites independent. The seeded chart is
+     * re-created by setUp() on the next test.
      */
     protected function tearDown(): void
     {
-        if (in_array(DatabaseTruncation::class, class_uses_recursive($this), true)
-            && RefreshDatabaseState::$migrated
-            && method_exists($this, 'truncateTablesForAllConnections')) {
-            $this->truncateTablesForAllConnections();
+        if (in_array(
+            \Illuminate\Foundation\Testing\DatabaseTruncation::class,
+            class_uses_recursive($this),
+            true,
+        )) {
+            $this->truncateDatabaseTables();
         }
 
         parent::tearDown();

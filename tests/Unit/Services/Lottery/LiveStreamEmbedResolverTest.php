@@ -57,7 +57,7 @@ final class LiveStreamEmbedResolverTest extends TestCase
         yield 'posts page' => ['https://www.facebook.com/SomePage/posts/1234567890123'];
         yield 'javascript scheme' => ['javascript:alert(1)'];
         yield 'space in url' => ['https://www.facebook.com/watch/?v=12345 6789012345'];
-        yield 'nul byte' => ['https://www.facebook.com/watch/?v='.self::FB_ID."\x00"];
+        yield 'nul byte' => ["https://www.facebook.com/watch/?v=".self::FB_ID."\x00"];
     }
 
     #[DataProvider('facebookRejected')]

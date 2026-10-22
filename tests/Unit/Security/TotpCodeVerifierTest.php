@@ -12,7 +12,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use ReflectionMethod;
-use RuntimeException;
 use SensitiveParameter;
 
 final class TotpCodeVerifierTest extends TestCase
@@ -138,7 +137,7 @@ final class TotpCodeVerifierTest extends TestCase
             try {
                 (new TotpCodeVerifier($this->clock($time)))->matchingTimeStep(self::RFC_SECRET, '287082');
                 self::fail('Invalid server clock accepted.');
-            } catch (RuntimeException $exception) {
+            } catch (\RuntimeException $exception) {
                 self::assertSame('TOTP server clock is outside the supported range.', $exception->getMessage());
             }
         }
@@ -154,7 +153,7 @@ final class TotpCodeVerifierTest extends TestCase
             {
                 $this->calls++;
                 if ($this->calls > 1) {
-                    throw new RuntimeException('fixture clock failed');
+                    throw new \RuntimeException('fixture clock failed');
                 }
 
                 return new DateTimeImmutable('@59');

@@ -98,6 +98,23 @@ return [
         'perfect_money' => ['label_key' => 'account_services.fees_provider_perfect_money'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Live conversion percentages
+    |--------------------------------------------------------------------------
+    |
+    | Whole percent ('1.00' = 1%). The conversion rows above name these keys in
+    | `execution`; the public fee page and the conversion engine both read them,
+    | so the published price and the charged price cannot drift. When a live
+    | value is missing or invalid, the row's published `rate` is used instead.
+    |
+    */
+
+    'conversion' => [
+        'cash_to_win_percentage' => (string) env('FEES_CASH_TO_WIN_PERCENTAGE', '1.00'),
+        'win_to_cash_percentage' => (string) env('FEES_WIN_TO_CASH_PERCENTAGE', '1.00'),
+    ],
+
     'categories' => [
 
         // ------------------------------------------------------------ account
@@ -239,7 +256,7 @@ return [
             'provider' => null,
             'description_key' => 'account_services.fees_description_cash_to_win',
             'description' => 'Conversion fee when moving balance from cash to win wallet.',
-            'execution' => null,
+            'execution' => 'fees.conversion.cash_to_win_percentage',
         ],
 
         'win_to_cash' => [
@@ -259,7 +276,7 @@ return [
             'provider' => null,
             'description_key' => 'account_services.fees_description_win_to_cash',
             'description' => 'Conversion fee when moving balance from win to cash wallet.',
-            'execution' => null,
+            'execution' => 'fees.conversion.win_to_cash_percentage',
         ],
 
         'personal_to_agent' => [

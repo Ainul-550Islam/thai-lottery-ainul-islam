@@ -31,7 +31,7 @@ final class PublicBonusServiceTest extends TestCase
             config()->set('home.campaigns_max', $max);
         }
 
-        return (new PublicBonusService)->activeCampaigns();
+        return (new PublicBonusService())->activeCampaigns();
     }
 
     public function test_empty_catalogue_reports_unavailable_and_never_invents_an_offer(): void

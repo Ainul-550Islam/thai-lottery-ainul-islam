@@ -180,6 +180,8 @@ final class WithdrawalCompletionService
                     'completed_at' => $now->toIso8601String(),
                     'debited_amount' => $amount->toString(),
                     'financial_transaction_reference' => $transaction->reference_number,
+                    'reconciliation_required' => false,
+                    'disbursement_outcome' => 'completed',
                 ]),
             ]);
 
@@ -304,6 +306,8 @@ final class WithdrawalCompletionService
             'metadata' => $this->mergeMetadata($withdrawal, [
                 'reconciled_at' => Carbon::now()->toIso8601String(),
                 'reconciliation_note' => 'Status completed from an existing debit transaction; no new debit was made.',
+                'reconciliation_required' => false,
+                'disbursement_outcome' => 'completed',
             ]),
         ]);
 

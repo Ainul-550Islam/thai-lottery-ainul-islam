@@ -263,10 +263,11 @@ final class WithdrawalApprovalService
     }
 
     /**
-     * Record a failed payout attempt and release the reservation.
+     * Record a pre-disbursement failure and release the reservation.
      *
-     * Failure is not a debit: the money never left, so the reservation goes back to
-     * the available balance and no ledger entry is written or removed.
+     * A withdrawal already marked Processing may have reached the provider. This
+     * general operator path therefore refuses to release its hold; use a verified
+     * provider failure or the explicit provider-evidence reconciliation path.
      *
      * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
      *
@@ -275,12 +276,120 @@ final class WithdrawalApprovalService
      */
     public function markFailed(Withdrawal $withdrawal, string $reason): array
     {
-        return $this->withinTransaction(function () use ($withdrawal, $reason): array {
+        return $this->failWithdrawal($withdrawal, $reason, [], false);
+    }
+
+    /**
+     * Finalize a definitive failure reported by a provider response or verified webhook.
+     *
+     * Provider transport exceptions must never call this method: their outcome is
+     * unknown and the withdrawal remains Processing with its wallet hold intact.
+     *
+     * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
+     *
+     * @throws WithdrawalException
+     * @throws FinancialException
+     */
+    public function markProviderFailed(Withdrawal $withdrawal): array
+    {
+        return $this->failWithdrawal(
+            $withdrawal,
+            'The payout provider confirmed that the disbursement failed.',
+            [
+                'reconciliation_required' => false,
+                'disbursement_outcome' => 'provider_declined',
+                'failure_source' => 'provider',
+            ],
+            true,
+        );
+    }
+
+    /**
+     * Finalize a not-paid outcome after a second operator records provider evidence.
+     *
+     * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
+     *
+     * @throws WithdrawalException
+     * @throws FinancialException
+     */
+    public function markReconciledFailed(
+        Withdrawal $withdrawal,
+        int $operatorUserId,
+        string $providerEvidenceReference,
+    ): array {
+        $evidenceReference = trim($providerEvidenceReference);
+
+        if ($operatorUserId < 1
+            || strlen($evidenceReference) > 191
+            || preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:-]{0,190}\z/D', $evidenceReference) !== 1) {
+            throw FinancialException::withCode(
+                'withdrawal_reconciliation_evidence_invalid',
+                'A valid operator and provider confirmation reference are required to reconcile a payout.',
+                ['withdrawal_id' => (int) $withdrawal->getKey()],
+            );
+        }
+
+        return $this->failWithdrawal(
+            $withdrawal,
+            'The payout provider confirmed that no payout was made.',
+            [
+                'reconciliation_required' => false,
+                'disbursement_outcome' => 'confirmed_not_paid',
+                'failure_source' => 'operator_reconciliation',
+                'provider_confirmation_reference' => $evidenceReference,
+                'reconciled_by' => $operatorUserId,
+                'reconciled_at' => Carbon::now()->toIso8601String(),
+            ],
+            true,
+            $operatorUserId,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $additionalMetadata
+     * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
+     */
+    private function failWithdrawal(
+        Withdrawal $withdrawal,
+        string $reason,
+        array $additionalMetadata,
+        bool $providerOutcomeConfirmed,
+        ?int $reconciledBy = null,
+    ): array {
+        return $this->withinTransaction(function () use (
+            $withdrawal,
+            $reason,
+            $additionalMetadata,
+            $providerOutcomeConfirmed,
+            $reconciledBy,
+        ): array {
             $wallet = $this->locks->lock((int) $withdrawal->wallet_id);
             $current = $this->transitions->lockWithdrawal($withdrawal);
 
             $this->assertWalletMatches($current, $wallet);
             $this->assertNotAlreadySettled($current);
+
+            if ($current->status === WithdrawalStatus::Processing && ! $providerOutcomeConfirmed) {
+                throw FinancialException::withCode(
+                    'withdrawal_reconciliation_required',
+                    'A payout with a possibly delivered provider request must be reconciled with provider evidence before its hold can be released.',
+                    ['withdrawal_id' => (int) $current->getKey()],
+                );
+            }
+
+            if ($reconciledBy !== null) {
+                if ($current->status !== WithdrawalStatus::Processing) {
+                    throw WithdrawalException::notRejectable($current->id, $current->status);
+                }
+
+                if ($current->reviewed_by !== null && (int) $current->reviewed_by === $reconciledBy) {
+                    throw FinancialException::withCode(
+                        'withdrawal_reconciliation_separation_of_duties',
+                        'A different operator must reconcile a payout than the operator who approved it.',
+                        ['withdrawal_id' => (int) $current->getKey()],
+                    );
+                }
+            }
 
             if (! $current->status->canTransitionTo(WithdrawalStatus::Failed)) {
                 throw WithdrawalException::notRejectable($current->id, $current->status);
@@ -295,12 +404,14 @@ final class WithdrawalApprovalService
                 $released = $outcome['released'];
             }
 
+            $metadata = array_merge($additionalMetadata, [
+                'failed_at' => Carbon::now()->toIso8601String(),
+                'hold_released' => $released,
+            ]);
+
             $failed = $this->transitions->transitionWithdrawal($current, WithdrawalStatus::Failed, [
                 'rejection_reason' => $reason,
-                'metadata' => $this->mergeMetadata($current, [
-                    'failed_at' => Carbon::now()->toIso8601String(),
-                    'hold_released' => $released,
-                ]),
+                'metadata' => $this->mergeMetadata($current, $metadata),
             ]);
 
             $this->holds->assertInvariant($workingWallet);

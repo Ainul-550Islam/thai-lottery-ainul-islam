@@ -1,5 +1,15 @@
 <?php
 
+$environment = strtolower(trim((string) env('APP_ENV', 'production')));
+$developmentOrigins = in_array($environment, ['local', 'testing'], true)
+    ? 'http://localhost,http://localhost:3000,http://localhost:5173,http://127.0.0.1:8000'
+    : '';
+$rawOrigins = (string) env('CORS_ALLOWED_ORIGINS', $developmentOrigins);
+$allowedOrigins = array_values(array_unique(array_filter(
+    array_map(static fn (string $origin): string => rtrim(trim($origin), '/'), explode(',', $rawOrigins)),
+    static fn (string $origin): bool => $origin !== '' && $origin !== '*',
+)));
+
 return [
 
     /*
@@ -7,8 +17,9 @@ return [
     | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
     |
-    | Production CORS policy restricting allowed origins, methods, and headers.
-    | Wildcard origin with credentials is explicitly prohibited.
+    | Production CORS is deny-by-default. Deployments must name exact origins
+    | in CORS_ALLOWED_ORIGINS; localhost defaults apply only to local/testing.
+    | Credentials are never enabled, and wildcard origins are discarded.
     |
     */
 
@@ -16,10 +27,7 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => array_values(array_filter(explode(',', (string) env(
-        'CORS_ALLOWED_ORIGINS',
-        'http://localhost,http://localhost:3000,http://localhost:5173,http://127.0.0.1:8000'
-    )))),
+    'allowed_origins' => $allowedOrigins,
 
     'allowed_origins_patterns' => [],
 

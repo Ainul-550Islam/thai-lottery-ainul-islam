@@ -48,31 +48,7 @@ return [
     |
     */
 
-    // B1 FIX — THE DEFAULT WAS `true` ON A SUBSYSTEM THAT CANNOT WORK.
-    //
-    // app/Services/Wallet/Conversion/* is five TEMP-STUB files ("lost in repo
-    // sync"); every money-moving method throws, and WalletConversionService
-    // itself did not even satisfy its own interface until this pass. With the
-    // switch defaulting to on, the failure mode was not "the feature is off"
-    // but a 500 on every conversion endpoint:
-    //
-    //   GET  /wallet/convert          no `conversion.enabled` gate at all
-    //                                 -> index() -> summaryForUser() which is
-    //                                    defined nowhere -> BadMethodCallException
-    //   POST /wallet/convert          gate passed (config true) -> store()
-    //                                 -> convert() -> RuntimeException
-    //   POST /api/v1/wallet/conversions  same, via the API controller
-    //
-    // A money lane that cannot honour its own contract must be OFF by default
-    // and turned on deliberately once the orchestrator is restored, not the
-    // other way round. With this false, EnsureWalletConversionEnabled refuses
-    // with 503 `conversion_disabled` and a member-facing message before a
-    // controller runs, and no wallet is ever touched — which is the behaviour
-    // the surrounding docblocks already claim.
-    //
-    // Set CONVERSION_ENABLED=true only after WalletConversionService::quote(),
-    // ::convert() and ::reverse() are real and the conversion test suite passes.
-    'enabled' => (bool) env('CONVERSION_ENABLED', true),
+    'enabled' => env('CONVERSION_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------

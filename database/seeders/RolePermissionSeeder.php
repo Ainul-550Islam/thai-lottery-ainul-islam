@@ -37,11 +37,6 @@ class RolePermissionSeeder extends Seeder
                 'manage wallet',
                 'view transaction history',
                 'view commissions',
-                // Live chat desk: agents answer and claim, but do not move
-                // conversations between agents (assign) or administer the
-                // saved replies (manage_canned) — those stay with admin.
-                'chat.view',
-                'chat.reply',
             ],
             'player' => [
                 'view dashboard',
@@ -62,15 +57,6 @@ class RolePermissionSeeder extends Seeder
                 // Read-only: may OBSERVE freeze cases via view audit logs /
                 // panel viewAny, but holds NO mutation permission (no review,
                 // request, approve, pay or publish).
-                //
-                // Balance transfers follow the same rule. An auditor needs to
-                // READ any player's transfer history to reconcile the clearing
-                // account, but `transfer.reverse` MOVES MONEY and
-                // `transfer.approve_reverse` DECIDES whether money moves, so both
-                // stay with admin and super-admin only. An auditor is deliberately
-                // on neither side of the four-eyes lane: the control is worthless
-                // if the person whose job is to review it can also operate it.
-                'transfer.view_any',
             ],
         ];
 

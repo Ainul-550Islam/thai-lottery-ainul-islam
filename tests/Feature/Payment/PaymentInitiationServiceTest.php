@@ -7,13 +7,17 @@ use App\Enums\DepositStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Exceptions\FinancialException;
+use App\Exceptions\ResponsibleGamingLimitException;
 use App\Models\Deposit;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Finance\Money;
 use App\Services\Payment\PaymentInitiationService;
+use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -87,12 +91,19 @@ class PaymentInitiationServiceTest extends TestCase
         ['wallet' => $wallet] = $this->player();
         $this->enableStripe();
 
-        Http::fake([
-            'api.stripe.com/*' => Http::response([
+        $transactionLevel = DB::transactionLevel();
+        Http::fake(function ($request) use ($transactionLevel) {
+            $this->assertSame(
+                $transactionLevel,
+                DB::transactionLevel(),
+                'The provider request must not run inside an application-owned database transaction.',
+            );
+
+            return Http::response([
                 'id' => 'cs_test_SESSION123',
                 'url' => 'https://checkout.stripe.com/pay/cs_test_SESSION123',
-            ], 200),
-        ]);
+            ], 200);
+        });
 
         $result = $this->service()->initiateDeposit(
             wallet: $wallet,
@@ -105,7 +116,15 @@ class PaymentInitiationServiceTest extends TestCase
         $this->assertInstanceOf(Payment::class, $result['payment']);
         $this->assertTrue($result['gateway_response']->successful);
         $this->assertSame('https://checkout.stripe.com/pay/cs_test_SESSION123', $result['gateway_response']->redirectUrl);
+        $paymentMetadata = is_array($result['payment']->metadata) ? $result['payment']->metadata : [];
+        $this->assertArrayNotHasKey('redirect_url', $paymentMetadata);
+        $this->assertSame(
+            'https://checkout.stripe.com/pay/cs_test_SESSION123',
+            Crypt::decryptString((string) ($paymentMetadata['redirect_url_encrypted'] ?? '')),
+        );
+        $this->assertArrayNotHasKey('url', (array) $result['payment']->gateway_response);
         $this->assertSame('cs_test_SESSION123', (string) $result['payment']->gateway_reference);
+        Http::assertSentCount(1);
 
         $this->assertDatabaseHas('deposits', [
             'wallet_id' => $wallet->id,
@@ -235,9 +254,125 @@ class PaymentInitiationServiceTest extends TestCase
 
         $this->assertSame($first['deposit']->getKey(), $second['deposit']->getKey());
         $this->assertSame($first['payment']->getKey(), $second['payment']->getKey());
+        $this->assertSame($first['gateway_response']->redirectUrl, $second['gateway_response']->redirectUrl);
 
         // Exactly ONE new deposit and ONE new payment for the two calls.
         $this->assertSame($before['deposits'] + 1, Deposit::query()->count());
         $this->assertSame($before['payments'] + 1, Payment::query()->count());
+        Http::assertSentCount(1);
+    }
+
+    public function test_legacy_plaintext_checkout_link_is_migrated_before_replay(): void
+    {
+        ['wallet' => $wallet] = $this->player();
+        $this->enableStripe();
+        Http::fake([
+            'api.stripe.com/*' => Http::response([
+                'id' => 'cs_test_LEGACY_LINK',
+                'url' => 'https://checkout.stripe.com/pay/cs_test_LEGACY_LINK',
+            ], 200),
+        ]);
+
+        $key = 'key-'.Str::uuid()->toString();
+        $first = $this->service()->initiateDeposit(
+            wallet: $wallet,
+            amount: Money::of('500.00', Currency::THB),
+            method: PaymentMethod::Stripe,
+            idempotencyKey: $key,
+        );
+
+        $payment = $first['payment']->refresh();
+        $metadata = is_array($payment->metadata) ? $payment->metadata : [];
+        unset($metadata['redirect_url_encrypted']);
+        $metadata['redirect_url'] = 'https://checkout.stripe.com/pay/cs_test_LEGACY_LINK';
+        $payment->metadata = $metadata;
+        $payment->save();
+
+        $replay = $this->service()->initiateDeposit(
+            wallet: $wallet,
+            amount: Money::of('500.00', Currency::THB),
+            method: PaymentMethod::Stripe,
+            idempotencyKey: $key,
+        );
+
+        $migratedMetadata = is_array($replay['payment']->metadata) ? $replay['payment']->metadata : [];
+        $this->assertArrayNotHasKey('redirect_url', $migratedMetadata);
+        $this->assertSame(
+            'https://checkout.stripe.com/pay/cs_test_LEGACY_LINK',
+            Crypt::decryptString((string) ($migratedMetadata['redirect_url_encrypted'] ?? '')),
+        );
+        $this->assertSame('https://checkout.stripe.com/pay/cs_test_LEGACY_LINK', $replay['gateway_response']->redirectUrl);
+        Http::assertSentCount(1);
+    }
+
+    public function test_same_idempotent_deposit_replay_does_not_consume_daily_limit_twice(): void
+    {
+        ['user' => $user, 'wallet' => $wallet] = $this->player();
+        $this->enableStripe();
+        app(ResponsibleGamingLimitService::class)
+            ->setDailyDepositLimit((int) $user->getKey(), '500.00', Currency::THB->value);
+
+        Http::fake([
+            'api.stripe.com/*' => Http::response([
+                'id' => 'cs_test_DAILY_LIMIT',
+                'url' => 'https://checkout.stripe.com/pay/cs_test_DAILY_LIMIT',
+            ], 200),
+        ]);
+
+        $key = 'key-'.Str::uuid()->toString();
+        $first = $this->service()->initiateDeposit(
+            wallet: $wallet,
+            amount: Money::of('500.00', Currency::THB),
+            method: PaymentMethod::Stripe,
+            idempotencyKey: $key,
+        );
+        $replay = $this->service()->initiateDeposit(
+            wallet: $wallet,
+            amount: Money::of('500.00', Currency::THB),
+            method: PaymentMethod::Stripe,
+            idempotencyKey: $key,
+        );
+
+        $this->assertSame($first['deposit']->getKey(), $replay['deposit']->getKey());
+        $this->assertSame(1, Deposit::query()->count());
+        Http::assertSentCount(1);
+    }
+
+    public function test_pending_deposits_consume_daily_limit_before_a_new_request_is_created(): void
+    {
+        ['user' => $user, 'wallet' => $wallet] = $this->player();
+        $this->enableStripe();
+        app(ResponsibleGamingLimitService::class)
+            ->setDailyDepositLimit((int) $user->getKey(), '500.00', Currency::THB->value);
+
+        Http::fake([
+            'api.stripe.com/*' => Http::response([
+                'id' => 'cs_test_DAILY_CAP',
+                'url' => 'https://checkout.stripe.com/pay/cs_test_DAILY_CAP',
+            ], 200),
+        ]);
+
+        $this->service()->initiateDeposit(
+            wallet: $wallet,
+            amount: Money::of('400.00', Currency::THB),
+            method: PaymentMethod::Stripe,
+            idempotencyKey: 'key-'.Str::uuid()->toString(),
+        );
+
+        try {
+            $this->service()->initiateDeposit(
+                wallet: $wallet,
+                amount: Money::of('200.00', Currency::THB),
+                method: PaymentMethod::Stripe,
+                idempotencyKey: 'key-'.Str::uuid()->toString(),
+            );
+            $this->fail('A new deposit beyond the daily ceiling must be refused.');
+        } catch (ResponsibleGamingLimitException $exception) {
+            $this->assertSame(ResponsibleGamingLimitException::INVALID_AMOUNT, $exception->errorCode());
+        }
+
+        $this->assertSame(1, Deposit::query()->count());
+        $this->assertSame(1, Payment::query()->count());
+        Http::assertSentCount(1);
     }
 }

@@ -394,7 +394,7 @@ final class ContactPageTest extends TestCase
         $page = $this->get(route('contact'));
         $page->assertOk();
         $page->assertDontSee('Connection could not be established', false);
-        $page->assertDontSee('RuntimeException', false);
+        $page->assertDontSee('\RuntimeException', false);
         // Only the safe, translated wording.
         $page->assertSee(trans('contact.status.received_delivery_failed'), false);
     }

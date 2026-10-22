@@ -29,6 +29,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\RecordsCurrentLegalConsent;
 use Tests\TestCase;
 
 /**
@@ -41,6 +42,7 @@ use Tests\TestCase;
  */
 final class AccountServicesPagesTest extends TestCase
 {
+    use RecordsCurrentLegalConsent;
     use RefreshDatabase;
 
     private User $player;
@@ -50,6 +52,7 @@ final class AccountServicesPagesTest extends TestCase
         parent::setUp();
         Storage::fake('local');
         $this->player = User::factory()->create(['status' => UserStatus::Active]);
+        $this->recordCurrentLegalConsent($this->player);
     }
 
     // =====================================================================
