@@ -6,6 +6,7 @@ namespace App\Services\Ledger;
 
 use App\Enums\LedgerAccountType;
 use App\Models\LedgerAccount;
+use App\Enums\LedgerEntryType;
 use App\Models\LedgerEntry;
 use App\Models\LedgerTransaction;
 use Illuminate\Support\Facades\DB;
@@ -164,13 +165,12 @@ class DoubleEntryLedgerService
 
             $entry = LedgerEntry::create([
                 'ledger_transaction_id' => $txUuid,
-                'account_id' => (string) $account->id,
-                'direction' => $isDebit ? 'DEBIT' : 'CREDIT',
+                'direction' => $isDebit ? LedgerEntryType::Debit->value : LedgerEntryType::Credit->value,
                 'sequence' => $idx + 1,
                 'ledger_account_id' => $account->id,
                 'financial_transaction_id' => $financialTxId,
                 'wallet_id' => isset($entryData['wallet_id']) ? (int) $entryData['wallet_id'] : null,
-                'type' => $isDebit ? 'debit' : 'credit',
+                'type' => $isDebit ? LedgerEntryType::Debit : LedgerEntryType::Credit,
                 'amount' => $entryAmount,
                 'currency' => $currency,
                 'description' => $description,

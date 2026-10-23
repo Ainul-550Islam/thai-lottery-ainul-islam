@@ -58,12 +58,14 @@ final class SettleDrawChunkJob implements ShouldQueue
 
     public function __construct(
         public readonly int $drawId,
-        public readonly string $batchId,
+        string $batchId,
         public readonly int $chunkIndex,
         public readonly int $fromBetId,
         public readonly int $toBetId,
         public readonly string $resultFingerprint,
-    ) {}
+    ) {
+        $this->batchId = $batchId;
+    }
 
     /**
      * @return list<object>
