@@ -5,15 +5,15 @@
 #                    dev packages, builds Vite assets. Needs a toolchain.
 # STAGE 2 (runtime)— receives ONLY the built artifacts. No compiler, no git, no
 #                    npm, no composer, no shell access to a package manager.
-#
-# WHY MULTI-STAGE AND NOT "COPY EVERYTHING"
-# A single-stage image ships gcc, node, npm, and the full composer cache into
-# production. That is attack surface with no benefit: none of it is needed to
-# serve a request. Splitting means the runtime image has no working compiler,
-# which is a real mitigation — most PHP RCE payloads assume they can compile.
 # =============================================================================
 
 ARG PHP_VERSION=8.4
+ARG NODE_VERSION=22
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 0 — node (pinned, reproducible)
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS node
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STAGE 1 — build
@@ -29,8 +29,7 @@ RUN apk add --no-cache \
         oniguruma-dev \
         icu-dev \
         postgresql-dev \
-        nodejs \
-        npm
+        linux-headers
 
 RUN docker-php-ext-install -j"$(nproc)" \
         bcmath \
@@ -41,16 +40,15 @@ RUN docker-php-ext-install -j"$(nproc)" \
         pdo_pgsql \
         zip
 
-# Redis for cache/queue/locks. phpredis rather than predis: it is a C
-# extension, an order of magnitude faster, and it is what REDIS_CLIENT=phpredis
-# in .env.example already declares.
 RUN pecl install redis && docker-php-ext-enable redis
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=node /usr/lib/node_modules /usr/lib/node_modules
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+RUN ln -sf /usr/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
 
 WORKDIR /var/www/html
 
-# Dependency layer first so application edits do not invalidate composer cache.
 COPY composer.json composer.lock ./
 
 RUN composer install \
@@ -84,16 +82,25 @@ RUN apk add --no-cache \
         oniguruma \
         postgresql-libs \
         tini \
-    # No gcc, no $PHPIZE_DEPS, no make, no git. If a future step needs to
-    # compile, it belongs in the build stage.
+        fcgi \
     && rm -rf /var/cache/apk/*
 
 COPY --from=build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 COPY --from=build /usr/local/etc/php/conf.d /usr/local/etc/php/conf.d
-COPY --from=build /usr/local/bin/docker-php-entrypoint /usr/local/bin/
+
+COPY docker/php/php-fpm-healthcheck.sh /usr/local/bin/php-fpm-healthcheck
+RUN chmod +x /usr/local/bin/php-fpm-healthcheck \
+    && echo "ping.path = /ping" >> /usr/local/etc/php-fpm.d/docker.conf \
+    && echo "ping.response = pong" >> /usr/local/etc/php-fpm.d/docker.conf
 
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-app.ini
 COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/zz-app.conf
+
+COPY docker/php/laravel-entrypoint.sh /usr/local/bin/laravel-entrypoint
+RUN chmod +x /usr/local/bin/laravel-entrypoint
+
+COPY docker/php/export-assets.sh /usr/local/bin/export-assets
+RUN chmod +x /usr/local/bin/export-assets
 
 RUN addgroup -g 10001 -S app \
     && adduser -u 10001 -S app -G app -h /var/www/html -s /sbin/nologin
@@ -110,15 +117,13 @@ RUN mkdir -p \
         storage/framework/views \
         storage/logs \
         bootstrap/cache \
-    && chown -R app:app storage bootstrap/cache \
+        /var/www/html/public/build-export \
+    && chown -R app:app storage bootstrap/cache /var/www/html/public/build-export \
     && chmod -R ug+rwX storage bootstrap/cache
 
 USER app
 
-# tini reaps zombies: php-fpm spawns and reaps children, but a worker that
-# double-forks (or a crashed Horizon supervisor) can orphan processes and fill
-# the PID table of the container.
-ENTRYPOINT ["/sbin/tini", "--", "docker-php-entrypoint"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/laravel-entrypoint"]
 CMD ["php-fpm", "--nodaemonize"]
 
 EXPOSE 9000

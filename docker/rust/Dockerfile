@@ -1,27 +1,35 @@
 # Rust settlement worker — multi-stage, static, minimal.
+# Runtime image: FROM scratch, USER 10001, no shell, no package manager.
 #
-# The runtime image has no shell, no package manager and no glibc. If this
-# worker is ever compromised, there is nothing in the container to pivot with.
+# The Rust settlement worker targets PostgreSQL. It is opt-in in Compose
+# (profile: settlement-worker) and must NOT be started against the MySQL db
+# service defined in docker-compose.production.yml.
 
-FROM rust:1.79-alpine AS build
+FROM rust:1.89-alpine AS build
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /build
 
-# Dependency layer cached separately from source.
-COPY runtime/settlement-worker/Cargo.toml runtime/settlement-worker/Cargo.lock ./
-RUN mkdir src && echo 'fn main() {}' > src/main.rs \
-    && cargo build --release --target x86_64-unknown-linux-musl \
-    && rm -rf src
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir -p security/weekly-result-integrity crates/settlement-worker
+COPY security/weekly-result-integrity/Cargo.toml ./security/weekly-result-integrity/Cargo.toml
+COPY crates/settlement-worker/Cargo.toml ./crates/settlement-worker/Cargo.toml
 
-COPY runtime/settlement-worker/src ./src
-COPY runtime/settlement-worker/tests ./tests 2>/dev/null || true
-
-# `touch` defeats cargo's mtime-based staleness check so the real main.rs is
-# actually rebuilt after the dummy above.
-RUN touch src/main.rs \
+RUN echo 'fn main() {}' > crates/settlement-worker/src/main.rs \
+    && mkdir -p security/weekly-result-integrity/src \
+    && echo 'fn main() {}' > security/weekly-result-integrity/src/main.rs \
     && cargo build --release --target x86_64-unknown-linux-musl \
+                    --manifest-path crates/settlement-worker/Cargo.toml \
+    && rm -rf crates/settlement-worker/src security/weekly-result-integrity/src
+
+COPY crates/settlement-worker/src ./crates/settlement-worker/src
+
+RUN touch crates/settlement-worker/src/main.rs \
+    && cargo test --release --locked --target x86_64-unknown-linux-musl \
+                  --manifest-path crates/settlement-worker/Cargo.toml \
+    && cargo build --release --locked --target x86_64-unknown-linux-musl \
+                   --manifest-path crates/settlement-worker/Cargo.toml \
     && strip target/x86_64-unknown-linux-musl/release/settlement-worker
 
 FROM scratch
@@ -29,7 +37,6 @@ FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /build/target/x86_64-unknown-linux-musl/release/settlement-worker /settlement-worker
 
-# Non-root, no filesystem, no shell.
 USER 10001:10001
 
 EXPOSE 9101

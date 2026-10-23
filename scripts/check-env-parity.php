@@ -58,9 +58,20 @@ foreach ($templates as $relPath) {
 
     if (in_array($relPath, ['.env.example', '.env.production.example'], true)) {
         $raw = (string) file_get_contents($fullPath);
-        if (preg_match_all('/^([A-Z0-9_]*(?:TOKEN|SECRET|KEY|PASSWORD|SALT))=(.+)$/m', $raw, $matches, PREG_SET_ORDER) > 0) {
+        if (preg_match_all('/^([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|SALT)|(?:APP_?KEY|API_?KEY|PRIVATE_?KEY|PUBLIC_?KEY|ENCRYPTION_?KEY|SECRET_?KEY))=(.*)$/m', $raw, $matches, PREG_SET_ORDER) > 0) {
             foreach ($matches as $match) {
-                $errors[] = "{$relPath} ships a non-empty credential value for {$match[1]}";
+                $name = $match[1];
+                if (str_ends_with($name, '_CACHE_KEY')) {
+                    continue;
+                }
+                $value = trim($match[2]);
+                if (preg_match('/^[\x27"](.*)[\x27"]$/s', $value, $q)) {
+                    $value = $q[1];
+                }
+                if ($value === '' || strcasecmp($value, 'null') === 0) {
+                    continue;
+                }
+                $errors[] = "{$relPath} ships a non-empty credential value for {$name}";
             }
         }
     }

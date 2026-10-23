@@ -1,0 +1,175 @@
+DEVOPS-NEXT-CHANGED-FILES
+Generated: 2026-10-22T15:34:02Z
+Branch: chore/devops-release-hardening
+Final commit: 2e932649fe37f65eff02913e308efd5c302f20a4
+Base commit: 2c7ab9c
+
+=== STATISTICS ===
+Modified: 33
+Added:    11
+Deleted:  61
+Renamed:  359
+
+=== MODIFIED FILES ===
+M	.dockerignore
+M	.env.ci
+M	.env.production.example
+M	.github/workflows/ci.yml
+M	.github/workflows/security.yml
+M	.gitignore
+M	.nvmrc
+M	Cargo.lock
+M	Cargo.toml
+M	app/Enums/WalletType.php
+M	app/Services/Finance/FinancialReconciliationService.php
+M	app/Services/Finance/PayoutReconciliationService.php
+M	composer.json
+M	composer.lock
+M	config/database.php
+M	database/migrations/2026_10_14_000200_pin_settlement_run_inputs.php
+M	database/migrations/2026_10_16_000004_add_last_seen_at_to_users_table.php
+M	database/migrations/2026_10_16_000011_create_wallet_conversion_tables.php
+M	database/migrations/2026_10_16_000012_create_ip_access_rules_tables.php
+M	database/migrations/2026_10_16_000100_create_legal_compliance_records.php
+M	database/migrations/2026_10_16_000110_add_last_seen_at_to_users_table.php
+M	database/migrations/2026_10_16_000200_add_unique_payment_payable_identity.php
+M	database/migrations/2026_10_16_000300_encrypt_payment_webhook_evidence.php
+M	database/migrations/2026_10_16_000400_create_bet_commission_ownerships_table.php
+M	database/migrations/2026_10_16_000500_create_agent_commission_payouts_table.php
+M	database/migrations/2026_10_16_000600_create_agent_commission_compensations_table.php
+M	docker-compose.production.yml
+M	docker/nginx/nginx.conf
+M	docker/php/Dockerfile
+M	docker/php/laravel-entrypoint.sh
+M	docker/rust/Dockerfile
+M	scripts/check-env-parity.php
+M	tests/Unit/WalletMutationConcurrencyTest.php
+
+=== ADDED FILES ===
+A	DEVOPS-NEXT-CHANGED-FILES.txt
+A	DEVOPS-NEXT-DEPLOY-CHECKLIST.md
+A	DEVOPS-NEXT-INCIDENT-RESPONSE.md
+A	DEVOPS-NEXT-PR-DESCRIPTION.md
+A	DEVOPS-NEXT-PRODUCTION-RUNBOOK.md
+A	DEVOPS-NEXT-RELEASE-GATE.md
+A	app/Enums/TransferDirection.php
+A	app/Exceptions/BalanceTransferException.php
+A	docker/php/export-assets.sh
+A	docker/php/php-fpm-healthcheck.sh
+A	rust-toolchain.toml
+
+=== DELETED FILES ===
+D	.profile
+D	.sudo_as_admin_successful
+D	docker/nginx/conf.d/app.conf
+D	docker/php-fpm/Dockerfile
+D	docker/php-fpm/opcache.ini
+D	docker/php-fpm/php.ini
+D	images/about_us_page_preview.png
+D	images/admin_panel.png
+D	images/deposit_methods_preview.png
+D	images/draw_results_checker.png
+D	images/home_landing_page_preview.png
+D	images/kyc_responsible_gaming.png
+D	images/lottery_history_portal_preview.png
+D	images/member_profile_portal_preview.png
+D	images/player_dashboard.png
+D	images/player_dashboard_preview.png
+D	images/player_security_preview.png
+D	images/player_settings_portal_preview.png
+D	images/privacy_policy_page_preview.png
+D	images/terms_conditions_page_preview.png
+D	images/thai_lottery_betting_preview.png
+D	images/user_betting_page.png
+D	images/vision_mission_page_preview.png
+D	images/wallet_transactions.png
+D	images/wallet_transactions_preview.png
+D	images/withdrawal_methods_preview.png
+D	qa-fixes/README.md
+D	qa-fixes/apply_decisions.py
+D	qa-fixes/apply_fixes.py
+D	qa-fixes/apply_part3.py
+D	qa-fixes/apply_round10.py
+D	qa-fixes/apply_round11.py
+D	qa-fixes/apply_round3.py
+D	qa-fixes/apply_round4.py
+D	qa-fixes/apply_round5.py
+D	qa-fixes/apply_round6.py
+D	qa-fixes/apply_round7.py
+D	qa-fixes/apply_round7b.py
+D	qa-fixes/apply_round8.py
+D	qa-fixes/apply_round9.py
+D	qa-fixes/restore_env.sh
+D	qa-fixes/run_mariadb_suite.sh
+D	qa-fixes/templates/BulkBetPlacementResult.php
+D	qa-fixes/templates/BulkBetPlacementTest.php
+D	runtime/dangling-services.json
+D	runtime/evidence/baseline-vs-final-summary.txt
+D	runtime/evidence/suite-final-summary.txt
+D	runtime/final-release-acceptance.json
+D	runtime/final-test-failure-inventory.json
+D	runtime/hosted-ci-final-evidence.json
+D	runtime/intended-absences.json
+D	runtime/production-blocker-baseline.json
+D	runtime/production-config-safety.json
+D	runtime/queue-dispatch-inventory.json
+D	runtime/scheduler-dispatch-inventory.json
+D	runtime/wallet-write-contract.json
+D	uploads/SECURITY_MASTER_PROMPT_01-05.md
+D	uploads/first.md
+D	uploads/image-1.png
+D	uploads/second.md
+D	uploads/third.md
+
+=== RENAMED FILES (first 50 of 359) ===
+R094	runtime/settlement-worker/src/main.rs	crates/settlement-worker/src/main.rs
+R098	runtime/settlement-worker/Cargo.toml	crates/settlement-worker/Cargo.toml
+R100	evidence/acceptance-part-60.json	storage/evidence/acceptance-part-60.json
+R100	evidence/acceptance-part-61.json	storage/evidence/acceptance-part-61.json
+R100	evidence/acceptance-part-62.json	storage/evidence/acceptance-part-62.json
+R100	evidence/acceptance-part-63.json	storage/evidence/acceptance-part-63.json
+R100	evidence/acceptance-part-64.json	storage/evidence/acceptance-part-64.json
+R100	evidence/acceptance-part-65.json	storage/evidence/acceptance-part-65.json
+R100	evidence/acceptance-part-66.json	storage/evidence/acceptance-part-66.json
+R100	evidence/acceptance-part-67.json	storage/evidence/acceptance-part-67.json
+R100	evidence/acceptance-part-68.json	storage/evidence/acceptance-part-68.json
+R100	evidence/acceptance-part-69.json	storage/evidence/acceptance-part-69.json
+R100	evidence/acceptance-part-70.json	storage/evidence/acceptance-part-70.json
+R100	evidence/acceptance-part-71.json	storage/evidence/acceptance-part-71.json
+R100	evidence/acceptance-part-72.json	storage/evidence/acceptance-part-72.json
+R100	evidence/acceptance-part-73.json	storage/evidence/acceptance-part-73.json
+R100	evidence/acceptance-part-74.json	storage/evidence/acceptance-part-74.json
+R100	evidence/acceptance-part-75.json	storage/evidence/acceptance-part-75.json
+R100	evidence/acceptance-part-76.json	storage/evidence/acceptance-part-76.json
+R100	evidence/acceptance-part-77.json	storage/evidence/acceptance-part-77.json
+R100	evidence/acceptance-part-78.json	storage/evidence/acceptance-part-78.json
+R100	evidence/acceptance-part-79.json	storage/evidence/acceptance-part-79.json
+R100	evidence/acceptance-part-80.json	storage/evidence/acceptance-part-80.json
+R100	evidence/acceptance-part-81.json	storage/evidence/acceptance-part-81.json
+R100	evidence/acceptance-part-82.json	storage/evidence/acceptance-part-82.json
+R100	evidence/acceptance-part-83.json	storage/evidence/acceptance-part-83.json
+R100	evidence/acceptance-part-84.json	storage/evidence/acceptance-part-84.json
+R100	evidence/acceptance-part-85.json	storage/evidence/acceptance-part-85.json
+R100	evidence/acceptance-part-86.json	storage/evidence/acceptance-part-86.json
+R100	evidence/acceptance-part-87.json	storage/evidence/acceptance-part-87.json
+R100	evidence/acceptance-part-88.json	storage/evidence/acceptance-part-88.json
+R100	evidence/audit-reports/file-inventory.csv	storage/evidence/audit-reports/file-inventory.csv
+R100	evidence/audit-reports/findings.json	storage/evidence/audit-reports/findings.json
+R100	evidence/audit-reports/pattern-candidates.csv	storage/evidence/audit-reports/pattern-candidates.csv
+R100	evidence/audit-reports/route-declarations.csv	storage/evidence/audit-reports/route-declarations.csv
+R100	evidence/bet-cancellation-current-read-negative-part-42.json	storage/evidence/bet-cancellation-current-read-negative-part-42.json
+R100	evidence/bet-cancellation-ownership-part-42.json	storage/evidence/bet-cancellation-ownership-part-42.json
+R100	evidence/commission-current-read-negative-part-43.json	storage/evidence/commission-current-read-negative-part-43.json
+R100	evidence/commission-payout-negative-part-44.json	storage/evidence/commission-payout-negative-part-44.json
+R100	evidence/conversion-foundation-part-2-tests.txt	storage/evidence/conversion-foundation-part-2-tests.txt
+R100	evidence/conversion-runtime-validation-part-3.txt	storage/evidence/conversion-runtime-validation-part-3.txt
+R100	evidence/conversion-wallet-routes-part-3.json	storage/evidence/conversion-wallet-routes-part-3.json
+R100	evidence/conversion_suite_summary.txt	storage/evidence/conversion_suite_summary.txt
+R100	evidence/coordinated-unpaid-cancellation-part-43.json	storage/evidence/coordinated-unpaid-cancellation-part-43.json
+R100	evidence/dependency-audit-part-40.json	storage/evidence/dependency-audit-part-40.json
+R100	evidence/deposit-admission-acceptance-part-52.json	storage/evidence/deposit-admission-acceptance-part-52.json
+R100	evidence/draw-risk-admission-acceptance-part-49.json	storage/evidence/draw-risk-admission-acceptance-part-49.json
+R100	evidence/draw-validation-part-5.txt	storage/evidence/draw-validation-part-5.txt
+R100	evidence/durable-checkout-acceptance-part-53.json	storage/evidence/durable-checkout-acceptance-part-53.json
+R100	evidence/enterprise-contract-validation-part-8.txt	storage/evidence/enterprise-contract-validation-part-8.txt
+... (remaining renames are evidence/* -> storage/evidence/*)

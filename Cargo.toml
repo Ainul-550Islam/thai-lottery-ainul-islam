@@ -1,3 +1,6 @@
 [workspace]
-members = ["security/weekly-result-integrity"]
+members = [
+    "security/weekly-result-integrity",
+    "crates/settlement-worker",
+]
 resolver = "2"
