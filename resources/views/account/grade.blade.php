@@ -9,7 +9,7 @@
     <div class="account-services" data-page="account-grade">
         <a class="pp-skip-link" href="#pp-main">{{ trans('public_pages.skip_to_content') }}</a>
 
-        <main id="pp-main" class="pp-main" tabindex="-1">
+        <div id="pp-main" class="pp-main" tabindex="-1">
             <header class="acct-header">
                 <h1>{{ trans('account_services.grade_title') }}</h1>
                 <p class="acct-header__lead">{{ trans('account_services.grade_lead') }}</p>
@@ -143,6 +143,6 @@
                     </div>
                 @endif
             </section>
-        </main>
+        </div>
     </div>
 @endsection

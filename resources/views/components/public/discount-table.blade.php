@@ -45,6 +45,7 @@
     @elseif ($rules === [])
         <p class="pd-muted">{{ trans('prize_discount.discount_no_rules') }}</p>
     @else
+        <div class="overflow-x-auto" tabindex="0" role="region" aria-label="{{ trans('prize_discount.discount_table_rule') }}">
         <table class="pd-table">
             <caption class="pd-sr-only">
                 {{ $labelKey !== '' && trans()->has($labelKey) ? trans($labelKey) : $productKey }}
@@ -124,5 +125,6 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     @endif
 </section>

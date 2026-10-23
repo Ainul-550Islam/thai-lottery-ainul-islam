@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#020617">
-<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0904">
+<meta name="robots" content="noindex, nofollow">
 <title>You are offline — Thai Lottery</title>
 <!--
     C4 FIX - offline fallback page.
@@ -27,8 +27,8 @@
         --gold: #D4AF37;
         --gold-100: #FFF6D6;
         --gold-200: #F5E6B8;
-        --slate-300: #CBD5E1;
-        --slate-400: #94A3B8;
+        --slate-300: #FAF6EC;
+        --slate-400: #D4CAB3;
     }
 
     html, body { margin: 0; padding: 0; min-height: 100%; }
@@ -96,7 +96,10 @@
     .actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
 
     .btn {
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
         padding: 0.75rem 1.5rem;
         border-radius: 0.75rem;
         font-size: 0.9rem;
@@ -168,10 +171,8 @@
     </p>
 
     <div class="notice">
-        <strong>Results and balances need a connection.</strong>
-        Draw results, ticket checks, wallet balances and bet history are always
-        fetched live and are never stored on your device, so they cannot be
-        shown while you are offline.
+        <strong>Live draw results, tickets, and wallet balances require an active connection.</strong>
+        Official draw results, ticket verification checks, deposits, withdrawals, transfers, wallet balances, and bet history are always fetched live from authoritative servers and are never cached offline on your device.
     </div>
 
     <div class="actions">

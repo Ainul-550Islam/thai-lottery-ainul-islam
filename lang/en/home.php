@@ -1,9 +1,9 @@
 <?php
 
 return [
-    'meta_title' => 'ThaiLotto — Lottery Results and Information',
+    'meta_title' => 'Thai Lottery — Lottery Results and Information',
     'meta_description' => 'View published lottery results, draw schedules, ticket-checking information, and configured services. Confirm details against authoritative sources.',
-    'independent_disclaimer' => 'This is an independent platform, not the official GLO website and not affiliated with GLO. Result availability and source labels vary by product.',
+    'independent_disclaimer' => 'This is an independent platform, not the official GLO website and not affiliated with the Government Lottery Office (GLO). Result availability and source labels vary by product.',
     'hero_title' => 'Lottery Results & Ticket Information',
     'hero_lead' => 'Browse published result information, configured schedules and available ticket-checking tools. Verify results against authoritative sources.',
     'cta_results' => 'Latest Results',
@@ -75,6 +75,9 @@ return [
     'stats_active_sales_point_records' => 'Active sales-point records',
     'stats_completed_draws' => 'Completed draws',
     'stats_active_members' => 'Signed-in accounts active in the last :minutes minutes',
+    'heritage_eyebrow' => 'Historical Reference',
+    'heritage_title' => 'History of Lottery Draws in Thailand',
+    'heritage_body' => 'Historical records trace early European-style lottery draws in Siam to B.E. 2417 (1874) during the reign of King Chulalongkorn (Rama V), when Henry Alabaster organised a charitable exhibition raffle, followed in B.E. 2460 (1917) under King Vajiravudh (Rama VI) by wartime fundraising draws connected with World War I and the United Kingdom.',
     'trust_title' => 'Platform Information',
     'bonuses_title' => 'Offers & Promotions',
     'bonuses_empty' => 'No active promotions at this time',
@@ -225,7 +228,7 @@ return [
         'badge' => 'Configured Access Links',
         'ios_btn' => 'Download for iOS',
         'android_btn' => 'Download for Android',
-        'pwa_btn' => 'Instant Web App',
+        'pwa_btn' => 'Install Web App',
     ],
     'payments' => [
         'title' => 'Payment Information',

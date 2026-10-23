@@ -34,7 +34,7 @@
         </p>
     @else
         <table class="wc-table wc-table--rates">
-            <caption class="wc-table__caption">{{ __('wallet_conversion.fee_caption', ['direction' => \Illuminate\Support\Facades\Lang::has($direction->labelKey()) ? __($direction->labelKey()) : $direction->label()]) }}</caption>
+            <caption class="wc-table__caption">{{ __('wallet_conversion.fee_caption', ['direction' => (method_exists($direction, 'labelKey') && \Illuminate\Support\Facades\Lang::has($direction->labelKey())) ? __($direction->labelKey()) : $direction->label()]) }}</caption>
             <tbody>
                 <tr>
                     <th scope="row">{{ __('wallet_conversion.fee_rate_row') }}</th>
@@ -49,7 +49,7 @@
                 </tr>
                 <tr>
                     <th scope="row">{{ __('wallet_conversion.fee_bearer_row') }}</th>
-                    <td>{{ \Illuminate\Support\Facades\Lang::has($feeBreakdown->bearer->labelKey()) ? __($feeBreakdown->bearer->labelKey()) : $feeBreakdown->bearer->label() }}</td>
+                    <td>{{ (method_exists($feeBreakdown->bearer, 'labelKey') && \Illuminate\Support\Facades\Lang::has($feeBreakdown->bearer->labelKey())) ? __($feeBreakdown->bearer->labelKey()) : $feeBreakdown->bearer->label() }}</td>
                 </tr>
                 <tr>
                     <th scope="row">{{ __('wallet_conversion.fee_rule_row') }}</th>

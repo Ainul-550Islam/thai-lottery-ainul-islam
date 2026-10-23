@@ -1,45 +1,52 @@
-/**
- * TYPE: page entry
- * PURPOSE: Fees table search, server-authoritative preview, accessible navigation and browser print enhancement.
- *
- * The preview request sends only a public category, optional provider and
- * decimal base amount. Rates and fee amounts are never calculated here.
- */
+/** Public fee preview: server-owned amounts/rules; no client-side arithmetic. */
 import './public-next-pages.js';
+import { publicText, publicNotice, readPublicResponse } from './public-response.js';
 
-const renderPreview = (box, payload) => {
-    box.hidden = false;
-    box.textContent = '';
-
-    const data = payload?.data || payload;
-    const heading = document.createElement('strong');
-    heading.textContent = payload?.success === false
-        ? (payload.message || 'The fee preview could not be calculated.')
-        : `${data.fee_display || 'NOT_CONFIGURED'} · ${data.state || 'NOT_CONFIGURED'}`;
-    box.appendChild(heading);
-
-    if (payload?.success !== false && data) {
-        const detail = document.createElement('span');
-        detail.textContent = `Base: ${data.base_amount || 'NOT_CONFIGURED'} ${data.currency || ''} · Rule version: ${data.rule_version || 'NOT_CONFIGURED'}`;
-        box.appendChild(detail);
-    }
-};
-
-document.addEventListener('DOMContentLoaded', () => {
+const init = () => {
     document.querySelectorAll('[data-next-public-page="fees"]').forEach((page) => {
         const form = page.querySelector('[data-fee-preview-form]');
         const result = page.querySelector('[data-fee-preview-result]');
-        if (!form || !result) return;
-
+        if (!form || !result || form.dataset.previewBound) return;
+        form.dataset.previewBound = '1';
+        let pending = false;
+        let activeRequest = null;
+        const releaseForm = (request) => {
+            // An abandoned request must never release a newer retry's controls.
+            if (activeRequest !== request) return;
+            activeRequest = null;
+            pending = false;
+            form.removeAttribute('aria-busy');
+            if (request.submit) request.submit.disabled = request.submitWasDisabled;
+        };
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+            window.addEventListener('pagehide', () => {
+                const request = activeRequest;
+                if (!request) return;
+                request.abandoned = true;
+                request.controller.abort();
+                clearTimeout(request.timer);
+                result.hidden = true;
+                result.textContent = '';
+                releaseForm(request);
+            });
+        }
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (pending) return;
+            pending = true;
             const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-                submit.disabled = true;
-                submit.setAttribute('aria-busy', 'true');
-            }
-
+            const submitWasDisabled = submit?.disabled;
+            if (submit) submit.disabled = true;
+            form.setAttribute('aria-busy', 'true');
+            publicNotice(result, publicText(result, 'pending', 'Request in progress…'));
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 15000);
+            const request = { controller, timer, submit, submitWasDisabled, abandoned: false };
+            activeRequest = request;
             try {
+                const token = form.querySelector('input[name="_token"]')?.value;
+                const headers = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+                if (token) headers['X-CSRF-TOKEN'] = token;
                 const response = await fetch(form.action, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -47,22 +54,32 @@ document.addEventListener('DOMContentLoaded', () => {
                         provider: form.elements.provider.value || null,
                         base_amount: form.elements.base_amount.value,
                     }),
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
+                    headers,
                     credentials: 'same-origin',
+                    signal: controller.signal,
                 });
-                renderPreview(result, await response.json());
-            } catch (error) {
-                renderPreview(result, { success: false, message: 'The fee preview service could not be reached.' });
-            } finally {
-                if (submit) {
-                    submit.disabled = false;
-                    submit.removeAttribute('aria-busy');
+                const data = await readPublicResponse(response, result, controller.signal);
+                if (request.abandoned || !data) return;
+                if (typeof data.fee_display !== 'string' || typeof data.state !== 'string'
+                    || typeof data.base_amount !== 'string' || typeof data.currency !== 'string'
+                    || typeof data.rule_version !== 'string') {
+                    publicNotice(result, publicText(result, 'malformed', 'The service returned an unreadable response.'), true);
+                    return;
                 }
+                publicNotice(result, `${data.fee_display} · ${data.state}`);
+                const detail = document.createElement('span');
+                detail.textContent = `${publicText(result, 'base', 'Base amount')}: ${data.base_amount} ${data.currency} · ${publicText(result, 'ruleVersion', 'Rule version')}: ${data.rule_version}`;
+                result.appendChild(detail);
+            } catch {
+                if (!request.abandoned) {
+                    publicNotice(result, publicText(result, 'networkError', 'The service could not be reached. Please try again.'), true);
+                }
+            } finally {
+                clearTimeout(timer);
+                releaseForm(request);
             }
         });
     });
-});
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+else init();

@@ -69,7 +69,7 @@
         @endguest
     </div></header>
 
-    <main id="article-main" class="next-shell next-content" tabindex="-1">
+    <div id="article-main" class="next-shell next-content" tabindex="-1">
         <nav class="blog-breadcrumb" aria-label="{{ __('blog.breadcrumb_label') }}">
             <a href="{{ route('home') }}">{{ __('blog.nav_home') }}</a>
             <span aria-hidden="true">/</span>
@@ -145,7 +145,7 @@
                 </div>
             </section>
         @endif
-    </main>
+    </div>
 </div>
 @endsection
 

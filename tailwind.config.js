@@ -1,28 +1,38 @@
+import fs from 'node:fs';
+
+const legacyPayload = JSON.parse(
+    fs.readFileSync(new URL('./resources/css/tailwind-legacy-theme.json', import.meta.url), 'utf8'),
+);
+const legacyTheme = legacyPayload.theme ?? {};
+
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    './resources/**/*.blade.php',
-    './resources/js/**/*.js',
-    './app/View/**/*.php',
-  ],
-  theme: {
-    extend: {
-      colors: {
-        brand: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          900: '#14532d',
+    darkMode: 'class',
+    content: [
+        './resources/views/**/*.blade.php',
+        './resources/js/**/*.{js,ts,jsx,tsx}',
+        './app/Filament/**/*.php',
+        './app/View/**/*.php',
+    ],
+    theme: {
+        ...legacyTheme,
+        extend: {
+            colors: {
+                tl: {
+                    obsidian: '#0B0904',
+                    surface: '#141007',
+                    elevated: '#1D170B',
+                    gold: '#D4AF37',
+                    'gold-soft': '#F5E6B8',
+                    cream: '#FFF6D6',
+                },
+            },
+            fontFamily: {
+                sans: ['Inter', 'Noto Sans Thai', 'Noto Sans Bengali', 'system-ui', 'sans-serif'],
+                display: ['Plus Jakarta Sans', 'Inter', 'Noto Sans Thai', 'Noto Sans Bengali', 'system-ui', 'sans-serif'],
+                mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+            },
         },
-        gold: {
-          400: '#facc15',
-          500: '#eab308',
-          600: '#ca8a04',
-        },
-      },
     },
-  },
-  plugins: [],
+    plugins: [],
 };

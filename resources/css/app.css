@@ -1,51 +1,21 @@
-@import 'tailwindcss';
-@import './theme.css';
-@import './components/glass.css';
-@import './components/metrics.css';
-@import './components/lottery-3d.css';
-@import './auth-portal.css';
+/*
+ * Application CSS entry (Tailwind CSS v4 + legacy v3 compatibility bridge +
+ * Thai Lottery luxury dark/gold design tokens & layered component primitives).
+ *
+ * NOTE: All @import rules MUST precede @source/@config so PostCSS processes
+ * every imported stylesheet cleanly.
+ */
+@import 'tailwindcss' source(none);
+@import './tailwind-compat.css';
+@import './theme.css' layer(base);
+@import './accessibility.css' layer(base);
+@import './components/glass.css' layer(components);
+@import './components/metrics.css' layer(components);
+@import './components/lottery-3d.css' layer(components);
+@import './auth-portal.css' layer(components);
 
+@source '../views';
+@source '../js';
+@source '../../app/Filament';
+@source '../../app/View';
 @config '../../tailwind.config.js';
-
-/* Base Reset & Design System Roots */
-:root {
-    color-scheme: dark;
-}
-
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-}
-
-html {
-    background-color: var(--tl-bg-main);
-    color: var(--tl-text-primary);
-}
-
-body {
-    margin: 0;
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    line-height: 1.5;
-    background-color: var(--tl-bg-main);
-    color: var(--tl-text-primary);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-/* Accessibility Focus Ring */
-:focus-visible {
-    outline: 2px solid var(--tl-brand-primary-hover);
-    outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
-}

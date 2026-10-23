@@ -16,7 +16,7 @@
 @section('content')
 <div class="glo-l6-page">
     <a class="glo-l6-skip" href="#glo-l6-history-main">{{ trans('glo_l6.skip_to_content') }}</a>
-    <main id="glo-l6-history-main" class="glo-l6-main" tabindex="-1">
+    <div id="glo-l6-history-main" class="glo-l6-main" tabindex="-1">
         <header class="glo-l6-header">
             <p class="glo-l6-kicker">{{ trans('glo_l6.product_label') }}</p>
             <h1>{{ $pageHeading }}</h1>
@@ -87,6 +87,6 @@
             <a class="glo-l6-button glo-l6-button--quiet" href="{{ route('glo-l6.index') }}">{{ trans('glo_l6.back_to_l6') }}</a>
             <a class="glo-l6-button" href="{{ route('glo-l6.latest') }}">{{ trans('glo_l6.open_latest') }}</a>
         </div>
-    </main>
+    </div>
 </div>
 @endsection

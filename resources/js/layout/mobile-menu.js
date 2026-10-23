@@ -1,48 +1,89 @@
 /**
- * Site layout - mobile navigation drawer.
+ * Site layout - Accessible mobile navigation drawer.
  *
- * WHY THIS IS A MODULE AND NOT AN INLINE SCRIPT
- * This behaviour used to live in a <script> block inside layouts/app.blade.php,
- * which meant every page in the application shipped an inline script. An
- * inline script forces any Content-Security-Policy to include
- * script-src 'unsafe-inline', and that single directive defeats most of what a
- * CSP is for: with it enabled, an injected <script> in any unescaped field
- * executes normally. Moving the handler into a bundled module lets the site
- * adopt a strict policy later without having to rewrite the layout first.
- *
- * WHAT IT OWNS
- * The open button, the close button and the drawer itself. Nothing else on the
- * page is touched, and if any of the three elements is absent the module does
- * nothing at all - pages without a mobile drawer are not an error case.
+ * Manages open/close state, aria-expanded / aria-hidden synchronization,
+ * Escape-key dismissal, backdrop click dismissal, and focus restoration.
  */
-document.addEventListener('DOMContentLoaded', function () {
-    var openButton = document.getElementById('btn-open-mobile-menu');
-    var closeButton = document.getElementById('btn-close-mobile-menu');
-    var drawer = document.getElementById('mobile-menu-drawer');
+(function () {
+    'use strict';
 
-    if (!openButton || !closeButton || !drawer) {
-        return;
+    function initMobileMenu() {
+        var openButton = document.getElementById('btn-open-mobile-menu');
+        var closeButton = document.getElementById('btn-close-mobile-menu');
+        var drawer = document.getElementById('mobile-menu-drawer');
+
+        if (!openButton || !closeButton || !drawer) {
+            return;
+        }
+        if (drawer.getAttribute('data-mobile-menu-ready') === 'true') {
+            return;
+        }
+        drawer.setAttribute('data-mobile-menu-ready', 'true');
+
+        var HIDDEN_CLASS = 'translate-x-full';
+        var previousOverflow = document.body.style.overflow;
+        var isOpen = false;
+
+        function syncAria(isOpen) {
+            // Reuse the global accessibility module's existing modal trap.
+            drawer.setAttribute('data-open', isOpen ? 'true' : 'false');
+            openButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+            drawer.classList.toggle('invisible', !isOpen);
+            drawer.classList.toggle('pointer-events-none', !isOpen);
+            if (isOpen) {
+                drawer.removeAttribute('inert');
+            } else {
+                drawer.setAttribute('inert', '');
+            }
+        }
+
+        function open() {
+            if (!isOpen) previousOverflow = document.body.style.overflow;
+            isOpen = true;
+            drawer.classList.remove(HIDDEN_CLASS);
+            document.body.style.overflow = 'hidden';
+            syncAria(true);
+            closeButton.focus();
+        }
+
+        function close(restoreFocus) {
+            if (!isOpen) return;
+            isOpen = false;
+            drawer.classList.add(HIDDEN_CLASS);
+            document.body.style.overflow = previousOverflow;
+            syncAria(false);
+            if (restoreFocus !== false) openButton.focus();
+        }
+
+        isOpen = !drawer.classList.contains(HIDDEN_CLASS);
+        syncAria(isOpen);
+
+        openButton.addEventListener('click', open);
+        closeButton.addEventListener('click', close);
+
+        if (typeof window !== 'undefined') {
+            // Match the layout's xl:hidden boundary; do not focus its hidden opener.
+            if (typeof window.matchMedia === 'function') {
+                var desktop = window.matchMedia('(min-width: 1280px)');
+                var onDesktop = function (event) { if (event.matches) close(false); };
+                if (typeof desktop.addEventListener === 'function') desktop.addEventListener('change', onDesktop);
+                else if (typeof desktop.addListener === 'function') desktop.addListener(onDesktop);
+                onDesktop(desktop);
+            }
+            window.addEventListener('pagehide', function () { close(false); });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !drawer.classList.contains(HIDDEN_CLASS)) {
+                close();
+            }
+        });
     }
 
-    var HIDDEN_CLASS = 'translate-x-full';
-
-    var open = function () {
-        drawer.classList.remove(HIDDEN_CLASS);
-        // The page behind the drawer must not scroll while it is open.
-        document.body.style.overflow = 'hidden';
-    };
-
-    var close = function () {
-        drawer.classList.add(HIDDEN_CLASS);
-        document.body.style.overflow = '';
-    };
-
-    openButton.addEventListener('click', open);
-    closeButton.addEventListener('click', close);
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && !drawer.classList.contains(HIDDEN_CLASS)) {
-            close();
-        }
-    });
-});
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMobileMenu);
+    } else {
+        initMobileMenu();
+    }
+})();

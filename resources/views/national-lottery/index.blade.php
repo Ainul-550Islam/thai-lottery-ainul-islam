@@ -20,7 +20,7 @@
     $historyRows = is_array($history['rows'] ?? null) ? $history['rows'] : [];
     $searchMatches = is_array($search['matches'] ?? null) ? $search['matches'] : [];
 @endphp
-<main class="min-h-screen bg-[#0B0904] px-4 pb-20 pt-24 text-white sm:px-6 lg:px-8" data-national-lottery-portal>
+<div class="min-h-screen bg-[#0B0904] px-4 pb-20 pt-24 text-white sm:px-6 lg:px-8" data-national-lottery-portal>
     <div class="mx-auto max-w-7xl space-y-10">
         <a class="sr-only focus:not-sr-only" href="#national-main">{{ trans('national_lottery.skip_to_content') }}</a>
         <header id="national-main" class="max-w-4xl space-y-5">
@@ -53,7 +53,7 @@
             <x-national-lottery.year-nav :years="$years" :active-year="$active_year ?? null" />
         @endif
     </div>
-</main>
+</div>
 @endsection
 
 @push('scripts')

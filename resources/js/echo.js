@@ -91,4 +91,12 @@ class EchoBridge {
 export const echo = new EchoBridge();
 window.echoBridge = echo;
 
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => echo.init());
+    } else {
+        echo.init();
+    }
+}
+
 export default echo;

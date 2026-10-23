@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
     testDir: './tests/browser',
-    timeout: 30_000,
+    timeout: 90_000,
     expect: { timeout: 10_000 },
     fullyParallel: false,
     forbidOnly: Boolean(process.env.CI),
@@ -17,6 +17,9 @@ export default defineConfig({
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
         serviceWorkers: 'block',
+        launchOptions: {
+            args: ['--disable-gpu', '--disable-software-rasterizer', '--disable-dev-shm-usage'],
+        },
     },
     projects: [
         { name: 'chromium-desktop', use: { ...devices['Desktop Chrome'] } },

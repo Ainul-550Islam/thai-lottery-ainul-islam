@@ -11,7 +11,7 @@
 @section('content')
 <div class="account-services" data-page="account-grade-history">
     <a class="pp-skip-link" href="#grade-history-main">{{ trans('public_pages.skip_to_content') }}</a>
-    <main id="grade-history-main" class="pp-main" tabindex="-1">
+    <div id="grade-history-main" class="pp-main" tabindex="-1">
         <header class="acct-header">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-amber-400">{{ trans('account_services.grade_title') }}</p>
             <h1>{{ trans('account_services.grade_history_title') }}</h1>
@@ -54,6 +54,6 @@
                 </div>
             @endif
         </section>
-    </main>
+    </div>
 </div>
 @endsection

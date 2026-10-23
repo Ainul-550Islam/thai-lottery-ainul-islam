@@ -36,9 +36,9 @@
 .next-nav { display: none; align-items: center; gap: .15rem; }
 .next-nav a { padding: .6rem .65rem; border: 1px solid transparent; border-radius: .65rem; color: #c7bfae; font-size: .62rem; font-weight: 950; letter-spacing: .09em; text-decoration: none; }
 .next-nav a:hover, .next-nav a.is-active { border-color: var(--next-line); background: rgba(212,175,55,.11); color: var(--next-cream); }
-.next-button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.55rem; padding: .66rem 1rem; border: 1px solid var(--next-line); border-radius: .72rem; color: var(--next-cream) !important; background: rgba(24,19,10,.72); font-size: .63rem; font-weight: 950; letter-spacing: .09em; text-decoration: none !important; cursor: pointer; transition: transform .2s ease, border-color .2s ease, filter .2s ease; }
+.next-button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: .68rem 1.05rem; border: 1px solid var(--next-line); border-radius: .75rem; color: var(--next-cream) !important; background-color: #18130a; background: rgba(24,19,10,.86); font-size: .72rem; font-weight: 900; letter-spacing: .08em; text-decoration: none !important; cursor: pointer; transition: transform .2s ease, border-color .2s ease, filter .2s ease; }
 .next-button:hover { transform: translateY(-1px); border-color: var(--next-line-bright); }
-.next-button--gold { border-color: rgba(255,246,214,.62); background: linear-gradient(180deg, #fff6d6, #d4af37 55%, #946b17); color: #110d04 !important; box-shadow: 0 .55rem 1.4rem rgba(212,175,55,.16), inset 0 1px white; }
+.next-button--gold { border-color: rgba(255,246,214,.62); background-color: #d4af37; background-image: linear-gradient(180deg, #fff6d6, #d4af37 55%, #946b17); color: #110d04 !important; box-shadow: 0 .55rem 1.4rem rgba(212,175,55,.16), inset 0 1px white; }
 .next-content { position: relative; }
 .next-hero { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(16rem, .72fr); gap: 3rem; align-items: center; padding: 5rem 0 3.5rem; }
 .next-hero h1, .next-panel h2, .next-section h2, .next-bottom h2 { margin: 0; color: var(--next-cream); font: 800 clamp(1.7rem, 4vw, 3.6rem)/1.05 Georgia, "Times New Roman", serif; letter-spacing: -.035em; }

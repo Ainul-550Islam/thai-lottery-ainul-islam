@@ -2,14 +2,19 @@
 
 @section('title', __('public_pages.login_meta_title'))
 @section('meta_description', __('public_pages.login_meta_description'))
+@section('meta_robots', 'noindex, nofollow')
+
+@push('styles')
+    @vite(['resources/css/auth-portal.css'])
+@endpush
 
 @section('content')
 <div class="min-h-[75vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 bg-slate-900/90 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur">
+    <div class="max-w-md w-full space-y-8 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur">
         <div class="text-center">
-            <h2 class="text-3xl font-extrabold tracking-tight text-white">
+            <h1 class="text-3xl font-extrabold tracking-tight text-white">
                 {{ __('public_pages.login_heading') }}
-            </h2>
+            </h1>
             <p class="mt-2 text-sm text-slate-400">
                 {{ __('public_pages.login_lead') }}
             </p>
@@ -42,7 +47,7 @@
                     <input id="login" name="login" type="text" autocomplete="username" required
                            value="{{ old('login') }}"
                            aria-describedby="login-hint"
-                           @if ($errors->has('login')) aria-invalid="true" @endif
+                           @if ($errors->has('login')) aria-invalid="true" aria-errormessage="login-error" @endif
                            class="appearance-none relative block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent sm:text-sm
                                   {{ $errors->has('login') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"
                            placeholder="{{ __('public_pages.login_identifier_placeholder') }}">
@@ -50,7 +55,7 @@
                         {{ __('public_pages.login_identifier_hint') }}
                     </p>
                     @if ($errors->has('login'))
-                        <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('login') }}</p>
+                        <p id="login-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('login') }}</p>
                     @endif
                 </div>
 
@@ -59,12 +64,12 @@
                         {{ __('public_pages.login_password') }}
                     </label>
                     <input id="password" name="password" type="password" autocomplete="current-password" required
-                           @if ($errors->has('password')) aria-invalid="true" @endif
+                           @if ($errors->has('password')) aria-invalid="true" aria-errormessage="password-error" @endif
                            class="appearance-none relative block w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent sm:text-sm
                                   {{ $errors->has('password') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"
                            placeholder="••••••••">
                     @if ($errors->has('password'))
-                        <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('password') }}</p>
+                        <p id="password-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('password') }}</p>
                     @endif
                 </div>
 

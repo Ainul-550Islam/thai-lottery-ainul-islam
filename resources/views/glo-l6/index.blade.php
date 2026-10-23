@@ -28,7 +28,7 @@
 
 <div class="glo-l6-page" data-glo-l6-home>
     <a class="glo-l6-skip" href="#glo-l6-main">{{ trans('glo_l6.skip_to_content') }}</a>
-    <main id="glo-l6-main" class="glo-l6-main" tabindex="-1">
+    <div id="glo-l6-main" class="glo-l6-main" tabindex="-1">
         <header class="glo-l6-header">
             <p class="glo-l6-kicker">{{ trans('glo_l6.product_label') }}</p>
             <h1>{{ trans('glo_l6.heading') }}</h1>
@@ -101,7 +101,7 @@
                 @else
                     <p class="glo-l6-empty" role="status">{{ trans('glo_l6.no_result') }}</p>
                     @if (($result['message'] ?? '') !== '')
-                        <p class="glo-l6-footnote">{{ $result['message'] }}</p>
+                        <p class="glo-l6-footnote">{{ $result['message'] === 'No verified result available' ? trans('glo_l6.no_result') : $result['message'] }}</p>
                     @endif
                 @endif
             </article>
@@ -173,7 +173,7 @@
             <a class="glo-l6-button glo-l6-button--quiet" href="{{ $home['checker_url'] }}">{{ trans('glo_l6.check_ticket') }}</a>
             <a class="glo-l6-button glo-l6-button--quiet" href="{{ $home['results_api_url'] }}">{{ trans('glo_l6.public_results_api') }}</a>
         </section>
-    </main>
+    </div>
 </div>
 
 <x-public-page.footer />

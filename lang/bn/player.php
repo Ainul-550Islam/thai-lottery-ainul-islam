@@ -191,6 +191,7 @@ return array_replace($english, [
     'nav_place_bet' => 'বাজি দিন',
     'nav_draws' => 'ড্র ও ফলাফল',
     'nav_bets' => 'আমার বাজি',
+    'nav_my_bets' => 'আমার বাজি',
     'nav_wallet' => 'ওয়ালেট',
     'nav_deposit' => 'অর্থ জমা',
     'nav_profile' => 'প্রোফাইল ও নিরাপত্তা',

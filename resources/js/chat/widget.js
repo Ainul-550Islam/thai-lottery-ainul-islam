@@ -99,8 +99,19 @@
     }
 
     function newClientToken() {
-        if (window.crypto && crypto.randomUUID) { return crypto.randomUUID(); }
-        return 'tok-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+        if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+            var bytes = new Uint8Array(16);
+            window.crypto.getRandomValues(bytes);
+            var hex = '';
+            for (var i = 0; i < bytes.length; i++) {
+                hex += bytes[i].toString(16).padStart(2, '0');
+            }
+            return 'tok-' + hex;
+        }
+        throw new Error('Cryptographic random generator is required for client token generation.');
     }
 
     // ------------------------------------------------------------------ dom

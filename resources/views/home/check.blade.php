@@ -100,10 +100,5 @@
             ·
             <a href="{{ route('results.index') }}">{{ $home['text']['footer_results'] ?? __('home.footer_results') }}</a>
         </p>
-
-        <x-home.footer
-            :text="$home['text']"
-            :appName="$home['hero']['app_name'] ?? config('app.name')"
-        />
     </div>
 @endsection

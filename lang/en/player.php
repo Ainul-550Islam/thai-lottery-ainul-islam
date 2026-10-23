@@ -188,6 +188,7 @@ return [
     'nav_place_bet' => 'Place Bet',
     'nav_draws' => 'Draws & Results',
     'nav_bets' => 'My Bets',
+    'nav_my_bets' => 'My Bets',
     'nav_wallet' => 'Wallet',
     'nav_deposit' => 'Deposit',
     'nav_profile' => 'Profile & Security',

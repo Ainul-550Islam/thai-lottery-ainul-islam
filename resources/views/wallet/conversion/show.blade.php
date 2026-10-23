@@ -41,7 +41,7 @@
         return \App\Services\Finance\Money::of($amount, $currency)->format();
     };
 
-    $label = static fn (object $enum): string => \Illuminate\Support\Facades\Lang::has($enum->labelKey())
+    $label = static fn (object $enum): string => (method_exists($enum, 'labelKey') && \Illuminate\Support\Facades\Lang::has($enum->labelKey()))
         ? __($enum->labelKey())
         : $enum->label();
 
@@ -49,7 +49,7 @@
     $statusValue = $conversion->status?->value ?? 'unknown';
 @endphp
 
-<main class="wc-shell" role="main">
+<div class="wc-shell">
     <header class="wc-header">
         <div>
             <h1 class="wc-title">{{ __('wallet_conversion.detail_title') }}</h1>
@@ -97,22 +97,38 @@
                     </tr>
                     <tr>
                         <th scope="row">{{ __('wallet_conversion.field_channel') }}</th>
-                        <td>{{ $conversion->channel?->value ?? '—' }}</td>
+                        <td>{{ ($conversion->channel !== null && method_exists($conversion->channel, 'labelKey') && \Illuminate\Support\Facades\Lang::has($conversion->channel->labelKey())) ? __($conversion->channel->labelKey()) : ($conversion->channel?->value ?? '—') }}</td>
                     </tr>
                 </tbody>
             </table>
         </section>
+
+        @php
+            $walletTypeLabel = static function (?string $rawType): string {
+                if ($rawType === null || $rawType === '') {
+                    return '—';
+                }
+                $walletEnum = \App\Enums\WalletType::tryFrom($rawType);
+                if ($walletEnum !== null) {
+                    return \Illuminate\Support\Facades\Lang::has($walletEnum->labelKey())
+                        ? __($walletEnum->labelKey())
+                        : $walletEnum->label();
+                }
+
+                return $rawType;
+            };
+        @endphp
 
         <section class="wc-card" aria-labelledby="wc-positions-heading">
             <h2 class="wc-card__title" id="wc-positions-heading">{{ __('wallet_conversion.detail_positions') }}</h2>
 
             <dl class="wc-balances">
                 <div class="wc-balances__row">
-                    <dt>{{ $conversion->from_wallet_type }} · {{ __('wallet_conversion.after') }}</dt>
+                    <dt>{{ $walletTypeLabel((string) $conversion->from_wallet_type) }} · {{ __('wallet_conversion.after') }}</dt>
                     <dd class="wc-money">{{ $money($conversion->from_balance_after === null ? null : (string) $conversion->from_balance_after) }}</dd>
                 </div>
                 <div class="wc-balances__row">
-                    <dt>{{ $conversion->to_wallet_type }} · {{ __('wallet_conversion.after') }}</dt>
+                    <dt>{{ $walletTypeLabel((string) $conversion->to_wallet_type) }} · {{ __('wallet_conversion.after') }}</dt>
                     <dd class="wc-money">{{ $money($conversion->to_balance_after === null ? null : (string) $conversion->to_balance_after) }}</dd>
                 </div>
             </dl>
@@ -172,5 +188,5 @@
 
         <p class="wc-card__hint">{{ __('wallet_conversion.timeline_hint') }}</p>
     </section>
-</main>
+</div>
 @endsection

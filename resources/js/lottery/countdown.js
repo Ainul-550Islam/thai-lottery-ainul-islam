@@ -24,9 +24,9 @@
  * or optimistic; it cannot let a late bet through, because the server re-checks.
  *
  * ACCESSIBILITY
- * The display is marked aria-live="polite" and, under
- * prefers-reduced-motion: reduce, is refreshed once a minute instead of once a
- * second so a screen reader is not flooded with per-second updates.
+ * The timer is not a live region. The caller supplies a separate polite
+ * closed-status node and localized display labels. Reduced motion refreshes
+ * by remaining-minute bucket, including after throttled callbacks.
  */
 (function () {
     'use strict';
@@ -40,7 +40,7 @@
      * ships as its static placeholder, so the layout does not jump when this
      * module takes over. Days are prefixed only when there are any.
      */
-    function format(ms) {
+    function format(ms, dayLabel) {
         if (ms <= 0) {
             return '00 : 00 : 00';
         }
@@ -53,7 +53,7 @@
 
         var hms = pad(hours) + ' : ' + pad(minutes) + ' : ' + pad(seconds);
 
-        return days > 0 ? days + 'd ' + hms : hms;
+        return days > 0 ? days + (dayLabel ? ' ' + dayLabel : 'd') + ' ' + hms : hms;
     }
 
     function init(element) {
@@ -74,13 +74,29 @@
             return;
         }
 
-        var prefersReduced = window.matchMedia
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var motionQuery = typeof window.matchMedia === 'function'
+            ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+        var prefersReduced = motionQuery && motionQuery.matches;
+        var lastMinute = null;
+        var statusId = element.getAttribute('data-status-target');
+        var status = statusId ? document.getElementById(statusId) : null;
+        function motionChanged(event) {
+            prefersReduced = event.matches;
+            if (!closed) tick();
+        }
+        function observeMotion(add) {
+            if (!motionQuery) return;
+            var method = add ? 'addEventListener' : 'removeEventListener';
+            var legacy = add ? 'addListener' : 'removeListener';
+            if (typeof motionQuery[method] === 'function') motionQuery[method]('change', motionChanged);
+            else if (typeof motionQuery[legacy] === 'function') motionQuery[legacy](motionChanged);
+        }
 
         var timerId = null;
         var closed = false;
 
-        element.setAttribute('aria-live', 'polite');
+        element.setAttribute('role', 'timer');
+        element.setAttribute('aria-live', 'off');
         element.setAttribute('aria-atomic', 'true');
 
         function stop() {
@@ -98,7 +114,10 @@
             closed = true;
             stop();
 
-            element.textContent = 'CLOSED';
+            observeMotion(false);
+            var label = element.getAttribute('data-closed-label') || 'CLOSED';
+            element.textContent = label;
+            if (status) status.textContent = label;
             element.setAttribute('data-countdown-state', 'closed');
 
             document.dispatchEvent(new CustomEvent('lottery:betting-closed', {
@@ -115,19 +134,32 @@
                 return;
             }
 
-            // Reduced motion: only repaint on a minute boundary.
-            if (prefersReduced && timerId !== null && Math.floor(remaining / 1000) % 60 !== 0) {
+            // Throttled callbacks need not land on the exact second boundary.
+            var minute = Math.ceil(remaining / 60000);
+            if (prefersReduced && timerId !== null && minute === lastMinute) {
                 return;
             }
 
-            element.textContent = format(remaining);
+            element.textContent = format(remaining, element.getAttribute('data-day-label'));
+            lastMinute = minute;
             element.setAttribute('data-countdown-state', 'running');
         }
 
-        tick();
-
-        if (!closed) {
-            timerId = window.setInterval(tick, 1000);
+        function start() {
+            stop();
+            observeMotion(false);
+            if (closed) return;
+            prefersReduced = motionQuery && motionQuery.matches;
+            tick();
+            if (!closed) {
+                observeMotion(true);
+                timerId = window.setInterval(tick, 1000);
+            }
+        }
+        start();
+        if (typeof window.addEventListener === 'function') {
+            window.addEventListener('pagehide', function () { stop(); observeMotion(false); });
+            window.addEventListener('pageshow', function (event) { if (event.persisted) start(); });
         }
 
         // A backgrounded tab throttles timers; re-sync the moment it returns

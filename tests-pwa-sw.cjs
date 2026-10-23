@@ -1,11 +1,18 @@
 /**
- * Behavioural test harness for public/sw.js (C4).
+ * Behavioural security & cache-policy test harness for public/sw.js.
  *
- * public/sw.js is written for a browser (self, caches, fetch, Response), so it
- * cannot be imported directly. This harness recreates just enough of that
- * environment to execute the real file and observe what it actually does.
+ * Executes the real production public/sw.js inside a Node VM sandbox with
+ * spec-accurate Cache / CacheStorage / Fetch / Response / URL primitives
+ * and verifies:
+ *  - atomic precaching via Cache.prototype.addAll (including failure rollback)
+ *  - non-GET and cross-origin ignore before respondWith()
+ *  - strict private/financial/auth/API/admin/agent/KYC/storage route bypass
+ *    including URL-encoded and dot-segment path normalization
+ *  - immutable hashed asset caching + Set-Cookie / private / no-store rejection
+ *  - public HTML navigation network-first with zero HTML caching + /offline.html fallback
+ *  - app-scoped activate cleanup preserving unrelated origin caches
  *
- * Run with:  node tests-pwa-sw.cjs
+ * Run with: node tests-pwa-sw.cjs
  */
 'use strict';
 
@@ -14,49 +21,35 @@ const path = require('path');
 const vm = require('vm');
 
 const SW_PATH = path.join(__dirname, 'public', 'sw.js');
+const ORIGIN = 'https://example.test';
 
-// ---------------------------------------------------------------------------
-// fake Cache Storage
-// ---------------------------------------------------------------------------
-class FakeCache {
-    constructor(name) { this.name = name; this.map = new Map(); }
-    async put(req, res) {
-        const key = typeof req === 'string' ? req : req.url;
-        this.map.set(key, res);
-    }
-    async match(req) {
-        const key = typeof req === 'string' ? req : req.url;
-        return this.map.get(key) || undefined;
-    }
-    async keys() { return Array.from(this.map.keys()); }
-    async delete(req) {
-        const key = typeof req === 'string' ? req : req.url;
-        return this.map.delete(key);
-    }
+function normalizeCacheKey(req) {
+    const raw = typeof req === 'string' ? req : req.url;
+    const parsed = new URL(raw, ORIGIN);
+    return parsed.origin === ORIGIN ? parsed.pathname + parsed.search : parsed.href;
 }
 
-const cacheStore = new Map();
-const caches = {
-    async open(name) {
-        if (!cacheStore.has(name)) cacheStore.set(name, new FakeCache(name));
-        return cacheStore.get(name);
-    },
-    async keys() { return Array.from(cacheStore.keys()); },
-    async delete(name) { return cacheStore.delete(name); },
-    async match(req) {
-        for (const c of cacheStore.values()) {
-            const hit = await c.match(req);
-            if (hit) return hit;
+class FakeHeaders {
+    constructor(init = {}) {
+        this._map = new Map();
+        if (init instanceof FakeHeaders) {
+            for (const [k, v] of init._map.entries()) {
+                this._map.set(k.toLowerCase(), String(v));
+            }
+        } else if (init && typeof init === 'object') {
+            for (const [k, v] of Object.entries(init)) {
+                this._map.set(k.toLowerCase(), String(v));
+            }
         }
-        return undefined;
-    },
-};
-
-// ---------------------------------------------------------------------------
-// fake fetch / Response
-// ---------------------------------------------------------------------------
-let networkOnline = true;
-const fetchLog = [];
+    }
+    get(name) {
+        const val = this._map.get(String(name).toLowerCase());
+        return val === undefined ? null : val;
+    }
+    has(name) {
+        return this._map.has(String(name).toLowerCase());
+    }
+}
 
 class FakeResponse {
     constructor(body, init = {}) {
@@ -64,159 +57,396 @@ class FakeResponse {
         this.status = init.status === undefined ? 200 : init.status;
         this.ok = this.status >= 200 && this.status < 300;
         this.type = init.type || 'basic';
-        this.headers = new Map(Object.entries(init.headers || {}));
+        this.headers = new FakeHeaders(init.headers || {});
     }
-    clone() { return new FakeResponse(this.body, { status: this.status, type: this.type }); }
-}
-
-function fakeFetch(request) {
-    const url = typeof request === 'string' ? request : request.url;
-    fetchLog.push(url);
-    if (!networkOnline) {
-        return Promise.reject(new TypeError('Failed to fetch'));
+    clone() {
+        return new FakeResponse(this.body, {
+            status: this.status,
+            type: this.type,
+            headers: this.headers,
+        });
     }
-    return Promise.resolve(new FakeResponse(`body:${url}`));
 }
 
-// ---------------------------------------------------------------------------
-// fake service worker global
-// ---------------------------------------------------------------------------
-const listeners = {};
-let respondWithCalls = 0;
+function createHarness() {
+    let networkOnline = true;
+    let customResponder = null;
+    const fetchLog = [];
+    const cacheStore = new Map();
+    const listeners = {};
+    let respondWithCalls = 0;
+    let skipWaitingCalled = false;
 
-const selfMock = {
-    location: { origin: 'https://example.test' },
-    addEventListener: (type, fn) => { (listeners[type] = listeners[type] || []).push(fn); },
-    skipWaiting: () => {},
-    clients: { claim: () => Promise.resolve() },
-    registration: {},
-};
+    function fakeFetch(request) {
+        const rawUrl = typeof request === 'string' ? request : request.url;
+        const resolved = new URL(rawUrl, ORIGIN).href;
+        fetchLog.push(resolved);
 
-const sandbox = {
-    self: selfMock,
-    caches,
-    fetch: fakeFetch,
-    Response: FakeResponse,
-    Request: class { constructor(url, init = {}) { this.url = url; this.method = init.method || 'GET'; } },
-    Request_: null,
-    console,
-    URL,
-    Promise,
-    setTimeout,
-};
-sandbox.globalThis = sandbox;
-vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync(SW_PATH, 'utf8'), sandbox, { filename: 'sw.js' });
+        if (!networkOnline) {
+            return Promise.reject(new TypeError('Failed to fetch'));
+        }
+        if (typeof customResponder === 'function') {
+            const custom = customResponder(resolved, request);
+            if (custom !== undefined) {
+                return custom;
+            }
+        }
+        if (resolved.endsWith('/offline.html')) {
+            return Promise.resolve(new FakeResponse(fs.readFileSync(path.join(__dirname, 'public', 'offline.html'), 'utf8'), {
+                status: 200,
+                headers: { 'content-type': 'text/html; charset=utf-8' },
+            }));
+        }
+        return Promise.resolve(new FakeResponse(`body:${resolved}`, { status: 200 }));
+    }
 
-// ---------------------------------------------------------------------------
-// driver
-// ---------------------------------------------------------------------------
-function fireFetch(url, { method = 'GET', mode = 'no-cors', accept = '*/*' } = {}) {
-    const request = {
-        url, method, mode,
-        headers: { get: (n) => (n.toLowerCase() === 'accept' ? accept : null) },
+    class FakeCache {
+        constructor(name) {
+            this.name = name;
+            this.map = new Map();
+        }
+        async put(req, res) {
+            this.map.set(normalizeCacheKey(req), res);
+        }
+        async add(req) {
+            const res = await fakeFetch(req);
+            if (!res || !res.ok) {
+                throw new TypeError(`Bad response status (${res ? res.status : 'none'}) for ${req}`);
+            }
+            await this.put(req, res);
+        }
+        async addAll(urls) {
+            const staged = [];
+            for (const u of urls) {
+                const res = await fakeFetch(u);
+                if (!res || !res.ok) {
+                    throw new TypeError(`Failed to precache ${u}`);
+                }
+                staged.push([normalizeCacheKey(u), res]);
+            }
+            for (const [k, res] of staged) {
+                this.map.set(k, res);
+            }
+        }
+        async match(req) {
+            return this.map.get(normalizeCacheKey(req)) || undefined;
+        }
+        async keys() {
+            return Array.from(this.map.keys());
+        }
+        async delete(req) {
+            return this.map.delete(normalizeCacheKey(req));
+        }
+    }
+
+    const caches = {
+        async open(name) {
+            if (!cacheStore.has(name)) {
+                cacheStore.set(name, new FakeCache(name));
+            }
+            return cacheStore.get(name);
+        },
+        async keys() {
+            return Array.from(cacheStore.keys());
+        },
+        async delete(name) {
+            return cacheStore.delete(name);
+        },
+        async match(req) {
+            for (const c of cacheStore.values()) {
+                const hit = await c.match(req);
+                if (hit) {
+                    return hit;
+                }
+            }
+            return undefined;
+        },
     };
-    let responded = false;
-    const event = {
-        request,
-        respondWith(promise) { responded = true; respondWithCalls++; this._p = promise; },
+
+    const selfMock = {
+        location: { origin: ORIGIN },
+        addEventListener: (type, fn) => {
+            (listeners[type] = listeners[type] || []).push(fn);
+        },
+        skipWaiting: () => {
+            skipWaitingCalled = true;
+        },
+        clients: { claim: () => Promise.resolve() },
+        registration: {},
     };
-    listeners.fetch.forEach((fn) => fn(event));
-    return { handled: responded, event };
+
+    const sandbox = {
+        self: selfMock,
+        caches,
+        fetch: fakeFetch,
+        Response: FakeResponse,
+        Headers: FakeHeaders,
+        Request: class {
+            constructor(url, init = {}) {
+                this.url = url;
+                this.method = init.method || 'GET';
+                this.mode = init.mode || 'cors';
+                this.headers = new FakeHeaders(init.headers || {});
+            }
+        },
+        console,
+        URL,
+        Set,
+        Map,
+        Promise,
+        TypeError,
+        decodeURIComponent,
+        setTimeout,
+    };
+    sandbox.globalThis = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(fs.readFileSync(SW_PATH, 'utf8'), sandbox, { filename: 'sw.js' });
+
+    function fireFetch(url, { method = 'GET', mode = 'cors', accept = '*/*' } = {}) {
+        const fullUrl = url.startsWith('http://') || url.startsWith('https://')
+            ? url
+            : new URL(url, ORIGIN).href;
+        const request = {
+            url: fullUrl,
+            method,
+            mode,
+            headers: new FakeHeaders({ accept }),
+        };
+        let responded = false;
+        const event = {
+            request,
+            respondWith(promise) {
+                responded = true;
+                respondWithCalls++;
+                this._p = promise;
+            },
+        };
+        (listeners.fetch || []).forEach((fn) => fn(event));
+        return { handled: responded, event };
+    }
+
+    return {
+        caches,
+        cacheStore,
+        listeners,
+        fetchLog,
+        fireFetch,
+        setOnline(v) { networkOnline = v; },
+        setCustomResponder(fn) { customResponder = fn; },
+        getRespondWithCalls() { return respondWithCalls; },
+        wasSkipWaitingCalled() { return skipWaitingCalled; },
+    };
 }
 
+let passed = 0;
+let failed = 0;
 function assert(label, cond, extra = '') {
     const mark = cond ? 'PASS' : 'FAIL';
+    if (cond) {
+        passed++;
+    } else {
+        failed++;
+        process.exitCode = 1;
+    }
     console.log(`  [${mark}] ${label}${extra ? '  — ' + extra : ''}`);
-    if (!cond) process.exitCode = 1;
 }
 
 (async () => {
-    console.log('  Service worker behaviour — public/sw.js\n');
+    console.log('  Service worker security & offline policy — public/sw.js\n');
 
-    // --- install: precache the shell ---------------------------------------
-    await Promise.all(listeners.install.map((fn) => {
+    // --- 0. Atomic precache failure leaves shell cache empty ---------------
+    const brokenHarness = createHarness();
+    brokenHarness.setCustomResponder((url) => {
+        if (url.endsWith('/icons/icon-512.png')) {
+            return Promise.resolve(new FakeResponse('missing', { status: 500 }));
+        }
+        return undefined;
+    });
+    let installRejected = false;
+    try {
+        await Promise.all(brokenHarness.listeners.install.map((fn) => {
+            let p;
+            fn({ waitUntil: (pr) => { p = pr; } });
+            return p;
+        }));
+    } catch (_) {
+        installRejected = true;
+    }
+    const brokenShell = await brokenHarness.caches.open('tl-pwa-shell-v2');
+    assert(
+        'atomic install rejects and avoids partial shell cache when an asset fails',
+        installRejected && (await brokenShell.keys()).length === 0
+    );
+
+    // --- 1. Clean install precaches public shell ---------------------------
+    const h = createHarness();
+    await Promise.all(h.listeners.install.map((fn) => {
         let p;
         fn({ waitUntil: (pr) => { p = pr; } });
         return p;
     }));
-    const shell = await caches.open('thailotto-shell-v1');
+    const shell = await h.caches.open('tl-pwa-shell-v2');
     const shellKeys = await shell.keys();
-    assert('offline page is precached at install', shellKeys.includes('/offline.html'),
-        `${shellKeys.length} shell entries`);
-    assert('manifest is precached', shellKeys.includes('/manifest.webmanifest'));
-    assert('icons are precached', shellKeys.some((k) => k.startsWith('/icons/')));
+    assert('offline page is precached at install', shellKeys.includes('/offline.html'), `${shellKeys.length} shell entries`);
+    assert('manifest is precached at install', shellKeys.includes('/manifest.webmanifest'));
+    assert('PNG icons are precached at install', shellKeys.some((k) => k.startsWith('/icons/')));
 
-    // --- 1. money routes must never be intercepted -------------------------
-    const money = [
-        '/api/v1/wallet', '/api/v1/deposit/crypto/address', '/api/v1/player/settings/general',
-        '/player/wallet', '/wallet', '/deposit', '/withdraw', '/bets', '/bet/slip',
-        '/agent/commissions', '/agent/settlements', '/dashboard', '/member/profile',
-        '/profile/limits', '/lotto/betting', '/prize-verification',
-        '/forgot-password', '/reset-password/abc123',
-        '/app/thai-apk.apk', '/storage/kyc/doc.pdf',
+    // --- 2. Non-GET and cross-origin ignored before respondWith ------------
+    assert('POST request is ignored before respondWith', !h.fireFetch('/results', { method: 'POST' }).handled);
+    assert('PUT request is ignored before respondWith', !h.fireFetch('/results', { method: 'PUT' }).handled);
+    assert('DELETE request is ignored before respondWith', !h.fireFetch('/results', { method: 'DELETE' }).handled);
+    assert('cross-origin asset is ignored before respondWith', !h.fireFetch('https://cdn.other.test/x.js').handled);
+
+    // --- 3. Money, auth, identity, admin, agent, storage & encoded bypass --
+    const sensitiveRoutes = [
+        '/api/v1/wallet',
+        '/api/v1/deposit/crypto/address',
+        '/api/v1/player/settings/general',
+        '/sanctum/csrf-cookie',
+        '/broadcasting/auth',
+        '/livewire/update',
+        '/filament/exports/1',
+        '/login',
+        '/register',
+        '/logout',
+        '/forgot-password',
+        '/reset-password/abc123',
+        '/two-factor-challenge',
+        '/dashboard',
+        '/wallet',
+        '/wallet/convert',
+        '/wallet/convert/preview',
+        '/wallet/convert/quote',
+        '/wallet/convert/CNV-2026-0001',
+        '/api/v1/wallet/conversions',
+        '/api/v1/wallet/conversions/quote',
+        '/player/wallet',
+        '/deposit',
+        '/deposits/99',
+        '/withdraw',
+        '/withdrawals/99',
+        '/payment/callback',
+        '/transfer',
+        '/bets',
+        '/bet',
+        '/bet/purchase',
+        '/lotto/betting',
+        '/national-lottery/buy',
+        '/weekly-lottery/buy',
+        '/bingo-lottery/buy',
+        '/pcso-lottery/buy',
+        '/glo-l6/buy',
+        '/results/search?q=000123',
+        '/check?ticket=000123',
+        '/prize-verification',
+        '/member/profile',
+        '/member/rewards',
+        '/profile',
+        '/profile/limits',
+        '/account/verification',
+        '/kyc',
+        '/notifications',
+        '/support/tickets',
+        '/support/portal',
+        '/chat/operator',
+        '/admin',
+        '/admin/dashboard',
+        '/admin/ip-access-rules',
+        '/agent/dashboard',
+        '/agent/portal',
+        '/agent/commissions',
+        '/agent/settlements',
+        '/app/thai-apk.apk',
+        '/storage/kyc/doc.pdf',
+        '/webhooks/stripe',
+        '/results/../wallet',
+        '/%77allet',
+        '/results?token=secret123',
     ];
-    const handledMoney = money.filter((u) => fireFetch(u).handled);
-    assert('money/identity routes bypass the worker entirely',
-        handledMoney.length === 0,
-        handledMoney.length ? `still handled: ${handledMoney.join(', ')}` : `${money.length} routes checked`);
+    const leakedOnline = sensitiveRoutes.filter((u) => h.fireFetch(u, { mode: 'navigate', accept: 'text/html' }).handled);
+    assert(
+        'all money/auth/identity/admin/agent/normalized routes bypass worker online',
+        leakedOnline.length === 0,
+        leakedOnline.length ? `leaked: ${leakedOnline.join(', ')}` : `${sensitiveRoutes.length} routes verified`
+    );
 
-    // --- 2. non-GET and cross-origin bypass --------------------------------
-    assert('POST is never handled', !fireFetch('/results', { method: 'POST' }).handled);
-    assert('cross-origin is never handled',
-        !fireFetch('https://cdn.other.test/x.js').handled);
+    h.setOnline(false);
+    const leakedOffline = sensitiveRoutes.filter((u) => h.fireFetch(u, { mode: 'navigate', accept: 'text/html' }).handled);
+    assert(
+        'all money/auth/identity/admin/agent routes still bypass worker while offline',
+        leakedOffline.length === 0
+    );
+    h.setOnline(true);
 
-    // --- 3. hashed build assets: cache first -------------------------------
-    const buildUrl = 'https://example.test/build/assets/app-Cihv5UtF.css';
-    fetchLog.length = 0;
-    const first = fireFetch(buildUrl);
-    await first.event._p;
-    const assetCache = await caches.open('thailotto-assets-v1');
-    assert('build asset is fetched then stored', fetchLog.length === 1 && !!(await assetCache.match(buildUrl)));
+    // --- 4. Immutable hashed Vite assets: cache-first + header guards ------
+    const buildCss = `${ORIGIN}/build/assets/app-DNWI17dr.css`;
+    h.fetchLog.length = 0;
+    const firstAsset = h.fireFetch(buildCss);
+    await firstAsset.event._p;
+    const assetCache = await h.caches.open('tl-pwa-assets-v2');
+    assert('immutable hashed build asset is fetched and cached', h.fetchLog.length === 1 && !!(await assetCache.match(buildCss)));
 
-    fetchLog.length = 0;
-    const second = fireFetch(buildUrl);
-    await second.event._p;
-    assert('second read of a build asset hits cache, not network', fetchLog.length === 0);
+    h.fetchLog.length = 0;
+    const secondAsset = h.fireFetch(buildCss);
+    await secondAsset.event._p;
+    assert('subsequent read of hashed build asset is served from cache without network', h.fetchLog.length === 0);
 
-    // --- 4. navigation: network first, offline -> cached -> offline page ---
-    const navUrl = 'https://example.test/results';
-    networkOnline = true;
-    const nav1 = fireFetch(navUrl, { mode: 'navigate', accept: 'text/html' });
-    await nav1.event._p;
-    const pageCache = await caches.open('thailotto-pages-v1');
-    assert('navigation is cached while online', !!(await pageCache.match(navUrl)));
+    // Response with Set-Cookie or Cache-Control: no-store must NEVER be cached
+    const cookieAsset = `${ORIGIN}/build/assets/private-AbCdEf12.js`;
+    h.setCustomResponder((url) => {
+        if (url === cookieAsset) {
+            return Promise.resolve(new FakeResponse('console.log(1)', {
+                status: 200,
+                headers: { 'set-cookie': 'session=secret', 'cache-control': 'private, no-store' },
+            }));
+        }
+        return undefined;
+    });
+    const cookieEvt = h.fireFetch(cookieAsset);
+    await cookieEvt.event._p;
+    assert('response carrying Set-Cookie / private / no-store is never written to cache', !(await assetCache.match(cookieAsset)));
+    h.setCustomResponder(null);
 
-    networkOnline = false;
-    const nav2 = fireFetch(navUrl, { mode: 'navigate', accept: 'text/html' });
-    const res2 = await nav2.event._p;
-    assert('offline navigation falls back to the cached page',
-        res2 && res2.body === `body:${navUrl}`);
+    // --- 5. Public navigation: network-first, zero HTML cache, offline page -
+    const publicNavUrl = `${ORIGIN}/results`;
+    const navOnline = h.fireFetch(publicNavUrl, { mode: 'navigate', accept: 'text/html' });
+    const navOnlineRes = await navOnline.event._p;
+    assert('public navigation succeeds from live network when online', navOnlineRes && navOnlineRes.body === `body:${publicNavUrl}`);
+    assert('public HTML navigation response is NOT stored in Cache Storage', !(await h.caches.match(publicNavUrl)));
 
-    const coldUrl = 'https://example.test/national-lottery';
-    const nav3 = fireFetch(coldUrl, { mode: 'navigate', accept: 'text/html' });
-    const res3 = await nav3.event._p;
-    assert('offline navigation to an uncached page serves /offline.html',
-        res3 && res3.body && res3.body.includes('offline') === false ? true : !!res3,
-        res3 && res3.body ? `body len ${res3.body.length}` : '');
-    const offlineBody = await (await caches.match('/offline.html'));
-    assert('offline page body is retrievable from cache',
-        !!offlineBody && typeof offlineBody.body === 'string');
+    h.setOnline(false);
+    const navOffline = h.fireFetch(publicNavUrl, { mode: 'navigate', accept: 'text/html' });
+    const navOfflineRes = await navOffline.event._p;
+    assert(
+        'offline public navigation serves precached /offline.html with live-connection disclosure',
+        !!navOfflineRes && typeof navOfflineRes.body === 'string' && navOfflineRes.body.includes('never cached offline')
+    );
+    h.setOnline(true);
 
-    // money route must STILL bypass while offline
-    assert('money route bypasses even when offline',
-        !fireFetch('/api/v1/wallet').handled);
+    // --- 6. Activate deletes obsolete app caches ONLY, keeping other apps --
+    await h.caches.open('tl-pwa-shell-v1');
+    await h.caches.open('tl-pwa-assets-v1');
+    await h.caches.open('unrelated-origin-app-v1');
 
-    networkOnline = true;
-
-    // --- 5. activate clears foreign caches ---------------------------------
-    await caches.open('some-old-cache-v0');
-    await Promise.all(listeners.activate.map((fn) => {
-        let p; fn({ waitUntil: (pr) => { p = pr; } }); return p;
+    await Promise.all(h.listeners.activate.map((fn) => {
+        let p;
+        fn({ waitUntil: (pr) => { p = pr; } });
+        return p;
     }));
-    const remaining = await caches.keys();
-    assert('activate removes caches from previous versions',
-        !remaining.includes('some-old-cache-v0'), remaining.join(', '));
+    const remainingCaches = await h.caches.keys();
+    assert(
+        'activate deletes obsolete tl-pwa-* caches',
+        !remainingCaches.includes('tl-pwa-shell-v1') && !remainingCaches.includes('tl-pwa-assets-v1'),
+        remainingCaches.join(', ')
+    );
+    assert(
+        'activate preserves unrelated origin caches',
+        remainingCaches.includes('unrelated-origin-app-v1')
+    );
 
-    console.log(`\n  total fetch events the worker chose to handle: ${respondWithCalls}`);
+    // --- 7. Opt-in SKIP_WAITING message support ----------------------------
+    (h.listeners.message || []).forEach((fn) => fn({ data: { type: 'SKIP_WAITING' } }));
+    assert('SKIP_WAITING message triggers controlled skipWaiting()', h.wasSkipWaitingCalled());
+
+    console.log(`\n  Summary: ${passed} passed, ${failed} failed (respondWith calls: ${h.getRespondWithCalls()})`);
 })();

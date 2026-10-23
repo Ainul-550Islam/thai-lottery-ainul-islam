@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'meta_title' => '03. Vision & Mission | ThaiLotto Club - Strategic Purpose',
+    'meta_title' => '03. Vision & Mission | Thai Lottery - Strategic Purpose',
     'meta_description' => 'Building the most trusted, transparent and inclusive lottery infrastructure for Thailand and the world. Explore our strategic roadmap and governance pillars.',
 
     'hero' => [

@@ -16,7 +16,7 @@
 <div class="vision-page" data-vision-page data-locale="{{ e((string) ($page['locale'] ?? app()->getLocale())) }}">
     <a class="pp-skip-link" href="#vision-main">{{ trans('public_pages.skip_to_content') }}</a>
 
-    <header class="vision-header" role="banner">
+    <header class="vision-header">
         <div class="vision-shell vision-header__inner">
             <a class="vision-brand" href="{{ route('home') }}" aria-label="{{ trans('vision_page.brand_aria') }}">
                 <span class="vision-brand__mark" aria-hidden="true"><span>TL</span></span>

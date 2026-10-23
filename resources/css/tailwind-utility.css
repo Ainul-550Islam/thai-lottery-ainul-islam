@@ -1,3 +1,10 @@
-@import 'tailwindcss';
+@import "tailwindcss" source(none);
+@import "./tailwind-compat.css";
 
-@config '../../tailwind.config.js';
+@source "../views";
+@source "../js";
+@source "../../app/View";
+@source "../../app/Filament";
+@source "../../tests/browser/fixtures";
+
+@config "../../tailwind.config.js";

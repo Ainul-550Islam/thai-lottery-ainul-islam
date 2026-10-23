@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 return [
     'meta_title' => 'Lottery Hub',
-    'meta_description' => 'Browse the public lottery result lanes available on ThaiLotto. Result availability is read from each lane and is never replaced with sample values.',
+    'meta_description' => 'Browse the public lottery result lanes available on Thai Lottery. Result availability is read from each lane and is never replaced with sample values.',
     'eyebrow' => 'Public lottery hub',
     'heading_prefix' => 'Choose your',
     'heading_accent' => 'lottery lane',

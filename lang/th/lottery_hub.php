@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 return [
-    'meta_title' => 'Lottery Hub',
-    'meta_description' => 'เรียกดูช่องผลสลากสาธารณะของ ThaiLotto โดยสถานะผลลัพธ์อ่านจากแต่ละช่องทางและไม่แทนที่ด้วยข้อมูลตัวอย่าง',
+    'meta_title' => 'ศูนย์รวมสลาก',
+    'meta_description' => 'เรียกดูช่องผลสลากสาธารณะของ Thai Lottery โดยสถานะผลลัพธ์อ่านจากแต่ละช่องทางและไม่แทนที่ด้วยข้อมูลตัวอย่าง',
     'eyebrow' => 'ศูนย์กลางสลากสาธารณะ',
     'heading_prefix' => 'เลือก',
     'heading_accent' => 'ช่องสลากของคุณ',
@@ -57,19 +57,19 @@ return [
     ],
     'products' => [
         'national_lottery' => [
-            'title' => 'National Lottery',
+            'title' => 'สลากแห่งชาติ',
             'description' => 'ผลการออกรางวัล National Lottery ที่เผยแพร่แล้ว พร้อมการค้นหา ประวัติ คลังรายปี และรายละเอียดที่มีแหล่งที่มา',
         ],
         'weekly_lottery' => [
-            'title' => 'Weekly Lottery',
+            'title' => 'สลากรายสัปดาห์',
             'description' => 'ผลการออกรางวัล Weekly Lottery ที่เผยแพร่แล้ว พร้อมค่าความกว้างคงที่ ประวัติ การค้นหา และแหล่งที่มา',
         ],
         'bingo_lottery' => [
-            'title' => 'Mega Lottery',
+            'title' => 'สลากเมกะ',
             'description' => 'ช่องผลลัพธ์แยกต่างหากที่แสดงเมื่อกำหนดเส้นทางสาธารณะและข้อมูลผลลัพธ์ของช่องนั้นแล้วเท่านั้น',
         ],
         'pcso_lottery' => [
-            'title' => 'PCSO Lottery',
+            'title' => 'สลาก PCSO',
             'description' => 'ช่องผลลัพธ์แยกต่างหากที่แสดงเมื่อกำหนดเส้นทางสาธารณะและข้อมูลผลลัพธ์ของช่องนั้นแล้วเท่านั้น',
         ],
     ],

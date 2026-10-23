@@ -120,7 +120,7 @@ export const PlayerSettings: React.FC = () => {
             <aside className="bg-[#131b29] border border-[#1f2b3e] rounded-2xl p-6 flex flex-col gap-4 shadow-xl h-fit">
                 <div className="border-b border-[#1f2b3e] pb-3">
                     <h2 className="text-sm font-black text-white uppercase tracking-wider">Settings &amp; Controls</h2>
-                    <span className="text-[11px] text-amber-500 font-bold">THAILOTTO MEMBER</span>
+                    <span className="text-[11px] text-amber-500 font-bold">THAI LOTTERY MEMBER</span>
                 </div>
 
                 <nav className="flex flex-col gap-1.5">

@@ -16,7 +16,7 @@
 @section('content')
 <div class="wl-page pcso-page" data-wl-page="pcso-lottery-buy" data-wl-locale="{{ $meta['lang'] }}">
     <a class="wl-skip-link" href="#wl-main">{{ trans('pcso_lottery.skip_to_content') }}</a>
-    <main id="wl-main" class="wl-main" tabindex="-1">
+    <div id="wl-main" class="wl-main" tabindex="-1">
         <nav class="wl-breadcrumb" aria-label="{{ trans('pcso_lottery.heading') }}">
             <a class="wl-breadcrumb__link" href="{{ $back_url }}">{{ trans('pcso_lottery.heading') }}</a>
         </nav>
@@ -33,7 +33,7 @@
                 <p class="pcso-purchase-state__eyebrow">{{ trans('pcso_lottery.purchase_status_heading') }}</p>
                 <h2 id="pcso-purchase-state-heading">{{ $capability['status'] }}</h2>
                 <p>{{ trans('pcso_lottery.purchase_not_configured_explainer') }}</p>
-                <p class="pcso-purchase-state__reason">{{ $capability['reason'] }}</p>
+                <p class="pcso-purchase-state__reason">{{ ($capability['reason'] ?? '') === 'No complete PCSO purchase contract is verified for this application.' ? __('frontend_ui.pcso_purchase_reason') : ($capability['reason'] ?? '') }}</p>
             </div>
         </section>
 
@@ -42,7 +42,7 @@
             <p class="wl-section__subheading">{{ trans('pcso_lottery.purchase_contract_intro') }}</p>
             <ul class="pcso-contract-list">
                 @foreach ($capability['missing'] as $missing)
-                    <li>{{ $missing }}</li>
+                    <li>{{ isset([ 'product definition' => 'frontend_ui.pcso_missing_product', 'draw inventory' => 'frontend_ui.pcso_missing_draw', 'selection validation' => 'frontend_ui.pcso_missing_selection', 'authoritative price' => 'frontend_ui.pcso_missing_price', 'responsible gaming gate' => 'frontend_ui.pcso_missing_gaming', 'wallet debit' => 'frontend_ui.pcso_missing_debit', 'reservation and ticket issuance' => 'frontend_ui.pcso_missing_ticket', 'purchase ledger and idempotency record' => 'frontend_ui.pcso_missing_ledger' ][$missing]) ? __([ 'product definition' => 'frontend_ui.pcso_missing_product', 'draw inventory' => 'frontend_ui.pcso_missing_draw', 'selection validation' => 'frontend_ui.pcso_missing_selection', 'authoritative price' => 'frontend_ui.pcso_missing_price', 'responsible gaming gate' => 'frontend_ui.pcso_missing_gaming', 'wallet debit' => 'frontend_ui.pcso_missing_debit', 'reservation and ticket issuance' => 'frontend_ui.pcso_missing_ticket', 'purchase ledger and idempotency record' => 'frontend_ui.pcso_missing_ledger' ][$missing]) : $missing }}</li>
                 @endforeach
             </ul>
             <p class="wl-disclaimer">{{ trans('pcso_lottery.purchase_no_action_notice') }}</p>
@@ -52,7 +52,7 @@
             <a class="wl-link" href="{{ $back_url }}">{{ trans('pcso_lottery.back_to_results') }}</a>
             <a class="wl-link" href="{{ route('pcso-lottery.latest') }}">{{ trans('pcso_lottery.latest_link') }}</a>
         </nav>
-    </main>
+    </div>
 </div>
 
 <x-public-page.footer />

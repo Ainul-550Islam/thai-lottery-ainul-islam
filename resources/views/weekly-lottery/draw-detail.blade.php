@@ -23,7 +23,7 @@
 @endphp
 <div class="wl-page wl-page--detail" data-wl-page="weekly-lottery-draw-detail" data-wl-locale="{{ $meta['lang'] }}">
     <a class="wl-skip-link" href="#wl-main">{{ trans('weekly_lottery.skip_to_content') }}</a>
-    <main id="wl-main" class="wl-main" tabindex="-1">
+    <div id="wl-main" class="wl-main" tabindex="-1">
         <nav class="wl-breadcrumb" aria-label="{{ trans('weekly_lottery.heading') }}">
             <a class="wl-breadcrumb__link" href="{{ $routes['index'] }}">{{ trans('weekly_lottery.heading') }}</a>
         </nav>
@@ -82,7 +82,7 @@
         @endif
 
         <x-weekly-lottery.year-nav :years="$years" :active-year="$active_year" :is-thai="$is_thai" />
-    </main>
+    </div>
 </div>
 @endsection
 

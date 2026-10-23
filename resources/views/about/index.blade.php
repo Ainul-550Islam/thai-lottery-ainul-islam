@@ -16,7 +16,7 @@
 <div class="about-page" data-about-page data-locale="{{ e((string) ($page['locale'] ?? app()->getLocale())) }}">
     <a class="pp-skip-link" href="#about-main">{{ trans('public_pages.skip_to_content') }}</a>
 
-    <header class="about-header" role="banner">
+    <header class="about-header">
         <div class="about-shell about-header__inner">
             <a class="about-brand" href="{{ route('home') }}" aria-label="{{ trans('about_page.brand_aria') }}">
                 <span class="about-brand__mark" aria-hidden="true"><span>TL</span></span>

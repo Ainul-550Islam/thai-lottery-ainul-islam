@@ -21,7 +21,7 @@
 @endphp
 <div class="wl-page" data-wl-page="weekly-lottery" data-wl-locale="{{ $meta['lang'] }}">
     <a class="wl-skip-link" href="#wl-main">{{ trans('weekly_lottery.skip_to_content') }}</a>
-    <main id="wl-main" class="wl-main" tabindex="-1">
+    <div id="wl-main" class="wl-main" tabindex="-1">
         <header class="wl-header"><p class="wl-eyebrow">{{ trans('weekly_lottery.current_result_heading') }}</p><h1 class="wl-title">{{ trans('weekly_lottery.heading') }}</h1><p class="wl-intro">{{ trans('weekly_lottery.intro') }}</p><p class="wl-disclaimer">{{ trans('weekly_lottery.not_official_notice') }}</p><nav class="wl-actions" aria-label="{{ trans('weekly_lottery.heading') }}"><a class="wl-link" href="{{ route('weekly-lottery.latest') }}">{{ trans('weekly_lottery.current_result_heading') }}</a><a class="wl-link" href="{{ route('weekly-lottery.history') }}">{{ trans('weekly_lottery.history_heading') }}</a><a class="wl-link" href="{{ route('weekly-lottery.buy') }}">{{ trans('lottery_hub.buy_title') }}</a></nav></header>
 
         {{--
@@ -43,7 +43,7 @@
         @if ($search !== null)<section class="wl-section" aria-labelledby="wl-search-results"><h2 id="wl-search-results" class="wl-section__heading">{{ trans('weekly_lottery.search_results_heading') }}</h2><p class="wl-empty">{{ trans('weekly_lottery.status.'.strtolower((string) ($search['status'] ?? 'unavailable'))) }}</p><x-weekly-lottery.result-table :rows="$searchMatches" :is-thai="$is_thai" /></section>@endif
 
         @if ($history !== null)<section class="wl-section" aria-labelledby="wl-history-heading"><h2 id="wl-history-heading" class="wl-section__heading">{{ trans('weekly_lottery.history_heading') }}@if ($active_year !== null) — {{ $active_year }}@endif</h2><x-weekly-lottery.result-table :rows="$historyRows" :is-thai="$is_thai" /><x-weekly-lottery.year-nav :years="$years" :active-year="$active_year" :is-thai="$is_thai" /></section>@else<x-weekly-lottery.year-nav :years="$years" :active-year="$active_year ?? null" :is-thai="$is_thai" />@endif
-    </main>
+    </div>
 </div>
 @endsection
 

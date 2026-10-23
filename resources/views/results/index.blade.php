@@ -9,7 +9,7 @@
 @section('meta_og_url', route('results.index'))
 
 @section('content')
-<main class="min-h-screen bg-[#0B0904] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8" data-results-hub>
+<div class="min-h-screen bg-[#0B0904] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8" data-results-hub>
     <div class="max-w-6xl mx-auto space-y-10">
         <section class="space-y-4 text-center" aria-labelledby="results-title">
             <p class="text-xs uppercase tracking-[0.22em] text-[#D4AF37]">{{ __('results.published_results') }}</p>
@@ -96,5 +96,5 @@
             </section>
         @endif
     </div>
-</main>
+</div>
 @endsection

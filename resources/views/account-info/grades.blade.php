@@ -33,7 +33,7 @@
     <div class="pp-page ai-page" data-pp-page="account-grades">
         <a class="pp-skip-link" href="#pp-main">{{ trans('public_pages.skip_to_content') }}</a>
 
-        <main id="pp-main" class="pp-main" tabindex="-1">
+        <div id="pp-main" class="pp-main" tabindex="-1">
             <header class="pp-header">
                 <h1 class="pp-header__title">{{ trans('account_info.grades_title') }}</h1>
                 <p class="pp-header__lead">{{ trans('account_info.grades_lead') }}</p>
@@ -90,6 +90,6 @@
             @endif
 
             <x-public-page.footer />
-        </main>
+        </div>
     </div>
 @endsection

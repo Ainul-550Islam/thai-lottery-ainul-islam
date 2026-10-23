@@ -70,23 +70,7 @@ export const WalletManagement: React.FC = () => {
     ]);
 
     const handleProceed = () => {
-        const input = prompt(`Enter ${activeTab} amount in THB:`, selectedAmount.toString());
-        if (input) {
-            const parsed = parseFloat(input);
-            if (!isNaN(parsed) && parsed > 0) {
-                if (activeTab === 'deposit') {
-                    setAvailableBalance((prev) => prev + parsed);
-                    alert(`Deposit of ${parsed.toLocaleString()} THB via ${selectedGateway.toUpperCase()} successful.\nRef ID: TX-${Math.floor(10000 + Math.random() * 90000)}`);
-                } else {
-                    if (parsed > availableBalance) {
-                        alert('Insufficient available balance.');
-                        return;
-                    }
-                    setAvailableBalance((prev) => prev - parsed);
-                    alert(`Withdrawal of ${parsed.toLocaleString()} THB requested successfully.`);
-                }
-            }
-        }
+        window.location.assign(activeTab === 'withdraw' ? '/withdraw' : '/deposit');
     };
 
     return (

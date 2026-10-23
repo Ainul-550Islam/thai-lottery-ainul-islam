@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', __('account_services.payment_callback_title').' — Thai Lottery')
+@section('meta_robots', 'noindex, nofollow')
 
 @section('content')
 <div class="max-w-2xl mx-auto space-y-6">

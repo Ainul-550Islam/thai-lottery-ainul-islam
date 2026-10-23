@@ -15,7 +15,7 @@
     figures rather than to nothing.
 --}}
 @php
-    $label = static fn (object $enum): string => \Illuminate\Support\Facades\Lang::has($enum->labelKey())
+    $label = static fn (object $enum): string => (method_exists($enum, 'labelKey') && \Illuminate\Support\Facades\Lang::has($enum->labelKey()))
         ? __($enum->labelKey())
         : $enum->label();
 @endphp
@@ -29,7 +29,7 @@
         <div class="wc-table-wrap">
             <table class="wc-table wc-table--history">
                 <caption class="wc-table__caption">
-                    {{ __('wallet_conversion.history_caption', ['direction' => \Illuminate\Support\Facades\Lang::has($direction->labelKey()) ? __($direction->labelKey()) : $direction->label(), 'total' => $history->total()]) }}
+                    {{ __('wallet_conversion.history_caption', ['direction' => $label($direction), 'total' => $history->total()]) }}
                 </caption>
                 <thead>
                     <tr>
@@ -45,12 +45,19 @@
                 </thead>
                 <tbody>
                     @foreach ($history as $row)
+                        @php
+                            $rowCurrency = $row->currency instanceof \App\Enums\Currency
+                                ? $row->currency
+                                : (is_string($row->currency ?? null)
+                                    ? (\App\Enums\Currency::tryFrom($row->currency) ?? $currency)
+                                    : $currency);
+                        @endphp
                         <tr>
                             <td><code class="wc-ref wc-ref--small">{{ $row->reference }}</code></td>
                             <td>{{ $row->direction === null ? '—' : $label($row->direction) }}</td>
-                            <td class="wc-money">{{ (string) $row->amount_in }}</td>
-                            <td class="wc-money wc-money--fee">{{ (string) $row->fee_amount }}</td>
-                            <td class="wc-money wc-money--in">{{ (string) $row->amount_out }}</td>
+                            <td class="wc-money">{{ (string) $row->amount_in }} {{ $rowCurrency->value }}</td>
+                            <td class="wc-money wc-money--fee">{{ (string) $row->fee_amount }} {{ $rowCurrency->value }}</td>
+                            <td class="wc-money wc-money--in">{{ (string) $row->amount_out }} {{ $rowCurrency->value }}</td>
                             <td>
                                 <span class="wc-badge wc-badge--{{ $row->status?->value ?? 'unknown' }}">
                                     {{ $row->status === null ? '—' : $label($row->status) }}

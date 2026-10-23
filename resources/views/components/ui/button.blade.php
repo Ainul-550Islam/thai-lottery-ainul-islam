@@ -9,17 +9,19 @@
 ])
 
 @php
-    $baseClasses = 'inline-flex items-center justify-center font-bold tracking-tight transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed select-none';
+    $baseClasses = 'inline-flex items-center justify-center font-bold tracking-tight transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F5E6B8] disabled:opacity-50 disabled:cursor-not-allowed select-none';
 
     $sizeClasses = match ($size) {
-        'sm' => $iconOnly ? 'p-1.5 rounded-lg text-xs' : 'px-3 py-1.5 rounded-lg text-xs',
-        'lg' => $iconOnly ? 'p-3.5 rounded-2xl text-base' : 'px-6 py-3.5 rounded-2xl text-base',
-        default => $iconOnly ? 'p-2.5 rounded-xl text-sm' : 'px-4 py-2.5 rounded-xl text-sm',
+        'sm' => $iconOnly ? 'min-h-[38px] min-w-[38px] p-1.5 rounded-lg text-xs' : 'min-h-[38px] px-3 py-1.5 rounded-lg text-xs',
+        'lg' => $iconOnly ? 'min-h-[48px] min-w-[48px] p-3.5 rounded-2xl text-base' : 'min-h-[48px] px-6 py-3.5 rounded-2xl text-base',
+        default => $iconOnly ? 'min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-sm' : 'min-h-[44px] px-4 py-2.5 rounded-xl text-sm',
     };
 
     $variantClasses = match ($variant) {
+        'gold' => 'bg-gradient-to-r from-[#FFF6D6] via-[#F5E6B8] to-[#D4AF37] hover:brightness-105 text-[#0B0904] font-black border border-[#FFF6D6]/50 shadow-lg shadow-black/40 active:scale-[0.98]',
+        'gold-outline' => 'bg-[#141007]/90 hover:bg-[#D4AF37]/15 text-[#FFF6D6] border border-[#D4AF37]/40 shadow-sm active:scale-[0.98]',
         'secondary' => 'bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 shadow-sm active:scale-[0.98]',
-        'ghost' => 'bg-transparent hover:bg-slate-800/80 text-slate-300 hover:text-white active:scale-[0.98]',
+        'ghost' => 'bg-transparent hover:bg-white/5 text-[#D4CAB3] hover:text-[#FFF6D6] active:scale-[0.98]',
         'success' => 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30 active:scale-[0.98]',
         'danger' => 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/30 active:scale-[0.98]',
         'accent' => 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-lg shadow-amber-900/30 active:scale-[0.98]',
@@ -30,16 +32,16 @@
 @endphp
 
 @if ($href)
-    <a href="{{ $disabled ? '#' : $href }}" {{ $attributes->merge(['class' => $classes]) }} @if($disabled) aria-disabled="true" @endif>
+    <a @if(!$disabled)href="{{ $href }}"@else role="link" aria-disabled="true" tabindex="-1"@endif {{ $attributes->merge(['class' => $classes]) }}>
         @if ($loading)
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
         @endif
         {{ $slot }}
     </a>
 @else
     <button type="{{ $type }}" {{ $disabled || $loading ? 'disabled' : '' }} {{ $attributes->merge(['class' => $classes]) }}>
         @if ($loading)
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
         @endif
         {{ $slot }}
     </button>

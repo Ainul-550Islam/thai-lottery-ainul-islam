@@ -46,12 +46,14 @@
              data-target-iso="{{ $scheduledAt }}"
              data-target="{{ $scheduledAt }}"
              data-reached-label="{{ trans('home.countdown.reached') }}"
+             data-day-label="{{ trans('home.countdown.days') }}"
              @if (! empty($nextDraw['timezone'])) data-timezone="{{ $nextDraw['timezone'] }}" @endif
              role="timer"
-             aria-live="polite"
+             aria-live="off"
              aria-label="{{ $text['countdown_aria'] ?? trans('home.countdown.aria_label') }}">
             <span class="block text-xs font-bold uppercase tracking-widest text-slate-400">{{ $text['countdown_label'] ?? trans('home.countdown.label') }}</span>
             <span class="mt-2 block font-mono text-2xl font-black text-amber-300" data-countdown-output>—</span>
+            <span class="visually-hidden" role="status" aria-live="polite" data-countdown-status></span>
         </div>
 
         <a href="{{ route('national-lottery.index') }}" class="tl-btn-primary block w-full rounded-xl py-4 text-center text-xs font-black uppercase tracking-wider">

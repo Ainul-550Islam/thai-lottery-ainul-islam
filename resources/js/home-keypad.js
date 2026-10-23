@@ -1,7 +1,6 @@
 /**
  * Lottery Platform Interactive 6-Digit Lucky Number Picker & Live Keypad Controller
  */
-
 (function () {
     'use strict';
 
@@ -47,15 +46,29 @@
     }
 
     function quickPickRandom() {
-        for (var i = 0; i < 6; i++) {
-            currentDigits[i] = String(Math.floor(Math.random() * 10));
+        if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+            var buf = new Uint8Array(6);
+            window.crypto.getRandomValues(buf);
+            for (var i = 0; i < 6; i++) {
+                currentDigits[i] = String(buf[i] % 10);
+            }
+        } else {
+            showKeypadNotice('Secure random generator unavailable in this browser. Enter digits manually.');
+            return;
         }
         activeDigitIndex = 5;
         renderLuckyDigits();
     }
 
-    // Attach to global window
-    window.thaiLottoKeypad = {
+    function showKeypadNotice(message) {
+        var statusNode = document.getElementById('keypadStatusNotice');
+        if (statusNode) {
+            statusNode.textContent = message;
+            statusNode.classList.remove('hidden');
+        }
+    }
+
+    window.thaiLotteryKeypad = {
         inputDigit: inputDigit,
         backspaceDigit: backspaceDigit,
         clearDigits: clearDigits,
@@ -66,33 +79,22 @@
         },
         addToCart: function () {
             var number = currentDigits.join('');
-            alert('Ticket number ' + number + ' added to Bet Cart! Proceed to confirmation.');
-        }
+            showKeypadNotice('Selected 6-digit number ' + number + '. Sign in to place a verified wager.');
+        },
     };
 
     document.addEventListener('DOMContentLoaded', function () {
         renderLuckyDigits();
 
-        // Attach digit box click listeners
         for (var i = 0; i < 6; i++) {
             (function (idx) {
                 var el = document.getElementById('digitBox-' + idx);
                 if (el) {
                     el.addEventListener('click', function () {
-                        window.thaiLottoKeypad.selectBox(idx);
+                        window.thaiLotteryKeypad.selectBox(idx);
                     });
                 }
             })(i);
         }
-
-        // Live seconds ticker
-        setInterval(function () {
-            var secEl = document.getElementById('nextDrawSecs');
-            if (secEl) {
-                var s = parseInt(secEl.textContent, 10);
-                s = s > 0 ? s - 1 : 59;
-                secEl.textContent = s < 10 ? '0' + s : String(s);
-            }
-        }, 1000);
     });
 })();

@@ -16,7 +16,7 @@
 @section('content')
 <div class="wl-page" data-wl-page="bingo-lottery-buy">
     <a class="wl-skip-link" href="#wl-main">{{ trans('bingo_lottery.skip_to_content') }}</a>
-    <main id="wl-main" class="wl-main" tabindex="-1">
+    <div id="wl-main" class="wl-main" tabindex="-1">
         <header class="wl-header">
             <p class="wl-eyebrow">{{ trans('bingo_lottery.public_name') }}</p>
             <h1 class="wl-title">{{ trans('bingo_lottery.buy_title') }}</h1>
@@ -28,6 +28,6 @@
             <p class="wl-intro">{{ trans('bingo_lottery.purchase_not_configured_explainer') }}</p>
             <a class="wl-link" href="{{ $back_url }}">{{ trans('bingo_lottery.back_to_results') }}</a>
         </section>
-    </main>
+    </div>
 </div>
 @endsection

@@ -37,7 +37,7 @@
         </div>
     </header>
 
-    <main id="contact-main" class="next-shell next-content" tabindex="-1">
+    <div id="contact-main" class="next-shell next-content" tabindex="-1">
         <section class="next-hero" aria-labelledby="contact-title">
             <div><p class="next-eyebrow">{{ trans('contact.eyebrow_support_channel') }}</p><h1 id="contact-title">{{ trans('contact.title') }}</h1><p>{{ trans('contact.intro') }}</p><p class="next-note">{{ trans('contact.note_configured_only') }}</p></div>
             <div class="next-hero-object next-hero-object--headset" aria-hidden="true"><span>?</span><i></i><i></i></div>
@@ -100,7 +100,7 @@
                 <a class="next-button" href="{{ route('terms') }}">{{ trans('contact.link_terms') }}</a>
             </div>
         </section>
-    </main>
+    </div>
 </div>
 @endsection
 

@@ -9,21 +9,10 @@ export const WithdrawalPortal: React.FC = () => {
     const remainingBalance = Math.max(0, withdrawableBalance - amount);
 
     const handleConfirm = () => {
-        if (amount < 300) {
-            alert('Minimum withdrawal amount is 300 THB.');
+        if (amount < 300 || amount > withdrawableBalance) {
             return;
         }
-        if (amount > withdrawableBalance) {
-            alert(`Insufficient withdrawable balance (${withdrawableBalance.toLocaleString()} THB).`);
-            return;
-        }
-
-        const pin = prompt('Security Verification: Enter your 4-digit PIN:');
-        if (pin && pin.length >= 4) {
-            setWithdrawableBalance((prev) => prev - amount);
-            setAvailableBalance((prev) => prev - amount);
-            alert(`Withdrawal of ${amount.toLocaleString()} THB via ${selectedCategory.toUpperCase()} approved.\nRef ID: WD-${Math.floor(100000 + Math.random() * 900000)}`);
-        }
+        window.location.assign('/withdraw');
     };
 
     return (

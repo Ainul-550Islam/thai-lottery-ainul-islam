@@ -1,17 +1,16 @@
 @extends('layouts.app')
 
-@section('title', $meta['title'].' | ThaiLotto')
+@section('title', $meta['title'].' | '.config('app.name', 'Thai Lottery'))
 @section('meta_description', $meta['description'])
 @section('meta_canonical', $meta['canonical'])
 @section('meta_robots', $meta['robots'])
 
 @push('styles')
-    @vite(['resources/css/thailotto-theme.css'])
     @vite(['resources/css/lottery.css'])
 @endpush
 
 @section('content')
-<main class="min-h-screen bg-[#0B0904] px-4 pb-20 pt-24 text-white sm:px-6 lg:px-8" data-lottery-hub>
+<div class="min-h-screen bg-[#0B0904] px-4 pb-20 pt-24 text-white sm:px-6 lg:px-8" data-lottery-hub>
     <div class="mx-auto max-w-7xl space-y-12">
         <x-lottery-hub.hero />
         @if (($catalog['products'] ?? []) === [])
@@ -23,5 +22,5 @@
         @endif
         <x-lottery-hub.results-cta />
     </div>
-</main>
+</div>
 @endsection

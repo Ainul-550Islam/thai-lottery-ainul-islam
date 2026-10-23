@@ -35,4 +35,7 @@ return [
     'important_title' => 'Important:',
     'important_body' => 'This platform is independent and is not operated by or endorsed by a government lottery authority. Product availability, rules, fees and legal eligibility may differ. Please read the ',
     'terms_link' => 'Terms of Service',
+    'agent_inquiries_title' => 'Agent and partner inquiries',
+    'agent_inquiries_body' => 'Reach the support desk for authorized agent onboarding, commission reporting questions, or account coordination.',
+    'agent_inquiries_link' => 'Contact partner support',
 ];

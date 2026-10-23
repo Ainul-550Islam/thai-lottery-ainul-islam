@@ -51,7 +51,7 @@
     <div class="wl-page wl-page--detail" data-wl-page="bingo-lottery-detail" data-wl-locale="{{ $meta['lang'] }}">
         <a class="wl-skip-link" href="#wl-main">{{ trans('bingo_lottery.skip_to_content') }}</a>
 
-        <main id="wl-main" class="wl-main" tabindex="-1">
+        <div id="wl-main" class="wl-main" tabindex="-1">
             <nav class="wl-breadcrumb" aria-label="{{ trans('bingo_lottery.heading') }}">
                 <a class="wl-breadcrumb__link" href="{{ $routes['index'] }}">
                     {{ trans('bingo_lottery.heading') }}
@@ -128,7 +128,7 @@
                 :active-year="$active_year"
                 :is-thai="$is_thai"
             />
-        </main>
+        </div>
     </div>
 
         {{-- The shared public footer, the same one About, Vision, Terms, Fees,

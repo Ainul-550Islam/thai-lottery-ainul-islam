@@ -64,6 +64,7 @@
         },
 
         setupReducedMotionObserver() {
+            if (typeof window.matchMedia !== 'function') return;
             const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
             const handleReducedMotion = (e) => {
                 if (e.matches) {
@@ -72,7 +73,11 @@
                     document.documentElement.classList.remove('reduced-motion');
                 }
             };
-            mediaQuery.addEventListener('change', handleReducedMotion);
+            if (typeof mediaQuery.addEventListener === 'function') {
+                mediaQuery.addEventListener('change', handleReducedMotion);
+            } else if (typeof mediaQuery.addListener === 'function') {
+                mediaQuery.addListener(handleReducedMotion);
+            }
             handleReducedMotion(mediaQuery);
         },
 
@@ -83,10 +88,32 @@
                 const activeModal = document.querySelector('[role="dialog"][data-open="true"], .tl-modal.is-active');
                 if (!activeModal) return;
 
-                const focusableElements = activeModal.querySelectorAll(
+                // Re-evaluate on every Tab: controls can be disabled, hidden or
+                // made inert while a dialog is open. Hidden inputs and negative
+                // tabindex nodes are not sequential keyboard destinations.
+                const focusableElements = Array.from(activeModal.querySelectorAll(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                if (focusableElements.length === 0) return;
+                )).filter((element) => (element.tabIndex ?? 0) >= 0
+                    && !element.disabled && !element.matches?.(':disabled')
+                    && !element.closest?.('[hidden], [inert]')
+                    // Retain basic containment in constrained DOM hosts; native
+                    // geometry/style exposure is checked whenever available.
+                    && (typeof element.getClientRects !== 'function' || element.getClientRects().length > 0)
+                    && (typeof window.getComputedStyle !== 'function'
+                        || !['hidden', 'collapse'].includes(window.getComputedStyle(element).visibility)));
+                if (focusableElements.length === 0) {
+                    if (activeModal.getAttribute('tabindex') == null) activeModal.setAttribute('tabindex', '-1');
+                    activeModal.focus();
+                    e.preventDefault();
+                    return;
+                }
+                // Also recover from outside/container focus rather than letting
+                // the next native Tab traverse background-page controls.
+                if (!focusableElements.includes(document.activeElement)) {
+                    focusableElements[e.shiftKey ? focusableElements.length - 1 : 0].focus();
+                    e.preventDefault();
+                    return;
+                }
 
                 const firstElement = focusableElements[0];
                 const lastElement = focusableElements[focusableElements.length - 1];

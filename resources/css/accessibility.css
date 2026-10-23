@@ -1,10 +1,53 @@
-/**
- * Thai Lottery Accessibility & High-Contrast Stylesheet
- * WCAG 2.1 AA Compliance Styles
+/*
+ * Accessibility, Keyboard Focus, Touch Target & Reduced-Motion Baseline (WCAG 2.2 AA)
  */
 
-/* Screen reader only utility class */
-.sr-only {
+.tl-skip-link,
+.skip-link,
+.pp-skip-link {
+    position: fixed;
+    top: -6rem;
+    left: 1rem;
+    z-index: 9999;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    background: var(--tl-gold, #D4AF37);
+    color: var(--tl-bg-main, #0B0904);
+    font-weight: 800;
+    font-size: 0.875rem;
+    text-decoration: none;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+    transition: top 0.15s ease;
+}
+
+.tl-skip-link:focus,
+.tl-skip-link:focus-visible,
+.skip-link:focus,
+.skip-link:focus-visible,
+.pp-skip-link:focus,
+.pp-skip-link:focus-visible {
+    top: 1rem;
+    outline: 3px solid var(--tl-focus-ring, #F5E6B8);
+    outline-offset: 2px;
+}
+
+:focus-visible {
+    outline: 2px solid var(--tl-focus-ring, #F5E6B8);
+    outline-offset: 2px;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--tl-focus-ring, #F5E6B8);
+    outline-offset: 2px;
+}
+
+.visually-hidden {
     position: absolute !important;
     width: 1px !important;
     height: 1px !important;
@@ -16,60 +59,22 @@
     border: 0 !important;
 }
 
-.sr-only-focusable:focus,
-.sr-only-focusable:focus-within {
-    position: static !important;
-    width: auto !important;
-    height: auto !important;
-    margin: 0 !important;
-    overflow: visible !important;
-    clip: auto !important;
-    white-space: normal !important;
-}
-
-/* High Contrast Focus Indication */
-:focus-visible {
-    outline: 3px solid #10b981 !important;
-    outline-offset: 3px !important;
-}
-
-/* Skip to Content Navigation Link */
-.tl-skip-link {
-    position: absolute;
-    top: -999px;
-    left: 1rem;
-    z-index: 9999;
-    padding: 0.75rem 1.5rem;
-    background-color: #059669;
-    color: #ffffff;
-    font-weight: 700;
-    border-radius: 0.75rem;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-    text-decoration: none;
-    transition: top 0.2s ease-in-out;
-}
-
-.tl-skip-link:focus {
-    top: 1rem;
-}
-
-/* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
-        animation-duration: 0.001ms !important;
+        animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
-        transition-duration: 0.001ms !important;
+        transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
-}
 
-html.reduced-motion *,
-html.reduced-motion *::before,
-html.reduced-motion *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
+    .tl-card-3d,
+    .tl-card-3d:hover,
+    .tl-ball-3d,
+    .tl-ball-3d:hover,
+    .tl-v2-card,
+    .tl-v2-card:hover {
+        transform: none !important;
+    }
 }

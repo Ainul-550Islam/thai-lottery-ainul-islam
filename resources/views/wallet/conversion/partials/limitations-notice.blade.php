@@ -22,7 +22,7 @@
         @if (! $conversionEnabled)
             {{ __('wallet_conversion.closed_master_title') }}
         @else
-            {{ __('wallet_conversion.closed_direction_title', ['direction' => \Illuminate\Support\Facades\Lang::has($direction->labelKey()) ? __($direction->labelKey()) : $direction->label()]) }}
+            {{ __('wallet_conversion.closed_direction_title', ['direction' => (method_exists($direction, 'labelKey') && \Illuminate\Support\Facades\Lang::has($direction->labelKey())) ? __($direction->labelKey()) : $direction->label()]) }}
         @endif
     </h2>
 

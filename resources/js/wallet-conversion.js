@@ -1,56 +1,94 @@
 /**
  * Wallet conversion — the Cash <-> Win lane's browser side.
  *
- * WHAT THIS SCRIPT IS ALLOWED TO DO
- * Three jobs, all of them presentation: write the idempotency key the form
- * submits, ask the server for the live price as the member types, and count
- * down the expiry of the prices already on the page. It computes NO fee and
- * decides NO amount: the browser must never be the authority on what a
- * conversion costs — `/wallet/convert/preview` runs the real fee engine, and
- * the server re-prices everything before any money moves.
+ * Canonical existing web endpoints (routes/web.php):
+ * - GET  /wallet/convert          (player.wallet.conversion)
+ * - POST /wallet/convert/preview  (player.wallet.conversion.preview)
+ * - POST /wallet/convert/quote    (player.wallet.conversion.quote)
+ * - POST /wallet/convert          (player.wallet.conversion.store)
  *
- * WHY THE KEY IS WRITTEN HERE AND NOT IN THE BLADE
- * A key baked into the HTML is the same key for every submission of that page,
- * including a double-click or a back-button resubmit — which is exactly the
- * case the key exists to stop. A fresh value on every load and a fresh value
- * after every successful execute mean each submission carries its own key.
+ * WHAT THIS SCRIPT IS ALLOWED TO DO
+ * Three jobs, all of them presentation: write the CSPRNG idempotency key the
+ * form submits and preserve it across retries of the same form instance, ask
+ * the server (`/wallet/convert/preview`) for the live price as the member
+ * types, and count down the expiry of the prices already on the page. It
+ * computes NO fee and decides NO amount: the browser must never be the
+ * authority on what a conversion costs.
  */
 (function () {
     'use strict';
 
     var KEY_MIN_LENGTH = 16;
+    var KEY_MAX_LENGTH = 128;
 
     function freshKey() {
-        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-            return 'wc-' + window.crypto.randomUUID();
+        var cryptoObj = window.crypto || window.msCrypto;
+        if (cryptoObj && typeof cryptoObj.randomUUID === 'function') {
+            return 'wc-' + cryptoObj.randomUUID();
         }
 
-        // RFC4122-shaped fallback; uniqueness is what matters, not the hash.
-        return 'wc-' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            var r = (Math.random() * 16) | 0;
-            var v = c === 'x' ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-        });
+        if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
+            var bytes = new Uint8Array(16);
+            cryptoObj.getRandomValues(bytes);
+            bytes[6] = (bytes[6] & 0x0f) | 0x40;
+            bytes[8] = (bytes[8] & 0x3f) | 0x80;
+            var hex = [];
+            for (var i = 0; i < 16; i += 1) {
+                hex.push((bytes[i] + 0x100).toString(16).slice(1));
+            }
+            return (
+                'wc-' +
+                hex.slice(0, 4).join('') + '-' +
+                hex.slice(4, 6).join('') + '-' +
+                hex.slice(6, 8).join('') + '-' +
+                hex.slice(8, 10).join('') + '-' +
+                hex.slice(10, 16).join('')
+            );
+        }
+
+        return null;
     }
 
     function csrfToken(form) {
         var field = form.querySelector('input[name="_token"]');
-        return field ? field.value : '';
+        if (field && field.value) {
+            return field.value;
+        }
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? (meta.getAttribute('content') || '') : '';
     }
 
     function normaliseAmount(raw) {
         return String(raw || '').trim().replace(/,/g, '');
     }
 
+    function parseMinorUnits(value) {
+        var trimmed = normaliseAmount(value);
+        var match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(trimmed);
+        if (!match) {
+            return null;
+        }
+        var whole = BigInt(match[1]);
+        var frac = (match[2] || '').padEnd(2, '0');
+        return whole * 100n + BigInt(frac);
+    }
+
     function isPositiveDecimal(value) {
-        return /^\d+(\.\d{1,2})?$/.test(value) && parseFloat(value) > 0;
+        var minor = parseMinorUnits(value);
+        return minor !== null && minor > 0n;
     }
 
     function decimalCompare(a, b) {
-        // Exact at the scale the forms use (2dp); enough for hints.
-        var pa = parseFloat(a);
-        var pb = parseFloat(b);
-        return pa === pb ? 0 : pa < pb ? -1 : 1;
+        var ma = parseMinorUnits(a);
+        var mb = parseMinorUnits(b);
+        if (ma === null || mb === null) {
+            return 0;
+        }
+        return ma === mb ? 0 : ma < mb ? -1 : 1;
+    }
+
+    function isValidKey(value) {
+        return typeof value === 'string' && value.length >= KEY_MIN_LENGTH && value.length <= KEY_MAX_LENGTH;
     }
 
     function initForm(form) {
@@ -64,32 +102,86 @@
         var submitButton = form.querySelector('[data-wc-submit]');
         var quoteButton = form.querySelector('[data-wc-quote]');
         var helpSlot = form.querySelector('[data-wc-amount-hint]');
+        var disabledNote = form.querySelector('[data-wc-disabled-note]');
 
+        var executeUrl = form.getAttribute('action') || '/wallet/convert';
         var previewUrl = form.getAttribute('data-wc-preview-url') || '';
+        var quoteUrl = form.getAttribute('data-wc-quote-url') || '';
         var currency = form.getAttribute('data-wc-currency') || '';
         var minimum = form.getAttribute('data-wc-min') || '';
         var maximum = form.getAttribute('data-wc-max') || '';
         var available = form.getAttribute('data-wc-available') || '';
         var unpricedNote = form.getAttribute('data-wc-unpriced-note') || '';
         var amountHint = form.getAttribute('data-wc-amount-hint') || '';
+        var noCryptoNote = form.getAttribute('data-wc-no-crypto-note') || '';
 
-        // --- the idempotency key -------------------------------------
+        var submitting = false;
+        var cryptoAvailable = true;
+
+        // --- CSPRNG idempotency key (minted once per rendered form instance) ---
         if (keyField) {
-            keyField.value = freshKey();
+            if (!isValidKey(keyField.value)) {
+                var initialKey = freshKey();
+                if (!initialKey) {
+                    cryptoAvailable = false;
+                    keyField.value = '';
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                    }
+                    if (disabledNote) {
+                        if (noCryptoNote) {
+                            disabledNote.textContent = noCryptoNote;
+                        }
+                        disabledNote.hidden = false;
+                    }
+                } else {
+                    keyField.value = initialKey;
+                }
+            }
         }
 
-        form.addEventListener('submit', function () {
-            if (keyField) {
-                keyField.value = freshKey();
+        form.addEventListener('submit', function (event) {
+            if (!cryptoAvailable) {
+                event.preventDefault();
+                return;
             }
+            if (submitting) {
+                event.preventDefault();
+                return;
+            }
+
+            // Ensure execute submissions always target the canonical store route
+            // (`POST /wallet/convert`), even if `Get price` previously mutated action.
+            form.setAttribute('action', executeUrl);
+
+            if (keyField && !isValidKey(keyField.value)) {
+                var fallbackKey = freshKey();
+                if (!fallbackKey) {
+                    event.preventDefault();
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                    }
+                    if (disabledNote) {
+                        disabledNote.hidden = false;
+                    }
+                    return;
+                }
+                keyField.value = fallbackKey;
+            }
+
+            submitting = true;
+            form.setAttribute('aria-busy', 'true');
             if (submitButton) {
                 submitButton.disabled = true;
             }
         });
 
-        // --- get-price posts to the quote action as a plain round trip --
+        // --- get-price posts to POST /wallet/convert/quote as a plain round trip ---
         if (quoteButton && quoteField) {
             quoteButton.addEventListener('click', function () {
+                if (submitting) {
+                    return;
+                }
                 if (!amountInput || !isPositiveDecimal(normaliseAmount(amountInput.value))) {
                     if (amountInput) {
                         amountInput.focus();
@@ -97,15 +189,18 @@
                     return;
                 }
 
-                // The server's quote action answers with a redirect and a
-                // flash line carrying the fee, so the member sees the exact
-                // sentence the engine produced — not a browser paraphrase.
-                form.action = form.getAttribute('data-wc-quote-url') || form.action;
+                submitting = true;
+                form.setAttribute('aria-busy', 'true');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                }
+                quoteButton.disabled = true;
+                form.setAttribute('action', quoteUrl || executeUrl);
                 form.submit();
             });
         }
 
-        // --- live preview ---------------------------------------------
+        // --- live preview (POST /wallet/convert/preview) ------------------------
         var previewTimer = null;
         var previewSeq = 0;
 
@@ -123,10 +218,7 @@
         }
 
         function fieldHint() {
-            if (!helpSlot) {
-                return;
-            }
-            if (!amountHint) {
+            if (!helpSlot || !amountHint) {
                 return;
             }
             helpSlot.textContent = amountHint
@@ -173,7 +265,7 @@
 
             var seq = ++previewSeq;
 
-            fetch(previewUrl, {
+            window.fetch(previewUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -195,7 +287,7 @@
                 })
                 .then(function (data) {
                     if (seq !== previewSeq) {
-                        return; // a newer keystroke already answered
+                        return;
                     }
 
                     if (previewFee) {

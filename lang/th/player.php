@@ -188,6 +188,7 @@ return [
     'nav_place_bet' => 'ส่งโพย',
     'nav_draws' => 'งวดและผลรางวัล',
     'nav_bets' => 'การแทงของฉัน',
+    'nav_my_bets' => 'การแทงของฉัน',
     'nav_wallet' => 'กระเป๋าเงิน',
     'nav_deposit' => 'ฝากเงิน',
     'nav_profile' => 'โปรไฟล์และความปลอดภัย',

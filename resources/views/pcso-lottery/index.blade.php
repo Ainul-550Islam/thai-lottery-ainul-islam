@@ -25,7 +25,7 @@
 <div class="wl-page pcso-page" data-wl-page="pcso-lottery" data-wl-locale="{{ $meta['lang'] }}">
     <a class="wl-skip-link" href="#wl-main">{{ trans('pcso_lottery.skip_to_content') }}</a>
 
-    <main id="wl-main" class="wl-main" tabindex="-1">
+    <div id="wl-main" class="wl-main" tabindex="-1">
         <header class="wl-header pcso-page__header">
             <p class="wl-eyebrow">{{ trans('pcso_lottery.public_name') }}</p>
             <h1 class="wl-title">{{ trans('pcso_lottery.heading') }}</h1>
@@ -103,7 +103,7 @@
             :active-year="$active_year"
             :is-thai="$is_thai"
         />
-    </main>
+    </div>
 </div>
 
 <x-public-page.footer />

@@ -1,8 +1,9 @@
 /**
- * THAILOTTO DESIGN SYSTEM — GLASS SURFACES
+ * THAI LOTTERY DESIGN SYSTEM — GLASS SURFACES & V2 LUXURY PRIMITIVES
  *
- * Provides reusable layered glassmorphism cards and panels with
- * graceful fallback for environments lacking backdrop-filter support.
+ * Preserves existing .tl-glass-panel* computed-style contracts while providing
+ * consolidated V2 Luxury Dark-Gold / Subtle 3D Glass surfaces across public,
+ * auth, player, wallet, and admin operational pages.
  */
 
 .tl-glass-panel {
@@ -59,8 +60,260 @@
     box-shadow: 0 0 0 3px var(--tl-brand-primary-light);
 }
 
+/* ==========================================================================
+   V2 Luxury Dark-Gold / Subtle 3D Glass Shared Primitives
+   ========================================================================== */
+
+.tl-v2-card {
+    position: relative;
+    background: linear-gradient(160deg, rgba(28, 22, 10, 0.92) 0%, rgba(20, 16, 7, 0.94) 55%, rgba(12, 10, 5, 0.96) 100%);
+    border: 1px solid var(--tl-border-gold, rgba(212, 175, 55, 0.24));
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    color: var(--tl-text-primary, #FAF6EC);
+    box-shadow:
+        0 24px 52px -18px rgba(0, 0, 0, 0.78),
+        inset 0 1px 0 rgba(255, 246, 214, 0.10);
+    transition: border-color var(--tl-transition-normal), box-shadow var(--tl-transition-normal);
+}
+
+@media (min-width: 640px) {
+    .tl-v2-card {
+        padding: 2rem;
+    }
+}
+
+.tl-v2-card--hero {
+    background:
+        radial-gradient(ellipse 75% 60% at 88% 8%, rgba(212, 175, 55, 0.16), transparent 64%),
+        radial-gradient(ellipse 55% 50% at 10% 100%, rgba(46, 204, 113, 0.08), transparent 62%),
+        linear-gradient(155deg, rgba(31, 24, 11, 0.96) 0%, rgba(18, 14, 6, 0.97) 58%, rgba(11, 9, 4, 0.98) 100%);
+    border-color: rgba(212, 175, 55, 0.36);
+    box-shadow:
+        0 28px 64px -20px rgba(0, 0, 0, 0.85),
+        0 0 36px rgba(212, 175, 55, 0.09),
+        inset 0 1px 0 rgba(255, 246, 214, 0.16);
+}
+
+.tl-v2-subcard {
+    background: rgba(11, 9, 4, 0.72);
+    border: 1px solid rgba(212, 175, 55, 0.18);
+    border-radius: 1rem;
+    padding: 1.125rem 1.25rem;
+    box-shadow: inset 0 1px 0 rgba(255, 246, 214, 0.05);
+}
+
+.tl-v2-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tl-gold, #D4AF37);
+}
+
+:lang(th) .tl-v2-eyebrow,
+:lang(bn) .tl-v2-eyebrow {
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+.tl-v2-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    background: rgba(20, 16, 7, 0.88);
+    color: var(--tl-gold-soft, #F5E6B8);
+    white-space: nowrap;
+}
+
+.tl-v2-pill::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 9999px;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.tl-v2-pill--verified,
+.tl-v2-pill--available,
+.tl-v2-pill--open {
+    border-color: rgba(46, 204, 113, 0.42);
+    background: rgba(46, 204, 113, 0.12);
+    color: #86EFAC;
+}
+
+.tl-v2-pill--configured,
+.tl-v2-pill--catalogue {
+    border-color: rgba(212, 175, 55, 0.45);
+    background: rgba(212, 175, 55, 0.14);
+    color: #FFF6D6;
+}
+
+.tl-v2-pill--warning {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: rgba(245, 158, 11, 0.14);
+    color: #FDE68A;
+}
+
+.tl-v2-pill--danger {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: rgba(239, 68, 68, 0.14);
+    color: #FECACA;
+}
+
+.tl-v2-pill--neutral {
+    border-color: rgba(212, 202, 179, 0.24);
+    background: rgba(20, 16, 7, 0.82);
+    color: var(--tl-text-secondary, #D4CAB3);
+}
+
+.tl-v2-btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.68rem 1.25rem;
+    border-radius: 0.875rem;
+    border: 1px solid rgba(255, 246, 214, 0.55);
+    background: linear-gradient(180deg, #FFF6D6 0%, #F5E6B8 26%, #D4AF37 78%, #A98219 100%);
+    color: #0B0904;
+    font-weight: 900;
+    font-size: 0.875rem;
+    text-decoration: none;
+    box-shadow: 0 10px 26px -8px rgba(212, 175, 55, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    cursor: pointer;
+    transition: transform var(--tl-transition-fast), filter var(--tl-transition-fast), box-shadow var(--tl-transition-fast);
+}
+
+.tl-v2-btn-gold:hover:not(:disabled) {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    color: #0B0904;
+}
+
+.tl-v2-btn-gold:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.tl-v2-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.68rem 1.2rem;
+    border-radius: 0.875rem;
+    border: 1px solid rgba(212, 175, 55, 0.42);
+    background: rgba(20, 16, 7, 0.86);
+    color: var(--tl-highlight, #FFF6D6);
+    font-weight: 800;
+    font-size: 0.875rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color var(--tl-transition-fast), background-color var(--tl-transition-fast), transform var(--tl-transition-fast);
+}
+
+.tl-v2-btn-outline:hover:not(:disabled) {
+    border-color: var(--tl-border-gold-strong, rgba(245, 230, 184, 0.48));
+    background: rgba(212, 175, 55, 0.12);
+    color: #FFF6D6;
+}
+
+.tl-v2-input,
+.tl-v2-select,
+.tl-v2-textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.7rem 0.95rem;
+    border-radius: 0.825rem;
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    background: rgba(11, 9, 4, 0.92);
+    color: var(--tl-highlight, #FFF6D6);
+    font-size: 0.925rem;
+    transition: border-color var(--tl-transition-fast), box-shadow var(--tl-transition-fast);
+}
+
+.tl-v2-input::placeholder,
+.tl-v2-textarea::placeholder {
+    color: var(--tl-text-muted, #9D937D);
+}
+
+.tl-v2-input:focus,
+.tl-v2-select:focus,
+.tl-v2-textarea:focus {
+    outline: none;
+    border-color: var(--tl-focus-ring, #F5E6B8);
+    box-shadow: 0 0 0 3px rgba(245, 230, 184, 0.18);
+}
+
+.tl-v2-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 1.125rem;
+    border: 1px solid rgba(212, 175, 55, 0.22);
+    background: rgba(14, 11, 5, 0.88);
+}
+
+.tl-v2-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.tl-v2-table thead th {
+    padding: 0.875rem 1rem;
+    background: rgba(28, 22, 10, 0.94);
+    color: var(--tl-gold-soft, #F5E6B8);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+:lang(th) .tl-v2-table thead th,
+:lang(bn) .tl-v2-table thead th {
+    letter-spacing: 0.01em;
+    text-transform: none;
+}
+
+.tl-v2-table tbody td,
+.tl-v2-table tbody th {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.11);
+    color: var(--tl-text-primary, #FAF6EC);
+    vertical-align: middle;
+}
+
+.tl-v2-table tbody tr:last-child td,
+.tl-v2-table tbody tr:last-child th {
+    border-bottom: 0;
+}
+
+.tl-v2-table tbody tr:hover {
+    background: rgba(212, 175, 55, 0.045);
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .tl-glass-panel--hover:hover {
+    .tl-glass-panel--hover:hover,
+    .tl-v2-btn-gold:hover:not(:disabled),
+    .tl-v2-btn-outline:hover:not(:disabled) {
         transform: none;
     }
 }

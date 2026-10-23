@@ -29,7 +29,7 @@
 @endphp
 <div class="wl-page" data-wl-page="bingo-lottery" data-wl-locale="{{ $meta['lang'] }}">
     <a class="wl-skip-link" href="#wl-main">{{ trans('bingo_lottery.skip_to_content') }}</a>
-    <main id="wl-main" class="wl-main" tabindex="-1">
+    <div id="wl-main" class="wl-main" tabindex="-1">
         <header class="wl-header">
             <p class="wl-eyebrow">{{ trans('bingo_lottery.public_name') }}</p>
             <h1 class="wl-title">{{ trans('bingo_lottery.heading') }}</h1>
@@ -95,7 +95,7 @@
         @endif
 
         <x-bingo-lottery.year-nav :years="$years" :active-year="$active_year" :is-thai="$is_thai" />
-    </main>
+    </div>
 </div>
 @endsection
 

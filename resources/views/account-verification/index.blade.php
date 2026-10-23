@@ -65,9 +65,9 @@
     <div class="max-w-3xl mx-auto space-y-8">
 
         <div class="text-center">
-            <h2 class="text-3xl font-extrabold tracking-tight text-white">
+            <h1 class="text-3xl font-extrabold tracking-tight text-white">
                 {{ __('account_services.verification_heading') }}
-            </h2>
+            </h1>
             <p class="mt-2 text-sm text-slate-400">
                 {{ __('account_services.member_verification_lead') }}
             </p>
@@ -91,9 +91,9 @@
 
         {{-- ================= Account summary (owner-only) ================= --}}
         <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl" aria-labelledby="acct-heading">
-            <h3 id="acct-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">
+            <h2 id="acct-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">
                 {{ __('account_services.verification_account_section') }}
-            </h3>
+            </h2>
 
             <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                 <div class="flex justify-between sm:justify-start sm:gap-4">
@@ -133,9 +133,9 @@
 
         {{-- ================= Verify Now (submission) ================= --}}
         <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl" aria-labelledby="verify-heading">
-            <h3 id="verify-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">
+            <h2 id="verify-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">
                 {{ __('account_services.verification_verify_now') }}
-            </h3>
+            </h2>
 
             @if (! $canSubmit)
                 <div class="bg-amber-950/50 border border-amber-600/40 rounded-xl p-4 text-amber-200 text-sm" role="status">
@@ -192,7 +192,7 @@
         {{-- ================= Submission history (member-safe) ================= --}}
         @if (count($history) > 0)
             <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl" aria-labelledby="history-heading">
-                <h3 id="history-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">{{ __('account_services.verification_history') }}</h3>
+                <h2 id="history-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">{{ __('account_services.verification_history') }}</h2>
                 <ul class="space-y-3 text-sm" role="list">
                     @foreach ($history as $entry)
                         <li class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-2"><span class="font-mono text-slate-300">{{ $entry['reference'] }}</span><span class="font-semibold {{ $entry['status'] === 'APPROVED' ? 'text-emerald-300' : ($entry['status'] === 'REJECTED' ? 'text-rose-300' : 'text-amber-300') }}">{{ __('account_services.verification_status_'.($entry['status'] ?? 'NOT_SUBMITTED')) }}</span><span class="text-slate-500">{{ $entry['submitted_at'] ?: __('account_services.not_recorded') }}</span></li>
@@ -204,7 +204,7 @@
         {{-- ================= Documents (metadata only, authorized download) ================= --}}
         @if (count($documents) > 0)
             <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl" aria-labelledby="docs-heading">
-                <h3 id="docs-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">{{ __('account_services.verification_documents') }}</h3>
+                <h2 id="docs-heading" class="text-lg font-bold text-emerald-300 border-b border-slate-800 pb-2 mb-4">{{ __('account_services.verification_documents') }}</h2>
                 <ul class="space-y-3 text-sm" role="list">
                     @foreach ($documents as $doc)
                         <li class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-2"><span class="text-slate-300">{{ __('account_services.verification_document_type_'.$doc['document_type']) }}</span><span class="font-semibold {{ $doc['status'] === 'verified' ? 'text-emerald-300' : 'text-amber-300' }}">{{ __('account_services.verification_status_'.strtoupper((string) ($doc['status'] ?? 'NOT_SUBMITTED'))) }}</span><span class="text-slate-500">{{ $doc['created_at'] ?: __('account_services.not_recorded') }}</span><a href="{{ route('account.verification.document', ['document' => $doc['download_token']]) }}" class="font-medium text-emerald-400 hover:text-emerald-300">{{ __('account_services.verification_download') }}</a></li>
@@ -218,7 +218,7 @@
 <div class="next-public-page next-public-page--verification" data-next-public-page="verification">
     <a class="pp-skip-link" href="#verification-main">{{ trans('public_pages.skip_to_content') }}</a>
     <header class="next-page-header"><div class="next-shell next-page-header__inner"><a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('account_info.verification_home_aria') }}"><span class="next-brand__mark">TL</span><span>{{ config('app.name') }}<small>{{ trans('account_info.verification_brand_subtitle') }}</small></span></a><nav class="next-nav" aria-label="{{ trans('account_info.verification_primary_nav') }}"><a href="{{ route('home') }}">{{ trans('account_info.verification_nav_home') }}</a><a href="{{ route('about') }}">{{ trans('account_info.verification_nav_about') }}</a><a class="is-active" href="{{ route('account.verification') }}" aria-current="page">{{ trans('account_info.verification_nav_verification') }}</a><a href="{{ route('account.grade') }}">{{ trans('account_info.verification_nav_grades') }}</a><a href="{{ route('contact') }}">{{ trans('account_info.verification_nav_contact') }}</a></nav>@guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('account_info.verification_login') }}</a>@else<a class="next-button next-button--gold" href="{{ route('account.verification') }}">{{ trans('account_info.verification_my_verification') }}</a>@endguest</div></header>
-    <main id="verification-main" class="next-shell next-content" tabindex="-1">
+    <div id="verification-main" class="next-shell next-content" tabindex="-1">
         <section class="next-hero" aria-labelledby="verification-title"><div><p class="next-eyebrow">{{ trans('account_info.verification_eyebrow') }}</p><h1 id="verification-title">{{ trans('account_info.verification_title') }}</h1><p>{{ $verification['meta_description'] ?? trans('account_info.verification_meta_description') }}</p><p class="next-note">{{ trans('account_info.verification_public_note') }}</p></div><div class="next-hero-object next-hero-object--verification" aria-hidden="true"><span>✓</span></div></section>
         <section class="next-meta-strip" aria-label="{{ trans('account_info.verification_title') }}"><div><span>{{ trans('account_info.verification_guide_status') }}</span><strong>{{ $status }}</strong></div><div><span>{{ trans('account_info.verification_document_types') }}</span><strong>{{ count($documents) ?: 'NOT_CONFIGURED' }}</strong></div><div><span>{{ trans('account_info.verification_max_upload') }}</span><strong>{{ ($verification['max_upload_mb'] ?? 0) > 0 ? $verification['max_upload_mb'].' MB' : 'NOT_CONFIGURED' }}</strong></div><div><span>{{ trans('account_info.verification_access') }}</span><strong>{{ trans('account_info.verification_authenticated') }}</strong></div></section>
         <div class="next-layout"><aside class="next-sidebar" aria-label="{{ trans('account_info.verification_contents') }}"><p class="next-eyebrow">{{ trans('account_info.verification_guide_map') }}</p>@foreach ($steps as $step)<a href="#verification-step-{{ $loop->iteration }}" data-content-link="verification-step-{{ $loop->iteration }}">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }} · {{ trans('account_info.step_'.$step['key'].'_title') }}</a>@endforeach<a href="#verification-documents" data-content-link="verification-documents">{{ trans('account_info.verification_documents') }}</a></aside><div>
@@ -230,7 +230,7 @@
             <section class="next-section" id="verification-documents" data-content-section aria-labelledby="verification-documents-title"><div class="next-section__heading"><span class="next-section__number">{{ trans('account_info.verification_document_marker') }}</span><div><p class="next-eyebrow">{{ trans('account_info.verification_private_policy') }}</p><h2 id="verification-documents-title">{{ trans('account_info.verification_configured_documents') }}</h2></div></div><div class="next-section__body">@if ($documents === [])<p class="next-empty">NOT_CONFIGURED</p>@else<p>{{ trans('account_info.verification_only_authenticated') }}</p><ul>@foreach ($documents as $document)<li>{{ $document }}</li>@endforeach</ul>@endif<p class="next-muted">{{ trans('account_info.verification_no_public_identity') }}</p></div></section>
         </div></div>
         <section class="next-bottom"><div><p class="next-eyebrow">{{ trans('account_info.verification_private_workflow') }}</p><h2>{{ trans('account_info.verification_continue_title') }}</h2><p>{{ trans('account_info.verification_continue_text') }}</p></div><div class="next-bottom__links">@guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('account_info.verification_sign_in') }}</a>@else<a class="next-button next-button--gold" href="{{ route('account.verification') }}">{{ trans('account_info.verification_open') }}</a>@endguest<a class="next-button" href="{{ route('contact') }}">{{ trans('account_info.verification_contact') }}</a></div></section>
-    </main>
+    </div>
 </div>
 @endif
 @endsection

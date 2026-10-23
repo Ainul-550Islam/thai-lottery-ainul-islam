@@ -2,14 +2,19 @@
 
 @section('title', __('public_pages.register_meta_title'))
 @section('meta_description', __('public_pages.register_meta_description'))
+@section('meta_robots', 'noindex, nofollow')
+
+@push('styles')
+    @vite(['resources/css/auth-portal.css'])
+@endpush
 
 @section('content')
 <div class="min-h-[75vh] py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-2xl mx-auto space-y-8 bg-slate-900/90 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur">
+    <div class="max-w-2xl mx-auto space-y-8 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur">
         <div class="text-center">
-            <h2 class="text-3xl font-extrabold tracking-tight text-white">
+            <h1 class="text-3xl font-extrabold tracking-tight text-white">
                 {{ __('public_pages.register_heading') }}
-            </h2>
+            </h1>
             <p class="mt-2 text-sm text-slate-400">
                 {{ __('public_pages.register_lead') }}
             </p>
@@ -40,10 +45,10 @@
                             {{ __('public_pages.register_referral') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="referral_id" name="referral_id" type="text" required value="{{ old('referral_id') }}"
-                               aria-required="true" @if ($errors->has('referral_id')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('referral_id')) aria-invalid="true" aria-errormessage="referral_id-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('referral_id') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('referral_id'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('referral_id') }}</p>
+                            <p id="referral_id-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('referral_id') }}</p>
                         @endif
                     </div>
 
@@ -53,12 +58,12 @@
                         </label>
                         <input id="mobile" name="mobile" type="text" inputmode="numeric" required value="{{ old('mobile') }}"
                                aria-required="true" aria-describedby="mobile-hint"
-                               @if ($errors->has('mobile')) aria-invalid="true" @endif
+                               @if ($errors->has('mobile')) aria-invalid="true" aria-errormessage="mobile-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('mobile') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"
                                placeholder="0812345678">
                         <p id="mobile-hint" class="mt-1 text-xs text-slate-500">{{ __('public_pages.register_mobile_hint') }}</p>
                         @if ($errors->has('mobile'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('mobile') }}</p>
+                            <p id="mobile-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('mobile') }}</p>
                         @endif
                     </div>
 
@@ -67,10 +72,10 @@
                             {{ __('public_pages.register_password') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="password" name="password" type="password" autocomplete="new-password" required
-                               aria-required="true" @if ($errors->has('password')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('password')) aria-invalid="true" aria-errormessage="password-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('password') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('password'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('password') }}</p>
+                            <p id="password-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('password') }}</p>
                         @endif
                     </div>
 
@@ -79,10 +84,10 @@
                             {{ __('public_pages.register_password_confirm') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required
-                               aria-required="true" @if ($errors->has('password_confirmation')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('password_confirmation')) aria-invalid="true" aria-errormessage="password_confirmation-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('password_confirmation') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('password_confirmation'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('password_confirmation') }}</p>
+                            <p id="password_confirmation-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('password_confirmation') }}</p>
                         @endif
                     </div>
                 </div>
@@ -100,10 +105,10 @@
                             {{ __('public_pages.register_first_name') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="first_name" name="first_name" type="text" required value="{{ old('first_name') }}"
-                               aria-required="true" @if ($errors->has('first_name')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('first_name')) aria-invalid="true" aria-errormessage="first_name-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('first_name') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('first_name'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('first_name') }}</p>
+                            <p id="first_name-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('first_name') }}</p>
                         @endif
                     </div>
 
@@ -112,10 +117,10 @@
                             {{ __('public_pages.register_last_name') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="last_name" name="last_name" type="text" required value="{{ old('last_name') }}"
-                               aria-required="true" @if ($errors->has('last_name')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('last_name')) aria-invalid="true" aria-errormessage="last_name-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('last_name') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('last_name'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('last_name') }}</p>
+                            <p id="last_name-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('last_name') }}</p>
                         @endif
                     </div>
 
@@ -124,7 +129,7 @@
                             {{ __('public_pages.register_gender') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <select id="gender" name="gender" required aria-required="true"
-                                @if ($errors->has('gender')) aria-invalid="true" @endif
+                                @if ($errors->has('gender')) aria-invalid="true" aria-errormessage="gender-error" @endif
                                 class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('gender') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100' }}">
                             <option value="">{{ __('public_pages.register_select') }}</option>
                             @foreach ($genders as $gender)
@@ -134,7 +139,7 @@
                             @endforeach
                         </select>
                         @if ($errors->has('gender'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('gender') }}</p>
+                            <p id="gender-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('gender') }}</p>
                         @endif
                     </div>
 
@@ -143,10 +148,10 @@
                             {{ __('public_pages.register_city') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="city" name="city" type="text" required value="{{ old('city') }}"
-                               aria-required="true" @if ($errors->has('city')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('city')) aria-invalid="true" aria-errormessage="city-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('city') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('city'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('city') }}</p>
+                            <p id="city-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('city') }}</p>
                         @endif
                     </div>
 
@@ -155,10 +160,10 @@
                             {{ __('public_pages.register_country') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="country" name="country" type="text" required value="{{ old('country') }}"
-                               aria-required="true" @if ($errors->has('country')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('country')) aria-invalid="true" aria-errormessage="country-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('country') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('country'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('country') }}</p>
+                            <p id="country-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('country') }}</p>
                         @endif
                     </div>
 
@@ -167,10 +172,10 @@
                             {{ __('public_pages.register_email') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="email" name="email" type="email" autocomplete="email" required value="{{ old('email') }}"
-                               aria-required="true" @if ($errors->has('email')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('email')) aria-invalid="true" aria-errormessage="email-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('email') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('email'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('email') }}</p>
+                            <p id="email-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('email') }}</p>
                         @endif
                     </div>
                 </div>
@@ -188,10 +193,10 @@
                             {{ __('public_pages.register_dob') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="date_of_birth" name="date_of_birth" type="date" required value="{{ old('date_of_birth') }}"
-                               aria-required="true" @if ($errors->has('date_of_birth')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('date_of_birth')) aria-invalid="true" aria-errormessage="date_of_birth-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('date_of_birth') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100' }}">
                         @if ($errors->has('date_of_birth'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('date_of_birth') }}</p>
+                            <p id="date_of_birth-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('date_of_birth') }}</p>
                         @endif
                     </div>
 
@@ -200,10 +205,10 @@
                             {{ __('public_pages.register_nationality') }} <span class="text-rose-400" aria-hidden="true">*</span>
                         </label>
                         <input id="nationality" name="nationality" type="text" required value="{{ old('nationality') }}"
-                               aria-required="true" @if ($errors->has('nationality')) aria-invalid="true" @endif
+                               aria-required="true" @if ($errors->has('nationality')) aria-invalid="true" aria-errormessage="nationality-error" @endif
                                class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('nationality') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}">
                         @if ($errors->has('nationality'))
-                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('nationality') }}</p>
+                            <p id="nationality-error" class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('nationality') }}</p>
                         @endif
                     </div>
                 </div>
@@ -213,7 +218,7 @@
             <div class="flex items-start">
                 <input id="terms" name="terms" type="checkbox" value="1" required
                        aria-required="true" aria-describedby="terms-hint"
-                       @if ($errors->has('terms')) aria-invalid="true" @endif
+                       @if ($errors->has('terms')) aria-invalid="true" aria-errormessage="terms-error" @endif
                        class="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-700 rounded bg-slate-950">
                 <label for="terms" class="ml-3 block text-sm text-slate-300">
                     {{ __('public_pages.register_terms') }}
@@ -221,7 +226,7 @@
             </div>
             <p id="terms-hint" class="text-xs text-slate-500 -mt-3 ml-7">{{ __('public_pages.register_terms_hint') }}</p>
             @if ($errors->has('terms'))
-                <p class="text-xs text-rose-300 -mt-3 ml-7" role="alert">{{ $errors->first('terms') }}</p>
+                <p id="terms-error" class="text-xs text-rose-300 -mt-3 ml-7" role="alert">{{ $errors->first('terms') }}</p>
             @endif
 
             <div>

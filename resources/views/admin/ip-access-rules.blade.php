@@ -10,7 +10,8 @@
     <script src="/js/ip-rule-management.js?v=2" defer></script>
 </head>
 <body>
-<main id="ip-rule-screen"
+<a href="#ip-rule-screen" class="skip-link">Skip to main content</a>
+<main id="ip-rule-screen" tabindex="-1"
       data-index-url="{{ route('admin.ip-access.rules.index', [], false) }}"
       data-create-url="{{ route('admin.ip-access.rules.store', [], false) }}"
       data-revoke-url="{{ route('admin.ip-access.rules.revoke', ['ruleId' => '__RULE_ID__'], false) }}">

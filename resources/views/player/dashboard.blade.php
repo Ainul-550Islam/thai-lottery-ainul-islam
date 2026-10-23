@@ -16,24 +16,22 @@
         : __('player.not_configured');
 @endphp
 <div class="space-y-8">
-    <!-- Welcome Banner / Active Draw Countdown -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl">
-        <div class="relative z-10 max-w-2xl">
-            <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-full uppercase tracking-wider mb-4 inline-block">
-                {{ __('player.dash_hero_subtitle') }}
-            </span>
-            <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+    <!-- Welcome Banner / Active Telemetry -->
+    <div class="tl-v2-card tl-v2-card--hero">
+        <div class="max-w-2xl">
+            <span class="tl-v2-eyebrow">{{ __('player.dash_hero_subtitle') }}</span>
+            <h1 class="mt-2 text-3xl sm:text-4xl font-black text-[#FFF6D6] tracking-tight leading-tight">
                 {{ __('player.welcome_back', ['name' => $user->name ?? $user->username ?? __('player.not_recorded')]) }}
             </h1>
-            <p class="text-slate-400 text-sm sm:text-base mt-2">
+            <p class="text-[#D4CAB3] text-sm sm:text-base mt-2">
                 {{ __('player.dash_hero_subtitle') }}
             </p>
         </div>
 
-        <div class="mt-8 pt-6 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div>
-                <span class="text-xs text-slate-400 block">{{ __('player.available_balance') }}</span>
-                <span class="text-xl sm:text-2xl font-bold font-mono text-amber-400">
+        <div class="mt-8 pt-6 border-t border-[#D4AF37]/18 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="tl-v2-subcard">
+                <span class="text-xs font-bold uppercase tracking-wider text-[#9D937D] block">{{ __('player.available_balance') }}</span>
+                <span class="mt-1.5 block text-xl sm:text-2xl font-black font-mono text-[#F5E6B8]" data-tabular-nums>
                     @if ($wallet instanceof \App\Models\Wallet && $wallet->currency instanceof \App\Enums\Currency)
                         {{ \App\Services\Finance\Money::of((string) $wallet->balance, $wallet->currency)->format() }}
                     @else
@@ -41,15 +39,15 @@
                     @endif
                 </span>
             </div>
-            <div>
-                <span class="text-xs text-slate-400 block">{{ __('player.player_account_badge') }}</span>
-                <span class="text-sm font-bold font-mono text-slate-300">
+            <div class="tl-v2-subcard">
+                <span class="text-xs font-bold uppercase tracking-wider text-[#9D937D] block">{{ __('player.player_account_badge') }}</span>
+                <span class="mt-1.5 block text-base font-bold font-mono text-[#FFF6D6]">
                     {{ $user->username ?? __('player.not_recorded') }}
                 </span>
             </div>
-            <div>
-                <span class="text-xs text-slate-400 block">{{ __('player.status_badge') }}</span>
-                <span class="text-sm font-bold font-mono text-emerald-400 uppercase">
+            <div class="tl-v2-subcard">
+                <span class="text-xs font-bold uppercase tracking-wider text-[#9D937D] block">{{ __('player.status_badge') }}</span>
+                <span class="mt-1.5 block text-base font-bold font-mono text-[#86EFAC] uppercase">
                     {{ $accountStatusLabel }}
                 </span>
             </div>
@@ -57,83 +55,90 @@
     </div>
 
     <!-- Active Draw Overview Card -->
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+    <div class="tl-v2-card">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#D4AF37]/15 gap-4">
             <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">{{ __('player.next_official_draw') }}</span>
-                <h2 class="text-xl sm:text-2xl font-black text-white mt-1">
+                <span class="tl-v2-eyebrow">{{ __('player.next_official_draw') }}</span>
+                <h2 class="text-xl sm:text-2xl font-black text-[#FFF6D6] mt-1">
                     Draw #{{ $openDraw->draw_number ?? ($upcomingDraw->draw_number ?? __('player.not_scheduled')) }}
                 </h2>
             </div>
-            <div class="flex items-center space-x-2">
-                <span class="px-3 py-1 rounded-full text-xs font-bold font-mono {{ $openDraw ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400' }}">
+            <div>
+                <span class="tl-v2-pill {{ $openDraw ? 'tl-v2-pill--verified' : 'tl-v2-pill--neutral' }}">
                     {{ $openDraw ? __('player.status_open') : ($upcomingDraw ? __('player.status_scheduled') : __('player.not_scheduled')) }}
                 </span>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 items-center">
-            <div>
-                <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold block mb-1">{{ __('player.betting_closes_in') }}</span>
-                <div id="draw-countdown" class="text-3xl sm:text-4xl font-extrabold font-mono text-emerald-400 tracking-tight" data-closes-at="{{ $openDraw?->betting_close_at?->toIso8601String() ?? '' }}">
+            <div class="tl-v2-subcard">
+                <span class="text-xs text-[#9D937D] uppercase tracking-wider font-bold block mb-1">{{ __('player.betting_closes_in') }}</span>
+                <div id="draw-countdown" class="text-3xl sm:text-4xl font-black font-mono text-[#FFF6D6] tracking-tight" data-tabular-nums data-closes-at="{{ $openDraw?->betting_close_at?->toIso8601String() ?? '' }}"
+                     data-day-label="{{ __('home.countdown.days') }}"
+                     data-closed-label="{{ __('home.countdown.status_closed') }}"
+                     data-status-target="draw-countdown-status" role="timer" aria-live="off">
                     @if ($openDraw?->betting_close_at)
                         -- : -- : --
                     @else
                         —
                     @endif
                 </div>
-                <p class="text-xs text-slate-500 mt-2">
-                    {{ __('player.draw_date_label') }} <span class="text-slate-300 font-mono">{{ $openDraw?->scheduled_at?->format('M d, Y H:i') ?? __('player.not_recorded') }}</span>
+                <span id="draw-countdown-status" class="sr-only" role="status" aria-live="polite"></span>
+                <p class="text-xs text-[#D4CAB3] mt-2">
+                    {{ __('player.draw_date_label') }} <span class="text-[#F5E6B8] font-mono">{{ $openDraw?->scheduled_at?->format('M d, Y H:i') ?? __('player.not_recorded') }}</span>
                 </p>
             </div>
 
-            <div class="space-y-2">
-                <div class="flex justify-between text-xs py-2 border-b border-slate-800">
-                    <span class="text-slate-400">{{ __('player.payout_rate_3d_top') }}</span>
-                    <span class="font-bold font-mono text-amber-400">{{ $payout3dTop !== null && $payout3dTop !== '' ? (string) $payout3dTop : __('player.not_configured') }}</span>
+            <div class="space-y-2.5">
+                <div class="flex justify-between text-xs py-2.5 px-3 rounded-xl border border-[#D4AF37]/15 bg-[#0B0904]/70">
+                    <span class="text-[#D4CAB3] font-semibold">{{ __('player.payout_rate_3d_top') }}</span>
+                    <span class="font-bold font-mono text-[#F5E6B8]" data-tabular-nums>{{ $payout3dTop !== null && $payout3dTop !== '' ? (string) $payout3dTop : __('player.not_configured') }}</span>
                 </div>
-                <div class="flex justify-between text-xs py-2 border-b border-slate-800">
-                    <span class="text-slate-400">{{ __('player.payout_rate_2d') }}</span>
-                    <span class="font-bold font-mono text-amber-400">{{ $payout2d !== null && $payout2d !== '' ? (string) $payout2d : __('player.not_configured') }}</span>
+                <div class="flex justify-between text-xs py-2.5 px-3 rounded-xl border border-[#D4AF37]/15 bg-[#0B0904]/70">
+                    <span class="text-[#D4CAB3] font-semibold">{{ __('player.payout_rate_2d') }}</span>
+                    <span class="font-bold font-mono text-[#F5E6B8]" data-tabular-nums>{{ $payout2d !== null && $payout2d !== '' ? (string) $payout2d : __('player.not_configured') }}</span>
                 </div>
-                <div class="flex justify-between text-xs py-2">
-                    <span class="text-slate-400">{{ __('player.payout_rate_3d_tod') }}</span>
-                    <span class="font-bold font-mono text-amber-400">{{ $payout3dTod !== null && $payout3dTod !== '' ? (string) $payout3dTod : __('player.not_configured') }}</span>
+                <div class="flex justify-between text-xs py-2.5 px-3 rounded-xl border border-[#D4AF37]/15 bg-[#0B0904]/70">
+                    <span class="text-[#D4CAB3] font-semibold">{{ __('player.payout_rate_3d_tod') }}</span>
+                    <span class="font-bold font-mono text-[#F5E6B8]" data-tabular-nums>{{ $payout3dTod !== null && $payout3dTod !== '' ? (string) $payout3dTod : __('player.not_configured') }}</span>
                 </div>
             </div>
         </div>
 
-        <div class="mt-6 pt-6 border-t border-slate-800 flex justify-end">
-            <a href="{{ route('player.bet') }}" class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition duration-150 text-center flex items-center justify-center space-x-2">
+        <div class="mt-6 pt-6 border-t border-[#D4AF37]/15 flex flex-wrap justify-end gap-3">
+            <a href="{{ route('player.wallet') }}" class="tl-v2-btn-outline w-full sm:w-auto">
+                {{ __('player.nav_wallet') }}
+            </a>
+            <a href="{{ route('player.bet') }}" class="tl-v2-btn-gold w-full sm:w-auto">
                 <span>{{ __('player.enter_bet_slip') }}</span>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </a>
         </div>
     </div>
 
     <!-- Latest Official Results (If Any) -->
     @if($latestCompletedDraw && $latestCompletedDraw->result)
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                <h3 class="text-lg font-bold text-white">{{ __('player.latest_results') }} — Draw #{{ $latestCompletedDraw->draw_number }}</h3>
-                <a href="{{ route('player.draws') }}" class="text-xs text-emerald-400 hover:underline font-semibold">{{ __('player.view_all') }}</a>
+        <div class="tl-v2-card">
+            <div class="flex items-center justify-between pb-4 border-b border-[#D4AF37]/15">
+                <h3 class="text-lg font-extrabold text-[#FFF6D6]">{{ __('player.latest_results') }} — Draw #{{ $latestCompletedDraw->draw_number }}</h3>
+                <a href="{{ route('player.draws') }}" class="text-xs text-[#F5E6B8] hover:text-[#D4AF37] underline underline-offset-4 font-bold">{{ __('player.view_all') }}</a>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                <div class="p-4 bg-slate-950 border border-slate-800/80 rounded-2xl text-center">
-                    <span class="text-xs text-slate-400 uppercase tracking-wider block mb-1">{{ __('player.first_prize_6') }}</span>
-                    <span class="text-2xl font-black font-mono text-amber-400 tracking-wider">
+                <div class="tl-v2-subcard text-center">
+                    <span class="text-xs text-[#9D937D] font-bold uppercase tracking-wider block mb-1">{{ __('player.first_prize_6') }}</span>
+                    <span class="text-2xl font-black font-mono text-[#FFF6D6] tracking-wider" data-tabular-nums>
                         {{ $latestCompletedDraw->result->first_prize ?? __('player.not_published') }}
                     </span>
                 </div>
-                <div class="p-4 bg-slate-950 border border-slate-800/80 rounded-2xl text-center">
-                    <span class="text-xs text-slate-400 uppercase tracking-wider block mb-1">{{ __('player.second_prize') }}</span>
-                    <span class="text-2xl font-black font-mono text-emerald-400 tracking-wider">
+                <div class="tl-v2-subcard text-center">
+                    <span class="text-xs text-[#9D937D] font-bold uppercase tracking-wider block mb-1">{{ __('player.second_prize') }}</span>
+                    <span class="text-2xl font-black font-mono text-[#F5E6B8] tracking-wider" data-tabular-nums>
                         {{ is_array($latestCompletedDraw->result->second_prize) && $latestCompletedDraw->result->second_prize !== [] ? implode(', ', array_map('strval', $latestCompletedDraw->result->second_prize)) : __('player.not_published') }}
                     </span>
                 </div>
-                <div class="p-4 bg-slate-950 border border-slate-800/80 rounded-2xl text-center">
-                    <span class="text-xs text-slate-400 uppercase tracking-wider block mb-1">{{ __('player.third_prize') }}</span>
-                    <span class="text-2xl font-black font-mono text-emerald-400 tracking-wider">
+                <div class="tl-v2-subcard text-center">
+                    <span class="text-xs text-[#9D937D] font-bold uppercase tracking-wider block mb-1">{{ __('player.third_prize') }}</span>
+                    <span class="text-2xl font-black font-mono text-[#F5E6B8] tracking-wider" data-tabular-nums>
                         {{ is_array($latestCompletedDraw->result->third_prize) && $latestCompletedDraw->result->third_prize !== [] ? implode(', ', array_map('strval', $latestCompletedDraw->result->third_prize)) : __('player.not_published') }}
                     </span>
                 </div>
@@ -142,28 +147,29 @@
     @endif
 
     <!-- Recent Wagers List -->
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-        <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+    <div class="tl-v2-card">
+        <div class="flex items-center justify-between pb-5 border-b border-[#D4AF37]/15">
             <div>
-                <h3 class="text-lg font-bold text-white">{{ __('player.my_recent_wagers') }}</h3>
-                <p class="text-slate-400 text-xs mt-0.5">{{ __('player.recent_wagers_lead') }}</p>
+                <h3 class="text-lg font-extrabold text-[#FFF6D6]">{{ __('player.my_recent_wagers') }}</h3>
+                <p class="text-[#D4CAB3] text-xs mt-0.5">{{ __('player.recent_wagers_lead') }}</p>
             </div>
-            <a href="{{ route('player.bets') }}" class="text-xs text-emerald-400 hover:underline font-semibold">{{ __('player.view_all_wagers') }}</a>
+            <a href="{{ route('player.bets') }}" class="text-xs text-[#F5E6B8] hover:text-[#D4AF37] underline underline-offset-4 font-bold">{{ __('player.view_all_wagers') }}</a>
         </div>
 
-        <div class="overflow-x-auto mt-4">
-            <table class="w-full text-left text-sm">
+        <div class="tl-v2-table-wrap mt-5">
+            <table class="tl-v2-table">
+                <caption class="sr-only">{{ __('player.my_recent_wagers') }}</caption>
                 <thead>
-                    <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase font-semibold">
-                        <th class="py-3 px-4">{{ __('player.col_ticket_ref') }}</th>
-                        <th class="py-3 px-4">{{ __('player.col_draw') }}</th>
-                        <th class="py-3 px-4">{{ __('player.col_items_numbers') }}</th>
-                        <th class="py-3 px-4">{{ __('player.col_stake') }}</th>
-                        <th class="py-3 px-4">{{ __('player.col_potential_payout') }}</th>
-                        <th class="py-3 px-4">{{ __('player.col_status') }}</th>
+                    <tr>
+                        <th scope="col">{{ __('player.col_ticket_ref') }}</th>
+                        <th scope="col">{{ __('player.col_draw') }}</th>
+                        <th scope="col">{{ __('player.col_items_numbers') }}</th>
+                        <th scope="col">{{ __('player.col_stake') }}</th>
+                        <th scope="col">{{ __('player.col_potential_payout') }}</th>
+                        <th scope="col">{{ __('player.col_status') }}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800/60">
+                <tbody>
                     @forelse($recentBets as $bet)
                         @php
                             $betCurrency = $bet->currency instanceof \App\Enums\Currency ? $bet->currency : null;
@@ -173,48 +179,37 @@
                             $potentialPayoutLabel = $betCurrency instanceof \App\Enums\Currency
                                 ? \App\Services\Finance\Money::of((string) $bet->potential_payout, $betCurrency)->format()
                                 : __('player.not_configured');
+                            $statusVal = $bet->status->value ?? $bet->status;
+                            $statusClass = match($statusVal) {
+                                'won' => 'tl-v2-pill--verified',
+                                'lost' => 'tl-v2-pill--neutral',
+                                'cancelled' => 'tl-v2-pill--danger',
+                                default => 'tl-v2-pill--configured',
+                            };
                         @endphp
-                        <tr class="hover:bg-slate-800/30 transition">
-                            <td class="py-3.5 px-4 font-mono font-bold text-slate-200">
-                                {{ $bet->bet_number }}
-                            </td>
-                            <td class="py-3.5 px-4 font-mono text-slate-400">
-                                #{{ $bet->draw?->draw_number ?? __('player.not_recorded') }}
-                            </td>
-                            <td class="py-3.5 px-4">
-                                <div class="flex flex-wrap gap-1">
+                        <tr>
+                            <td class="font-mono font-bold text-[#FFF6D6]">{{ $bet->bet_number }}</td>
+                            <td class="font-mono text-[#D4CAB3]">#{{ $bet->draw?->draw_number ?? __('player.not_recorded') }}</td>
+                            <td>
+                                <div class="flex flex-wrap gap-1.5">
                                     @foreach($bet->items as $item)
-                                        <span class="px-2 py-0.5 bg-slate-950 border border-slate-800 rounded text-xs font-mono font-bold text-amber-400">
+                                        <span class="px-2 py-0.5 bg-[#0B0904] border border-[#D4AF37]/25 rounded-lg text-xs font-mono font-bold text-[#F5E6B8]">
                                             {{ $item->market->value ?? $item->market }}: {{ $item->number }}
                                         </span>
                                     @endforeach
                                 </div>
                             </td>
-                            <td class="py-3.5 px-4 font-mono font-bold text-white">
-                                {{ $stakeLabel }}
-                            </td>
-                            <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">
-                                {{ $potentialPayoutLabel }}
-                            </td>
-                            <td class="py-3.5 px-4">
-                                @php
-                                    $statusClass = match($bet->status->value ?? $bet->status) {
-                                        'won' => 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30',
-                                        'lost' => 'bg-slate-800 text-slate-400',
-                                        'cancelled' => 'bg-rose-500/10 text-rose-400 border border-rose-500/30',
-                                        default => 'bg-amber-500/10 text-amber-400 border border-amber-500/30',
-                                    };
-                                @endphp
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase {{ $statusClass }}">
-                                    {{ $bet->status->value ?? $bet->status }}
-                                </span>
+                            <td class="font-mono font-bold text-[#FFF6D6]">{{ $stakeLabel }}</td>
+                            <td class="font-mono font-bold text-[#86EFAC]">{{ $potentialPayoutLabel }}</td>
+                            <td>
+                                <span class="tl-v2-pill {{ $statusClass }}">{{ $statusVal }}</span>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-12 text-center text-slate-500 text-xs">
+                            <td colspan="6" class="py-10 text-center text-[#D4CAB3] text-sm">
                                 {{ __('player.no_recent_wagers') }}
-                                <a href="{{ route('player.bet') }}" class="text-emerald-400 hover:underline ml-1 font-semibold">{{ __('player.place_first_bet') }}</a>
+                                <a href="{{ route('player.bet') }}" class="text-[#F5E6B8] hover:text-[#D4AF37] underline underline-offset-4 ml-1 font-bold">{{ __('player.place_first_bet') }}</a>
                             </td>
                         </tr>
                     @endforelse

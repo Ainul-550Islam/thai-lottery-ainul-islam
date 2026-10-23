@@ -7,25 +7,26 @@
 @section('content')
 <div class="space-y-6">
     <div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{{ __('player.bets_title') }}</h1>
-        <p class="text-slate-400 text-sm mt-1">{{ __('player.bets_lead') }}</p>
+        <span class="tl-v2-eyebrow">{{ __('player.nav_my_bets') }}</span>
+        <h1 class="mt-1 text-2xl sm:text-3xl font-black text-[#FFF6D6] tracking-tight">{{ __('player.bets_title') }}</h1>
+        <p class="text-[#D4CAB3] text-sm mt-1">{{ __('player.bets_lead') }}</p>
     </div>
 
-    <!-- Bets Table Card -->
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+    <div class="tl-v2-card">
+        <div class="tl-v2-table-wrap">
+            <table class="tl-v2-table">
+                <caption class="sr-only">{{ __('player.bets_title') }}</caption>
                 <thead>
-                    <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase font-semibold">
-                        <th class="py-3 px-4">{{ __('player.col_ticket_number') }}</th>
-                        <th class="py-3 px-4">{{ __('player.col_draw') }}</th>
-                        <th class="py-3 px-4">{{ __('player.col_markets_numbers') }}</th>
-                        <th class="py-3 px-4 text-right">{{ __('player.col_total_stake') }}</th>
-                        <th class="py-3 px-4 text-right">{{ __('player.col_potential_payout') }}</th>
-                        <th class="py-3 px-4 text-center">{{ __('player.col_status') }}</th>
+                    <tr>
+                        <th scope="col">{{ __('player.col_ticket_number') }}</th>
+                        <th scope="col">{{ __('player.col_draw') }}</th>
+                        <th scope="col">{{ __('player.col_markets_numbers') }}</th>
+                        <th scope="col" class="text-right">{{ __('player.col_total_stake') }}</th>
+                        <th scope="col" class="text-right">{{ __('player.col_potential_payout') }}</th>
+                        <th scope="col" class="text-center">{{ __('player.col_status') }}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800/60">
+                <tbody>
                     @forelse($bets as $bet)
                         @php
                             $betCurrency = $bet->currency instanceof \App\Enums\Currency ? $bet->currency : null;
@@ -35,47 +36,41 @@
                             $potentialPayoutLabel = $betCurrency instanceof \App\Enums\Currency
                                 ? \App\Services\Finance\Money::of((string) $bet->potential_payout, $betCurrency)->format()
                                 : __('player.not_configured');
+                            $statusVal = $bet->status->value ?? (string) $bet->status;
                         @endphp
-                        <tr class="hover:bg-slate-800/30 transition">
-                            <td class="py-3.5 px-4 font-mono font-bold text-slate-200">
+                        <tr>
+                            <td class="font-mono font-bold text-[#FFF6D6]">
                                 {{ $bet->ticket?->ticket_number ?? __('player.not_recorded') }}
                             </td>
-                            <td class="py-3.5 px-4 font-mono text-xs text-slate-400">
+                            <td class="font-mono text-xs text-[#D4CAB3]">
                                 {{ $bet->draw?->draw_number ?? __('player.not_recorded') }}
                             </td>
-                            <td class="py-3.5 px-4">
+                            <td>
                                 <div class="flex flex-wrap gap-1.5">
                                     @foreach($bet->items ?? [] as $item)
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-800 text-amber-400 border border-slate-700">
-                                            {{ $item->number }} <span class="text-[10px] text-slate-400 ml-1">({{ $item->market->value ?? $item->market }})</span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-mono font-bold bg-[#0B0904] text-[#F5E6B8] border border-[#D4AF37]/25">
+                                            {{ $item->number }} <span class="text-[10px] text-[#9D937D] ml-1">({{ $item->market->value ?? $item->market }})</span>
                                         </span>
                                     @endforeach
                                 </div>
                             </td>
-                            <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">
-                                {{ $stakeLabel }}
-                            </td>
-                            <td class="py-3.5 px-4 text-right font-mono font-bold text-emerald-400">
-                                {{ $potentialPayoutLabel }}
-                            </td>
-                            <td class="py-3.5 px-4 text-center">
-                                @php
-                                    $statusVal = $bet->status->value ?? (string) $bet->status;
-                                @endphp
+                            <td class="text-right font-mono font-bold text-[#FFF6D6]">{{ $stakeLabel }}</td>
+                            <td class="text-right font-mono font-bold text-[#86EFAC]">{{ $potentialPayoutLabel }}</td>
+                            <td class="text-center">
                                 @if($statusVal === 'won')
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">{{ __('player.status_won') }}</span>
+                                    <span class="tl-v2-pill tl-v2-pill--verified">{{ __('player.status_won') }}</span>
                                 @elseif($statusVal === 'lost')
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">{{ __('player.status_lost') }}</span>
+                                    <span class="tl-v2-pill tl-v2-pill--danger">{{ __('player.status_lost') }}</span>
                                 @elseif($statusVal === 'cancelled')
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/10 text-slate-400 border border-slate-500/30">{{ __('player.status_cancelled') }}</span>
+                                    <span class="tl-v2-pill tl-v2-pill--neutral">{{ __('player.status_cancelled') }}</span>
                                 @else
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">{{ __('player.status_pending') }}</span>
+                                    <span class="tl-v2-pill tl-v2-pill--configured">{{ __('player.status_pending') }}</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-12 text-center text-slate-500 text-xs">
+                            <td colspan="6" class="py-12 text-center text-[#D4CAB3] text-sm">
                                 {{ __('player.no_bets_recorded') }}
                             </td>
                         </tr>
@@ -84,7 +79,7 @@
             </table>
         </div>
 
-        @if(method_exists($bets, 'links'))
+        @if(is_object($bets) && method_exists($bets, 'links'))
             <div class="pt-6">
                 {{ $bets->links() }}
             </div>

@@ -4,8 +4,13 @@
 @section('meta_description', trans('support.meta_description'))
 @section('robots', 'noindex, nofollow')
 
+@push('styles')
+    @vite(['resources/css/pages/public-next-pages.css', 'resources/js/pages/public-next-pages.js'])
+@endpush
+
 @section('content')
-<main class="next-shell next-content" id="support-main" tabindex="-1" aria-labelledby="support-title">
+<div class="next-public-page">
+<div class="next-shell next-content" id="support-main" tabindex="-1" aria-labelledby="support-title">
     <a class="pp-skip-link" href="#support-main">{{ trans('public_pages.skip_to_content') }}</a>
     <header class="next-page-header">
         <div class="next-shell next-page-header__inner">
@@ -74,7 +79,7 @@
         @if (! in_array($case->status, ['closed', 'resolved'], true))
             <section class="next-panel" aria-labelledby="support-reply-title">
                 <h2 id="support-reply-title">{{ trans('support.reply_title') }}</h2>
-                <form method="post" action="{{ route('support.reply', ['reference' => $case->public_reference]) }}">
+                <form class="next-form" method="post" action="{{ route('support.reply', ['reference' => $case->public_reference]) }}">
                     @csrf
                     <label for="reply-body">{{ trans('support.reply_label') }}</label>
                     <textarea id="reply-body" name="body" rows="6" maxlength="10000" required>{{ old('body') }}</textarea>
@@ -99,7 +104,7 @@
 
         <section class="next-panel" aria-labelledby="support-create-title">
             <h2 id="support-create-title">{{ trans('support.create_title') }}</h2>
-            <form method="post" action="{{ route('support.store') }}">
+            <form class="next-form" method="post" action="{{ route('support.store') }}">
                 @csrf
                 <label for="support-category">{{ trans('support.category_label') }}</label>
                 <select id="support-category" name="category" required>
@@ -121,5 +126,6 @@
             </form>
         </section>
     @endif
-</main>
+</div>
+</div>
 @endsection

@@ -13,7 +13,7 @@
         return String(n).padStart(2, '0');
     }
 
-    function formatRemaining(ms) {
+    function formatRemaining(ms, dayLabel) {
         if (ms <= 0) {
             return '00:00:00';
         }
@@ -23,7 +23,7 @@
         var mins = Math.floor((totalSec % 3600) / 60);
         var secs = totalSec % 60;
         var hms = pad(hours) + ':' + pad(mins) + ':' + pad(secs);
-        return days > 0 ? days + 'd ' + hms : hms;
+        return days > 0 ? days + (dayLabel ? ' ' + dayLabel : 'd') + ' ' + hms : hms;
     }
 
     function initCountdown(root) {
@@ -38,34 +38,91 @@
 
         var output =
             root.querySelector('[data-countdown-output]') ||
-            root.querySelector('.home-countdown__display') ||
-            root;
+            root.querySelector('.home-countdown__display');
+        var status = root.querySelector('[data-countdown-status]');
+        var cells = ['days', 'hours', 'minutes', 'seconds'].map(function (unit) {
+            return root.querySelector('#cd-' + unit);
+        });
+        var hasGrid = cells.every(function (cell) { return cell !== null; });
+        if (!output && !hasGrid) return;
 
-        var prefersReduced =
-            window.matchMedia &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        function render(ms) {
+            if (!hasGrid) {
+                output.textContent = formatRemaining(ms, root.getAttribute('data-day-label'));
+                return;
+            }
+            var seconds = Math.max(0, Math.floor(ms / 1000));
+            var values = [Math.floor(seconds / 86400), Math.floor(seconds % 86400 / 3600), Math.floor(seconds % 3600 / 60), seconds % 60];
+            cells.forEach(function (cell, index) { cell.textContent = pad(values[index]); });
+        }
+
+        var motionQuery = typeof window.matchMedia === 'function'
+            ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+        var prefersReduced = motionQuery && motionQuery.matches;
+        var lastMinute = null;
+        var didReachTarget = false;
+        function onMotionChange(event) {
+            prefersReduced = event.matches;
+            tick();
+        }
+        function observeMotion(add) {
+            if (!motionQuery) return;
+            var method = add ? 'addEventListener' : 'removeEventListener';
+            var legacy = add ? 'addListener' : 'removeListener';
+            if (typeof motionQuery[method] === 'function') motionQuery[method]('change', onMotionChange);
+            else if (typeof motionQuery[legacy] === 'function') motionQuery[legacy](onMotionChange);
+        }
 
         function tick() {
+            if (didReachTarget) return;
             var remaining = targetMs - Date.now();
             if (remaining <= 0) {
-                output.textContent = root.getAttribute('data-reached-label') || 'The scheduled draw time has arrived.';
+                didReachTarget = true;
+                var reached = root.getAttribute('data-reached-label') || 'The scheduled draw time has arrived.';
+                if (hasGrid) render(0);
+                else output.textContent = reached;
+                if (status) status.textContent = reached;
                 root.setAttribute('data-countdown-state', 'reached');
                 if (timerId) {
                     window.clearInterval(timerId);
                     timerId = null;
                 }
+                observeMotion(false);
                 return;
             }
-            // Reduced motion: update once per minute instead of every second.
-            if (prefersReduced && timerId && Math.floor(remaining / 1000) % 60 !== 0) {
+            // Compare minute buckets: throttled callbacks may miss the exact boundary.
+            var minute = Math.ceil(remaining / 60000);
+            if (prefersReduced && timerId && minute === lastMinute) {
                 return;
             }
-            output.textContent = formatRemaining(remaining);
+            render(remaining);
+            lastMinute = minute;
             root.setAttribute('data-countdown-state', 'active');
         }
 
-        var timerId = window.setInterval(tick, 1000);
-        tick();
+        var timerId = null;
+        function start() {
+            if (didReachTarget) return;
+            if (timerId) window.clearInterval(timerId);
+            timerId = null;
+            prefersReduced = motionQuery && motionQuery.matches;
+            tick(); // Always paint immediately, including after BFCache restoration.
+            if (targetMs > Date.now()) {
+                observeMotion(true);
+                timerId = window.setInterval(tick, 1000);
+            }
+        }
+        start();
+        if (typeof window.addEventListener === 'function') {
+            window.addEventListener('pagehide', function () {
+                if (timerId) window.clearInterval(timerId);
+                timerId = null;
+                observeMotion(false);
+            });
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted) start();
+            });
+        }
     }
 
     function boot() {

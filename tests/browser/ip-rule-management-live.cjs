@@ -4,7 +4,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
-const { chromium } = require("playwright");
+let chromium;
+try {
+    ({ chromium } = require("playwright"));
+} catch {
+    ({ chromium } = require("@playwright/test"));
+}
 const repo = path.resolve(__dirname, "../..");
 const fixture = process.env.IP_RULE_BROWSER_ROOT;
 const base = process.env.IP_RULE_BROWSER_URL || "http://127.0.0.1:8091";
@@ -27,7 +32,7 @@ assert.equal(meta.ready, true);
 const fixtureCommand = (mode) =>
     execFileSync(
         process.env.PHP_BINARY || "php",
-        ["tests/Browser/Support/ip-rule-live.php", mode],
+        ["tests/browser/Support/ip-rule-live.php", mode],
         {
             cwd: repo,
             env: {

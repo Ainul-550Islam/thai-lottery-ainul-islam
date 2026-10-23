@@ -60,7 +60,7 @@
         @endguest
     </div></header>
 
-    <main id="blog-main" class="next-shell next-content" tabindex="-1">
+    <div id="blog-main" class="next-shell next-content" tabindex="-1">
         <section class="next-hero" aria-labelledby="blog-title">
             <div>
                 <p class="next-eyebrow">{{ __('blog.eyebrow') }}</p>
@@ -122,7 +122,7 @@
                 <p>{{ $notice }}</p>
             </aside>
         @endif
-    </main>
+    </div>
 </div>
 @endsection
 

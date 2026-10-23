@@ -1,56 +1,94 @@
-/**
- * THAILOTTO ENTERPRISE DESIGN SYSTEM — THEME TOKENS
- *
- * Centralizes brand theme variables: background layers, glass layers,
- * border opacity, typography, accents, semantic feedback, and lottery highlights.
+/*
+ * Thai Lottery Enterprise & Luxury Dark/Gold Design Tokens (V2 Canonical System)
+ * Primary luxury palette:
+ *   Obsidian canvas : #0B0904
+ *   Elevated surface: #141007
+ *   Royal gold      : #D4AF37
+ *   Soft champagne  : #F5E6B8
+ *   Warm highlight  : #FFF6D6
  */
 
 :root {
-    /* Color Palette - Neutrals & Slate Bases */
-    --tl-bg-main: #020617;
-    --tl-bg-surface-1: #0f172a;
-    --tl-bg-surface-2: #1e293b;
-    --tl-bg-surface-3: #334155;
+    color-scheme: dark;
 
-    /* Text Colors */
-    --tl-text-primary: #f8fafc;
-    --tl-text-secondary: #94a3b8;
-    --tl-text-muted: #64748b;
-    --tl-text-inverted: #020617;
+    /* Section 3.1 Canonical V2 Luxury Dark-Gold Tokens */
+    --tl-bg-main: #0B0904;
+    --tl-bg-elevated: #141007;
+    --tl-surface: rgba(20, 16, 7, 0.84);
+    --tl-surface-strong: rgba(28, 22, 10, 0.94);
+    --tl-border-gold: rgba(212, 175, 55, 0.24);
+    --tl-border-gold-strong: rgba(245, 230, 184, 0.48);
+    --tl-gold: #D4AF37;
+    --tl-gold-soft: #F5E6B8;
+    --tl-highlight: #FFF6D6;
+    --tl-text-primary: #FAF6EC;
+    --tl-text-secondary: #D4CAB3;
+    --tl-text-muted: #9D937D;
+    --tl-success: #2ECC71;
+    --tl-warning: #F59E0B;
+    --tl-danger: #EF4444;
+    --tl-info: #38BDF8;
+    --tl-focus-ring: #F5E6B8;
 
-    /* Brand & Accent */
+    /* Backwards-compatible aliases across Blade, portals & admin surfaces */
+    --tl-obsidian: #0B0904;
+    --tl-surface-solid: #141007;
+    --tl-surface-elevated: #1D170B;
+    --tl-cream: #FFF6D6;
+
+    --tl-bg-deep: #0B0904;
+    --tl-bg-base: #100D06;
+    --tl-bg-surface: rgba(20, 16, 7, 0.84);
+    --tl-bg-surface-1: #141007;
+    --tl-bg-surface-2: #1D170B;
+    --tl-bg-surface-3: #2B2211;
+    --tl-surface-1-rgb: 20, 16, 7;
+    --tl-line-rgb: 212, 175, 55;
+    --tl-text-inverted: #0B0904;
+
+    /* Brand & semantic support tokens */
     --tl-brand-primary: #059669;
-    --tl-brand-primary-hover: #10b981;
-    --tl-brand-primary-light: rgba(16, 185, 129, 0.15);
-    --tl-brand-accent: #f59e0b;
-    --tl-brand-accent-hover: #d97706;
-    --tl-brand-accent-light: rgba(245, 158, 11, 0.15);
+    --tl-brand-primary-hover: #10B981;
+    --tl-brand-primary-light: rgba(16, 185, 129, 0.16);
+    --tl-brand-accent: #D4AF37;
+    --tl-brand-accent-hover: #F5E6B8;
+    --tl-brand-accent-light: rgba(212, 175, 55, 0.16);
 
-    /* Semantic States */
-    --tl-success: #10b981;
-    --tl-success-bg: rgba(16, 185, 129, 0.12);
-    --tl-success-border: rgba(16, 185, 129, 0.3);
+    --tl-accent-emerald: #10B981;
+    --tl-accent-emerald-bright: #34D399;
+    --tl-accent-gold: #D4AF37;
+    --tl-accent-gold-soft: #F5E6B8;
+    --tl-accent-cyan: #22D3EE;
+    --tl-accent-violet: #A78BFA;
+    --tl-accent-danger: #FB7185;
+    --tl-accent-warning: #FBBF24;
 
-    --tl-warning: #f59e0b;
+    --tl-success-bg: rgba(46, 204, 113, 0.12);
+    --tl-success-border: rgba(46, 204, 113, 0.34);
+
     --tl-warning-bg: rgba(245, 158, 11, 0.12);
-    --tl-warning-border: rgba(245, 158, 11, 0.3);
+    --tl-warning-border: rgba(245, 158, 11, 0.34);
 
-    --tl-danger: #f43f5e;
-    --tl-danger-bg: rgba(244, 63, 94, 0.12);
-    --tl-danger-border: rgba(244, 63, 94, 0.3);
+    --tl-danger-bg: rgba(239, 68, 68, 0.12);
+    --tl-danger-border: rgba(239, 68, 68, 0.34);
 
-    --tl-info: #0ea5e9;
-    --tl-info-bg: rgba(14, 165, 233, 0.12);
-    --tl-info-border: rgba(14, 165, 233, 0.3);
+    --tl-info-bg: rgba(56, 189, 248, 0.12);
+    --tl-info-border: rgba(56, 189, 248, 0.34);
 
-    /* Glass Tokens */
-    --tl-glass-bg-subtle: rgba(15, 23, 42, 0.65);
-    --tl-glass-bg-elevated: rgba(30, 41, 59, 0.75);
-    --tl-glass-bg-high: rgba(30, 41, 59, 0.9);
+    /* Glass & border tokens (preserves --tl-glass-* computed-style contract) */
+    --tl-glass-bg-subtle: rgba(20, 16, 7, 0.72);
+    --tl-glass-bg-elevated: rgba(29, 23, 11, 0.82);
+    --tl-glass-bg-high: rgba(20, 16, 7, 0.92);
+    --tl-bg-glass: rgba(20, 16, 7, 0.72);
+    --tl-bg-glass-strong: rgba(14, 11, 5, 0.90);
     --tl-glass-border: rgba(255, 255, 255, 0.08);
-    --tl-glass-border-focus: rgba(16, 185, 129, 0.5);
+    --tl-border-subtle: rgba(255, 255, 255, 0.08);
+    --tl-border-gold-subtle: rgba(245, 230, 184, 0.14);
+    --tl-border-strong: rgba(212, 175, 55, 0.28);
+    --tl-border-accent: rgba(212, 175, 55, 0.52);
+    --tl-glass-border-focus: rgba(245, 230, 184, 0.58);
     --tl-glass-blur: 16px;
-    --tl-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --tl-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
 
     /* Radii */
     --tl-radius-sm: 0.375rem;
@@ -58,17 +96,42 @@
     --tl-radius-lg: 0.75rem;
     --tl-radius-xl: 1rem;
     --tl-radius-2xl: 1.5rem;
+    --tl-radius-card: 1.25rem;
+    --tl-radius-pill: 9999px;
     --tl-radius-full: 9999px;
 
     /* Depth & Shadows */
-    --tl-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --tl-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    --tl-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
-    --tl-shadow-3d: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    --tl-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+    --tl-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.24), 0 2px 4px -2px rgba(0, 0, 0, 0.14);
+    --tl-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.34), 0 4px 6px -4px rgba(0, 0, 0, 0.22);
+    --tl-shadow-card: 0 22px 48px -16px rgba(0, 0, 0, 0.78), inset 0 1px 0 rgba(255, 246, 214, 0.08);
+    --tl-shadow-3d: 0 20px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.32);
+    --tl-glow-emerald: 0 0 28px rgba(46, 204, 113, 0.22);
+    --tl-glow-gold: 0 0 28px rgba(212, 175, 55, 0.22);
 
-    /* Transitions */
+    /* Motion */
+    --tl-ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
     --tl-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --tl-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --tl-transition-normal: 240ms cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* Typography stacks for EN / TH / BN */
+    --tl-font-sans: Inter, "Noto Sans Thai", "Noto Sans Bengali", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --tl-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+    /* Shared public/portal token defaults */
+    --next-obsidian: #0B0904;
+    --next-obsidian-2: #141007;
+    --next-panel: rgba(20, 16, 7, 0.84);
+    --next-panel-strong: rgba(28, 22, 10, 0.94);
+    --next-gold: #D4AF37;
+    --next-gold-soft: #F5E6B8;
+    --next-cream: #FFF6D6;
+    --next-muted: #D4CAB3;
+    --next-line: rgba(212, 175, 55, 0.24);
+    --next-line-bright: rgba(245, 230, 184, 0.48);
+    --next-emerald: #2ECC71;
+    --next-danger: #FCA5A5;
+    --next-shadow: 0 24px 64px rgba(0, 0, 0, 0.54);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -76,4 +139,64 @@
         --tl-transition-fast: 0ms;
         --tl-transition-normal: 0ms;
     }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    background-color: var(--tl-bg-main);
+    color: var(--tl-text-primary);
+    -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
+}
+
+body {
+    margin: 0;
+    background-color: var(--tl-bg-main);
+    background-image:
+        radial-gradient(ellipse 80% 48% at 50% -12%, rgba(212, 175, 55, 0.12), transparent 68%),
+        radial-gradient(ellipse 55% 40% at 88% 14%, rgba(46, 204, 113, 0.05), transparent 64%),
+        linear-gradient(180deg, #0B0904 0%, #110D06 48%, #0B0904 100%);
+    color: var(--tl-text-primary);
+    font-family: var(--tl-font-sans);
+    min-height: 100vh;
+    overflow-x: clip;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* Multilingual script legibility: protect Thai tone marks & Bangla conjuncts/matras */
+:lang(th),
+:lang(bn) {
+    line-height: 1.7;
+    letter-spacing: 0 !important;
+}
+
+:lang(th) h1,
+:lang(th) h2,
+:lang(th) h3,
+:lang(bn) h1,
+:lang(bn) h2,
+:lang(bn) h3 {
+    line-height: 1.35;
+    letter-spacing: 0;
+}
+
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
+}
+
+.tl-tabular-nums,
+[data-tabular-nums],
+.font-mono {
+    font-variant-numeric: tabular-nums;
 }

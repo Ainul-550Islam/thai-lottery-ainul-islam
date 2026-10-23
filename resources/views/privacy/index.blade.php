@@ -26,7 +26,7 @@
         @guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('public_pages.privacy_login') }}</a>@else<a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">{{ trans('public_pages.privacy_dashboard') }}</a>@endguest
     </div></header>
 
-    <main id="privacy-main" class="next-shell next-content" tabindex="-1">
+    <div id="privacy-main" class="next-shell next-content" tabindex="-1">
         <section class="next-hero" aria-labelledby="privacy-title"><div><p class="next-eyebrow">{{ trans('public_pages.privacy_eyebrow') }}</p><h1 id="privacy-title">{{ $privacy['title'] ?? trans('public_pages.privacy_title') }}</h1><p>{{ $privacy['meta_description'] ?? trans('public_pages.privacy_meta_description') }}</p><p class="next-note">{{ trans('public_pages.privacy_public_note') }}</p>@if (($privacy['locale'] ?? app()->getLocale()) === 'bn')<p class="next-note" role="note"><strong>{{ trans('public_pages.privacy_language_notice_title') }}:</strong> {{ trans('public_pages.privacy_language_notice') }}</p>@endif</div><div class="next-hero-object next-hero-object--privacy" aria-hidden="true"><span>§</span></div></section>
         <section class="next-meta-strip" aria-label="{{ trans('public_pages.privacy_metadata_aria') }}"><div><span>{{ $privacy['version_label'] ?? trans('public_pages.privacy_version_label') }}</span><strong>{{ $privacy['version'] ?? ($privacy['not_configured'] ?? trans('public_pages.privacy_not_configured')) }}</strong></div><div><span>{{ $privacy['effective_label'] ?? trans('public_pages.privacy_effective_label') }}</span><strong>{{ $privacy['effective_at'] ?? ($privacy['not_configured'] ?? trans('public_pages.privacy_not_configured')) }}</strong></div><div><span>{{ $privacy['updated_label'] ?? trans('public_pages.privacy_updated_label') }}</span><strong>{{ $privacy['updated_at'] ?? ($privacy['not_configured'] ?? trans('public_pages.privacy_not_configured')) }}</strong></div><div><span>{{ trans('public_pages.privacy_status_label') }}</span><strong>{{ $available ? trans('public_pages.privacy_available') : trans('public_pages.privacy_unavailable') }}</strong></div></section>
 
@@ -45,7 +45,7 @@
             </div>
             <section class="next-bottom"><div><p class="next-eyebrow">{{ trans('public_pages.privacy_data_questions') }}</p><h2>{{ trans('public_pages.privacy_support_heading') }}</h2><p>{{ trans('public_pages.privacy_support_body') }}</p></div><div class="next-bottom__links"><button class="next-button next-button--gold" type="button" data-print-page>{{ trans('public_pages.privacy_print_save') }}</button><a class="next-button" href="{{ route('contact') }}">{{ trans('public_pages.privacy_contact_support') }}</a><a class="next-button" href="{{ route('terms') }}">{{ trans('public_pages.privacy_nav_terms') }}</a></div></section>
         @endif
-    </main>
+    </div>
 </div>
 @endsection
 

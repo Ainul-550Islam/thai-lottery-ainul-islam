@@ -4,6 +4,10 @@
 @section('meta_description', trans('agent.meta_description'))
 @section('robots', 'noindex, nofollow')
 
+@push('styles')
+    @vite(['resources/css/pages/public-next-pages.css', 'resources/js/pages/public-next-pages.js'])
+@endpush
+
 @section('content')
 @php
     $stateKey = 'state_'.strtolower((string) $state);
@@ -11,7 +15,8 @@
         ? trans('agent.'.$stateKey)
         : trans('agent.unknown_value');
 @endphp
-<main class="next-shell next-content" id="agent-main" tabindex="-1" aria-labelledby="agent-title">
+<div class="next-public-page">
+<div class="next-shell next-content" id="agent-main" tabindex="-1" aria-labelledby="agent-title">
     <a class="pp-skip-link" href="#agent-main">{{ trans('public_pages.skip_to_content') }}</a>
     <header class="next-page-header">
         <div class="next-shell next-page-header__inner">
@@ -98,5 +103,6 @@
             </table>
         </div>
     </section>
-</main>
+</div>
+</div>
 @endsection

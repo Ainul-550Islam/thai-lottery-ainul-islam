@@ -59,7 +59,7 @@
     // not translated a brand-new status shows the English label rather than the
     // raw key `wallet_conversion.status_foo` — a missing translation is a gap to
     // fill, not something to put in front of a member.
-    $label = static fn (object $enum): string => \Illuminate\Support\Facades\Lang::has($enum->labelKey())
+    $label = static fn (object $enum): string => (method_exists($enum, 'labelKey') && \Illuminate\Support\Facades\Lang::has($enum->labelKey()))
         ? __($enum->labelKey())
         : $enum->label();
     $money = static function (?string $amount) use ($currency): string {
@@ -71,7 +71,7 @@
     };
 @endphp
 
-<main class="wc-shell" role="main">
+<div class="wc-shell">
     <header class="wc-header">
         <div>
             <h1 class="wc-title">{{ __('wallet_conversion.page_title') }}</h1>
@@ -151,7 +151,7 @@
                 <h2 class="wc-card__title" id="wc-blocked-heading">{{ __('wallet_conversion.blocked_title') }}</h2>
 
                 <p class="wc-notice wc-notice--warn" role="status">
-                    {{ \Illuminate\Support\Facades\Lang::has($blockedReason->messageKey()) ? __($blockedReason->messageKey()) : $blockedReason->label() }}
+                    {{ (method_exists($blockedReason, 'messageKey') && \Illuminate\Support\Facades\Lang::has($blockedReason->messageKey())) ? __($blockedReason->messageKey()) : $blockedReason->label() }}
                 </p>
 
                 <p class="wc-card__hint">{{ __('wallet_conversion.blocked_hint') }}</p>
@@ -184,10 +184,21 @@
 
             <ul class="wc-quotes">
                 @foreach ($openQuotes as $quote)
+                    @php
+                        $quoteCurrency = isset($quote['currency']) && is_string($quote['currency'])
+                            ? (\App\Enums\Currency::tryFrom($quote['currency']) ?? $currency)
+                            : $currency;
+                        $quoteAmountIn = isset($quote['amount_in']) && (string) $quote['amount_in'] !== ''
+                            ? \App\Services\Finance\Money::of((string) $quote['amount_in'], $quoteCurrency)->format()
+                            : '—';
+                        $quoteAmountOut = isset($quote['amount_out']) && (string) $quote['amount_out'] !== ''
+                            ? \App\Services\Finance\Money::of((string) $quote['amount_out'], $quoteCurrency)->format()
+                            : '—';
+                    @endphp
                     <li class="wc-quotes__item">
-                        <span class="wc-quotes__amount">{{ $money($quote['amount_in']) }}</span>
+                        <span class="wc-quotes__amount">{{ $quoteAmountIn }}</span>
                         <span class="wc-quotes__arrow" aria-hidden="true">→</span>
-                        <span class="wc-quotes__net">{{ $money($quote['amount_out']) }}</span>
+                        <span class="wc-quotes__net">{{ $quoteAmountOut }}</span>
                         <span class="wc-quotes__expiry" data-wc-expiry="{{ $quote['expires_at'] }}">
                             {{ __('wallet_conversion.expires') }} <time datetime="{{ $quote['expires_at'] }}">{{ $quote['expires_at'] }}</time>
                         </span>
@@ -202,7 +213,7 @@
         'currency' => $currency,
         'direction' => $direction,
     ])
-</main>
+</div>
 @endsection
 
 @push('scripts')

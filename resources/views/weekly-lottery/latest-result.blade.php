@@ -20,7 +20,7 @@
 @endphp
 <div class="wl-page" data-wl-page="weekly-lottery-latest" data-wl-locale="{{ $meta['lang'] }}">
     <a class="wl-skip-link" href="#wl-main">{{ trans('weekly_lottery.skip_to_content') }}</a>
-    <main id="wl-main" class="wl-main" tabindex="-1">
+    <div id="wl-main" class="wl-main" tabindex="-1">
         <header class="wl-header">
             <p class="wl-eyebrow">{{ trans('weekly_lottery.current_result_heading') }}</p>
             <h1 class="wl-title">{{ trans('weekly_lottery.heading') }}</h1>
@@ -48,7 +48,7 @@
         @endif
 
         <x-weekly-lottery.year-nav :years="$years" :active-year="$active_year" :is-thai="$is_thai" />
-    </main>
+    </div>
 </div>
 @endsection
 

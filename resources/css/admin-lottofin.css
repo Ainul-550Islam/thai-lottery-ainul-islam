@@ -1,24 +1,25 @@
 /**
  * LOTTOFIN ADMIN — Executive Analytics & Reconciliation Dashboard
- * Exact Design System matching the uploaded screenshot.
+ * Premium Frontend Design V2: Luxury Dark-Gold Operational Density & WCAG 2.2 AA
  */
 
 :root {
-    --lf-bg-canvas: #0b1118;
-    --lf-bg-sidebar: #0d1520;
-    --lf-bg-card: #131c28;
-    --lf-bg-card-hover: #172332;
-    --lf-bg-input: #0b1118;
-    --lf-border-main: #1f2d3d;
-    --lf-border-subtle: #192534;
-    --lf-text-primary: #f8fafc;
-    --lf-text-muted: #8492a6;
-    --lf-text-dim: #5c6b7d;
-    --lf-accent-green: #10b981;
-    --lf-accent-green-glow: rgba(16, 185, 129, 0.25);
-    --lf-accent-green-dark: #064e3b;
-    --lf-accent-cyan: #06b6d4;
-    --lf-font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --lf-bg-canvas: #0B0904;
+    --lf-bg-sidebar: #110E06;
+    --lf-bg-card: #141007;
+    --lf-bg-card-hover: #1C170B;
+    --lf-bg-input: #0B0904;
+    --lf-border-main: rgba(212, 175, 55, 0.22);
+    --lf-border-subtle: rgba(212, 175, 55, 0.14);
+    --lf-text-primary: #FAF6EC;
+    --lf-text-strong: #FFF6D6;
+    --lf-text-muted: #D4CAB3;
+    --lf-text-dim: #9D937D;
+    --lf-accent-green: #D4AF37;
+    --lf-accent-green-glow: rgba(212, 175, 55, 0.24);
+    --lf-accent-green-dark: rgba(22, 163, 74, 0.18);
+    --lf-accent-cyan: #F5E6B8;
+    --lf-font-family: var(--tl-font-sans, Inter, "Noto Sans Thai", "Noto Sans Bengali", ui-sans-serif, system-ui, sans-serif);
 }
 
 body.lf-admin-body {
@@ -41,12 +42,48 @@ body.lf-admin-body {
 /* Left Sidebar */
 .lf-sidebar {
     width: 260px;
+    max-width: 85vw;
     background-color: var(--lf-bg-sidebar);
     border-right: 1px solid var(--lf-border-main);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     z-index: 40;
+}
+
+@media (max-width: 1023px) {
+    .lf-admin-shell {
+        flex-direction: column;
+    }
+
+    .lf-sidebar {
+        width: 100%;
+        max-width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--lf-border-main);
+    }
+
+    .lf-sidebar.hidden {
+        display: none;
+    }
+
+    .lf-top-header {
+        height: auto;
+        min-height: 60px;
+        padding: 0.75rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .lf-header-right {
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .lf-page-body {
+        padding: 1rem;
+        gap: 1.25rem;
+    }
 }
 
 .lf-brand-header {
@@ -65,10 +102,10 @@ body.lf-admin-body {
 }
 
 .lf-brand-title {
-    font-size: 1.05rem;
+    font-size: 1.02rem;
     font-weight: 900;
-    letter-spacing: 0.05em;
-    color: #ffffff;
+    letter-spacing: 0.06em;
+    color: var(--lf-text-strong);
     text-transform: uppercase;
 }
 
@@ -80,37 +117,40 @@ body.lf-admin-body {
 }
 
 .lf-nav-header-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: capitalize;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
     color: var(--lf-text-dim);
     padding: 0.75rem 0.75rem 0.35rem 0.75rem;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.08em;
 }
 
 .lf-nav-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.65rem 0.85rem;
+    min-height: 44px;
+    padding: 0.6rem 0.85rem;
     border-radius: 0.75rem;
     color: var(--lf-text-muted);
     text-decoration: none;
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 700;
+    border: 1px solid transparent;
     transition: all 0.2s ease;
 }
 
 .lf-nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.04);
-    color: #ffffff;
+    background-color: rgba(212, 175, 55, 0.08);
+    border-color: var(--lf-border-subtle);
+    color: var(--lf-text-strong);
 }
 
 .lf-nav-item.active {
-    background-color: #059669;
-    color: #ffffff;
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+    background: linear-gradient(135deg, #FFF6D6 0%, #D4AF37 55%, #AA821E 100%);
+    color: #0B0904;
+    font-weight: 800;
+    box-shadow: 0 8px 20px -8px rgba(212, 175, 55, 0.55);
 }
 
 .lf-nav-item-content {
@@ -126,10 +166,10 @@ body.lf-admin-body {
 }
 
 .lf-active-badge {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    background-color: rgba(11, 9, 4, 0.22);
+    color: #0B0904;
     font-size: 0.6875rem;
-    font-weight: 700;
+    font-weight: 800;
     padding: 0.15rem 0.5rem;
     border-radius: 0.5rem;
 }
@@ -146,12 +186,12 @@ body.lf-admin-body {
 /* Top Navbar Header */
 .lf-top-header {
     height: 70px;
-    padding: 0 2rem;
+    padding: 0 1.75rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--lf-border-subtle);
-    background-color: var(--lf-bg-canvas);
+    background-color: rgba(11, 9, 4, 0.92);
 }
 
 .lf-header-left {
@@ -161,26 +201,28 @@ body.lf-admin-body {
 }
 
 .lf-menu-toggle-btn {
+    min-width: 44px;
+    min-height: 44px;
     background: transparent;
-    border: none;
+    border: 1px solid var(--lf-border-main);
     color: var(--lf-text-muted);
     cursor: pointer;
     padding: 0.5rem;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .lf-menu-toggle-btn:hover {
-    color: #ffffff;
-    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--lf-text-strong);
+    background-color: rgba(212, 175, 55, 0.1);
 }
 
 .lf-header-right {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1.25rem;
 }
 
 .lf-user-profile {
@@ -189,15 +231,14 @@ body.lf-admin-body {
     gap: 0.75rem;
 }
 
-
 .lf-user-avatar {
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--lf-text-muted);
+    color: #F5E6B8;
     background: var(--lf-bg-card);
     border: 1px solid var(--lf-border-main);
 }
@@ -215,32 +256,44 @@ body.lf-admin-body {
 .lf-user-role {
     font-size: 0.6875rem;
     color: var(--lf-text-dim);
-    line-height: 1;
+    line-height: 1.1;
 }
 
 .lf-user-name {
     font-size: 0.8125rem;
-    font-weight: 700;
-    color: #ffffff;
-    line-height: 1.2;
+    font-weight: 800;
+    color: var(--lf-text-strong);
+    line-height: 1.25;
 }
 
-.lf-notification-btn {
+.lf-notification-btn,
+.lf-logout-btn {
     position: relative;
+    min-width: 44px;
+    min-height: 44px;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
+    border-radius: 0.625rem;
     color: var(--lf-text-muted);
     cursor: pointer;
-    padding: 0.4rem;
+    padding: 0.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lf-logout-btn:hover {
+    color: #FCA5A5;
+    border-color: rgba(239, 68, 68, 0.35);
 }
 
 .lf-notification-badge {
     position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 14px;
-    height: 14px;
-    background-color: #ef4444;
+    top: 4px;
+    right: 4px;
+    width: 15px;
+    height: 15px;
+    background-color: #EF4444;
     color: #ffffff;
     font-size: 0.625rem;
     font-weight: 800;
@@ -250,31 +303,19 @@ body.lf-admin-body {
     justify-content: center;
 }
 
-.lf-logout-btn {
-    background: transparent;
-    border: none;
-    color: var(--lf-text-muted);
-    cursor: pointer;
-    padding: 0.4rem;
-}
-
-.lf-logout-btn:hover {
-    color: #ef4444;
-}
-
 /* Page Body Container */
 .lf-page-body {
-    padding: 2rem;
+    padding: 1.75rem;
     display: flex;
     flex-direction: column;
-    gap: 1.75rem;
+    gap: 1.5rem;
 }
 
 .lf-page-title {
     font-size: 1.35rem;
     font-weight: 900;
     letter-spacing: 0.04em;
-    color: #ffffff;
+    color: var(--lf-text-strong);
     text-transform: uppercase;
     margin: 0;
 }
@@ -283,7 +324,7 @@ body.lf-admin-body {
 .lf-kpi-grid {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 1.25rem;
+    gap: 1.15rem;
 }
 
 @media (min-width: 640px) {
@@ -299,35 +340,38 @@ body.lf-admin-body {
 }
 
 .lf-kpi-card {
-    background-color: var(--lf-bg-card);
+    background: linear-gradient(165deg, rgba(28, 22, 10, 0.92) 0%, rgba(16, 13, 6, 0.96) 100%);
     border: 1px solid var(--lf-border-main);
     border-radius: 1rem;
-    padding: 1.35rem 1.5rem;
+    padding: 1.3rem 1.45rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    transition: border-color 0.2s ease;
 }
 
 .lf-kpi-card:hover {
-    border-color: rgba(16, 185, 129, 0.4);
+    border-color: rgba(212, 175, 55, 0.45);
 }
 
 .lf-kpi-label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--lf-text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--lf-text-dim);
 }
 
 .lf-kpi-value {
-    font-size: 1.75rem;
+    font-size: 1.7rem;
     font-weight: 900;
-    line-height: 1.1;
-    color: #ffffff;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    color: var(--lf-text-strong);
 }
 
 .lf-kpi-value--green {
-    color: var(--lf-accent-green);
+    color: #F5E6B8;
     text-shadow: 0 0 20px var(--lf-accent-green-glow);
 }
 
@@ -340,11 +384,11 @@ body.lf-admin-body {
 }
 
 .lf-kpi-trend--up {
-    color: #10b981;
+    color: #86EFAC;
 }
 
 .lf-kpi-trend--down {
-    color: #f43f5e;
+    color: #FCA5A5;
 }
 
 .lf-kpi-trend--neutral {
@@ -353,9 +397,9 @@ body.lf-admin-body {
 
 /* Reconciliation Monitor Container Card */
 .lf-panel-card {
-    background-color: var(--lf-bg-card);
+    background: linear-gradient(165deg, rgba(28, 22, 10, 0.92) 0%, rgba(16, 13, 6, 0.96) 100%);
     border: 1px solid var(--lf-border-main);
-    border-radius: 1rem;
+    border-radius: 1.15rem;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
@@ -373,54 +417,59 @@ body.lf-admin-body {
 .lf-panel-title {
     font-size: 1.125rem;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--lf-text-strong);
     margin: 0;
 }
 
 .lf-header-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.625rem;
 }
 
 .lf-btn-outline {
+    min-height: 44px;
     background-color: var(--lf-bg-canvas);
-    border: 1px solid var(--lf-border-main);
-    color: var(--lf-text-primary);
-    padding: 0.5rem 0.95rem;
-    border-radius: 0.625rem;
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    color: #F5E6B8;
+    padding: 0.55rem 1rem;
+    border-radius: 0.7rem;
     font-size: 0.8125rem;
-    font-weight: 700;
-    display: flex;
+    font-weight: 800;
+    display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     cursor: pointer;
+    text-decoration: none;
     transition: all 0.2s ease;
 }
 
 .lf-btn-outline:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: #38bdf8;
+    background-color: rgba(212, 175, 55, 0.12);
+    border-color: #D4AF37;
+    color: #FFF6D6;
 }
 
 .lf-btn-solid-green {
-    background-color: #10b981;
-    border: 1px solid #10b981;
-    color: #020617;
-    padding: 0.5rem 1.1rem;
-    border-radius: 0.625rem;
+    min-height: 44px;
+    background: linear-gradient(135deg, #FFF6D6 0%, #D4AF37 55%, #AA821E 100%);
+    border: 1px solid rgba(245, 230, 184, 0.45);
+    color: #0B0904;
+    padding: 0.55rem 1.1rem;
+    border-radius: 0.7rem;
     font-size: 0.8125rem;
     font-weight: 800;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    text-decoration: none;
+    box-shadow: 0 8px 20px -8px rgba(212, 175, 55, 0.5);
     transition: all 0.2s ease;
 }
 
 .lf-btn-solid-green:hover {
-    background-color: #059669;
     filter: brightness(1.05);
 }
 
@@ -458,11 +507,12 @@ body.lf-admin-body {
 
 .lf-search-input {
     width: 100%;
+    min-height: 44px;
     background-color: var(--lf-bg-input);
     border: 1px solid var(--lf-border-main);
     border-radius: 0.625rem;
     padding: 0.5rem 0.85rem 0.5rem 2.25rem;
-    color: #ffffff;
+    color: var(--lf-text-strong);
     font-size: 0.8125rem;
     outline: none;
 }
@@ -481,9 +531,9 @@ body.lf-admin-body {
     background-color: var(--lf-bg-canvas);
     border: 1px solid var(--lf-border-main);
     color: var(--lf-text-muted);
-    width: 34px;
-    height: 34px;
-    border-radius: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 0.625rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -492,15 +542,15 @@ body.lf-admin-body {
 }
 
 .lf-icon-btn:hover {
-    color: #ffffff;
-    border-color: #475569;
+    color: var(--lf-text-strong);
+    border-color: #D4AF37;
 }
 
 /* Financial Ledger Table */
 .lf-table-container {
     overflow-x: auto;
     border: 1px solid var(--lf-border-main);
-    border-radius: 0.75rem;
+    border-radius: 0.85rem;
     background-color: var(--lf-bg-canvas);
 }
 
@@ -513,40 +563,44 @@ body.lf-admin-body {
 
 .lf-table th {
     padding: 0.85rem 1rem;
-    font-weight: 700;
-    color: var(--lf-text-muted);
+    font-weight: 800;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #F5E6B8;
     border-bottom: 1px solid var(--lf-border-main);
-    background-color: #0d1520;
+    background-color: #110E06;
     white-space: nowrap;
 }
 
 .lf-table td {
     padding: 0.85rem 1rem;
-    color: #e2e8f0;
+    color: var(--lf-text-primary);
     border-bottom: 1px solid var(--lf-border-subtle);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
 .lf-table tr:hover td {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(212, 175, 55, 0.04);
 }
 
 .lf-tx-id {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-weight: 700;
-    color: var(--lf-text-primary);
+    color: var(--lf-text-strong);
 }
 
 .lf-badge-balanced {
     display: inline-flex;
     align-items: center;
-    padding: 0.2rem 0.65rem;
-    border-radius: 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 700;
+    padding: 0.22rem 0.68rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
     background-color: var(--lf-accent-green-dark);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #86EFAC;
+    border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
 /* Pagination Footer */
@@ -554,6 +608,8 @@ body.lf-admin-body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
     padding-top: 0.5rem;
 }
 
@@ -567,21 +623,21 @@ body.lf-admin-body {
     background-color: var(--lf-bg-canvas);
     border: 1px solid var(--lf-border-main);
     color: var(--lf-text-muted);
-    min-width: 32px;
-    height: 32px;
-    border-radius: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 0.625rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
 }
 
 .lf-page-btn.active {
-    background-color: #059669;
-    border-color: #059669;
-    color: #ffffff;
+    background: linear-gradient(135deg, #FFF6D6 0%, #D4AF37 55%, #AA821E 100%);
+    border-color: #F5E6B8;
+    color: #0B0904;
 }
 
 /* Floating Help Button */
@@ -589,24 +645,24 @@ body.lf-admin-body {
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
-    width: 36px;
-    height: 36px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 50%;
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    color: #ffffff;
+    background-color: #141007;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #FFF6D6;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 900;
     font-size: 0.875rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
     cursor: pointer;
     z-index: 50;
     transition: all 0.2s ease;
 }
 
 .lf-floating-help:hover {
-    background-color: #334155;
-    transform: scale(1.05);
+    border-color: #D4AF37;
+    transform: scale(1.04);
 }

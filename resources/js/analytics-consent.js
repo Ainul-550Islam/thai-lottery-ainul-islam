@@ -99,9 +99,9 @@ function buildBanner(onDecide) {
         right: '0',
         bottom: '0',
         zIndex: '2147483000',
-        background: 'rgb(var(--tl-surface-1-rgb) / 0.98)',
-        borderTop: '1px solid rgb(var(--tl-line-rgb) / 1)',
-        color: 'rgb(var(--tl-content-primary-rgb) / 1)',
+        background: 'var(--tl-bg-elevated, #141007)',
+        borderTop: '1px solid var(--tl-border-gold, rgba(212, 175, 55, 0.32))',
+        color: 'var(--tl-text-primary, #FAF6EC)',
         padding: '1rem 1.25rem',
         fontFamily: 'inherit',
         fontSize: '0.875rem',
@@ -121,7 +121,7 @@ function buildBanner(onDecide) {
     title.id = 'tl-consent-title';
     title.style.margin = '0 0 0.25rem';
     title.style.fontWeight = '700';
-    title.style.color = 'rgb(var(--tl-content-strong-rgb) / 1)';
+    title.style.color = 'var(--tl-highlight, #FFF6D6)';
     title.textContent = 'Cookies & measurement';
 
     const body = document.createElement('p');
@@ -143,13 +143,14 @@ function buildBanner(onDecide) {
 
     const buttonBase = {
         font: 'inherit',
-        fontWeight: '600',
-        padding: '0.5rem 1rem',
+        fontWeight: '700',
+        minHeight: '44px',
+        padding: '0.5rem 1.1rem',
         borderRadius: '0.75rem',
-        border: '1px solid rgb(var(--tl-line-rgb) / 1)',
+        border: '1px solid rgba(212, 175, 55, 0.38)',
         cursor: 'pointer',
-        background: 'transparent',
-        color: 'rgb(var(--tl-content-primary-rgb) / 1)',
+        background: '#141007',
+        color: 'var(--tl-gold-soft, #F5E6B8)',
     };
 
     const reject = document.createElement('button');
@@ -161,10 +162,10 @@ function buildBanner(onDecide) {
     const accept = document.createElement('button');
     accept.type = 'button';
     Object.assign(accept.style, buttonBase, {
-        background: 'rgb(var(--tl-gold-rgb) / 1)',
-        borderColor: 'rgb(var(--tl-gold-rgb) / 1)',
+        background: '#D4AF37',
+        borderColor: '#F5E6B8',
         color: '#0B0904',
-        fontWeight: '700',
+        fontWeight: '800',
     });
     accept.textContent = 'Accept';
     accept.addEventListener('click', () => onDecide(GRANTED));

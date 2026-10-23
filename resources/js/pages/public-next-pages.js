@@ -21,6 +21,7 @@
         const items = Array.from(page.querySelectorAll('[data-search-item]'));
         if (!input || !status || items.length === 0) return;
 
+        const initialStatus = status.textContent;
         const render = () => {
             const query = input.value.trim().toLocaleLowerCase();
             let visible = 0;
@@ -33,13 +34,16 @@
             });
 
             status.textContent = query === ''
-                ? `Showing all ${items.length} items.`
-                : `${visible} matching item${visible === 1 ? '' : 's'} shown.`;
+                ? initialStatus
+                : (document.querySelector('meta[name="ui-search-matches"]')?.content || '__COUNT__ matching items shown.').replace('__COUNT__', String(visible));
         };
 
         input.addEventListener('input', render);
         page.addEventListener('keydown', (event) => {
-            if (event.key === '/' && event.target !== input && event.target instanceof HTMLElement) {
+            if (event.key === '/' && !event.defaultPrevented && !event.isComposing
+                && !event.ctrlKey && !event.metaKey && !event.altKey
+                && event.target instanceof HTMLElement
+                && !event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) {
                 event.preventDefault();
                 input.focus();
             }
@@ -67,8 +71,10 @@
 
             button.addEventListener('keydown', (event) => {
                 if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-                const buttons = Array.from(page.querySelectorAll('[data-accordion-button]'));
+                const buttons = Array.from(page.querySelectorAll('[data-accordion-button]'))
+                    .filter((candidate) => !candidate.disabled && !candidate.closest('[hidden], [inert]'));
                 const current = buttons.indexOf(button);
+                if (current < 0) return;
                 const offset = event.key === 'ArrowDown' ? 1 : -1;
                 event.preventDefault();
                 buttons[(current + offset + buttons.length) % buttons.length].focus();
@@ -103,7 +109,12 @@
         const sections = Array.from(page.querySelectorAll('[data-content-section]'));
         if (links.length === 0 || sections.length === 0 || !('IntersectionObserver' in window)) return;
 
-        const setActive = (id) => links.forEach((link) => link.classList.toggle('is-active', link.dataset.contentLink === id));
+        const setActive = (id) => links.forEach((link) => {
+            const active = link.dataset.contentLink === id;
+            link.classList.toggle('is-active', active);
+            if (active) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+        });
         setActive(sections[0].id);
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {

@@ -3,7 +3,7 @@
 @section('title', $meta['title'])
 @section('meta_description', $meta['description'])
 @section('meta_canonical', $meta['canonical'])
-@section('meta_robots', $meta['robots'])
+@section('meta_robots', 'noindex,nofollow')
 @section('meta_og_title', $meta['og_title'])
 @section('meta_og_description', $meta['og_description'])
 @section('meta_og_type', $meta['og_type'])
@@ -29,7 +29,7 @@
 
 <div class="glo-l6-page">
     <a class="glo-l6-skip" href="#glo-l6-buy-main">{{ trans('glo_l6.skip_to_content') }}</a>
-    <main id="glo-l6-buy-main" class="glo-l6-main" tabindex="-1">
+    <div id="glo-l6-buy-main" class="glo-l6-main" tabindex="-1">
         <header class="glo-l6-header">
             <p class="glo-l6-kicker">{{ trans('glo_l6.product_label') }}</p>
             <h1>{{ trans('glo_l6.buy_page_heading') }}</h1>
@@ -71,6 +71,6 @@
             <a class="glo-l6-button glo-l6-button--quiet" href="{{ route('glo-l6.index') }}">{{ trans('glo_l6.back_to_l6') }}</a>
             <a class="glo-l6-button" href="{{ route('glo-l6.history') }}">{{ trans('glo_l6.open_history') }}</a>
         </div>
-    </main>
+    </div>
 </div>
 @endsection

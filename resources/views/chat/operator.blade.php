@@ -33,11 +33,11 @@
                         class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-emerald-50 font-semibold">
                     {{ __('chat.console_claim') }}
                 </button>
-                <button type="button" id="tlco-pause"
+                <button type="button" id="tlco-pause" aria-label="{{ __('frontend_ui.pause') }}"
                         class="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800">
                     ⏸
                 </button>
-                <button type="button" id="tlco-resume"
+                <button type="button" id="tlco-resume" aria-label="{{ __('frontend_ui.resume') }}"
                         class="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800">
                     ▶
                 </button>
@@ -60,7 +60,7 @@
                                 <th>Visitor</th>
                                 <th>Priority</th>
                                 <th>Waiting</th>
-                                <th></th>
+                                <th scope="col">{{ __('admin.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody id="tlco-queue"></tbody>
@@ -82,6 +82,7 @@
                 <div id="tlco-thread" class="tlco-thread"></div>
 
                 <div class="tlc-composer mt-3">
+                    <label for="tlco-reply" class="sr-only">{{ __('chat.composer_placeholder') }}</label>
                     <textarea id="tlco-reply" class="flex-1" rows="2"
                               placeholder="{{ __('chat.composer_placeholder') }}"></textarea>
                     <div class="flex flex-col gap-1">
