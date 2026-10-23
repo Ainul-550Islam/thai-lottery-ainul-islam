@@ -8,6 +8,10 @@ use App\Enums\DepositStatus;
 use App\Models\Deposit;
 use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
+use App\Services\Payment\DepositCheckoutAccess;
+use App\Services\Payment\DepositCheckoutService;
+use App\Services\Payment\DepositSettlementAccess;
+use App\Services\Payment\StripeDepositSettlementService;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
 use App\Support\Admin\OperatorActionFactory;
@@ -172,6 +176,49 @@ final class DepositDecisionActions
                     });
                 },
             ],
+            [
+                'name' => 'lookupCheckout',
+                'label' => 'Lookup original Stripe checkout',
+                'icon' => 'heroicon-o-magnifying-glass',
+                'color' => 'gray',
+                'confirm' => true,
+                'heading' => 'Lookup original Stripe checkout session',
+                'description' => 'Read-only bounded Stripe GET lookup for an owned checkout whose response was lost locally. Never creates a new checkout or credits balance.',
+                'visible' => static fn (Deposit $record): bool => config('payment.checkout_lookup.stripe.enabled', false)
+                    && $record->method->value === 'stripe'
+                    && $record->financial_transaction_id === null
+                    && in_array($record->status, [DepositStatus::Pending, DepositStatus::Approved], true)
+                    && app(DepositCheckoutAccess::class)->can(AdminAccess::operator()),
+                'action' => static function (Deposit $record): void {
+                    abort_unless(AdminAccess::canAccessPanel(AdminAccess::operator()), 403);
+                    OperatorActionFactory::run(
+                        static fn () => app(DepositCheckoutService::class)->reconcileStripe($record, AdminAccess::operator()),
+                        'Original Stripe checkout lookup recorded. No wallet balance was credited.',
+                    );
+                },
+            ],
+            [
+                'name' => 'reconcileStripeSettlement',
+                'label' => 'Verify & credit Stripe captured funding',
+                'icon' => 'heroicon-o-check-badge',
+                'color' => 'primary',
+                'confirm' => true,
+                'heading' => 'Verify captured Stripe funding and credit the wallet',
+                'description' => 'Performs authenticated GET verification of the original Stripe session, PaymentIntent, Charge and refund list. Successful verification credits wallet balance.',
+                'visible' => static fn (Deposit $record): bool => config('payment.deposit_settlement.stripe.enabled', false)
+                    && $record->method->value === 'stripe'
+                    && $record->financial_transaction_id === null
+                    && in_array($record->status, [DepositStatus::Pending, DepositStatus::Approved], true)
+                    && app(DepositSettlementAccess::class)->can(AdminAccess::operator()),
+                'action' => static function (Deposit $record): void {
+                    abort_unless(AdminAccess::canAccessPanel(AdminAccess::operator()), 403);
+                    OperatorActionFactory::run(
+                        static fn () => app(StripeDepositSettlementService::class)->reconcile($record, AdminAccess::operator()),
+                        'Original Stripe captured-funding verification completed.',
+                    );
+                },
+            ],
+            ...StripeDepositReviewActions::specs(),
         ];
     }
 

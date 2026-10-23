@@ -97,22 +97,27 @@
                     </tr>
                     <tr>
                         <th scope="row">{{ __('wallet_conversion.field_channel') }}</th>
-                        <td>{{ $conversion->channel?->value ?? '—' }}</td>
+                        <td>{{ $conversion->channel === null ? '—' : $label($conversion->channel) }}</td>
                     </tr>
                 </tbody>
             </table>
         </section>
+
+        @php
+            $fromWalletEnum = \App\Enums\WalletType::tryFrom((string) $conversion->from_wallet_type);
+            $toWalletEnum = \App\Enums\WalletType::tryFrom((string) $conversion->to_wallet_type);
+        @endphp
 
         <section class="wc-card" aria-labelledby="wc-positions-heading">
             <h2 class="wc-card__title" id="wc-positions-heading">{{ __('wallet_conversion.detail_positions') }}</h2>
 
             <dl class="wc-balances">
                 <div class="wc-balances__row">
-                    <dt>{{ $conversion->from_wallet_type }} · {{ __('wallet_conversion.after') }}</dt>
+                    <dt>{{ $fromWalletEnum !== null ? $label($fromWalletEnum) : $conversion->from_wallet_type }} · {{ __('wallet_conversion.after') }}</dt>
                     <dd class="wc-money">{{ $money($conversion->from_balance_after === null ? null : (string) $conversion->from_balance_after) }}</dd>
                 </div>
                 <div class="wc-balances__row">
-                    <dt>{{ $conversion->to_wallet_type }} · {{ __('wallet_conversion.after') }}</dt>
+                    <dt>{{ $toWalletEnum !== null ? $label($toWalletEnum) : $conversion->to_wallet_type }} · {{ __('wallet_conversion.after') }}</dt>
                     <dd class="wc-money">{{ $money($conversion->to_balance_after === null ? null : (string) $conversion->to_balance_after) }}</dd>
                 </div>
             </dl>
@@ -153,7 +158,9 @@
             <ol class="wc-timeline">
                 @foreach ($timeline as $entry)
                     <li class="wc-timeline__item @if (! empty($entry['error_code'])) wc-timeline__item--error @endif">
-                        <span class="wc-timeline__event">{{ $entry['event'] }}</span>
+                        <span class="wc-timeline__event">
+                            {{ \Illuminate\Support\Facades\Lang::has('wallet_conversion.event_'.$entry['event']) ? __('wallet_conversion.event_'.$entry['event']) : $entry['event'] }}
+                        </span>
                         <span class="wc-timeline__status">
                             {{ $entry['status_from'] ?? '—' }}
                             <span aria-hidden="true">→</span>

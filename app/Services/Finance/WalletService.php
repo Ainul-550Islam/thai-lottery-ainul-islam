@@ -57,6 +57,9 @@ final class WalletService
     /** Funds committed to a pending withdrawal. */
     public const ACCOUNT_WITHDRAWAL_CLEARING = '1100';
 
+    /** Funds in transit between a player's own pockets. */
+    public const ACCOUNT_WALLET_TRANSFER_CLEARING = '1300';
+
     /** Player balances owed by the operator. */
     public const ACCOUNT_PLAYER_LIABILITY = '2000';
 
@@ -85,7 +88,9 @@ final class WalletService
      */
     public function getOrCreateWallet(int|User $user, string|Currency $currency = 'THB'): Wallet
     {
-        $userId = $user instanceof User ? (int) $user->getKey() : (int) $user;
+        $userId = $user instanceof User
+            ? FinancialRecordIdentifier::fromModel($user, 'wallet_user_not_persisted')
+            : FinancialRecordIdentifier::parse($user, 'wallet_user_not_persisted');
         $currencyEnum = is_string($currency) ? Currency::from(strtoupper($currency)) : $currency;
 
         return Wallet::query()->firstOrCreate([
@@ -164,6 +169,7 @@ final class WalletService
         return $this->withinTransaction(function () use ($wallet, $amount, $reason): Wallet {
             $locked = $this->locks->relock($wallet);
             $this->assertCurrency($locked, $amount->currency());
+            app(WithdrawalHoldFloor::class)->assertCovered($locked);
 
             if (! $locked->canDebit()) {
                 throw FinancialException::withCode(
@@ -194,7 +200,7 @@ final class WalletService
                 $locked->locked_at = Carbon::now();
             }
 
-            $locked->save();
+            $this->persistWallet($locked, 'reserve');
 
             return $locked;
         });
@@ -233,6 +239,7 @@ final class WalletService
             }
 
             $remaining = $currentlyLocked->minus($amount);
+            app(WithdrawalHoldFloor::class)->assertCovered($locked, $remaining);
 
             $locked->locked_balance = $remaining->toString();
             $locked->version = (int) $locked->version + 1;
@@ -242,7 +249,7 @@ final class WalletService
                 $locked->locked_at = null;
             }
 
-            $locked->save();
+            $this->persistWallet($locked, 'release');
 
             return $locked;
         });
@@ -304,7 +311,7 @@ final class WalletService
             $locked->locked_reason = $reason;
             $locked->locked_at = Carbon::now();
             $locked->version = (int) $locked->version + 1;
-            $locked->save();
+            $this->persistWallet($locked, 'freeze');
 
             return $locked;
         });
@@ -336,7 +343,7 @@ final class WalletService
             $locked->locked_reason = null;
             $locked->locked_at = null;
             $locked->version = (int) $locked->version + 1;
-            $locked->save();
+            $this->persistWallet($locked, 'unfreeze');
 
             return $locked;
         });
@@ -363,7 +370,9 @@ final class WalletService
     {
         $this->assertInsideTransaction();
         $amount->assertPositive('credit amount');
+        $lockedWallet = $this->locks->relock($lockedWallet);
         $this->assertCurrency($lockedWallet, $amount->currency());
+        app(WithdrawalHoldFloor::class)->assertCovered($lockedWallet);
 
         if (! $lockedWallet->canCredit()) {
             throw FinancialException::withCode(
@@ -384,7 +393,7 @@ final class WalletService
         $lockedWallet->balance = $balance->toString();
         $this->accumulateRunningTotal($lockedWallet, $type, $amount);
         $lockedWallet->version = (int) $lockedWallet->version + 1;
-        $lockedWallet->save();
+        $this->persistWallet($lockedWallet, 'credit');
 
         return $balance;
     }
@@ -403,7 +412,9 @@ final class WalletService
     {
         $this->assertInsideTransaction();
         $amount->assertPositive('debit amount');
+        $lockedWallet = $this->locks->relock($lockedWallet);
         $this->assertCurrency($lockedWallet, $amount->currency());
+        app(WithdrawalHoldFloor::class)->assertCovered($lockedWallet);
 
         if (! $lockedWallet->canDebit()) {
             throw FinancialException::withCode(
@@ -438,7 +449,7 @@ final class WalletService
         $lockedWallet->balance = $balance->toString();
         $this->accumulateRunningTotal($lockedWallet, $type, $amount);
         $lockedWallet->version = (int) $lockedWallet->version + 1;
-        $lockedWallet->save();
+        $this->persistWallet($lockedWallet, 'debit');
 
         return $balance;
     }
@@ -457,7 +468,9 @@ final class WalletService
     {
         $this->assertInsideTransaction();
         $amount->assertPositive('reversal amount');
+        $lockedWallet = $this->locks->relock($lockedWallet);
         $this->assertCurrency($lockedWallet, $amount->currency());
+        app(WithdrawalHoldFloor::class)->assertCovered($lockedWallet);
 
         $current = $this->money($lockedWallet->balance, $lockedWallet->currency);
 
@@ -484,7 +497,7 @@ final class WalletService
 
         $lockedWallet->balance = $balance->toString();
         $lockedWallet->version = (int) $lockedWallet->version + 1;
-        $lockedWallet->save();
+        $this->persistWallet($lockedWallet, 'reversal');
 
         return $balance;
     }
@@ -515,8 +528,9 @@ final class WalletService
             // Settlement moves cash between the operator and the player.
             FinancialTransactionType::Settlement => self::ACCOUNT_SYSTEM_CASH,
 
-            // Manual corrections and internal transfers land on equity.
-            FinancialTransactionType::Adjustment, FinancialTransactionType::Transfer => self::ACCOUNT_ADJUSTMENT_EQUITY,
+            // Manual corrections land on equity; internal pocket transfers use the transfer clearing account.
+            FinancialTransactionType::Adjustment => self::ACCOUNT_ADJUSTMENT_EQUITY,
+            FinancialTransactionType::Transfer => self::ACCOUNT_WALLET_TRANSFER_CLEARING,
 
             // A reversal has no intrinsic counterpart: the service reverses the
             // original entries instead of deriving new accounts, so asking for a
@@ -559,11 +573,23 @@ final class WalletService
      */
     private function withinTransaction(\Closure $callback): mixed
     {
-        if (DB::transactionLevel() > 0) {
-            return $callback();
-        }
+        return $this->locks->withinTransaction($callback);
+    }
 
-        return DB::transaction($callback);
+    /**
+     * @throws FinancialException
+     */
+    private function persistWallet(Wallet $wallet, string $operation): void
+    {
+        $walletId = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
+
+        if ($wallet->save() !== true) {
+            throw FinancialException::withCode(
+                'wallet_write_refused',
+                'Wallet persistence was refused by a model listener.',
+                ['wallet_id' => $walletId, 'operation' => $operation],
+            );
+        }
     }
 
     /**
@@ -642,7 +668,7 @@ final class WalletService
      */
     private function assertInsideTransaction(): void
     {
-        if (DB::transactionLevel() < 1) {
+        if (! $this->locks->insideTransaction()) {
             throw FinancialException::withCode(
                 'wallet_mutation_outside_transaction',
                 'Refusing to mutate a wallet balance outside a database transaction: the '

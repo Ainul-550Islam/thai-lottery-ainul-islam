@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Contracts\Wallet\WalletConversionServiceContract;
 use App\DTOs\Wallet\ConversionAuditContextData;
 use App\DTOs\Wallet\ConversionHistoryFilterData;
+use App\Enums\Currency;
 use App\Enums\WalletConversionChannel;
 use App\Exceptions\Wallet\ConversionException;
 use App\Http\Requests\Wallet\ConversionExecuteRequest;
@@ -17,8 +18,10 @@ use App\Http\Resources\Wallet\WalletConversionCollection;
 use App\Http\Resources\Wallet\WalletConversionResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\WalletConversion;
+use App\Support\Wallet\ConversionCurrency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The member API for the Cash <-> Win conversion lane.
@@ -59,7 +62,21 @@ final class WalletConversionController
      */
     public function summary(Request $request): JsonResponse
     {
-        $summary = $this->conversions->summaryForUser((int) $request->user()->getKey());
+        if ($request->exists('currency')) {
+            $raw = $request->input('currency');
+            $currency = is_string($raw) ? Currency::tryFrom($raw) : null;
+            if ($currency === null) {
+                throw ValidationException::withMessages([
+                    'currency' => __('wallet_conversion.validation_currency_mismatch', [
+                        'currency' => implode(', ', array_map(static fn (Currency $c): string => $c->value, Currency::cases())),
+                    ]),
+                ]);
+            }
+        } else {
+            $currency = ConversionCurrency::httpConfigured($request);
+        }
+
+        $summary = $this->conversions->summaryForUser((int) $request->user()->getKey(), $currency);
 
         return response()->json([
             'data' => [
@@ -80,9 +97,22 @@ final class WalletConversionController
      */
     public function index(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'direction' => ['nullable', 'string'],
+            'status' => ['nullable', 'string'],
+            'statuses' => ['nullable', 'array'],
+            'statuses.*' => ['string'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+            'per_page' => ['nullable', 'integer', 'min:1'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'search' => ['nullable', 'string', 'max:120'],
+            'user_id' => ['prohibited'],
+        ]);
+
         $history = $this->conversions->history(
             ConversionHistoryFilterData::fromArray(
-                $request->query(),
+                $validated,
                 (int) $request->user()->getKey(),
             ),
         );
@@ -212,8 +242,10 @@ final class WalletConversionController
 
         $status = match ($code) {
             'idempotency_conflict' => 409,
+            'rate_limited' => 429,
+            'reversal_forbidden' => 403,
             'feature_disabled', 'direction_disabled' => 503,
-            default => 422,
+            default => $exception->httpStatus(),
         };
 
         return ApiResponse::error(

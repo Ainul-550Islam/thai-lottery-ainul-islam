@@ -1,0 +1,49 @@
+{
+  "branch": "backend-next",
+  "candidate_revision": "2c7ab9ca7e7b1b953c7a9d1f4c0c17ea154b64c7",
+  "captured_utc": "2026-10-23T13:37:00Z",
+  "repository": "https://github.com/Ainul-550Islam/thai-lottery-ainul-islam.git",
+  "scope": "source identity for the 2c7ab9c working tree at the time of this iteration",
+  "trees": {
+    "app": {
+      "files": 1709,
+      "tree_sha256": "b6ebff1215433ca7f254c42aef1bbdff937c5e665b8ee589fe5939025e8d1c8f"
+    },
+    "bootstrap": {
+      "files": 5,
+      "tree_sha256": "500b1065a7cf93d314bf2ce233c8a881a0c4eff746286a96ea4efaafe7fe3530"
+    },
+    "config": {
+      "files": 61,
+      "tree_sha256": "cbf65711ec466b25ac8817921dcbb29001622a4aa16b7bd1dbe27ccc251a4898"
+    },
+    "database": {
+      "files": 234,
+      "tree_sha256": "91ab12e17042c6d7a67214b8584b064b0c432c47e8c7adb58bca5b75dad8ae07"
+    },
+    "lang": {
+      "files": 101,
+      "tree_sha256": "43451e439de7325249aa7f170659755ddb5123044d579e4444f34bb385de4e8c"
+    },
+    "resources/css": {
+      "files": 52,
+      "tree_sha256": "a950cc1458868141b75a99bda0e7a6efd3a045e026eb46fd5833fa2460a89002"
+    },
+    "resources/js": {
+      "files": 114,
+      "tree_sha256": "e3c2854488864a2e227c8507b064675da5dcfd02097cdc5e29dc31b8112bda48"
+    },
+    "resources/views": {
+      "files": 232,
+      "tree_sha256": "1388b41d25443c906d5e7a2911c22f817fbbf03d36c353056d8b64520fe80b5a"
+    },
+    "routes": {
+      "files": 4,
+      "tree_sha256": "274b70ad25ecb401342c2b5a1f571906a331ca21d873c0c4249e726c43426f1a"
+    },
+    "scripts": {
+      "files": 60,
+      "tree_sha256": "ed09b42bda251837291e22fbf4fbd9f74c84a71d627633cd77124ab1764f8097"
+    }
+  }
+}

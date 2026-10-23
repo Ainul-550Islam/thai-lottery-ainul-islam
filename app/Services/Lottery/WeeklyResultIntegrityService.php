@@ -171,28 +171,60 @@ class WeeklyResultIntegrityService
      */
     public function verify(array $fields, ?string $signatureHex = null): array
     {
-        $fingerprint = $this->canonicalFingerprint($fields);
+        $bytes = $this->canonicalBytes($fields);
+        $fingerprint = hash('sha256', $bytes);
+        $canonicalLength = strlen($bytes);
+        $version = $this->canonicalVersion();
 
         $report = [
             'status' => self::STATUS_HASH_ONLY,
             'acceptable' => true,
             'fingerprint' => $fingerprint,
-            'canonical_version' => $this->canonicalVersion(),
+            'canonical_version' => $version,
             'native' => false,
             'error_code' => null,
         ];
 
+        if ($version !== 'WKLY1') {
+            $report['status'] = self::STATUS_REJECTED;
+            $report['acceptable'] = false;
+            $report['error_code'] = 'UNSUPPORTED_CANONICAL_VERSION';
+
+            return $report;
+        }
+
+        $publicKey = $this->config->get('weekly_lottery.integrity.public_key_hex');
+        $hasPublicKey = is_string($publicKey) && trim($publicKey) !== '';
+        $hasSignature = is_string($signatureHex) && trim($signatureHex) !== '';
+        $required = (bool) $this->config->get('weekly_lottery.integrity.required', false);
+
+        if ($hasPublicKey !== $hasSignature) {
+            $report['status'] = self::STATUS_SIGNATURE_INVALID;
+            $report['acceptable'] = false;
+            $report['error_code'] = 'INCOMPLETE_SIGNATURE_MATERIAL';
+
+            return $report;
+        }
+
+        $mustRunNative = $required || $hasPublicKey || $hasSignature;
+
         if (! (bool) $this->config->get('weekly_lottery.integrity.enabled', true)) {
+            if ($mustRunNative) {
+                $report['status'] = self::STATUS_VERIFIER_UNAVAILABLE;
+                $report['acceptable'] = false;
+                $report['error_code'] = 'VERIFIER_DISABLED';
+            }
+
             return $report;
         }
 
         $binary = $this->binaryPath();
 
         if ($binary === null) {
-            // Honest about what did not happen. 'required' decides whether
-            // that is merely noted or is a hard stop.
+            // Honest about what did not happen. 'required' (or signed material)
+            // decides whether that is merely noted or is a hard stop.
             $report['status'] = self::STATUS_VERIFIER_UNAVAILABLE;
-            $report['acceptable'] = ! (bool) $this->config->get('weekly_lottery.integrity.required', false);
+            $report['acceptable'] = ! $mustRunNative;
             $report['error_code'] = 'VERIFIER_BINARY_NOT_FOUND';
 
             return $report;
@@ -211,9 +243,7 @@ class WeeklyResultIntegrityService
             'expected_fingerprint' => $fingerprint,
         ];
 
-        $publicKey = $this->config->get('weekly_lottery.integrity.public_key_hex');
-
-        if (is_string($publicKey) && $publicKey !== '' && is_string($signatureHex) && $signatureHex !== '') {
+        if ($hasPublicKey && $hasSignature) {
             $request['public_key_hex'] = $publicKey;
             $request['signature_hex'] = $signatureHex;
         }
@@ -242,15 +272,23 @@ class WeeklyResultIntegrityService
 
             if (! is_array($decoded) || ! isset($decoded['status']) || ! is_string($decoded['status'])) {
                 $report['status'] = self::STATUS_VERIFIER_UNAVAILABLE;
-                $report['acceptable'] = ! (bool) $this->config->get('weekly_lottery.integrity.required', false);
+                $report['acceptable'] = false;
                 $report['error_code'] = 'VERIFIER_OUTPUT_UNREADABLE';
 
                 return $report;
             }
 
+            $status = $decoded['status'];
+            $allowedStatuses = [
+                self::STATUS_HASH_ONLY,
+                self::STATUS_SIGNED_VERIFIED,
+                self::STATUS_SIGNATURE_INVALID,
+                self::STATUS_FINGERPRINT_MISMATCH,
+                self::STATUS_REJECTED,
+            ];
+
             $report['native'] = true;
-            $report['status'] = $decoded['status'];
-            $report['acceptable'] = (bool) ($decoded['acceptable'] ?? false);
+            $report['status'] = $status;
             $report['error_code'] = isset($decoded['error_code']) && is_string($decoded['error_code'])
                 ? $decoded['error_code']
                 : null;
@@ -259,15 +297,38 @@ class WeeklyResultIntegrityService
                 $report['canonical_version'] = $decoded['canonical_version'];
             }
 
-            // The native fingerprint is authoritative for the comparison but
-            // the stored value stays the PHP one - they are asserted equal
-            // here, so if they ever differ the import stops rather than
-            // silently preferring one implementation.
-            if (isset($decoded['fingerprint']) && is_string($decoded['fingerprint'])
-                && ! hash_equals($fingerprint, $decoded['fingerprint'])) {
-                $report['status'] = self::STATUS_FINGERPRINT_MISMATCH;
-                $report['acceptable'] = false;
+            $expectedSuccessStatus = ($hasPublicKey && $hasSignature)
+                ? self::STATUS_SIGNED_VERIFIED
+                : self::STATUS_HASH_ONLY;
+
+            $protocolValid = in_array($status, $allowedStatuses, true)
+                && array_key_exists('acceptable', $decoded)
+                && is_bool($decoded['acceptable']);
+
+            $acceptable = $protocolValid && $decoded['acceptable'] === true;
+
+            if ($acceptable) {
+                $fingerprintMatch = isset($decoded['fingerprint'])
+                    && is_string($decoded['fingerprint'])
+                    && hash_equals($fingerprint, $decoded['fingerprint']);
+                $versionMatch = ($decoded['canonical_version'] ?? null) === 'WKLY1';
+                $lengthMatch = isset($decoded['canonical_length'])
+                    && is_int($decoded['canonical_length'])
+                    && $decoded['canonical_length'] === $canonicalLength;
+                $noErrorAttached = ($decoded['error_code'] ?? null) === null
+                    && ($decoded['error_field'] ?? null) === null;
+                $exitZero = $process->getExitCode() === 0;
+                $statusMatch = $status === $expectedSuccessStatus;
+
+                if (! $fingerprintMatch) {
+                    $report['status'] = self::STATUS_FINGERPRINT_MISMATCH;
+                    $acceptable = false;
+                } elseif (! ($versionMatch && $lengthMatch && $noErrorAttached && $exitZero && $statusMatch)) {
+                    $acceptable = false;
+                }
             }
+
+            $report['acceptable'] = $acceptable;
 
             return $report;
         } catch (ProcessException|Throwable $exception) {
@@ -276,7 +337,7 @@ class WeeklyResultIntegrityService
             report($exception);
 
             $report['status'] = self::STATUS_VERIFIER_UNAVAILABLE;
-            $report['acceptable'] = ! (bool) $this->config->get('weekly_lottery.integrity.required', false);
+            $report['acceptable'] = false;
             $report['error_code'] = 'VERIFIER_EXECUTION_FAILED';
 
             return $report;
@@ -299,7 +360,19 @@ class WeeklyResultIntegrityService
 
         $path = str_starts_with($configured, '/') ? $configured : base_path($configured);
 
-        return is_file($path) && is_executable($path) ? $path : null;
+        if (is_file($path) && is_executable($path)) {
+            return $path;
+        }
+
+        if ($configured === 'security/weekly-result-integrity/target/release/weekly-result-integrity') {
+            $fallback = base_path('security/weekly-result-integrity/bin/weekly-result-integrity');
+
+            if (is_file($fallback) && is_executable($fallback)) {
+                return $fallback;
+            }
+        }
+
+        return null;
     }
 
     public function isNativeVerifierAvailable(): bool

@@ -70,7 +70,7 @@ final class RecordPrizeDisbursementAudit
                 substr($event->resultFingerprint, 0, 12),
             ),
             'metadata' => [
-                'anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'match_key' => substr($event->matchKey, 0, 12),
                 'draw_id' => $this->cleanId($event->drawId),
                 'bet_id' => $this->cleanId($event->betId),
@@ -107,18 +107,27 @@ final class RecordPrizeDisbursementAudit
             $act,
         );
 
-        $type = PrizeDisbursement::class;
         $id = $disbursementId ?? 0;
+        $subjectType = null;
+        $subjectId = null;
+
+        if ($id > 0) {
+            $subjectType = PrizeDisbursement::class;
+            $subjectId = $id;
+        } elseif ($payout instanceof Payout && $payout->getKey() !== null) {
+            $subjectType = Payout::class;
+            $subjectId = (int) $payout->getKey();
+        }
 
         $exists = $id > 0
             ? AuditLog::query()
-                ->where('auditable_type', $type)
+                ->where('auditable_type', PrizeDisbursement::class)
                 ->where('auditable_id', $id)
-                ->where('metadata->anchor', $anchor)
+                ->anchoredBy($anchor)
                 ->exists()
             : AuditLog::query()
-                ->where('metadata->anchor', $anchor)
-                ->where('lane', 'prize-disbursement')
+                ->anchoredBy($anchor)
+                ->where('metadata->lane', 'prize-disbursement')
                 ->exists();
 
         if ($exists) {
@@ -130,8 +139,8 @@ final class RecordPrizeDisbursementAudit
             'user_id' => null,
             'action' => AuditAction::Update,
             'risk_level' => RiskLevel::Critical,
-            'auditable_type' => $type,
-            'auditable_id' => $id > 0 ? $id : ($payout?->getKey() ?? 0),
+            'auditable_type' => $subjectType,
+            'auditable_id' => $subjectId,
             'description' => sprintf(
                 'Settlement act [%s] on payout #%d: %s (fingerprint %s...)',
                 $act,
@@ -140,7 +149,7 @@ final class RecordPrizeDisbursementAudit
                 substr($fingerprint, 0, 12),
             ),
             'metadata' => [
-                'anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'payout_id' => $payout?->getKey(),
                 'disbursement_id' => $disbursementId,
                 'act' => $act,
@@ -168,7 +177,7 @@ final class RecordPrizeDisbursementAudit
         return AuditLog::query()
             ->where('auditable_type', $class)
             ->where('auditable_id', $id)
-            ->where('metadata->anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
     }
 

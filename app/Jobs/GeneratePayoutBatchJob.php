@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\DTOs\Finance\PayoutBatchData;
 use App\Enums\AuditAction;
 use App\Enums\PayoutApprovalStatus;
 use App\Enums\PayoutStatus;
@@ -11,50 +12,20 @@ use App\Enums\QueueName;
 use App\Enums\RiskLevel;
 use App\Models\AuditLog;
 use App\Models\Payout;
+use App\Services\Finance\PayoutApprovalGuard;
+use App\Services\Finance\PayoutApprovalService;
+use App\Services\Finance\PayoutBatchRoutingService;
+use App\Services\Finance\PayoutBatchService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-/**
- * Scheduled GENERATOR of payout batches: finds every payout that is both
- * checker-Approved in the approval lane and still Pending on the money side,
- * then dispatches one {@see ProcessPayoutBatchJob} per chunk of ids.
- *
- * THE SEPARATION, AND WHY
- * -----------------------
- *   THIS job (generator):        selection + fan-out. The only place the
- *                                "approved AND pending" predicate lives.
- *   ProcessPayoutBatchJob:       execution. Moves money per payout id,
- *                                compensates failures, already concurrency-
- *                                safe per row (SELECT ... FOR UPDATE) and
- *                                per batch tag (ShouldBeUnique).
- *
- * A payout whose approval lane is still Pending, Rejected, or never opened
- * is invisible to the batch executor — the four-eyes console names the only
- * door money can leave by. The payout row's own status may only be Pending
- * for selection: Completed/Failed/Reversed rows are never re-selected and
- * never re-credited.
- *
- * GUARANTEES
- * ----------
- * 1. CONCURRENCY SAFE. ShouldBeUnique keyed on the run minute; two schedulers
- *    landing in the same minute produce one generator run, and ProcessPayoutBatchJob's
- *    own tag-keyed uniqueness protects whatever chunks the fan-out names.
- * 2. IDEMPOTENT BY CONSTRUCTION. Selection is read-only; reruns that select
- *    the same ids re-dispatch executor jobs that replay against per-payout
- *    row state instead of crediting twice (executor's Completed-replay path).
- * 3. BOUNDED. Each executor job carries at most lottery.payouts.batch_size
- *    ids, so a backlog fans into many small executor jobs instead of one
- *    monolith holding the queue for minutes.
- * 4. OBSERVED. The run's summary (selected, dispatched, chunk plan) is one
- *    audit line; per-row money movement is the executor's own audit trail.
- */
 class GeneratePayoutBatchJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
@@ -62,35 +33,17 @@ class GeneratePayoutBatchJob implements ShouldBeUnique, ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    /**
-     * Maximum retry attempts before failing permanently.
-     */
     public int $tries = 2;
 
     /**
-     * Exponential backoff delays in seconds.
-     *
      * @var list<int>
      */
     public array $backoff = [30, 90];
 
-    /**
-     * Execution timeout in seconds. Selection + dispatch at two minutes is
-     * ample: no wallet or ledger row moves in this job.
-     */
     public int $timeout = 120;
 
-    /**
-     * Unique lock duration in seconds.
-     */
     public int $uniqueFor = 300;
 
-    /**
-     * @param  int|null  $chunkSize  Ids per dispatched executor batch. When
-     *                               null the configured lottery.payouts.batch_size
-     *                               is used; a smaller positive integer is for
-     *                               draining a backlog in finer slices.
-     */
     public function __construct(
         public readonly ?int $chunkSize = null,
     ) {
@@ -98,149 +51,129 @@ class GeneratePayoutBatchJob implements ShouldBeUnique, ShouldQueue
         $this->afterCommit();
     }
 
-    /**
-     * Unique identifier for the concurrency lock: one generator run per
-     * minute at most.
-     */
     public function uniqueId(): string
     {
         return 'generate_payout_batch_'.now()->format('Y-m-d-H-i');
     }
 
     /**
-     * Select approved-and-pending payouts, chunk them, dispatch one executor
-     * per chunk, record one summary audit line.
-     *
      * @return array{selected: int, dispatched: int, chunk_size: int, payout_ids: list<int>, executed_at: string}
      */
     public function handle(): array
     {
-        Log::info('GeneratePayoutBatchJob: selecting approved pending payouts', [
-            'attempt' => $this->attempts(),
-        ]);
-
         $chunkSize = $this->resolvedChunkSize();
+        $candidates = Payout::query()
+            ->whereNotNull('metadata')
+            ->whereNull('deleted_at')
+            ->where('status', PayoutStatus::Pending->value)
+            ->whereNull('financial_transaction_id')
+            ->whereRaw("json_extract(metadata, '$.approval.status') = ?", [PayoutApprovalStatus::Approved->value])
+            ->whereRaw("json_extract(metadata, '$.batch.batch_key') IS NULL")
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('payout_batch_members')->whereColumn('payout_batch_members.payout_id', 'payouts.id'))
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('prize_disbursements')->whereColumn('prize_disbursements.payout_id', 'payouts.id'))
+            ->orderBy('id')
+            ->limit(min($chunkSize * 10, 2000))
+            ->get();
 
-        $payouts = $this->selectApprovedPending($chunkSize * 10);
+        $approval = app(PayoutApprovalService::class);
+        $guard = app(PayoutApprovalGuard::class);
+        $groups = [];
+        $ids = [];
 
-        $ids = $payouts->map(fn (Payout $payout): int => (int) $payout->getKey())->all();
-
-        $dispatched = 0;
-
-        foreach (array_chunk($ids, $chunkSize) as $chunkIndex => $idChunk) {
-            // ProcessPayoutBatchJob's tag is an integer (it keys its own
-            // uniqueness lock). The tag names the run minute plus the chunk
-            // ordinal, so every chunk of this run is distinctly unique.
-            $batchTag = (int) sprintf('%s%02d', now()->format('YmdHi'), $chunkIndex + 1);
-
-            ProcessPayoutBatchJob::dispatch(
-                batchTag: $batchTag,
-                payoutIds: $idChunk,
-            );
-
-            $dispatched++;
+        foreach ($candidates as $payout) {
+            if (! $approval->isApproved($payout)) {
+                continue;
+            }
+            $method = $guard->method($payout)->value;
+            $key = $payout->currency->value.':'.$method;
+            $groups[$key][] = $payout;
+            $ids[] = (int) $payout->getKey();
         }
 
-        $summary = [
-            'selected' => $payouts->count(),
+        $dispatched = 0;
+        $batchService = app(PayoutBatchService::class);
+        $routingService = app(PayoutBatchRoutingService::class);
+
+        foreach ($groups as $members) {
+            foreach (array_chunk($members, $chunkSize) as $chunk) {
+                $sum = '0.00';
+                $refs = [];
+                foreach ($chunk as $row) {
+                    $sum = bcadd($sum, (string) $row->amount, 2);
+                    $refs[] = (string) $row->reference_number;
+                }
+
+                try {
+                    $batch = $batchService->create(new PayoutBatchData($refs, $sum, $chunk[0]->currency, null))['batch'];
+                    if ($routingService->dispatchApproved($batch)['enqueued']) {
+                        $dispatched++;
+                    }
+                } catch (Throwable) {
+                    // Durable batch remains Pending for explicit operator routing if enqueue fails.
+                }
+            }
+        }
+
+        $selectedCount = count($ids);
+        if ($selectedCount > 0) {
+            $this->recordSummary($selectedCount, $dispatched, $chunkSize, $ids);
+        }
+
+        return [
+            'selected' => $selectedCount,
             'dispatched' => $dispatched,
             'chunk_size' => $chunkSize,
             'payout_ids' => $ids,
             'executed_at' => now()->toIso8601String(),
         ];
-
-        Log::info('GeneratePayoutBatchJob: fan-out complete', [
-            'selected' => $summary['selected'],
-            'dispatched' => $summary['dispatched'],
-            'chunk_size' => $summary['chunk_size'],
-        ]);
-
-        if ($summary['selected'] > 0) {
-            $this->recordSummary($summary);
-        }
-
-        return $summary;
     }
 
-    /**
-     * Outstanding dispatch failures collapse to a log: the next scheduled run
-     * re-selects the same lane anyway, and per-payout state stayed untouched.
-     */
     public function failed(?Throwable $exception): void
     {
-        Log::error('GeneratePayoutBatchJob: run failed before completing fan-out', [
-            'exception' => $exception?->getMessage(),
+        Log::error('GeneratePayoutBatchJob: run failed', [
+            'exception_class' => $exception !== null ? $exception::class : null,
             'attempt' => $this->attempts(),
         ]);
     }
 
     /**
-     * The selection predicate, in one place: payout row Pending AND the
-     * approval-lane metadata stamp say Approved.
-     *
-     * json_extract is the sqlite-compatible raw where the other metadata
-     * services use — no driver-specific JSON syntax.
-     *
-     * @return Collection<int, Payout>
+     * @param  list<int>  $payoutIds
      */
-    private function selectApprovedPending(int $limit): Collection
+    private function recordSummary(int $selected, int $dispatched, int $chunkSize, array $payoutIds): void
     {
-        return Payout::query()
-            ->whereNull('deleted_at')
-            ->where('status', PayoutStatus::Pending->value)
-            ->whereRaw("json_extract(metadata, '$.approval.status') = ?", [PayoutApprovalStatus::Approved->value])
-            ->orderBy('id')
-            ->limit($limit)
-            ->get();
+        $log = new AuditLog;
+        $log->fill([
+            'user_id' => null,
+            'action' => AuditAction::Payout,
+            'risk_level' => RiskLevel::Medium,
+            'auditable_type' => null,
+            'auditable_id' => null,
+            'description' => sprintf(
+                'Payout batch generation selected %d approved payout(s) across %d batch(es) (chunk size %d).',
+                $selected,
+                $dispatched,
+                $chunkSize,
+            ),
+            'metadata' => [
+                'lane' => 'payout_batch_generation',
+                'selected' => $selected,
+                'dispatched' => $dispatched,
+                'chunk_size' => $chunkSize,
+                'payout_ids_sample' => array_slice($payoutIds, 0, 50),
+                'action' => 'payout_batches_generated',
+            ],
+        ]);
+        $log->save();
     }
 
-    /**
-     * Chunk sizing: explicit override when given, configuration otherwise;
-     * never zero (that would call array_chunk on an empty size).
-     */
     private function resolvedChunkSize(): int
     {
         if (is_int($this->chunkSize) && $this->chunkSize > 0) {
-            return $this->chunkSize;
+            return min($this->chunkSize, 200);
         }
 
         $configured = (int) config('lottery.payouts.batch_size', 200);
 
-        return $configured > 0 ? $configured : 200;
-    }
-
-    /**
-     * The run's summary audit line: null user (scheduler), action Update,
-     * chunked plan in metadata.
-     *
-     * @param  array{selected: int, dispatched: int, chunk_size: int}  $summary
-     */
-    private function recordSummary(array $summary): void
-    {
-        $log = new AuditLog;
-
-        $log->fill([
-            'user_id' => null,
-            'action' => AuditAction::Update,
-            'risk_level' => RiskLevel::Medium,
-            'auditable_type' => 'payout_batch_generation',
-            'auditable_id' => 0,
-            'description' => sprintf(
-                'Payout batch generation selected %d approved pending payout(s) and dispatched %d executor batch(es) of at most %d.',
-                $summary['selected'],
-                $summary['dispatched'],
-                $summary['chunk_size'],
-            ),
-            'metadata' => [
-                'selected' => $summary['selected'],
-                'dispatched' => $summary['dispatched'],
-                'chunk_size' => $summary['chunk_size'],
-                'lane_gate' => 'approval.status = '.PayoutApprovalStatus::Approved->value,
-                'row_gate' => 'status = '.PayoutStatus::Pending->value,
-                'action' => 'payout_batch_generated',
-            ],
-        ]);
-
-        $log->save();
+        return $configured > 0 ? min($configured, 200) : 200;
     }
 }

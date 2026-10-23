@@ -7,6 +7,7 @@ namespace App\Filament\Resources\DrawResource;
 use App\Enums\DrawLifecycleState;
 use App\Enums\DrawStatus;
 use App\Models\Draw;
+use App\Services\Draw\DrawCancellationService;
 use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\DrawSettlementSimulationService;
@@ -245,10 +246,11 @@ final class DrawLifecycleActions
                     && app(DrawLifecycleService::class)->canTransition($record, DrawLifecycleState::Cancelled),
                 'action' => static function (Draw $record, array $data): void {
                     self::run(
-                        static fn () => app(DrawLifecycleService::class)->cancel($record, [
-                            'source' => 'admin-panel',
-                            'reason' => (string) $data['reason'],
-                        ]),
+                        static fn () => app(DrawCancellationService::class)->cancel(
+                            (int) auth()->id(),
+                            (int) $record->getKey(),
+                            (string) $data['reason'],
+                        ),
                         $record->draw_number.' is cancelled.',
                     );
                 },

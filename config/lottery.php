@@ -481,6 +481,11 @@ return [
         'require_draw_open' => (bool) env('LOTTERY_CANCELLATION_REQUIRE_OPEN_DRAW', true),
     ],
 
+    'draw_cancellation' => [
+        'enabled' => (bool) env('LOTTERY_DRAW_CANCELLATION_ENABLED', true),
+        'max_bets' => (int) env('LOTTERY_DRAW_CANCELLATION_MAX_BETS', 100),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Bet Amendment

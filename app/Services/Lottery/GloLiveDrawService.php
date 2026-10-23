@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Lottery;
 
 use App\Enums\GloSourceState;
+use App\Enums\LiveStreamProvider;
 use App\Exceptions\GloDealerException;
 
 /**

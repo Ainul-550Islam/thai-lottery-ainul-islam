@@ -1,0 +1,25 @@
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.27
+Configuration: /home/user/phpunit.xml
+
+E                                                                   1 / 1 (100%)
+
+Time: 00:03.471, Memory: 70.50 MB
+
+There was 1 error:
+
+1) Tests\Unit\Accounting\ThaiRevenueDepartmentTaxReportServiceTest::test_generates_accurate_monthly_withholding_tax_summary
+Illuminate\Database\Eloquent\MassAssignmentException: Add fillable property [id] to allow mass assignment on [App\Models\Payout].
+
+/var/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+/var/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:713
+/var/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:1749
+/var/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:1218
+/var/tmp/vendor/laravel/framework/src/Illuminate/Support/Traits/ForwardsCalls.php:23
+/var/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:2544
+/var/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:2560
+/home/user/tests/Unit/Accounting/ThaiRevenueDepartmentTaxReportServiceTest.php:26
+
+ERRORS!
+Tests: 1, Assertions: 0, Errors: 1.

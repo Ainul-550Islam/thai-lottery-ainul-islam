@@ -1,0 +1,31 @@
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.27
+Configuration: /home/user/phpunit.xml
+
+E...E                                                               5 / 5 (100%)
+
+Time: 00:03.434, Memory: 74.50 MB
+
+There were 2 errors:
+
+1) Tests\Feature\Payment\PaymentInitiationServiceTest::test_happy_path_creates_deposit_and_payment_with_provider_reference
+App\Exceptions\FinancialException: Checkout dispatch cannot run inside a caller transaction.
+
+/home/user/app/Exceptions/FinancialException.php:55
+/home/user/app/Services/Payment/DepositCheckoutService.php:486
+/home/user/app/Services/Payment/DepositCheckoutService.php:37
+/home/user/app/Services/Payment/PaymentInitiationService.php:72
+/home/user/tests/Feature/Payment/PaymentInitiationServiceTest.php:97
+
+2) Tests\Feature\Payment\PaymentInitiationServiceTest::test_replaying_the_same_idempotency_key_returns_the_same_deposit_and_payment
+App\Exceptions\FinancialException: Checkout dispatch cannot run inside a caller transaction.
+
+/home/user/app/Exceptions/FinancialException.php:55
+/home/user/app/Services/Payment/DepositCheckoutService.php:486
+/home/user/app/Services/Payment/DepositCheckoutService.php:37
+/home/user/app/Services/Payment/PaymentInitiationService.php:72
+/home/user/tests/Feature/Payment/PaymentInitiationServiceTest.php:222
+
+ERRORS!
+Tests: 5, Assertions: 9, Errors: 2.

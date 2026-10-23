@@ -21,7 +21,6 @@ use App\Services\Support\SupportCaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use RuntimeException;
 
 final class SupportPortalController extends Controller
 {
@@ -44,7 +43,7 @@ final class SupportPortalController extends Controller
 
         try {
             $case = $supportCases->findForOwner($owner, $reference);
-        } catch (RuntimeException) {
+        } catch (\RuntimeException) {
             abort(404);
         }
 
@@ -74,7 +73,7 @@ final class SupportPortalController extends Controller
 
         try {
             $supportCases->reply($owner, $reference, (string) $request->validated('body'));
-        } catch (RuntimeException) {
+        } catch (\RuntimeException) {
             abort(404);
         }
 

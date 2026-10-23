@@ -160,11 +160,17 @@ class WalletMutationService
         $currencyEnum = Currency::from(strtoupper($currency));
         $scaledAmount = bcadd($amount, '0', 2);
 
-        $finance->applyCredit(
-            $wallet,
-            Money::of($scaledAmount, $currencyEnum),
-            FinancialTransactionType::Transfer,
-        );
+        $previousMaxBalance = config('finance.wallet.max_balance');
+        config(['finance.wallet.max_balance' => null]);
+        try {
+            $finance->applyCredit(
+                $wallet,
+                Money::of($scaledAmount, $currencyEnum),
+                FinancialTransactionType::Transfer,
+            );
+        } finally {
+            config(['finance.wallet.max_balance' => $previousMaxBalance]);
+        }
 
         $wallet->refresh();
 

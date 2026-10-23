@@ -5,6 +5,12 @@ return [
     'name' => env('APP_NAME', 'Thai Lottery'),
     'version' => env('APP_VERSION', '1.0.0'),
     'env' => env('APP_ENV', 'production'),
+
+    /*
+    | Shared secret for the detailed health report. When empty, the detailed
+    | report is never returned and only the public status is exposed.
+    */
+    'health_detail_token' => env('HEALTH_DETAIL_TOKEN'),
     'debug' => (bool) env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost'),
     'asset_url' => env('ASSET_URL'),

@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\Currency;
 use App\Enums\PaymentMethod;
-use App\Enums\WalletHoldType;
 use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\WithdrawalException;
 use App\Exceptions\WithdrawalKycException;
@@ -17,6 +16,7 @@ use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Finance\Money;
 use App\Services\Finance\WalletHoldService;
+use App\Services\Finance\WithdrawalRequestWithHoldService;
 use App\Services\Finance\WithdrawalService;
 use App\Services\Withdrawal\WithdrawalKycGateService;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +47,7 @@ final class WithdrawalController
         private readonly WithdrawalService $withdrawalService,
         private readonly WalletHoldService $holdService,
         private readonly WithdrawalKycGateService $kycGate,
+        private readonly ?WithdrawalRequestWithHoldService $requestWithHoldService = null,
     ) {}
 
     /**
@@ -89,7 +90,7 @@ final class WithdrawalController
             : $request->header('X-Idempotency-Key');
 
         try {
-            $withdrawal = $this->withdrawalService->request(
+            $withdrawal = ($this->requestWithHoldService ?? app(WithdrawalRequestWithHoldService::class))->request(
                 wallet: $wallet,
                 amount: $amount,
                 method: $method,
@@ -99,11 +100,6 @@ final class WithdrawalController
                     'ip' => $request->ip(),
                 ],
             );
-
-            // Reserve hold on player wallet
-            $this->holdService->hold($wallet, $amount, WalletHoldType::Withdrawal, [
-                'withdrawal_id' => $withdrawal->id,
-            ]);
         } catch (InsufficientBalanceException $e) {
             return ApiResponse::error(
                 code: 'insufficient_balance',
@@ -111,9 +107,13 @@ final class WithdrawalController
                 status: 422,
             );
         } catch (WithdrawalException $e) {
+            $isRefundExposure = in_array($e->errorCode(), ['withdrawal_refund_exposure_pending', 'withdrawal_refund_exposure_unproven'], true);
+
             return ApiResponse::error(
-                code: 'withdrawal_refused',
-                message: $e->getMessage(),
+                code: $isRefundExposure ? 'refund_recovery_required' : 'withdrawal_refused',
+                message: $isRefundExposure
+                    ? 'Withdrawals are paused while a deposit refund is under review.'
+                    : $e->getMessage(),
                 status: 422,
             );
         }

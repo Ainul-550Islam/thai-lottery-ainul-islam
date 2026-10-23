@@ -49,7 +49,7 @@ final class RecordPlayerProtectionActionAudit
         $exists = AuditLog::query()
             ->where('auditable_type', PlayerProtectionAct::class)
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_HOURS))
-            ->whereJsonContains('metadata->audit_anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
 
         if ($exists) {
@@ -68,7 +68,7 @@ final class RecordPlayerProtectionActionAudit
                 'action_type' => $act->action_type->value,
                 'case_key' => $act->case_key,
                 'is_released' => $act->is_released,
-                'audit_anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'note' => $note,
             ],
         ]);

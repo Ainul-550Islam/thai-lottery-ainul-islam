@@ -151,6 +151,19 @@ class ProductionSafetyServiceProvider extends ServiceProvider
                 .'synthetic fixture vectors and publish them.';
         }
 
+        $gloPriority = config('glo.sources.priority', []);
+        if (is_string($gloPriority)) {
+            $gloPriority = array_filter(array_map('trim', explode(',', $gloPriority)));
+        }
+        if (is_array($gloPriority)) {
+            foreach ($gloPriority as $entry) {
+                if (is_string($entry) && strtolower(trim($entry)) === 'fixture') {
+                    $violations[] = 'glo.sources.priority contains fixture; synthetic fixture vectors must never be in the production GLO priority ladder.';
+                    break;
+                }
+            }
+        }
+
         // ── Debug / disclosure ─────────────────────────────────────────────
         if (config('app.debug') === true) {
             $violations[] = 'APP_DEBUG is true; stack traces and environment values would be served publicly.';

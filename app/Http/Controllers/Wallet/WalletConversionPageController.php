@@ -16,6 +16,7 @@ use App\Http\Requests\Wallet\ConversionQuoteRequest;
 use App\Models\Wallet;
 use App\Services\Wallet\Conversion\ConversionFeeCalculator;
 use App\Services\Wallet\Conversion\ConversionLimitService;
+use App\Support\Wallet\ConversionCurrency;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,7 +62,7 @@ class WalletConversionPageController
     {
         $user = $request->user();
         $userId = (int) $user->getKey();
-        $currency = Currency::tryFrom((string) config('conversions.currency', '')) ?? Currency::primary();
+        $currency = ConversionCurrency::httpConfigured($request);
 
         $requested = $request->query('direction');
         $direction = is_string($requested)
@@ -70,11 +71,51 @@ class WalletConversionPageController
 
         $wallets = Wallet::query()
             ->where('user_id', $userId)
+            ->where('currency', $currency->value)
             ->get()
             ->keyBy(static fn (Wallet $wallet): string => $wallet->type?->value ?? 'unknown');
 
+        $row = config($direction->feeConfigPath());
+        $execPath = is_array($row) ? ($row['execution'] ?? null) : null;
+        $liveMissing = is_string($execPath) && $execPath !== '' && config($execPath) === null;
+
         $breakdown = $this->fees->breakdownFor($direction, '0.00', $currency->value);
+        if ($liveMissing && $breakdown->isConfigured) {
+            $breakdown = new \App\DTOs\Wallet\ConversionFeeBreakdownData(
+                ruleKey: $breakdown->ruleKey,
+                ruleVersion: $breakdown->ruleVersion,
+                direction: $breakdown->direction,
+                rate: '0.0000',
+                percentage: '0.00',
+                basisPoints: 0,
+                feeAmount: '0.00',
+                netAmount: '0.00',
+                currency: $breakdown->currency,
+                calculation: $breakdown->calculation,
+                bearer: $breakdown->bearer,
+                isConfigured: false,
+                effectiveFrom: $breakdown->effectiveFrom,
+                effectiveTo: $breakdown->effectiveTo,
+                labelKey: $breakdown->labelKey,
+                descriptionKey: $breakdown->descriptionKey,
+            );
+        }
         $limits = $this->limits->limits($currency);
+        $openQuotes = $this->conversions->openQuotesForUser($userId);
+
+        $activeQuoteReference = null;
+        $sessionReference = $request->session()->get('conversion_quote_reference');
+        if (is_string($sessionReference) && $sessionReference !== '') {
+            foreach ($openQuotes as $quote) {
+                $qRef = is_array($quote) ? ($quote['reference'] ?? '') : (string) $quote->reference;
+                $qDir = is_array($quote) ? ($quote['direction'] ?? '') : ($quote->direction instanceof WalletConversionDirection ? $quote->direction->value : (string) $quote->direction);
+                $qCurr = is_array($quote) ? ($quote['currency'] ?? '') : ($quote->currency instanceof Currency ? $quote->currency->value : (string) $quote->currency);
+                if ($qRef === $sessionReference && $qDir === $direction->value && $qCurr === $currency->value) {
+                    $activeQuoteReference = $sessionReference;
+                    break;
+                }
+            }
+        }
 
         return view('wallet.conversion.index', [
             'user' => $user,
@@ -87,10 +128,11 @@ class WalletConversionPageController
             'feeBreakdown' => $breakdown,
             'limits' => $limits,
             'dailyRemaining' => $this->limits->remainingDaily($userId, $currency),
-            'dailyTotal' => $this->limits->dailyTotal($userId),
-            'monthlyTotal' => $this->limits->monthlyTotal($userId),
-            'openQuotes' => $this->conversions->openQuotesForUser($userId),
-            'summary' => $this->conversions->summaryForUser($userId),
+            'dailyTotal' => $this->limits->dailyTotal($userId, currency: $currency),
+            'monthlyTotal' => $this->limits->monthlyTotal($userId, currency: $currency),
+            'openQuotes' => $openQuotes,
+            'activeQuoteReference' => $activeQuoteReference,
+            'summary' => $this->conversions->summaryForUser($userId, $currency),
             'history' => $this->conversions->history(new ConversionHistoryFilterData(
                 userId: $userId,
                 direction: $direction,
@@ -122,7 +164,7 @@ class WalletConversionPageController
             // the response cannot be used to discover which references exist.
             return redirect()
                 ->route('player.wallet.conversion')
-                ->with('error', 'That conversion could not be found.');
+                ->with('error', __('wallet_conversion.conversion_not_found'));
         }
 
         return view('wallet.conversion.show', [
@@ -187,7 +229,9 @@ class WalletConversionPageController
         $directions = [];
 
         foreach (WalletConversionDirection::cases() as $direction) {
-            $directions[$direction->value] = $direction->label();
+            $directions[$direction->value] = \Illuminate\Support\Facades\Lang::has($direction->labelKey())
+                ? __($direction->labelKey())
+                : $direction->label();
         }
 
         return $directions;

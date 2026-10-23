@@ -58,7 +58,7 @@ final class PublicPagesController
     {
         $locale = $this->locale($request);
         $meta = $this->pages->meta('terms', $locale);
-        $data = $this->pages->terms($locale);
+        $data = $this->resolveLegalPageData('terms', $locale);
 
         return view('terms.index', [
             'terms' => $data + $meta,
@@ -70,12 +70,30 @@ final class PublicPagesController
     {
         $locale = $this->locale($request);
         $meta = $this->pages->meta('privacy', $locale);
-        $data = $this->pages->privacy($locale);
+        $data = $this->resolveLegalPageData('privacy', $locale);
 
         return view('privacy.index', [
             'privacy' => $data + $meta,
             'meta' => $meta,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveLegalPageData(string $type, string $locale): array
+    {
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('legal_document_publications')) {
+                return app(\App\Services\Legal\LegalDocumentService::class)->currentData($type, $locale);
+            }
+        } catch (\Throwable) {
+            // Fall back to config-backed public page data when DB is unavailable.
+        }
+
+        return $type === 'privacy'
+            ? $this->pages->privacy($locale)
+            : $this->pages->terms($locale);
     }
 
     public function fees(Request $request): View

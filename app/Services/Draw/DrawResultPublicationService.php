@@ -6,10 +6,15 @@ namespace App\Services\Draw;
 
 use App\DTOs\DrawResultData;
 use App\DTOs\MarketRuleData;
+use App\Enums\DrawConfirmationStatus;
 use App\Enums\DrawLifecycleState;
+use App\Enums\DrawStatus;
 use App\Exceptions\DrawLifecycleException;
+use App\Exceptions\DrawResultException;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Models\GloResultImport;
+use App\Models\User;
 use App\Models\WinningNumber;
 use App\Services\Betting\MarketPayoutService;
 use App\Services\Betting\MarketRuleResolver;
@@ -97,8 +102,45 @@ class DrawResultPublicationService
      * @throws DrawLifecycleException
      * @throws \App\Exceptions\DrawResultValidationException
      */
-    public function publish(int $drawId, array $input): array
+    public function publish(int $drawId, array $input = [], ?int $publishedBy = null): array
     {
+        if ($input === []) {
+            $draw = Draw::query()->find($drawId);
+            if (! $draw instanceof Draw) {
+                throw DrawResultException::drawNotFound($drawId);
+            }
+
+            $existing = DrawResult::query()->where('draw_id', $drawId)->first();
+            if ($existing instanceof DrawResult) {
+                $this->verifiedProvenanceFor($draw, $existing);
+                $bottomKey = $this->bottomTwoMetadataKey();
+                $meta = is_array($existing->metadata) ? $existing->metadata : [];
+                $data = $this->validator->validate([
+                    'first_prize' => (string) $existing->first_prize,
+                    'bottom_two' => (string) ($meta[$bottomKey] ?? ($meta['last_two'][0] ?? '')),
+                ]);
+
+                return [
+                    'draw' => $draw,
+                    'result' => $existing,
+                    'winning_numbers' => $this->winningNumbersFor($drawId),
+                    'data' => $data,
+                ];
+            }
+
+            $metadata = is_array($draw->metadata) ? $draw->metadata : [];
+            $record = $metadata[DrawResultIngestionService::METADATA_KEY] ?? null;
+            if (! is_array($record) || ($record['status'] ?? null) !== DrawConfirmationStatus::Confirmed->value) {
+                throw DrawResultException::publishRequiresConfirmed($drawId, is_array($record) ? (string) ($record['status'] ?? 'unknown') : 'missing');
+            }
+
+            $payload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
+            $input = [
+                'first_prize' => (string) ($payload['first_prize'] ?? ''),
+                'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
+            ];
+        }
+
         // Validated BEFORE the transaction opens, so a malformed submission never
         // takes a row lock and never holds one while it is rejected. Validation
         // reads nothing from the database.
@@ -107,11 +149,14 @@ class DrawResultPublicationService
         $run = function () use ($drawId, $data): array {
             $draw = $this->lifecycle->lockForUpdate($drawId);
 
+            $this->assertMatchesExistingConfirmedFacts($draw, $data);
+
             $this->lifecycle->assertCanPublishResult($draw, [
                 'stage' => 'publication',
             ]);
 
             $this->assertNoExistingResult($drawId);
+            $this->assertConfirmedIngestion($draw, $data);
 
             $result = $this->writeResult($draw, $data);
             $winningNumbers = $this->writeWinningNumbers($draw, $data);
@@ -154,6 +199,201 @@ class DrawResultPublicationService
 
             throw $exception;
         }
+    }
+
+    /**
+     * Verify persisted four-eyes confirmation and source provenance for a published DrawResult.
+     *
+     * @return array<int|string, mixed>
+     *
+     * @throws DrawResultException
+     */
+    public function verifiedProvenanceFor(Draw $draw, DrawResult $result): array
+    {
+        $drawId = (int) $draw->getKey();
+
+        if ((int) $result->draw_id !== $drawId) {
+            throw DrawResultException::malformed('provenance', 'DrawResult draw_id does not match Draw.', ['draw_id' => $drawId]);
+        }
+
+        if (! in_array($draw->status, [DrawStatus::ResultPublished, DrawStatus::Completed], true)) {
+            throw DrawResultException::publishRequiresConfirmed($drawId, $draw->status->value);
+        }
+
+        if ($draw->scheduled_at === null || $draw->scheduled_at->gt(now())) {
+            throw DrawResultException::malformed('provenance', 'Draw scheduled_at is in the future or missing.', ['draw_id' => $drawId]);
+        }
+
+        if ($result->published_at === null) {
+            throw DrawResultException::publishRequiresConfirmed($drawId, 'unpublished');
+        }
+
+        $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
+        $meta = is_array($result->metadata) ? $result->metadata : [];
+        $drawMeta = is_array($draw->metadata) ? $draw->metadata : [];
+        $ingestion = is_array($drawMeta[DrawResultIngestionService::METADATA_KEY] ?? null)
+            ? $drawMeta[DrawResultIngestionService::METADATA_KEY]
+            : [];
+        $fourEyes = is_array($meta['four_eyes'] ?? null) ? $meta['four_eyes'] : [];
+        $glo = is_array($meta[$tierKey] ?? null) ? $meta[$tierKey] : [];
+
+        if (($ingestion['status'] ?? null) !== DrawConfirmationStatus::Confirmed->value) {
+            throw DrawResultException::publishRequiresConfirmed($drawId, (string) ($ingestion['status'] ?? 'missing'));
+        }
+
+        $ingestedBy = (int) ($ingestion['ingested_by'] ?? 0);
+        $confirmedBy = (int) ($ingestion['confirmed_by'] ?? 0);
+        $confirmedAt = trim((string) ($ingestion['confirmed_at'] ?? ''));
+
+        if ($fourEyes !== []) {
+            if ((int) ($fourEyes['ingested_by'] ?? 0) !== $ingestedBy
+                || (int) ($fourEyes['confirmed_by'] ?? 0) !== $confirmedBy) {
+                throw DrawResultException::confirmationForbidden(
+                    $drawId,
+                    DrawConfirmationStatus::Confirmed->value,
+                    'four_eyes metadata does not match draw result_ingestion',
+                    ['draw_id' => $drawId],
+                );
+            }
+        }
+
+        if ($ingestedBy < 1 || $confirmedBy < 1 || $ingestedBy === $confirmedBy || $confirmedAt === '') {
+            throw DrawResultException::confirmationForbidden(
+                $drawId,
+                DrawConfirmationStatus::Confirmed->value,
+                'verified provenance without distinct maker/checker confirmation',
+                ['draw_id' => $drawId],
+            );
+        }
+
+        if (! User::query()->whereKey($ingestedBy)->exists() || ! User::query()->whereKey($confirmedBy)->exists()) {
+            throw DrawResultException::confirmationForbidden(
+                $drawId,
+                DrawConfirmationStatus::Confirmed->value,
+                'verified provenance with non-existent maker or checker operator',
+                ['draw_id' => $drawId],
+            );
+        }
+
+        $ingestionPayload = is_array($ingestion['payload'] ?? null) ? $ingestion['payload'] : $ingestion;
+        $ingestionLane = is_array($ingestionPayload['source_lane'] ?? null) ? $ingestionPayload['source_lane'] : [];
+        $firstPrize = (string) $result->first_prize;
+        $bottomKey = $this->bottomTwoMetadataKey();
+        $bottomTwo = (string) ($meta[$bottomKey] ?? ($meta['last_two'][0] ?? ($glo['last_two'][0] ?? '')));
+
+        if (preg_match('/^\d{6}$/', $firstPrize) !== 1 || preg_match('/^\d{2}$/', $bottomTwo) !== 1) {
+            throw DrawResultException::malformed('provenance', 'Published prize digits are malformed.', ['draw_id' => $drawId]);
+        }
+
+        if ((string) ($ingestionPayload['first_prize'] ?? '') !== $firstPrize
+            || (string) ($ingestionPayload['bottom_two'] ?? '') !== $bottomTwo) {
+            throw DrawResultException::malformed('provenance', 'Published prize digits do not match confirmed ingestion.', ['draw_id' => $drawId]);
+        }
+
+        $expectedSecond = array_values((array) ($ingestionPayload['second_prize'] ?? []));
+        $actualSecond = array_values((array) ($result->second_prize ?? []));
+        if ($expectedSecond !== $actualSecond) {
+            throw DrawResultException::malformed('provenance', 'Published second_prize does not match confirmed ingestion.', ['draw_id' => $drawId]);
+        }
+
+        $expectedThird = array_values((array) ($ingestionPayload['third_prize'] ?? []));
+        $actualThird = array_values((array) ($result->third_prize ?? []));
+        if ($expectedThird !== $actualThird) {
+            throw DrawResultException::malformed('provenance', 'Published third_prize does not match confirmed ingestion.', ['draw_id' => $drawId]);
+        }
+
+        $expectedTiers = is_array($ingestionLane['tiers'] ?? null) ? $ingestionLane['tiers'] : [];
+        foreach (['fourth', 'fifth', 'front_three', 'last_three', 'last_two', 'adjacent_first'] as $tKey) {
+            $actualTier = isset($glo[$tKey]) && is_array($glo[$tKey]) ? array_values($glo[$tKey]) : null;
+            $expectedTier = isset($expectedTiers[$tKey]) && is_array($expectedTiers[$tKey]) ? array_values($expectedTiers[$tKey]) : null;
+            if ($actualTier !== $expectedTier) {
+                throw DrawResultException::malformed('provenance', sprintf('Published %s does not match confirmed ingestion.', $tKey), ['draw_id' => $drawId]);
+            }
+        }
+
+        $provenance = strtolower(trim((string) ($meta['provenance'] ?? ($ingestion['provenance'] ?? ($ingestion['source'] ?? '')))));
+        $provider = strtolower(trim((string) ($glo['import_provider'] ?? '')));
+        $ingestedProvider = strtolower(trim((string) ($ingestionLane['import_provider'] ?? '')));
+        $provenanceRef = $meta['provenance_reference'] ?? ($ingestion['provenance_reference'] ?? ($glo['import_reference'] ?? null));
+        $fingerprint = trim((string) ($glo['import_fingerprint'] ?? ($ingestionLane['import_fingerprint'] ?? '')));
+
+        if (str_starts_with($provenance, 'glo_import:')
+            || $provider !== ''
+            || $ingestedProvider !== '') {
+            if (! str_starts_with($provenance, 'glo_import:')) {
+                throw DrawResultException::provenanceForbidden($drawId, $provenance, 'import provider requires glo_import provenance');
+            }
+
+            $importProvider = substr($provenance, strlen('glo_import:'));
+
+            if ($provider !== $importProvider || ($ingestedProvider !== '' && $ingestedProvider !== $importProvider)) {
+                throw DrawResultException::provenanceForbidden($drawId, $provenance, 'provider mismatch between provenance and glo lane');
+            }
+
+            if ($importProvider === 'fixture' && ((string) config('app.env') === 'production' || app()->environment('production'))) {
+                throw DrawResultException::provenanceForbidden($drawId, $provenance, 'fixture provenance cannot be verified in production');
+            }
+
+            $refString = $provenanceRef !== null ? trim((string) $provenanceRef) : '';
+            if ($refString === '' || $fingerprint === '') {
+                throw DrawResultException::provenanceForbidden($drawId, $provenance, 'missing import reference or fingerprint');
+            }
+
+            $import = GloResultImport::query()
+                ->where('draw_id', $drawId)
+                ->where('status', 'imported')
+                ->where('provider', $importProvider)
+                ->where('import_reference', $refString)
+                ->where('result_fingerprint', $fingerprint)
+                ->latest('id')
+                ->first();
+
+            if (! $import instanceof GloResultImport) {
+                throw DrawResultException::provenanceForbidden($drawId, $provenance, 'no matching imported glo_result_imports row exists');
+            }
+
+            $summary = $import->payload_summary;
+            if (is_array($summary) && isset($summary['first_prize']) && (string) $summary['first_prize'] !== $firstPrize) {
+                throw DrawResultException::malformed('provenance', 'Import payload_summary first_prize mismatch.', ['draw_id' => $drawId]);
+            }
+
+            if ($importProvider === 'official') {
+                return [
+                    0 => 'source-verified',
+                    1 => 'official',
+                    'trust' => 'source-verified',
+                    'provider' => 'official',
+                    'fingerprint' => $fingerprint,
+                    'import_reference' => $import->import_reference,
+                ];
+            }
+
+            if ($importProvider === 'fixture') {
+                return [
+                    0 => 'fixture',
+                    1 => 'fixture',
+                    'trust' => 'fixture',
+                    'provider' => 'fixture',
+                    'fingerprint' => $fingerprint,
+                    'import_reference' => $import->import_reference,
+                ];
+            }
+
+            throw DrawResultException::provenanceForbidden($drawId, $provenance, 'unsupported import provider');
+        }
+
+        $internalSources = ['internal', 'operator', 'operator-cli', 'api-operator', 'admin', 'manual', 'admin_entry'];
+        if (in_array($provenance, $internalSources, true) && $provider === '') {
+            return [
+                0 => 'source-known',
+                1 => 'internal',
+                'trust' => 'source-known',
+                'provider' => 'internal',
+                'fingerprint' => (string) ($ingestion['fingerprint'] ?? ('pub-'.$result->getKey())),
+            ];
+        }
+
+        throw DrawResultException::provenanceForbidden($drawId, $provenance, 'unverified result provenance');
     }
 
     /**
@@ -298,6 +538,79 @@ class DrawResultPublicationService
                 $drawId,
                 'existing winning_numbers rows for the draw',
                 ['stage' => 'publication'],
+            );
+        }
+    }
+
+    /**
+     * When a draw already carries a Confirmed ingestion record, any attempt to
+     * submit different prize facts is refused before duplicate/state checks.
+     *
+     * @throws DrawResultException
+     */
+    private function assertMatchesExistingConfirmedFacts(Draw $draw, DrawResultData $data): void
+    {
+        $metadata = is_array($draw->metadata) ? $draw->metadata : [];
+        $record = $metadata[DrawResultIngestionService::METADATA_KEY] ?? null;
+
+        if (! is_array($record) || ($record['status'] ?? null) !== DrawConfirmationStatus::Confirmed->value) {
+            return;
+        }
+
+        $payload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
+        $storedFirst = (string) ($payload['first_prize'] ?? '');
+        $storedBottom = (string) ($payload['bottom_two'] ?? '');
+
+        if ($storedFirst !== $data->firstPrize() || $storedBottom !== $data->bottomTwo()) {
+            throw DrawResultException::malformed(
+                'publication',
+                'submitted publication numbers do not match the confirmed ingestion record',
+                ['draw_id' => (int) $draw->getKey()],
+            );
+        }
+    }
+
+    /**
+     * Require a Confirmed ingestion record matching the validated numbers.
+     *
+     * @throws DrawResultException
+     */
+    private function assertConfirmedIngestion(Draw $draw, DrawResultData $data): void
+    {
+        $drawId = (int) $draw->getKey();
+        $metadata = is_array($draw->metadata) ? $draw->metadata : [];
+        $record = $metadata[DrawResultIngestionService::METADATA_KEY] ?? null;
+
+        if (! is_array($record)) {
+            throw DrawResultException::publishRequiresConfirmed($drawId, 'missing');
+        }
+
+        $status = is_string($record['status'] ?? null) ? $record['status'] : 'unknown';
+
+        if ($status !== DrawConfirmationStatus::Confirmed->value) {
+            throw DrawResultException::publishRequiresConfirmed($drawId, $status);
+        }
+
+        $confirmedAt = is_string($record['confirmed_at'] ?? null) ? trim($record['confirmed_at']) : '';
+        $confirmedBy = (int) ($record['confirmed_by'] ?? 0);
+        $ingestedBy = (int) ($record['ingested_by'] ?? 0);
+
+        if ($confirmedAt === '' || $confirmedBy < 1 || $ingestedBy < 1 || $confirmedBy === $ingestedBy) {
+            throw DrawResultException::confirmationForbidden(
+                $drawId,
+                $status,
+                'published without persisted two-operator confirmation timestamps',
+                ['draw_id' => $drawId],
+            );
+        }
+
+        $payload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
+        if ((string) ($payload['first_prize'] ?? '') !== $data->firstPrize()
+            || (string) ($payload['bottom_two'] ?? '') !== $data->bottomTwo()) {
+            throw DrawResultException::malformed(
+                'publication',
+                'submitted publication numbers do not match the confirmed ingestion record',
+                ['draw_id' => $drawId],
             );
         }
     }

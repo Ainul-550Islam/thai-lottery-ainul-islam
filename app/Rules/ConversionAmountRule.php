@@ -55,7 +55,7 @@ class ConversionAmountRule implements ValidationRule
         }
 
         if (str_contains($amount, '.') && strlen(substr($amount, strpos($amount, '.') + 1)) > 2) {
-            $fail('The :attribute cannot carry more than two decimal places; the smallest unit is 0.01.');
+            $fail(__('wallet_conversion.validation_amount_precision', ['attribute' => $attribute]));
 
             return;
         }

@@ -322,7 +322,7 @@ final class ChatOperatorController extends Controller
 
         return response()->json([
             'status' => 'OK',
-            'groups' => $this->canned->forPicker((string) $request->query('locale', 'en')),
+            'groups' => $this->canned->forPicker(app()->getLocale()),
         ]);
     }
 

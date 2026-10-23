@@ -53,12 +53,15 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Feature\Payment\PaymentTestCase;
+use Tests\Feature\Queue\Concerns\ConfirmsQueueDraw;
 
 /**
  * Phase 5.3.5: Comprehensive Production Async Queue, Worker & Job Infrastructure Test Suite.
  */
 final class ProductionQueueComprehensiveTest extends PaymentTestCase
 {
+    use ConfirmsQueueDraw;
+
     private WithdrawalService $withdrawalService;
 
     private WithdrawalApprovalService $withdrawalApprovalService;
@@ -97,10 +100,13 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
     private function createInstantDisbursementService(): WithdrawalDisbursementService
     {
         $mockGateway = $this->createMock(PaymentGatewayInterface::class);
-        $mockGateway->method('name')->willReturn('mock_instant');
+        $mockGateway->method('name')->willReturn('bank_transfer');
         $mockGateway->method('supportsCurrency')->willReturn(true);
-        $mockGateway->method('initiateWithdrawal')->willReturn(
-            GatewayWithdrawalResponse::completed('INSTANT-TX-'.bin2hex(random_bytes(4)), ['instant' => true]),
+        $mockGateway->method('initiateWithdrawal')->willReturnCallback(
+            static fn (): GatewayWithdrawalResponse => GatewayWithdrawalResponse::completed(
+                'INSTANT-TX-'.bin2hex(random_bytes(4)),
+                ['instant' => true],
+            ),
         );
 
         $gatewayManager = $this->createMock(PaymentGatewayManager::class);
@@ -320,12 +326,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         // Publish Result
         $lifecycle = app(DrawLifecycleService::class);
-        $draw = $lifecycle->close($draw);
-        $draw = $lifecycle->markResultPending($draw);
-        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
-            'first_prize' => '456123',
-            'bottom_two' => '45',
-        ]);
+        $draw = $this->confirmQueueDraw($draw);
 
         $job = new ProcessPrizeSettlementJob((int) $draw->getKey());
 
@@ -718,11 +719,13 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $job->handle();
 
         $audit = AuditLog::query()
-            ->where('auditable_type', AuditLog::class)
+            ->whereNull('auditable_type')
+            ->whereNull('auditable_id')
             ->latest('id')
             ->first();
 
         $this->assertNotNull($audit);
+        $this->assertSame('financial_alert', $audit->metadata['lane'] ?? null);
         $this->assertSame(RiskLevel::Critical, $audit->risk_level);
         $this->assertStringContainsString('Audit Warning', $audit->description);
     }

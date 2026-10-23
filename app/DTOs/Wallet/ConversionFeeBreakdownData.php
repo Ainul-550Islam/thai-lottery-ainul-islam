@@ -7,6 +7,7 @@ namespace App\DTOs\Wallet;
 use App\Enums\Currency;
 use App\Enums\ConversionFeeBearer;
 use App\Enums\WalletConversionDirection;
+use App\Support\Wallet\ConversionCurrency;
 
 /**
  * The exact, itemised fee a direction charges on one amount.
@@ -51,7 +52,7 @@ final readonly class ConversionFeeBreakdownData
 
     public static function currencyOf(self $breakdown): Currency
     {
-        return Currency::tryFrom($breakdown->currency) ?? Currency::primary();
+        return ConversionCurrency::parse($breakdown->currency);
     }
 
     public function hasFee(): bool

@@ -319,7 +319,7 @@ final class FinancialHoldOwnershipTest extends PaymentTestCase
     public function test_routine_rollback_cannot_drop_durable_claim_history(): void
     {
         $f = $this->fixture();
-        $migration = require base_path('database/migrations/2026_10_16_000200_create_financial_hold_claims_table.php');
+        $migration = require base_path('database/migrations/2026_10_16_000210_create_financial_hold_claims_table.php');
         try {
             $migration->down();
             $this->fail('A routine rollback erased owned financial-hold history.');

@@ -194,17 +194,21 @@ body.lf-admin-body {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    display: inline-flex;
+    /*
+     * The avatar holds initials, not an image, so it is a flex box that centres
+     * text. Image-fit styling has no meaning on a non-replaced element, so none
+     * is declared here; the colours come from the design tokens rather than new
+     * literals.
+     */
+    display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--lf-text-muted);
-    background: var(--lf-bg-card);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--lf-text-primary);
+    background: var(--lf-bg-card-hover);
     border: 1px solid var(--lf-border-main);
-}
-
-.lf-user-avatar svg {
-    width: 18px;
-    height: 18px;
 }
 
 .lf-user-info {
@@ -225,30 +229,7 @@ body.lf-admin-body {
     line-height: 1.2;
 }
 
-.lf-notification-btn {
-    position: relative;
-    background: transparent;
-    border: none;
-    color: var(--lf-text-muted);
-    cursor: pointer;
-    padding: 0.4rem;
-}
 
-.lf-notification-badge {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 14px;
-    height: 14px;
-    background-color: #ef4444;
-    color: #ffffff;
-    font-size: 0.625rem;
-    font-weight: 800;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
 .lf-logout-btn {
     background: transparent;
@@ -584,29 +565,3 @@ body.lf-admin-body {
     color: #ffffff;
 }
 
-/* Floating Help Button */
-.lf-floating-help {
-    position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    font-size: 0.875rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-    z-index: 50;
-    transition: all 0.2s ease;
-}
-
-.lf-floating-help:hover {
-    background-color: #334155;
-    transform: scale(1.05);
-}

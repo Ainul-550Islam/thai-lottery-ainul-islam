@@ -1,0 +1,553 @@
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.27
+Configuration: /home/user/phpunit.xml
+
+.....FFF...                                                       11 / 11 (100%)
+
+Time: 00:07.330, Memory: 78.50 MB
+
+There were 3 failures:
+
+1) Tests\Feature\Player\PlayerFrontendModulesTest::test_bet_page_offers_only_market_keys_the_api_accepts
+The bet page rendered no market options.
+Failed asserting that an array is not empty.
+
+/home/user/tests/Feature/Player/PlayerFrontendModulesTest.php:179
+
+2) Tests\Feature\Player\PlayerFrontendModulesTest::test_bet_page_publishes_the_configured_digits_and_multipliers
+Market 3d_direct is not offered.
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="opy9rnrb3w7AlMKKiFCOowh9mbmb7gcxrapv7epa">\n
+    \n
+    <meta name="app-name" content="Thai Lottery">\n
+    <meta name="theme-color" content="#059669">\n
+\n
+    <title>Place Lottery Wager — Thai Lottery</title>\n
+\n
+    <link rel="manifest" href="/manifest.webmanifest">\n
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">\n
+\n
+    \n
+            <meta name="description" content="Select market, enter lottery digits, and build your multi-item bet slip.">\n
+                            \n
+    \n
+        </head>\n
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">\n
+    <!-- Header -->\n
+    <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/20">\n
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\n
+            <div class="flex items-center justify-between h-16">\n
+                <!-- Brand Logo -->\n
+                <div class="flex items-center space-x-3">\n
+                    <a href="http://localhost/dashboard" class="flex items-center space-x-2.5 group">\n
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-teal-400 flex items-center justify-center font-black text-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform duration-200">\n
+                            TL\n
+                        </div>\n
+                        <div class="hidden sm:block">\n
+                            <span class="text-lg font-black tracking-tight bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent">\n
+                                THAI LOTTERY\n
+                            </span>\n
+                            <span class="block text-[10px] text-slate-400 uppercase tracking-widest font-bold">Enterprise Wagering</span>\n
+                        </div>\n
+                    </a>\n
+                </div>\n
+\n
+                <!-- Desktop Navigation -->\n
+                <nav class="hidden xl:flex items-center space-x-1 lg:space-x-2" aria-label="Main navigation">\n
+            <a href="http://localhost/dashboard" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Dashboard\n
+        </a>\n
+        <a href="http://localhost/bet" class="px-3.5 py-2 rounded-xl text-sm font-bold transition flex items-center space-x-1.5 bg-emerald-600 text-white shadow-lg shadow-emerald-900/30">\n
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m6-6H6"/></svg>\n
+            <span>Place Bet</span>\n
+        </a>\n
+        <a href="http://localhost/draws" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Draws &amp; Results\n
+        </a>\n
+        <a href="http://localhost/bets" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            My Bets\n
+        </a>\n
+        <a href="http://localhost/wallet" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Wallet\n
+        </a>\n
+        <a href="http://localhost/wallet/convert" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Convert\n
+        </a>\n
+        <a href="http://localhost/glo-l6" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            GLO L6\n
+        </a>\n
+    </nav>\n
+\n
+                <!-- Action Controls (Wallet, Auth, Mobile Menu Trigger) -->\n
+                <div class="flex items-center space-x-2.5 sm:space-x-4">\n
+                    <!-- Language Selector (Desktop) -->\n
+                    <div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner">\n
+                        <a href="http://localhost/locale/en" class="px-2.5 py-1 rounded-lg transition bg-emerald-600 text-white shadow">EN</a>\n
+                        <a href="http://localhost/locale/th" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200">TH</a>\n
+                        <a href="http://localhost/locale/bn" lang="bn" hreflang="bn" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200" aria-label="বাংলা">বাংলা</a>\n
+                    </div>\n
+\n
+                                            <!-- Live Wallet Indicator -->\n
+                        <div id="live-wallet-pill" class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700/80 rounded-full px-3.5 py-1.5 text-xs sm:text-sm shadow-inner">\n
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>\n
+                            <span class="text-slate-400 font-medium">Balance:</span>\n
+                            <span id="player-balance-display" class="font-mono font-bold text-amber-400">\n
+                                ฿0.00\n
+                            </span>\n
+                        </div>\n
+\n
+                        <a href="http://localhost/deposit" class="hidden sm:inline-flex items-center px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition">\n
+                            + Deposit\n
+                        </a>\n
+\n
+                        <!-- User Profile Menu -->\n
+                        <div class="relative flex items-center space-x-2">\n
+                            <a href="http://localhost/profile" class="flex items-center space-x-2 p-1.5 rounded-xl hover:bg-slate-800 transition" title="Profile">\n
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center font-black text-sm text-white border border-emerald-400/30">\n
+                                    M\n
+                                </div>\n
+                            </a>\n
+\n
+                            <form method="POST" action="http://localhost/logout" class="inline">\n
+                                <input type="hidden" name="_token" value="opy9rnrb3w7AlMKKiFCOowh9mbmb7gcxrapv7epa" autocomplete="off">                                <button type="submit" class="p-2 text-slate-400 hover:text-rose-400 transition" title="Log Out">\n
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>\n
+                                </button>\n
+                            </form>\n
+                        </div>\n
+                    \n
+                    <!-- Mobile Menu Hamburger Button -->\n
+                    <button type="button"\n
+                            id="btn-open-mobile-menu"\n
+                            class="xl:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"\n
+                            aria-label="Open Navigation Menu">\n
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>\n
+                    </button>\n
+                </div>\n
+            </div>\n
+        </div>\n
+    </header>\n
+\n
+    <!-- Mobile Navigation Drawer -->\n
+    <div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out xl:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="Main navigation">\n
+    <div class="flex items-center justify-between p-4 border-b border-slate-800">\n
+        <div class="flex items-center space-x-2">\n
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">TL</div>\n
+            <span class="font-bold text-white tracking-tight">Thai Lottery</span>\n
+        </div>\n
+        <button type="button" id="btn-close-mobile-menu" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Close menu">\n
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>\n
+        </button>\n
+    </div>\n
+\n
+    <div class="flex-1 overflow-y-auto px-4 py-6 space-y-2">\n
+                    <a href="http://localhost/dashboard" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Dashboard</a>\n
+            <a href="http://localhost/bet" class="block px-4 py-3 rounded-xl text-base font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 transition">Place Bet</a>\n
+            <a href="http://localhost/draws" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Draws &amp; Results</a>\n
+            <a href="http://localhost/bets" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">My Bets</a>\n
+            <a href="http://localhost/wallet" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Wallet</a>\n
+            <a href="http://localhost/deposit" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-400 bg-amber-950/30 border border-amber-500/20 transition">Deposit</a>\n
+            <a href="http://localhost/glo-l6" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">GLO L6</a>\n
+            <a href="http://localhost/profile" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Profile &amp; Security</a>\n
+            <a href="http://localhost/services" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Our Services</a>\n
+            <a href="http://localhost/about" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">About</a>\n
+            <a href="http://localhost/lotto-discount" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Lotto Discount</a>\n
+            <a href="http://localhost/contact" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Contact</a>\n
+            </div>\n
+\n
+    <div class="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3">\n
+        <div class="flex items-center justify-between">\n
+            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Language</span>\n
+            <div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950">\n
+                <a href="http://localhost/locale/en" class="px-3 py-1 rounded text-xs font-bold bg-emerald-600 text-white">EN</a>\n
+                <a href="http://localhost/locale/th" class="px-3 py-1 rounded text-xs font-bold text-slate-400">TH</a>\n
+                <a href="http://localhost/locale/bn" lang="bn" hreflang="bn" class="px-3 py-1 rounded text-xs font-bold text-slate-400" aria-label="বাংলা">বাংলা</a>\n
+            </div>\n
+        </div>\n
+\n
+                    <form method="POST" action="http://localhost/logout">\n
+                <input type="hidden" name="_token" value="opy9rnrb3w7AlMKKiFCOowh9mbmb7gcxrapv7epa" autocomplete="off">                <button type="submit" class="w-full py-2.5 bg-slate-800 hover:bg-rose-950/50 text-slate-300 hover:text-rose-300 font-bold text-sm rounded-xl transition border border-slate-700">Log Out</button>\n
+            </form>\n
+            </div>\n
+</div>\n
+\n
+    <!-- Global Notifications / Flash Feedback -->\n
+        \n
+    <!-- Main Content Container -->\n
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">\n
+        \n
+<div class="space-y-8">\n
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">\n
+        <div>\n
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-amber-400">Active Draw:</p>\n
+            <h1 class="text-3xl font-black tracking-tight text-white">Place Lottery Wager</h1>\n
+            <p class="mt-1 text-sm text-slate-400">Select market, enter lottery digits, and build your multi-item bet slip.</p>\n
+        </div>\n
+        <div class="rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-right">\n
+            <span class="block text-[11px] uppercase tracking-wider text-slate-500">Available Balance</span>\n
+            <strong class="font-mono text-amber-400">Not configured</strong>\n
+        </div>\n
+    </div>\n
+\n
+            <section class="rounded-3xl border border-amber-500/30 bg-amber-950/20 p-6" role="status">\n
+            <h2 class="text-lg font-bold text-amber-200">No open draw is available</h2>\n
+            <p class="mt-2 text-sm leading-6 text-amber-100/70">The canonical draw service has not exposed an open draw. No wager form is enabled until a real draw is available.</p>\n
+            <a class="mt-4 inline-flex rounded-xl border border-amber-500/40 px-4 py-2 text-sm font-bold text-amber-300 hover:bg-amber-500/10" href="http://localhost/draws">View All</a>\n
+        </section>\n
+    </div>\n
+    </main>\n
+\n
+    <!-- Global Platform Footer -->\n
+    <footer class="pp-footer bg-slate-900/60 border-t border-slate-800/80 backdrop-blur-xl py-12 text-xs text-slate-400" role="contentinfo">\n
+    <div class="pp-footer__inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">\n
+        <!-- Top Section: Brand + Links Grid -->\n
+        <nav class="pp-footer__nav grid grid-cols-1 md:grid-cols-4 gap-8" aria-label="Footer navigation">\n
+            <!-- Brand Column -->\n
+            <div class="space-y-3 md:col-span-1">\n
+                <div class="flex items-center space-x-2.5">\n
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">\n
+                        TL\n
+                    </div>\n
+                    <a href="http://localhost" class="font-extrabold text-white text-base tracking-tight hover:text-amber-300 transition">\n
+                        Thai Lottery\n
+                    </a>\n
+                </div>\n
+                <p class="text-xs text-slate-400 leading-relaxed">Independent platform for lottery information, result lookup, account support and configured services.</p>\n
+                            </div>\n
+\n
+            <!-- Lottery Lanes -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Lottery lanes</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/national-lottery" class="hover:text-emerald-400 transition">L6 Lottery</a></li>\n
+                    <li><a href="http://localhost/weekly-lottery" class="hover:text-emerald-400 transition">Weekly Lottery</a></li>\n
+                    <li><a href="http://localhost/bingo-lottery" class="hover:text-emerald-400 transition">Bingo Lottery</a></li>\n
+                    <li><a href="http://localhost/pcso-lottery" class="hover:text-emerald-400 transition">PCSO Lottery</a></li>\n
+                    <li><a href="http://localhost/results" class="hover:text-emerald-400 transition">Lottery Results</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Public Information -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Information</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/services" class="hover:text-emerald-400 transition">Our Services</a></li>\n
+                    <li><a href="http://localhost/about" class="hover:text-emerald-400 transition">About the Platform</a></li>\n
+                    <li><a href="http://localhost/vision" class="hover:text-emerald-400 transition">Vision &amp; Mission</a></li>\n
+                    <li><a href="http://localhost/how-to-play" class="hover:text-emerald-400 transition">How to Play</a></li>\n
+                    <li><a href="http://localhost/faq" class="hover:text-emerald-400 transition">FAQ</a></li>\n
+                    <li><a href="http://localhost/check" class="hover:text-emerald-400 transition">Ticket Verification</a></li>\n
+                    <li><a href="http://localhost/sales-points" class="hover:text-emerald-400 transition">Sales Points</a></li>\n
+                    <li><a href="http://localhost/fees" class="hover:text-emerald-400 transition">Platform Fees</a></li>\n
+                    <li><a href="http://localhost/discounts" class="hover:text-emerald-400 transition">Lottery Discounts</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Legal & Compliance -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Legal &amp; Support</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/terms" class="hover:text-emerald-400 transition">Terms of Service</a></li>\n
+                    <li><a href="http://localhost/privacy" class="hover:text-emerald-400 transition">Privacy Policy</a></li>\n
+                    <li><a href="http://localhost/account-verification-guide" class="hover:text-emerald-400 transition">Account Verification Guide</a></li>\n
+                    <li><a href="http://localhost/account-grades" class="hover:text-emerald-400 transition">Account Grades</a></li>\n
+                    <li><a href="http://localhost/prize-verification" class="hover:text-emerald-400 transition">Prize Verification</a></li>\n
+                    <li><a href="http://localhost/contact" class="hover:text-emerald-400 transition">Contact Us</a></li>\n
+                </ul>\n
+            </div>\n
+        </nav>\n
+\n
+        <!-- Legal Disclaimer & Copyright -->\n
+        <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">\n
+            <p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl">\n
+                &copy; 2026 Thai Lottery.\n
+                All rights reserved. This independent platform is not operated by or endorsed by a government lottery authority. Verify published results and applicable rules against authoritative sources.\n
+            </p>\n
+            \n
+            <div class="flex items-center space-x-4 shrink-0 text-[11px]">\n
+                <span class="text-slate-600">Version v1.0.0</span>\n
+            </div>\n
+        </div>\n
+    </div>\n
+</footer>\n
+\n
+    <!-- Core Scripts -->\n
+        </body>\n
+</html>\n
+' [UTF-8](length: 19343) contains "value="3d_direct"" [ASCII](length: 17).
+
+/home/user/tests/Feature/Player/PlayerFrontendModulesTest.php:208
+
+3) Tests\Feature\Player\PlayerFrontendModulesTest::test_bet_slip_container_mirrors_the_server_side_item_ceiling
+The slip no longer mirrors the 50-item ceiling enforced by BulkBetRequest.
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="en" class="h-full bg-slate-950 text-slate-100">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="HV7cY6nblxh8svEJ9DSsnWFcAYLmMFDRozFhQthT">\n
+    \n
+    <meta name="app-name" content="Thai Lottery">\n
+    <meta name="theme-color" content="#059669">\n
+\n
+    <title>Place Lottery Wager — Thai Lottery</title>\n
+\n
+    <link rel="manifest" href="/manifest.webmanifest">\n
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">\n
+\n
+    \n
+            <meta name="description" content="Select market, enter lottery digits, and build your multi-item bet slip.">\n
+                            \n
+    \n
+        </head>\n
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">\n
+    <!-- Header -->\n
+    <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/20">\n
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">\n
+            <div class="flex items-center justify-between h-16">\n
+                <!-- Brand Logo -->\n
+                <div class="flex items-center space-x-3">\n
+                    <a href="http://localhost/dashboard" class="flex items-center space-x-2.5 group">\n
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-teal-400 flex items-center justify-center font-black text-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform duration-200">\n
+                            TL\n
+                        </div>\n
+                        <div class="hidden sm:block">\n
+                            <span class="text-lg font-black tracking-tight bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent">\n
+                                THAI LOTTERY\n
+                            </span>\n
+                            <span class="block text-[10px] text-slate-400 uppercase tracking-widest font-bold">Enterprise Wagering</span>\n
+                        </div>\n
+                    </a>\n
+                </div>\n
+\n
+                <!-- Desktop Navigation -->\n
+                <nav class="hidden xl:flex items-center space-x-1 lg:space-x-2" aria-label="Main navigation">\n
+            <a href="http://localhost/dashboard" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Dashboard\n
+        </a>\n
+        <a href="http://localhost/bet" class="px-3.5 py-2 rounded-xl text-sm font-bold transition flex items-center space-x-1.5 bg-emerald-600 text-white shadow-lg shadow-emerald-900/30">\n
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m6-6H6"/></svg>\n
+            <span>Place Bet</span>\n
+        </a>\n
+        <a href="http://localhost/draws" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Draws &amp; Results\n
+        </a>\n
+        <a href="http://localhost/bets" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            My Bets\n
+        </a>\n
+        <a href="http://localhost/wallet" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Wallet\n
+        </a>\n
+        <a href="http://localhost/wallet/convert" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            Convert\n
+        </a>\n
+        <a href="http://localhost/glo-l6" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white">\n
+            GLO L6\n
+        </a>\n
+    </nav>\n
+\n
+                <!-- Action Controls (Wallet, Auth, Mobile Menu Trigger) -->\n
+                <div class="flex items-center space-x-2.5 sm:space-x-4">\n
+                    <!-- Language Selector (Desktop) -->\n
+                    <div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner">\n
+                        <a href="http://localhost/locale/en" class="px-2.5 py-1 rounded-lg transition bg-emerald-600 text-white shadow">EN</a>\n
+                        <a href="http://localhost/locale/th" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200">TH</a>\n
+                        <a href="http://localhost/locale/bn" lang="bn" hreflang="bn" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200" aria-label="বাংলা">বাংলা</a>\n
+                    </div>\n
+\n
+                                            <!-- Live Wallet Indicator -->\n
+                        <div id="live-wallet-pill" class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700/80 rounded-full px-3.5 py-1.5 text-xs sm:text-sm shadow-inner">\n
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>\n
+                            <span class="text-slate-400 font-medium">Balance:</span>\n
+                            <span id="player-balance-display" class="font-mono font-bold text-amber-400">\n
+                                ฿0.00\n
+                            </span>\n
+                        </div>\n
+\n
+                        <a href="http://localhost/deposit" class="hidden sm:inline-flex items-center px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition">\n
+                            + Deposit\n
+                        </a>\n
+\n
+                        <!-- User Profile Menu -->\n
+                        <div class="relative flex items-center space-x-2">\n
+                            <a href="http://localhost/profile" class="flex items-center space-x-2 p-1.5 rounded-xl hover:bg-slate-800 transition" title="Profile">\n
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center font-black text-sm text-white border border-emerald-400/30">\n
+                                    H\n
+                                </div>\n
+                            </a>\n
+\n
+                            <form method="POST" action="http://localhost/logout" class="inline">\n
+                                <input type="hidden" name="_token" value="HV7cY6nblxh8svEJ9DSsnWFcAYLmMFDRozFhQthT" autocomplete="off">                                <button type="submit" class="p-2 text-slate-400 hover:text-rose-400 transition" title="Log Out">\n
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>\n
+                                </button>\n
+                            </form>\n
+                        </div>\n
+                    \n
+                    <!-- Mobile Menu Hamburger Button -->\n
+                    <button type="button"\n
+                            id="btn-open-mobile-menu"\n
+                            class="xl:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"\n
+                            aria-label="Open Navigation Menu">\n
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>\n
+                    </button>\n
+                </div>\n
+            </div>\n
+        </div>\n
+    </header>\n
+\n
+    <!-- Mobile Navigation Drawer -->\n
+    <div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out xl:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="Main navigation">\n
+    <div class="flex items-center justify-between p-4 border-b border-slate-800">\n
+        <div class="flex items-center space-x-2">\n
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">TL</div>\n
+            <span class="font-bold text-white tracking-tight">Thai Lottery</span>\n
+        </div>\n
+        <button type="button" id="btn-close-mobile-menu" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Close menu">\n
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>\n
+        </button>\n
+    </div>\n
+\n
+    <div class="flex-1 overflow-y-auto px-4 py-6 space-y-2">\n
+                    <a href="http://localhost/dashboard" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Dashboard</a>\n
+            <a href="http://localhost/bet" class="block px-4 py-3 rounded-xl text-base font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 transition">Place Bet</a>\n
+            <a href="http://localhost/draws" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Draws &amp; Results</a>\n
+            <a href="http://localhost/bets" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">My Bets</a>\n
+            <a href="http://localhost/wallet" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Wallet</a>\n
+            <a href="http://localhost/deposit" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-400 bg-amber-950/30 border border-amber-500/20 transition">Deposit</a>\n
+            <a href="http://localhost/glo-l6" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition">GLO L6</a>\n
+            <a href="http://localhost/profile" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Profile &amp; Security</a>\n
+            <a href="http://localhost/services" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Our Services</a>\n
+            <a href="http://localhost/about" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">About</a>\n
+            <a href="http://localhost/lotto-discount" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Lotto Discount</a>\n
+            <a href="http://localhost/contact" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition">Contact</a>\n
+            </div>\n
+\n
+    <div class="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3">\n
+        <div class="flex items-center justify-between">\n
+            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Language</span>\n
+            <div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950">\n
+                <a href="http://localhost/locale/en" class="px-3 py-1 rounded text-xs font-bold bg-emerald-600 text-white">EN</a>\n
+                <a href="http://localhost/locale/th" class="px-3 py-1 rounded text-xs font-bold text-slate-400">TH</a>\n
+                <a href="http://localhost/locale/bn" lang="bn" hreflang="bn" class="px-3 py-1 rounded text-xs font-bold text-slate-400" aria-label="বাংলা">বাংলা</a>\n
+            </div>\n
+        </div>\n
+\n
+                    <form method="POST" action="http://localhost/logout">\n
+                <input type="hidden" name="_token" value="HV7cY6nblxh8svEJ9DSsnWFcAYLmMFDRozFhQthT" autocomplete="off">                <button type="submit" class="w-full py-2.5 bg-slate-800 hover:bg-rose-950/50 text-slate-300 hover:text-rose-300 font-bold text-sm rounded-xl transition border border-slate-700">Log Out</button>\n
+            </form>\n
+            </div>\n
+</div>\n
+\n
+    <!-- Global Notifications / Flash Feedback -->\n
+        \n
+    <!-- Main Content Container -->\n
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">\n
+        \n
+<div class="space-y-8">\n
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">\n
+        <div>\n
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-amber-400">Active Draw:</p>\n
+            <h1 class="text-3xl font-black tracking-tight text-white">Place Lottery Wager</h1>\n
+            <p class="mt-1 text-sm text-slate-400">Select market, enter lottery digits, and build your multi-item bet slip.</p>\n
+        </div>\n
+        <div class="rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-right">\n
+            <span class="block text-[11px] uppercase tracking-wider text-slate-500">Available Balance</span>\n
+            <strong class="font-mono text-amber-400">Not configured</strong>\n
+        </div>\n
+    </div>\n
+\n
+            <section class="rounded-3xl border border-amber-500/30 bg-amber-950/20 p-6" role="status">\n
+            <h2 class="text-lg font-bold text-amber-200">No open draw is available</h2>\n
+            <p class="mt-2 text-sm leading-6 text-amber-100/70">The canonical draw service has not exposed an open draw. No wager form is enabled until a real draw is available.</p>\n
+            <a class="mt-4 inline-flex rounded-xl border border-amber-500/40 px-4 py-2 text-sm font-bold text-amber-300 hover:bg-amber-500/10" href="http://localhost/draws">View All</a>\n
+        </section>\n
+    </div>\n
+    </main>\n
+\n
+    <!-- Global Platform Footer -->\n
+    <footer class="pp-footer bg-slate-900/60 border-t border-slate-800/80 backdrop-blur-xl py-12 text-xs text-slate-400" role="contentinfo">\n
+    <div class="pp-footer__inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">\n
+        <!-- Top Section: Brand + Links Grid -->\n
+        <nav class="pp-footer__nav grid grid-cols-1 md:grid-cols-4 gap-8" aria-label="Footer navigation">\n
+            <!-- Brand Column -->\n
+            <div class="space-y-3 md:col-span-1">\n
+                <div class="flex items-center space-x-2.5">\n
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950">\n
+                        TL\n
+                    </div>\n
+                    <a href="http://localhost" class="font-extrabold text-white text-base tracking-tight hover:text-amber-300 transition">\n
+                        Thai Lottery\n
+                    </a>\n
+                </div>\n
+                <p class="text-xs text-slate-400 leading-relaxed">Independent platform for lottery information, result lookup, account support and configured services.</p>\n
+                            </div>\n
+\n
+            <!-- Lottery Lanes -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Lottery lanes</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/national-lottery" class="hover:text-emerald-400 transition">L6 Lottery</a></li>\n
+                    <li><a href="http://localhost/weekly-lottery" class="hover:text-emerald-400 transition">Weekly Lottery</a></li>\n
+                    <li><a href="http://localhost/bingo-lottery" class="hover:text-emerald-400 transition">Bingo Lottery</a></li>\n
+                    <li><a href="http://localhost/pcso-lottery" class="hover:text-emerald-400 transition">PCSO Lottery</a></li>\n
+                    <li><a href="http://localhost/results" class="hover:text-emerald-400 transition">Lottery Results</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Public Information -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Information</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/services" class="hover:text-emerald-400 transition">Our Services</a></li>\n
+                    <li><a href="http://localhost/about" class="hover:text-emerald-400 transition">About the Platform</a></li>\n
+                    <li><a href="http://localhost/vision" class="hover:text-emerald-400 transition">Vision &amp; Mission</a></li>\n
+                    <li><a href="http://localhost/how-to-play" class="hover:text-emerald-400 transition">How to Play</a></li>\n
+                    <li><a href="http://localhost/faq" class="hover:text-emerald-400 transition">FAQ</a></li>\n
+                    <li><a href="http://localhost/check" class="hover:text-emerald-400 transition">Ticket Verification</a></li>\n
+                    <li><a href="http://localhost/sales-points" class="hover:text-emerald-400 transition">Sales Points</a></li>\n
+                    <li><a href="http://localhost/fees" class="hover:text-emerald-400 transition">Platform Fees</a></li>\n
+                    <li><a href="http://localhost/discounts" class="hover:text-emerald-400 transition">Lottery Discounts</a></li>\n
+                </ul>\n
+            </div>\n
+\n
+            <!-- Legal & Compliance -->\n
+            <div class="space-y-3">\n
+                <h4 class="font-bold text-white text-xs uppercase tracking-wider">Legal &amp; Support</h4>\n
+                <ul class="space-y-2">\n
+                    <li><a href="http://localhost/terms" class="hover:text-emerald-400 transition">Terms of Service</a></li>\n
+                    <li><a href="http://localhost/privacy" class="hover:text-emerald-400 transition">Privacy Policy</a></li>\n
+                    <li><a href="http://localhost/account-verification-guide" class="hover:text-emerald-400 transition">Account Verification Guide</a></li>\n
+                    <li><a href="http://localhost/account-grades" class="hover:text-emerald-400 transition">Account Grades</a></li>\n
+                    <li><a href="http://localhost/prize-verification" class="hover:text-emerald-400 transition">Prize Verification</a></li>\n
+                    <li><a href="http://localhost/contact" class="hover:text-emerald-400 transition">Contact Us</a></li>\n
+                </ul>\n
+            </div>\n
+        </nav>\n
+\n
+        <!-- Legal Disclaimer & Copyright -->\n
+        <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">\n
+            <p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl">\n
+                &copy; 2026 Thai Lottery.\n
+                All rights reserved. This independent platform is not operated by or endorsed by a government lottery authority. Verify published results and applicable rules against authoritative sources.\n
+            </p>\n
+            \n
+            <div class="flex items-center space-x-4 shrink-0 text-[11px]">\n
+                <span class="text-slate-600">Version v1.0.0</span>\n
+            </div>\n
+        </div>\n
+    </div>\n
+</footer>\n
+\n
+    <!-- Core Scripts -->\n
+        </body>\n
+</html>\n
+' [UTF-8](length: 19343) contains "data-max-items="50"" [ASCII](length: 19).
+
+/home/user/tests/Feature/Player/PlayerFrontendModulesTest.php:233
+
+FAILURES!
+Tests: 11, Assertions: 104, Failures: 3.

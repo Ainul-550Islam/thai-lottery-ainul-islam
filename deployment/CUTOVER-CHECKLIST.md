@@ -113,7 +113,7 @@
   ```ini
   [program:thailotto-worker]
   process_name=%(program_name)s_%(process_num)02d
-  command=php /var/www/thailotto/artisan queue:work --queue=high,default,low --tries=3 --timeout=90 --sleep=3
+  command=php /var/www/thailotto/artisan queue:work --queue=financial-critical,webhooks,reconciliation,default,notifications --tries=3 --timeout=180 --sleep=3
   autostart=true
   autorestart=true
   numprocs=4

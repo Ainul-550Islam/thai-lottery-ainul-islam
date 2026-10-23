@@ -31,6 +31,16 @@ final class LegalDocumentService
      */
     public function currentData(string $documentType, string $locale): array
     {
+        if ($locale === 'bn') {
+            if (! in_array($documentType, ['terms', 'privacy'], true)) {
+                throw ValidationException::withMessages([
+                    'document_type' => 'Supported legal document types are terms and privacy.',
+                ]);
+            }
+
+            return $this->withHash($this->fallbackData($documentType, $locale), $documentType);
+        }
+
         $this->assertSupported($documentType, $locale);
         $fallback = $this->fallbackData($documentType, $locale);
 

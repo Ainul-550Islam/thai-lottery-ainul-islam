@@ -11,6 +11,7 @@ use App\Models\DrawResult;
 use App\Services\PublicPages\ResultsPageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Tests\Feature\PublicSite\Concerns\PublishesProviderResults;
 use Tests\TestCase;
 
 /**
@@ -21,6 +22,7 @@ use Tests\TestCase;
  */
 final class PublicPrivacyAndResultsTest extends TestCase
 {
+    use PublishesProviderResults;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -64,22 +66,11 @@ final class PublicPrivacyAndResultsTest extends TestCase
 
     public function test_results_page_serves_verified_and_fixture_rows_with_exact_provenance(): void
     {
-        $draw1 = Draw::factory()->create([
-            'status' => DrawStatus::ResultPublished,
+        $draw1 = Draw::factory()->closed()->create([
             'draw_number' => 'GLO-20260901',
             'scheduled_at' => now()->subDays(10),
         ]);
-
-        DrawResult::factory()->create([
-            'draw_id' => $draw1->id,
-            'first_prize' => '123456',
-            'metadata' => [
-                'glo' => [
-                    'import_provider' => 'official_api',
-                    'import_fingerprint' => 'glo-fp-001',
-                ],
-            ],
-        ]);
+        $this->publishProviderResult($draw1, 'official', '123456');
 
         $draw2 = Draw::factory()->create([
             'status' => DrawStatus::Completed,

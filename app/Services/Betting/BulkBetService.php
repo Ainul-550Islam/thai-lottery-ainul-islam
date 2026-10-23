@@ -152,8 +152,13 @@ class BulkBetService
                 $refused++;
                 $record['reason'] = $e->getMessage();
             } catch (\Throwable $e) {
-                $refused++;
-                $record['reason'] = $e->getMessage();
+                // Infrastructure faults are not item-level refusals. Propagate them
+                // to the HTTP exception handler so raw database/provider messages
+                // never enter the player-facing slip report. Earlier items remain
+                // committed independently and are replay-safe on a whole-slip retry.
+                report($e);
+
+                throw $e;
             }
 
             $items[] = $record;
@@ -171,6 +176,49 @@ class BulkBetService
             'currency' => is_string($currency) ? $currency : Currency::THB->value,
             'items' => $items,
         ];
+    }
+
+    /**
+     * Object-shaped slip placement over purchase().
+     *
+     * @param  list<\App\DTOs\Betting\BulkBetSelectionData>  $selections
+     */
+    public function placeBulkBet(
+        \App\Models\User $user,
+        \App\Models\Draw $draw,
+        array $selections,
+        string $clientKey,
+    ): \App\DTOs\Betting\BulkBetPlacementResult {
+        $report = $this->purchase((int) $user->getKey(), (int) $draw->getKey(), $selections, $clientKey);
+
+        $betIds = [];
+        foreach ($report['items'] as $item) {
+            if (isset($item['bet_id']) && is_int($item['bet_id'])) {
+                $betIds[] = $item['bet_id'];
+            }
+        }
+
+        $betsById = $betIds === []
+            ? collect()
+            : \App\Models\Bet::query()->whereIn('id', $betIds)->get()->keyBy('id');
+
+        $bets = [];
+        foreach ($betIds as $betId) {
+            $bet = $betsById->get($betId);
+            if ($bet instanceof \App\Models\Bet) {
+                $bets[] = $bet;
+            }
+        }
+
+        return new \App\DTOs\Betting\BulkBetPlacementResult(
+            bets: $bets,
+            totalStake: (string) $report['total_charged'],
+            purchased: (int) $report['purchased'],
+            replayed: (int) $report['replayed'],
+            refused: (int) $report['refused'],
+            currency: (string) $report['currency'],
+            items: $report['items'],
+        );
     }
 
     // ----------------------------------------------------------------------

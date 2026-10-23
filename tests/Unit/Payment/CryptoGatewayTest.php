@@ -63,6 +63,7 @@ final class CryptoGatewayTest extends TestCase
             'txid' => '0xabcdef1234567890',
             'invoice_id' => 'DP-CRYPTO-REF-01',
             'amount' => '100.00',
+            'currency' => 'USD',
             'status' => 'CONFIRMED',
             'confirmations' => 12,
         ];

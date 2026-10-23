@@ -350,16 +350,19 @@ class PayoutStatementService
     private function recordAudit(?Payout $payout, string $description, RiskLevel $riskLevel, ?PayoutDocument $document = null): void
     {
         $log = new AuditLog;
+        $subject = ($document instanceof PayoutDocument && $document->getKey() !== null)
+            ? $document
+            : (($payout instanceof Payout && $payout->getKey() !== null) ? $payout : null);
 
         $log->fill([
             'user_id' => null,
             'action' => AuditAction::Payout,
             'risk_level' => $riskLevel,
-            'auditable_type' => $document instanceof PayoutDocument ? PayoutDocument::class : Payout::class,
-            'auditable_id' => $document instanceof PayoutDocument ? (int) $document->getKey() : (int) ($payout?->getKey() ?? 0),
+            'auditable_type' => $subject !== null ? $subject::class : null,
+            'auditable_id' => $subject !== null ? (int) $subject->getKey() : null,
             'description' => $description,
             'metadata' => [
-                'payout_id' => $document instanceof PayoutDocument ? (int) $document->payout_id : (int) ($payout?->getKey() ?? 0),
+                'payout_id' => $document instanceof PayoutDocument ? (int) $document->payout_id : ($payout?->getKey() !== null ? (int) $payout->getKey() : null),
                 'statement_number' => $document instanceof PayoutDocument ? (string) $document->statement_number : null,
                 'lane' => 'payout_statement',
             ],

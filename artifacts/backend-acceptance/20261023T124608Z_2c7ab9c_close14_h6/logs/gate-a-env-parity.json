@@ -1,0 +1,9 @@
+{
+    "ok": true,
+    "templates": {
+        ".env.example": 354,
+        ".env.ci": 354,
+        ".env.production.example": 354
+    },
+    "errors": []
+}

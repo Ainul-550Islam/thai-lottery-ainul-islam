@@ -78,6 +78,7 @@ final class BkashGatewayTest extends TestCase
             'trxID' => 'TRX_999888',
             'merchantInvoiceNumber' => 'DP-BKASH-REF-01',
             'amount' => '350.00',
+            'currency' => 'BDT',
             'transactionStatus' => 'Completed',
         ];
 

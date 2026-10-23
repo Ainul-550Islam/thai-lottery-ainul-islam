@@ -44,25 +44,33 @@ class AutomatedBankReconciliationTest extends TestCase
             'completed_at' => $date,
         ]);
 
-        // 2. Create the corresponding double-entry ledger transaction
-        $ledgerTx = LedgerTransaction::create([
-            'id' => (string) Str::uuid(),
-            'transaction_number' => 'TXN-20261016-001',
-            'reference_type' => 'DEPOSIT_SETTLEMENT',
-            'reference_id' => $depTx->id,
-            'currency' => 'THB',
-            'status' => 'POSTED',
-            'posted_at' => $date,
-        ]);
+        // 2. Post the corresponding balanced double-entry ledger transaction (Debit == Credit)
+        $ledgerService = new \App\Services\Ledger\DoubleEntryLedgerService;
+        $bankAssetAccount = $ledgerService->getSystemAccount('SYS-BANK-SCB-THB', 'SCB Bank Clearing THB', 'asset', 'THB');
+        $userLiabilityAccount = $ledgerService->getOrCreateUserAccount('user-recon-1', 'THB');
 
-        LedgerEntry::create([
-            'id' => (string) Str::uuid(),
-            'ledger_transaction_id' => $ledgerTx->id,
-            'account_id' => (string) Str::uuid(),
-            'direction' => 'DEBIT',
-            'amount' => '1000.0000',
-            'currency' => 'THB',
-        ]);
+        $ledgerService->postTransaction(
+            referenceType: 'DEPOSIT_SETTLEMENT',
+            referenceId: (string) $depTx->id,
+            currency: 'THB',
+            entries: [
+                [
+                    'account_id' => $bankAssetAccount->id,
+                    'direction' => 'DEBIT',
+                    'amount' => '1000.0000',
+                ],
+                [
+                    'account_id' => $userLiabilityAccount->id,
+                    'direction' => 'CREDIT',
+                    'amount' => '1000.0000',
+                ],
+            ],
+            idempotencyKey: 'RECON-DEP-20261016-001',
+            description: 'Deposit settlement SCB-RECON-1'
+        );
+
+        LedgerTransaction::where('reference_id', (string) $depTx->id)->update(['posted_at' => $date]);
+        LedgerEntry::whereNotNull('ledger_transaction_id')->update(['posted_at' => $date]);
 
         $result = $this->reconciliationService->reconcileDate($date);
 

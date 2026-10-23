@@ -33,16 +33,22 @@ class LedgerReconciliationService
      */
     public function auditSystemIntegrity(): array
     {
-        // 1. Verify Global Ledger Invariant: Total Debits == Total Credits
-        $totals = DB::table('ledger_entries')
-            ->selectRaw("
-                SUM(CASE WHEN direction = 'DEBIT' THEN amount ELSE 0 END) as total_debits,
-                SUM(CASE WHEN direction = 'CREDIT' THEN amount ELSE 0 END) as total_credits
-            ")
-            ->first();
+        // 1. Verify Global Ledger Invariant: Total Debits == Total Credits (exact BCMath, no float)
+        $allEntries = DB::table('ledger_entries')
+            ->whereNull('deleted_at')
+            ->select(['type', 'direction', 'amount'])
+            ->get();
 
-        $totalDebits = number_format((float) ($totals->total_debits ?? 0), 4, '.', '');
-        $totalCredits = number_format((float) ($totals->total_credits ?? 0), 4, '.', '');
+        $totalDebits = '0.0000';
+        $totalCredits = '0.0000';
+        foreach ($allEntries as $row) {
+            $side = strtoupper((string) ($row->direction ?: $row->type));
+            if ($side === 'DEBIT') {
+                $totalDebits = bcadd($totalDebits, (string) $row->amount, 4);
+            } elseif ($side === 'CREDIT') {
+                $totalCredits = bcadd($totalCredits, (string) $row->amount, 4);
+            }
+        }
         $ledgerDelta = bcsub($totalDebits, $totalCredits, 4);
 
         // 2. Reconcile Wallets against User Liability Ledger Accounts
@@ -73,16 +79,22 @@ class LedgerReconciliationService
                 $walletBalance = bcadd($walletBalance, (string) $wallet->balance, 4);
             }
 
-            // Derive actual balance from all historical ledger entries for this account
-            $entrySums = DB::table('ledger_entries')
+            // Derive actual balance from all historical ledger entries for this account (exact BCMath, no float)
+            $accountEntries = DB::table('ledger_entries')
                 ->where('ledger_account_id', $account->id)
-                ->selectRaw("
-                    SUM(CASE WHEN direction = 'CREDIT' THEN amount ELSE 0 END) -
-                    SUM(CASE WHEN direction = 'DEBIT' THEN amount ELSE 0 END) as derived_balance
-                ")
-                ->value('derived_balance');
+                ->whereNull('deleted_at')
+                ->select(['type', 'direction', 'amount'])
+                ->get();
 
-            $derivedBalance = number_format((float) ($entrySums ?? 0), 4, '.', '');
+            $derivedBalance = '0.0000';
+            foreach ($accountEntries as $entryRow) {
+                $side = strtoupper((string) ($entryRow->direction ?: $entryRow->type));
+                if ($side === 'CREDIT') {
+                    $derivedBalance = bcadd($derivedBalance, (string) $entryRow->amount, 4);
+                } elseif ($side === 'DEBIT') {
+                    $derivedBalance = bcsub($derivedBalance, (string) $entryRow->amount, 4);
+                }
+            }
 
             if (bccomp($walletBalance, $derivedBalance, 4) !== 0) {
                 $walletDiscrepancies[] = [

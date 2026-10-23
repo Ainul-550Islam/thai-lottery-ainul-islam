@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Enums\ConversionFeeBearer;
+use App\Enums\WalletConversionDirection;
+
 /*
 |--------------------------------------------------------------------------
 | Wallet Conversion (Cash <-> Win) Configuration
@@ -45,7 +48,7 @@ return [
     |
     */
 
-    'enabled' => env('CONVERSION_ENABLED', false),
+    'enabled' => env('CONVERSION_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -76,15 +79,15 @@ return [
 
     'directions' => [
 
-        'cash_to_win' => [
-            'enabled' => env('CONVERSION_CASH_TO_WIN_ENABLED', false),
+        WalletConversionDirection::CashToWin->value => [
+            'enabled' => env('CONVERSION_CASH_TO_WIN_ENABLED', true),
             'label_key' => 'wallet_conversion.direction_cash_to_win',
             'requires_quote' => true,
             'description_key' => 'wallet_conversion.direction_cash_to_win_description',
         ],
 
-        'win_to_cash' => [
-            'enabled' => env('CONVERSION_WIN_TO_CASH_ENABLED', false),
+        WalletConversionDirection::WinToCash->value => [
+            'enabled' => env('CONVERSION_WIN_TO_CASH_ENABLED', true),
             'label_key' => 'wallet_conversion.direction_win_to_cash',
             'requires_quote' => true,
             'description_key' => 'wallet_conversion.direction_win_to_cash_description',
@@ -126,19 +129,16 @@ return [
     */
 
     'fee' => [
-        'bearer' => env('CONVERSION_FEE_BEARER', 'source'),
+        'bearer' => env('CONVERSION_FEE_BEARER', ConversionFeeBearer::Source->value),
         'scale' => (int) env('CONVERSION_FEE_SCALE', 2),
         'rate_scale' => (int) env('CONVERSION_FEE_RATE_SCALE', 4),
         'rule_keys' => [
-            'cash_to_win' => 'fees.categories.cash_to_win',
-            'win_to_cash' => 'fees.categories.win_to_cash',
+            WalletConversionDirection::CashToWin->value => 'fees.categories.cash_to_win',
+            WalletConversionDirection::WinToCash->value => 'fees.categories.win_to_cash',
         ],
         // The public schedule's own version, surfaced on quotes and audit rows
         // so a fee can always be traced back to the tariff version in force.
         'rule_version_fallback' => '2',
-        'execution' => [
-            'percentage' => (string) env('CONVERSION_FEE_PERCENTAGE', '1.00'),
-        ],
     ],
 
     /*
@@ -352,7 +352,7 @@ return [
         'route_prefix' => 'wallet/convert',
         'show_fee_breakdown' => true,
         'show_limits' => true,
-        'default_direction' => 'cash_to_win',
+        'default_direction' => WalletConversionDirection::CashToWin->value,
     ],
 
     /*
@@ -370,36 +370,6 @@ return [
         'retention_days' => (int) env('CONVERSION_AUDIT_RETENTION_DAYS', 2555),
         'record_ip' => env('CONVERSION_AUDIT_RECORD_IP', true),
         'record_user_agent' => env('CONVERSION_AUDIT_RECORD_USER_AGENT', true),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Fee Configuration References
-    |--------------------------------------------------------------------------
-    |
-    | Each direction references a fee rule from config/fees.php. The fee page
-    | and the engine resolve the same rule key, proving the published price
-    | matches the charged price. The 'execution' key names the live rule.
-    |
-    */
-
-    'fees' => [
-        'cash_to_win' => [
-            'execution' => 'cash_to_win',
-            'config_path' => 'fees.cash_to_win',
-        ],
-        'win_to_cash' => [
-            'execution' => 'win_to_cash',
-            'config_path' => 'fees.win_to_cash',
-        ],
-        'cash_to_bonus' => [
-            'execution' => 'cash_to_bonus',
-            'config_path' => 'fees.cash_to_bonus',
-        ],
-        'bonus_to_cash' => [
-            'execution' => 'bonus_to_cash',
-            'config_path' => 'fees.bonus_to_cash',
-        ],
     ],
 
 ];

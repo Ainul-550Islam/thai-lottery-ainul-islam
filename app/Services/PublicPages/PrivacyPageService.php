@@ -22,7 +22,7 @@ final class PrivacyPageService
     public function data(?string $locale = null): array
     {
         $locale = $locale !== null && $locale !== '' ? $locale : (string) app()->getLocale();
-        $version = (string) config('legal.version', 'v1.0.0');
+        $version = (string) config('legal.privacy_version', config('legal.version', 'v1.0.0'));
         $effectiveAt = (string) config('legal.effective_at', '');
         $updatedAt = (string) config('legal.updated_at', '');
         if ($effectiveAt === '') {

@@ -5,6 +5,7 @@ namespace Tests;
 use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 /**
@@ -135,6 +136,25 @@ abstract class TestCase extends BaseTestCase
         (new LedgerAccountSeeder)->run();
     }
 
+    protected function tearDown(): void
+    {
+        // DatabaseTruncation runs its table truncation at the START of a test,
+        // so the last test in a DatabaseTruncation class would otherwise leave
+        // its rows in a file-backed SQLite database for the next class.
+        if (isset($this->app) && in_array(DatabaseTruncation::class, class_uses_recursive(static::class), true)) {
+            $connection = $this->app->make('db')->connection();
+            $database = (string) $connection->getDatabaseName();
+
+            if (in_array($database, self::MIGRATABLE_DATABASES, true)
+                || in_array(basename($database), self::MIGRATABLE_DATABASES, true)) {
+                $this->truncateTablesForAllConnections();
+                (new LedgerAccountSeeder)->run();
+            }
+        }
+
+        parent::tearDown();
+    }
+
     /**
      * Assert that a money column read with the RAW query builder holds an exact value.
      *
@@ -164,5 +184,63 @@ abstract class TestCase extends BaseTestCase
             bccomp($expected, $raw, 2),
             $message !== '' ? $message : sprintf('Stored money must equal %s exactly; the column holds "%s".', $expected, $raw),
         );
+    }
+
+    protected function provisionBetLimitForTest(
+        \App\Models\Draw $draw,
+        string $market,
+        string $rawNumber,
+        string $maxAmount = '1000000.00',
+    ): \App\Models\NumberLimit {
+        $definition = config('lottery.markets.'.$market);
+        $betType = is_array($definition)
+            ? (\App\Enums\BetType::tryFrom((string) ($definition['bet_type'] ?? '')) ?? \App\Enums\BetType::ThreeD)
+            : (\App\Enums\BetType::tryFrom($market) ?? \App\Enums\BetType::ThreeD);
+        $digits = is_array($definition) ? (int) ($definition['digits'] ?? strlen($rawNumber)) : strlen($rawNumber);
+        $number = $digits > 0 && ctype_digit($rawNumber)
+            ? str_pad($rawNumber, $digits, '0', STR_PAD_LEFT)
+            : $rawNumber;
+
+        $existing = \App\Models\NumberLimit::query()
+            ->where('draw_id', $draw->getKey())
+            ->where('bet_type', $betType->value)
+            ->where('number', $number)
+            ->first();
+
+        if ($existing instanceof \App\Models\NumberLimit) {
+            return $existing;
+        }
+
+        $limit = new \App\Models\NumberLimit;
+        $limit->draw_id = (int) $draw->getKey();
+        $limit->bet_type = $betType;
+        $limit->number = $number;
+        $limit->max_amount = $maxAmount;
+        $limit->current_amount = '0.00';
+        $limit->maximum_payout_exposure = '1000000.00';
+        $limit->current_payout_exposure = '0.00';
+        $limit->status = \App\Enums\LimitStatus::Active;
+        $limit->save();
+
+        return $limit;
+    }
+
+    protected function verifyUserKycForTest(\App\Models\User $user): \App\Models\KycDocument
+    {
+        $doc = \App\Models\KycDocument::query()->create([
+            'user_id' => $user->getKey(),
+            'document_type' => 'national_id',
+            'document_number' => 'TEST-'.strtoupper(bin2hex(random_bytes(4))),
+            'file_path' => 'kyc/test-'.$user->getKey().'.png',
+            'original_filename' => 'id.png',
+            'mime_type' => 'image/png',
+            'file_size' => 1024,
+            'status' => \App\Enums\KycStatus::Verified,
+            'verified_at' => now(),
+        ]);
+
+        $user->unsetRelation('kycDocuments');
+
+        return $doc;
     }
 }

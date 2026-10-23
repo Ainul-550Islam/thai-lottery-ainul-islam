@@ -506,32 +506,7 @@ final class LottoFinExecutiveDashboardController extends Controller
 
     private function authorizePanel(Request $request, string $panel): void
     {
-        $user = $request->user();
-        $permission = match ($panel) {
-            'draws' => AdminAccess::VIEW_DRAWS,
-            'risk', 'compliance' => AdminAccess::VIEW_RISK_ALERTS,
-            'payments', 'withdrawals' => AdminAccess::MANAGE_PAYOUTS,
-            'bets' => AdminAccess::VIEW_TRANSACTION_HISTORY,
-            'audits' => AdminAccess::VIEW_AUDIT_LOGS,
-            'wallets' => AdminAccess::MANAGE_WALLET,
-            'ledger' => AdminAccess::VIEW_FINANCIAL_REPORTS,
-            'reconciliation' => AdminAccess::RECONCILE_LEDGER,
-            'kyc' => AdminAccess::MANAGE_USERS,
-            'claims', 'claim_review' => AdminAccess::MANAGE_GLO_PRIZE_CLAIMS,
-            'freezes' => AdminAccess::REVIEW_GLO_FREEZES,
-            'settlements' => AdminAccess::PROCESS_SETTLEMENTS,
-            'wallet_operations' => AdminAccess::MANAGE_WALLET,
-            'payment_methods', 'withdrawal_methods', 'payment_events', 'payment_exceptions' => AdminAccess::MANAGE_PAYOUTS,
-            'draw_lifecycle' => AdminAccess::MANAGE_DRAWS,
-            'publication', 'imports', 'sources' => AdminAccess::VIEW_RESULTS,
-            'lotteries', 'lottery_rules', 'fees', 'account_grades' => AdminAccess::MANAGE_SYSTEM_SETTINGS,
-            'account_verification', 'responsible_gaming', 'self_exclusion', 'users', 'user_detail', 'user_finance', 'bet_detail', 'ticket_detail', 'ticket_verification' => AdminAccess::MANAGE_USERS,
-            'commissions' => AdminAccess::VIEW_COMMISSIONS,
-            'queues', 'scheduler', 'runtime', 'api_status', 'webhooks', 'security', 'release', 'cutover', 'health' => AdminAccess::VIEW_AUDIT_LOGS,
-            default => AdminAccess::VIEW_DASHBOARD,
-        };
-
-        if (! AdminAccess::canAccessPanel($user) || ! AdminAccess::allows($user, $permission)) {
+        if (! AdminAccess::mayOpenPanel($request->user(), $panel)) {
             abort(403, trans('admin.access_denied'));
         }
     }

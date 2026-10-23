@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 /** Weak evidence only: command-line clients can be legitimate and UAs are spoofable. */
 final class UserAgentSignal implements BotSignal
 {
-    private const AUTOMATION_MARKERS = ['curl/', 'wget/', 'python-requests', 'python-urllib', 'headlesschrome', 'phantomjs', 'selenium', 'playwright'];
+    private const AUTOMATION_MARKERS = ['curl/', 'wget/', 'python-requests', 'python-urllib', 'headlesschrome', 'phantomjs', 'selenium', 'playwright', 'sqlmap'];
 
     public function score(Request $request): SignalResult
     {

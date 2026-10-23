@@ -18,6 +18,8 @@ class Agent extends Model
         'agent_code',
         'user_id',
         'parent_agent_id',
+        'tier_level',
+        'direct_commission_rate',
         'status',
         'currency',
         'commission_rate',
@@ -29,6 +31,24 @@ class Agent extends Model
         'suspension_reason',
         'metadata',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $agent): void {
+            if ($agent->getAttribute('commission_rate') === null && $agent->getAttribute('direct_commission_rate') !== null) {
+                $agent->setAttribute('commission_rate', $agent->getAttribute('direct_commission_rate'));
+            }
+        });
+    }
+
+    public function setAttribute($key, $value)
+    {
+        if ($key === 'status' && is_string($value)) {
+            $value = strtolower(trim($value));
+        }
+
+        return parent::setAttribute($key, $value);
+    }
 
     protected function casts(): array
     {

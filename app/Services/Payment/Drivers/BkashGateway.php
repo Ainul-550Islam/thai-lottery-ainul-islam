@@ -6,6 +6,7 @@ namespace App\Services\Payment\Drivers;
 
 use App\DTOs\Payment\GatewayDepositResponse;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
+use App\DTOs\Payment\WebhookMoneyFacts;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
@@ -74,7 +75,7 @@ class BkashGateway extends AbstractPaymentGateway
 
         $payload = [
             'mode' => '0011',
-            'payerReference' => (string) $deposit->user_id,
+            'payerReference' => $deposit->reference_number,
             'callbackURL' => $this->successUrl().'?reference='.$deposit->reference_number,
             'amount' => (string) $deposit->amount,
             'currency' => 'BDT',
@@ -107,13 +108,25 @@ class BkashGateway extends AbstractPaymentGateway
             }
 
             $errorData = $response->json();
-            $msg = $errorData['statusMessage'] ?? 'bKash payment creation failed: '.$response->body();
+            $providerCode = is_array($errorData) ? ($errorData['statusCode'] ?? null) : null;
 
-            return GatewayDepositResponse::failed($msg, is_array($errorData) ? $errorData : []);
+            Log::warning('bKash checkout request was refused', [
+                'http_status' => $response->status(),
+                'provider_error_code' => is_string($providerCode) ? substr($providerCode, 0, 64) : null,
+            ]);
+
+            return GatewayDepositResponse::failed(
+                'bKash payment creation failed.',
+                [],
+                ['gateway' => 'bkash', 'http_status' => $response->status()],
+            );
         } catch (\Throwable $e) {
-            Log::error('bKash deposit initiation failed', ['exception' => $e->getMessage()]);
+            Log::error('bKash deposit initiation failed', [
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
+            ]);
 
-            return GatewayDepositResponse::failed('bKash connection error: '.$e->getMessage());
+            return GatewayDepositResponse::failed('bKash could not be reached to create checkout.');
         }
     }
 
@@ -142,19 +155,9 @@ class BkashGateway extends AbstractPaymentGateway
             return false;
         }
 
-        $timestamp = trim((string) $request->header('X-Timestamp', ''));
-        if ($timestamp === '' || ! ctype_digit($timestamp)) {
-            return false;
-        }
+        $expected = hash_hmac('sha256', $request->getContent(), $secret);
 
-        $tolerance = max(0, (int) config('security.webhook.timestamp_tolerance_seconds', 300));
-        if ($tolerance > 0 && abs(time() - (int) $timestamp) > $tolerance) {
-            return false;
-        }
-
-        $expected = hash_hmac('sha256', $timestamp.'.'.$request->getContent(), $secret);
-
-        return hash_equals($expected, strtolower($provided));
+        return hash_equals($expected, $provided);
     }
 
     public function parseWebhook(Request $request): WebhookPayload
@@ -164,10 +167,10 @@ class BkashGateway extends AbstractPaymentGateway
         $paymentId = (string) ($data['paymentID'] ?? $data['payment_id'] ?? '');
         $trxId = (string) ($data['trxID'] ?? $data['transaction_id'] ?? '');
         $invoice = (string) ($data['merchantInvoiceNumber'] ?? $data['invoice_number'] ?? $data['reference'] ?? '');
-        $amount = (string) ($data['amount'] ?? '0.00');
+        $amount = WebhookMoneyFacts::decimal($data['amount'] ?? null);
         $status = strtoupper((string) ($data['transactionStatus'] ?? $data['status'] ?? ''));
 
-        $currency = isset($data['currency']) ? (Currency::tryFrom(strtoupper((string) $data['currency'])) ?? Currency::BDT) : Currency::BDT;
+        $currency = WebhookMoneyFacts::currency($data['currency'] ?? null);
 
         $eventType = match ($status) {
             'COMPLETED', 'SUCCESS', 'SUCCESSFUL' => WebhookEventType::DepositSuccess,
@@ -221,7 +224,10 @@ class BkashGateway extends AbstractPaymentGateway
                 return $response->json('id_token');
             }
         } catch (\Throwable $e) {
-            Log::error('bKash token grant error', ['exception' => $e->getMessage()]);
+            Log::error('bKash token grant failed', [
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
+            ]);
         }
 
         return null;

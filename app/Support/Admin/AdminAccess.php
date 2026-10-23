@@ -103,6 +103,74 @@ final class AdminAccess
     public const MANAGE_GLO_SALES_POINTS = 'manage glo sales points';
 
     /**
+     * Which seeded permission a console panel requires.
+     *
+     * @param  string  $panel  a value produced by the console's panel resolver
+     */
+    public static function panelPermission(string $panel): string
+    {
+        return match ($panel) {
+            'draws' => self::VIEW_DRAWS,
+            'risk', 'compliance' => self::VIEW_RISK_ALERTS,
+            'payments', 'withdrawals' => self::MANAGE_PAYOUTS,
+            'bets' => self::VIEW_TRANSACTION_HISTORY,
+            'audits' => self::VIEW_AUDIT_LOGS,
+            'wallets' => self::MANAGE_WALLET,
+            'ledger' => self::VIEW_FINANCIAL_REPORTS,
+            'reconciliation' => self::RECONCILE_LEDGER,
+            'kyc' => self::MANAGE_USERS,
+            'claims', 'claim_review' => self::MANAGE_GLO_PRIZE_CLAIMS,
+            'freezes' => self::REVIEW_GLO_FREEZES,
+            'settlements' => self::PROCESS_SETTLEMENTS,
+            'wallet_operations' => self::MANAGE_WALLET,
+            'payment_methods', 'withdrawal_methods', 'payment_events', 'payment_exceptions' => self::MANAGE_PAYOUTS,
+            'draw_lifecycle' => self::MANAGE_DRAWS,
+            'publication', 'imports', 'sources' => self::VIEW_RESULTS,
+            'lotteries', 'lottery_rules', 'fees', 'account_grades' => self::MANAGE_SYSTEM_SETTINGS,
+            'account_verification', 'responsible_gaming', 'self_exclusion', 'users', 'user_detail', 'user_finance', 'bet_detail', 'ticket_detail', 'ticket_verification' => self::MANAGE_USERS,
+            'commissions' => self::VIEW_COMMISSIONS,
+            'queues', 'scheduler', 'runtime', 'api_status', 'webhooks', 'security', 'release', 'cutover', 'health' => self::VIEW_AUDIT_LOGS,
+            default => self::VIEW_DASHBOARD,
+        };
+    }
+
+    /**
+     * Every panel this class knows about, keyed by the permission it requires.
+     *
+     * @return array<string, string>
+     */
+    public static function panelPermissions(): array
+    {
+        $panels = [
+            'dashboard', 'draws', 'risk', 'compliance', 'payments', 'withdrawals', 'bets',
+            'audits', 'wallets', 'ledger', 'reconciliation', 'kyc', 'claims', 'claim_review',
+            'freezes', 'settlements', 'wallet_operations', 'payment_methods',
+            'withdrawal_methods', 'payment_events', 'payment_exceptions', 'draw_lifecycle',
+            'publication', 'imports', 'sources', 'lotteries', 'lottery_rules', 'fees',
+            'account_grades', 'account_verification', 'responsible_gaming', 'self_exclusion',
+            'users', 'user_detail', 'user_finance', 'bet_detail', 'ticket_detail',
+            'ticket_verification', 'commissions', 'queues', 'scheduler', 'runtime',
+            'api_status', 'webhooks', 'security', 'release', 'cutover', 'health',
+        ];
+
+        $out = [];
+
+        foreach ($panels as $panel) {
+            $out[$panel] = self::panelPermission($panel);
+        }
+
+        return $out;
+    }
+
+    /**
+     * May this user open THIS panel?
+     */
+    public static function mayOpenPanel(?User $user, string $panel): bool
+    {
+        return self::canAccessPanel($user) && self::allows($user, self::panelPermission($panel));
+    }
+
+    /**
      * May this user open the admin panel?
      *
      * Three conditions, all of them necessary: an operator role, an account status that

@@ -6,6 +6,7 @@ namespace App\Services\Payment\Drivers;
 
 use App\DTOs\Payment\GatewayDepositResponse;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
+use App\DTOs\Payment\WebhookMoneyFacts;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
@@ -91,13 +92,25 @@ class NagadGateway extends AbstractPaymentGateway
             }
 
             $errorData = $response->json();
-            $msg = $errorData['message'] ?? 'Nagad initialization failed: '.$response->body();
+            $providerCode = is_array($errorData) ? ($errorData['reason'] ?? $errorData['code'] ?? null) : null;
 
-            return GatewayDepositResponse::failed($msg, is_array($errorData) ? $errorData : []);
+            Log::warning('Nagad checkout request was refused', [
+                'http_status' => $response->status(),
+                'provider_error_code' => is_string($providerCode) ? substr($providerCode, 0, 64) : null,
+            ]);
+
+            return GatewayDepositResponse::failed(
+                'Nagad payment initialization failed.',
+                [],
+                ['gateway' => 'nagad', 'http_status' => $response->status()],
+            );
         } catch (\Throwable $e) {
-            Log::error('Nagad deposit initiation failed', ['exception' => $e->getMessage()]);
+            Log::error('Nagad deposit initiation failed', [
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
+            ]);
 
-            return GatewayDepositResponse::failed('Nagad connection error: '.$e->getMessage());
+            return GatewayDepositResponse::failed('Nagad could not be reached to create checkout.');
         }
     }
 
@@ -140,9 +153,9 @@ class NagadGateway extends AbstractPaymentGateway
         $paymentRef = (string) ($data['payment_ref_id'] ?? $data['paymentReferenceId'] ?? '');
         $orderId = (string) ($data['order_id'] ?? $data['orderId'] ?? $data['reference'] ?? '');
         $status = strtoupper((string) ($data['status'] ?? $data['payment_status'] ?? ''));
-        $amount = (string) ($data['amount'] ?? '0.00');
+        $amount = WebhookMoneyFacts::decimal($data['amount'] ?? null);
 
-        $currency = isset($data['currency']) ? (Currency::tryFrom(strtoupper((string) $data['currency'])) ?? Currency::BDT) : Currency::BDT;
+        $currency = WebhookMoneyFacts::currency($data['currency'] ?? null);
 
         $eventType = match ($status) {
             'SUCCESS', 'COMPLETED' => WebhookEventType::DepositSuccess,

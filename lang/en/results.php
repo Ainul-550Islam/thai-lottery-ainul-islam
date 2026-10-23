@@ -5,6 +5,7 @@ return [
     'meta_description' => 'Published lottery results from configured, source-labelled result records.',
     'title' => 'Public Results Hub',
     'lead' => 'Review published results and the source status shown for each record.',
+    'independent_notice' => 'Independent result hub: figures on this page come from this application and are labeled with their verification provenance.',
     'published_results' => 'Published results',
     'no_public_data' => 'No public result data is available.',
     'unavailable' => 'Result data is temporarily unavailable.',

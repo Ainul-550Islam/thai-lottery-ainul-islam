@@ -41,36 +41,48 @@ final class ConsentService
      */
     public function hasCurrentAcceptance(User $user, ?string $locale = null): bool
     {
-        $locale = $this->locale($locale);
+        $candidateLocales = $locale !== null
+            ? [$this->locale($locale)]
+            : array_values(array_unique([$this->locale(null), 'en']));
 
-        foreach ([
-            ['type' => 'terms', 'action' => 'accepted'],
-            ['type' => 'privacy', 'action' => 'acknowledged'],
-        ] as $required) {
-            $current = $this->documents->currentData($required['type'], $locale);
+        foreach ($candidateLocales as $candidateLocale) {
+            $allMatched = true;
 
-            if (($current['status'] ?? null) !== 'AVAILABLE'
-                || ! is_array($current['sections'] ?? null)
-                || $current['sections'] === []
-                || ! is_string($current['version'] ?? null)
-                || ! is_string($current['content_hash'] ?? null)) {
-                return false;
+            foreach ([
+                ['type' => 'terms', 'action' => 'accepted'],
+                ['type' => 'privacy', 'action' => 'acknowledged'],
+            ] as $required) {
+                $current = $this->documents->currentData($required['type'], $candidateLocale);
+
+                if (($current['status'] ?? null) !== 'AVAILABLE'
+                    || ! is_array($current['sections'] ?? null)
+                    || $current['sections'] === []
+                    || ! is_string($current['version'] ?? null)
+                    || ! is_string($current['content_hash'] ?? null)) {
+                    $allMatched = false;
+                    break;
+                }
+
+                $accepted = UserConsent::query()
+                    ->where('user_id', (int) $user->getKey())
+                    ->where('document_type', $required['type'])
+                    ->where('document_version', $current['version'])
+                    ->where('document_hash', $current['content_hash'])
+                    ->where('action', $required['action'])
+                    ->exists();
+
+                if (! $accepted) {
+                    $allMatched = false;
+                    break;
+                }
             }
 
-            $accepted = UserConsent::query()
-                ->where('user_id', (int) $user->getKey())
-                ->where('document_type', $required['type'])
-                ->where('document_version', $current['version'])
-                ->where('document_hash', $current['content_hash'])
-                ->where('action', $required['action'])
-                ->exists();
-
-            if (! $accepted) {
-                return false;
+            if ($allMatched) {
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 
     /** @return list<array<string, mixed>> */

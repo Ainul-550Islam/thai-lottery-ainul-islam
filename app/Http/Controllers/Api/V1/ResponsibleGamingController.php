@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\ResponsibleGaming\ResponsibleGamingLimitData;
 use App\DTOs\ResponsibleGaming\SelfExclusionData;
+use App\Enums\ResponsibleGamingLimitStatus;
 use App\Exceptions\RealityCheckException;
 use App\Exceptions\ResponsibleGamingLimitException;
 use App\Exceptions\SelfExclusionException;
@@ -73,19 +74,46 @@ final class ResponsibleGamingController
 
         /** @var User $user */
         $user = $request->user();
+        $currency = strtoupper((string) config('betting.currency', 'THB'));
 
-        $record = $this->rgService->setLimits(
-            user: $user,
-            dailyDepositLimit: isset($validated['daily_deposit_limit']) ? (string) $validated['daily_deposit_limit'] : null,
-            singleBetLimit: isset($validated['single_bet_limit']) ? (string) $validated['single_bet_limit'] : null,
-            dailyWageringLimit: isset($validated['daily_wagering_limit']) ? (string) $validated['daily_wagering_limit'] : null,
-        );
+        try {
+            $record = $this->rgService->setLimits(
+                user: $user,
+                dailyDepositLimit: isset($validated['daily_deposit_limit']) ? (string) $validated['daily_deposit_limit'] : null,
+                singleBetLimit: isset($validated['single_bet_limit']) ? (string) $validated['single_bet_limit'] : null,
+                dailyWageringLimit: isset($validated['daily_wagering_limit']) ? (string) $validated['daily_wagering_limit'] : null,
+            );
+        } catch (ResponsibleGamingLimitException|SelfExclusionException $e) {
+            return ApiResponse::error(
+                code: strtolower($e->errorCode()),
+                message: 'Responsible gaming policy refused the requested limit update.',
+                status: 422,
+            );
+        }
+
+        $pending = ResponsibleGamingLimitVersion::query()
+            ->where('user_id', $user->id)
+            ->where('currency', $currency)
+            ->where('limit_status', ResponsibleGamingLimitStatus::Pending->value)
+            ->orderBy('id')
+            ->get()
+            ->map(static fn (ResponsibleGamingLimitVersion $v): array => [
+                'limit_type' => $v->limit_type->value,
+                'amount' => (string) $v->amount,
+                'currency' => $v->currency,
+                'effective_from' => $v->effective_from?->toIso8601String(),
+                'effective_to' => $v->effective_to?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
 
         return ApiResponse::success(
             data: [
+                'currency' => $currency,
                 'daily_deposit_limit' => $record->daily_deposit_limit,
                 'single_bet_limit' => $record->single_bet_limit,
                 'daily_wagering_limit' => $record->daily_wagering_limit,
+                'pending_limits' => $pending,
             ],
             message: 'Responsible gaming limits updated successfully.',
         );
@@ -130,8 +158,7 @@ final class ResponsibleGamingController
 
     /**
      * VERSIONED LIMITS (batch-14): pronounce a limit version with
-     * bcmath-exact comparison and stricter-precedence. Server derives
-     * the user identity from the authenticity token — never the body.
+     * bcmath-exact comparison and stricter-precedence.
      */
     public function pronounceLimit(Request $request): JsonResponse
     {
@@ -139,7 +166,9 @@ final class ResponsibleGamingController
             'limit_type' => ['required', 'string', 'in:daily_deposit,weekly_deposit,monthly_deposit,daily_loss,weekly_loss,monthly_loss,stake_limit,single_bet,daily_wagering'],
             'amount' => ['required', 'string', 'regex:/^\\d{1,12}(\\.\\d{1,2})?$/'],
             'currency' => ['nullable', 'string', 'size:3'],
+            'effective_from' => ['nullable', 'date'],
             'effective_to' => ['nullable', 'date'],
+            'request_key' => ['nullable', 'string', 'max:191'],
         ]);
 
         /** @var User $user */
@@ -151,18 +180,33 @@ final class ResponsibleGamingController
                 'limit_type' => $validated['limit_type'],
                 'amount' => (string) $validated['amount'],
                 'currency' => $validated['currency'] ?? 'THB',
+                'effective_from' => isset($validated['effective_from']) ? Carbon::parse($validated['effective_from']) : null,
                 'effective_to' => isset($validated['effective_to']) ? Carbon::parse($validated['effective_to']) : null,
+                'request_key' => $validated['request_key'] ?? null,
             ]));
         } catch (ResponsibleGamingLimitException|SelfExclusionException $e) {
-            return ApiResponse::error(code: strtolower($e->errorCode()), message: $e->getMessage(), status: 422);
+            return ApiResponse::error(
+                code: strtolower($e->errorCode()),
+                message: 'Responsible gaming policy refused the requested limit pronouncement.',
+                status: 422,
+            );
         }
+
+        $binding = $this->limitVersions->bindingLimitFor(
+            (int) $user->id,
+            $result['version']->limit_type,
+            $result['version']->currency,
+        );
 
         return ApiResponse::success(data: [
             'limit_key' => $result['version']->limit_key,
             'limit_type' => $result['version']->limit_type->value,
             'amount' => (string) $result['version']->amount,
+            'binding_amount' => $binding !== null ? (string) $binding->amount : null,
+            'currency' => $result['version']->currency,
             'status' => $result['version']->limit_status->value,
             'effective_from' => $result['version']->effective_from?->toIso8601String(),
+            'effective_to' => $result['version']->effective_to?->toIso8601String(),
             'replayed' => $result['replayed'],
         ], message: 'Limit version pronounced.');
     }

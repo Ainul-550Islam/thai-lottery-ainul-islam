@@ -72,6 +72,7 @@ final class NagadGatewayTest extends TestCase
             'payment_ref_id' => 'NAGAD_TX_777',
             'order_id' => 'DP-NAGAD-REF-01',
             'amount' => '750.00',
+            'currency' => 'BDT',
             'status' => 'Success',
         ];
 

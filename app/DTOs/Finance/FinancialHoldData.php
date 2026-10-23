@@ -4,27 +4,12 @@ declare(strict_types=1);
 
 namespace App\DTOs\Finance;
 
+use App\Enums\Currency;
 use App\Exceptions\FinancialHoldException;
 use Illuminate\Support\Carbon;
 
 /**
  * Financial-hold identity.
- *
- * THE GRAMMAR
- * - wallet_id: positive wallet handle.
- * - amount / currency: strictly positive decimal + 3-letter code.
- * - reason: REQUIRED, plain, honeyed words for a judge — what authority
- *   this hold claims (compliance review, KYC elevation, settlement
- *   staging). 8-255 chars.
- * - source_reference: the provenance token (claims, withdrawals id,
- *   police request id... anything the desk reviewed FROM).
- * - expires_at: optional horizon; an unheld-forever hold is lawful
- *   ONLY while the review queue is moving, so the horizon defaults to
- *   the review lane's own SLA reading, provided by the service.
- *
- * Then: evidence lives with the ACTS (release/expiry/conversion stamp
- * it onto the row), not with the place — the DTO is the payload at
- * placement time.
  */
 final readonly class FinancialHoldData
 {
@@ -48,8 +33,12 @@ final readonly class FinancialHoldData
         string $sourceReference,
         ?string $expiresAt = null,
     ): self {
+        if (! extension_loaded('bcmath')) {
+            throw new \RuntimeException('BCMath is required for exact monetary validation.');
+        }
+
         $amt = trim($amount);
-        $cur = strtolower(trim($currency));
+        $cur = strtoupper(trim($currency));
         $why = trim($reason);
         $src = strtoupper(trim($sourceReference));
 
@@ -59,25 +48,23 @@ final readonly class FinancialHoldData
             );
         }
 
-        if (! preg_match('/^\d+(\.\d{1,2})?$/', $amt)) {
+        if (preg_match('/^\d{1,18}(\.\d{1,2})?$/D', $amt) !== 1) {
             throw FinancialHoldException::malformed(
                 'the amount must be a decimal string (money, never float)',
             );
         }
 
-        if (! extension_loaded('bcmath')) {
-            throw new \RuntimeException('BCMath is required for exact monetary validation.');
-        }
+        $canonicalAmount = bcadd($amt, '0', 2);
 
-        if (bccomp($amt, '0', 2) !== 1) {
+        if (bccomp($canonicalAmount, '0', 2) !== 1) {
             throw FinancialHoldException::malformed(
                 'the amount must be strictly positive',
             );
         }
 
-        if (! preg_match('/^[a-z]{3}$/', $cur)) {
+        if (Currency::tryFrom($cur) === null) {
             throw FinancialHoldException::malformed(
-                'the currency must be a 3-letter code',
+                'the currency must be an enabled 3-letter code',
             );
         }
 
@@ -87,7 +74,7 @@ final readonly class FinancialHoldData
             );
         }
 
-        if (strlen($src) < 8 || strlen($src) > 64 || ! preg_match('/^[A-Z0-9:\-\._]+$/', $src)) {
+        if (strlen($src) < 8 || strlen($src) > 64 || preg_match('/^[A-Z0-9:\-\._]+$/D', $src) !== 1) {
             throw FinancialHoldException::malformed(
                 'the source reference must be a canonical 8-64 character token',
             );
@@ -109,8 +96,8 @@ final readonly class FinancialHoldData
 
         return new self(
             walletId: $walletId,
-            amount: $amt,
-            currency: strtoupper($cur),
+            amount: $canonicalAmount,
+            currency: $cur,
             reason: $why,
             sourceReference: $src,
             expiresAt: $expiry,
@@ -118,16 +105,37 @@ final readonly class FinancialHoldData
     }
 
     /**
-     * Deterministic hold identity: (wallet, source, amount).
+     * Revalidate and normalize even when constructed directly via `new FinancialHoldData(...)`.
+     *
+     * @throws FinancialHoldException
+     */
+    public function normalized(): self
+    {
+        return self::fromInput(
+            walletId: $this->walletId,
+            amount: $this->amount,
+            currency: $this->currency,
+            reason: $this->reason,
+            sourceReference: $this->sourceReference,
+            expiresAt: $this->expiresAt,
+        );
+    }
+
+    /**
+     * Deterministic hold identity: (wallet, source, amount, currency).
      */
     public function holdKey(): string
     {
+        $canonicalAmount = preg_match('/^\d{1,18}(\.\d{1,2})?$/D', trim($this->amount)) === 1
+            ? bcadd(trim($this->amount), '0', 2)
+            : trim($this->amount);
+
         return hash('sha256', sprintf(
             'fin-hold:%d:%s:%s:%s',
             $this->walletId,
-            $this->sourceReference,
-            $this->amount,
-            $this->currency,
+            strtoupper(trim($this->sourceReference)),
+            $canonicalAmount,
+            strtoupper(trim($this->currency)),
         ));
     }
 }

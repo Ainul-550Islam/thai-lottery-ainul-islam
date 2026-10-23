@@ -20,6 +20,7 @@ final class GatewayWithdrawalResponse
         public readonly ?string $errorMessage = null,
         public readonly array $rawResponse = [],
         public readonly array $metadata = [],
+        public readonly bool $outcomeUnknown = false,
     ) {}
 
     public static function completed(
@@ -50,6 +51,24 @@ final class GatewayWithdrawalResponse
         );
     }
 
+    public static function uncertain(
+        ?string $providerReference = null,
+        array $rawResponse = [],
+        array $metadata = [],
+    ): self {
+        return new self(
+            successful: false,
+            isPending: true,
+            providerReference: $providerReference,
+            rawResponse: $rawResponse,
+            metadata: array_merge([
+                'state' => 'outcome_unknown',
+                'reconciliation_required' => true,
+            ], $metadata),
+            outcomeUnknown: true,
+        );
+    }
+
     public static function failed(
         string $errorMessage,
         array $rawResponse = [],
@@ -71,6 +90,7 @@ final class GatewayWithdrawalResponse
         return [
             'successful' => $this->successful,
             'is_pending' => $this->isPending,
+            'outcome_unknown' => $this->outcomeUnknown,
             'provider_reference' => $this->providerReference,
             'error_message' => $this->errorMessage,
             'metadata' => $this->metadata,

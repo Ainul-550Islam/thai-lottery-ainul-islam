@@ -9,6 +9,7 @@ use App\Enums\WalletConversionDirection;
 use App\DTOs\Wallet\ConversionRequestData;
 use App\Rules\ConversionAmountRule;
 use App\Rules\ConversionDirectionRule;
+use App\Support\Wallet\ConversionCurrency;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -74,20 +75,7 @@ class ConversionQuoteRequest extends FormRequest
 
     public function currency(): Currency
     {
-        $requested = $this->input('currency');
-
-        if (is_string($requested)) {
-            $enum = Currency::tryFrom(strtoupper(trim($requested)));
-
-            if ($enum !== null) {
-                return $enum;
-            }
-        }
-
-        // The platform's configured conversion currency, which is where the
-        // member's wallets live; the primary currency is only the fallback when
-        // the configuration is unreadable.
-        return Currency::tryFrom((string) config('conversions.currency', '')) ?? Currency::primary();
+        return ConversionCurrency::forRequest($this);
     }
 
     public function direction(): WalletConversionDirection

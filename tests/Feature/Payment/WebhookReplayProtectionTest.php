@@ -51,6 +51,13 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
     private function signedStripeDelivery(string $reference, string $eventId): array
     {
         $timestamp = time();
+        $deposit = \App\Models\Deposit::query()->where('reference_number', $reference)->first();
+        $amountTotal = $deposit !== null
+            ? (int) bcmul((string) $deposit->amount, '100', 0)
+            : 100000;
+        $currency = $deposit !== null
+            ? strtolower($deposit->currency->value)
+            : 'thb';
 
         $payload = [
             'id' => $eventId,
@@ -59,8 +66,8 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 'object' => [
                     'id' => 'cs_test_'.$eventId,
                     'client_reference_id' => $reference,
-                    'amount_total' => 100000,
-                    'currency' => 'thb',
+                    'amount_total' => $amountTotal,
+                    'currency' => $currency,
                 ],
             ],
         ];
@@ -231,10 +238,15 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
             WebhookReplayGuard::query()->where('gateway', 'stripe')->count(),
         );
 
-        // The same header value sent to a different gateway must occupy its own
-        // nonce space, not be refused as a Stripe replay.
-        $this->withHeaders(['X-Bkash-Signature' => $delivery['header']])
-            ->postJson('/api/v1/payments/webhook/bkash', $delivery['payload']);
+        // The same payload bytes, signed independently with bKash's secret,
+        // occupy a separate gateway-scoped nonce space. The driver—not this
+        // middleware—decides whether the provider signature is valid.
+        $body = json_encode($delivery['payload'], JSON_THROW_ON_ERROR);
+        $bkashSignature = hash_hmac('sha256', $body, self::BKASH_WEBHOOK_SECRET);
+
+        $this->withHeaders(['X-Bkash-Signature' => $bkashSignature])
+            ->postJson('/api/v1/payments/webhook/bkash', $delivery['payload'])
+            ->assertStatus(200);
 
         $this->assertSame(
             1,
@@ -404,7 +416,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
             );
 
             $this->assertContains(
-                ThrottleRequests::class,
+                ThrottleRequests::class.':webhook',
                 $middleware,
                 "the flood limiter must still be on {$name}",
             );

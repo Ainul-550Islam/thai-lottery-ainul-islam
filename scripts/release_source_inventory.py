@@ -281,7 +281,7 @@ SOURCES = (
     'app/Services/Betting/BetPurchaseOwnership.php',
     'app/Services/Risk/BetRiskOwnershipFloor.php',
     'app/Services/Risk/NumberLimitEngine.php',
-    'database/migrations/2026_10_16_000300_create_bet_purchase_ownerships_table.php',
+    'database/migrations/2026_10_16_000310_create_bet_purchase_ownerships_table.php',
     'tests/Feature/Betting/BetCancellationOwnershipTest.php',
     'tests/Feature/Betting/BetCancellationCurrentReadTest.php',
     'tests/Feature/Betting/Concerns/BuildsOwnedBetPurchase.php',
@@ -289,7 +289,7 @@ SOURCES = (
     'app/DTOs/Finance/FinancialHoldData.php',
     'app/Services/Finance/FinancialHoldService.php',
     'app/Services/Finance/FinancialHoldOwnership.php',
-    'database/migrations/2026_10_16_000200_create_financial_hold_claims_table.php',
+    'database/migrations/2026_10_16_000210_create_financial_hold_claims_table.php',
     'tests/Feature/Payment/FinancialHoldOwnershipTest.php',
     'tests/Feature/Payment/FinancialHoldCurrentReadTest.php',
 
@@ -325,7 +325,7 @@ SOURCES = (
     'tests/Feature/Payment/WithdrawalHoldFloorServerRaceTest.php',
 
     'app/Services/Payment/WithdrawalCallbackApplicationService.php',
-    'database/migrations/2026_10_16_000200_create_withdrawal_reservations_table.php',
+    'database/migrations/2026_10_16_000220_create_withdrawal_reservations_table.php',
     'tests/Feature/Payment/WithdrawalOriginalProofTest.php',
 
     'app/Services/Finance/ExactReconciliationReader.php',
@@ -342,7 +342,7 @@ SOURCES = (
     'app/Services/Payment/FinancialProviderReferenceService.php',
     'app/Services/Payment/DepositCallbackApplicationService.php',
     'app/Console/Commands/Finance/DepositReferenceAuditCommand.php',
-    'database/migrations/2026_10_16_000100_create_financial_provider_reference_owners_table.php',
+    'database/migrations/2026_10_16_000120_create_financial_provider_reference_owners_table.php',
     'tests/Feature/Payment/DepositOriginalIntegrityTest.php',
     'tests/Feature/Payment/DepositCallbackOriginalProofTest.php',
     'tests/Feature/Payment/DepositReferenceAuditTest.php',

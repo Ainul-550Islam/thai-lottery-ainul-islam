@@ -290,7 +290,9 @@ final class PublicPageDataService
     private function section(string $page, callable $producer, ?string $locale): array
     {
         $locale = $this->locale($locale);
-        $legalVersion = (string) config('legal.content_version', '1').'|'.(string) config('legal.version', 'v0');
+        $legalVersion = (string) config('legal.content_version', '1')
+            .'|'.(string) config('legal.version', 'v0')
+            .'|'.(string) config('legal.privacy_version', config('legal.version', 'v0'));
         $contentVersion = (string) config('public_pages.content_version', '1');
         $sourceVersion = match ($page) {
             'fees' => (string) config('fees.rule_version', '1').'|'.hash('sha256', json_encode(config('fees.categories', []), JSON_THROW_ON_ERROR)),

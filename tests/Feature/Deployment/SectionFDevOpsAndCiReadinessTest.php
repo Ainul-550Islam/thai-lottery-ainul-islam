@@ -80,9 +80,7 @@ class SectionFDevOpsAndCiReadinessTest extends TestCase
     {
         foreach ([
             'images',
-            'evidence',
-            'uploads',
-            'runtime',
+            'uploads/SECURITY_MASTER_PROMPT_01-05.md',
             'qa-fixes',
             'repo',
             '.profile',

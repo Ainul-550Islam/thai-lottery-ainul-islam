@@ -18,6 +18,13 @@
     $label = static fn (object $enum): string => \Illuminate\Support\Facades\Lang::has($enum->labelKey())
         ? __($enum->labelKey())
         : $enum->label();
+    $money = static function (?string $amount) use ($currency): string {
+        if ($amount === null || $amount === '') {
+            return '—';
+        }
+
+        return \App\Services\Finance\Money::of($amount, $currency)->format();
+    };
 @endphp
 
 <section class="wc-card" aria-labelledby="wc-history-heading">
@@ -48,9 +55,9 @@
                         <tr>
                             <td><code class="wc-ref wc-ref--small">{{ $row->reference }}</code></td>
                             <td>{{ $row->direction === null ? '—' : $label($row->direction) }}</td>
-                            <td class="wc-money">{{ (string) $row->amount_in }}</td>
-                            <td class="wc-money wc-money--fee">{{ (string) $row->fee_amount }}</td>
-                            <td class="wc-money wc-money--in">{{ (string) $row->amount_out }}</td>
+                            <td class="wc-money">{{ (string) $row->amount_in }} {{ $row->currency ?? $currency->value }}</td>
+                            <td class="wc-money wc-money--fee">{{ (string) $row->fee_amount }} {{ $row->currency ?? $currency->value }}</td>
+                            <td class="wc-money wc-money--in">{{ (string) $row->amount_out }} {{ $row->currency ?? $currency->value }}</td>
                             <td>
                                 <span class="wc-badge wc-badge--{{ $row->status?->value ?? 'unknown' }}">
                                     {{ $row->status === null ? '—' : $label($row->status) }}

@@ -51,9 +51,14 @@ Artisan::command('inspire', function (): void {
 |
 */
 
-// Core draw cadence and a periodic guard audit are explicit scheduled commands.
-Schedule::command('lottery:tick')->everyMinute()->withoutOverlapping()->onOneServer();
+// Core draw cadence is registered in bootstrap/app.php; periodic guard audit is scheduled here.
 Schedule::command('settlement:verify-guards')->everySixHours()->withoutOverlapping()->onOneServer();
+Schedule::command('stripe-followups:sweep')
+    ->everyMinute()
+    ->name('stripe-followup-routing-sweep')
+    ->when(static fn (): bool => (bool) config('payment.deposit_followup_sweep.stripe.enabled', false))
+    ->withoutOverlapping()
+    ->onOneServer();
 
 // Batch generation: fans approved-and-pending payouts into executor
 // batches. The job's uniqueness window is per minute — cadence matches it.

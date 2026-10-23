@@ -213,16 +213,35 @@ abstract class SettlementTestCase extends TestCase
         string $bottomTwo = self::BOTTOM_TWO,
     ): array {
         $draw = $this->advanceToResultPending($draw);
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
 
-        $published = $this->publication()->publish((int) $draw->getKey(), [
+        $card = [
             'first_prize' => $firstPrize,
             'bottom_two' => $bottomTwo,
-        ]);
+        ];
+
+        app(\App\Services\Draw\DrawResultIngestionService::class)->ingest(
+            (int) $draw->getKey(),
+            $card,
+            'internal',
+            (int) $maker->getKey(),
+        );
+
+        app(\App\Services\Draw\DrawResultConfirmationService::class)->confirm(
+            (int) $draw->getKey(),
+            (int) $checker->getKey(),
+            $card,
+        );
+
+        $freshDraw = $draw->fresh() ?? $draw;
+        $result = \App\Models\DrawResult::query()->where('draw_id', $draw->getKey())->firstOrFail();
+        $data = app(\App\Services\Draw\DrawResultValidator::class)->validate($card);
 
         return [
-            'draw' => $published['draw'],
-            'result' => $published['result'],
-            'data' => $published['data'],
+            'draw' => $freshDraw,
+            'result' => $result,
+            'data' => $data,
         ];
     }
 

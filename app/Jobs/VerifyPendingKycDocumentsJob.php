@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Enums\KycDocumentVerificationStatus;
+use App\Enums\QueueName;
 use App\Exceptions\KycVerificationException;
 use App\Models\KycDocument;
 use App\Services\Compliance\KycDocumentService;
@@ -40,7 +41,7 @@ final class VerifyPendingKycDocumentsJob implements ShouldQueue
 
     public function __construct()
     {
-        $this->onQueue('finance-reconciliation');
+        $this->onQueue(QueueName::Reconciliation->value);
     }
 
     public function handle(KycDocumentService $documents): void

@@ -123,7 +123,6 @@
                 <p class="wc-balances__meta">
                     {{ trans_choice('wallet_conversion.summary_line', (int) $summary['completed'], [
                         'completed' => (int) $summary['completed'],
-                        'volume' => $money((string) $summary['completed_volume_in']),
                     ]) }}
                 </p>
             @endif
@@ -140,6 +139,7 @@
                 'monthlyTotal' => $monthlyTotal,
                 'quoteTtlSeconds' => $quoteTtlSeconds,
                 'sourceWallet' => $sourceWallet,
+                'activeQuoteReference' => $activeQuoteReference ?? null,
             ])
         @elseif ($laneClosed)
             @include('wallet.conversion.partials.limitations-notice', [
@@ -151,7 +151,7 @@
                 <h2 class="wc-card__title" id="wc-blocked-heading">{{ __('wallet_conversion.blocked_title') }}</h2>
 
                 <p class="wc-notice wc-notice--warn" role="status">
-                    {{ \Illuminate\Support\Facades\Lang::has($blockedReason->messageKey()) ? __($blockedReason->messageKey()) : $blockedReason->label() }}
+                    {{ ($blockedReason->messageKey() !== null && \Illuminate\Support\Facades\Lang::has($blockedReason->messageKey())) ? __($blockedReason->messageKey()) : $blockedReason->label() }}
                 </p>
 
                 <p class="wc-card__hint">{{ __('wallet_conversion.blocked_hint') }}</p>
@@ -179,17 +179,27 @@
 
     @if (count($openQuotes) > 0)
         <section class="wc-card" aria-labelledby="wc-open-quotes-heading">
-            <h2 class="wc-card__title" id="wc-open-quotes-heading">{{ __('wallet_conversion.open_quotes_heading') }}</h2>
+            <h2 class="wc-card__title" id="wc-open-quotes-heading">{{ trans_choice('wallet_conversion.open_quotes_heading', count($openQuotes), ['count' => count($openQuotes)]) }}</h2>
             <p class="wc-card__hint">{{ trans_choice('wallet_conversion.open_quotes_hint', count($openQuotes), ['count' => count($openQuotes)]) }}</p>
 
             <ul class="wc-quotes">
                 @foreach ($openQuotes as $quote)
+                    @php
+                        $qRef = is_array($quote) ? ($quote['reference'] ?? '') : (string) $quote->reference;
+                        $qIn = is_array($quote) ? (string) $quote['amount_in'] : (string) $quote->amount_in;
+                        $qOut = is_array($quote) ? (string) $quote['amount_out'] : (string) $quote->amount_out;
+                        $qExp = is_array($quote) ? (string) $quote['expires_at'] : (string) $quote->expires_at;
+                        $qCurrRaw = is_array($quote) ? ($quote['currency'] ?? $currency->value) : ($quote->currency ?? $currency->value);
+                        $qCurr = $qCurrRaw instanceof \App\Enums\Currency ? $qCurrRaw : (\App\Enums\Currency::tryFrom((string) $qCurrRaw) ?? $currency);
+                        $qMoney = static fn (string $amt): string => \App\Services\Finance\Money::of($amt, $qCurr)->format().' '.$qCurr->value;
+                    @endphp
                     <li class="wc-quotes__item">
-                        <span class="wc-quotes__amount">{{ $money($quote['amount_in']) }}</span>
+                        <code class="wc-ref wc-ref--small">{{ $qRef }}</code>
+                        <span class="wc-quotes__amount">{{ $qMoney($qIn) }}</span>
                         <span class="wc-quotes__arrow" aria-hidden="true">→</span>
-                        <span class="wc-quotes__net">{{ $money($quote['amount_out']) }}</span>
-                        <span class="wc-quotes__expiry" data-wc-expiry="{{ $quote['expires_at'] }}">
-                            {{ __('wallet_conversion.expires') }} <time datetime="{{ $quote['expires_at'] }}">{{ $quote['expires_at'] }}</time>
+                        <span class="wc-quotes__net">{{ $qMoney($qOut) }}</span>
+                        <span class="wc-quotes__expiry" data-wc-expiry="{{ $qExp }}">
+                            {{ __('wallet_conversion.expires') }} <time datetime="{{ $qExp }}">{{ $qExp }}</time>
                         </span>
                     </li>
                 @endforeach

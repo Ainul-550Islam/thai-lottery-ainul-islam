@@ -1,0 +1,226 @@
+=== migrate:fresh --seed --force ===
+
+  Dropping all tables .......................................... 389.08ms DONE
+
+   INFO  Preparing database.  
+
+  Creating migration table ....................................... 8.38ms DONE
+
+   INFO  Running migrations.  
+
+  0001_01_01_000000_create_users_table .......................... 33.33ms DONE
+  0001_01_01_000001_create_cache_table ........................... 5.44ms DONE
+  0001_01_01_000002_create_jobs_table ........................... 14.76ms DONE
+  2024_01_01_000100_create_permission_tables .................... 53.67ms DONE
+  2024_01_01_000200_create_personal_access_tokens_table .......... 9.46ms DONE
+  2024_01_02_000100_create_wallets_table ........................ 37.96ms DONE
+  2024_01_02_000200_create_ledger_accounts_table ................ 20.97ms DONE
+  2024_01_02_000300_create_financial_transactions_table ......... 89.44ms DONE
+  2024_01_02_000400_create_ledger_entries_table ................. 68.12ms DONE
+  2024_01_03_000100_create_draws_table .......................... 28.38ms DONE
+  2024_01_03_000200_create_draw_results_table ................... 15.09ms DONE
+  2024_01_03_000300_create_winning_numbers_table ................ 30.98ms DONE
+  2024_01_03_000400_create_number_limits_table .................. 51.45ms DONE
+  2024_01_03_000500_create_tickets_table ........................ 39.06ms DONE
+  2024_01_03_000600_create_bets_table ........................... 88.41ms DONE
+  2024_01_03_000700_create_bet_items_table ...................... 46.65ms DONE
+  2024_01_03_000800_create_payouts_table ....................... 113.68ms DONE
+  2024_01_03_000900_create_bet_amendments_table ................. 42.53ms DONE
+  2024_01_03_001000_create_ticket_shares_table .................. 43.10ms DONE
+  2024_01_04_000100_create_payments_table ....................... 40.31ms DONE
+  2024_01_04_000200_create_deposits_table ...................... 106.36ms DONE
+  2024_01_04_000300_create_withdrawals_table ................... 123.85ms DONE
+  2024_01_05_000100_create_agents_table ......................... 28.75ms DONE
+  2024_01_05_000200_create_agent_commissions_table .............. 49.70ms DONE
+  2024_01_06_000100_create_audit_logs_table ..................... 37.54ms DONE
+  2024_01_07_000100_create_kyc_documents_table .................. 22.48ms DONE
+  2024_01_07_000200_create_responsible_gaming_limits_table ...... 12.19ms DONE
+  2024_01_08_000100_create_payout_batches_table ................. 15.27ms DONE
+  2024_01_08_000200_create_ticket_products_table ................ 28.91ms DONE
+  2024_01_08_000300_create_payout_documents_table ............... 38.38ms DONE
+  2024_02_01_000100_create_retail_vendors_table ................. 11.53ms DONE
+  2024_02_01_000200_create_ticket_allocations_table ............. 43.67ms DONE
+  2024_02_01_000300_create_ticket_inventory_items_table ......... 50.65ms DONE
+  2024_02_01_000400_create_draw_certifications_table ............ 27.59ms DONE
+  2024_02_01_000500_create_draw_publications_table .............. 37.93ms DONE
+  2024_02_01_000600_create_draw_reconciliations_table ........... 16.79ms DONE
+  2024_02_01_000700_create_prize_matches_table .................. 36.54ms DONE
+  2024_02_01_000800_create_prize_eligibility_decisions_table .... 28.77ms DONE
+  2024_02_01_000900_create_winner_notifications_table ........... 26.96ms DONE
+  2024_02_01_001000_create_prize_disbursements_table ............ 25.66ms DONE
+  2024_02_01_001100_create_wallet_reservations_table ............ 28.16ms DONE
+  2024_02_01_001200_create_financial_holds_table ................ 25.72ms DONE
+  2024_02_01_001300_create_ledger_reconciliations_table ......... 20.63ms DONE
+  2024_02_01_001400_create_payment_providers_table .............. 15.55ms DONE
+  2024_02_01_001500_create_payment_method_configs_table ......... 24.81ms DONE
+  2024_02_01_001600_create_payment_intents_table ................ 52.14ms DONE
+  2024_02_01_001700_create_payment_webhooks_table ............... 21.92ms DONE
+  2024_02_01_001800_create_payment_reconciliations_table ........ 28.75ms DONE
+  2024_02_01_001900_extend_kyc_documents_for_verification_lane .. 45.31ms DONE
+  2024_02_01_002000_create_kyc_verifications_table .............. 41.07ms DONE
+  2024_02_01_002100_create_aml_risk_assessments_table ........... 30.67ms DONE
+  2024_02_01_002200_create_compliance_cases_table ............... 52.51ms DONE
+  2024_02_01_002300_create_compliance_actions_table ............. 26.64ms DONE
+  2024_02_01_002400_create_self_exclusions_table ................ 27.33ms DONE
+  2024_02_01_002500_create_responsible_gaming_limit_versions_table  30.52ms DONE
+  2024_02_01_002600_create_reality_checks_table ................. 32.18ms DONE
+  2024_02_01_002700_create_player_protection_cases_table ........ 30.48ms DONE
+  2024_02_01_002800_create_player_protection_actions_table ...... 40.89ms DONE
+  2024_02_01_002900_create_authentication_attempts_table ........ 33.95ms DONE
+  2024_02_01_003000_create_mfa_challenges_table ................. 26.10ms DONE
+  2024_02_01_003100_create_security_sessions_table .............. 25.53ms DONE
+  2024_02_01_003200_create_trusted_devices_table ................ 16.11ms DONE
+  2024_02_01_003300_create_security_events_table ................ 35.72ms DONE
+  2024_02_01_003400_create_notification_templates_table ......... 17.41ms DONE
+  2024_02_01_003500_create_notification_preferences_table ....... 13.38ms DONE
+  2024_02_01_003600_create_notifications_table .................. 38.71ms DONE
+  2024_02_01_003700_create_notification_delivery_attempts_table . 18.54ms DONE
+  2024_02_01_003800_create_notification_receipts_table .......... 23.46ms DONE
+  2024_02_01_003900_create_admin_operations_table ............... 32.44ms DONE
+  2024_02_01_004000_create_provider_operations_table ............ 13.22ms DONE
+  2024_02_01_004100_create_operational_report_jobs_table ........ 22.38ms DONE
+  2024_02_01_004200_create_report_exports_table ................. 17.10ms DONE
+  2026_09_22_000100_create_glo_freeze_claim_tables ............. 258.03ms DONE
+  2026_09_22_000200_add_date_of_birth_to_users ................... 5.18ms DONE
+  2026_09_23_000100_create_glo_sales_and_result_tables ......... 111.56ms DONE
+  2026_09_23_000200_create_glo_dealer_public_tables ............ 240.88ms DONE
+  2026_09_24_000210_create_account_grade_snapshots_table ........ 26.41ms DONE
+  2026_09_25_000300_create_lottery_ticket_verifications_table ... 39.28ms DONE
+  2026_09_26_000400_create_national_lottery_draws_table ......... 42.86ms DONE
+  2026_09_26_000410_create_national_lottery_results_table ....... 31.14ms DONE
+  2026_09_26_000420_create_national_lottery_result_versions_table  60.46ms DONE
+  2026_09_26_000500_create_weekly_lottery_draws_table ........... 40.78ms DONE
+  2026_09_26_000510_create_weekly_lottery_results_table ......... 40.78ms DONE
+  2026_09_26_000520_create_weekly_lottery_result_versions_table . 51.72ms DONE
+  2026_09_27_000600_create_bingo_lottery_draws_table ............ 47.64ms DONE
+  2026_09_27_000610_create_bingo_lottery_results_table .......... 42.44ms DONE
+  2026_09_27_000620_create_bingo_lottery_result_versions_table .. 62.70ms DONE
+  2026_09_27_220001_extend_account_grade_snapshots_table ........ 14.76ms DONE
+  2026_09_27_220002_create_grade_discount_snapshots_table ....... 24.19ms DONE
+  2026_09_28_000700_create_pcso_lottery_draws_table ............. 48.46ms DONE
+  2026_09_28_000710_create_pcso_lottery_results_table ........... 52.40ms DONE
+  2026_09_28_000720_create_pcso_lottery_result_versions_table ... 76.54ms DONE
+  2026_09_28_230001_create_account_verifications_table .......... 89.65ms DONE
+  2026_09_29_000800_create_contact_messages_table ............... 28.32ms DONE
+  2026_09_29_000810_create_contact_message_deliveries_table ..... 14.59ms DONE
+  2026_09_30_000900_create_support_case_tables .................. 43.97ms DONE
+  2026_09_30_001000_add_kyc_status_to_users_table ................ 8.26ms DONE
+  2026_09_30_001010_add_currency_to_draws_table .................. 8.61ms DONE
+  2026_09_30_001020_complete_prize_disbursement_legacy_boundary . 48.78ms DONE
+  2026_09_30_001030_complete_agent_commission_legacy_boundary .... 3.60ms DONE
+  2026_09_30_001040_create_payment_transactions_table ........... 27.30ms DONE
+  2026_09_30_001050_complete_glo_claim_legacy_boundary ......... 150.97ms DONE
+  2026_09_30_001060_complete_glo_l6_sales_contract .............. 14.27ms DONE
+  2026_09_30_001070_complete_draw_result_provenance_contract ..... 6.11ms DONE
+  2026_09_30_001080_add_submitted_at_to_kyc_documents ............ 6.87ms DONE
+  2026_10_06_000100_align_wallet_version_default ................. 4.12ms DONE
+  2026_10_06_000200_add_payment_transaction_settlement_identity . 31.17ms DONE
+  2026_10_06_000300_add_payment_webhook_claim_state ............. 16.94ms DONE
+  2026_10_06_000400_add_ledger_posting_identity .................. 5.55ms DONE
+  2026_10_07_000100_create_webhook_receipts_table ............... 12.57ms DONE
+  2026_10_07_000200_create_webhook_replay_guards_table .......... 18.32ms DONE
+  2026_10_07_000300_create_settlement_runs_table ................ 28.43ms DONE
+  2026_10_12_000001_create_ip_access_rules_table ................ 15.10ms DONE
+  2026_10_13_000001_create_ip_access_rule_mutex_table ............ 3.09ms DONE
+  2026_10_13_000002_create_ip_rule_create_requests_table ........ 13.41ms DONE
+  2026_10_13_000003_create_totp_pending_enrollments_table ....... 18.97ms DONE
+  2026_10_13_000004_create_totp_credentials_table ............... 12.55ms DONE
+  2026_10_13_000005_create_totp_attempt_windows_table ............ 9.46ms DONE
+  2026_10_13_000006_create_totp_recovery_codes_table ............. 9.64ms DONE
+  2026_10_13_000007_create_totp_action_proofs_table ............. 11.93ms DONE
+  2026_10_13_000100_add_provenance_to_settlement_runs ............ 7.74ms DONE
+  2026_10_13_000100_create_balance_transfers_table .............. 49.72ms DONE
+  2026_10_13_000200_create_wallet_conversion_tables ............ 148.23ms DONE
+  2026_10_13_000300_create_chat_tables ......................... 179.29ms DONE
+  2026_10_14_000001_add_credential_epoch_to_users_table .......... 3.38ms DONE
+  2026_10_14_000100_create_settlement_preview_tables ............ 20.24ms DONE
+  2026_10_14_000200_pin_settlement_run_inputs ................... 11.72ms DONE
+  2026_10_15_000100_create_withdrawal_reconciliations_table ..... 61.93ms DONE
+  2026_10_15_000200_create_withdrawal_provider_references_table . 23.01ms DONE
+  2026_10_15_000300_create_payout_transfer_references_table ..... 34.79ms DONE
+  2026_10_15_000400_create_payout_batch_members_table ........... 19.06ms DONE
+  2026_10_15_000500_create_outbound_provider_references_table ... 40.93ms DONE
+  2026_10_15_000600_create_payout_transfer_evidence_tables ...... 51.50ms DONE
+  2026_10_16_000001_create_financial_ledger_and_wallets_table ... 34.68ms DONE
+  2026_10_16_000002_create_draws_and_entries_table .............. 68.79ms DONE
+  2026_10_16_000003_add_credential_epoch_to_users_table .......... 1.29ms DONE
+  2026_10_16_000004_add_last_seen_at_to_users_table .............. 8.34ms DONE
+  2026_10_16_000005_create_deposits_and_withdrawals_table ....... 54.24ms DONE
+  2026_10_16_000010_create_security_ip_blocks_table ............. 83.38ms DONE
+  2026_10_16_000013_create_agent_commission_hierarchy_table ..... 89.49ms DONE
+  2026_10_16_000014_create_idempotency_and_security_tables ...... 33.70ms DONE
+  2026_10_16_000100_create_legal_compliance_records ............. 92.39ms DONE
+  2026_10_16_000120_create_financial_provider_reference_owners_table  61.78ms DONE
+  2026_10_16_000200_add_unique_payment_payable_identity .......... 4.53ms DONE
+  2026_10_16_000210_create_financial_hold_claims_table .......... 36.20ms DONE
+  2026_10_16_000220_create_withdrawal_reservations_table ........ 50.13ms DONE
+  2026_10_16_000300_encrypt_payment_webhook_evidence ............ 14.05ms DONE
+  2026_10_16_000310_create_bet_purchase_ownerships_table ........ 57.53ms DONE
+  2026_10_16_000400_create_bet_commission_ownerships_table ...... 40.16ms DONE
+  2026_10_16_000500_create_agent_commission_payouts_table ....... 38.67ms DONE
+  2026_10_16_000600_create_agent_commission_compensations_table . 51.56ms DONE
+  2026_10_17_000100_create_bet_amendment_ownerships_table ....... 91.81ms DONE
+  2026_10_17_000200_create_bet_purchase_receipts_table .......... 37.83ms DONE
+  2026_10_17_000300_create_draw_cancellation_ownerships_table ... 18.75ms DONE
+  2026_10_17_000400_create_responsible_gaming_limit_ownerships_table  15.03ms DONE
+  2026_10_17_000500_create_deposit_checkout_attempts_table ...... 36.70ms DONE
+  2026_10_18_000100_create_deposit_checkout_lookup_receipts_table  30.18ms DONE
+  2026_10_18_000200_create_stripe_deposit_settlement_receipts ... 47.40ms DONE
+  2026_10_18_000300_create_stripe_deposit_review_cases .......... 86.12ms DONE
+  2026_10_18_000400_create_stripe_followup_route_decisions ...... 28.86ms DONE
+  2026_10_18_000500_create_stripe_followup_sweep_work ........... 72.63ms DONE
+  2026_10_18_000600_create_stripe_refund_recoveries ............ 143.84ms DONE
+  2026_10_18_000700_create_withdrawal_initial_holds ............. 47.09ms DONE
+  2026_10_21_000001_add_batch_key_generated_column_to_payouts_table  10.74ms DONE
+  2026_10_21_000002_create_lifecycle_campaign_sends_table ....... 19.77ms DONE
+  2026_10_21_000003_create_articles_table ....................... 56.55ms DONE
+  2026_10_21_000004_create_conversion_tooling_tables ........... 124.27ms DONE
+  2026_10_21_000005_reconcile_enterprise_ledger_and_payout_columns  845.33ms DONE
+  2026_10_21_000006_create_download_events_table ................ 16.67ms DONE
+  2026_10_21_000007_extend_security_audit_logs_columns .......... 29.34ms DONE
+  2026_10_21_000008_enforce_unique_previous_hash_on_ledger_transactions  5.76ms DONE
+
+
+   INFO  Seeding database.  
+
+  Database\Seeders\RolePermissionSeeder .............................. RUNNING  
+  Database\Seeders\RolePermissionSeeder .......................... 181 ms DONE  
+
+  Database\Seeders\LedgerAccountSeeder ............................... RUNNING  
+  Database\Seeders\LedgerAccountSeeder ............................ 48 ms DONE  
+
+  Database\Seeders\ResultArchiveSeeder ............................... RUNNING  
+ResultArchiveSeeder: no payload files under database/seeders/data/results — result history stays empty until the import commands are run.
+  Database\Seeders\ResultArchiveSeeder ............................. 0 ms DONE  
+
+exit=0
+=== migrate:status ===
+  2026_10_21_000007_extend_security_audit_logs_columns ............... [1] Ran  
+  2026_10_21_000008_enforce_unique_previous_hash_on_ledger_transactions  [1] Ran  
+
+=== migrate:rollback --step=5 --force ===
+
+   INFO  Rolling back migrations.  
+
+  2026_10_21_000008_enforce_unique_previous_hash_on_ledger_transactions  8.96ms DONE
+  2026_10_21_000007_extend_security_audit_logs_columns ........... 6.72ms DONE
+  2026_10_21_000006_create_download_events_table ................. 1.55ms DONE
+  2026_10_21_000005_reconcile_enterprise_ledger_and_payout_columns  0.03ms DONE
+  2026_10_21_000004_create_conversion_tooling_tables ............ 24.24ms DONE
+
+exit=0
+=== migrate --force ===
+
+   INFO  Running migrations.  
+
+  2026_10_21_000004_create_conversion_tooling_tables ........... 125.77ms DONE
+  2026_10_21_000005_reconcile_enterprise_ledger_and_payout_columns  33.15ms DONE
+  2026_10_21_000006_create_download_events_table ................ 12.57ms DONE
+  2026_10_21_000007_extend_security_audit_logs_columns .......... 18.13ms DONE
+  2026_10_21_000008_enforce_unique_previous_hash_on_ledger_transactions  3.83ms DONE
+
+exit=0
+=== migrate:status (final) ===
+  2026_10_21_000007_extend_security_audit_logs_columns ............... [2] Ran  
+  2026_10_21_000008_enforce_unique_previous_hash_on_ledger_transactions  [2] Ran  
+

@@ -26,6 +26,11 @@ enum WalletConversionChannel: string
         };
     }
 
+    public function labelKey(): string
+    {
+        return 'wallet_conversion.channel_'.$this->value;
+    }
+
     /**
      * Channels a member can initiate from. Admin and console are operator
      * channels and never appear on a member's own request.
@@ -36,5 +41,10 @@ enum WalletConversionChannel: string
             self::Web, self::Api => true,
             self::Admin, self::Console => false,
         };
+    }
+
+    public function isOperator(): bool
+    {
+        return ! $this->isMemberChannel();
     }
 }

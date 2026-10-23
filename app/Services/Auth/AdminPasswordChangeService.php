@@ -4,90 +4,90 @@ declare(strict_types=1);
 
 namespace App\Services\Auth;
 
-use App\DTOs\Security\SecurityEventData;
-use App\Enums\SecurityEventType;
-use App\Enums\SecurityRiskLevel;
+use App\Enums\AuditAction;
+use App\Enums\RiskLevel;
 use App\Models\User;
-use App\Services\Security\SecurityEventService;
-use App\Services\Security\TotpActionProofInvalidationService;
-use App\Services\Security\UserSessionSecurityService;
+use App\Services\Audit\AuditLogService;
 use App\Support\Admin\AdminAccess;
-use Illuminate\Database\ConnectionInterface;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use InvalidArgumentException;
-use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
-/** Audited admin password replacement with transactional credential/session revocation. */
+/**
+ * Changes another account's password on an operator's behalf, from the admin panel.
+ *
+ * GUARDS
+ *  - The operator must hold MANAGE_USERS, checked here and not only by the page.
+ *  - The password must be at least 8 characters, matching the form rule, and is
+ *    never written to the audit trail.
+ *  - Only name and email change through this path. Status, roles and every other
+ *    attribute are dropped, because those are decisions with their own audit lines.
+ *  - User::casts() hashes the password on assignment. Hashing here as well would
+ *    hash the hash and lock the account out, so the value is assigned plain.
+ *  - The target row is locked, the change and its audit row commit together, and
+ *    the credential generation is advanced when the schema records one. A schema
+ *    without that column keeps hash-only session behaviour.
+ */
 final class AdminPasswordChangeService
 {
+    private const MIN_LENGTH = 8;
+
+    /** @var list<string> */
+    private const EDITABLE = ['name', 'email'];
+
     public function __construct(
-        private readonly UserSessionSecurityService $sessions,
-        private readonly TotpActionProofInvalidationService $proofs,
-        private readonly SecurityEventService $events,
+        private readonly AuditLogService $audit,
     ) {}
 
     /**
-     * @param array<string, mixed> $profileChanges Only the UserResource profile fields are accepted.
+     * @param  array<string, mixed>  $attributes
      */
-    public function change(User $operator, User $target, string $password, array $profileChanges = []): User
+    public function change(User $operator, User $target, string $password, array $attributes = []): User
     {
-        if (! $operator->exists || $operator->getKey() === null || ! AdminAccess::allows($operator, AdminAccess::MANAGE_USERS)) {
-            throw new RuntimeException('An authorized user manager is required for a password replacement.');
-        }
-        if (! $target->exists || $target->getKey() === null) {
-            throw new RuntimeException('A persisted password target is required.');
-        }
-        if (strlen($password) < 8 || strlen($password) > 255) {
-            throw new InvalidArgumentException('The replacement password must contain between 8 and 255 bytes.');
-        }
-        if (! $operator->getConnection() instanceof ConnectionInterface
-            || ! $target->getConnection() instanceof ConnectionInterface
-            || $operator->getConnection() !== DB::connection()
-            || $target->getConnection() !== DB::connection()) {
-            throw new RuntimeException('Admin password changes require the default database connection.');
+        if (! AdminAccess::allows($operator, AdminAccess::MANAGE_USERS)) {
+            throw new AuthorizationException('You may not change this account\'s password.');
         }
 
-        $allowedProfileFields = ['name', 'username', 'email', 'phone'];
-        $safeChanges = array_intersect_key($profileChanges, array_flip($allowedProfileFields));
-        foreach ($safeChanges as $key => $value) {
-            if ($value !== null && ! is_string($value)) {
-                throw new InvalidArgumentException('Profile changes must be strings or null.');
-            }
-            if (is_string($value) && strlen($value) > 255) {
-                throw new InvalidArgumentException('Profile changes exceed the supported length.');
-            }
+        if (mb_strlen($password) < self::MIN_LENGTH) {
+            throw ValidationException::withMessages([
+                'password' => sprintf('The password must be at least %d characters.', self::MIN_LENGTH),
+            ]);
         }
 
-        return DB::transaction(function () use ($operator, $target, $password, $safeChanges): User {
-            /** @var User|null $locked */
-            $locked = User::query()->useWritePdo()->lockForUpdate()->find($target->getKey());
-            if (! $locked instanceof User) {
-                throw new RuntimeException('The password target no longer exists.');
+        $editable = array_intersect_key($attributes, array_flip(self::EDITABLE));
+
+        return DB::transaction(function () use ($operator, $target, $password, $editable): User {
+            /** @var User $locked */
+            $locked = User::query()->whereKey($target->getKey())->lockForUpdate()->firstOrFail();
+
+            $before = ['password_changed' => false];
+
+            $locked->fill($editable);
+            $locked->password = $password;
+
+            $hasEpoch = Schema::hasColumn($locked->getTable(), 'credential_epoch');
+
+            if ($hasEpoch) {
+                $locked->credential_epoch = (int) $locked->credential_epoch + 1;
             }
 
-            $locked->fill($safeChanges);
-            $locked->password = $password; // User's hashed cast hashes exactly once.
-            $locked->remember_token = null;
-            if (! $locked->save()) {
-                throw new RuntimeException('The admin password replacement was not persisted.');
-            }
+            $locked->save();
 
-            $this->proofs->invalidate($locked, TotpActionProofInvalidationService::PASSWORD_CHANGED);
-            $this->sessions->revokeAllSessionsFor((int) $locked->getKey(), 'administrator password replacement', 'admin:'.$operator->getKey());
-            if ((bool) config('auth_security.password_reset.revoke_sessions', true) && Schema::hasTable('sessions')) {
-                DB::table('sessions')->where('user_id', $locked->getKey())->delete();
-            }
-            $this->events->publish(SecurityEventData::fromInput([
-                'event_type' => SecurityEventType::PasswordChanged,
-                'user_id' => (int) $locked->getKey(),
-                'risk_level' => SecurityRiskLevel::Medium,
-                'payload' => [
-                    'actor_user_id' => (int) $operator->getKey(),
-                    'change_source' => 'admin_panel',
-                    'sessions_revoked' => true,
+            $this->audit->log(
+                (int) $operator->getKey(),
+                AuditAction::Update,
+                RiskLevel::High,
+                $locked,
+                'Operator changed the password for '.$locked->username.'.',
+                [
+                    'operation' => 'admin_password_change',
+                    'changed_fields' => array_values(array_merge(array_keys($editable), ['password'])),
+                    'credential_generation_advanced' => $hasEpoch,
                 ],
-            ]));
+                $before,
+                ['password_changed' => true],
+            );
 
             return $locked->refresh();
         });

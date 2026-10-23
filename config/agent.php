@@ -90,6 +90,10 @@ return [
         'rounding_mode' => 'half_up',
         'exclude_cancelled_bets' => true,
         'exclude_refunded_bets' => true,
+        'paid_cancellation' => [
+            'enabled' => (bool) env('AGENT_PAID_CANCELLATION_ENABLED', false),
+            'policy_reference' => env('AGENT_PAID_CANCELLATION_POLICY'),
+        ],
     ],
 
     /*

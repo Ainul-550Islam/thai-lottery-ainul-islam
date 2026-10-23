@@ -1,0 +1,1518 @@
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.27
+Configuration: /home/user/phpunit.xml
+
+FFF...FFFF                                                        10 / 10 (100%)
+
+Time: 00:06.763, Memory: 80.50 MB
+
+There were 7 failures:
+
+1) Tests\Feature\Admin\AdminConsoleChromeTest::the_sidebar_marks_only_the_panel_the_operator_is_actually_on
+On admin.dashboard exactly one item must carry aria-current="page".
+Failed asserting that 0 is identical to 1.
+
+/home/user/tests/Feature/Admin/AdminConsoleChromeTest.php:172
+
+2) Tests\Feature\Admin\AdminConsoleChromeTest::the_sidebar_marks_nothing_as_current_on_a_screen_outside_the_panel_vocabulary
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="en" class="dark">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="Ns5y7Bsye3t6BUcjxR1R1AGqxGMeCrPbSUpAI31O">\n
+\n
+    <title>Release and operational controls — LOTTOFIN ADMIN</title>\n
+\n
+    <!-- Compiled Tailwind utilities and the admin design system -->\n
+    \n
+    </head>\n
+<body class="lf-admin-body">\n
+    <div class="lf-admin-shell">\n
+        <!-- Left Sidebar Navigation -->\n
+        <aside class="lf-sidebar" id="adminSidebar">\n
+            <!-- Brand Logo Header -->\n
+            <div class="lf-brand-header">\n
+                <svg class="lf-brand-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">\n
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>\n
+                </svg>\n
+                <span class="lf-brand-title">LOTTOFIN ADMIN</span>\n
+            </div>\n
+\n
+            <!-- Primary Nav Items -->\n
+            <div class="lf-nav-section">\n
+                <!-- Dashboard Active Item -->\n
+                <a href="http://localhost/admin/legacy" class="lf-nav-item active">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>\n
+                        </svg>\n
+                        <span>Dashboard</span>\n
+                    </div>\n
+                    <span class="lf-active-badge">Active</span>\n
+                </a>\n
+\n
+                <!-- Financial Section Header -->\n
+                <span class="lf-nav-header-label">Financial</span>\n
+\n
+                <!-- Draw Lifecycle -->\n
+                <a href="http://localhost/admin/legacy/draws" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>\n
+                        </svg>\n
+                        <span>Draw Lifecycle</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Number Limits & Risk -->\n
+                <a href="http://localhost/admin/risk" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"/>\n
+                        </svg>\n
+                        <span>Number Limits &amp; Risk</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Bets Ledger -->\n
+                <a href="http://localhost/admin/legacy/bets" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>\n
+                        </svg>\n
+                        <span>Bets Ledger</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Wallet Controls -->\n
+                <a href="http://localhost/admin/legacy/wallets" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>\n
+                        </svg>\n
+                        <span>Wallet Controls</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Ledger Accounts -->\n
+                <a href="http://localhost/admin/ledger" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>\n
+                        </svg>\n
+                        <span>Ledger Accounts</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Double-Entry Reconciliation -->\n
+                <a href="http://localhost/admin/reconciliation" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>\n
+                        </svg>\n
+                        <span>Double-Entry Reconciliation</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Audit Logs -->\n
+                <a href="http://localhost/admin/audits" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>\n
+                        </svg>\n
+                        <span>Audit Logs</span>\n
+                    </div>\n
+                </a>\n
+            </div>\n
+        </aside>\n
+\n
+        <!-- Main Workspace -->\n
+        <main class="lf-main-content">\n
+            <!-- Top Header Navbar -->\n
+            <header class="lf-top-header">\n
+                <div class="lf-header-left">\n
+                    <button type="button" class="lf-menu-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation">\n
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>\n
+                        </svg>\n
+                    </button>\n
+                </div>\n
+\n
+                <div class="lf-header-right">\n
+                    <!-- User Profile Dropdown -->\n
+                    <div class="lf-user-profile">\n
+                        <span class="lf-user-avatar" aria-hidden="true">\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">\n
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21a8 8 0 10-16 0m8-10a4 4 0 100-8 4 4 0 000 8z"/>\n
+                            </svg>\n
+                        </span>\n
+                        <div class="lf-user-info">\n
+                            <span class="lf-user-role">Administrator</span>\n
+                            <span class="lf-user-name">Desk Operator</span>\n
+                        </div>\n
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>\n
+                        </svg>\n
+                    </div>\n
+\n
+                    <!-- Notification Bell with Badge -->\n
+                    <button type="button" class="lf-notification-btn" aria-label="Notifications">\n
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>\n
+                        </svg>\n
+                        <span class="lf-notification-badge">1</span>\n
+                    </button>\n
+\n
+                    <!-- Logout / Exit -->\n
+                    <form method="POST" action="http://localhost/logout" class="inline">\n
+                        <input type="hidden" name="_token" value="Ns5y7Bsye3t6BUcjxR1R1AGqxGMeCrPbSUpAI31O" autocomplete="off">                        <button type="submit" class="lf-logout-btn" title="Sign Out">\n
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>\n
+                            </svg>\n
+                        </button>\n
+                    </form>\n
+                </div>\n
+            </header>\n
+\n
+            <!-- Page Body Slot -->\n
+            <div class="lf-page-body">\n
+                <div class="flex w-full flex-col gap-6" aria-labelledby="release-operations-title">\n
+    <header>\n
+        <p class="text-xs uppercase tracking-[0.2em] text-emerald-400">RELEASE OPERATIONS</p>\n
+        <h1 id="release-operations-title" class="lf-page-title">Runtime operations</h1>\n
+        <p class="mt-2 max-w-4xl text-sm text-slate-400">The requested operational projection is not configured.</p>\n
+    </header>\n
+\n
+    <section class="lf-panel-card" role="status" aria-live="polite" aria-labelledby="release-state-title">\n
+        <div class="lf-panel-header">\n
+            <h2 id="release-state-title" class="lf-panel-title">State</h2>\n
+            <strong class="lf-kpi-value">NOT_CONFIGURED</strong>\n
+        </div>\n
+            </section>\n
+\n
+    <section class="lf-panel-card" aria-labelledby="release-evidence-title">\n
+        <div class="lf-panel-header">\n
+            <h2 id="release-evidence-title" class="lf-panel-title">Evidence projection</h2>\n
+            <span class="text-xs text-slate-400">0 records</span>\n
+        </div>\n
+        <div class="lf-table-container">\n
+            <table class="lf-table">\n
+                <caption class="sr-only">Evidence projection</caption>\n
+                <thead>\n
+                    <tr>\n
+                        <th scope="col">Item</th>\n
+                        <th scope="col">Value</th>\n
+                        <th scope="col">State</th>\n
+                    </tr>\n
+                </thead>\n
+                <tbody>\n
+                                            <tr><td colspan="3" class="py-8 text-center text-slate-400" role="status">NO_DATA</td></tr>\n
+                                    </tbody>\n
+            </table>\n
+        </div>\n
+    </section>\n
+\n
+    <section class="lf-panel-card" aria-labelledby="release-safety-title">\n
+        <h2 id="release-safety-title" class="lf-panel-title">Browser safety boundary</h2>\n
+        <p class="mt-3 text-sm text-slate-400">This page is read-only. It does not run migrations, restore databases, flush caches, rotate keys, execute shell commands, or change release state from the browser.</p>\n
+    </section>\n
+</div>\n
+            </div>\n
+        </main>\n
+    </div>\n
+\n
+    <!-- Floating Help Button -->\n
+    <button type="button" class="lf-floating-help" title="Platform Help Desk">\n
+        ?\n
+    </button>\n
+\n
+    <!-- Admin Interactive Script -->\n
+        </body>\n
+</html>\n
+' [UTF-8](length: 12044) does not contain "lf-nav-item active" [ASCII](length: 18).
+
+/home/user/tests/Feature/Admin/AdminConsoleChromeTest.php:196
+
+3) Tests\Feature\Admin\AdminConsoleChromeTest::an_operator_is_never_offered_a_panel_the_controller_would_refuse
+An operator without view draws was still offered Draw Lifecycle.
+Failed asserting that an array does not have the key 'Draw Lifecycle'.
+
+/home/user/tests/Feature/Admin/AdminConsoleChromeTest.php:244
+
+4) Tests\Feature\Admin\AdminConsoleChromeTest::the_console_names_the_operator_who_is_logged_in
+The avatar initials were not derived from the operator name.
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="en" class="dark">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="fAtt7XKV1bAJ6ZxAPAxb2cLk616b1KCE8dZ9waFj">\n
+\n
+    <title>Administration — LOTTOFIN ADMIN</title>\n
+\n
+    <!-- Compiled Tailwind utilities and the admin design system -->\n
+    \n
+    </head>\n
+<body class="lf-admin-body">\n
+    <div class="lf-admin-shell">\n
+        <!-- Left Sidebar Navigation -->\n
+        <aside class="lf-sidebar" id="adminSidebar">\n
+            <!-- Brand Logo Header -->\n
+            <div class="lf-brand-header">\n
+                <svg class="lf-brand-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">\n
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>\n
+                </svg>\n
+                <span class="lf-brand-title">LOTTOFIN ADMIN</span>\n
+            </div>\n
+\n
+            <!-- Primary Nav Items -->\n
+            <div class="lf-nav-section">\n
+                <!-- Dashboard Active Item -->\n
+                <a href="http://localhost/admin/legacy" class="lf-nav-item active">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>\n
+                        </svg>\n
+                        <span>Dashboard</span>\n
+                    </div>\n
+                    <span class="lf-active-badge">Active</span>\n
+                </a>\n
+\n
+                <!-- Financial Section Header -->\n
+                <span class="lf-nav-header-label">Financial</span>\n
+\n
+                <!-- Draw Lifecycle -->\n
+                <a href="http://localhost/admin/legacy/draws" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>\n
+                        </svg>\n
+                        <span>Draw Lifecycle</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Number Limits & Risk -->\n
+                <a href="http://localhost/admin/risk" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"/>\n
+                        </svg>\n
+                        <span>Number Limits &amp; Risk</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Bets Ledger -->\n
+                <a href="http://localhost/admin/legacy/bets" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>\n
+                        </svg>\n
+                        <span>Bets Ledger</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Wallet Controls -->\n
+                <a href="http://localhost/admin/legacy/wallets" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>\n
+                        </svg>\n
+                        <span>Wallet Controls</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Ledger Accounts -->\n
+                <a href="http://localhost/admin/ledger" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>\n
+                        </svg>\n
+                        <span>Ledger Accounts</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Double-Entry Reconciliation -->\n
+                <a href="http://localhost/admin/reconciliation" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>\n
+                        </svg>\n
+                        <span>Double-Entry Reconciliation</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Audit Logs -->\n
+                <a href="http://localhost/admin/audits" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>\n
+                        </svg>\n
+                        <span>Audit Logs</span>\n
+                    </div>\n
+                </a>\n
+            </div>\n
+        </aside>\n
+\n
+        <!-- Main Workspace -->\n
+        <main class="lf-main-content">\n
+            <!-- Top Header Navbar -->\n
+            <header class="lf-top-header">\n
+                <div class="lf-header-left">\n
+                    <button type="button" class="lf-menu-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation">\n
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>\n
+                        </svg>\n
+                    </button>\n
+                </div>\n
+\n
+                <div class="lf-header-right">\n
+                    <!-- User Profile Dropdown -->\n
+                    <div class="lf-user-profile">\n
+                        <span class="lf-user-avatar" aria-hidden="true">\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">\n
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21a8 8 0 10-16 0m8-10a4 4 0 100-8 4 4 0 000 8z"/>\n
+                            </svg>\n
+                        </span>\n
+                        <div class="lf-user-info">\n
+                            <span class="lf-user-role">Administrator</span>\n
+                            <span class="lf-user-name">Nusrat Jahan</span>\n
+                        </div>\n
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>\n
+                        </svg>\n
+                    </div>\n
+\n
+                    <!-- Notification Bell with Badge -->\n
+                    <button type="button" class="lf-notification-btn" aria-label="Notifications">\n
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>\n
+                        </svg>\n
+                        <span class="lf-notification-badge">1</span>\n
+                    </button>\n
+\n
+                    <!-- Logout / Exit -->\n
+                    <form method="POST" action="http://localhost/logout" class="inline">\n
+                        <input type="hidden" name="_token" value="fAtt7XKV1bAJ6ZxAPAxb2cLk616b1KCE8dZ9waFj" autocomplete="off">                        <button type="submit" class="lf-logout-btn" title="Sign Out">\n
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>\n
+                            </svg>\n
+                        </button>\n
+                    </form>\n
+                </div>\n
+            </header>\n
+\n
+            <!-- Page Body Slot -->\n
+            <div class="lf-page-body">\n
+                <div class="flex w-full flex-col gap-6" aria-labelledby="admin-page-title">\n
+    \n
+    <header>\n
+        <p class="text-xs uppercase tracking-[0.2em] text-emerald-400">Administration</p>\n
+        <h1 id="admin-page-title" class="lf-page-title">Executive dashboard</h1>\n
+    </header>\n
+\n
+            <section class="lf-kpi-grid" aria-label="Analytics">\n
+                            <article class="lf-kpi-card">\n
+                    <span class="lf-kpi-label">Total wagered</span>\n
+                    <strong class="lf-kpi-value">NO_DATA</strong>\n
+                    <span class="lf-kpi-trend lf-kpi-trend--neutral">State: UNAVAILABLE</span>\n
+                </article>\n
+                            <article class="lf-kpi-card">\n
+                    <span class="lf-kpi-label">House gross profit</span>\n
+                    <strong class="lf-kpi-value">UNAVAILABLE</strong>\n
+                    <span class="lf-kpi-trend lf-kpi-trend--neutral">State: UNAVAILABLE</span>\n
+                </article>\n
+                            <article class="lf-kpi-card">\n
+                    <span class="lf-kpi-label">Active bets</span>\n
+                    <strong class="lf-kpi-value">0</strong>\n
+                    <span class="lf-kpi-trend lf-kpi-trend--neutral">State: NO_DATA</span>\n
+                </article>\n
+                            <article class="lf-kpi-card">\n
+                    <span class="lf-kpi-label">Pending withdrawals</span>\n
+                    <strong class="lf-kpi-value">0</strong>\n
+                    <span class="lf-kpi-trend lf-kpi-trend--neutral">State: NO_DATA</span>\n
+                </article>\n
+                    </section>\n
+\n
+        <section class="lf-panel-card" aria-labelledby="admin-feed-title">\n
+            <div class="lf-panel-header">\n
+                <h2 id="admin-feed-title" class="lf-panel-title">Financial transaction projection</h2>\n
+                <span class="text-xs text-slate-400">0 Records</span>\n
+            </div>\n
+            <div class="lf-table-container">\n
+                <table class="lf-table">\n
+                    <caption class="sr-only">Financial transaction projection</caption>\n
+                    <thead>\n
+                        <tr>\n
+                            <th scope="col">Reference</th>\n
+                            <th scope="col">Type</th>\n
+                            <th scope="col">Status</th>\n
+                            <th scope="col">Amount</th>\n
+                            <th scope="col">Currency</th>\n
+                            <th scope="col">Created</th>\n
+                        </tr>\n
+                    </thead>\n
+                    <tbody>\n
+                                                    <tr><td colspan="6" class="py-8 text-center text-slate-400" role="status">No records are available for this projection.</td></tr>\n
+                                            </tbody>\n
+                </table>\n
+            </div>\n
+        </section>\n
+    </div>\n
+            </div>\n
+        </main>\n
+    </div>\n
+\n
+    <!-- Floating Help Button -->\n
+    <button type="button" class="lf-floating-help" title="Platform Help Desk">\n
+        ?\n
+    </button>\n
+\n
+    <!-- Admin Interactive Script -->\n
+        </body>\n
+</html>\n
+' [UTF-8](length: 12844) contains "NJ" [ASCII](length: 2).
+
+/home/user/tests/Feature/Admin/AdminConsoleChromeTest.php:346
+
+5) Tests\Feature\Admin\AdminConsoleChromeTest::the_chrome_carries_no_control_that_does_nothing
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="en" class="dark">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="tWBoPDRHGvmkgfhlSDFuRljYcFEJSiJQXjriaBYv">\n
+\n
+    <title>Administration — LOTTOFIN ADMIN</title>\n
+\n
+    <!-- Compiled Tailwind utilities and the admin design system -->\n
+    \n
+    </head>\n
+<body class="lf-admin-body">\n
+    <div class="lf-admin-shell">\n
+        <!-- Left Sidebar Navigation -->\n
+        <aside class="lf-sidebar" id="adminSidebar">\n
+            <!-- Brand Logo Header -->\n
+            <div class="lf-brand-header">\n
+                <svg class="lf-brand-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">\n
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>\n
+                </svg>\n
+                <span class="lf-brand-title">LOTTOFIN ADMIN</span>\n
+            </div>\n
+\n
+            <!-- Primary Nav Items -->\n
+            <div class="lf-nav-section">\n
+                <!-- Dashboard Active Item -->\n
+                <a href="http://localhost/admin/legacy" class="lf-nav-item active">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>\n
+                        </svg>\n
+                        <span>Dashboard</span>\n
+                    </div>\n
+                    <span class="lf-active-badge">Active</span>\n
+                </a>\n
+\n
+                <!-- Financial Section Header -->\n
+                <span class="lf-nav-header-label">Financial</span>\n
+\n
+                <!-- Draw Lifecycle -->\n
+                <a href="http://localhost/admin/legacy/draws" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>\n
+                        </svg>\n
+                        <span>Draw Lifecycle</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Number Limits & Risk -->\n
+                <a href="http://localhost/admin/risk" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"/>\n
+                        </svg>\n
+                        <span>Number Limits &amp; Risk</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Bets Ledger -->\n
+                <a href="http://localhost/admin/legacy/bets" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>\n
+                        </svg>\n
+                        <span>Bets Ledger</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Wallet Controls -->\n
+                <a href="http://localhost/admin/legacy/wallets" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>\n
+                        </svg>\n
+                        <span>Wallet Controls</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Ledger Accounts -->\n
+                <a href="http://localhost/admin/ledger" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>\n
+                        </svg>\n
+                        <span>Ledger Accounts</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Double-Entry Reconciliation -->\n
+                <a href="http://localhost/admin/reconciliation" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>\n
+                        </svg>\n
+                        <span>Double-Entry Reconciliation</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Audit Logs -->\n
+                <a href="http://localhost/admin/audits" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>\n
+                        </svg>\n
+                        <span>Audit Logs</span>\n
+                    </div>\n
+                </a>\n
+            </div>\n
+        </aside>\n
+\n
+        <!-- Main Workspace -->\n
+        <main class="lf-main-content">\n
+            <!-- Top Header Navbar -->\n
+            <header class="lf-top-header">\n
+                <div class="lf-header-left">\n
+                    <button type="button" class="lf-menu-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation">\n
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>\n
+                        </svg>\n
+                    </button>\n
+                </div>\n
+\n
+                <div class="lf-header-right">\n
+                    <!-- User Profile Dropdown -->\n
+                    <div class="lf-user-profile">\n
+                        <span class="lf-user-avatar" aria-hidden="true">\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">\n
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21a8 8 0 10-16 0m8-10a4 4 0 100-8 4 4 0 000 8z"/>\n
+                            </svg>\n
+                        </span>\n
+                        <div class="lf-user-info">\n
+                            <span class="lf-user-role">Administrator</span>\n
+                            <span class="lf-user-name">Desk Operator</span>\n
+                        </div>\n
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>\n
+                        </svg>\n
+                    </div>\n
+\n
+                    <!-- Notification Bell with Badge -->\n
+                    <button type="button" class="lf-notification-btn" aria-label="Notifications">\n
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>\n
+                        </svg>\n
+                        <span class="lf-notification-badge">1</span>\n
+                    </button>\n
+\n
+                    <!-- Logout / Exit -->\n
+                    <form method="POST" action="http://localhost/logout" class="inline">\n
+                        <input type="hidden" name="_token" value="tWBoPDRHGvmkgfhlSDFuRljYcFEJSiJQXjriaBYv" autocomplete="off">                        <button type="submit" class="lf-logout-btn" title="Sign Out">\n
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>\n
+                            </svg>\n
+                        </button>\n
+                    </form>\n
+                </div>\n
+            </header>\n
+\n
+            <!-- Page Body Slot -->\n
+            <div class="lf-page-body">\n
+                <div class="flex w-full flex-col gap-6" aria-labelledby="admin-page-title">\n
+    \n
+    <header>\n
+        <p class="text-xs uppercase tracking-[0.2em] text-emerald-400">Administration</p>\n
+        <h1 id="admin-page-title" class="lf-page-title">Executive dashboard</h1>\n
+    </header>\n
+\n
+            <section class="lf-kpi-grid" aria-label="Analytics">\n
+                            <article class="lf-kpi-card">\n
+                    <span class="lf-kpi-label">Total wagered</span>\n
+                    <strong class="lf-kpi-value">NO_DATA</strong>\n
+                    <span class="lf-kpi-trend lf-kpi-trend--neutral">State: UNAVAILABLE</span>\n
+                </article>\n
+                            <article class="lf-kpi-card">\n
+                    <span class="lf-kpi-label">House gross profit</span>\n
+                    <strong class="lf-kpi-value">UNAVAILABLE</strong>\n
+                    <span class="lf-kpi-trend lf-kpi-trend--neutral">State: UNAVAILABLE</span>\n
+                </article>\n
+                            <article class="lf-kpi-card">\n
+                    <span class="lf-kpi-label">Active bets</span>\n
+                    <strong class="lf-kpi-value">0</strong>\n
+                    <span class="lf-kpi-trend lf-kpi-trend--neutral">State: NO_DATA</span>\n
+                </article>\n
+                            <article class="lf-kpi-card">\n
+                    <span class="lf-kpi-label">Pending withdrawals</span>\n
+                    <strong class="lf-kpi-value">0</strong>\n
+                    <span class="lf-kpi-trend lf-kpi-trend--neutral">State: NO_DATA</span>\n
+                </article>\n
+                    </section>\n
+\n
+        <section class="lf-panel-card" aria-labelledby="admin-feed-title">\n
+            <div class="lf-panel-header">\n
+                <h2 id="admin-feed-title" class="lf-panel-title">Financial transaction projection</h2>\n
+                <span class="text-xs text-slate-400">0 Records</span>\n
+            </div>\n
+            <div class="lf-table-container">\n
+                <table class="lf-table">\n
+                    <caption class="sr-only">Financial transaction projection</caption>\n
+                    <thead>\n
+                        <tr>\n
+                            <th scope="col">Reference</th>\n
+                            <th scope="col">Type</th>\n
+                            <th scope="col">Status</th>\n
+                            <th scope="col">Amount</th>\n
+                            <th scope="col">Currency</th>\n
+                            <th scope="col">Created</th>\n
+                        </tr>\n
+                    </thead>\n
+                    <tbody>\n
+                                                    <tr><td colspan="6" class="py-8 text-center text-slate-400" role="status">No records are available for this projection.</td></tr>\n
+                                            </tbody>\n
+                </table>\n
+            </div>\n
+        </section>\n
+    </div>\n
+            </div>\n
+        </main>\n
+    </div>\n
+\n
+    <!-- Floating Help Button -->\n
+    <button type="button" class="lf-floating-help" title="Platform Help Desk">\n
+        ?\n
+    </button>\n
+\n
+    <!-- Admin Interactive Script -->\n
+        </body>\n
+</html>\n
+' [UTF-8](length: 12845) does not contain "lf-notification-btn" [ASCII](length: 19).
+
+/home/user/tests/Feature/Admin/AdminConsoleChromeTest.php:378
+
+6) Tests\Feature\Admin\AdminConsoleChromeTest::the_source_of_the_layout_contains_no_hardcoded_identity_or_count
+lf-notification-badge is still present in the layout outside a comment.
+Failed asserting that '<!DOCTYPE html>\n
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="{{ csrf_token() }}">\n
+\n
+    <title>@yield('title', 'Executive Analytics Dashboard') — LOTTOFIN ADMIN</title>\n
+\n
+    <!-- Compiled Tailwind utilities and the admin design system -->\n
+    @vite(['resources/css/tailwind-utility.css', 'resources/css/admin-lottofin.css'])\n
+\n
+    @stack('styles')\n
+</head>\n
+<body class="lf-admin-body">\n
+    <div class="lf-admin-shell">\n
+        <!-- Left Sidebar Navigation -->\n
+        <aside class="lf-sidebar" id="adminSidebar">\n
+            <!-- Brand Logo Header -->\n
+            <div class="lf-brand-header">\n
+                <svg class="lf-brand-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">\n
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>\n
+                </svg>\n
+                <span class="lf-brand-title">LOTTOFIN ADMIN</span>\n
+            </div>\n
+\n
+            <!-- Primary Nav Items -->\n
+            <div class="lf-nav-section">\n
+                <!-- Dashboard Active Item -->\n
+                <a href="{{ route('admin.dashboard') }}" class="lf-nav-item active">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>\n
+                        </svg>\n
+                        <span>Dashboard</span>\n
+                    </div>\n
+                    <span class="lf-active-badge">Active</span>\n
+                </a>\n
+\n
+                <!-- Financial Section Header -->\n
+                <span class="lf-nav-header-label">Financial</span>\n
+\n
+                <!-- Draw Lifecycle -->\n
+                <a href="{{ route('admin.draws.index') }}" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>\n
+                        </svg>\n
+                        <span>Draw Lifecycle</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Number Limits & Risk -->\n
+                <a href="{{ route('admin.risk.index') }}" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"/>\n
+                        </svg>\n
+                        <span>Number Limits &amp; Risk</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Bets Ledger -->\n
+                <a href="{{ route('admin.bets.index') }}" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>\n
+                        </svg>\n
+                        <span>Bets Ledger</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Wallet Controls -->\n
+                <a href="{{ route('admin.wallets.index') }}" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>\n
+                        </svg>\n
+                        <span>Wallet Controls</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Ledger Accounts -->\n
+                <a href="{{ route('admin.ledger.index') }}" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>\n
+                        </svg>\n
+                        <span>Ledger Accounts</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Double-Entry Reconciliation -->\n
+                <a href="{{ route('admin.reconciliation.index') }}" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>\n
+                        </svg>\n
+                        <span>Double-Entry Reconciliation</span>\n
+                    </div>\n
+                </a>\n
+\n
+                <!-- Audit Logs -->\n
+                <a href="{{ route('admin.audits.index') }}" class="lf-nav-item">\n
+                    <div class="lf-nav-item-content">\n
+                        <svg class="lf-nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>\n
+                        </svg>\n
+                        <span>Audit Logs</span>\n
+                    </div>\n
+                </a>\n
+            </div>\n
+        </aside>\n
+\n
+        <!-- Main Workspace -->\n
+        <main class="lf-main-content">\n
+            <!-- Top Header Navbar -->\n
+            <header class="lf-top-header">\n
+                <div class="lf-header-left">\n
+                    <button type="button" class="lf-menu-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation">\n
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>\n
+                        </svg>\n
+                    </button>\n
+                </div>\n
+\n
+                <div class="lf-header-right">\n
+                    <!-- User Profile Dropdown -->\n
+                    <div class="lf-user-profile">\n
+                        <span class="lf-user-avatar" aria-hidden="true">\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">\n
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21a8 8 0 10-16 0m8-10a4 4 0 100-8 4 4 0 000 8z"/>\n
+                            </svg>\n
+                        </span>\n
+                        <div class="lf-user-info">\n
+                            <span class="lf-user-role">Administrator</span>\n
+                            <span class="lf-user-name">{{ auth()->user()?->name ?? __('Administrator') }}</span>\n
+                        </div>\n
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>\n
+                        </svg>\n
+                    </div>\n
+\n
+                    <!-- Notification Bell with Badge -->\n
+                    <button type="button" class="lf-notification-btn" aria-label="Notifications">\n
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>\n
+                        </svg>\n
+                        <span class="lf-notification-badge">1</span>\n
+                    </button>\n
+\n
+                    <!-- Logout / Exit -->\n
+                    <form method="POST" action="{{ route('logout') }}" class="inline">\n
+                        @csrf\n
+                        <button type="submit" class="lf-logout-btn" title="Sign Out">\n
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>\n
+                            </svg>\n
+                        </button>\n
+                    </form>\n
+                </div>\n
+            </header>\n
+\n
+            <!-- Page Body Slot -->\n
+            <div class="lf-page-body">\n
+                @yield('content')\n
+            </div>\n
+        </main>\n
+    </div>\n
+\n
+    <!-- Floating Help Button -->\n
+    <button type="button" class="lf-floating-help" title="Platform Help Desk">\n
+        ?\n
+    </button>\n
+\n
+    <!-- Admin Interactive Script -->\n
+    @vite(['resources/js/admin-lottofin.js'])\n
+    @stack('scripts')\n
+</body>\n
+</html>\n
+' [UTF-8](length: 10123) does not contain "lf-notification-badge" [ASCII](length: 21).
+
+/home/user/tests/Feature/Admin/AdminConsoleChromeTest.php:414
+
+7) Tests\Feature\Admin\AdminConsoleChromeTest::the_dead_styles_are_gone_and_the_avatar_style_suits_an_element_that_is_not_an_image
+.lf-notification-btn styles a control that no longer exists.
+Failed asserting that '/**\n
+ * LOTTOFIN ADMIN — Executive Analytics & Reconciliation Dashboard\n
+ * Exact Design System matching the uploaded screenshot.\n
+ */\n
+\n
+:root {\n
+    --lf-bg-canvas: #0b1118;\n
+    --lf-bg-sidebar: #0d1520;\n
+    --lf-bg-card: #131c28;\n
+    --lf-bg-card-hover: #172332;\n
+    --lf-bg-input: #0b1118;\n
+    --lf-border-main: #1f2d3d;\n
+    --lf-border-subtle: #192534;\n
+    --lf-text-primary: #f8fafc;\n
+    --lf-text-muted: #8492a6;\n
+    --lf-text-dim: #5c6b7d;\n
+    --lf-accent-green: #10b981;\n
+    --lf-accent-green-glow: rgba(16, 185, 129, 0.25);\n
+    --lf-accent-green-dark: #064e3b;\n
+    --lf-accent-cyan: #06b6d4;\n
+    --lf-font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;\n
+}\n
+\n
+body.lf-admin-body {\n
+    background-color: var(--lf-bg-canvas);\n
+    color: var(--lf-text-primary);\n
+    font-family: var(--lf-font-family);\n
+    margin: 0;\n
+    padding: 0;\n
+    -webkit-font-smoothing: antialiased;\n
+    overflow-x: hidden;\n
+}\n
+\n
+/* Master App Layout Shell */\n
+.lf-admin-shell {\n
+    display: flex;\n
+    min-height: 100vh;\n
+    background-color: var(--lf-bg-canvas);\n
+}\n
+\n
+/* Left Sidebar */\n
+.lf-sidebar {\n
+    width: 260px;\n
+    background-color: var(--lf-bg-sidebar);\n
+    border-right: 1px solid var(--lf-border-main);\n
+    display: flex;\n
+    flex-direction: column;\n
+    flex-shrink: 0;\n
+    z-index: 40;\n
+}\n
+\n
+.lf-brand-header {\n
+    height: 70px;\n
+    padding: 0 1.5rem;\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.75rem;\n
+    border-bottom: 1px solid var(--lf-border-subtle);\n
+}\n
+\n
+.lf-brand-logo-icon {\n
+    width: 28px;\n
+    height: 28px;\n
+    color: var(--lf-accent-green);\n
+}\n
+\n
+.lf-brand-title {\n
+    font-size: 1.05rem;\n
+    font-weight: 900;\n
+    letter-spacing: 0.05em;\n
+    color: #ffffff;\n
+    text-transform: uppercase;\n
+}\n
+\n
+.lf-nav-section {\n
+    padding: 1.25rem 1rem;\n
+    display: flex;\n
+    flex-direction: column;\n
+    gap: 0.35rem;\n
+}\n
+\n
+.lf-nav-header-label {\n
+    font-size: 0.75rem;\n
+    font-weight: 700;\n
+    text-transform: capitalize;\n
+    color: var(--lf-text-dim);\n
+    padding: 0.75rem 0.75rem 0.35rem 0.75rem;\n
+    letter-spacing: 0.03em;\n
+}\n
+\n
+.lf-nav-item {\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: space-between;\n
+    padding: 0.65rem 0.85rem;\n
+    border-radius: 0.75rem;\n
+    color: var(--lf-text-muted);\n
+    text-decoration: none;\n
+    font-size: 0.875rem;\n
+    font-weight: 600;\n
+    transition: all 0.2s ease;\n
+}\n
+\n
+.lf-nav-item:hover {\n
+    background-color: rgba(255, 255, 255, 0.04);\n
+    color: #ffffff;\n
+}\n
+\n
+.lf-nav-item.active {\n
+    background-color: #059669;\n
+    color: #ffffff;\n
+    font-weight: 700;\n
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);\n
+}\n
+\n
+.lf-nav-item-content {\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.75rem;\n
+}\n
+\n
+.lf-nav-item-icon {\n
+    width: 18px;\n
+    height: 18px;\n
+    flex-shrink: 0;\n
+}\n
+\n
+.lf-active-badge {\n
+    background-color: rgba(255, 255, 255, 0.2);\n
+    color: #ffffff;\n
+    font-size: 0.6875rem;\n
+    font-weight: 700;\n
+    padding: 0.15rem 0.5rem;\n
+    border-radius: 0.5rem;\n
+}\n
+\n
+/* Main Content Area */\n
+.lf-main-content {\n
+    flex: 1;\n
+    display: flex;\n
+    flex-direction: column;\n
+    min-width: 0;\n
+    overflow-y: auto;\n
+}\n
+\n
+/* Top Navbar Header */\n
+.lf-top-header {\n
+    height: 70px;\n
+    padding: 0 2rem;\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: space-between;\n
+    border-bottom: 1px solid var(--lf-border-subtle);\n
+    background-color: var(--lf-bg-canvas);\n
+}\n
+\n
+.lf-header-left {\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 1rem;\n
+}\n
+\n
+.lf-menu-toggle-btn {\n
+    background: transparent;\n
+    border: none;\n
+    color: var(--lf-text-muted);\n
+    cursor: pointer;\n
+    padding: 0.5rem;\n
+    border-radius: 0.5rem;\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: center;\n
+}\n
+\n
+.lf-menu-toggle-btn:hover {\n
+    color: #ffffff;\n
+    background-color: rgba(255, 255, 255, 0.05);\n
+}\n
+\n
+.lf-header-right {\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 1.5rem;\n
+}\n
+\n
+.lf-user-profile {\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.75rem;\n
+}\n
+\n
+\n
+.lf-user-avatar {\n
+    width: 34px;\n
+    height: 34px;\n
+    border-radius: 50%;\n
+    display: inline-flex;\n
+    align-items: center;\n
+    justify-content: center;\n
+    color: var(--lf-text-muted);\n
+    background: var(--lf-bg-card);\n
+    border: 1px solid var(--lf-border-main);\n
+}\n
+\n
+.lf-user-avatar svg {\n
+    width: 18px;\n
+    height: 18px;\n
+}\n
+\n
+.lf-user-info {\n
+    display: flex;\n
+    flex-direction: column;\n
+}\n
+\n
+.lf-user-role {\n
+    font-size: 0.6875rem;\n
+    color: var(--lf-text-dim);\n
+    line-height: 1;\n
+}\n
+\n
+.lf-user-name {\n
+    font-size: 0.8125rem;\n
+    font-weight: 700;\n
+    color: #ffffff;\n
+    line-height: 1.2;\n
+}\n
+\n
+.lf-notification-btn {\n
+    position: relative;\n
+    background: transparent;\n
+    border: none;\n
+    color: var(--lf-text-muted);\n
+    cursor: pointer;\n
+    padding: 0.4rem;\n
+}\n
+\n
+.lf-notification-badge {\n
+    position: absolute;\n
+    top: 2px;\n
+    right: 2px;\n
+    width: 14px;\n
+    height: 14px;\n
+    background-color: #ef4444;\n
+    color: #ffffff;\n
+    font-size: 0.625rem;\n
+    font-weight: 800;\n
+    border-radius: 50%;\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: center;\n
+}\n
+\n
+.lf-logout-btn {\n
+    background: transparent;\n
+    border: none;\n
+    color: var(--lf-text-muted);\n
+    cursor: pointer;\n
+    padding: 0.4rem;\n
+}\n
+\n
+.lf-logout-btn:hover {\n
+    color: #ef4444;\n
+}\n
+\n
+/* Page Body Container */\n
+.lf-page-body {\n
+    padding: 2rem;\n
+    display: flex;\n
+    flex-direction: column;\n
+    gap: 1.75rem;\n
+}\n
+\n
+.lf-page-title {\n
+    font-size: 1.35rem;\n
+    font-weight: 900;\n
+    letter-spacing: 0.04em;\n
+    color: #ffffff;\n
+    text-transform: uppercase;\n
+    margin: 0;\n
+}\n
+\n
+/* 4-Column KPI Cards Grid */\n
+.lf-kpi-grid {\n
+    display: grid;\n
+    grid-template-columns: repeat(1, minmax(0, 1fr));\n
+    gap: 1.25rem;\n
+}\n
+\n
+@media (min-width: 640px) {\n
+    .lf-kpi-grid {\n
+        grid-template-columns: repeat(2, minmax(0, 1fr));\n
+    }\n
+}\n
+\n
+@media (min-width: 1024px) {\n
+    .lf-kpi-grid {\n
+        grid-template-columns: repeat(4, minmax(0, 1fr));\n
+    }\n
+}\n
+\n
+.lf-kpi-card {\n
+    background-color: var(--lf-bg-card);\n
+    border: 1px solid var(--lf-border-main);\n
+    border-radius: 1rem;\n
+    padding: 1.35rem 1.5rem;\n
+    display: flex;\n
+    flex-direction: column;\n
+    gap: 0.5rem;\n
+    transition: transform 0.2s ease, border-color 0.2s ease;\n
+}\n
+\n
+.lf-kpi-card:hover {\n
+    border-color: rgba(16, 185, 129, 0.4);\n
+}\n
+\n
+.lf-kpi-label {\n
+    font-size: 0.8125rem;\n
+    font-weight: 600;\n
+    color: var(--lf-text-muted);\n
+}\n
+\n
+.lf-kpi-value {\n
+    font-size: 1.75rem;\n
+    font-weight: 900;\n
+    line-height: 1.1;\n
+    color: #ffffff;\n
+}\n
+\n
+.lf-kpi-value--green {\n
+    color: var(--lf-accent-green);\n
+    text-shadow: 0 0 20px var(--lf-accent-green-glow);\n
+}\n
+\n
+.lf-kpi-trend {\n
+    font-size: 0.75rem;\n
+    font-weight: 700;\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.25rem;\n
+}\n
+\n
+.lf-kpi-trend--up {\n
+    color: #10b981;\n
+}\n
+\n
+.lf-kpi-trend--down {\n
+    color: #f43f5e;\n
+}\n
+\n
+.lf-kpi-trend--neutral {\n
+    color: var(--lf-text-dim);\n
+}\n
+\n
+/* Reconciliation Monitor Container Card */\n
+.lf-panel-card {\n
+    background-color: var(--lf-bg-card);\n
+    border: 1px solid var(--lf-border-main);\n
+    border-radius: 1rem;\n
+    padding: 1.5rem;\n
+    display: flex;\n
+    flex-direction: column;\n
+    gap: 1.25rem;\n
+}\n
+\n
+.lf-panel-header {\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: space-between;\n
+    flex-wrap: wrap;\n
+    gap: 1rem;\n
+}\n
+\n
+.lf-panel-title {\n
+    font-size: 1.125rem;\n
+    font-weight: 800;\n
+    color: #ffffff;\n
+    margin: 0;\n
+}\n
+\n
+.lf-header-actions {\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.625rem;\n
+}\n
+\n
+.lf-btn-outline {\n
+    background-color: var(--lf-bg-canvas);\n
+    border: 1px solid var(--lf-border-main);\n
+    color: var(--lf-text-primary);\n
+    padding: 0.5rem 0.95rem;\n
+    border-radius: 0.625rem;\n
+    font-size: 0.8125rem;\n
+    font-weight: 700;\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.4rem;\n
+    cursor: pointer;\n
+    transition: all 0.2s ease;\n
+}\n
+\n
+.lf-btn-outline:hover {\n
+    background-color: rgba(255, 255, 255, 0.05);\n
+    border-color: #38bdf8;\n
+}\n
+\n
+.lf-btn-solid-green {\n
+    background-color: #10b981;\n
+    border: 1px solid #10b981;\n
+    color: #020617;\n
+    padding: 0.5rem 1.1rem;\n
+    border-radius: 0.625rem;\n
+    font-size: 0.8125rem;\n
+    font-weight: 800;\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.4rem;\n
+    cursor: pointer;\n
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);\n
+    transition: all 0.2s ease;\n
+}\n
+\n
+.lf-btn-solid-green:hover {\n
+    background-color: #059669;\n
+    filter: brightness(1.05);\n
+}\n
+\n
+/* Toolbar Controls */\n
+.lf-toolbar {\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: space-between;\n
+    flex-wrap: wrap;\n
+    gap: 0.75rem;\n
+}\n
+\n
+.lf-toolbar-left {\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.625rem;\n
+    flex: 1;\n
+    max-width: 450px;\n
+}\n
+\n
+.lf-search-box {\n
+    position: relative;\n
+    flex: 1;\n
+}\n
+\n
+.lf-search-icon {\n
+    position: absolute;\n
+    left: 0.85rem;\n
+    top: 50%;\n
+    transform: translateY(-50%);\n
+    color: var(--lf-text-dim);\n
+    width: 15px;\n
+    height: 15px;\n
+}\n
+\n
+.lf-search-input {\n
+    width: 100%;\n
+    background-color: var(--lf-bg-input);\n
+    border: 1px solid var(--lf-border-main);\n
+    border-radius: 0.625rem;\n
+    padding: 0.5rem 0.85rem 0.5rem 2.25rem;\n
+    color: #ffffff;\n
+    font-size: 0.8125rem;\n
+    outline: none;\n
+}\n
+\n
+.lf-search-input:focus {\n
+    border-color: var(--lf-accent-green);\n
+}\n
+\n
+.lf-toolbar-right {\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.5rem;\n
+}\n
+\n
+.lf-icon-btn {\n
+    background-color: var(--lf-bg-canvas);\n
+    border: 1px solid var(--lf-border-main);\n
+    color: var(--lf-text-muted);\n
+    width: 34px;\n
+    height: 34px;\n
+    border-radius: 0.5rem;\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: center;\n
+    cursor: pointer;\n
+    transition: all 0.2s ease;\n
+}\n
+\n
+.lf-icon-btn:hover {\n
+    color: #ffffff;\n
+    border-color: #475569;\n
+}\n
+\n
+/* Financial Ledger Table */\n
+.lf-table-container {\n
+    overflow-x: auto;\n
+    border: 1px solid var(--lf-border-main);\n
+    border-radius: 0.75rem;\n
+    background-color: var(--lf-bg-canvas);\n
+}\n
+\n
+.lf-table {\n
+    width: 100%;\n
+    border-collapse: collapse;\n
+    text-align: left;\n
+    font-size: 0.8125rem;\n
+}\n
+\n
+.lf-table th {\n
+    padding: 0.85rem 1rem;\n
+    font-weight: 700;\n
+    color: var(--lf-text-muted);\n
+    border-bottom: 1px solid var(--lf-border-main);\n
+    background-color: #0d1520;\n
+    white-space: nowrap;\n
+}\n
+\n
+.lf-table td {\n
+    padding: 0.85rem 1rem;\n
+    color: #e2e8f0;\n
+    border-bottom: 1px solid var(--lf-border-subtle);\n
+    white-space: nowrap;\n
+}\n
+\n
+.lf-table tr:hover td {\n
+    background-color: rgba(255, 255, 255, 0.02);\n
+}\n
+\n
+.lf-tx-id {\n
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;\n
+    font-weight: 700;\n
+    color: var(--lf-text-primary);\n
+}\n
+\n
+.lf-badge-balanced {\n
+    display: inline-flex;\n
+    align-items: center;\n
+    padding: 0.2rem 0.65rem;\n
+    border-radius: 0.5rem;\n
+    font-size: 0.75rem;\n
+    font-weight: 700;\n
+    background-color: var(--lf-accent-green-dark);\n
+    color: #34d399;\n
+    border: 1px solid rgba(16, 185, 129, 0.3);\n
+}\n
+\n
+/* Pagination Footer */\n
+.lf-pagination-footer {\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: space-between;\n
+    padding-top: 0.5rem;\n
+}\n
+\n
+.lf-page-links {\n
+    display: flex;\n
+    align-items: center;\n
+    gap: 0.35rem;\n
+}\n
+\n
+.lf-page-btn {\n
+    background-color: var(--lf-bg-canvas);\n
+    border: 1px solid var(--lf-border-main);\n
+    color: var(--lf-text-muted);\n
+    min-width: 32px;\n
+    height: 32px;\n
+    border-radius: 0.5rem;\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: center;\n
+    font-size: 0.75rem;\n
+    font-weight: 700;\n
+    cursor: pointer;\n
+}\n
+\n
+.lf-page-btn.active {\n
+    background-color: #059669;\n
+    border-color: #059669;\n
+    color: #ffffff;\n
+}\n
+\n
+/* Floating Help Button */\n
+.lf-floating-help {\n
+    position: fixed;\n
+    bottom: 1.5rem;\n
+    right: 1.5rem;\n
+    width: 36px;\n
+    height: 36px;\n
+    border-radius: 50%;\n
+    background-color: #1e293b;\n
+    border: 1px solid #334155;\n
+    color: #ffffff;\n
+    display: flex;\n
+    align-items: center;\n
+    justify-content: center;\n
+    font-weight: 900;\n
+    font-size: 0.875rem;\n
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);\n
+    cursor: pointer;\n
+    z-index: 50;\n
+    transition: all 0.2s ease;\n
+}\n
+\n
+.lf-floating-help:hover {\n
+    background-color: #334155;\n
+    transform: scale(1.05);\n
+}\n
+' [UTF-8](length: 12161) does not contain ".lf-notification-btn" [ASCII](length: 20).
+
+/home/user/tests/Feature/Admin/AdminConsoleChromeTest.php:436
+
+FAILURES!
+Tests: 10, Assertions: 121, Failures: 7.

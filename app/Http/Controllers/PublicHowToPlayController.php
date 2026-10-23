@@ -55,10 +55,6 @@ final class PublicHowToPlayController
 
     private function locale(Request $request): string
     {
-        $candidate = (string) $request->query('locale', app()->getLocale());
-
-        return in_array($candidate, ['en', 'th'], true)
-            ? $candidate
-            : (string) app()->getLocale();
+        return (string) app()->getLocale();
     }
 }

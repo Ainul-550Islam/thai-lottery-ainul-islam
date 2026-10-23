@@ -6,6 +6,7 @@ namespace App\Services\Payment\Drivers;
 
 use App\DTOs\Payment\GatewayDepositResponse;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
+use App\DTOs\Payment\WebhookMoneyFacts;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
@@ -68,6 +69,17 @@ class StripeGateway extends AbstractPaymentGateway
         $currency = $deposit->currency ?? Currency::THB;
         $amountInCents = bcmul((string) $deposit->amount, '100', 0);
 
+        $metadata = [
+            'deposit_reference' => (string) $deposit->reference_number,
+            'deposit_id' => (string) $deposit->id,
+            'user_id' => (string) $deposit->user_id,
+            'wallet_id' => (string) $deposit->wallet_id,
+        ];
+
+        if (isset($options['checkout_attempt']) && is_string($options['checkout_attempt']) && $options['checkout_attempt'] !== '') {
+            $metadata['checkout_attempt'] = $options['checkout_attempt'];
+        }
+
         $params = [
             'mode' => 'payment',
             'client_reference_id' => $deposit->reference_number,
@@ -81,22 +93,24 @@ class StripeGateway extends AbstractPaymentGateway
                         'unit_amount' => (int) $amountInCents,
                         'product_data' => [
                             'name' => 'Wallet Deposit '.$deposit->reference_number,
-                            'description' => 'Deposit to player account #'.$deposit->user_id,
+                            'description' => 'Deposit to Thai Lottery wallet',
                         ],
                     ],
                     'quantity' => 1,
                 ],
             ],
-            'metadata' => [
-                'deposit_id' => (string) $deposit->getKey(),
-                'deposit_reference' => $deposit->reference_number,
-                'user_id' => (string) $deposit->user_id,
-                'wallet_id' => (string) $deposit->wallet_id,
-            ],
+            'metadata' => $metadata,
         ];
 
         try {
+            $stableReference = is_string($deposit->uuid) && $deposit->uuid !== ''
+                ? $deposit->uuid
+                : $deposit->reference_number;
+            $idempotencyHeader = isset($options['checkout_dispatch_key']) && is_string($options['checkout_dispatch_key']) && $options['checkout_dispatch_key'] !== ''
+                ? $options['checkout_dispatch_key']
+                : 'deposit-'.$stableReference;
             $response = Http::withToken($secretKey)
+                ->withHeaders(['Idempotency-Key' => $idempotencyHeader])
                 ->asForm()
                 ->post('https://api.stripe.com/v1/checkout/sessions', $params);
 
@@ -117,13 +131,28 @@ class StripeGateway extends AbstractPaymentGateway
             }
 
             $errorData = $response->json();
-            $errorMessage = $errorData['error']['message'] ?? 'Stripe checkout creation failed: '.$response->body();
+            $providerError = is_array($errorData) && is_array($errorData['error'] ?? null)
+                ? $errorData['error']
+                : [];
+            $providerCode = $providerError['code'] ?? null;
 
-            return GatewayDepositResponse::failed($errorMessage, is_array($errorData) ? $errorData : []);
+            Log::warning('Stripe checkout request was refused', [
+                'http_status' => $response->status(),
+                'provider_error_code' => is_string($providerCode) ? substr($providerCode, 0, 64) : null,
+            ]);
+
+            return GatewayDepositResponse::failed(
+                'Stripe checkout creation failed.',
+                [],
+                ['gateway' => 'stripe', 'http_status' => $response->status()],
+            );
         } catch (\Throwable $e) {
-            Log::error('Stripe deposit initiation failed', ['exception' => $e->getMessage()]);
+            Log::error('Stripe deposit initiation failed', [
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
+            ]);
 
-            return GatewayDepositResponse::failed('Stripe connection error: '.$e->getMessage());
+            return GatewayDepositResponse::failed('Stripe could not be reached to create checkout.');
         }
     }
 
@@ -196,11 +225,10 @@ class StripeGateway extends AbstractPaymentGateway
             ?? null;
 
         $providerReference = $object['id'] ?? null;
-        $currencyString = strtoupper((string) ($object['currency'] ?? 'THB'));
-        $currency = Currency::tryFrom($currencyString) ?? Currency::THB;
+        $currency = WebhookMoneyFacts::currency($object['currency'] ?? null);
 
-        $amountRaw = $object['amount_total'] ?? $object['amount'] ?? 0;
-        $amount = bcdiv((string) $amountRaw, '100', 2);
+        $amountRaw = $object['amount_total'] ?? $object['amount'] ?? null;
+        $amount = WebhookMoneyFacts::minorUnits($amountRaw);
 
         $eventType = match ($type) {
             'checkout.session.completed', 'payment_intent.succeeded' => WebhookEventType::DepositSuccess,

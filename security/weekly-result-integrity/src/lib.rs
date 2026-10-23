@@ -48,7 +48,7 @@ pub mod canonical;
 pub mod error;
 
 use canonical::WeeklyResultPayload;
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, VerifyingKey};
 use error::IntegrityError;
 use serde::{Deserialize, Serialize};
 
@@ -269,7 +269,7 @@ pub fn verify(request: VerificationRequest) -> VerificationReport {
             // digest and not over the raw JSON. Signing a digest string would
             // make the signature depend on the encoding of the digest rather
             // than on the result itself.
-            match key.verify(&bytes, &signature) {
+            match key.verify_strict(&bytes, &signature) {
                 Ok(()) => VerificationReport {
                     status: VerificationStatus::SignedVerified.as_str(),
                     acceptable: true,

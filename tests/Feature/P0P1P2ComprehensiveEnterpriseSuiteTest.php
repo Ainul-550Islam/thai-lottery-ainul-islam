@@ -5,110 +5,65 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\DTOs\Betting\BulkBetSelectionData;
-use App\DTOs\ResponsibleGaming\ResponsibleGamingLimitData;
 use App\DTOs\ResponsibleGaming\SelfExclusionData;
-use App\Enums\AgentStatus;
 use App\Enums\Currency;
 use App\Enums\DrawStatus;
 use App\Enums\GloClaimChannel;
 use App\Enums\GloClaimStatus;
-use App\Enums\GloPrizeTier;
 use App\Enums\GloSourceState;
 use App\Enums\KycDocumentType;
 use App\Enums\KycStatus;
-use App\Enums\PaymentChannel;
-use App\Enums\PaymentDirection;
-use App\Enums\PaymentStatus;
-use App\Enums\ResponsibleGamingLimitType;
+use App\Enums\LedgerEntryType;
+use App\Enums\ReconciliationStatus;
+use App\Enums\SelfExclusionStatus;
 use App\Enums\WithdrawalStatus;
-use App\Models\Agent;
-use App\Models\AgentCommission;
-use App\Models\AuditLog;
+use App\Exceptions\FinancialException;
 use App\Models\Draw;
 use App\Models\DrawResult;
-use App\Models\GloL6Sale;
+use App\Models\FinancialTransaction;
 use App\Models\GloPrizeClaim;
 use App\Models\GloTicket;
-use App\Models\KycDocument;
+use App\Models\LedgerEntry;
 use App\Models\NationalLotteryDraw;
-use App\Models\PaymentTransaction;
-use App\Models\SelfExclusion;
 use App\Models\User;
-use App\Models\Wallet;
-use App\Models\Withdrawal;
-use App\Services\Agent\AgentSettlementService;
 use App\Services\Betting\BulkBetService;
 use App\Services\Compliance\SelfExclusionService;
-use App\Services\Draw\RealPrizeSettlementService;
+use App\Services\Draw\DrawLifecycleService;
+use App\Services\Draw\DrawResultConfirmationService;
+use App\Services\Draw\DrawResultIngestionService;
 use App\Services\Finance\FinancialReconciliationService;
-use App\Services\Finance\WalletHoldService;
 use App\Services\Finance\WalletService;
+use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Lottery\GloL6AuthoritativeTicketEngineService;
-use App\Services\Lottery\GloL6ProportionalPrizeCalculator;
-use App\Services\Lottery\GloStampDutyCalculator;
+use App\Services\Lottery\GloPrizeClaimService;
 use App\Services\Monitoring\HealthCheckService;
 use App\Services\Payment\ProductionPaymentExecutionHubService;
-use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
-use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
+use App\Services\PublicPages\PublishedResultSourceResolver;
 use App\Services\Security\KycVerificationService;
-use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
-use Tests\TestCase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Storage;
+use Tests\Feature\Finance\FinancialMasterTestCase;
 
 /**
- * Enterprise Acceptance Test Suite for P0, P1, and P2 Requirements.
- *
- * VALIDATES THE 25 AUDIT PILLARS:
- * --------------------------------
- * P0-01: GLO L6 Official Single-Ticket Business Flow (80 THB / 1M Series / 14,168 Prizes)
- * P0-02: GLO Unsold-Ticket Proportional Prize Pool Scaling & Direct Wallet Settlement
- * P0-03: Real Payment Provider Execution (bKash, Nagad, Crypto, Bank Transfer)
- * P0-04: Single Canonical Wallet Engine with Double-Entry General Ledger
- * P0-05: Health Route Contracts (/health, /ready, /live, /up/health, /api/health)
- * P0-06: Strict Financial Idempotency (App + Database Constraints)
- * P0-07: Cross-Currency Wallet Isolation (THB, USD, BDT Strict Boundaries)
- * P0-08: Responsible Gaming Canonical Authority (Limits, 24h Cooling-Off, Self-Exclusion)
- * P0-09: Result Provenance Integrity (Official vs Fixture Validation)
- * P0-10: Multi-Lane Historical Data Pipeline (National, Weekly, Bingo, PCSO)
- * P1-11: API and Web Controller Service Parity
- * P1-12: Admin Role-Based Access Control & Maker-Checker Separation
- * P1-13: GLO Dealer Business Workflow & Sales Points
- * P1-14: KYC Document Security & Private Disk Isolation
- * P1-15: Multi-Channel Notification Delivery & Deduplication
- * P1-16: Queue Reliability & Idempotent Financial Retries
- * P1-17: API Response Schema Normalization
- * P1-18: Rate Limiting Ceilings & Bypass Resistance
- * P1-19: Physical/Digital Ticket Barcoding & Verification
- * P1-20: Prize Claim Eligible -> Approved -> Paid State Machine
- * P2-21: Observability & Anomaly Telemetry
- * P2-22: Automated Financial & Sales Reconciliation
- * P2-23: Database Schema Unique Constraints
- * P2-24: Security Framework Hardening
- * P2-25: Rust Result-Integrity Verification Baseline
+ * Enterprise contract suite for L6 pricing, disabled direct writer, payment boundaries,
+ * double-entry ledger balance, provenance classification, KYC review, and reconciliation.
  */
-final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
+final class P0P1P2ComprehensiveEnterpriseSuiteTest extends FinancialMasterTestCase
 {
-    use RefreshDatabase;
-
-    // =========================================================================
-    // P0: BUSINESS-CRITICAL & ARCHITECTURAL VERIFICATION
-    // =========================================================================
-
     public function test_p0_01_glo_l6_official_ticket_business_flow(): void
     {
         $player = User::factory()->create([
             'email' => 'glo_player@example.com',
-            'kyc_status' => KycStatus::VERIFIED,
             'date_of_birth' => Carbon::now()->subYears(25)->format('Y-m-d'),
         ]);
+        $this->verifyUserKycForTest($player);
 
         /** @var WalletService $walletService */
         $walletService = $this->app->make(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($player, Currency::THB);
-        $walletService->credit($wallet, '1000.00', 'initial_deposit', 'DEP-001', 'Initial Deposit');
+        $this->creditFixture($wallet, '1000.00', 'Initial Deposit');
 
         $draw = Draw::query()->create([
             'draw_number' => 'GLO-20261001-01',
@@ -120,7 +75,6 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         /** @var GloL6AuthoritativeTicketEngineService $engine */
         $engine = $this->app->make(GloL6AuthoritativeTicketEngineService::class);
 
-        // 1. Seat 1,000,000 units official L6 series
         $seat = $engine->seatL6DrawSeries($draw, [
             'units_sold' => 1000000,
             'series_number' => 1,
@@ -130,8 +84,13 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $this->assertSame('80000000.00', (string) $seat->gross_sales);
         $this->assertSame('48000000.00', (string) $seat->proportional_prize_pool);
 
-        // 2. Player buys single ticket #592742 for exactly 80.00 THB
         $ticket = $engine->purchaseL6Ticket(
+            buyer: $player,
+            draw: $draw,
+            ticketData: ['ticket_number' => '592742', 'set_series' => 1],
+            clientKey: 'CLI-KEY-001'
+        );
+        $replay = $engine->purchaseL6Ticket(
             buyer: $player,
             draw: $draw,
             ticketData: ['ticket_number' => '592742', 'set_series' => 1],
@@ -139,10 +98,10 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         );
 
         $this->assertInstanceOf(GloTicket::class, $ticket);
+        $this->assertSame($ticket->id, $replay->id);
         $this->assertSame('592742', $ticket->ticket_number);
         $this->assertSame('80.00', (string) $ticket->price);
 
-        // 3. Balance debited by exactly 80.00 THB
         $wallet->refresh();
         $this->assertSame('920.00', (string) $wallet->balance);
     }
@@ -150,9 +109,9 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
     public function test_p0_02_glo_proportional_payout_and_direct_wallet_settlement(): void
     {
         $player = User::factory()->create([
-            'kyc_status' => KycStatus::VERIFIED,
             'date_of_birth' => '1995-05-15',
         ]);
+        $this->verifyUserKycForTest($player);
         $operator = User::factory()->create(['status' => 'active']);
 
         /** @var WalletService $walletService */
@@ -169,7 +128,6 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         /** @var GloL6AuthoritativeTicketEngineService $engine */
         $engine = $this->app->make(GloL6AuthoritativeTicketEngineService::class);
 
-        // Seat series with 50% sales (500,000 units sold)
         $engine->seatL6DrawSeries($draw, ['units_sold' => 500000, 'series_number' => 1]);
 
         $ticket = GloTicket::query()->create([
@@ -184,13 +142,11 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
             'purchased_at' => Carbon::now()->subDays(2),
         ]);
 
-        // Compute proportional 1st prize: Base 6,000,000 * 0.50 = 3,000,000 THB
         $prizeMath = $engine->computeProportionalPrize($draw, 'first_prize');
         $this->assertSame('3000000.00', $prizeMath['gross_prize']);
-        $this->assertSame('15000.00', $prizeMath['stamp_duty']); // 0.5% duty
+        $this->assertSame('15000.00', $prizeMath['stamp_duty']);
         $this->assertSame('2985000.00', $prizeMath['net_prize']);
 
-        // Create approved claim
         $claim = GloPrizeClaim::query()->create([
             'claim_reference' => 'GLOCLM-TEST-999',
             'ticket_id' => $ticket->id,
@@ -202,7 +158,7 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
             'stamp_duty' => $prizeMath['stamp_duty'],
             'net_prize' => $prizeMath['net_prize'],
             'claimant_user_id' => $player->id,
-            'identity_reference' => 'kyc:' . $player->id,
+            'identity_reference' => 'kyc:'.$player->id,
             'age_verification_result' => 'verified',
             'verified_age_years' => 31,
             'original_ticket_evidenced' => true,
@@ -214,71 +170,55 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
             'submitted_at' => Carbon::now(),
         ]);
 
-        // Settle claim
-        $settledClaim = $engine->settleVerifiedClaim($claim, $operator);
+        try {
+            $engine->settleVerifiedClaim($claim, $operator);
+            $this->fail('Retired direct wallet settlement writer must refuse execution.');
+        } catch (FinancialException $error) {
+            $this->assertSame('glo_l6_direct_wallet_settlement_disabled', $error->errorCode());
+        }
 
-        $this->assertSame(GloClaimStatus::Paid, $settledClaim->status);
-        $this->assertSame('settled', $settledClaim->payment_status);
-
-        // Player wallet credited with exactly 2,985,000.00 THB
         $wallet->refresh();
-        $this->assertSame('2985000.00', (string) $wallet->balance);
+        $this->assertSame('0.00', (string) $wallet->balance);
+        $this->assertSame(GloClaimStatus::Approved, $claim->fresh()->status);
     }
 
     public function test_p0_03_payment_hub_deposit_and_withdrawal_execution(): void
     {
+        Config::set('payment.deposit.allowed_methods', ['bkash', 'bank_transfer']);
+        Config::set('payment.gateways.bank_transfer.enabled', true);
+        Config::set('payment.gateways.bank_transfer.supports_withdrawal', true);
+
         $user = User::factory()->create();
         $operator = User::factory()->create();
+        $wallet = app(WalletService::class)->getOrCreateWallet($user, Currency::THB);
 
         /** @var ProductionPaymentExecutionHubService $paymentHub */
         $paymentHub = $this->app->make(ProductionPaymentExecutionHubService::class);
 
-        // Inbound Deposit initiation
-        $depositInit = $paymentHub->initiateDeposit($user, [
-            'amount' => '2500.00',
-            'channel' => 'bkash',
-            'currency' => 'THB',
-        ], 'IDEM-DEP-BKASH-001');
+        try {
+            $paymentHub->initiateDeposit($user, [
+                'amount' => '2500.00',
+                'channel' => 'bkash',
+                'currency' => 'THB',
+            ], 'IDEM-DEP-BKASH-001');
+            $this->fail('bKash BDT rail must refuse a THB deposit.');
+        } catch (FinancialException $error) {
+            $this->assertSame('unsupported_gateway_currency', $error->errorCode());
+        }
 
-        $this->assertNotEmpty($depositInit['redirect_url']);
-        $this->assertSame('pending', $depositInit['status']);
+        $this->creditFixture($wallet, '2500.00', 'Enterprise hub fixture');
+        $withdrawal = $this->pendingWithdrawalForMaster($wallet, '1000.00');
+        app(WithdrawalApprovalService::class)->approve($withdrawal, $operator->id);
 
-        // Inbound Deposit webhook execution
-        $completedTx = $paymentHub->completeDeposit('IDEM-DEP-BKASH-001', 'BKASH-TRX-882711');
-        $this->assertSame(PaymentStatus::COMPLETED, $completedTx->status);
-
-        /** @var WalletService $walletService */
-        $walletService = $this->app->make(WalletService::class);
-        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
-        $this->assertSame('2500.00', (string) $wallet->balance);
-
-        // Outbound Withdrawal Disbursement
-        $withdrawal = Withdrawal::query()->create([
-            'user_id' => $user->id,
-            'wallet_id' => $wallet->id,
-            'reference_number' => 'WD-HUB-001',
-            'amount' => '1000.00',
-            'fee' => '0.00',
-            'net_amount' => '1000.00',
-            'currency' => Currency::THB,
-            'method' => 'bank_transfer',
-            'destination_details' => ['bank' => 'Bangkok Bank', 'account' => '998-112-334'],
-            'status' => WithdrawalStatus::PENDING,
-            'requested_at' => Carbon::now(),
-        ]);
-
-        // Hold balance for withdrawal
-        /** @var WalletHoldService $holdService */
-        $holdService = $this->app->make(WalletHoldService::class);
-        $holdService->hold($wallet, '1000.00', 'withdrawal', 'WD-HUB-001');
-
-        $paymentHub->disburseWithdrawal($withdrawal, $operator);
+        $response = $paymentHub->disburseWithdrawal($withdrawal->fresh(), $operator);
+        $this->assertTrue($response->successful);
+        $this->assertTrue($response->isPending);
 
         $withdrawal->refresh();
         $wallet->refresh();
-        $this->assertSame(WithdrawalStatus::COMPLETED, $withdrawal->status);
-        $this->assertSame('1500.00', (string) $wallet->balance);
-        $this->assertSame('0.00', (string) $wallet->locked_balance);
+        $this->assertSame(WithdrawalStatus::Processing, $withdrawal->status);
+        $this->assertSame('2500.00', (string) $wallet->balance);
+        $this->assertSame('1000.00', (string) $wallet->locked_balance);
     }
 
     public function test_p0_04_wallet_canonical_double_entry_and_single_source(): void
@@ -288,12 +228,16 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $walletService = $this->app->make(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
 
-        $walletService->credit($wallet, '500.00', 'promo', 'PROMO-1', 'Bonus credit');
-        $walletService->debit($wallet, '200.00', 'spend', 'SPEND-1', 'Entry fee');
+        $this->creditFixture($wallet, '500.00', 'Bonus credit');
+        $this->debitFixture($wallet, '200.00', 'Entry fee');
+
+        $debits = (string) LedgerEntry::where('entry_type', LedgerEntryType::Debit)->sum('amount');
+        $credits = (string) LedgerEntry::where('entry_type', LedgerEntryType::Credit)->sum('amount');
 
         $wallet->refresh();
         $this->assertSame('300.00', (string) $wallet->balance);
         $this->assertSame('300.00', (string) $wallet->getAvailableBalance());
+        $this->assertSame(0, bccomp($debits, $credits, 2));
     }
 
     public function test_p0_05_health_route_mismatch_resolution(): void
@@ -314,33 +258,29 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         /** @var WalletService $walletService */
         $walletService = $this->app->make(WalletService::class);
         $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
+        $this->creditFixture($wallet, '500.00', 'Seed');
 
-        $draw = Draw::query()->create([
-            'draw_number' => 'GLO-20261001-03',
-            'scheduled_at' => Carbon::now()->addDay(),
-            'status' => DrawStatus::OPEN,
-            'currency' => Currency::THB,
-        ]);
+        $items = [
+            new BulkBetSelectionData(marketKey: '2d_top', number: '19', stake: '100.00', potentialPayout: '9000.00'),
+        ];
 
-        $walletService->credit($wallet, '500.00', 'deposit', 'D-1', 'Seed');
+        $draw = $this->openBulkDrawForTest($items);
 
         /** @var BulkBetService $bulkService */
         $bulkService = $this->app->make(BulkBetService::class);
 
-        $items = [
-            new BulkBetSelectionData(market: 'two_digit_top', number: '19', stake: '100.00', potentialPayout: '9000.00'),
-        ];
-
         $key = 'UNIQUE-SLIP-TOKEN-001';
 
-        $r1 = $bulkService->placeBulkBet($user, $draw, $items, $key);
-        $r2 = $bulkService->placeBulkBet($user, $draw, $items, $key);
+        $r1 = $bulkService->purchase((int) $user->id, (int) $draw->id, $items, $key);
+        $txCount = FinancialTransaction::count();
+        $r2 = $bulkService->purchase((int) $user->id, (int) $draw->id, $items, $key);
 
-        $this->assertCount(1, $r1->bets);
-        $this->assertCount(1, $r2->bets);
+        $this->assertSame(1, $r1['purchased']);
+        $this->assertSame(1, $r2['replayed']);
+        $this->assertSame($txCount, FinancialTransaction::count());
 
         $wallet->refresh();
-        $this->assertSame('400.00', (string) $wallet->balance); // Debited once only
+        $this->assertSame('400.00', (string) $wallet->balance);
     }
 
     public function test_p0_07_cross_currency_wallet_isolation(): void
@@ -352,8 +292,8 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $walletTHB = $walletService->getOrCreateWallet($user, Currency::THB);
         $walletUSD = $walletService->getOrCreateWallet($user, Currency::USD);
 
-        $walletService->credit($walletTHB, '5000.00', 'deposit', 'D-THB', 'THB Deposit');
-        $walletService->credit($walletUSD, '100.00', 'deposit', 'D-USD', 'USD Deposit');
+        $this->creditFixture($walletTHB, '5000.00', 'THB Deposit');
+        $this->creditFixture($walletUSD, '100.00', 'USD Deposit');
 
         $walletTHB->refresh();
         $walletUSD->refresh();
@@ -366,40 +306,48 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
     public function test_p0_08_responsible_gaming_canonical_enforcement(): void
     {
         $user = User::factory()->create();
-        /** @var ResponsibleGamingEnforcementService $enforcement */
-        $enforcement = $this->app->make(ResponsibleGamingEnforcementService::class);
         /** @var SelfExclusionService $exclusion */
         $exclusion = $this->app->make(SelfExclusionService::class);
 
-        $this->assertFalse($exclusion->isSelfExcluded($user->id));
+        $this->assertFalse($exclusion->hasActiveExclusion($user->id));
 
-        $exclusion->exclude(new SelfExclusionData(
+        $requested = $exclusion->request(new SelfExclusionData(
             userId: $user->id,
-            durationDays: 30,
-            reason: 'Taking break'
+            scope: 'all',
+            reasonCode: 'PLAYER_REQUEST',
+            effectiveAt: Carbon::now()->subMinute(),
+            endsAt: Carbon::now()->addDays(30),
         ));
 
-        $this->assertTrue($exclusion->isSelfExcluded($user->id));
+        $this->assertSame(SelfExclusionStatus::Requested, $requested->status);
+        $exclusion->activate($requested);
+
+        $this->assertTrue($exclusion->hasActiveExclusion($user->id));
     }
 
     public function test_p0_09_result_provenance_validation(): void
     {
-        $draw = Draw::query()->create([
-            'draw_number' => 'PROV-20261001-01',
-            'scheduled_at' => Carbon::now(),
-            'status' => DrawStatus::OPEN,
-            'currency' => Currency::THB,
-        ]);
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
+        $draw = $this->openBulkDrawForTest([]);
+        $lifecycle = app(DrawLifecycleService::class);
+        $draw = $lifecycle->close($draw);
+        $draw->scheduled_at = now()->subMinute();
+        $draw->save();
+        $draw = $lifecycle->markResultPending($draw);
 
-        $result = DrawResult::query()->create([
-            'draw_id' => $draw->id,
-            'winning_number' => '492817',
-            'source_state' => GloSourceState::OfficialSourceVerified,
-            'created_at' => Carbon::now(),
-        ]);
+        $payload = [
+            'first_prize' => '492817',
+            'bottom_two' => '49',
+        ];
 
-        $this->assertSame(GloSourceState::OfficialSourceVerified, $result->source_state);
-        $this->assertSame('OFFICIAL_SOURCE_VERIFIED', $result->source_state->value);
+        app(DrawResultIngestionService::class)->ingest((int) $draw->id, $payload, 'internal', (int) $maker->id);
+        app(DrawResultConfirmationService::class)->confirm((int) $draw->id, (int) $checker->id, $payload);
+
+        $result = DrawResult::query()->where('draw_id', $draw->id)->sole();
+        $state = app(PublishedResultSourceResolver::class)->resolve($result, $draw->fresh());
+        $this->assertSame(GloSourceState::InternalReconciled, $state);
+        $this->assertSame('INTERNAL_RECONCILED', $state->value);
     }
 
     public function test_p0_10_multi_lane_historical_data_integrity(): void
@@ -415,128 +363,51 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $this->assertSame('NL-2026-10-01', $draw->draw_reference);
     }
 
-    // =========================================================================
-    // P1: GOVERNANCE, SECURITY & API PARITY
-    // =========================================================================
-
     public function test_p1_14_kyc_document_storage_and_verification(): void
     {
+        Storage::fake('local');
         $user = User::factory()->create(['kyc_status' => KycStatus::UNVERIFIED]);
+        $reviewer = User::factory()->create();
+        $service = app(KycVerificationService::class);
 
-        $doc = KycDocument::query()->create([
-            'user_id' => $user->id,
-            'document_type' => KycDocumentType::NATIONAL_ID,
-            'file_path' => 'kyc_private/' . $user->id . '/doc_1.enc',
-            'mime_type' => 'application/pdf',
-            'file_size' => 204800,
-            'status' => KycStatus::PENDING,
-            'submitted_at' => Carbon::now(),
-        ]);
+        $upload = UploadedFile::fake()->createWithContent(
+            'identity.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j7n8AAAAASUVORK5CYII='),
+        );
 
+        $doc = $service->submitDocument($user, KycDocumentType::NationalId, $upload);
         $this->assertSame(KycStatus::PENDING, $doc->status);
 
-        $doc->update(['status' => KycStatus::VERIFIED, 'verified_at' => Carbon::now()]);
-        $user->update(['kyc_status' => KycStatus::VERIFIED]);
-
-        $this->assertSame(KycStatus::VERIFIED, $user->fresh()->kyc_status);
+        $service->reviewDocument($doc, $reviewer, true);
+        $this->assertSame(KycStatus::VERIFIED, $doc->fresh()->status);
+        $this->assertTrue($user->fresh()->kycStatus()->isVerified());
     }
 
     public function test_p1_20_prize_claim_lifecycle_state_machine(): void
     {
-        $player = User::factory()->create(['kyc_status' => KycStatus::VERIFIED]);
-
-        $draw = Draw::query()->create([
-            'draw_number' => 'CLAIM-SM-001',
-            'scheduled_at' => Carbon::now(),
-            'status' => DrawStatus::OPEN,
-            'currency' => Currency::THB,
-        ]);
-
-        $ticket = GloTicket::query()->create([
-            'draw_id' => $draw->id,
-            'owner_user_id' => $player->id,
-            'product' => 'l6',
-            'ticket_number' => '998877',
-            'set_series' => 1,
-            'price' => '80.00',
-            'currency' => Currency::THB,
-            'status' => 'active',
-            'purchased_at' => Carbon::now(),
-        ]);
-
-        $claim = GloPrizeClaim::query()->create([
-            'claim_reference' => 'CLM-CYCLE-001',
-            'ticket_id' => $ticket->id,
-            'draw_id' => $draw->id,
-            'product' => 'l6',
-            'prize_category' => 'back_two_digit',
-            'ticket_number' => '998877',
-            'gross_prize' => '2000.00',
-            'stamp_duty' => '10.00',
-            'net_prize' => '1990.00',
-            'claimant_user_id' => $player->id,
-            'identity_reference' => 'kyc:' . $player->id,
-            'age_verification_result' => 'verified',
-            'verified_age_years' => 28,
-            'original_ticket_evidenced' => true,
-            'identity_document_evidenced' => true,
-            'claim_channel' => GloClaimChannel::OnlineApp,
-            'status' => GloClaimStatus::Pending,
-            'payment_status' => 'pending',
-            'fingerprint' => hash('sha256', 'clm-cycle-001'),
-            'submitted_at' => Carbon::now(),
-        ]);
+        $f = $this->verifiedClaimFixtureForMaster();
+        $service = app(GloPrizeClaimService::class);
+        $claim = $f['claim'];
 
         $this->assertSame(GloClaimStatus::Pending, $claim->status);
 
-        $claim->status = GloClaimStatus::Approved;
-        $claim->save();
+        $eligible = $service->reviewEligible($claim, $f['approver'], 'Verified ticket and claimant');
+        $this->assertSame(GloClaimStatus::Eligible, $eligible->status);
 
-        $this->assertSame(GloClaimStatus::Approved, $claim->fresh()->status);
+        $approved = $service->approve($eligible, $f['approver'], 'Approved for payout');
+        $this->assertSame(GloClaimStatus::Approved, $approved->status);
     }
-
-    // =========================================================================
-    // P2: COMPLETENESS, RECONCILIATION & SAFEGUARDS
-    // =========================================================================
 
     public function test_p2_22_agent_and_draw_reconciliation(): void
     {
-        $agentUser = User::factory()->create();
-        $agent = Agent::query()->create([
-            'user_id' => $agentUser->id,
-            'agent_code' => 'AGT-REC-001',
-            'commission_rate' => 0.05,
-            'total_referrals' => 5,
-            'status' => AgentStatus::ACTIVE,
-            'currency' => Currency::THB,
-        ]);
+        $report = app(FinancialReconciliationService::class)->reconcile(
+            Carbon::today()->subDay(),
+            Carbon::today()->endOfDay(),
+            Currency::THB,
+            'enterprise-suite',
+        );
 
-        $draw = Draw::query()->create([
-            'draw_number' => 'DRAW-REC-001',
-            'scheduled_at' => Carbon::now()->addDay(),
-            'status' => DrawStatus::OPEN,
-            'currency' => Currency::THB,
-        ]);
-
-        $comm = AgentCommission::query()->create([
-            'agent_id' => $agent->id,
-            'draw_id' => $draw->id,
-            'reference_number' => 'COMM-REC-001',
-            'stake_amount' => '10000.00',
-            'commission_rate' => '0.0500',
-            'commission_amount' => '500.00',
-            'status' => 'accrued',
-            'currency' => Currency::THB,
-        ]);
-
-        /** @var AgentSettlementService $settleService */
-        $settleService = $this->app->make(AgentSettlementService::class);
-        $settleService->settleDrawCommissions($draw);
-
-        $comm->refresh();
-        $agent->refresh();
-
-        $this->assertSame('paid', (string) $comm->status);
-        $this->assertSame('500.00', (string) $agent->total_commission_paid);
+        $this->assertSame(ReconciliationStatus::Pass, $report->status);
+        $this->assertSame([], $report->discrepancies);
     }
 }

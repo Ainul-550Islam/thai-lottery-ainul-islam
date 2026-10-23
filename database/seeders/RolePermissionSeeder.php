@@ -29,6 +29,10 @@ class RolePermissionSeeder extends Seeder
                 // or public-status publish — those are dedicated duties.
                 'execute glo prize payments',
                 'publish glo public status',
+                'reconcile deposit checkouts',
+                'reconcile stripe deposit settlements',
+                'review stripe deposit followups',
+                'recover confirmed stripe refunds',
             ])),
             'agent' => [
                 'view dashboard',

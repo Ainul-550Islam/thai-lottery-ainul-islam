@@ -397,4 +397,42 @@ return [
 
     ],
 
+    'checkout_lookup' => [
+        'stripe' => [
+            'enabled' => (bool) env('STRIPE_CHECKOUT_LOOKUP_ENABLED', false),
+        ],
+    ],
+
+    'deposit_settlement' => [
+        'stripe' => [
+            'enabled' => (bool) env('STRIPE_DEPOSIT_SETTLEMENT_ENABLED', false),
+        ],
+    ],
+
+    'deposit_review' => [
+        'stripe' => [
+            'enabled' => (bool) env('STRIPE_DEPOSIT_REVIEW_ENABLED', false),
+            'webhook_secret' => env('STRIPE_DEPOSIT_FOLLOWUP_WEBHOOK_SECRET'),
+        ],
+    ],
+
+    'deposit_followup_routing' => [
+        'stripe' => [
+            'enabled' => (bool) env('STRIPE_DEPOSIT_FOLLOWUP_ROUTING_ENABLED', false),
+        ],
+    ],
+
+    'deposit_followup_sweep' => [
+        'stripe' => [
+            'enabled' => (bool) env('STRIPE_DEPOSIT_FOLLOWUP_SWEEP_ENABLED', false),
+            'actor_id' => env('STRIPE_DEPOSIT_FOLLOWUP_SWEEP_ACTOR_ID'),
+        ],
+    ],
+
+    'refund_recovery' => [
+        'stripe' => [
+            'enabled' => (bool) env('STRIPE_REFUND_RECOVERY_ENABLED', false),
+        ],
+    ],
+
 ];

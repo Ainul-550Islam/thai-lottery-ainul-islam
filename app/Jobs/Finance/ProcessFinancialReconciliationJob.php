@@ -139,14 +139,15 @@ class ProcessFinancialReconciliationJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Reconcile,
             'risk_level' => RiskLevel::Critical,
-            'auditable_type' => AuditLog::class,
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'ProcessFinancialReconciliationJob failed unexpectedly for %s: %s',
                 $this->currency?->value ?? 'ALL',
                 $exception->getMessage(),
             ),
             'metadata' => [
+                'lane' => 'ledger_reconciliation',
                 'currency' => $this->currency?->value,
                 'error' => $exception->getMessage(),
             ],

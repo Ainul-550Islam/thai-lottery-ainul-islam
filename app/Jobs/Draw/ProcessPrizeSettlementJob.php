@@ -12,9 +12,11 @@ use App\Enums\RiskLevel;
 use App\Exceptions\DrawLifecycleException;
 use App\Exceptions\FinancialException;
 use App\Exceptions\SettlementSimulationException;
+use App\Jobs\Draw\Concerns\HasSettlementRecoveryWindow;
 use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\SettlementRun;
+use App\Services\Draw\ChunkedSettlementOrchestrator;
 use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\RealPrizeSettlementService;
 use Illuminate\Bus\Queueable;
@@ -22,6 +24,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -41,12 +44,14 @@ use Throwable;
  */
 class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, HasSettlementRecoveryWindow, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * Maximum retry attempts before failing permanently.
      */
     public int $tries = 2;
+
+    public int $maxExceptions = 2;
 
     /**
      * Exponential backoff delays in seconds (15s, 60s).
@@ -59,6 +64,8 @@ class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
      * Execution timeout in seconds (supports high volume draws).
      */
     public int $timeout = 180;
+
+    public bool $failOnTimeout = true;
 
     /**
      * Unique lock duration in seconds.
@@ -102,6 +109,19 @@ class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
     }
 
     /**
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping('settlement-draw:'.$this->drawId))
+                ->shared()
+                ->expireAfter(300)
+                ->releaseAfter(10),
+        ];
+    }
+
+    /**
      * Execute the prize settlement.
      */
     public function handle(
@@ -121,84 +141,63 @@ class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
             return null;
         }
 
-        // Check if already settled
-        if ($draw->status === DrawStatus::Completed || $lifecycleService->currentState($draw)->isSettled()) {
-            Log::info('ProcessPrizeSettlementJob: Draw is already settled, skipping redundant execution', [
-                'draw_id' => $this->drawId,
-                'draw_number' => $draw->draw_number,
-                'status' => $draw->status->value,
-            ]);
+        $orchestrator = app(ChunkedSettlementOrchestrator::class);
+        $existingRun = $orchestrator->runFor($this->drawId);
 
-            return null;
-        }
-
-        // ── IS A CHUNKED RUN SETTLING THIS DRAW RIGHT NOW?
-        //
-        // Asked BEFORE settle() rather than inferred from its refusal, because
-        // the deferral is the point: this job has nothing to do and must come back
-        // later, not record a failure. The check is one indexed read on
-        // settlement_runs.
-        $chunkedRun = $settlementService->inFlightChunkedRun($this->drawId);
-
-        if ($chunkedRun instanceof SettlementRun) {
-            Log::info('ProcessPrizeSettlementJob: a chunked settlement run owns this draw; standing aside', [
-                'draw_id' => $this->drawId,
-                'draw_number' => $draw->draw_number,
-                'settlement_run_id' => (int) $chunkedRun->getKey(),
-                'settlement_run_status' => (string) $chunkedRun->status,
-                'bets_settled' => (int) $chunkedRun->bets_settled,
-                'bets_total' => (int) $chunkedRun->bets_total,
-                'defer_seconds' => self::CHUNKED_RUN_DEFER_SECONDS,
-            ]);
-
-            // `$this->job` is null when handle() is invoked directly (tests, and
-            // any future synchronous caller), and there is no queue to release to
-            // in that case. The guard is explicit rather than relying on the
-            // trait's null behaviour, because a caller that invokes handle() by
-            // hand must get a quiet no-op and not an exception from the release
-            // machinery.
-            if ($this->job !== null) {
-                $this->release(self::CHUNKED_RUN_DEFER_SECONDS);
+        if ($existingRun instanceof SettlementRun) {
+            if ($existingRun->status === SettlementRun::STATUS_ABORTED) {
+                return null;
             }
 
-            return null;
-        }
-
-        try {
-            return $settlementService->settle($this->drawId);
-        } catch (SettlementSimulationException $e) {
-            // ── THE RACE THE PRE-FLIGHT ABOVE CANNOT CLOSE.
-            //
-            // A chunked run can open in the milliseconds between the check and
-            // the call, or an operator can start one from the console while this
-            // job is already dispatched. In that window settle() refuses with
-            // CODE_ALREADY_RUNNING — and that specific refusal means "wait",
-            // not "this settlement is invalid".
-            //
-            // Every OTHER SettlementSimulationException still fails permanently:
-            // an unreadable result, a tampered result, a mixed-currency draw and a
-            // client-supplied payout are all facts that a retry cannot change, and
-            // burying them behind a retry loop is how a tamper signal gets lost.
-            if ($e->errorCode() === SettlementSimulationException::CODE_ALREADY_RUNNING) {
-                Log::info('ProcessPrizeSettlementJob: settle() refused because a run is already in flight; standing aside', [
-                    'draw_id' => $this->drawId,
-                    'draw_number' => $draw->draw_number,
-                    'message' => $e->getMessage(),
-                    'defer_seconds' => self::CHUNKED_RUN_DEFER_SECONDS,
-                ]);
-
-                if ($this->job !== null) {
-                    $this->release(self::CHUNKED_RUN_DEFER_SECONDS);
-                }
+            if ($existingRun->isComplete() || $draw->status === DrawStatus::Completed || $lifecycleService->currentState($draw)->isSettled()) {
+                $orchestrator->finalize($existingRun);
 
                 return null;
             }
 
+            if ($this->job !== null) {
+                if ($orchestrator->hasMoreWork($existingRun)) {
+                    SettleDrawChunkJob::dispatch($this->drawId, (int) $existingRun->getKey(), (int) $existingRun->cursor_bet_id);
+                } else {
+                    FinalizeDrawSettlementJob::dispatch($this->drawId, (int) $existingRun->getKey());
+                }
+            }
+
+            return null;
+        }
+
+        if ($draw->status === DrawStatus::Completed || $lifecycleService->currentState($draw)->isSettled()) {
+            return null;
+        }
+
+        try {
+            if ($this->job === null) {
+                $orchestrator->run($this->drawId);
+
+                return null;
+            }
+
+            $run = $orchestrator->start($this->drawId);
+
+            if ($run->status === SettlementRun::STATUS_ABORTED) {
+                return null;
+            }
+
+            if ($run->isComplete()) {
+                $orchestrator->finalize($run);
+
+                return null;
+            }
+
+            (new SettleDrawChunkJob($this->drawId, (int) $run->getKey(), (int) $run->cursor_bet_id))
+                ->handle($orchestrator);
+
+            return null;
+        } catch (SettlementSimulationException $e) {
             Log::error('ProcessPrizeSettlementJob: Permanent SettlementSimulationException encountered', [
                 'draw_id' => $this->drawId,
                 'draw_number' => $draw->draw_number,
                 'error_code' => $e->errorCode(),
-                'message' => $e->getMessage(),
             ]);
 
             $this->fail($e);
@@ -208,7 +207,6 @@ class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
             Log::error('ProcessPrizeSettlementJob: Permanent DrawLifecycleException encountered', [
                 'draw_id' => $this->drawId,
                 'draw_number' => $draw->draw_number,
-                'message' => $e->getMessage(),
             ]);
 
             $this->fail($e);
@@ -219,7 +217,6 @@ class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
                 'draw_id' => $this->drawId,
                 'draw_number' => $draw->draw_number,
                 'error_code' => $e->errorCode(),
-                'message' => $e->getMessage(),
             ]);
 
             $this->fail($e);
@@ -230,7 +227,7 @@ class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
                 'draw_id' => $this->drawId,
                 'draw_number' => $draw->draw_number,
                 'attempt' => $this->attempts(),
-                'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
             ]);
 
             throw $e;
@@ -245,7 +242,7 @@ class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
         Log::critical('ProcessPrizeSettlementJob: Job failed permanently after maximum attempts', [
             'draw_id' => $this->drawId,
             'attempts' => $this->attempts(),
-            'error' => $exception->getMessage(),
+            'exception_class' => $exception::class,
         ]);
 
         $draw = Draw::query()->find($this->drawId);
@@ -258,17 +255,12 @@ class ProcessPrizeSettlementJob implements ShouldBeUnique, ShouldQueue
                 'risk_level' => RiskLevel::Critical,
                 'auditable_type' => Draw::class,
                 'auditable_id' => $draw->id,
-                'description' => sprintf(
-                    'ProcessPrizeSettlementJob failed permanently for Draw %s after %d attempts: %s',
-                    $draw->draw_number,
-                    $this->attempts(),
-                    $exception->getMessage(),
-                ),
+                'description' => 'Prize settlement queue delivery failed; persisted run requires inspection',
                 'metadata' => [
                     'draw_id' => $draw->id,
                     'draw_number' => $draw->draw_number,
                     'attempts' => $this->attempts(),
-                    'error' => $exception->getMessage(),
+                    'exception_class' => $exception::class,
                 ],
             ]);
             $log->save();

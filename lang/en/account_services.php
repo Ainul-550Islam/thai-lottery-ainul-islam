@@ -15,7 +15,7 @@ return [
     // Browser payment-return pages (FINAL AUDIT #2). The landing route is
     // context only; the state shown is always the internal payment status.
     'payment_callback_title' => 'Payment Status',
-    'payment_callback_lead' => 'The status below is read from your payment record when this page loads. Refresh this page to see a newer recorded state.'
+    'payment_callback_lead' => 'The status below is read from your payment record when this page loads. Refresh this page to see a newer recorded state.',
     'payment_callback_state_label' => 'Payment status',
     'payment_callback_reference_label' => 'Reference',
     'payment_callback_amount_label' => 'Amount',
@@ -24,13 +24,13 @@ return [
     'payment_callback_state_failed' => 'Failed',
     'payment_callback_state_cancelled' => 'Cancelled',
     'payment_callback_state_updated' => 'Updated',
-    'payment_callback_success_lead' => 'This payment is confirmed and your wallet has been credited.',
-    'payment_callback_pending_lead' => 'The payment provider has not confirmed this payment in the record shown. A wallet credit is posted only after a verified confirmation is processed. Refresh to check for an updated state before starting another deposit.'
-    'payment_callback_failure_lead' => 'The payment record is marked failed. Check your provider account for any charge before trying again; this page shows no confirmed wallet credit.'
-    'payment_callback_cancel_lead' => 'The checkout is marked cancelled. If you see a charge at the provider, contact support before trying again.'
+    'payment_callback_success_lead' => 'The payment is marked confirmed in this record and your wallet has been credited.',
+    'payment_callback_pending_lead' => 'The payment provider has not confirmed this payment in the record shown. A wallet credit is posted only after a verified confirmation is processed. Refresh to check for an updated state before starting another deposit.',
+    'payment_callback_failure_lead' => 'The payment record is marked failed. Check your provider account for any charge before trying again; this page shows no confirmed wallet credit.',
+    'payment_callback_cancel_lead' => 'The checkout is marked cancelled. If you see a charge at the provider, contact support before trying again.',
     'payment_callback_updated_lead' => 'This payment was processed and later updated (for example a refund or dispute). Contact support for the details.',
     'payment_callback_not_found' => 'Payment reference not found',
-    'payment_callback_not_found_lead' => 'We could not match this reference to a payment on your account. If you just paid, check your wallet and payment history; contact support if the record remains missing.'
+    'payment_callback_not_found_lead' => 'We could not match this reference to a payment on your account. If you just paid, check your wallet and payment history; contact support if the record remains missing.',
     'payment_callback_back_to_wallet' => 'Go to wallet',
     'payment_callback_back_to_deposit' => 'New deposit',
     'payment_callback_disclaimer' => 'This page never confirms payments by itself: wallet balances only change after the payment provider verifies the transaction.',

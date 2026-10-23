@@ -28,6 +28,9 @@ use App\Models\LedgerEntry;
 use App\Models\Payout;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
+use App\Services\Concerns\GuardsGroupConcat;
+use App\Services\Payment\DepositProviderAccountService;
+use App\Services\Payment\WithdrawalProviderAccountService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -63,6 +66,8 @@ use Illuminate\Support\Facades\DB;
  */
 class FinancialReconciliationService
 {
+    use GuardsGroupConcat;
+
     public function __construct(
         private readonly WalletService $wallets,
     ) {
@@ -202,26 +207,17 @@ class FinancialReconciliationService
         ?Carbon $to,
         array &$discrepancies,
     ): void {
-        $rows = DB::table('ledger_entries as le')
+        $query = DB::table('ledger_entries as le')
             ->join('financial_transactions as ft', 'ft.id', '=', 'le.financial_transaction_id')
             ->where('le.currency', $currency->value)
             ->whereNull('le.deleted_at')
             ->whereNull('ft.deleted_at')
             ->when($from !== null, fn ($q) => $q->where('le.created_at', '>=', $from))
-            ->when($to !== null, fn ($q) => $q->where('le.created_at', '<=', $to))
-            ->selectRaw("
-                le.financial_transaction_id as tx_id,
-                GROUP_CONCAT(CASE WHEN le.type = 'debit' THEN le.amount END) as debit_amounts,
-                GROUP_CONCAT(CASE WHEN le.type = 'credit' THEN le.amount END) as credit_amounts,
-                COUNT(*) as entry_count
-            ")
-            ->groupBy('le.financial_transaction_id')
-            ->get();
+            ->when($to !== null, fn ($q) => $q->where('le.created_at', '<=', $to));
 
-        foreach ($rows as $row) {
-            // Amounts stay decimal strings end to end; addition is bcmath only.
-            $debits = $this->sumExactList((string) ($row->debit_amounts ?? ''));
-            $credits = $this->sumExactList((string) ($row->credit_amounts ?? ''));
+        foreach (app(ExactReconciliationReader::class)->transactions($query) as $row) {
+            $debits = $row->debits;
+            $credits = $row->credits;
 
             if (bccomp($debits, $credits, 2) !== 0) {
                 $difference = bcsub($debits, $credits, 2);
@@ -266,39 +262,57 @@ class FinancialReconciliationService
      */
     private function checkWalletLedgerParity(Currency $currency, array &$discrepancies): void
     {
-        // The wallet's ledger truth lives on ONE side of each posting: the
-        // player-liability account. Every transaction that moves a wallet posts
-        // its ledger double-entry (system account ⇄ liability account), and the
-        // liability-side entry is tagged with the wallet's id; netting those
-        // liability-side entries (credits − debits) per wallet is exactly the
-        // balance the wallet row must show. The system-side accounts (system
-        // cash, revenue, clearing) are NOT the wallet's money.
-        $liabilityAccountId = DB::table('ledger_accounts')
-            ->where('code', WalletService::ACCOUNT_PLAYER_LIABILITY)
-            ->value('id');
-
-        if ($liabilityAccountId === null) {
-            return; // chart of accounts not seeded; other checks still run
-        }
-
         $wallets = DB::table('wallets')
             ->where('currency', $currency->value)
             ->whereNull('deleted_at')
             ->select(['id', 'balance', 'locked_balance'])
             ->get();
 
-        foreach ($wallets as $wallet) {
-            $rows = DB::table('ledger_entries')
-                ->where('wallet_id', (int) $wallet->id)
-                ->where('ledger_account_id', (int) $liabilityAccountId)
-                ->where('currency', $currency->value)
-                ->whereNull('deleted_at')
-                ->selectRaw("type, GROUP_CONCAT(amount) as amounts")
-                ->groupBy('type')
-                ->pluck('amounts', 'type');
+        $liabilityCode = LedgerPostingService::accountCodeFor(WalletService::ACCOUNT_PLAYER_LIABILITY, $currency);
+        $liabilityAccountId = DB::table('ledger_accounts')
+            ->where('code', $liabilityCode)
+            ->where('currency', $currency->value)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->value('id');
 
-            $credits = $this->sumExactList((string) ($rows['credit'] ?? ''));
-            $debits = $this->sumExactList((string) ($rows['debit'] ?? ''));
+        if ($liabilityAccountId === null) {
+            if ($wallets->isNotEmpty()) {
+                $discrepancies[] = new ReconciliationDiscrepancy(
+                    entityType: 'ledger_account',
+                    entityId: null,
+                    referenceNumber: $liabilityCode,
+                    category: DiscrepancyCategory::WalletLedgerMismatch,
+                    severity: DiscrepancySeverity::Critical,
+                    expectedAmount: null,
+                    actualAmount: null,
+                    difference: null,
+                    currency: $currency->value,
+                    description: sprintf(
+                        'Currency-specific player liability account %s is missing while %d wallet(s) exist in %s.',
+                        $liabilityCode,
+                        $wallets->count(),
+                        $currency->value,
+                    ),
+                );
+            }
+
+            return;
+        }
+
+        $reader = app(ExactReconciliationReader::class);
+
+        foreach ($wallets as $wallet) {
+            $sides = $reader->sides(
+                DB::table('ledger_entries')
+                    ->where('wallet_id', (int) $wallet->id)
+                    ->where('ledger_account_id', (int) $liabilityAccountId)
+                    ->where('currency', $currency->value)
+                    ->whereNull('deleted_at')
+            );
+
+            $credits = $sides['credit'];
+            $debits = $sides['debit'];
             $net = bcsub($credits, $debits, 2);
 
             if (bccomp((string) $wallet->balance, $net, 2) !== 0) {
@@ -380,23 +394,71 @@ class FinancialReconciliationService
         ?Carbon $to,
         array &$discrepancies,
     ): void {
-        $groups = DB::table($table)
+        $modelClass = $table === 'deposits' ? Deposit::class : Withdrawal::class;
+        $accounts = app(WithdrawalProviderAccountService::class);
+        $depositAccounts = app(DepositProviderAccountService::class);
+
+        $candidates = $modelClass::withTrashed()
             ->where('currency', $currency->value)
             ->whereNotNull('provider_reference')
+            ->where('provider_reference', '!=', '')
             ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
             ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
-            ->selectRaw('provider_reference, COUNT(*) as hits, GROUP_CONCAT(id) as ids')
-            ->groupBy('provider_reference')
-            ->havingRaw('COUNT(*) > 1')
+            ->orderBy('id')
             ->get();
 
-        foreach ($groups as $group) {
-            $ids = array_map('intval', explode(',', (string) $group->ids));
+        $seenNamespaces = [];
+
+        foreach ($candidates as $candidate) {
+            $ref = (string) $candidate->provider_reference;
+            try {
+                $provider = $accounts->canonical($candidate->method->value);
+                $scope = $candidate instanceof Deposit
+                    ? $depositAccounts->stored($candidate)
+                    : $accounts->stored($candidate);
+            } catch (\Throwable) {
+                $provider = (string) $candidate->method->value;
+                $scope = 'invalid-scope';
+            }
+
+            $namespaceKey = $provider."\0".$scope."\0".$ref;
+            if (isset($seenNamespaces[$namespaceKey])) {
+                continue;
+            }
+            $seenNamespaces[$namespaceKey] = true;
+
+            $allMatchingRef = $modelClass::withTrashed()
+                ->where('provider_reference', $ref)
+                ->orderBy('id')
+                ->get();
+
+            $ids = [];
+            foreach ($allMatchingRef as $row) {
+                try {
+                    $rowProvider = $accounts->canonical($row->method->value);
+                    $rowScope = $row instanceof Deposit
+                        ? $depositAccounts->stored($row)
+                        : $accounts->stored($row);
+                } catch (\Throwable) {
+                    $rowProvider = (string) $row->method->value;
+                    $rowScope = 'invalid-scope';
+                }
+
+                if ($rowProvider === $provider && $rowScope === $scope) {
+                    $ids[] = (int) $row->id;
+                }
+            }
+
+            if (count($ids) <= 1) {
+                continue;
+            }
+
+            $refHash = substr(hash('sha256', $ref), 0, 16);
 
             $discrepancies[] = new ReconciliationDiscrepancy(
                 entityType: $label,
-                entityId: $ids[0] ?? null,
-                referenceNumber: (string) $group->provider_reference,
+                entityId: (int) $candidate->id,
+                referenceNumber: (string) $candidate->reference_number,
                 category: $category,
                 severity: DiscrepancySeverity::Critical,
                 expectedAmount: null,
@@ -404,13 +466,20 @@ class FinancialReconciliationService
                 difference: null,
                 currency: $currency->value,
                 description: sprintf(
-                    'Provider reference "%s" was booked on %d %s records (ids: %s); one provider event may have moved money twice.',
-                    (string) $group->provider_reference,
-                    (int) $group->hits,
+                    'Provider reference digest %s in namespace %s/%s was booked on %d %s records (ids: %s); one provider event may have moved money twice.',
+                    $refHash,
+                    $provider,
+                    $scope,
+                    count($ids),
                     $label,
-                    (string) $group->ids,
+                    implode(',', $ids),
                 ),
-                details: ['record_ids' => $ids],
+                details: [
+                    'record_ids' => $ids,
+                    'provider' => $provider,
+                    'account_scope' => $scope,
+                    'reference_sha256' => hash('sha256', $ref),
+                ],
             );
         }
     }
@@ -515,14 +584,38 @@ class FinancialReconciliationService
             $linkBroken = ! $linkMissing && $row->ft_status === null;
             $amountDrift = ! $linkMissing && ! $linkBroken
                 && bccomp($expectedJournal, (string) $row->ft_amount, 2) !== 0;
+            $proofBroken = false;
 
             if (! ($linkMissing || $linkBroken || $amountDrift)) {
+                try {
+                    if ($table === 'deposits') {
+                        $depositModel = Deposit::withTrashed()->find((int) $row->id);
+                        if (! $depositModel instanceof Deposit || $depositModel->trashed()) {
+                            $proofBroken = true;
+                        } else {
+                            app(DepositCompletionService::class)->verifySettled($depositModel);
+                        }
+                    } else {
+                        $withdrawalModel = Withdrawal::withTrashed()->find((int) $row->id);
+                        if (! $withdrawalModel instanceof Withdrawal || $withdrawalModel->trashed()) {
+                            $proofBroken = true;
+                        } else {
+                            app(WithdrawalCompletionService::class)->verifySettled($withdrawalModel);
+                        }
+                    }
+                } catch (\Throwable) {
+                    $proofBroken = true;
+                }
+            }
+
+            if (! ($linkMissing || $linkBroken || $amountDrift || $proofBroken)) {
                 continue;
             }
 
             [$actual, $difference, $why] = match (true) {
                 $linkMissing => [null, null, 'has no financial transaction linked at all'],
                 $linkBroken => [null, null, 'points at a financial transaction that no longer exists'],
+                $proofBroken => [null, null, 'failed canonical original settlement and ledger proof verification'],
                 default => [
                     (string) $row->ft_amount,
                     bcsub((string) $row->ft_amount, $expectedJournal, 2),
@@ -605,7 +698,7 @@ class FinancialReconciliationService
             ->where('status', PayoutStatus::Completed->value)
             ->where('currency', $currency->value)
             ->whereNull('deleted_at')
-            ->selectRaw('bet_id, COUNT(*) as hits, GROUP_CONCAT(id) as ids, GROUP_CONCAT(reference_number) as refs')
+            ->selectRaw("bet_id, COUNT(*) as hits, {$this->groupConcatSql('id')} as ids, {$this->groupConcatSql('reference_number')} as refs")
             ->groupBy('bet_id')
             ->havingRaw('COUNT(*) > 1')
             ->get();
@@ -746,8 +839,15 @@ class FinancialReconciliationService
 
         foreach ($wallets as $wallet) {
             $available = bcsub((string) $wallet->balance, (string) $wallet->locked_balance, 2);
+            $balanceNegative = bccomp((string) $wallet->balance, '0', 2) < 0;
+            $lockedNegative = bccomp((string) $wallet->locked_balance, '0', 2) < 0;
 
-            if (bccomp($available, '0', 2) < 0) {
+            if ($balanceNegative || $lockedNegative || bccomp($available, '0', 2) < 0) {
+                $badAmount = match (true) {
+                    $balanceNegative => (string) $wallet->balance,
+                    $lockedNegative => (string) $wallet->locked_balance,
+                    default => $available,
+                };
                 $discrepancies[] = new ReconciliationDiscrepancy(
                     entityType: 'wallet',
                     entityId: (int) $wallet->id,
@@ -755,8 +855,8 @@ class FinancialReconciliationService
                     category: DiscrepancyCategory::NegativeAvailableBalance,
                     severity: DiscrepancySeverity::Critical,
                     expectedAmount: '0.00',
-                    actualAmount: $available,
-                    difference: $available,
+                    actualAmount: $badAmount,
+                    difference: $badAmount,
                     currency: $currency->value,
                     description: sprintf(
                         'Wallet #%d would spend negative: balance %s minus locked %s leaves %s %s.',
@@ -1015,28 +1115,27 @@ class FinancialReconciliationService
             ->when($from !== null, fn ($q) => $q->where('placed_at', '>=', $from))
             ->when($to !== null, fn ($q) => $q->where('placed_at', '<=', $to));
 
-        $ledgerSums = DB::table('ledger_entries')
-            ->where('currency', $currency->value)
-            ->whereNull('deleted_at')
-            ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
-            ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
-            ->selectRaw("type, GROUP_CONCAT(amount) as amounts")
-            ->groupBy('type')
-            ->get()
-            ->keyBy('type');
+        $reader = app(ExactReconciliationReader::class);
 
-        $debits = $this->sumExactList((string) ($ledgerSums['debit']->amounts ?? ''));
-        $credits = $this->sumExactList((string) ($ledgerSums['credit']->amounts ?? ''));
+        $sides = $reader->sides(
+            DB::table('ledger_entries')
+                ->where('currency', $currency->value)
+                ->whereNull('deleted_at')
+                ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
+                ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to)),
+        );
+        $debits = $sides['debit'];
+        $credits = $sides['credit'];
 
         return [
             // SQL SUM() is avoided on purpose: the platform stores money as
             // decimal strings, and bcmath chaining is the only addition that
             // is guaranteed exact on every driver.
-            'deposits' => $this->sumExact($depositSums->pluck('amount')->all()),
-            'bet_purchases' => $this->sumExact($betSums->pluck('stake_amount')->all()),
-            'prize_payouts' => $this->sumExact($payoutSums->pluck('amount')->all()),
-            'withdrawals' => $this->sumExact($withdrawalSums->pluck('amount')->all()),
-            'commissions' => $this->sumExact($commissionSums->pluck('commission_amount')->all()),
+            'deposits' => $reader->sum($depositSums, 'amount'),
+            'bet_purchases' => $reader->sum($betSums, 'stake_amount'),
+            'prize_payouts' => $reader->sum($payoutSums, 'amount'),
+            'withdrawals' => $reader->sum($withdrawalSums, 'amount'),
+            'commissions' => $reader->sum($commissionSums, 'commission_amount'),
             'ledger_debits' => $debits,
             'ledger_credits' => $credits,
             'ledger_difference' => bcsub($debits, $credits, 2),
@@ -1122,8 +1221,8 @@ class FinancialReconciliationService
             'user_id' => null,
             'action' => AuditAction::Reconcile,
             'risk_level' => $report->status->isCritical() ? RiskLevel::High : RiskLevel::Low,
-            'auditable_type' => 'reconciliation',
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'Financial reconciliation %s executed by %s: status=%s anomalies=%d critical=%d currency=%s period=%s..%s.',
                 $report->executionId,
@@ -1136,6 +1235,7 @@ class FinancialReconciliationService
                 $report->periodEnd?->toDateString() ?? 'open',
             ),
             'metadata' => [
+                'lane' => 'reconciliation',
                 'execution_id' => $report->executionId,
                 'status' => $report->status->value,
                 'anomaly_count' => $report->anomalyCount,

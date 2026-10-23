@@ -75,11 +75,14 @@ x-app-env: &app-env
   APP_ENV: production
   APP_DEBUG: "false"
   LOG_CHANNEL: stderr
+  APP_KEY_FILE: /run/secrets/app_key
   DB_CONNECTION: mysql
   DB_HOST: db
   DB_PORT: "3306"
+  DB_PASSWORD_FILE: /run/secrets/db_password
   REDIS_HOST: redis
   REDIS_PORT: "6379"
+  REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
   CACHE_STORE: redis
   SESSION_DRIVER: redis
   QUEUE_CONNECTION: redis
@@ -272,8 +275,10 @@ services:
     environment:
       WORKER_BIND: "0.0.0.0:9101"
       RUST_LOG: "info"
+      PRIZE_PAYOUT_SAFETY_MODE: "${PRIZE_PAYOUT_SAFETY_MODE:-DISABLED}"
       DATABASE_URL_FILE: /run/secrets/database_url
-    secrets: [database_url]
+      SETTLEMENT_WORKER_HMAC_SECRET_FILE: /run/secrets/settlement_worker_hmac_secret
+    secrets: [database_url, settlement_worker_hmac_secret]
     depends_on:
       db:
         condition: service_healthy
@@ -299,4 +304,6 @@ secrets:
   db_root_password:
     external: true
   database_url:
+    external: true
+  settlement_worker_hmac_secret:
     external: true

@@ -25,6 +25,8 @@ RUN apk add --no-cache \
         git \
         unzip \
         libpng-dev \
+        libjpeg-turbo-dev \
+        freetype-dev \
         libzip-dev \
         oniguruma-dev \
         icu-dev \
@@ -32,8 +34,10 @@ RUN apk add --no-cache \
         nodejs \
         npm
 
-RUN docker-php-ext-install -j"$(nproc)" \
+RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
+    && docker-php-ext-install -j"$(nproc)" \
         bcmath \
+        gd \
         intl \
         opcache \
         pcntl \
@@ -79,7 +83,11 @@ RUN composer dump-autoload --optimize --classmap-authoritative --no-dev
 FROM php:${PHP_VERSION}-fpm-alpine AS runtime
 
 RUN apk add --no-cache \
+        fcgi \
+        freetype \
         icu-libs \
+        libjpeg-turbo \
+        libpng \
         libzip \
         oniguruma \
         postgresql-libs \
@@ -89,13 +97,18 @@ RUN apk add --no-cache \
     && rm -rf /var/cache/apk/*
 
 COPY --from=build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
-COPY --from=build /usr/local/etc/php/conf.d /usr/local/etc/php/conf.d
+COPY --from=build /usr/local/etc/php/conf.d /usr/local/lib/php/conf.d-stage1
+RUN cp -a /usr/local/lib/php/conf.d-stage1/. /usr/local/etc/php/conf.d/ \
+    && rm -rf /usr/local/lib/php/conf.d-stage1
 COPY --from=build /usr/local/bin/docker-php-entrypoint /usr/local/bin/
 
+COPY docker/php/laravel-entrypoint.sh /usr/local/bin/laravel-entrypoint.sh
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-app.ini
 COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/zz-app.conf
 
-RUN addgroup -g 10001 -S app \
+RUN printf '#!/bin/sh\nset -eu\nSCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong\n' > /usr/local/bin/php-fpm-healthcheck \
+    && chmod 0755 /usr/local/bin/laravel-entrypoint.sh /usr/local/bin/php-fpm-healthcheck \
+    && addgroup -g 10001 -S app \
     && adduser -u 10001 -S app -G app -h /var/www/html -s /sbin/nologin
 
 WORKDIR /var/www/html
@@ -117,11 +130,12 @@ USER app
 
 # tini reaps zombies: php-fpm spawns and reaps children, but a worker that
 # double-forks (or a crashed Horizon supervisor) can orphan processes and fill
-# the PID table of the container.
-ENTRYPOINT ["/sbin/tini", "--", "docker-php-entrypoint"]
+# the PID table of the container. laravel-entrypoint.sh loads *_FILE secrets
+# and execs docker-php-entrypoint with full signal propagation.
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/laravel-entrypoint.sh"]
 CMD ["php-fpm", "--nodaemonize"]
 
 EXPOSE 9000
 
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 --start-period=30s \
-    CMD php-fpm-healthcheck || exit 1
+    CMD /usr/local/bin/php-fpm-healthcheck

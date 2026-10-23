@@ -22,6 +22,11 @@ enum ConversionFeeBearer: string
         };
     }
 
+    public function labelKey(): string
+    {
+        return 'wallet_conversion.fee_bearer_'.$this->value;
+    }
+
     public static function fromConfig(mixed $value): self
     {
         return self::tryFrom(is_string($value) ? strtolower(trim($value)) : '')

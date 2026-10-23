@@ -6,336 +6,239 @@ namespace App\Services\Prize;
 
 use App\Enums\AuditAction;
 use App\Enums\ClaimWindowStatus;
+use App\Enums\PayoutStatus;
+use App\Enums\PrizeClaimStatus;
 use App\Enums\RiskLevel;
-use App\Exceptions\ClaimWindowExpiredException;
+use App\Exceptions\PrizeClaimException;
 use App\Models\AuditLog;
 use App\Models\Bet;
 use App\Models\Payout;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
-/**
- * The writer and enforcer of prize CLAIM WINDOWS — the time slice in which a
- * winner may lawfully assert their prize.
- *
- * WHERE THE WINDOW LIVES
- * ----------------------
- * The window rides on the payout row, in metadata.claim_window, beside the
- * claim record itself: a prize window is born when somebody first touches the
- * prize (a claim submission registers Open), it ages purely by the clock,
- * and it is closed exactly once — by this service — either when the prize is
- * paid (Closed: nothing left to assert) or when the sweeper finds its
- * deadline passed (Closed: lapsed).
- *
- * HOW WINDOW STATE IS COMPUTED
- * ----------------------------
- * There is no "expired rows" query that requires manual refresh each second:
- * for a payout whose stored window status is Open, the CURRENT status is
- * derived status(SQL "Open" + window_closes_at ≤ now). The stored status is
- * only mutated on real transitions. CloseExpiredClaimWindowsJob walks this
- * derivation to stamp the transition exactly once — replay the same sweep
- * and nothing changes twice.
- *
- * WHY assertOpen THROWS
- * A claim against a closed/lapsed window is not a business rule failure the
- * caller decides how to render; the refusal is part of the sweep/window
- * contract, so it surfaces as ClaimWindowExpiredException from the window
- * service itself down to whoever (claim flow, validation flow) asked.
- */
-class ClaimWindowService
+final class ClaimWindowService
 {
-    /**
-     * The payout metadata key storing the window record.
-     */
     public const METADATA_KEY = 'claim_window';
 
-    /**
-     * How many days after the win the window stays open. Config-backed
-     * (lottery.claims.window_days); the GLO-parity default is 730.
-     */
+    public const DEFAULT_WINDOW_DAYS = 730;
+
     public function windowDays(): int
     {
-        $configured = config('lottery.claims.window_days');
-
-        return is_numeric($configured) && (int) $configured >= 0
-            ? (int) $configured
-            : 730;
-    }
-
-    /**
-     * Register an OPEN window on a payout, anchored at the bet's draw
-     * completion day (falling back to won_at when draws predate that stamp).
-     * Idempotent: registering where any window record exists leaves it alone
-     * and returns the stored one verbatim — a prize never restarts its own
-     * statute of limitations.
-     *
-     * @return array{status: string, window_closes_at: string, opened_at: string, closed_at: string|null}
-     */
-    public function register(Payout $payout, Bet $bet): array
-    {
-        $existing = $this->windowRecord($payout);
-
-        if (is_array($existing)) {
-            return [
-                'status' => (string) $existing['status'],
-                'window_closes_at' => (string) ($existing['window_closes_at'] ?? ''),
-                'opened_at' => (string) ($existing['opened_at'] ?? ''),
-                'closed_at' => isset($existing['closed_at']) && is_scalar($existing['closed_at']) ? (string) $existing['closed_at'] : null,
-            ];
+        $raw = config('lottery.claims.window_days', self::DEFAULT_WINDOW_DAYS);
+        if ((! is_int($raw) && ! (is_string($raw) && ctype_digit($raw))) || (int) $raw < 1 || (int) $raw > 3650) {
+            throw PrizeClaimException::stateForbids(0, 'invalid_window_days', 'configure_window');
         }
 
-        $anchor = $bet->draw?->completed_at ?? $bet->won_at;
-        $closesAt = $anchor instanceof \Illuminate\Support\Carbon
-            ? $anchor->copy()->addDays($this->windowDays())
-            : now()->addDays($this->windowDays());
-
-        $record = [
-            'status' => ClaimWindowStatus::Open->value,
-            'opened_at' => now()->toIso8601String(),
-            'window_closes_at' => $closesAt->toIso8601String(),
-            'closed_at' => null,
-        ];
-
-        $metadata = is_array($payout->metadata) ? $payout->metadata : [];
-        $metadata[self::METADATA_KEY] = $record;
-
-        $payout->metadata = $metadata;
-        $payout->save();
-
-        return $record;
+        return (int) $raw;
     }
 
     /**
-     * The CURRENT status of a payout's window: stored state collapsed against
-     * the clock (Open-but-deadline-passed reads as Expired for every caller,
-     * whether or not the sweep has stamped it yet).
+     * @return array<string, mixed>
      */
-    public function statusFor(Payout $payout): ClaimWindowStatus
+    public function register(Payout $payout, Bet $bet, ?Carbon $openedAt = null): array
     {
-        $record = $this->windowRecord($payout);
+        return DB::transaction(function () use ($payout, $bet, $openedAt): array {
+            /** @var Payout $locked */
+            $locked = Payout::withTrashed()->lockForUpdate()->findOrFail($payout->getKey());
+            /** @var Bet $freshBet */
+            $freshBet = Bet::withTrashed()->lockForUpdate()->findOrFail($bet->getKey());
 
-        if (! is_array($record)) {
-            // No registered window yet means the prize has never been touched;
-            // it presents as Open (claim flow will register it on first claim).
-            return ClaimWindowStatus::Open;
-        }
-
-        $stored = is_string($record['status'] ?? null) ? $record['status'] : '';
-
-        $status = ClaimWindowStatus::tryFrom($stored) ?? ClaimWindowStatus::Open;
-
-        if ($status === ClaimWindowStatus::Open && $this->closesAtOf($record)->isPast()) {
-            return ClaimWindowStatus::Expired;
-        }
-
-        return $status;
-    }
-
-    /**
-     * Whether a claim may be submitted right now against this payout.
-     */
-    public function allowsClaim(Payout $payout): bool
-    {
-        return $this->statusFor($payout)->allowsClaim();
-    }
-
-    /**
-     * The deadline timestamp, or null when no window exists.
-     */
-    public function closesAtFor(Payout $payout): ?\Illuminate\Support\Carbon
-    {
-        $record = $this->windowRecord($payout);
-
-        return is_array($record) ? $this->closesAtOf($record) : null;
-    }
-
-    /**
-     * HARD enforcement, per the summary above: a claim against a window that
-     * is not Open-living is refused loudly, named by where it lives (expired
-     * by time vs stamped closed already).
-     *
-     * @throws ClaimWindowExpiredException
-     */
-    public function assertOpen(Payout $payout, int $betId): void
-    {
-        $status = $this->statusFor($payout);
-
-        if ($status === ClaimWindowStatus::Open) {
-            return;
-        }
-
-        $record = $this->windowRecord($payout) ?? [];
-
-        if ($status === ClaimWindowStatus::Closed && isset($record['closed_at']) && is_scalar($record['closed_at'])) {
-            throw ClaimWindowExpiredException::alreadyClosed(
-                $betId,
-                (string) $record['closed_at'],
-                ['payout_id' => (int) $payout->getKey()],
-            );
-        }
-
-        throw ClaimWindowExpiredException::expired(
-            $betId,
-            (string) ($record['window_closes_at'] ?? ''),
-            ['payout_id' => (int) $payout->getKey()],
-        );
-    }
-
-    /**
-     * Mark a payout's window CLOSED because the prize was paid inside it —
-     * the winning road of closure. Called by the payout completion lane (or
-     * the payout batch job once the payout completes), never by sweeping.
-     *
-     * @throws ClaimWindowExpiredException when the window was even pseudo--
-     * closed already (a second payment closure is itself an anomaly).
-     */
-    public function closeAsPaid(Payout $payout): void
-    {
-        $status = $this->statusFor($payout);
-
-        if ($status !== ClaimWindowStatus::Open) {
-            $record = $this->windowRecord($payout) ?? [];
-
-            if ($status === ClaimWindowStatus::Closed && isset($record['closed_at']) && is_scalar($record['closed_at'])) {
-                throw ClaimWindowExpiredException::alreadyClosed(
-                    $payout->bet_id !== null ? (int) $payout->bet_id : 0,
-                    (string) $record['closed_at'],
-                    ['payout_id' => (int) $payout->getKey()],
-                );
+            $guard = app(PrizeClaimGuard::class);
+            $guard->assertIdentity($freshBet, $locked);
+            if ($guard->resolve($freshBet, true)?->id !== $locked->id) {
+                $guard->refuse($locked);
             }
 
-            throw ClaimWindowExpiredException::expired(
-                $payout->bet_id !== null ? (int) $payout->bet_id : 0,
-                (string) ($record['window_closes_at'] ?? ''),
-                ['payout_id' => (int) $payout->getKey()],
-            );
+            $metadata = is_array($locked->metadata) ? $locked->metadata : [];
+            if (array_key_exists(self::METADATA_KEY, $metadata)) {
+                if (! is_array($metadata[self::METADATA_KEY]) || ! $guard->hasWindowSnapshot($locked)) {
+                    $guard->refuse($locked);
+                }
+
+                return $metadata[self::METADATA_KEY];
+            }
+
+            $guard->assertMutable($locked);
+
+            $anchor = $this->anchorForBet($freshBet, $openedAt);
+            $days = $this->windowDays();
+            $closesAt = $anchor->copy()->addDays($days);
+            $iso = $closesAt->toIso8601String();
+
+            $window = [
+                'status' => ClaimWindowStatus::Open->value,
+                'opened_at' => $anchor->toIso8601String(),
+                'closes_at' => $iso,
+                'window_closes_at' => $iso,
+                'window_days' => $days,
+                'closed_at' => null,
+                'facts_hash' => $guard->windowFingerprint($locked, $iso),
+            ];
+
+            $metadata[self::METADATA_KEY] = $window;
+            $locked->metadata = $metadata;
+            $locked->save();
+
+            AuditLog::query()->create([
+                'user_id' => $locked->user_id,
+                'action' => AuditAction::Create,
+                'risk_level' => RiskLevel::Low,
+                'auditable_type' => Payout::class,
+                'auditable_id' => (int) $locked->getKey(),
+                'description' => sprintf('Prize claim window opened for payout #%d; closes %s.', (int) $locked->getKey(), $iso),
+                'new_values' => ['claim_window' => $window],
+                'metadata' => ['payout_id' => (int) $locked->getKey()],
+            ]);
+
+            return $window;
+        }, 3);
+    }
+
+    public function closesAtFor(Payout $payout, ?Bet $bet = null): ?Carbon
+    {
+        $guard = app(PrizeClaimGuard::class);
+        $metadata = is_array($payout->metadata) ? $payout->metadata : [];
+
+        if (array_key_exists(self::METADATA_KEY, $metadata)) {
+            $window = $metadata[self::METADATA_KEY];
+            if (! is_array($window) || ! $guard->hasWindowSnapshot($payout)) {
+                return null;
+            }
+
+            return $guard->deadline($window['window_closes_at'] ?? null);
         }
 
-        $stamp = $this->windowRecord($payout) ?? [];
-        $stamp['status'] = ClaimWindowStatus::Closed->value;
-        $stamp['closed_at'] = now()->toIso8601String();
-        $stamp['closed_via'] = 'paid';
+        $resolvedBet = $bet ?? ($payout->bet_id !== null ? Bet::withTrashed()->find((int) $payout->bet_id) : null);
+        if (! $resolvedBet instanceof Bet || $guard->resolve($resolvedBet)?->id !== $payout->id) {
+            return null;
+        }
 
-        $this->writeRecord($payout, $stamp);
+        $anchor = $resolvedBet->draw?->completed_at ?? $resolvedBet->won_at;
+        if (! $anchor instanceof Carbon) {
+            return null;
+        }
 
-        $this->recordAudit($payout, 'Window closed (prize paid within window)', RiskLevel::Low);
+        return $anchor->copy()->addDays($this->windowDays());
+    }
+
+    public function statusFor(Payout $payout, ?Carbon $now = null): ClaimWindowStatus
+    {
+        if ($payout->trashed()) {
+            return ClaimWindowStatus::Closed;
+        }
+
+        $guard = app(PrizeClaimGuard::class);
+        $metadata = is_array($payout->metadata) ? $payout->metadata : [];
+
+        if (! array_key_exists(self::METADATA_KEY, $metadata)) {
+            $closesAt = $this->closesAtFor($payout);
+            if (! $closesAt instanceof Carbon) {
+                return ClaimWindowStatus::Expired;
+            }
+
+            return ($now ?? Carbon::now())->lt($closesAt)
+                ? ClaimWindowStatus::Open
+                : ClaimWindowStatus::Expired;
+        }
+
+        $window = $metadata[self::METADATA_KEY];
+        if (! is_array($window)) {
+            return ClaimWindowStatus::Closed;
+        }
+
+        $stored = is_string($window['status'] ?? null) ? $window['status'] : '';
+        $status = ClaimWindowStatus::tryFrom($stored);
+        if ($status === null) {
+            return ClaimWindowStatus::Closed;
+        }
+
+        if ($status === ClaimWindowStatus::Closed || $status === ClaimWindowStatus::Expired) {
+            return $status;
+        }
+
+        if (! $guard->hasWindowSnapshot($payout)) {
+            return ClaimWindowStatus::Closed;
+        }
+
+        $closesAt = $guard->deadline($window['window_closes_at'] ?? null);
+        if (! $closesAt instanceof Carbon) {
+            return ClaimWindowStatus::Closed;
+        }
+
+        return ($now ?? Carbon::now())->lt($closesAt)
+            ? ClaimWindowStatus::Open
+            : ClaimWindowStatus::Expired;
+    }
+
+    public function isOpen(Payout $payout, ?Carbon $now = null): bool
+    {
+        if ($payout->trashed() || $payout->status !== PayoutStatus::Pending) {
+            return false;
+        }
+
+        return $this->statusFor($payout, $now) === ClaimWindowStatus::Open;
+    }
+
+    public function allowsClaim(Payout $payout, ?Carbon $now = null): bool
+    {
+        if ($payout->trashed() || $payout->status !== PayoutStatus::Pending) {
+            return false;
+        }
+
+        $claimStatus = data_get($payout->metadata, 'claim.status');
+        if (in_array($claimStatus, [
+            PrizeClaimStatus::Paid->value,
+            PrizeClaimStatus::Rejected->value,
+            PrizeClaimStatus::Expired->value,
+        ], true)) {
+            return false;
+        }
+
+        return $this->isOpen($payout, $now);
     }
 
     /**
-     * The closing sweep: walk every registered window whose stored state is
-     * Open and whose deadline has passed, stamp it Expired → (in the same
-     * write) Closed — the ledger face-turn is one idempotent mutation. The
-     * two-step-into-one write is what makes a second sweep a no-op for the
-     * same rows.
-     *
-     * @return array{closed_count: int, total_lapsed_amount: string}
+     * @return array<string, mixed>
+     */
+    public function closeAsPaid(Payout $payout, ?Carbon $paidAt = null): array
+    {
+        $completion = app(PrizeClaimCompletionService::class);
+        $completion->assertEvidence($payout);
+        $completion->complete($payout);
+
+        $fresh = $payout->fresh();
+        $window = is_array($fresh?->metadata[self::METADATA_KEY] ?? null) ? $fresh->metadata[self::METADATA_KEY] : null;
+        if (! is_array($window) || ($window['status'] ?? null) !== ClaimWindowStatus::Closed->value) {
+            app(PrizeClaimGuard::class)->refuse($payout);
+        }
+
+        return $window;
+    }
+
+    /**
+     * @return array<string, mixed>
      */
     public function closeExpired(?int $chunkSize = null): array
     {
-        $chunkSize ??= 200;
-        $now = now()->toIso8601String();
-
-        $closed = 0;
-        $total = '0.00';
-
-        Payout::query()
-            ->whereNotNull('metadata')
-            ->whereNull('deleted_at')
-            ->whereRaw("json_extract(metadata, '$.claim_window.status') = ?", [ClaimWindowStatus::Open->value])
-            ->whereRaw("json_extract(metadata, '$.claim_window.window_closes_at') < ?", [$now])
-            ->orderBy('id')
-            ->chunkById($chunkSize, function ($payouts) use (&$closed, &$total): bool {
-                foreach ($payouts as $payout) {
-                    $record = $this->windowRecord($payout) ?? [];
-
-                    $record['status'] = ClaimWindowStatus::Closed->value;
-                    $record['closed_at'] = now()->toIso8601String();
-                    $record['closed_via'] = 'expired';
-
-                    $this->writeRecord($payout, $record);
-
-                    $closed++;
-                    $total = bcadd($total, (string) $payout->amount, 2);
-
-                    $this->recordAudit($payout, sprintf(
-                        'Window closed: deadline %s passed with no payment',
-                        (string) ($record['window_closes_at'] ?? ''),
-                    ), RiskLevel::High);
-                }
-
-                return true;
-            });
+        $out = app(PrizeExpiryService::class)->run('window', $chunkSize);
 
         return [
-            'closed_count' => $closed,
-            'total_lapsed_amount' => $total,
+            'closed_count' => $out['count'],
+            'total_lapsed_amount' => $out['single_currency_total'],
+            'totals_by_currency' => $out['totals_by_currency'],
+            'skipped_candidates' => $out['skipped_candidates'],
+            'annotation_only' => $out['annotation_only'],
+            'executed_at' => $out['executed_at'],
         ];
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function windowRecord(Payout $payout): ?array
+    private function anchorForBet(Bet $bet, ?Carbon $fallback): Carbon
     {
-        $metadata = is_array($payout->metadata) ? $payout->metadata : [];
-        $record = $metadata[self::METADATA_KEY] ?? null;
-
-        return is_array($record) ? $record : null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $record
-     */
-    private function closesAtOf(array $record): \Illuminate\Support\Carbon
-    {
-        $raw = $record['window_closes_at'] ?? null;
-
-        if (is_string($raw) && $raw !== '') {
-            return \Illuminate\Support\Carbon::parse($raw);
+        $anchor = $bet->draw?->completed_at ?? $bet->won_at ?? $fallback;
+        if (! $anchor instanceof Carbon) {
+            throw PrizeClaimException::stateForbids((int) $bet->getKey(), 'missing_draw_timestamp', 'open_claim_window');
         }
 
-        // No stored edge: the window never closes (should not happen for a
-        // properly registered record — register() always pins an edge).
-        return now()->addYears(100);
-    }
-
-    /**
-     * @param  array<string, mixed>  $stamp
-     */
-    private function writeRecord(Payout $payout, array $stamp): void
-    {
-        $metadata = is_array($payout->metadata) ? $payout->metadata : [];
-        $metadata[self::METADATA_KEY] = $stamp;
-
-        $payout->metadata = $metadata;
-        $payout->save();
-    }
-
-    private function recordAudit(Payout $payout, string $description, RiskLevel $riskLevel): void
-    {
-        $log = new AuditLog();
-
-        $log->fill([
-            'user_id' => null,
-            'action' => AuditAction::Update,
-            'risk_level' => $riskLevel,
-            'auditable_type' => Payout::class,
-            'auditable_id' => $payout->getKey(),
-            'description' => sprintf(
-                'Prize claim window %s on payout #%d (%s %s)',
-                $description,
-                (int) $payout->getKey(),
-                (string) $payout->amount,
-                $payout->currency->value,
-            ),
-            'metadata' => [
-                'payout_id' => (int) $payout->getKey(),
-                'payout_reference' => (string) $payout->reference_number,
-                'amount' => (string) $payout->amount,
-                'currency' => $payout->currency->value,
-                'action' => 'claim_window_closed',
-            ],
-        ]);
-
-        $log->save();
+        return $anchor;
     }
 }

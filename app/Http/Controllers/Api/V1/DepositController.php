@@ -12,6 +12,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Deposit;
 use App\Models\Wallet;
 use App\Services\Finance\Money;
+use App\Services\Payment\DepositCheckoutService;
 use App\Services\Payment\PaymentInitiationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -111,7 +112,7 @@ final class DepositController
 
         $method = PaymentMethod::from($validated['method']);
         $amount = Money::of($request->amount(), $currency);
-        $idempotencyKey = $validated['idempotency_key'] ?? $request->header('X-Idempotency-Key');
+        $idempotencyKey = (string) $validated['idempotency_key'];
 
         try {
             $result = $this->initiationService->initiateDeposit(
@@ -124,6 +125,29 @@ final class DepositController
         } catch (FinancialException $exception) {
             $code = $exception->errorCode() ?? 'deposit_request_refused';
 
+            if ($code === 'checkout_outcome_unknown') {
+                $owned = Deposit::query()
+                    ->useWritePdo()
+                    ->where('user_id', $user->id)
+                    ->whereIn('idempotency_key', [
+                        $idempotencyKey,
+                        'deposit-init:'.$idempotencyKey,
+                        'deposit:'.$wallet->id.':'.$idempotencyKey,
+                    ])
+                    ->first();
+
+                return ApiResponse::error(
+                    code: $code,
+                    message: 'Deposit checkout state is pending reconciliation; do not resubmit with a new key.',
+                    status: 409,
+                    details: $owned instanceof Deposit ? [
+                        'deposit_uuid' => $owned->uuid,
+                        'reference_number' => $owned->reference_number,
+                        'checkout' => app(DepositCheckoutService::class)->status($owned),
+                    ] : $exception->context(),
+                );
+            }
+
             return ApiResponse::error(
                 code: $code,
                 message: 'The deposit could not be initiated with the requested details.',
@@ -132,6 +156,7 @@ final class DepositController
         }
 
         $gatewayResponse = $result['gateway_response'];
+        $replayed = (bool) ($result['replayed'] ?? false);
         $instructions = is_array($gatewayResponse->metadata['instructions'] ?? null)
             ? array_intersect_key($gatewayResponse->metadata['instructions'], array_flip([
                 'bank_name',
@@ -163,9 +188,10 @@ final class DepositController
                     'redirect_url' => $gatewayResponse->redirectUrl,
                     'instructions' => $instructions,
                 ],
+                'replayed' => $replayed,
             ],
             message: 'Deposit initiated successfully.',
-            status: 201,
+            status: $replayed ? 200 : 201,
         );
     }
 
@@ -209,6 +235,7 @@ final class DepositController
                 'method' => $deposit->method->value,
                 'confirmed_at' => $deposit->confirmed_at?->toIso8601String(),
                 'failed_at' => $deposit->failed_at?->toIso8601String(),
+                'checkout' => app(DepositCheckoutService::class)->status($deposit),
             ],
             message: 'Deposit retrieved successfully.',
         );

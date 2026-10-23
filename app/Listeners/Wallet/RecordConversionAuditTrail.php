@@ -8,6 +8,7 @@ use App\Events\Wallet\ConversionCompleted;
 use App\Events\Wallet\ConversionRejected;
 use App\Events\Wallet\ConversionReversed;
 use App\Models\AuditLog;
+use App\Models\WalletConversion;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
@@ -55,6 +56,18 @@ class RecordConversionAuditTrail
 
             [$action, $reference, $userId, $payload] = $this->describe($event);
 
+            $subject = match (true) {
+                $event instanceof ConversionCompleted => $event->conversion->getKey() !== null
+                    ? $event->conversion
+                    : WalletConversion::query()->where('reference', $event->reference)->first(),
+                $event instanceof ConversionReversed => $event->reversal->getKey() !== null
+                    ? $event->reversal
+                    : WalletConversion::query()->where('reference', $event->reversalReference)->first(),
+                default => null,
+            };
+
+            $subjectKey = $subject instanceof WalletConversion ? $subject->getKey() : null;
+
             AuditLog::query()->create([
                 'user_id' => $userId,
                 'action' => $action,
@@ -62,10 +75,10 @@ class RecordConversionAuditTrail
                 // trail without parsing the action string: a completed movement is
                 // routine, a reversal is an intervention worth surfacing.
                 'risk_level' => $event instanceof ConversionReversed ? 'medium' : 'low',
-                'auditable_type' => 'wallet_conversion',
-                'auditable_id' => $reference,
+                'auditable_type' => $subjectKey === null ? null : WalletConversion::class,
+                'auditable_id' => $subjectKey === null ? null : (int) $subjectKey,
                 'description' => $this->describeSentence($action, $reference),
-                'metadata' => $payload,
+                'metadata' => $payload + ['lane' => 'wallet_conversion'],
                 'ip_address' => null,
             ]);
         } catch (Throwable $exception) {

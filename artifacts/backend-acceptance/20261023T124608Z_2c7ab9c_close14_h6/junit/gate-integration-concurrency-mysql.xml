@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="CLI Arguments" tests="13" assertions="124" errors="0" failures="1" skipped="0" time="24.734527">
+    <testsuite name="Tests\Integration\Concurrency\PasswordLifecycleRealEngineTest" file="/home/user/tests/Integration/Concurrency/PasswordLifecycleRealEngineTest.php" tests="1" assertions="7" errors="0" failures="1" skipped="0" time="12.294195">
+      <testsuite name="Tests\Integration\Concurrency\PasswordLifecycleRealEngineTest::test_password_lifecycle_holds_under_multi_process_load" tests="1" assertions="7" errors="0" failures="1" skipped="0" time="12.294195">
+        <testcase name="test_password_lifecycle_holds_under_multi_process_load with data set &quot;mysql 127.0.0.1:3306&quot;" file="/home/user/tests/Integration/Concurrency/PasswordLifecycleRealEngineTest.php" line="80" class="Tests\Integration\Concurrency\PasswordLifecycleRealEngineTest" classname="Tests.Integration.Concurrency.PasswordLifecycleRealEngineTest" assertions="7" time="12.294195">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Integration\Concurrency\PasswordLifecycleRealEngineTest::test_password_lifecycle_holds_under_multi_process_load with data set "mysql 127.0.0.1:3306"
+a login succeeded with an already-superseded password:
+{
+    "engine": "mysql 127.0.0.1:3306\/thai_lottery_test",
+    "workers": 5,
+    "loginAttempts": 160,
+    "loginSuccesses": 35,
+    "changeAttempts": 12,
+    "changesCommitted": 12,
+    "expectedFinalPassword": "Concurrency-Charlie-3!",
+    "residualWindowHits": 0,
+    "lockErrors": [],
+    "sessionsTotal": 31,
+    "sessionsWithUser": 7
+}
+[
+    {
+        "password": "Concurrency-Bravo-2!",
+        "startedAt": 1792766917.397713,
+        "success": true,
+        "sessionBinding": "785fd18d2e78c593f3f3f3ee22875630249dca79f645563c964643df6a9fb4db",
+        "endedAt": 1792766917.400221,
+        "currentAtStart": "Concurrency-Alpha-1!",
+        "currentAtEnd": "Concurrency-Alpha-1!"
+    },
+    {
+        "password": "Concurrency-Bravo-2!",
+        "startedAt": 1792766917.475273,
+        "success": true,
+        "sessionBinding": "a6d0370d3c8b655858f2e208bc69abe1fcb59a90f48ecae8df8f29aa5f4fece9",
+        "endedAt": 1792766917.478327,
+        "currentAtStart": "Concurrency-Alpha-1!",
+        "currentAtEnd": "Concurrency-Alpha-1!"
+    },
+    {
+        "password": "Concurrency-Delta-4!",
+        "startedAt": 1792766917.506251,
+        "success": true,
+        "sessionBinding": "4ab5bd910769f400e5086e6e52efd943c9878ce19c1b63e5c5a287db69d4d4f8",
+        "endedAt": 1792766917.509991,
+        "currentAtStart": "Concurrency-Charlie-3!",
+        "currentAtEnd": "Concurrency-Charlie-3!"
+    },
+    {
+        "password": "Concurrency-Charlie-3!",
+        "startedAt": 1792766917.566773,
+        "success": true,
+        "sessionBinding": "9229037aaa0ea5cd271356344e6dca081950cb76f983aab8f8521f376d9abc95",
+        "endedAt": 1792766917.571782,
+        "currentAtStart": "Concurrency-Bravo-2!",
+        "currentAtEnd": "Concurrency-Bravo-2!"
+    },
+    {
+        "password": "Concurrency-Bravo-2!",
+        "startedAt": 1792766917.385241,
+        "success": true,
+        "sessionBinding": "785fd18d2e78c593f3f3f3ee22875630249dca79f645563c964643df6a9fb4db",
+        "endedAt": 1792766917.389246,
+        "currentAtStart": "Concurrency-Alpha-1!",
+        "currentAtEnd": "Concurrency-Alpha-1!"
+    },
+    {
+        "password": "Concurrency-Delta-4!",
+        "startedAt": 1792766917.434021,
+        "success": true,
+        "sessionBinding": "8c44067791f593f01b05031ddcc1cc529915efb012f5d08d79835f900a559562",
+        "endedAt": 1792766917.438098,
+        "currentAtStart": "Concurrency-Charlie-3!",
+        "currentAtEnd": "Concurrency-Charlie-3!"
+    },
+    {
+        "password": "Concurrency-Charlie-3!",
+        "startedAt": 1792766917.486318,
+        "success": true,
+        "sessionBinding": "da84027dcc1a043fd70e4f1ad2d7d4d04d60ca88218736c39b3eb3b284bdcb97",
+        "endedAt": 1792766917.489523,
+        "currentAtStart": "Concurrency-Bravo-2!",
+        "currentAtEnd": "Concurrency-Bravo-2!"
+    },
+    {
+        "password": "Concurrency-Bravo-2!",
+        "startedAt": 1792766917.476536,
+        "success": true,
+        "sessionBinding": "a6d0370d3c8b655858f2e208bc69abe1fcb59a90f48ecae8df8f29aa5f4fece9",
+        "endedAt": 1792766917.478889,
+        "currentAtStart": "Concurrency-Alpha-1!",
+        "currentAtEnd": "Concurrency-Alpha-1!"
+    }
+]
+Failed asserting that two arrays are identical.
+--- Expected
++++ Actual
+@@ @@
+-Array &amp;0 []
++Array &amp;0 [
++    0 =&gt; Array &amp;1 [
++        'password' =&gt; 'Concurrency-Bravo-2!',
++        'startedAt' =&gt; 1792766917.397713,
++        'success' =&gt; true,
++        'sessionBinding' =&gt; '785fd18d2e78c593f3f3f3ee22875630249dca79f645563c964643df6a9fb4db',
++        'endedAt' =&gt; 1792766917.400221,
++        'currentAtStart' =&gt; 'Concurrency-Alpha-1!',
++        'currentAtEnd' =&gt; 'Concurrency-Alpha-1!',
++    ],
++    1 =&gt; Array &amp;2 [
++        'password' =&gt; 'Concurrency-Bravo-2!',
++        'startedAt' =&gt; 1792766917.475273,
++        'success' =&gt; true,
++        'sessionBinding' =&gt; 'a6d0370d3c8b655858f2e208bc69abe1fcb59a90f48ecae8df8f29aa5f4fece9',
++        'endedAt' =&gt; 1792766917.478327,
++        'currentAtStart' =&gt; 'Concurrency-Alpha-1!',
++        'currentAtEnd' =&gt; 'Concurrency-Alpha-1!',
++    ],
++    2 =&gt; Array &amp;3 [
++        'password' =&gt; 'Concurrency-Delta-4!',
++        'startedAt' =&gt; 1792766917.506251,
++        'success' =&gt; true,
++        'sessionBinding' =&gt; '4ab5bd910769f400e5086e6e52efd943c9878ce19c1b63e5c5a287db69d4d4f8',
++        'endedAt' =&gt; 1792766917.509991,
++        'currentAtStart' =&gt; 'Concurrency-Charlie-3!',
++        'currentAtEnd' =&gt; 'Concurrency-Charlie-3!',
++    ],
++    3 =&gt; Array &amp;4 [
++        'password' =&gt; 'Concurrency-Charlie-3!',
++        'startedAt' =&gt; 1792766917.566773,
++        'success' =&gt; true,
++        'sessionBinding' =&gt; '9229037aaa0ea5cd271356344e6dca081950cb76f983aab8f8521f376d9abc95',
++        'endedAt' =&gt; 1792766917.571782,
++        'currentAtStart' =&gt; 'Concurrency-Bravo-2!',
++        'currentAtEnd' =&gt; 'Concurrency-Bravo-2!',
++    ],
++    4 =&gt; Array &amp;5 [
++        'password' =&gt; 'Concurrency-Bravo-2!',
++        'startedAt' =&gt; 1792766917.385241,
++        'success' =&gt; true,
++        'sessionBinding' =&gt; '785fd18d2e78c593f3f3f3ee22875630249dca79f645563c964643df6a9fb4db',
++        'endedAt' =&gt; 1792766917.389246,
++        'currentAtStart' =&gt; 'Concurrency-Alpha-1!',
++        'currentAtEnd' =&gt; 'Concurrency-Alpha-1!',
++    ],
++    5 =&gt; Array &amp;6 [
++        'password' =&gt; 'Concurrency-Delta-4!',
++        'startedAt' =&gt; 1792766917.434021,
++        'success' =&gt; true,
++        'sessionBinding' =&gt; '8c44067791f593f01b05031ddcc1cc529915efb012f5d08d79835f900a559562',
++        'endedAt' =&gt; 1792766917.438098,
++        'currentAtStart' =&gt; 'Concurrency-Charlie-3!',
++        'currentAtEnd' =&gt; 'Concurrency-Charlie-3!',
++    ],
++    6 =&gt; Array &amp;7 [
++        'password' =&gt; 'Concurrency-Charlie-3!',
++        'startedAt' =&gt; 1792766917.486318,
++        'success' =&gt; true,
++        'sessionBinding' =&gt; 'da84027dcc1a043fd70e4f1ad2d7d4d04d60ca88218736c39b3eb3b284bdcb97',
++        'endedAt' =&gt; 1792766917.489523,
++        'currentAtStart' =&gt; 'Concurrency-Bravo-2!',
++        'currentAtEnd' =&gt; 'Concurrency-Bravo-2!',
++    ],
++    7 =&gt; Array &amp;8 [
++        'password' =&gt; 'Concurrency-Bravo-2!',
++        'startedAt' =&gt; 1792766917.476536,
++        'success' =&gt; true,
++        'sessionBinding' =&gt; 'a6d0370d3c8b655858f2e208bc69abe1fcb59a90f48ecae8df8f29aa5f4fece9',
++        'endedAt' =&gt; 1792766917.478889,
++        'currentAtStart' =&gt; 'Concurrency-Alpha-1!',
++        'currentAtEnd' =&gt; 'Concurrency-Alpha-1!',
++    ],
++]
+
+/home/user/tests/Integration/Concurrency/PasswordLifecycleRealEngineTest.php:120</failure>
+        </testcase>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Tests\Integration\Glo\GloDealerAndNotificationIntegrationTest" file="/home/user/tests/Integration/Glo/GloDealerAndNotificationIntegrationTest.php" tests="3" assertions="15" errors="0" failures="0" skipped="0" time="8.565871">
+      <testcase name="test_full_dealer_location_change_notify_flow" file="/home/user/tests/Integration/Glo/GloDealerAndNotificationIntegrationTest.php" line="73" class="Tests\Integration\Glo\GloDealerAndNotificationIntegrationTest" classname="Tests.Integration.Glo.GloDealerAndNotificationIntegrationTest" assertions="12" time="7.781022"/>
+      <testcase name="test_concurrent_style_double_location_same_day_only_one_row" file="/home/user/tests/Integration/Glo/GloDealerAndNotificationIntegrationTest.php" line="163" class="Tests\Integration\Glo\GloDealerAndNotificationIntegrationTest" classname="Tests.Integration.Glo.GloDealerAndNotificationIntegrationTest" assertions="1" time="0.396448"/>
+      <testcase name="test_double_approve_same_request_only_one_state" file="/home/user/tests/Integration/Glo/GloDealerAndNotificationIntegrationTest.php" line="179" class="Tests\Integration\Glo\GloDealerAndNotificationIntegrationTest" classname="Tests.Integration.Glo.GloDealerAndNotificationIntegrationTest" assertions="2" time="0.388402"/>
+    </testsuite>
+    <testsuite name="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" tests="8" assertions="81" errors="0" failures="0" skipped="0" time="3.822599">
+      <testcase name="test_happy_path_claim_without_freeze_settles_to_paid_once" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" line="129" class="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" classname="Tests.Integration.Glo.GloFreezeClaimSettlementIntegrationTest" assertions="8" time="0.435970"/>
+      <testcase name="test_freeze_claim_hold_release_approve_pay_flow" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" line="165" class="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" classname="Tests.Integration.Glo.GloFreezeClaimSettlementIntegrationTest" assertions="19" time="0.702976"/>
+      <testcase name="test_state_machine_invariants_reject_illegal_transitions" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" line="253" class="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" classname="Tests.Integration.Glo.GloFreezeClaimSettlementIntegrationTest" assertions="11" time="0.462471"/>
+      <testcase name="test_unique_constraints_support_concurrency_idempotency" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" line="322" class="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" classname="Tests.Integration.Glo.GloFreezeClaimSettlementIntegrationTest" assertions="7" time="0.458879"/>
+      <testcase name="test_concurrent_style_double_claim_and_double_pay" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" line="355" class="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" classname="Tests.Integration.Glo.GloFreezeClaimSettlementIntegrationTest" assertions="4" time="0.458324"/>
+      <testcase name="test_transactional_pay_rolls_back_on_conflict" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" line="394" class="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" classname="Tests.Integration.Glo.GloFreezeClaimSettlementIntegrationTest" assertions="5" time="0.414819"/>
+      <testcase name="test_audit_log_written_for_freeze_claim_and_payment" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" line="420" class="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" classname="Tests.Integration.Glo.GloFreezeClaimSettlementIntegrationTest" assertions="23" time="0.445600"/>
+      <testcase name="test_no_wallet_or_payout_lane_is_touched_by_glo_payment" file="/home/user/tests/Integration/Glo/GloFreezeClaimSettlementIntegrationTest.php" line="449" class="Tests\Integration\Glo\GloFreezeClaimSettlementIntegrationTest" classname="Tests.Integration.Glo.GloFreezeClaimSettlementIntegrationTest" assertions="4" time="0.443559"/>
+    </testsuite>
+    <testsuite name="Tests\Integration\MigrationSchemaTest" file="/home/user/tests/Integration/MigrationSchemaTest.php" tests="1" assertions="21" errors="0" failures="0" skipped="0" time="0.051862">
+      <testcase name="test_core_tables_are_created" file="/home/user/tests/Integration/MigrationSchemaTest.php" line="13" class="Tests\Integration\MigrationSchemaTest" classname="Tests.Integration.MigrationSchemaTest" assertions="21" time="0.051862"/>
+    </testsuite>
+  </testsuite>
+</testsuites>

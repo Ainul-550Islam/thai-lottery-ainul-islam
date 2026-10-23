@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ce7475be455495c5db5b1f9e50e20a52",
+    "content-hash": "250b3b068ffd565ecf5491d4f5bb8f5e",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -10309,7 +10309,7 @@
         },
         {
             "name": "symfony/yaml",
-            "version": "v7.4.17",
+            "version": "v7.4.18",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/yaml.git",
@@ -10361,7 +10361,7 @@
             "description": "Loads and dumps YAML files",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/yaml/tree/v7.4.17"
+                "source": "https://github.com/symfony/yaml/tree/v7.4.18"
             },
             "funding": [
                 {
@@ -10443,8 +10443,6 @@
         "php": "^8.4"
     },
     "platform-dev": {},
-    "platform-overrides": {
-        "php": "8.4.1"
-    },
+    "platform-overrides": [],
     "plugin-api-version": "2.6.0"
 }

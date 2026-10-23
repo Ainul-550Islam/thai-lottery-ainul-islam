@@ -57,16 +57,17 @@ class WalletConversionActionController
 
         return redirect()
             ->route('player.wallet.conversion', ['direction' => $quote->direction->value])
-            ->with('status', sprintf(
-                'Quote ready: %s %s becomes %s %s after a %s %s fee. It expires in %d seconds.',
-                $quote->amountIn,
-                $quote->currency->value,
-                $quote->amountOut,
-                $quote->currency->value,
-                $quote->feeAmount,
-                $quote->currency->value,
-                $quote->secondsRemaining(),
-            ))
+            ->withInput([
+                'direction' => $quote->direction->value,
+                'amount' => $quote->amountIn,
+            ])
+            ->with('status', __('wallet_conversion.flash_quote_ready', [
+                'amount' => $quote->amountIn,
+                'currency' => $quote->currency->value,
+                'net' => $quote->amountOut,
+                'fee' => $quote->feeAmount,
+                'seconds' => $quote->secondsRemaining(),
+            ]))
             ->with('conversion_quote_reference', $quote->reference);
     }
 
@@ -83,17 +84,19 @@ class WalletConversionActionController
             return $this->backWithRefusal($exception);
         }
 
+        $walletLabel = \Illuminate\Support\Facades\Lang::has($result->direction->toType()->labelKey())
+            ? __($result->direction->toType()->labelKey())
+            : $result->direction->toType()->label();
+
         $message = $result->replayed
-            ? sprintf('That conversion was already completed. Reference %s.', $result->reference)
-            : sprintf(
-                'Converted. %s %s arrived in your %s wallet after a %s %s fee. Reference %s.',
-                $result->amountOut,
-                $result->currency->value,
-                $result->direction->toType()->label(),
-                $result->feeAmount,
-                $result->currency->value,
-                $result->reference,
-            );
+            ? __('wallet_conversion.status_replayed', ['reference' => $result->reference])
+            : __('wallet_conversion.status_converted', [
+                'net' => $result->amountOut,
+                'currency' => $result->currency->value,
+                'wallet' => $walletLabel,
+                'fee' => $result->feeAmount,
+                'reference' => $result->reference,
+            ]);
 
         return redirect()
             ->route('player.wallet.conversion.show', ['reference' => $result->reference])
@@ -117,9 +120,15 @@ class WalletConversionActionController
             'context' => $exception->context(),
         ]);
 
+        $code = (string) $exception->errorCode();
+        $reasonKey = 'wallet_conversion.rejection_'.$code;
+        $message = \Illuminate\Support\Facades\Lang::has($reasonKey)
+            ? __($reasonKey)
+            : $exception->getMessage();
+
         return redirect()
             ->route('player.wallet.conversion')
-            ->with('error', $exception->getMessage())
-            ->with('conversion_error_code', $exception->errorCode());
+            ->with('error', $message)
+            ->with('conversion_error_code', $code);
     }
 }

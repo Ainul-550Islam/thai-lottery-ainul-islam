@@ -197,4 +197,20 @@ class WalletConversionRepository implements ConversionRepositoryContract
 
         return $counts;
     }
+
+    public function completedVolumeInForUser(int $userId): string
+    {
+        $total = '0.00';
+
+        WalletConversion::query()
+            ->forUser($userId)
+            ->where('status', WalletConversionStatus::Completed->value)
+            ->select(['id', 'amount_in'])
+            ->lazyById(500, 'id')
+            ->each(static function (WalletConversion $conversion) use (&$total): void {
+                $total = bcadd($total, (string) $conversion->getRawOriginal('amount_in'), 2);
+            });
+
+        return $total;
+    }
 }

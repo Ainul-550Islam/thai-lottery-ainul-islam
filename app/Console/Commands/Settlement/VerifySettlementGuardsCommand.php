@@ -4,26 +4,32 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\Settlement;
 
+use App\Console\Commands\Lottery\VerifySettlementGuardsCommand as LotteryVerifySettlementGuardsCommand;
+use App\Services\Draw\ResultSourceAuthorityService;
+use App\Services\Draw\SettlementPayoutInvariantService;
+use App\Services\ResponsibleGaming\SelfExclusionReleaseGate;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
-/** Read-only periodic inventory of completed draws requiring settlement evidence review. */
+/** Read-only periodic inventory and verification of settled draws against settlement guards. */
 final class VerifySettlementGuardsCommand extends Command
 {
-    protected $signature = 'settlement:verify-guards';
-    protected $description = 'Verify that completed draws are visible to settlement guard review';
+    protected $signature = 'settlement:verify-guards
+        {--draw= : Verify one draw by id}
+        {--recent= : How many recently settled draws to walk}
+        {--release : Also report accounts sitting in the self-exclusion activation gap}';
 
-    public function handle(): int
-    {
-        $count = Schema::hasTable('settlement_runs')
-            ? DB::table('settlement_runs')->where('status', 'completed')->count()
-            : 0;
-        if ($count === 0) {
-            $this->info('No settled draws to verify.');
-            return self::SUCCESS;
-        }
-        $this->line(sprintf('%d completed draw(s) are present for settlement guard review.', $count));
-        return self::SUCCESS;
+    protected $description = 'Check that published results, paid payouts and draw counters still agree';
+
+    public function handle(
+        ResultSourceAuthorityService $authority,
+        SettlementPayoutInvariantService $payouts,
+        SelfExclusionReleaseGate $releaseGate,
+    ): int {
+        $delegate = new LotteryVerifySettlementGuardsCommand;
+        $delegate->setLaravel($this->getLaravel());
+        $delegate->setInput($this->input);
+        $delegate->setOutput($this->output);
+
+        return $delegate->handle($authority, $payouts, $releaseGate);
     }
 }

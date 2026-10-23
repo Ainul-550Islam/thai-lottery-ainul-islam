@@ -9,6 +9,7 @@ use App\Enums\Currency;
 use App\Models\Agent;
 use App\Models\AgentCommission;
 use App\Models\Bet;
+use App\Models\User;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -32,10 +33,50 @@ class AgentCommissionAccrualService
     public function accrueForBet(Bet $bet): array
     {
         return DB::transaction(function () use ($bet): array {
-            $directAgent = $this->referrals->resolveAgentForUser((int) $bet->user_id);
+            $existing = AgentCommission::withTrashed()
+                ->where('bet_id', $bet->getKey())
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
 
-            if (! $directAgent instanceof Agent) {
+            if ($existing->isNotEmpty()) {
+                return $existing->all();
+            }
+
+            $user = User::query()->whereKey($bet->user_id)->lockForUpdate()->first();
+            $directHint = $user instanceof User ? $this->referrals->resolveAgentForUser($user) : null;
+
+            if (! $directHint instanceof Agent) {
                 return [];
+            }
+
+            $hierarchyEnabled = (bool) $this->config->get('agent.hierarchy.enabled', true);
+            $parentHintId = ($hierarchyEnabled && $directHint->parent_agent_id !== null)
+                ? (int) $directHint->parent_agent_id
+                : null;
+
+            $agentIds = array_values(array_unique(array_filter([(int) $directHint->id, $parentHintId])));
+            sort($agentIds, SORT_NUMERIC);
+
+            $agents = Agent::withTrashed()
+                ->select('agents.*')
+                ->selectRaw('CAST(total_commission_earned AS CHAR) AS exact_earned, CAST(total_commission_paid AS CHAR) AS exact_paid')
+                ->whereIn('id', $agentIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $directAgent = $agents->get((int) $directHint->id);
+            $betCurrency = $bet->currency ?? Currency::THB;
+
+            if (! $directAgent instanceof Agent || $directAgent->trashed() || ! $directAgent->canEarnCommission()) {
+                return [];
+            }
+
+            if ($directAgent->currency !== $betCurrency
+                || ($hierarchyEnabled && $directAgent->parent_agent_id !== $parentHintId)) {
+                app(BetCommissionCancellation::class)->refuse();
             }
 
             $created = [];
@@ -44,33 +85,72 @@ class AgentCommissionAccrualService
             $directCalc = $this->calculator->calculate($bet, $directAgent, 1);
 
             if (bccomp($directCalc->commissionAmount, '0.00', 2) > 0) {
-                $directCommission = $this->createCommissionRecord($directAgent, $bet, $directCalc->commissionRate, $directCalc->baseAmount, $directCalc->commissionAmount, 1);
+                $directCommission = $this->createCommissionRecord(
+                    $directAgent,
+                    $bet,
+                    $directCalc->commissionRate,
+                    $directCalc->baseAmount,
+                    $directCalc->commissionAmount,
+                    1,
+                );
                 $created[] = $directCommission;
 
-                $directAgent->total_commission_earned = bcadd((string) $directAgent->total_commission_earned, $directCalc->commissionAmount, 2);
-                $directAgent->save();
+                $newEarned = bcadd((string) $directAgent->exact_earned, $directCalc->commissionAmount, 2);
+                DB::table('agents')->where('id', $directAgent->id)->update([
+                    'total_commission_earned' => $newEarned,
+                    'updated_at' => Carbon::now(),
+                ]);
+                $directAgent->total_commission_earned = $newEarned;
+                $directAgent->setAttribute('exact_earned', $newEarned);
             }
 
             // 2. Level 2: Parent Agent Hierarchy Commission (if configured & parent is active)
-            $hierarchyEnabled = (bool) $this->config->get('agent.hierarchy.enabled', true);
-            if ($hierarchyEnabled && $directAgent->parent_agent_id !== null) {
-                $parentAgent = Agent::query()->find($directAgent->parent_agent_id);
+            if ($parentHintId !== null) {
+                $parentAgent = $agents->get($parentHintId);
 
-                if ($parentAgent instanceof Agent && $parentAgent->canEarnCommission()) {
+                if (! $parentAgent instanceof Agent || $parentAgent->trashed()) {
+                    app(BetCommissionCancellation::class)->refuse();
+                }
+
+                if ($parentAgent->canEarnCommission()) {
+                    if ($parentAgent->currency !== $betCurrency) {
+                        app(BetCommissionCancellation::class)->refuse();
+                    }
+
                     $parentCalc = $this->calculator->calculate($bet, $parentAgent, 2);
 
                     if (bccomp($parentCalc->commissionAmount, '0.00', 2) > 0) {
-                        $parentCommission = $this->createCommissionRecord($parentAgent, $bet, $parentCalc->commissionRate, $parentCalc->baseAmount, $parentCalc->commissionAmount, 2);
+                        $parentCommission = $this->createCommissionRecord(
+                            $parentAgent,
+                            $bet,
+                            $parentCalc->commissionRate,
+                            $parentCalc->baseAmount,
+                            $parentCalc->commissionAmount,
+                            2,
+                        );
                         $created[] = $parentCommission;
 
-                        $parentAgent->total_commission_earned = bcadd((string) $parentAgent->total_commission_earned, $parentCalc->commissionAmount, 2);
-                        $parentAgent->save();
+                        $newParentEarned = bcadd((string) $parentAgent->exact_earned, $parentCalc->commissionAmount, 2);
+                        DB::table('agents')->where('id', $parentAgent->id)->update([
+                            'total_commission_earned' => $newParentEarned,
+                            'updated_at' => Carbon::now(),
+                        ]);
+                        $parentAgent->total_commission_earned = $newParentEarned;
+                        $parentAgent->setAttribute('exact_earned', $newParentEarned);
                     }
                 }
             }
 
             return $created;
         });
+    }
+
+    /**
+     * @return list<AgentCommission>
+     */
+    public function accrue(Bet $bet): array
+    {
+        return $this->accrueForBet($bet);
     }
 
     private function createCommissionRecord(

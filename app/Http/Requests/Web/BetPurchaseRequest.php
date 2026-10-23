@@ -55,11 +55,26 @@ class BetPurchaseRequest extends FormRequest
             'draw_id' => ['required_without:draw_reference', 'integer', 'min:1'],
             'draw_reference' => ['required_without:draw_id', 'string', 'max:128'],
 
+            'user_id' => ['prohibited'],
+            'wallet_id' => ['prohibited'],
+            'status' => ['prohibited'],
+            'multiplier' => ['prohibited'],
+            'payout' => ['prohibited'],
+            'potential_payout' => ['prohibited'],
+            'ticket_number' => ['prohibited'],
+
             'client_key' => ['required', 'string', 'min:8', 'max:128', 'regex:/^[A-Za-z0-9._:-]+$/'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.market' => ['required', 'string', 'max:32'],
             'items.*.number' => ['required', 'string', 'min:1', 'max:6', 'regex:/^[0-9]+$/'],
             'items.*.stake' => ['required', 'string', 'regex:/^\d{1,12}(?:\.\d{1,2})?$/'],
+            'items.*.user_id' => ['prohibited'],
+            'items.*.wallet_id' => ['prohibited'],
+            'items.*.status' => ['prohibited'],
+            'items.*.multiplier' => ['prohibited'],
+            'items.*.payout' => ['prohibited'],
+            'items.*.potential_payout' => ['prohibited'],
+            'items.*.ticket_number' => ['prohibited'],
         ];
     }
 
@@ -68,6 +83,17 @@ class BetPurchaseRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             if (! $this->filled('draw_id') && ! $this->filled('draw_reference')) {
                 $validator->errors()->add('draw_id', (string) trans('player.draw_selection_invalid'));
+
+                return;
+            }
+
+            if ($this->filled('draw_id') && $this->filled('draw_reference')) {
+                $byId = Draw::query()->whereKey((int) $this->input('draw_id'))->first();
+                $byReference = Draw::query()->where('draw_number', trim((string) $this->input('draw_reference')))->first();
+
+                if ($byId === null || $byReference === null || ! $byId->is($byReference)) {
+                    $validator->errors()->add('draw_reference', (string) trans('player.draw_selection_invalid'));
+                }
             }
         });
     }

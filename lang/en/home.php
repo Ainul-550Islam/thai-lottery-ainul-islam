@@ -3,7 +3,7 @@
 return [
     'meta_title' => 'ThaiLotto — Lottery Results and Information',
     'meta_description' => 'View published lottery results, draw schedules, ticket-checking information, and configured services. Confirm details against authoritative sources.',
-    'independent_disclaimer' => 'This is an independent platform, not the official GLO website and not affiliated with GLO. Result availability and source labels vary by product.',
+    'independent_disclaimer' => 'This is an independent platform, not the official GLO website and not affiliated with the Government Lottery Office. Result availability and source labels vary by product.',
     'hero_title' => 'Lottery Results & Ticket Information',
     'hero_lead' => 'Browse published result information, configured schedules and available ticket-checking tools. Verify results against authoritative sources.',
     'cta_results' => 'Latest Results',
@@ -225,7 +225,7 @@ return [
         'badge' => 'Configured Access Links',
         'ios_btn' => 'Download for iOS',
         'android_btn' => 'Download for Android',
-        'pwa_btn' => 'Instant Web App',
+        'pwa_btn' => 'Open Web App',
     ],
     'payments' => [
         'title' => 'Payment Information',

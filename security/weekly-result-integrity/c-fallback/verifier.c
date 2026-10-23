@@ -86,6 +86,16 @@ static bool is_valid_utf8(const unsigned char *s, size_t len) {
     return true;
 }
 
+static size_t utf8_char_count(const unsigned char *s, size_t len) {
+    size_t count = 0;
+    for (size_t i = 0; i < len; i++) {
+        if ((s[i] & 0xC0) != 0x80) {
+            count++;
+        }
+    }
+    return count;
+}
+
 static bool has_unicode_control(const unsigned char *s, size_t len) {
     size_t i = 0;
     while (i < len) {
@@ -531,7 +541,7 @@ int main(void) {
     }
 
     if (doc.source_identifier.present && !doc.source_identifier.is_null) {
-        if (doc.source_identifier.len > 191 ||
+        if (utf8_char_count((const unsigned char *)doc.source_identifier.value, doc.source_identifier.len) > 191 ||
             has_unicode_control((const unsigned char *)doc.source_identifier.value, doc.source_identifier.len)) {
             emit_report("REJECTED", false, NULL, -1, "INVALID_ENCODING", "source_identifier");
             return 2;

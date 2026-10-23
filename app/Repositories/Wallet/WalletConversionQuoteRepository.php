@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Repositories\Wallet;
 
+use App\Enums\WalletConversionRejectionReason;
+use App\Exceptions\Wallet\ConversionException;
 use App\Models\WalletConversionQuote;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Persistence for conversion quotes.
@@ -36,10 +39,42 @@ class WalletConversionQuoteRepository
 
     public function findByReferenceForUpdate(string $reference): ?WalletConversionQuote
     {
+        $this->assertTransactionBoundary();
+
         return WalletConversionQuote::query()
             ->where('reference', $reference)
             ->lockForUpdate()
             ->first();
+    }
+
+    /**
+     * Ensure the member has an available open-quote slot inside the caller's
+     * active SQL transaction.
+     */
+    public function assertOpenSlotAvailableForExecution(int $userId, int $maxOpen, ?Carbon $cutoff = null): void
+    {
+        $this->assertTransactionBoundary();
+
+        $effective = max(1, $maxOpen);
+        $at = ($cutoff ?? Carbon::now())->copy()->startOfSecond();
+
+        $ids = WalletConversionQuote::query()
+            ->where('user_id', $userId)
+            ->where('status', 'open')
+            ->whereNull('converted_id')
+            ->whereNull('consumed_at')
+            ->where('expires_at', '>', $at)
+            ->orderBy('id')
+            ->limit($effective)
+            ->lockForUpdate()
+            ->pluck('id');
+
+        if ($ids->count() >= $effective) {
+            throw ConversionException::failure(
+                WalletConversionRejectionReason::RateLimited->value,
+                WalletConversionRejectionReason::RateLimited->label().'.',
+            );
+        }
     }
 
     /**
@@ -48,6 +83,8 @@ class WalletConversionQuoteRepository
      */
     public function consume(WalletConversionQuote $quote, int $conversionId): WalletConversionQuote
     {
+        $this->assertTransactionBoundary();
+
         $quote->forceFill([
             'converted_id' => $conversionId,
             'consumed_at' => Carbon::now(),
@@ -67,7 +104,7 @@ class WalletConversionQuoteRepository
         return WalletConversionQuote::query()
             ->where('user_id', $userId)
             ->open()
-            ->where('expires_at', '>', Carbon::now())
+            ->where('expires_at', '>', Carbon::now()->copy()->startOfSecond())
             ->orderByDesc('id')
             ->limit($limit)
             ->get();
@@ -78,7 +115,7 @@ class WalletConversionQuoteRepository
         return WalletConversionQuote::query()
             ->where('user_id', $userId)
             ->open()
-            ->where('expires_at', '>', Carbon::now())
+            ->where('expires_at', '>', Carbon::now()->copy()->startOfSecond())
             ->count();
     }
 
@@ -90,14 +127,6 @@ class WalletConversionQuoteRepository
     {
         $now ??= Carbon::now();
 
-        // WHY `status = 'open'` AS WELL AS THE SCOPE
-        // `open()` answers "is this quote still spendable?" — and it is still true
-        // of a quote whose clock ran out but which nobody has relabelled yet. The
-        // sweep therefore matched the same expired row on every tick and reported
-        // `1` each time it ran, forever. That number is the platform's only signal
-        // of how many members are holding a dead price, and a counter that never
-        // falls to zero cannot show a backlog starting or ending. A quote is
-        // expired exactly once: while its status is still `open`.
         return WalletConversionQuote::query()
             ->open()
             ->where('status', '=', 'open')
@@ -119,5 +148,15 @@ class WalletConversionQuoteRepository
             ->orderByDesc('id')
             ->limit($limit)
             ->get();
+    }
+
+    private function assertTransactionBoundary(): void
+    {
+        if (DB::transactionLevel() < 1 || ! DB::connection()->getPdo()->inTransaction()) {
+            throw ConversionException::failure(
+                'transaction_required',
+                'Decisive quote operation requires an active SQL transaction.',
+            );
+        }
     }
 }

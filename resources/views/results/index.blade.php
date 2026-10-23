@@ -19,6 +19,9 @@
             <p class="max-w-3xl mx-auto text-base text-gray-300 leading-relaxed">
                 {{ __('results.lead') }}
             </p>
+            <p id="results-disclaimer" data-results-disclaimer class="max-w-3xl mx-auto text-xs text-gray-400 leading-relaxed">
+                {{ __('results.independent_notice') }}
+            </p>
         </section>
 
         <section class="flex flex-col sm:flex-row justify-center gap-3" aria-label="{{ __('results.title') }} actions">

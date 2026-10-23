@@ -122,4 +122,10 @@ interface ConversionRepositoryContract
      * @return array<string, int>
      */
     public function statusCountsForUser(int $userId): array;
+
+    /**
+     * Exact total of amount_in across the member's completed conversions, as a
+     * two-decimal string. Summed in PHP with bcmath, never with floating point.
+     */
+    public function completedVolumeInForUser(int $userId): string;
 }

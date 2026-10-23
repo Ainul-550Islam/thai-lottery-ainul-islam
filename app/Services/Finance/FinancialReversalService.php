@@ -9,39 +9,15 @@ use App\Enums\LedgerEntryType;
 use App\Enums\TransactionStatus;
 use App\Exceptions\FinancialException;
 use App\Models\FinancialTransaction;
+use App\Models\LedgerAccount;
 use App\Models\LedgerEntry;
 use App\Models\Wallet;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Reverses a completed financial transaction by compensation, never by erasure.
- *
- * THE RULE
- * A posted ledger entry is history. This service never updates and never deletes
- * an original entry, and never rewrites the original transaction's monetary
- * fields. It creates a NEW transaction of type reversal whose entries are the
- * exact mirror of the original - every debit becomes a credit of the same amount
- * against the same account, and vice versa - so both movements remain visible and
- * the ledger still balances when the two are summed.
- *
- * The only change made to the original record is its lifecycle marking:
- * status becomes `reversed`, and reversed_at / reversed_by are stamped. Those are
- * exactly the fields the audited schema provides for this purpose.
- *
- * GUARDS
- * - only a persisted, `completed` transaction may be reversed;
- * - a transaction may be reversed at most once;
- * - a reversal itself can never be reversed (FinancialTransactionType::Reversal
- *   is not reversible), so there is no way to build a chain of compensations
- *   that cancel each other into ambiguity.
- *
- * ATOMICITY AND IDEMPOTENCY
- * The whole reversal runs in one transaction under a row lock on the wallet. Its
- * idempotency key is derived deterministically from the original transaction id,
- * so a retried reversal collides with itself on the unique index and returns the
- * reversal that already exists rather than reversing twice.
  */
 final class FinancialReversalService
 {
@@ -52,8 +28,7 @@ final class FinancialReversalService
         private readonly WalletService $wallets,
         private readonly LedgerBalanceValidator $validator,
         private readonly FinancialTransactionService $transactions,
-    ) {
-    }
+    ) {}
 
     /**
      * Reverse a completed transaction.
@@ -70,13 +45,25 @@ final class FinancialReversalService
     ): FinancialTransaction {
         Money::assertExactArithmeticIsAvailable();
 
-        $this->assertReversible($original);
+        $originalId = $this->originalId($original);
+        $canonicalKey = $this->idempotency->deterministicKey('reversal', (string) $originalId);
 
-        $key = $idempotencyKey ?? $this->reversalKeyFor($original);
+        $this->locks->assertConsistentTransactionState();
+
+        $routedWalletId = FinancialTransaction::withTrashed()
+            ->whereKey($originalId)
+            ->value('wallet_id');
 
         return $this->transactions->executeWithDeadlockRetry(
-            fn (): FinancialTransaction => DB::transaction(
-                fn (): FinancialTransaction => $this->performReversal($original, $actorUserId, $key, $reason),
+            fn (): FinancialTransaction => $this->locks->withinTransaction(
+                fn (): FinancialTransaction => $this->performReversal(
+                    $originalId,
+                    $routedWalletId === null ? null : (int) $routedWalletId,
+                    $actorUserId,
+                    $canonicalKey,
+                    $reason,
+                    $idempotencyKey,
+                ),
             ),
         );
     }
@@ -90,34 +77,36 @@ final class FinancialReversalService
             return false;
         }
 
-        if ($transaction->status !== TransactionStatus::Completed) {
+        try {
+            $this->assertReversible($transaction);
+
+            return true;
+        } catch (FinancialException) {
             return false;
         }
-
-        if (! FinancialTransactionType::fromTransactionType($transaction->type)->isReversible()) {
-            return false;
-        }
-
-        return ! $this->hasBeenReversed($transaction);
     }
 
     /**
      * The reversal that already compensates this transaction, if one exists.
-     *
-     * The audited schema has no reversal_of column, so the link is the
-     * polymorphic reference: the reversal points at the original transaction
-     * through reference_type / reference_id.
      */
     public function existingReversalFor(FinancialTransaction $original): ?FinancialTransaction
     {
-        /** @var FinancialTransaction|null $reversal */
-        $reversal = FinancialTransaction::query()
-            ->where('reference_type', FinancialTransaction::class)
-            ->where('reference_id', (int) $original->getKey())
-            ->where('type', FinancialTransactionType::Reversal->toTransactionType())
-            ->first();
+        $originalId = $this->originalId($original);
+        $canonicalKey = $this->idempotency->deterministicKey('reversal', (string) $originalId);
 
-        return $reversal;
+        $this->locks->assertConsistentTransactionState();
+
+        $routedWalletId = FinancialTransaction::withTrashed()
+            ->whereKey($originalId)
+            ->value('wallet_id');
+
+        return $this->locks->withinTransaction(
+            fn (): ?FinancialTransaction => $this->lookupExistingReversal(
+                $originalId,
+                $routedWalletId === null ? null : (int) $routedWalletId,
+                $canonicalKey,
+            ),
+        );
     }
 
     /**
@@ -125,7 +114,9 @@ final class FinancialReversalService
      */
     public function reversalKeyFor(FinancialTransaction $original): string
     {
-        return $this->idempotency->deterministicKey('reversal', (string) $original->getKey());
+        $originalId = $this->originalId($original);
+
+        return $this->idempotency->deterministicKey('reversal', (string) $originalId);
     }
 
     /**
@@ -133,14 +124,19 @@ final class FinancialReversalService
      */
     public function assertReversible(FinancialTransaction $original): void
     {
-        if (! $original->exists) {
+        $originalId = $this->originalId($original);
+
+        $current = FinancialTransaction::withTrashed()->whereKey($originalId)->first();
+
+        if (! $current instanceof FinancialTransaction || $current->trashed()) {
             throw FinancialException::withCode(
-                'reversal_transaction_not_persisted',
-                'Cannot reverse a financial transaction that has not been persisted.',
+                'reversal_accounting_conflict',
+                'Reversal requires an existing, non-deleted original transaction.',
+                ['transaction_id' => $originalId],
             );
         }
 
-        $engineType = FinancialTransactionType::fromTransactionType($original->type);
+        $engineType = FinancialTransactionType::fromTransactionType($current->type);
 
         if (! $engineType->isReversible()) {
             throw FinancialException::withCode(
@@ -148,117 +144,142 @@ final class FinancialReversalService
                 sprintf(
                     'A %s transaction cannot be reversed; reversing a reversal would make '
                     .'the audit trail ambiguous.',
-                    $original->type->value,
+                    $current->type->value,
                 ),
                 [
-                    'transaction_id' => (int) $original->getKey(),
-                    'transaction_type' => $original->type->value,
+                    'transaction_id' => $originalId,
+                    'transaction_type' => $current->type->value,
                 ],
             );
         }
 
-        if ($original->status !== TransactionStatus::Completed) {
+        if ($current->status === TransactionStatus::Reversed || $current->reversed_at !== null) {
+            throw FinancialException::withCode(
+                'reversal_already_exists',
+                sprintf('Financial transaction %d has already been reversed.', $originalId),
+                ['transaction_id' => $originalId],
+            );
+        }
+
+        if ($current->status !== TransactionStatus::Completed) {
             throw FinancialException::withCode(
                 'reversal_requires_completed_transaction',
                 sprintf(
                     'Financial transaction %d is %s; only a completed transaction can be reversed.',
-                    (int) $original->getKey(),
-                    $original->status->value,
+                    $originalId,
+                    $current->status->value,
                 ),
                 [
-                    'transaction_id' => (int) $original->getKey(),
-                    'transaction_status' => $original->status->value,
+                    'transaction_id' => $originalId,
+                    'transaction_status' => $current->status->value,
                 ],
             );
         }
 
-        if ($this->hasBeenReversed($original)) {
+        $guard = app(ReversalIntegrityGuard::class);
+        $wallet = $current->wallet_id !== null
+            ? Wallet::withTrashed()->whereKey((int) $current->wallet_id)->first()
+            : null;
+        $entries = $guard->entries($current);
+        $guard->assertOriginal($current, $wallet, $entries);
+
+        $canonicalKey = $this->idempotency->deterministicKey('reversal', (string) $originalId);
+        if ($this->candidateQuery($originalId, $canonicalKey)->exists()) {
             throw FinancialException::withCode(
                 'reversal_already_exists',
-                sprintf('Financial transaction %d has already been reversed.', (int) $original->getKey()),
-                ['transaction_id' => (int) $original->getKey()],
+                sprintf('Financial transaction %d has already been reversed.', $originalId),
+                ['transaction_id' => $originalId],
             );
         }
     }
 
     /**
-     * Body of the reversal, always inside a transaction.
-     *
      * @throws FinancialException
      */
     private function performReversal(
-        FinancialTransaction $original,
+        int $originalId,
+        ?int $routedWalletId,
         ?int $actorUserId,
         string $key,
         ?string $reason,
+        ?string $callerKey = null,
     ): FinancialTransaction {
-        // Re-read the original under a lock so a concurrent reversal of the same
-        // transaction cannot slip between the check and the write.
+        $guard = app(ReversalIntegrityGuard::class);
+
+        $wallet = $routedWalletId !== null
+            ? Wallet::withTrashed()->whereKey($routedWalletId)->lockForUpdate()->first()
+            : null;
+
+        if ($callerKey !== null && $callerKey !== $key) {
+            throw FinancialException::withCode(
+                'reversal_noncanonical_key',
+                'Reversal idempotency key must match the canonical key for this original transaction.',
+                ['transaction_id' => $originalId],
+            );
+        }
+
         /** @var FinancialTransaction|null $locked */
-        $locked = FinancialTransaction::query()
-            ->whereKey($original->getKey())
+        $locked = FinancialTransaction::withTrashed()
+            ->whereKey($originalId)
             ->lockForUpdate()
             ->first();
 
         if (! $locked instanceof FinancialTransaction) {
             throw FinancialException::withCode(
                 'reversal_transaction_not_found',
-                sprintf('Financial transaction %d no longer exists.', (int) $original->getKey()),
-                ['transaction_id' => (int) $original->getKey()],
+                sprintf('Financial transaction %d no longer exists.', $originalId),
+                ['transaction_id' => $originalId],
             );
         }
 
-        $this->assertReversible($locked);
-
-        $originalEntries = $this->ledger->postedEntriesFor($locked);
-
-        if ($originalEntries->isEmpty()) {
-            throw FinancialException::withCode(
-                'reversal_original_has_no_entries',
-                sprintf(
-                    'Financial transaction %d has no ledger entries to mirror; refusing to '
-                    .'invent a reversal posting.',
-                    (int) $locked->getKey(),
-                ),
-                ['transaction_id' => (int) $locked->getKey()],
-            );
+        if ($locked->wallet_id !== null && ($wallet === null || (int) $wallet->id !== (int) $locked->wallet_id)) {
+            $guard->refuse();
         }
 
-        $wallet = $locked->wallet_id !== null
-            ? $this->locks->lock((int) $locked->wallet_id)
-            : null;
+        $originalEntries = $guard->entries($locked);
+        $walletSide = $guard->assertOriginal($locked, $wallet, $originalEntries);
 
-        $expectation = [
-            'type' => FinancialTransactionType::Reversal,
-            'amount' => (string) $locked->amount,
-            'currency' => $locked->currency->value,
-            'wallet_id' => $locked->wallet_id,
-            'user_id' => $locked->user_id,
-        ];
+        $candidates = $this->candidateQuery((int) $locked->id, $key)
+            ->lockForUpdate()
+            ->get();
 
-        $claim = $this->idempotency->claim(
-            $key,
-            $expectation,
-            fn (string $claimedKey): FinancialTransaction => $this->createReversalTransaction(
-                $locked,
-                $claimedKey,
-                $reason,
-            ),
-        );
-
-        /** @var FinancialTransaction $reversal */
-        $reversal = $claim['transaction'];
-
-        if ($claim['replayed'] === true) {
-            // The reversal already happened exactly once.
-            return $reversal;
+        if ($candidates->count() > 1) {
+            $guard->refuse();
         }
+
+        if ($candidates->count() === 1) {
+            /** @var FinancialTransaction $existing */
+            $existing = $candidates->first();
+            if ($locked->status !== TransactionStatus::Reversed || $locked->reversed_at === null) {
+                $guard->refuse();
+            }
+            $guard->assertCompensation($locked, $existing, $originalEntries, $key);
+
+            return $existing;
+        }
+
+        if ($locked->status === TransactionStatus::Reversed || $locked->reversed_at !== null) {
+            $guard->refuse();
+        }
+
+        if ($wallet instanceof Wallet) {
+            $eligible = $walletSide === LedgerEntryType::Credit
+                ? $wallet->canDebit()
+                : $wallet->canCredit();
+            if (! $eligible) {
+                throw FinancialException::withCode(
+                    'reversal_wallet_not_eligible',
+                    sprintf('Wallet %d is not eligible for reversal compensation.', (int) $wallet->id),
+                    ['wallet_id' => (int) $wallet->id, 'wallet_status' => $wallet->status->value],
+                );
+            }
+        }
+
+        $sourceHash = $guard->fingerprint($locked, $originalEntries);
+
+        $reversal = $this->createReversalTransaction($locked, $key, $reason, $sourceHash);
 
         $this->transactions->transitionTo($reversal, TransactionStatus::Processing)->save();
-
-        $walletSide = $wallet instanceof Wallet
-            ? $this->walletSideOf($originalEntries, (int) $wallet->getKey())
-            : null;
 
         $balanceAfter = null;
 
@@ -284,39 +305,100 @@ final class FinancialReversalService
         $reversal->processed_at = Carbon::now();
         $reversal->save();
 
-        // Mark the original. Only lifecycle fields change: amount, fee, type,
-        // currency and every original ledger entry are left byte-for-byte intact.
         $this->transactions->transitionTo($locked, TransactionStatus::Reversed);
         $locked->reversed_at = Carbon::now();
         $locked->reversed_by = $actorUserId;
         $locked->save();
 
-        return $reversal->refresh();
+        $freshReversal = $reversal->refresh();
+        $guard->assertCompensation($locked, $freshReversal, $originalEntries, $key);
+
+        return $freshReversal;
     }
 
-    /**
-     * Create the compensating transaction record.
-     *
-     * reference_type / reference_id point back at the original, which is how the
-     * pair is discoverable in both directions without a schema change.
-     */
+    private function lookupExistingReversal(
+        int $originalId,
+        ?int $routedWalletId,
+        string $key,
+    ): ?FinancialTransaction {
+        $guard = app(ReversalIntegrityGuard::class);
+
+        $wallet = $routedWalletId !== null
+            ? Wallet::withTrashed()->whereKey($routedWalletId)->lockForUpdate()->first()
+            : null;
+
+        /** @var FinancialTransaction|null $locked */
+        $locked = FinancialTransaction::withTrashed()
+            ->whereKey($originalId)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $locked instanceof FinancialTransaction) {
+            $guard->refuse();
+        }
+
+        if ($locked->wallet_id !== null && ($wallet === null || (int) $wallet->id !== (int) $locked->wallet_id)) {
+            $guard->refuse();
+        }
+
+        $originalEntries = $guard->entries($locked);
+        $guard->assertOriginal($locked, $wallet, $originalEntries);
+
+        $candidates = $this->candidateQuery((int) $locked->id, $key)
+            ->lockForUpdate()
+            ->get();
+
+        if ($candidates->isEmpty()) {
+            if ($locked->status === TransactionStatus::Reversed || $locked->reversed_at !== null) {
+                $guard->refuse();
+            }
+
+            return null;
+        }
+
+        if ($candidates->count() > 1 || $locked->status !== TransactionStatus::Reversed || $locked->reversed_at === null) {
+            $guard->refuse();
+        }
+
+        /** @var FinancialTransaction $existing */
+        $existing = $candidates->first();
+        $guard->assertCompensation($locked, $existing, $originalEntries, $key);
+
+        return $existing;
+    }
+
+    private function candidateQuery(int $originalId, string $key)
+    {
+        return FinancialTransaction::withTrashed()
+            ->where(function ($query) use ($originalId, $key): void {
+                $query->where(function ($ref) use ($originalId): void {
+                    $ref->where('reference_type', FinancialTransaction::class)
+                        ->where('reference_id', $originalId)
+                        ->where('type', FinancialTransactionType::Reversal->toTransactionType());
+                })->orWhere('idempotency_key', $key);
+            })
+            ->orderBy('id');
+    }
+
     private function createReversalTransaction(
         FinancialTransaction $original,
         string $key,
         ?string $reason,
+        string $sourceHash,
     ): FinancialTransaction {
         $metadata = [
             'engine_type' => FinancialTransactionType::Reversal->value,
             'reversal_of_transaction_id' => (int) $original->getKey(),
             'reversal_of_reference_number' => $original->reference_number,
             'reversal_of_type' => $original->type->value,
+            'reversal_source_hash' => $sourceHash,
         ];
 
         if ($reason !== null) {
             $metadata['reversal_reason'] = $reason;
         }
 
-        $reversal = new FinancialTransaction();
+        $reversal = new FinancialTransaction;
 
         $reversal->fill([
             'reference_number' => $this->transactions->generateReferenceNumber(),
@@ -342,17 +424,19 @@ final class FinancialReversalService
     }
 
     /**
-     * Build the mirror of the original posting.
-     *
-     * Each original entry produces one entry against the SAME account for the
-     * SAME amount on the OPPOSITE side. Because the original set balanced, the
-     * mirror balances too, and the two sets sum to zero per account.
-     *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, LedgerEntry>  $originalEntries
+     * @param  Collection<int, LedgerEntry>  $originalEntries
      * @return array<int, array<string, mixed>>
      */
-    private function mirrorEntries($originalEntries, FinancialTransaction $original): array
+    public function mirrorEntries(Collection $originalEntries, FinancialTransaction $original): array
     {
+        $liabilityCode = LedgerPostingService::accountCodeFor(
+            WalletService::ACCOUNT_PLAYER_LIABILITY,
+            $original->currency,
+        );
+        $liabilityAccountId = LedgerAccount::withTrashed()
+            ->where('code', $liabilityCode)
+            ->value('id');
+
         $mirrored = [];
 
         foreach ($originalEntries as $entry) {
@@ -368,43 +452,31 @@ final class FinancialReversalService
             ];
         }
 
-        // Keep the wallet-facing entry first so a balance snapshot supplied by the
-        // caller lines up with index 0, exactly as in a forward posting.
-        usort($mirrored, static fn (array $a, array $b): int => ($b['wallet_id'] === null ? 0 : 1) <=> ($a['wallet_id'] === null ? 0 : 1));
+        usort($mirrored, static function (array $a, array $b) use ($liabilityAccountId): int {
+            $aIsLiability = $liabilityAccountId !== null && $a['ledger_account_id'] === (int) $liabilityAccountId ? 1 : 0;
+            $bIsLiability = $liabilityAccountId !== null && $b['ledger_account_id'] === (int) $liabilityAccountId ? 1 : 0;
+            if ($aIsLiability !== $bIsLiability) {
+                return $bIsLiability <=> $aIsLiability;
+            }
+
+            return ($b['wallet_id'] === null ? 0 : 1) <=> ($a['wallet_id'] === null ? 0 : 1);
+        });
 
         return $mirrored;
     }
 
     /**
-     * Which side the original posting applied to the wallet.
-     *
-     * Read from the persisted entries rather than inferred from the type, so the
-     * compensation always matches what actually happened.
-     *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, LedgerEntry>  $entries
+     * @throws FinancialException
      */
-    private function walletSideOf($entries, int $walletId): ?LedgerEntryType
+    private function originalId(FinancialTransaction $original): int
     {
-        foreach ($entries as $entry) {
-            if ((int) $entry->wallet_id === $walletId) {
-                return $entry->type;
-            }
+        if (! $original->exists) {
+            throw FinancialException::withCode(
+                'reversal_transaction_not_persisted',
+                'Cannot reverse a financial transaction that has not been persisted.',
+            );
         }
 
-        return null;
-    }
-
-    /**
-     * A transaction is considered reversed when it is marked as such or when a
-     * compensating transaction already points at it. Both are checked, so a
-     * partially recorded reversal can never be duplicated.
-     */
-    private function hasBeenReversed(FinancialTransaction $transaction): bool
-    {
-        if ($transaction->status === TransactionStatus::Reversed || $transaction->reversed_at !== null) {
-            return true;
-        }
-
-        return $this->existingReversalFor($transaction) !== null;
+        return FinancialRecordIdentifier::fromModel($original, 'reversal_transaction_not_persisted');
     }
 }

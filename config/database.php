@@ -2,7 +2,7 @@
 
 return [
 
-    'default' => env('DB_CONNECTION', 'pgsql'),
+    'default' => env('DB_CONNECTION', 'mysql'),
 
     'connections' => [
 
@@ -12,8 +12,8 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => max(0, (int) env('DB_BUSY_TIMEOUT', 15000)),
-            'transaction_mode' => strtoupper((string) env('DB_SQLITE_TRANSACTION_MODE', 'IMMEDIATE')),
+            'busy_timeout' => (int) env('DB_BUSY_TIMEOUT', 15000),
+            'transaction_mode' => env('DB_TRANSACTION_MODE', 'IMMEDIATE'),
             'journal_mode' => null,
             'synchronous' => null,
         ],
@@ -33,14 +33,21 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            // Prefer Pdo\Mysql::ATTR_SSL_CA where the PHP build exposes that class.
-            'options' => extension_loaded('pdo_mysql')
-                ? (class_exists('Pdo\Mysql')
-                    ? array_filter([constant('Pdo\Mysql::ATTR_SSL_CA') => env('MYSQL_ATTR_SSL_CA')])
-                    : (defined('PDO::MYSQL_ATTR_SSL_CA')
-                        ? array_filter([constant('PDO::MYSQL_ATTR_SSL_CA') => env('MYSQL_ATTR_SSL_CA')])
-                        : []))
-                : [],
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                // PHP 8.5 deprecated the PDO::MYSQL_* class constants in favour of the
+                // dedicated Pdo\Mysql class. Both names resolve to the same integer
+                // attribute id (1008), so preferring the new name preserves the
+                // connection behaviour exactly while removing the deprecation notice.
+                //
+                // The fallback is reached only on PHP 8.2 to 8.4, where Pdo\Mysql does
+                // not exist and the old constant is not deprecated. It is fetched with
+                // constant() rather than written as a compiled constant reference so
+                // that neither class name is compiled in on a PHP version where it is
+                // absent or deprecated, and so that the formatter leaves both alone.
+                (class_exists('Pdo\Mysql')
+                    ? constant('Pdo\Mysql::ATTR_SSL_CA')
+                    : constant('PDO::MYSQL_ATTR_SSL_CA')) => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
         ],
 
         'pgsql' => [

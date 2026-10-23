@@ -15,7 +15,7 @@ return [
             'connection' => null,
             'table' => 'jobs',
             'queue' => 'default',
-            'retry_after' => 90,
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 420),
             'after_commit' => true,
         ],
 
@@ -23,7 +23,7 @@ return [
             'driver' => 'redis',
             'connection' => 'default',
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => 90,
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 420),
             'block_for' => null,
             'after_commit' => true,
         ],
@@ -32,7 +32,7 @@ return [
 
     'failed' => [
         'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
-        'database' => env('DB_CONNECTION', 'pgsql'),
+        'database' => env('DB_CONNECTION', 'mysql'),
         'table' => 'failed_jobs',
     ],
 

@@ -85,9 +85,7 @@ final class PublicLottoDiscountController
 
     private function locale(Request $request): string
     {
-        $candidate = (string) $request->query('locale', app()->getLocale());
-
-        return SupportedLocale::normalise($candidate)
+        return SupportedLocale::normalise(app()->getLocale())
             ?? (string) app()->getLocale();
     }
 }

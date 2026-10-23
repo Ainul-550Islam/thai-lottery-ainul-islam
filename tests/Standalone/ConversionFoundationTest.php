@@ -70,7 +70,7 @@ final class ConversionFoundationTest extends TestCase
             ['id' => 3, 'user_id' => 2, 'balance' => '1000.00'],
             ['id' => 4, 'user_id' => 2, 'balance' => '0.00'],
         ]);
-        $this->migration = require dirname(__DIR__, 2).'/database/migrations/2026_10_13_000100_create_wallet_conversion_tables.php';
+        $this->migration = require dirname(__DIR__, 2).'/database/migrations/2026_10_13_000200_create_wallet_conversion_tables.php';
         $this->migration->up();
     }
 

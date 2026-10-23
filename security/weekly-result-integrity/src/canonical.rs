@@ -114,7 +114,7 @@ impl WeeklyResultPayload {
         }
 
         if let Some(identifier) = &self.source_identifier {
-            if identifier.len() > 191 || identifier.chars().any(|c| c.is_control()) {
+            if identifier.chars().count() > 191 || identifier.chars().any(|c| c.is_control()) {
                 return Err(IntegrityError::InvalidEncoding("source_identifier"));
             }
         }

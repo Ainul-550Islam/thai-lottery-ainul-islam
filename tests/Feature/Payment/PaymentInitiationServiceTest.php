@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Finance\Money;
 use App\Services\Payment\PaymentInitiationService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -28,7 +28,7 @@ use Tests\TestCase;
  */
 class PaymentInitiationServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTruncation;
 
     /**
      * @return array{user: User, wallet: Wallet}

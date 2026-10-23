@@ -1,0 +1,1112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="CLI Arguments" tests="227" assertions="2671" errors="0" failures="3" skipped="0" time="15.436952">
+    <testsuite name="Tests\Feature\Deployment\ArtifactCompletionManifestTest" file="/home/user/tests/Feature/Deployment/ArtifactCompletionManifestTest.php" tests="6" assertions="63" errors="0" failures="0" skipped="0" time="0.384534">
+      <testcase name="test_all_required_implementation_classes_exist_and_resolve" file="/home/user/tests/Feature/Deployment/ArtifactCompletionManifestTest.php" line="54" class="Tests\Feature\Deployment\ArtifactCompletionManifestTest" classname="Tests.Feature.Deployment.ArtifactCompletionManifestTest" assertions="34" time="0.233606"/>
+      <testcase name="test_all_required_web_routes_are_registered" file="/home/user/tests/Feature/Deployment/ArtifactCompletionManifestTest.php" line="98" class="Tests\Feature\Deployment\ArtifactCompletionManifestTest" classname="Tests.Feature.Deployment.ArtifactCompletionManifestTest" assertions="9" time="0.029174"/>
+      <testcase name="test_all_required_feature_tests_exist" file="/home/user/tests/Feature/Deployment/ArtifactCompletionManifestTest.php" line="117" class="Tests\Feature\Deployment\ArtifactCompletionManifestTest" classname="Tests.Feature.Deployment.ArtifactCompletionManifestTest" assertions="9" time="0.030687"/>
+      <testcase name="test_pwa_and_release_artifacts_exist" file="/home/user/tests/Feature/Deployment/ArtifactCompletionManifestTest.php" line="136" class="Tests\Feature\Deployment\ArtifactCompletionManifestTest" classname="Tests.Feature.Deployment.ArtifactCompletionManifestTest" assertions="3" time="0.028005"/>
+      <testcase name="test_glo_configuration_parameters" file="/home/user/tests/Feature/Deployment/ArtifactCompletionManifestTest.php" line="143" class="Tests\Feature\Deployment\ArtifactCompletionManifestTest" classname="Tests.Feature.Deployment.ArtifactCompletionManifestTest" assertions="4" time="0.030203"/>
+      <testcase name="test_fixture_configurations_default_to_false" file="/home/user/tests/Feature/Deployment/ArtifactCompletionManifestTest.php" line="151" class="Tests\Feature\Deployment\ArtifactCompletionManifestTest" classname="Tests.Feature.Deployment.ArtifactCompletionManifestTest" assertions="4" time="0.032860"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Deployment\FrontendBuildVerificationTest" file="/home/user/tests/Feature/Deployment/FrontendBuildVerificationTest.php" tests="5" assertions="17" errors="0" failures="0" skipped="0" time="0.221351">
+      <testcase name="the_manifest_exists_and_covers_every_declared_input" file="/home/user/tests/Feature/Deployment/FrontendBuildVerificationTest.php" line="42" class="Tests\Feature\Deployment\FrontendBuildVerificationTest" classname="Tests.Feature.Deployment.FrontendBuildVerificationTest" assertions="4" time="0.031097"/>
+      <testcase name="the_command_exits_zero_when_the_build_is_complete" file="/home/user/tests/Feature/Deployment/FrontendBuildVerificationTest.php" line="56" class="Tests\Feature\Deployment\FrontendBuildVerificationTest" classname="Tests.Feature.Deployment.FrontendBuildVerificationTest" assertions="3" time="0.054715"/>
+      <testcase name="the_command_fails_when_the_manifest_is_absent" file="/home/user/tests/Feature/Deployment/FrontendBuildVerificationTest.php" line="65" class="Tests\Feature\Deployment\FrontendBuildVerificationTest" classname="Tests.Feature.Deployment.FrontendBuildVerificationTest" assertions="3" time="0.042658"/>
+      <testcase name="an_input_with_no_manifest_entry_is_reported_as_missing" file="/home/user/tests/Feature/Deployment/FrontendBuildVerificationTest.php" line="84" class="Tests\Feature\Deployment\FrontendBuildVerificationTest" classname="Tests.Feature.Deployment.FrontendBuildVerificationTest" assertions="3" time="0.056995"/>
+      <testcase name="the_postcss_config_names_the_tailwind_v4_plugin" file="/home/user/tests/Feature/Deployment/FrontendBuildVerificationTest.php" line="104" class="Tests\Feature\Deployment\FrontendBuildVerificationTest" classname="Tests.Feature.Deployment.FrontendBuildVerificationTest" assertions="4" time="0.035886"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Deployment\SectionFDevOpsAndCiReadinessTest" file="/home/user/tests/Feature/Deployment/SectionFDevOpsAndCiReadinessTest.php" tests="5" assertions="35" errors="0" failures="1" skipped="0" time="3.213758">
+      <testcase name="test_f1_f2_ci_workflows_target_php_84_build_assets_and_match_composer_version" file="/home/user/tests/Feature/Deployment/SectionFDevOpsAndCiReadinessTest.php" line="16" class="Tests\Feature\Deployment\SectionFDevOpsAndCiReadinessTest" classname="Tests.Feature.Deployment.SectionFDevOpsAndCiReadinessTest" assertions="10" time="3.006654"/>
+      <testcase name="test_f3_f4_f5_f6_f7_nginx_upstream_compression_immutable_cache_hsts_and_dead_php_fpm_removed" file="/home/user/tests/Feature/Deployment/SectionFDevOpsAndCiReadinessTest.php" line="39" class="Tests\Feature\Deployment\SectionFDevOpsAndCiReadinessTest" classname="Tests.Feature.Deployment.SectionFDevOpsAndCiReadinessTest" assertions="11" time="0.045607"/>
+      <testcase name="test_f8_reconciliation_group_concat_helper_uses_string_agg_for_pgsql_and_group_concat_elsewhere" file="/home/user/tests/Feature/Deployment/SectionFDevOpsAndCiReadinessTest.php" line="65" class="Tests\Feature\Deployment\SectionFDevOpsAndCiReadinessTest" classname="Tests.Feature.Deployment.SectionFDevOpsAndCiReadinessTest" assertions="3" time="0.038982"/>
+      <testcase name="test_f9_f10_repository_bloat_and_docker_build_artifacts_are_removed_and_gitignored" file="/home/user/tests/Feature/Deployment/SectionFDevOpsAndCiReadinessTest.php" line="79" class="Tests\Feature\Deployment\SectionFDevOpsAndCiReadinessTest" classname="Tests.Feature.Deployment.SectionFDevOpsAndCiReadinessTest" assertions="6" time="0.041759">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Deployment\SectionFDevOpsAndCiReadinessTest::test_f9_f10_repository_bloat_and_docker_build_artifacts_are_removed_and_gitignored
+Committed artifact [.sudo_as_admin_successful] must be removed.
+Failed asserting that file "/home/user/.sudo_as_admin_successful" does not exist.
+
+/home/user/tests/Feature/Deployment/SectionFDevOpsAndCiReadinessTest.php:89</failure>
+      </testcase>
+      <testcase name="test_f11_environment_templates_pass_zero_drift_parity_script" file="/home/user/tests/Feature/Deployment/SectionFDevOpsAndCiReadinessTest.php" line="98" class="Tests\Feature\Deployment\SectionFDevOpsAndCiReadinessTest" classname="Tests.Feature.Deployment.SectionFDevOpsAndCiReadinessTest" assertions="5" time="0.080755"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Production\GloFixturePrioritySafetyTest" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" tests="9" assertions="30" errors="0" failures="0" skipped="0" time="0.350833">
+      <testsuite name="Tests\Feature\Production\GloFixturePrioritySafetyTest::test_production_guard_recognizes_the_same_fixture_names_as_the_chain" tests="8" assertions="28" errors="0" failures="0" skipped="0" time="0.318745">
+        <testcase name="test_production_guard_recognizes_the_same_fixture_names_as_the_chain with data set &quot;single official source&quot;" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="43" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="3" time="0.077396"/>
+        <testcase name="test_production_guard_recognizes_the_same_fixture_names_as_the_chain with data set &quot;mode-only official selection&quot;" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="43" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="3" time="0.032948"/>
+        <testcase name="test_production_guard_recognizes_the_same_fixture_names_as_the_chain with data set &quot;case-normalized official source&quot;" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="43" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="3" time="0.032901"/>
+        <testcase name="test_production_guard_recognizes_the_same_fixture_names_as_the_chain with data set &quot;explicit fixture fallback&quot;" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="43" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="4" time="0.040435"/>
+        <testcase name="test_production_guard_recognizes_the_same_fixture_names_as_the_chain with data set &quot;fixture as first choice&quot;" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="43" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="4" time="0.032192"/>
+        <testcase name="test_production_guard_recognizes_the_same_fixture_names_as_the_chain with data set &quot;case-normalized fixture name&quot;" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="43" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="4" time="0.032307"/>
+        <testcase name="test_production_guard_recognizes_the_same_fixture_names_as_the_chain with data set &quot;scalar fixture configuration&quot;" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="43" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="4" time="0.031748"/>
+        <testcase name="test_production_guard_recognizes_the_same_fixture_names_as_the_chain with data set &quot;unknown non-string values are not interpreted as providers&quot;" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="43" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="3" time="0.038819"/>
+      </testsuite>
+      <testcase name="test_production_boot_refuses_a_fixture_priority_before_serving_requests" file="/home/user/tests/Feature/Production/GloFixturePrioritySafetyTest.php" line="78" class="Tests\Feature\Production\GloFixturePrioritySafetyTest" classname="Tests.Feature.Production.GloFixturePrioritySafetyTest" assertions="2" time="0.032087"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Production\ProductionConfigSafetyTest" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" tests="20" assertions="58" errors="0" failures="0" skipped="0" time="0.680819">
+      <testcase name="env_example_never_enables_a_fixture_lottery_lane" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="53" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="4" time="0.031945"/>
+      <testcase name="the_ci_environment_never_enables_a_fixture_lottery_lane" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="67" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="5" time="0.040595"/>
+      <testcase name="the_production_template_never_enables_a_fixture_lottery_lane" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="86" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="5" time="0.031848"/>
+      <testcase name="fixture_lanes_are_force_disabled_when_the_app_env_is_production" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="102" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="4" time="0.031581"/>
+      <testcase name="no_official_lane_falls_through_to_fixture_data" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="118" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="4" time="0.031727"/>
+      <testcase name="no_result_importer_defaults_to_the_fixture_provider" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="129" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="6" time="0.038853"/>
+      <testcase name="the_stock_install_path_never_creates_an_env_from_the_example" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="154" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="6" time="0.031474"/>
+      <testcase name="continuous_integration_never_copies_the_development_template" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="181" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="4" time="0.032535"/>
+      <testcase name="the_production_template_ships_no_credential_values" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="195" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.032601"/>
+      <testcase name="a_safe_production_configuration_reports_no_violations" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="220" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.039235"/>
+      <testcase name="a_file_cache_store_is_reported_as_an_unsafe_production_configuration" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="269" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="3" time="0.031454"/>
+      <testcase name="an_unsafe_production_configuration_is_reported_in_full" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="305" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="6" time="0.032672"/>
+      <testcase name="every_fixture_lane_is_reported_individually_when_enabled" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="328" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.032030"/>
+      <testcase name="an_unrecognised_payout_safety_mode_is_never_treated_as_safe" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="367" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.039861"/>
+      <testcase name="live_payout_without_an_approval_threshold_is_refused" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="380" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.031984"/>
+      <testcase name="automated_payout_disagreeing_with_the_safety_switch_is_refused" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="395" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.033158"/>
+      <testcase name="a_correctly_gated_live_payout_configuration_is_accepted" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="411" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.032622"/>
+      <testcase name="the_glo_fixture_mode_is_refused_in_production" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="445" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="2" time="0.039220"/>
+      <testcase name="the_glo_fixture_fall_through_is_refused_in_production" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="466" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.032642"/>
+      <testcase name="the_glo_fixture_priority_is_refused_in_production" file="/home/user/tests/Feature/Production/ProductionConfigSafetyTest.php" line="478" class="Tests\Feature\Production\ProductionConfigSafetyTest" classname="Tests.Feature.Production.ProductionConfigSafetyTest" assertions="1" time="0.032783"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Production\QueueDispatchContractTest" file="/home/user/tests/Feature/Production/QueueDispatchContractTest.php" tests="4" assertions="14" errors="0" failures="0" skipped="0" time="0.669620">
+      <testcase name="every_job_is_either_dispatched_or_explicitly_deferred" file="/home/user/tests/Feature/Production/QueueDispatchContractTest.php" line="177" class="Tests\Feature\Production\QueueDispatchContractTest" classname="Tests.Feature.Production.QueueDispatchContractTest" assertions="1" time="0.307934"/>
+      <testcase name="the_deferred_list_contains_no_jobs_that_have_since_been_wired" file="/home/user/tests/Feature/Production/QueueDispatchContractTest.php" line="215" class="Tests\Feature\Production\QueueDispatchContractTest" classname="Tests.Feature.Production.QueueDispatchContractTest" assertions="1" time="0.289658"/>
+      <testcase name="the_deferred_list_contains_no_jobs_that_no_longer_exist" file="/home/user/tests/Feature/Production/QueueDispatchContractTest.php" line="242" class="Tests\Feature\Production\QueueDispatchContractTest" classname="Tests.Feature.Production.QueueDispatchContractTest" assertions="1" time="0.037274"/>
+      <testcase name="every_deferred_job_carries_a_substantive_reason" file="/home/user/tests/Feature/Production/QueueDispatchContractTest.php" line="255" class="Tests\Feature\Production\QueueDispatchContractTest" classname="Tests.Feature.Production.QueueDispatchContractTest" assertions="11" time="0.034754"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Production\WalletWriteContractTest" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" tests="9" assertions="30" errors="0" failures="0" skipped="0" time="0.333967">
+      <testcase name="a_wallet_created_through_the_model_starts_at_version_one" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="45" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="1" time="0.045402"/>
+      <testcase name="a_wallet_created_through_first_or_create_starts_at_version_one" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="63" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="1" time="0.045841"/>
+      <testcase name="the_factory_produces_the_same_version_as_production" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="78" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="1" time="0.039056"/>
+      <testcase name="a_new_wallet_is_active_and_has_no_null_money_columns" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="90" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="13" time="0.038270"/>
+      <testcase name="available_balance_is_computable_immediately_after_creation" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="112" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="1" time="0.037985"/>
+      <testcase name="financial_columns_are_not_mass_assignable" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="126" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="10" time="0.030060"/>
+      <testcase name="the_model_is_not_globally_unguarded" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="142" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="1" time="0.029888"/>
+      <testcase name="the_wallets_table_defaults_version_to_one" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="152" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="1" time="0.030256"/>
+      <testcase name="no_wallet_in_the_database_can_sit_below_the_initial_version" file="/home/user/tests/Feature/Production/WalletWriteContractTest.php" line="182" class="Tests\Feature\Production\WalletWriteContractTest" classname="Tests.Feature.Production.WalletWriteContractTest" assertions="1" time="0.037209"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Observability\HealthDisclosureTest" file="/home/user/tests/Feature/Observability/HealthDisclosureTest.php" tests="6" assertions="14" errors="0" failures="0" skipped="0" time="0.244674">
+      <testcase name="test_public_health_returns_only_status_and_timestamp" file="/home/user/tests/Feature/Observability/HealthDisclosureTest.php" line="19" class="Tests\Feature\Observability\HealthDisclosureTest" classname="Tests.Feature.Observability.HealthDisclosureTest" assertions="5" time="0.045881"/>
+      <testcase name="test_detail_is_hidden_when_no_token_is_configured" file="/home/user/tests/Feature/Observability/HealthDisclosureTest.php" line="33" class="Tests\Feature\Observability\HealthDisclosureTest" classname="Tests.Feature.Observability.HealthDisclosureTest" assertions="2" time="0.032218"/>
+      <testcase name="test_detail_is_hidden_for_short_configured_token" file="/home/user/tests/Feature/Observability/HealthDisclosureTest.php" line="43" class="Tests\Feature\Observability\HealthDisclosureTest" classname="Tests.Feature.Observability.HealthDisclosureTest" assertions="1" time="0.040797"/>
+      <testcase name="test_detail_is_hidden_for_wrong_token" file="/home/user/tests/Feature/Observability/HealthDisclosureTest.php" line="52" class="Tests\Feature\Observability\HealthDisclosureTest" classname="Tests.Feature.Observability.HealthDisclosureTest" assertions="1" time="0.039308"/>
+      <testcase name="test_detail_is_returned_with_correct_token" file="/home/user/tests/Feature/Observability/HealthDisclosureTest.php" line="61" class="Tests\Feature\Observability\HealthDisclosureTest" classname="Tests.Feature.Observability.HealthDisclosureTest" assertions="3" time="0.039521"/>
+      <testcase name="test_liveness_and_readiness_routes_remain_available" file="/home/user/tests/Feature/Observability/HealthDisclosureTest.php" line="72" class="Tests\Feature\Observability\HealthDisclosureTest" classname="Tests.Feature.Observability.HealthDisclosureTest" assertions="2" time="0.046950"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Observability\HealthEndpointTest" file="/home/user/tests/Feature/Observability/HealthEndpointTest.php" tests="3" assertions="14" errors="0" failures="0" skipped="0" time="0.114488">
+      <testcase name="test_health_check_service_returns_live_status" file="/home/user/tests/Feature/Observability/HealthEndpointTest.php" line="18" class="Tests\Feature\Observability\HealthEndpointTest" classname="Tests.Feature.Observability.HealthEndpointTest" assertions="3" time="0.036202"/>
+      <testcase name="test_readiness_check_validates_critical_dependencies" file="/home/user/tests/Feature/Observability/HealthEndpointTest.php" line="30" class="Tests\Feature\Observability\HealthEndpointTest" classname="Tests.Feature.Observability.HealthEndpointTest" assertions="6" time="0.039909"/>
+      <testcase name="test_full_health_report_structure" file="/home/user/tests/Feature/Observability/HealthEndpointTest.php" line="45" class="Tests\Feature\Observability\HealthEndpointTest" classname="Tests.Feature.Observability.HealthEndpointTest" assertions="5" time="0.038377"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" tests="25" assertions="79" errors="0" failures="0" skipped="0" time="4.814825">
+      <testcase name="test_01_correlation_id_generated_when_absent" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="106" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.279697"/>
+      <testcase name="test_02_correlation_id_propagates_through_http_headers" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="117" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="5" time="0.167417"/>
+      <testcase name="test_03_safe_correlation_logging_in_context" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="135" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.160563"/>
+      <testcase name="test_04_secret_redaction_in_structured_logs_and_audit" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="159" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="6" time="0.171075"/>
+      <testcase name="test_05_financial_operation_context_enriched_in_logs" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="185" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="1" time="0.167998"/>
+      <testcase name="test_06_system_health_reporting_healthy_state" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="203" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="4" time="0.166378"/>
+      <testcase name="test_07_system_health_reporting_degraded_state_on_stale_reconciliation" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="224" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.164758"/>
+      <testcase name="test_08_system_health_reporting_unhealthy_state_when_db_down" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="236" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.186301"/>
+      <testcase name="test_09_stale_reconciliation_detection" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="250" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="3" time="0.187697"/>
+      <testcase name="test_10_failed_job_threshold_detection" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="281" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.174760"/>
+      <testcase name="test_11_financial_critical_backlog_detection" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="306" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.321157"/>
+      <testcase name="test_12_webhook_and_deposit_metrics_collection" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="330" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="4" time="0.176080"/>
+      <testcase name="test_13_withdrawal_metrics_collection" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="347" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="4" time="0.185623"/>
+      <testcase name="test_14_prize_settlement_metrics_collection" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="368" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.165974"/>
+      <testcase name="test_15_reconciliation_discrepancy_metrics_collection" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="383" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="3" time="0.178292"/>
+      <testcase name="test_16_provider_timeout_observability" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="406" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="1" time="0.192020"/>
+      <testcase name="test_17_transient_retry_observability" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="425" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.151365"/>
+      <testcase name="test_18_permanent_failure_observability" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="437" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="1" time="0.161367"/>
+      <testcase name="test_19_health_endpoint_does_not_mutate_financial_data" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="458" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="6" time="0.188250"/>
+      <testcase name="test_20_health_endpoint_does_not_leak_secrets" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="480" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="4" time="0.180615"/>
+      <testcase name="test_21_api_production_exception_does_not_leak_internals" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="497" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="4" time="0.172547"/>
+      <testcase name="test_22_scheduled_task_evaluation_command" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="514" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="1" time="0.192454"/>
+      <testcase name="test_23_alert_deduplication_and_throttling" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="525" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="4" time="0.158808"/>
+      <testcase name="test_24_financial_anomaly_alert_creation_and_dispatch" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="559" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="2" time="0.147834"/>
+      <testcase name="test_25_prometheus_openmetrics_format_export" file="/home/user/tests/Feature/Observability/ProductionObservabilityComprehensiveTest.php" line="581" class="Tests\Feature\Observability\ProductionObservabilityComprehensiveTest" classname="Tests.Feature.Observability.ProductionObservabilityComprehensiveTest" assertions="10" time="0.415796"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\HealthCheckTest" file="/home/user/tests/Feature/HealthCheckTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.043294">
+      <testcase name="test_health_endpoint_is_available" file="/home/user/tests/Feature/HealthCheckTest.php" line="9" class="Tests\Feature\HealthCheckTest" classname="Tests.Feature.HealthCheckTest" assertions="1" time="0.043294"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\TranslationKeyIntegrityTest" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" tests="46" assertions="105" errors="0" failures="0" skipped="0" time="1.980284">
+      <testcase name="test_every_literal_translation_reference_resolves_in_both_locales" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="117" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.075898"/>
+      <testsuite name="Tests\Feature\TranslationKeyIntegrityTest::test_en_and_th_key_sets_are_exactly_symmetric" tests="34" assertions="68" errors="0" failures="0" skipped="0" time="1.270015">
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;about_page&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.039134"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;account_info&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.038430"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;account_services&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.044942"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;admin&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.035160"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;admin_release&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.034347"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;agent&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.034994"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;bingo_lottery&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.050092"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;blog&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.041121"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;chat&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.040173"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;contact&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.037894"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;conversion&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.050470"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;discounts_page&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.037215"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;faq_page&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.037323"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;fees_page&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.035682"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;glo_l6&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.036209"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;home&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.028699"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;how_page&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.029178"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;lottery_hub&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.027910"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;national_lottery&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.034841"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;notifications&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.027729"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;pcso_lottery&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.034354"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;player&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.035599"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;prize_discount&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.044243"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;prize_verify_page&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.035222"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;public_pages&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.035960"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;results&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.035429"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;results_search&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.044165"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;services&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.035608"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;support&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.036114"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;transfer&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.036551"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;vision&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.045445"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;vision_page&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.037046"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;wallet_conversion&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.036308"/>
+        <testcase name="test_en_and_th_key_sets_are_exactly_symmetric with data set &quot;weekly_lottery&quot;" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="173" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.036426"/>
+      </testsuite>
+      <testcase name="test_every_configured_fee_category_has_a_translated_label_in_both_locales" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="185" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="2" time="0.045192"/>
+      <testcase name="test_the_fees_page_renders_no_raw_translation_keys" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="213" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="6" time="0.055407"/>
+      <testcase name="test_the_fees_page_renders_the_restored_keys_in_thai" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="232" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.042306"/>
+      <testsuite name="Tests\Feature\TranslationKeyIntegrityTest::test_player_pages_render_no_raw_translation_keys" tests="7" assertions="21" errors="0" failures="0" skipped="0" time="0.415064">
+        <testcase name="test_player_pages_render_no_raw_translation_keys with data set #0" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="266" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.061626"/>
+        <testcase name="test_player_pages_render_no_raw_translation_keys with data set #1" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="266" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.047446"/>
+        <testcase name="test_player_pages_render_no_raw_translation_keys with data set #2" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="266" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.057898"/>
+        <testcase name="test_player_pages_render_no_raw_translation_keys with data set #3" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="266" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.052614"/>
+        <testcase name="test_player_pages_render_no_raw_translation_keys with data set #4" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="266" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.056593"/>
+        <testcase name="test_player_pages_render_no_raw_translation_keys with data set #5" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="266" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.062448"/>
+        <testcase name="test_player_pages_render_no_raw_translation_keys with data set #6" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="266" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.076439"/>
+      </testsuite>
+      <testcase name="test_player_pages_render_localized_copy_in_thai" file="/home/user/tests/Feature/TranslationKeyIntegrityTest.php" line="280" class="Tests\Feature\TranslationKeyIntegrityTest" classname="Tests.Feature.TranslationKeyIntegrityTest" assertions="3" time="0.076403"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Locale\BanglaAgentPortalTest" file="/home/user/tests/Feature/Locale/BanglaAgentPortalTest.php" tests="3" assertions="140" errors="0" failures="0" skipped="0" time="0.189767">
+      <testcase name="test_authenticated_agent_portal_renders_bangla_copy" file="/home/user/tests/Feature/Locale/BanglaAgentPortalTest.php" line="18" class="Tests\Feature\Locale\BanglaAgentPortalTest" classname="Tests.Feature.Locale.BanglaAgentPortalTest" assertions="9" time="0.058804"/>
+      <testcase name="test_every_static_agent_translation_reference_has_a_bangla_value" file="/home/user/tests/Feature/Locale/BanglaAgentPortalTest.php" line="39" class="Tests\Feature\Locale\BanglaAgentPortalTest" classname="Tests.Feature.Locale.BanglaAgentPortalTest" assertions="103" time="0.095321"/>
+      <testcase name="test_dynamic_agent_states_and_commission_statuses_are_localized" file="/home/user/tests/Feature/Locale/BanglaAgentPortalTest.php" line="75" class="Tests\Feature\Locale\BanglaAgentPortalTest" classname="Tests.Feature.Locale.BanglaAgentPortalTest" assertions="28" time="0.035642"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Locale\BanglaLocaleSwitchTest" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" tests="8" assertions="19" errors="0" failures="0" skipped="0" time="0.328335">
+      <testcase name="test_bangla_option_is_reachable_from_desktop_and_mobile_language_controls" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" line="18" class="Tests\Feature\Locale\BanglaLocaleSwitchTest" classname="Tests.Feature.Locale.BanglaLocaleSwitchTest" assertions="3" time="0.054507"/>
+      <testcase name="test_switching_to_bangla_persists_session_and_sets_cookie" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" line="26" class="Tests\Feature\Locale\BanglaLocaleSwitchTest" classname="Tests.Feature.Locale.BanglaLocaleSwitchTest" assertions="5" time="0.041136"/>
+      <testcase name="test_switch_route_still_accepts_english_and_thai" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" line="62" class="Tests\Feature\Locale\BanglaLocaleSwitchTest" classname="Tests.Feature.Locale.BanglaLocaleSwitchTest" assertions="2" time="0.037549"/>
+      <testcase name="test_unsupported_locale_does_not_change_the_session" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" line="71" class="Tests\Feature\Locale\BanglaLocaleSwitchTest" classname="Tests.Feature.Locale.BanglaLocaleSwitchTest" assertions="4" time="0.051898"/>
+      <testcase name="test_unsupported_locale_sets_no_cookie" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" line="82" class="Tests\Feature\Locale\BanglaLocaleSwitchTest" classname="Tests.Feature.Locale.BanglaLocaleSwitchTest" assertions="1" time="0.048805"/>
+      <testcase name="test_middleware_applies_bangla_from_query_parameter" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" line="90" class="Tests\Feature\Locale\BanglaLocaleSwitchTest" classname="Tests.Feature.Locale.BanglaLocaleSwitchTest" assertions="2" time="0.035874"/>
+      <testcase name="test_middleware_applies_bangla_from_cookie" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" line="101" class="Tests\Feature\Locale\BanglaLocaleSwitchTest" classname="Tests.Feature.Locale.BanglaLocaleSwitchTest" assertions="1" time="0.029247"/>
+      <testcase name="test_middleware_ignores_invalid_cookie_and_keeps_default" file="/home/user/tests/Feature/Locale/BanglaLocaleSwitchTest.php" line="111" class="Tests\Feature\Locale\BanglaLocaleSwitchTest" classname="Tests.Feature.Locale.BanglaLocaleSwitchTest" assertions="1" time="0.029319"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Locale\BanglaPlayerTranslationTest" file="/home/user/tests/Feature/Locale/BanglaPlayerTranslationTest.php" tests="3" assertions="754" errors="0" failures="0" skipped="0" time="0.146575">
+      <testcase name="test_authenticated_dashboard_renders_bangla_player_copy" file="/home/user/tests/Feature/Locale/BanglaPlayerTranslationTest.php" line="17" class="Tests\Feature\Locale\BanglaPlayerTranslationTest" classname="Tests.Feature.Locale.BanglaPlayerTranslationTest" assertions="4" time="0.045611"/>
+      <testcase name="test_every_static_player_reference_has_a_bangla_override" file="/home/user/tests/Feature/Locale/BanglaPlayerTranslationTest.php" line="29" class="Tests\Feature\Locale\BanglaPlayerTranslationTest" classname="Tests.Feature.Locale.BanglaPlayerTranslationTest" assertions="723" time="0.071469"/>
+      <testcase name="test_dynamic_player_payment_and_status_catalogs_are_explicit" file="/home/user/tests/Feature/Locale/BanglaPlayerTranslationTest.php" line="71" class="Tests\Feature\Locale\BanglaPlayerTranslationTest" classname="Tests.Feature.Locale.BanglaPlayerTranslationTest" assertions="27" time="0.029495"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Locale\BanglaPublicLotteryPagesTest" file="/home/user/tests/Feature/Locale/BanglaPublicLotteryPagesTest.php" tests="4" assertions="48" errors="0" failures="0" skipped="0" time="0.143419">
+      <testcase name="test_public_lottery_hub_renders_bangla_product_cards" file="/home/user/tests/Feature/Locale/BanglaPublicLotteryPagesTest.php" line="15" class="Tests\Feature\Locale\BanglaPublicLotteryPagesTest" classname="Tests.Feature.Locale.BanglaPublicLotteryPagesTest" assertions="6" time="0.043965"/>
+      <testcase name="test_dedicated_glo_l6_page_renders_bangla_without_enabling_purchase" file="/home/user/tests/Feature/Locale/BanglaPublicLotteryPagesTest.php" line="33" class="Tests\Feature\Locale\BanglaPublicLotteryPagesTest" classname="Tests.Feature.Locale.BanglaPublicLotteryPagesTest" assertions="5" time="0.037331"/>
+      <testcase name="test_dynamic_lottery_hub_states_and_products_have_bangla_values" file="/home/user/tests/Feature/Locale/BanglaPublicLotteryPagesTest.php" line="43" class="Tests\Feature\Locale\BanglaPublicLotteryPagesTest" classname="Tests.Feature.Locale.BanglaPublicLotteryPagesTest" assertions="23" time="0.033745"/>
+      <testcase name="test_dynamic_glo_l6_states_and_result_labels_have_bangla_values" file="/home/user/tests/Feature/Locale/BanglaPublicLotteryPagesTest.php" line="65" class="Tests\Feature\Locale\BanglaPublicLotteryPagesTest" classname="Tests.Feature.Locale.BanglaPublicLotteryPagesTest" assertions="14" time="0.028379"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Locale\BanglaPublicPagesTest" file="/home/user/tests/Feature/Locale/BanglaPublicPagesTest.php" tests="3" assertions="669" errors="0" failures="2" skipped="0" time="0.158846">
+      <testcase name="test_guest_auth_privacy_and_download_pages_render_bangla_copy" file="/home/user/tests/Feature/Locale/BanglaPublicPagesTest.php" line="16" class="Tests\Feature\Locale\BanglaPublicPagesTest" classname="Tests.Feature.Locale.BanglaPublicPagesTest" assertions="18" time="0.052147">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Locale\BanglaPublicPagesTest::test_guest_auth_privacy_and_download_pages_render_bangla_copy
+Failed asserting that '&lt;!DOCTYPE html&gt;\n
+&lt;html lang="bn" class="h-full bg-slate-950 text-slate-100"&gt;\n
+&lt;head&gt;\n
+    &lt;meta charset="utf-8"&gt;\n
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;\n
+    &lt;meta name="csrf-token" content="TWpDFOKBhGQg5dhfTt3VnB04XsSPDr4Zt57tNCGk"&gt;\n
+    \n
+    &lt;meta name="app-name" content="Thai Lottery"&gt;\n
+    &lt;meta name="theme-color" content="#059669"&gt;\n
+\n
+    &lt;title&gt;গোপনীয়তা নীতি — Thai Lottery&lt;/title&gt;\n
+\n
+    &lt;link rel="manifest" href="/manifest.webmanifest"&gt;\n
+    &lt;link rel="icon" type="image/x-icon" href="/favicon.ico"&gt;\n
+\n
+    \n
+            &lt;meta name="description" content="তথ্য প্রক্রিয়াকরণ, নিরাপত্তা, বেনামি পাবলিক ব্রাউজিং এবং ব্যবহারকারীর অধিকার ব্যাখ্যা করা সংস্করণ-নিয়ন্ত্রিত গোপনীয়তা নীতি।"&gt;\n
+                &lt;link rel="canonical" href="http://localhost/privacy"&gt;\n
+                    &lt;meta property="og:title" content="গোপনীয়তা নীতি"&gt;\n
+                &lt;meta property="og:description" content="তথ্য প্রক্রিয়াকরণ, নিরাপত্তা, বেনামি পাবলিক ব্রাউজিং এবং ব্যবহারকারীর অধিকার ব্যাখ্যা করা সংস্করণ-নিয়ন্ত্রিত গোপনীয়তা নীতি।"&gt;\n
+                &lt;meta property="og:type" content="website"&gt;\n
+                &lt;meta property="og:url" content="http://localhost/privacy"&gt;\n
+    \n
+    \n
+            &lt;/head&gt;\n
+&lt;body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950"&gt;\n
+    &lt;!-- Header --&gt;\n
+    &lt;header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/20"&gt;\n
+        &lt;div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"&gt;\n
+            &lt;div class="flex items-center justify-between h-16"&gt;\n
+                &lt;!-- Brand Logo --&gt;\n
+                &lt;div class="flex items-center space-x-3"&gt;\n
+                    &lt;a href="http://localhost" class="flex items-center space-x-2.5 group"&gt;\n
+                        &lt;div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-teal-400 flex items-center justify-center font-black text-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform duration-200"&gt;\n
+                            TL\n
+                        &lt;/div&gt;\n
+                        &lt;div class="hidden sm:block"&gt;\n
+                            &lt;span class="text-lg font-black tracking-tight bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent"&gt;\n
+                                THAI LOTTERY\n
+                            &lt;/span&gt;\n
+                            &lt;span class="block text-[10px] text-slate-400 uppercase tracking-widest font-bold"&gt;Enterprise Wagering&lt;/span&gt;\n
+                        &lt;/div&gt;\n
+                    &lt;/a&gt;\n
+                &lt;/div&gt;\n
+\n
+                &lt;!-- Desktop Navigation --&gt;\n
+                &lt;nav class="hidden xl:flex items-center space-x-1 lg:space-x-2" aria-label="প্রধান নেভিগেশন"&gt;\n
+            &lt;a href="http://localhost/lotteries" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            লটারি\n
+        &lt;/a&gt;\n
+        &lt;a href="http://localhost/glo-l6" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            GLO L6\n
+        &lt;/a&gt;\n
+        &lt;a href="http://localhost/results" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            ফলাফল\n
+        &lt;/a&gt;\n
+        &lt;a href="http://localhost/services" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;আমাদের সেবাসমূহ&lt;/a&gt;\n
+        &lt;a href="http://localhost/about" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;আমাদের সম্পর্কে&lt;/a&gt;\n
+        &lt;a href="http://localhost/lotto-discount" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;লটারির ছাড়&lt;/a&gt;\n
+        &lt;a href="http://localhost/check" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            টিকিট যাচাই\n
+        &lt;/a&gt;\n
+        &lt;a href="http://localhost/contact" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            যোগাযোগ\n
+        &lt;/a&gt;\n
+    &lt;/nav&gt;\n
+\n
+                &lt;!-- Action Controls (Wallet, Auth, Mobile Menu Trigger) --&gt;\n
+                &lt;div class="flex items-center space-x-2.5 sm:space-x-4"&gt;\n
+                    &lt;!-- Language Selector (Desktop) --&gt;\n
+                    &lt;div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner"&gt;\n
+                        &lt;a href="http://localhost/locale/en" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200"&gt;EN&lt;/a&gt;\n
+                        &lt;a href="http://localhost/locale/th" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200"&gt;TH&lt;/a&gt;\n
+                        &lt;a href="http://localhost/locale/bn" lang="bn" hreflang="bn" class="px-2.5 py-1 rounded-lg transition bg-emerald-600 text-white shadow" aria-label="বাংলা"&gt;বাংলা&lt;/a&gt;\n
+                    &lt;/div&gt;\n
+\n
+                                            &lt;div class="hidden sm:flex items-center space-x-2"&gt;\n
+                            &lt;a href="http://localhost/login" class="px-3.5 py-2 text-sm font-bold text-slate-300 hover:text-white transition"&gt;\n
+                                Sign In\n
+                            &lt;/a&gt;\n
+                            &lt;a href="http://localhost/register" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold rounded-xl shadow-md transition"&gt;\n
+                                Register\n
+                            &lt;/a&gt;\n
+                        &lt;/div&gt;\n
+                    \n
+                    &lt;!-- Mobile Menu Hamburger Button --&gt;\n
+                    &lt;button type="button"\n
+                            id="btn-open-mobile-menu"\n
+                            class="xl:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"\n
+                            aria-label="Open Navigation Menu"&gt;\n
+                        &lt;svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"&gt;&lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/&gt;&lt;/svg&gt;\n
+                    &lt;/button&gt;\n
+                &lt;/div&gt;\n
+            &lt;/div&gt;\n
+        &lt;/div&gt;\n
+    &lt;/header&gt;\n
+\n
+    &lt;!-- Mobile Navigation Drawer --&gt;\n
+    &lt;div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out xl:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="প্রধান নেভিগেশন"&gt;\n
+    &lt;div class="flex items-center justify-between p-4 border-b border-slate-800"&gt;\n
+        &lt;div class="flex items-center space-x-2"&gt;\n
+            &lt;div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950"&gt;TL&lt;/div&gt;\n
+            &lt;span class="font-bold text-white tracking-tight"&gt;Thai Lottery&lt;/span&gt;\n
+        &lt;/div&gt;\n
+        &lt;button type="button" id="btn-close-mobile-menu" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="মেনু বন্ধ করুন"&gt;\n
+            &lt;svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"&gt;&lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/&gt;&lt;/svg&gt;\n
+        &lt;/button&gt;\n
+    &lt;/div&gt;\n
+\n
+    &lt;div class="flex-1 overflow-y-auto px-4 py-6 space-y-2"&gt;\n
+                    &lt;a href="http://localhost/lotteries" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;লটারি&lt;/a&gt;\n
+            &lt;a href="http://localhost/glo-l6" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition"&gt;GLO L6&lt;/a&gt;\n
+            &lt;a href="http://localhost/results" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;ফলাফল&lt;/a&gt;\n
+            &lt;a href="http://localhost/services" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;আমাদের সেবাসমূহ&lt;/a&gt;\n
+            &lt;a href="http://localhost/about" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;আমাদের সম্পর্কে&lt;/a&gt;\n
+            &lt;a href="http://localhost/lotto-discount" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;লটারির ছাড়&lt;/a&gt;\n
+            &lt;a href="http://localhost/check" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;টিকিট যাচাই&lt;/a&gt;\n
+            &lt;a href="http://localhost/contact" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;যোগাযোগ&lt;/a&gt;\n
+            &lt;/div&gt;\n
+\n
+    &lt;div class="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3"&gt;\n
+        &lt;div class="flex items-center justify-between"&gt;\n
+            &lt;span class="text-xs text-slate-400 font-bold uppercase tracking-wider"&gt;ভাষা&lt;/span&gt;\n
+            &lt;div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950"&gt;\n
+                &lt;a href="http://localhost/locale/en" class="px-3 py-1 rounded text-xs font-bold text-slate-400"&gt;EN&lt;/a&gt;\n
+                &lt;a href="http://localhost/locale/th" class="px-3 py-1 rounded text-xs font-bold text-slate-400"&gt;TH&lt;/a&gt;\n
+                &lt;a href="http://localhost/locale/bn" lang="bn" hreflang="bn" class="px-3 py-1 rounded text-xs font-bold bg-emerald-600 text-white" aria-label="বাংলা"&gt;বাংলা&lt;/a&gt;\n
+            &lt;/div&gt;\n
+        &lt;/div&gt;\n
+\n
+                    &lt;div class="grid grid-cols-2 gap-2"&gt;\n
+                &lt;a href="http://localhost/login" class="py-2.5 text-center bg-slate-800 text-slate-200 font-bold text-sm rounded-xl border border-slate-700"&gt;লগইন&lt;/a&gt;\n
+                &lt;a href="http://localhost/register" class="py-2.5 text-center bg-emerald-600 text-white font-bold text-sm rounded-xl"&gt;নিবন্ধন&lt;/a&gt;\n
+            &lt;/div&gt;\n
+            &lt;/div&gt;\n
+&lt;/div&gt;\n
+\n
+    &lt;!-- Global Notifications / Flash Feedback --&gt;\n
+        \n
+    &lt;!-- Main Content Container --&gt;\n
+    &lt;main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8"&gt;\n
+        &lt;div class="next-public-page next-public-page--privacy" data-next-public-page="privacy" data-pp-page="privacy"&gt;\n
+    &lt;a class="pp-skip-link" href="#privacy-main"&gt;মূল বিষয়বস্তুতে যান&lt;/a&gt;\n
+    &lt;header class="next-page-header"&gt;&lt;div class="next-shell next-page-header__inner"&gt;\n
+        &lt;a class="next-brand" href="http://localhost" aria-label="হোম"&gt;&lt;span class="next-brand__mark"&gt;TL&lt;/span&gt;&lt;span&gt;Thai Lottery&lt;small&gt;গোপনীয়তার তথ্য&lt;/small&gt;&lt;/span&gt;&lt;/a&gt;\n
+        &lt;nav class="next-nav" aria-label="প্রধান নেভিগেশন"&gt;&lt;a href="http://localhost"&gt;হোম&lt;/a&gt;&lt;a href="http://localhost/about"&gt;আমাদের সম্পর্কে&lt;/a&gt;&lt;a href="http://localhost/vision"&gt;দৃষ্টিভঙ্গি&lt;/a&gt;&lt;a class="is-active" href="http://localhost/privacy" aria-current="page"&gt;গোপনীয়তা&lt;/a&gt;&lt;a href="http://localhost/terms"&gt;শর্তাবলি&lt;/a&gt;&lt;a href="http://localhost/contact"&gt;যোগাযোগ&lt;/a&gt;&lt;/nav&gt;\n
+        &lt;a class="next-button next-button--gold" href="http://localhost/login"&gt;লগইন&lt;/a&gt;    &lt;/div&gt;&lt;/header&gt;\n
+\n
+    &lt;main id="privacy-main" class="next-shell next-content" tabindex="-1"&gt;\n
+        &lt;section class="next-hero" aria-labelledby="privacy-title"&gt;&lt;div&gt;&lt;p class="next-eyebrow"&gt;০৫ · তথ্য সুরক্ষা&lt;/p&gt;&lt;h1 id="privacy-title"&gt;গোপনীয়তা নীতি&lt;/h1&gt;&lt;p&gt;তথ্য প্রক্রিয়াকরণ, নিরাপত্তা, বেনামি পাবলিক ব্রাউজিং এবং ব্যবহারকারীর অধিকার ব্যাখ্যা করা সংস্করণ-নিয়ন্ত্রিত গোপনীয়তা নীতি।&lt;/p&gt;&lt;p class="next-note"&gt;এই পাতায় কেবল অনুমোদিত পাবলিক নীতির লেখা দেখানো হয়। কোনো নিয়ন্ত্রক পরিচয়, আইনগত ভিত্তি, সংরক্ষণকাল, কুকি-সংক্রান্ত দাবি বা সনদ বানিয়ে বলা হয় না।&lt;/p&gt;&lt;p class="next-note" role="note"&gt;&lt;strong&gt;ভাষা সংক্রান্ত বিজ্ঞপ্তি:&lt;/strong&gt; প্রকাশিত আইনি নথি সমর্থিত ভাষায় রেফারেন্সের জন্য প্রদান করা হয়েছে।&lt;/p&gt;&lt;/div&gt;&lt;div class="next-hero-object next-hero-object--privacy" aria-hidden="true"&gt;&lt;span&gt;§&lt;/span&gt;&lt;/div&gt;&lt;/section&gt;\n
+        &lt;section class="next-meta-strip" aria-label="গোপনীয়তা নীতির তথ্য"&gt;&lt;div&gt;&lt;span&gt;সংস্করণ&lt;/span&gt;&lt;strong&gt;v1.0.0&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;span&gt;কার্যকর হওয়ার তারিখ&lt;/span&gt;&lt;strong&gt;2026-09-24&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;span&gt;সর্বশেষ হালনাগাদ&lt;/span&gt;&lt;strong&gt;2026-09-24&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;span&gt;অবস্থা&lt;/span&gt;&lt;strong&gt;উপলভ্য&lt;/strong&gt;&lt;/div&gt;&lt;/section&gt;\n
+\n
+                    &lt;div class="next-layout"&gt;\n
+                &lt;aside class="next-sidebar" aria-label="গোপনীয়তা নীতির বিষয়বস্তু"&gt;&lt;p class="next-eyebrow"&gt;নথির সূচি&lt;/p&gt;&lt;a href="#data-processed" data-content-link="data-processed"&gt;01 · 1. Data We Process&lt;/a&gt;&lt;a href="#public-surfaces" data-content-link="public-surfaces"&gt;02 · 2. Public &amp;amp; Anonymous Surfaces&lt;/a&gt;&lt;a href="#security-storage" data-content-link="security-storage"&gt;03 · 3. Security &amp;amp; Storage&lt;/a&gt;&lt;a href="#player-rights" data-content-link="player-rights"&gt;04 · 4. Player Rights &amp;amp; KYC&lt;/a&gt;&lt;a href="#inquiries-contact" data-content-link="inquiries-contact"&gt;05 · 5. Inquiries &amp;amp; Contact&lt;/a&gt;&lt;/aside&gt;\n
+                &lt;div&gt;\n
+                    &lt;div class="next-search" role="search"&gt;&lt;label for="privacy-search"&gt;এই নীতিতে খুঁজুন&lt;/label&gt;&lt;div class="next-search__row"&gt;&lt;input id="privacy-search" type="search" data-local-search placeholder="গোপনীয়তার লেখা খুঁজুন" autocomplete="off"&gt;&lt;button class="next-button" type="button" data-clear-search&gt;মুছুন&lt;/button&gt;&lt;/div&gt;&lt;p class="next-search__status" data-search-status aria-live="polite"&gt;সব 5টি বিষয় দেখানো হচ্ছে।&lt;/p&gt;&lt;/div&gt;\n
+                                                                    &lt;section class="next-section" id="data-processed" data-content-section data-search-item data-search-text="1. Data We Process We process account registration data, wallet balances, transaction records, verification documents where required, and technical security logs. For authenticated accounts, we also store a last-activity timestamp, rate-limited to one update per minute, to calculate an aggregate active-member count. Public ticket checking does not store personal identity." aria-labelledby="data-processed-title"&gt;&lt;div class="next-section__heading"&gt;&lt;span class="next-section__number"&gt;01&lt;/span&gt;&lt;div&gt;&lt;p class="next-eyebrow"&gt;গোপনীয়তা নীতির অংশ&lt;/p&gt;&lt;h2 id="data-processed-title"&gt;1. Data We Process&lt;/h2&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="next-section__body"&gt;&lt;p&gt;We process account registration data, wallet balances, transaction records, verification documents where required, and technical security logs. For authenticated accounts, we also store a last-activity timestamp, rate-limited to one update per minute, to calculate an aggregate active-member count. Public ticket checking does not store personal identity.&lt;/p&gt;&lt;/div&gt;&lt;/section&gt;\n
+                                                                    &lt;section class="next-section" id="public-surfaces" data-content-section data-search-item data-search-text="2. Public &amp;amp; Anonymous Surfaces Home, draw results, prize checking, and public sales information are completely anonymous. No user login is required to browse results, and other users&amp;#039; personal details or balances are never exposed." aria-labelledby="public-surfaces-title"&gt;&lt;div class="next-section__heading"&gt;&lt;span class="next-section__number"&gt;02&lt;/span&gt;&lt;div&gt;&lt;p class="next-eyebrow"&gt;গোপনীয়তা নীতির অংশ&lt;/p&gt;&lt;h2 id="public-surfaces-title"&gt;2. Public &amp;amp; Anonymous Surfaces&lt;/h2&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="next-section__body"&gt;&lt;p&gt;Home, draw results, prize checking, and public sales information are completely anonymous. No user login is required to browse results, and other users&amp;#039; personal details or balances are never exposed.&lt;/p&gt;&lt;/div&gt;&lt;/section&gt;\n
+                                                                    &lt;section class="next-section" id="security-storage" data-content-section data-search-item data-search-text="3. Security &amp;amp; Storage All data transmissions are protected via modern TLS encryption. Sensitive identity documents are stored securely on private disks with restricted access and immutable audit logging." aria-labelledby="security-storage-title"&gt;&lt;div class="next-section__heading"&gt;&lt;span class="next-section__number"&gt;03&lt;/span&gt;&lt;div&gt;&lt;p class="next-eyebrow"&gt;গোপনীয়তা নীতির অংশ&lt;/p&gt;&lt;h2 id="security-storage-title"&gt;3. Security &amp;amp; Storage&lt;/h2&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="next-section__body"&gt;&lt;p&gt;All data transmissions are protected via modern TLS encryption. Sensitive identity documents are stored securely on private disks with restricted access and immutable audit logging.&lt;/p&gt;&lt;/div&gt;&lt;/section&gt;\n
+                                                                    &lt;section class="next-section" id="player-rights" data-content-section data-search-item data-search-text="4. Player Rights &amp;amp; KYC You can review and update your profile details in your account dashboard. Verification documents can be managed according to the platform&amp;#039;s compliance retention schedule." aria-labelledby="player-rights-title"&gt;&lt;div class="next-section__heading"&gt;&lt;span class="next-section__number"&gt;04&lt;/span&gt;&lt;div&gt;&lt;p class="next-eyebrow"&gt;গোপনীয়তা নীতির অংশ&lt;/p&gt;&lt;h2 id="player-rights-title"&gt;4. Player Rights &amp;amp; KYC&lt;/h2&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="next-section__body"&gt;&lt;p&gt;You can review and update your profile details in your account dashboard. Verification documents can be managed according to the platform&amp;#039;s compliance retention schedule.&lt;/p&gt;&lt;/div&gt;&lt;/section&gt;\n
+                                                                    &lt;section class="next-section" id="inquiries-contact" data-content-section data-search-item data-search-text="5. Inquiries &amp;amp; Contact For any questions or data requests regarding this Privacy Policy, please contact our support team through the official contact channels." aria-labelledby="inquiries-contact-title"&gt;&lt;div class="next-section__heading"&gt;&lt;span class="next-section__number"&gt;05&lt;/span&gt;&lt;div&gt;&lt;p class="next-eyebrow"&gt;গোপনীয়তা নীতির অংশ&lt;/p&gt;&lt;h2 id="inquiries-contact-title"&gt;5. Inquiries &amp;amp; Contact&lt;/h2&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="next-section__body"&gt;&lt;p&gt;For any questions or data requests regarding this Privacy Policy, please contact our support team through the official contact channels.&lt;/p&gt;&lt;/div&gt;&lt;/section&gt;\n
+                                    &lt;/div&gt;\n
+            &lt;/div&gt;\n
+            &lt;section class="next-bottom"&gt;&lt;div&gt;&lt;p class="next-eyebrow"&gt;তথ্যসংক্রান্ত প্রশ্ন&lt;/p&gt;&lt;h2&gt;কনফিগার করা সহায়তা মাধ্যম ব্যবহার করুন&lt;/h2&gt;&lt;p&gt;যাচাই না করা পাবলিক ঠিকানায় পরিচয়পত্র পাঠাবেন না।&lt;/p&gt;&lt;/div&gt;&lt;div class="next-bottom__links"&gt;&lt;button class="next-button next-button--gold" type="button" data-print-page&gt;প্রিন্ট / সংরক্ষণ&lt;/button&gt;&lt;a class="next-button" href="http://localhost/contact"&gt;সহায়তায় যোগাযোগ&lt;/a&gt;&lt;a class="next-button" href="http://localhost/terms"&gt;শর্তাবলি&lt;/a&gt;&lt;/div&gt;&lt;/section&gt;\n
+            &lt;/main&gt;\n
+&lt;/div&gt;\n
+    &lt;/main&gt;\n
+\n
+    &lt;!-- Global Platform Footer --&gt;\n
+    &lt;footer class="pp-footer bg-slate-900/60 border-t border-slate-800/80 backdrop-blur-xl py-12 text-xs text-slate-400" role="contentinfo"&gt;\n
+    &lt;div class="pp-footer__inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8"&gt;\n
+        &lt;!-- Top Section: Brand + Links Grid --&gt;\n
+        &lt;nav class="pp-footer__nav grid grid-cols-1 md:grid-cols-4 gap-8" aria-label="ফুটার নেভিগেশন"&gt;\n
+            &lt;!-- Brand Column --&gt;\n
+            &lt;div class="space-y-3 md:col-span-1"&gt;\n
+                &lt;div class="flex items-center space-x-2.5"&gt;\n
+                    &lt;div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950"&gt;\n
+                        TL\n
+                    &lt;/div&gt;\n
+                    &lt;a href="http://localhost" class="font-extrabold text-white text-base tracking-tight hover:text-amber-300 transition"&gt;\n
+                        Thai Lottery\n
+                    &lt;/a&gt;\n
+                &lt;/div&gt;\n
+                &lt;p class="text-xs text-slate-400 leading-relaxed"&gt;লটারি তথ্য, ফলাফল অনুসন্ধান, অ্যাকাউন্ট সহায়তা ও কনফিগার করা সেবার জন্য স্বাধীন প্ল্যাটফর্ম।&lt;/p&gt;\n
+                            &lt;/div&gt;\n
+\n
+            &lt;!-- Lottery Lanes --&gt;\n
+            &lt;div class="space-y-3"&gt;\n
+                &lt;h4 class="font-bold text-white text-xs uppercase tracking-wider"&gt;লটারি বিভাগ&lt;/h4&gt;\n
+                &lt;ul class="space-y-2"&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/national-lottery" class="hover:text-emerald-400 transition"&gt;L6 লটারি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/weekly-lottery" class="hover:text-emerald-400 transition"&gt;সাপ্তাহিক লটারি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/bingo-lottery" class="hover:text-emerald-400 transition"&gt;বিঙ্গো লটারি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/pcso-lottery" class="hover:text-emerald-400 transition"&gt;PCSO লটারি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/results" class="hover:text-emerald-400 transition"&gt;লটারির ফলাফল&lt;/a&gt;&lt;/li&gt;\n
+                &lt;/ul&gt;\n
+            &lt;/div&gt;\n
+\n
+            &lt;!-- Public Information --&gt;\n
+            &lt;div class="space-y-3"&gt;\n
+                &lt;h4 class="font-bold text-white text-xs uppercase tracking-wider"&gt;তথ্য&lt;/h4&gt;\n
+                &lt;ul class="space-y-2"&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/services" class="hover:text-emerald-400 transition"&gt;আমাদের সেবাসমূহ&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/about" class="hover:text-emerald-400 transition"&gt;প্ল্যাটফর্ম সম্পর্কে&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/vision" class="hover:text-emerald-400 transition"&gt;দৃষ্টিভঙ্গি ও লক্ষ্য&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/how-to-play" class="hover:text-emerald-400 transition"&gt;খেলার নিয়ম&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/faq" class="hover:text-emerald-400 transition"&gt;সাধারণ প্রশ্ন&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/check" class="hover:text-emerald-400 transition"&gt;টিকিট যাচাই&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/sales-points" class="hover:text-emerald-400 transition"&gt;বিক্রয় কেন্দ্র&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/fees" class="hover:text-emerald-400 transition"&gt;প্ল্যাটফর্ম ফি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/discounts" class="hover:text-emerald-400 transition"&gt;লটারি ছাড়&lt;/a&gt;&lt;/li&gt;\n
+                &lt;/ul&gt;\n
+            &lt;/div&gt;\n
+\n
+            &lt;!-- Legal &amp; Compliance --&gt;\n
+            &lt;div class="space-y-3"&gt;\n
+                &lt;h4 class="font-bold text-white text-xs uppercase tracking-wider"&gt;আইন ও সহায়তা&lt;/h4&gt;\n
+                &lt;ul class="space-y-2"&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/terms" class="hover:text-emerald-400 transition"&gt;সেবার শর্তাবলি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/privacy" class="hover:text-emerald-400 transition"&gt;গোপনীয়তা নীতি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/account-verification-guide" class="hover:text-emerald-400 transition"&gt;অ্যাকাউন্ট যাচাই নির্দেশিকা&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/account-grades" class="hover:text-emerald-400 transition"&gt;অ্যাকাউন্ট গ্রেড&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/prize-verification" class="hover:text-emerald-400 transition"&gt;পুরস্কার যাচাই&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/contact" class="hover:text-emerald-400 transition"&gt;যোগাযোগ&lt;/a&gt;&lt;/li&gt;\n
+                &lt;/ul&gt;\n
+            &lt;/div&gt;\n
+        &lt;/nav&gt;\n
+\n
+        &lt;!-- Legal Disclaimer &amp; Copyright --&gt;\n
+        &lt;div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left"&gt;\n
+            &lt;p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl"&gt;\n
+                &amp;copy; 2026 Thai Lottery.\n
+                সর্বস্বত্ব সংরক্ষিত। এই স্বাধীন প্ল্যাটফর্ম কোনো সরকারি লটারি কর্তৃপক্ষ দ্বারা পরিচালিত বা অনুমোদিত নয়। প্রকাশিত ফলাফল ও প্রযোজ্য নিয়ম নির্ভরযোগ্য উৎসে যাচাই করুন।\n
+            &lt;/p&gt;\n
+            \n
+            &lt;div class="flex items-center space-x-4 shrink-0 text-[11px]"&gt;\n
+                &lt;span class="text-slate-600"&gt;সংস্করণ v1.0.0&lt;/span&gt;\n
+            &lt;/div&gt;\n
+        &lt;/div&gt;\n
+    &lt;/div&gt;\n
+&lt;/footer&gt;\n
+\n
+    &lt;!-- Core Scripts --&gt;\n
+        &lt;/body&gt;\n
+&lt;/html&gt;\n
+' [UTF-8](length: 27867) contains "গোপনীয়তা নীতির মূল পাঠ বর্তমানে ইংরেজিতে দেখানো হচ্ছে" [UTF-8](length: 148).
+
+/tmp/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/tmp/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:710
+/home/user/tests/Feature/Locale/BanglaPublicPagesTest.php:42</failure>
+      </testcase>
+      <testcase name="test_bangla_terms_and_privacy_pages_disclose_english_legal_text" file="/home/user/tests/Feature/Locale/BanglaPublicPagesTest.php" line="54" class="Tests\Feature\Locale\BanglaPublicPagesTest" classname="Tests.Feature.Locale.BanglaPublicPagesTest" assertions="2" time="0.037800">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Locale\BanglaPublicPagesTest::test_bangla_terms_and_privacy_pages_disclose_english_legal_text
+Failed asserting that '&lt;!DOCTYPE html&gt;\n
+&lt;html lang="bn" class="h-full bg-slate-950 text-slate-100"&gt;\n
+&lt;head&gt;\n
+    &lt;meta charset="utf-8"&gt;\n
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;\n
+    &lt;meta name="csrf-token" content="aEMapRIpgOYyKME4ArqH72obJWJKZJFFNZIeSZDw"&gt;\n
+    \n
+    &lt;meta name="app-name" content="Thai Lottery"&gt;\n
+    &lt;meta name="theme-color" content="#059669"&gt;\n
+\n
+    &lt;title&gt;Terms of Use — Thai Lottery&lt;/title&gt;\n
+\n
+    &lt;link rel="manifest" href="/manifest.webmanifest"&gt;\n
+    &lt;link rel="icon" type="image/x-icon" href="/favicon.ico"&gt;\n
+\n
+    \n
+            &lt;meta name="description" content="Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers."&gt;\n
+                &lt;link rel="canonical" href="http://localhost/terms"&gt;\n
+                    &lt;meta property="og:title" content="Terms of Use"&gt;\n
+                &lt;meta property="og:description" content="Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers."&gt;\n
+                &lt;meta property="og:type" content="website"&gt;\n
+                &lt;meta property="og:url" content="http://localhost/terms"&gt;\n
+    \n
+    \n
+            &lt;/head&gt;\n
+&lt;body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950"&gt;\n
+    &lt;!-- Header --&gt;\n
+    &lt;header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/20"&gt;\n
+        &lt;div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"&gt;\n
+            &lt;div class="flex items-center justify-between h-16"&gt;\n
+                &lt;!-- Brand Logo --&gt;\n
+                &lt;div class="flex items-center space-x-3"&gt;\n
+                    &lt;a href="http://localhost" class="flex items-center space-x-2.5 group"&gt;\n
+                        &lt;div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-teal-400 flex items-center justify-center font-black text-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform duration-200"&gt;\n
+                            TL\n
+                        &lt;/div&gt;\n
+                        &lt;div class="hidden sm:block"&gt;\n
+                            &lt;span class="text-lg font-black tracking-tight bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent"&gt;\n
+                                THAI LOTTERY\n
+                            &lt;/span&gt;\n
+                            &lt;span class="block text-[10px] text-slate-400 uppercase tracking-widest font-bold"&gt;Enterprise Wagering&lt;/span&gt;\n
+                        &lt;/div&gt;\n
+                    &lt;/a&gt;\n
+                &lt;/div&gt;\n
+\n
+                &lt;!-- Desktop Navigation --&gt;\n
+                &lt;nav class="hidden xl:flex items-center space-x-1 lg:space-x-2" aria-label="প্রধান নেভিগেশন"&gt;\n
+            &lt;a href="http://localhost/lotteries" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            লটারি\n
+        &lt;/a&gt;\n
+        &lt;a href="http://localhost/glo-l6" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            GLO L6\n
+        &lt;/a&gt;\n
+        &lt;a href="http://localhost/results" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            ফলাফল\n
+        &lt;/a&gt;\n
+        &lt;a href="http://localhost/services" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;আমাদের সেবাসমূহ&lt;/a&gt;\n
+        &lt;a href="http://localhost/about" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;আমাদের সম্পর্কে&lt;/a&gt;\n
+        &lt;a href="http://localhost/lotto-discount" class="hidden xl:inline-flex px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;লটারির ছাড়&lt;/a&gt;\n
+        &lt;a href="http://localhost/check" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            টিকিট যাচাই\n
+        &lt;/a&gt;\n
+        &lt;a href="http://localhost/contact" class="px-3 py-2 rounded-xl text-sm font-semibold transition text-slate-300 hover:bg-slate-800/80 hover:text-white"&gt;\n
+            যোগাযোগ\n
+        &lt;/a&gt;\n
+    &lt;/nav&gt;\n
+\n
+                &lt;!-- Action Controls (Wallet, Auth, Mobile Menu Trigger) --&gt;\n
+                &lt;div class="flex items-center space-x-2.5 sm:space-x-4"&gt;\n
+                    &lt;!-- Language Selector (Desktop) --&gt;\n
+                    &lt;div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner"&gt;\n
+                        &lt;a href="http://localhost/locale/en" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200"&gt;EN&lt;/a&gt;\n
+                        &lt;a href="http://localhost/locale/th" class="px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200"&gt;TH&lt;/a&gt;\n
+                        &lt;a href="http://localhost/locale/bn" lang="bn" hreflang="bn" class="px-2.5 py-1 rounded-lg transition bg-emerald-600 text-white shadow" aria-label="বাংলা"&gt;বাংলা&lt;/a&gt;\n
+                    &lt;/div&gt;\n
+\n
+                                            &lt;div class="hidden sm:flex items-center space-x-2"&gt;\n
+                            &lt;a href="http://localhost/login" class="px-3.5 py-2 text-sm font-bold text-slate-300 hover:text-white transition"&gt;\n
+                                Sign In\n
+                            &lt;/a&gt;\n
+                            &lt;a href="http://localhost/register" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold rounded-xl shadow-md transition"&gt;\n
+                                Register\n
+                            &lt;/a&gt;\n
+                        &lt;/div&gt;\n
+                    \n
+                    &lt;!-- Mobile Menu Hamburger Button --&gt;\n
+                    &lt;button type="button"\n
+                            id="btn-open-mobile-menu"\n
+                            class="xl:hidden p-2 text-slate-400 hover:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"\n
+                            aria-label="Open Navigation Menu"&gt;\n
+                        &lt;svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"&gt;&lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/&gt;&lt;/svg&gt;\n
+                    &lt;/button&gt;\n
+                &lt;/div&gt;\n
+            &lt;/div&gt;\n
+        &lt;/div&gt;\n
+    &lt;/header&gt;\n
+\n
+    &lt;!-- Mobile Navigation Drawer --&gt;\n
+    &lt;div id="mobile-menu-drawer" class="fixed inset-0 z-50 transform translate-x-full transition-transform duration-300 ease-in-out xl:hidden flex flex-col bg-slate-950/95 backdrop-blur-xl border-l border-slate-800" role="dialog" aria-modal="true" aria-label="প্রধান নেভিগেশন"&gt;\n
+    &lt;div class="flex items-center justify-between p-4 border-b border-slate-800"&gt;\n
+        &lt;div class="flex items-center space-x-2"&gt;\n
+            &lt;div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950"&gt;TL&lt;/div&gt;\n
+            &lt;span class="font-bold text-white tracking-tight"&gt;Thai Lottery&lt;/span&gt;\n
+        &lt;/div&gt;\n
+        &lt;button type="button" id="btn-close-mobile-menu" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="মেনু বন্ধ করুন"&gt;\n
+            &lt;svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"&gt;&lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/&gt;&lt;/svg&gt;\n
+        &lt;/button&gt;\n
+    &lt;/div&gt;\n
+\n
+    &lt;div class="flex-1 overflow-y-auto px-4 py-6 space-y-2"&gt;\n
+                    &lt;a href="http://localhost/lotteries" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;লটারি&lt;/a&gt;\n
+            &lt;a href="http://localhost/glo-l6" class="block px-4 py-3 rounded-xl text-base font-semibold text-amber-300 hover:bg-slate-800 transition"&gt;GLO L6&lt;/a&gt;\n
+            &lt;a href="http://localhost/results" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;ফলাফল&lt;/a&gt;\n
+            &lt;a href="http://localhost/services" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;আমাদের সেবাসমূহ&lt;/a&gt;\n
+            &lt;a href="http://localhost/about" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;আমাদের সম্পর্কে&lt;/a&gt;\n
+            &lt;a href="http://localhost/lotto-discount" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;লটারির ছাড়&lt;/a&gt;\n
+            &lt;a href="http://localhost/check" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;টিকিট যাচাই&lt;/a&gt;\n
+            &lt;a href="http://localhost/contact" class="block px-4 py-3 rounded-xl text-base font-semibold text-slate-200 hover:bg-slate-800 transition"&gt;যোগাযোগ&lt;/a&gt;\n
+            &lt;/div&gt;\n
+\n
+    &lt;div class="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3"&gt;\n
+        &lt;div class="flex items-center justify-between"&gt;\n
+            &lt;span class="text-xs text-slate-400 font-bold uppercase tracking-wider"&gt;ভাষা&lt;/span&gt;\n
+            &lt;div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950"&gt;\n
+                &lt;a href="http://localhost/locale/en" class="px-3 py-1 rounded text-xs font-bold text-slate-400"&gt;EN&lt;/a&gt;\n
+                &lt;a href="http://localhost/locale/th" class="px-3 py-1 rounded text-xs font-bold text-slate-400"&gt;TH&lt;/a&gt;\n
+                &lt;a href="http://localhost/locale/bn" lang="bn" hreflang="bn" class="px-3 py-1 rounded text-xs font-bold bg-emerald-600 text-white" aria-label="বাংলা"&gt;বাংলা&lt;/a&gt;\n
+            &lt;/div&gt;\n
+        &lt;/div&gt;\n
+\n
+                    &lt;div class="grid grid-cols-2 gap-2"&gt;\n
+                &lt;a href="http://localhost/login" class="py-2.5 text-center bg-slate-800 text-slate-200 font-bold text-sm rounded-xl border border-slate-700"&gt;লগইন&lt;/a&gt;\n
+                &lt;a href="http://localhost/register" class="py-2.5 text-center bg-emerald-600 text-white font-bold text-sm rounded-xl"&gt;নিবন্ধন&lt;/a&gt;\n
+            &lt;/div&gt;\n
+            &lt;/div&gt;\n
+&lt;/div&gt;\n
+\n
+    &lt;!-- Global Notifications / Flash Feedback --&gt;\n
+        \n
+    &lt;!-- Main Content Container --&gt;\n
+    &lt;main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8"&gt;\n
+        &lt;div class="terms-page" data-terms-page data-terms-status="AVAILABLE" data-locale="bn"&gt;\n
+    &lt;a class="pp-skip-link" href="#terms-main"&gt;মূল বিষয়বস্তুতে যান&lt;/a&gt;\n
+\n
+    &lt;header class="terms-header" role="banner"&gt;\n
+        &lt;div class="terms-shell terms-header__inner"&gt;\n
+            &lt;a class="terms-brand" href="http://localhost" aria-label="ThaiLotto home"&gt;\n
+                &lt;span class="terms-brand__mark" aria-hidden="true"&gt;&lt;span&gt;TL&lt;/span&gt;&lt;/span&gt;\n
+                &lt;span class="terms-brand__name"&gt;Thai Lottery &lt;small&gt;LEGAL INFORMATION&lt;/small&gt;&lt;/span&gt;\n
+            &lt;/a&gt;\n
+            &lt;nav class="terms-nav" aria-label="Primary navigation"&gt;\n
+                &lt;a href="http://localhost"&gt;HOME&lt;/a&gt;\n
+                &lt;a href="http://localhost/results"&gt;RESULTS&lt;/a&gt;\n
+                &lt;a href="http://localhost/about"&gt;ABOUT US&lt;/a&gt;\n
+                &lt;a href="http://localhost/vision"&gt;VISION&lt;/a&gt;\n
+                &lt;a class="is-active" href="http://localhost/terms" aria-current="page"&gt;TERMS&lt;/a&gt;\n
+                &lt;a href="http://localhost/contact"&gt;CONTACT&lt;/a&gt;\n
+            &lt;/nav&gt;\n
+            &lt;div class="terms-header__actions"&gt;\n
+                &lt;button class="terms-button terms-button--quiet terms-print-button" type="button" data-print-terms&gt;PRINT&lt;/button&gt;\n
+                                    &lt;a class="terms-button terms-button--gold" href="http://localhost/login"&gt;LOGIN&lt;/a&gt;\n
+                            &lt;/div&gt;\n
+        &lt;/div&gt;\n
+    &lt;/header&gt;\n
+\n
+    &lt;div id="terms-main" class="terms-shell terms-content" tabindex="-1"&gt;\n
+        &lt;section class="terms-hero" aria-labelledby="terms-title"&gt;\n
+            &lt;div class="terms-hero__copy"&gt;\n
+                &lt;p class="terms-eyebrow"&gt;04 · LEGAL AGREEMENT&lt;/p&gt;\n
+                &lt;h1 id="terms-title"&gt;Terms of Use&lt;/h1&gt;\n
+                &lt;p&gt;Versioned terms of use covering products, prizes, stamp duty, accounts, age rules, claims, responsible gaming, and legal disclaimers.&lt;/p&gt;\n
+                &lt;p class="terms-identity-note"&gt;This page uses the independent platform’s approved public legal content. This site is an independent platform and not the official GLO website; we do not claim government ownership, official agency status, licensing, or endorsement.&lt;/p&gt;\n
+                                    &lt;p class="terms-identity-note" role="note"&gt;&lt;strong&gt;ভাষা সংক্রান্ত বিজ্ঞপ্তি:&lt;/strong&gt; প্রকাশিত শর্তাবলি সমর্থিত ভাষায় রেফারেন্সের জন্য প্রদান করা হয়েছে।&lt;/p&gt;\n
+                            &lt;/div&gt;\n
+            &lt;div class="terms-document" aria-hidden="true"&gt;\n
+                &lt;div class="terms-document__sheet"&gt;\n
+                    &lt;span class="terms-document__fold"&gt;&lt;/span&gt;\n
+                    &lt;span class="terms-document__seal"&gt;§&lt;/span&gt;\n
+                    &lt;span class="terms-document__line terms-document__line--wide"&gt;&lt;/span&gt;\n
+                    &lt;span class="terms-document__line"&gt;&lt;/span&gt;\n
+                    &lt;span class="terms-document__line"&gt;&lt;/span&gt;\n
+                    &lt;span class="terms-document__line terms-document__line--short"&gt;&lt;/span&gt;\n
+                    &lt;span class="terms-document__clause"&gt;01&lt;/span&gt;\n
+                    &lt;span class="terms-document__clause terms-document__clause--two"&gt;02&lt;/span&gt;\n
+                &lt;/div&gt;\n
+                &lt;span class="terms-document__glow"&gt;&lt;/span&gt;\n
+            &lt;/div&gt;\n
+        &lt;/section&gt;\n
+\n
+        &lt;section class="terms-meta" aria-label="Terms metadata"&gt;\n
+            &lt;dl class="terms-meta__grid"&gt;\n
+                &lt;div data-pp-version&gt;\n
+                    &lt;dt&gt;Version&lt;/dt&gt;\n
+                    &lt;dd data-pp-legal-version="v1.0.0"&gt;v1.0.0&lt;/dd&gt;\n
+                &lt;/div&gt;\n
+                &lt;div data-pp-effective&gt;\n
+                    &lt;dt&gt;Effective date&lt;/dt&gt;\n
+                    &lt;dd&gt;2026-09-24&lt;/dd&gt;\n
+                &lt;/div&gt;\n
+                &lt;div data-pp-updated&gt;\n
+                    &lt;dt&gt;Last updated&lt;/dt&gt;\n
+                    &lt;dd&gt;2026-09-24&lt;/dd&gt;\n
+                &lt;/div&gt;\n
+                &lt;div&gt;\n
+                    &lt;dt&gt;Publication status&lt;/dt&gt;\n
+                    &lt;dd&gt;AVAILABLE&lt;/dd&gt;\n
+                &lt;/div&gt;\n
+            &lt;/dl&gt;\n
+            &lt;div class="terms-meta__actions"&gt;\n
+                &lt;button class="terms-button terms-button--gold" type="button" data-print-terms&gt;PRINT / SAVE&lt;/button&gt;\n
+                &lt;a class="terms-button terms-button--quiet" href="#terms-contents"&gt;CONTENTS&lt;/a&gt;\n
+            &lt;/div&gt;\n
+        &lt;/section&gt;\n
+\n
+                    &lt;div class="terms-layout"&gt;\n
+                &lt;aside class="terms-sidebar" id="terms-contents" aria-label="Terms contents"&gt;\n
+                    &lt;button class="terms-contents-toggle" type="button" data-contents-toggle aria-expanded="false" aria-controls="terms-contents-list"&gt;\n
+                        &lt;span&gt;CONTENTS&lt;/span&gt;&lt;span aria-hidden="true"&gt;⌄&lt;/span&gt;\n
+                    &lt;/button&gt;\n
+                    &lt;div class="terms-sidebar__inner" id="terms-contents-list"&gt;\n
+                        &lt;p class="terms-sidebar__eyebrow"&gt;DOCUMENT MAP&lt;/p&gt;\n
+                        &lt;nav class="terms-contents-nav" data-terms-contents aria-label="Terms section navigation"&gt;\n
+                                                                                                                                &lt;a href="#scope" data-section-link="scope"&gt;\n
+                                        &lt;span&gt;01&lt;/span&gt;\n
+                                        &lt;strong&gt;1. Scope and platform identity&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#products" data-section-link="products"&gt;\n
+                                        &lt;span&gt;02&lt;/span&gt;\n
+                                        &lt;strong&gt;2. Products and prize rules&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#stamp-duty" data-section-link="stamp-duty"&gt;\n
+                                        &lt;span&gt;03&lt;/span&gt;\n
+                                        &lt;strong&gt;3. Prize duty and tax treatment&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#accounts" data-section-link="accounts"&gt;\n
+                                        &lt;span&gt;04&lt;/span&gt;\n
+                                        &lt;strong&gt;4. Accounts and verification&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#age" data-section-link="age"&gt;\n
+                                        &lt;span&gt;05&lt;/span&gt;\n
+                                        &lt;strong&gt;5. Age rules&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#ticket-ownership" data-section-link="ticket-ownership"&gt;\n
+                                        &lt;span&gt;06&lt;/span&gt;\n
+                                        &lt;strong&gt;6. Ticket ownership and transfers&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#responsible-gaming" data-section-link="responsible-gaming"&gt;\n
+                                        &lt;span&gt;07&lt;/span&gt;\n
+                                        &lt;strong&gt;7. Responsible gaming&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#claims" data-section-link="claims"&gt;\n
+                                        &lt;span&gt;08&lt;/span&gt;\n
+                                        &lt;strong&gt;8. Claims and payouts&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#disclaimer" data-section-link="disclaimer"&gt;\n
+                                        &lt;span&gt;09&lt;/span&gt;\n
+                                        &lt;strong&gt;9. Legal disclaimer&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#prohibited" data-section-link="prohibited"&gt;\n
+                                        &lt;span&gt;10&lt;/span&gt;\n
+                                        &lt;strong&gt;10. Prohibited conduct&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                                                                                                &lt;a href="#changes" data-section-link="changes"&gt;\n
+                                        &lt;span&gt;11&lt;/span&gt;\n
+                                        &lt;strong&gt;11. Contact and changes&lt;/strong&gt;\n
+                                    &lt;/a&gt;\n
+                                                                                    &lt;/nav&gt;\n
+                        &lt;div class="terms-sidebar__operator"&gt;\n
+                            &lt;span&gt;OPERATOR IDENTITY&lt;/span&gt;\n
+                            &lt;strong&gt;NOT_CONFIGURED&lt;/strong&gt;\n
+                            &lt;small&gt;Registration: NOT_CONFIGURED&lt;/small&gt;\n
+                            &lt;small&gt;Support: NOT_CONFIGURED&lt;/small&gt;\n
+                            &lt;small&gt;Only approved configuration is displayed.&lt;/small&gt;\n
+                        &lt;/div&gt;\n
+                    &lt;/div&gt;\n
+                &lt;/aside&gt;\n
+\n
+                &lt;div class="terms-main-column"&gt;\n
+                    &lt;div class="terms-search" role="search"&gt;\n
+                        &lt;label for="terms-search-input"&gt;Search within these Terms&lt;/label&gt;\n
+                        &lt;div class="terms-search__row"&gt;\n
+                            &lt;input id="terms-search-input" type="search" placeholder="Search headings and legal text" autocomplete="off" data-terms-search&gt;\n
+                            &lt;button class="terms-button terms-button--quiet" type="button" data-clear-search&gt;CLEAR&lt;/button&gt;\n
+                        &lt;/div&gt;\n
+                        &lt;p class="terms-search__status" data-terms-search-status aria-live="polite"&gt;Showing all 11 sections.&lt;/p&gt;\n
+                    &lt;/div&gt;\n
+\n
+                    &lt;div class="terms-sections" data-terms-sections&gt;\n
+                                                                                &lt;section class="terms-section" id="scope" data-term-section data-searchable-text="1. Scope and platform identity These Terms govern your use of this independent lottery information and wagering platform. We are not the Government Lottery Office (GLO), not an official agent, and not a government portal. GLO product rules are referenced only for prize-rule compatibility. " aria-labelledby="scope-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;01&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="scope-title"&gt;1. Scope and platform identity&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;These Terms govern your use of this independent lottery information and wagering platform. We are not the Government Lottery Office (GLO), not an official agent, and not a government portal. GLO product rules are referenced only for prize-rule compatibility.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="products" data-term-section data-searchable-text="2. Products and prize rules GLO-compatible L6: ticket price 80.00 THB; full-sale allocation 48,000,000.00 THB across 1,000,000 units; 14,168 prizes in the full-sale schedule; prizes scale proportionally when sales are below full sale. GLO-compatible N3: ticket price 20.00 THB; prize pool is 60% of N3 gross sales; payouts are variable and draw-calculated — never fixed historical amounts. Operator markets (3D, TOD, 2D, Run) are platform products. They are never described as GLO N3 or as government lottery products." aria-labelledby="products-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;02&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="products-title"&gt;2. Products and prize rules&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;GLO-compatible L6: ticket price 80.00 THB; full-sale allocation 48,000,000.00 THB across 1,000,000 units; 14,168 prizes in the full-sale schedule; prizes scale proportionally when sales are below full sale.&lt;/p&gt;\n
+                                                                            &lt;p&gt;GLO-compatible N3: ticket price 20.00 THB; prize pool is 60% of N3 gross sales; payouts are variable and draw-calculated — never fixed historical amounts.&lt;/p&gt;\n
+                                                                            &lt;p&gt;Operator markets (3D, TOD, 2D, Run) are platform products. They are never described as GLO N3 or as government lottery products.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="stamp-duty" data-term-section data-searchable-text="3. Prize duty and tax treatment Stamp duty: 1.00 THB for every 200 THB of gross prize or fraction thereof (ceil(gross/200) × 1.00 THB). Prize income under this rule is treated as stamp-duty only; income tax is exempt on the displayed calculation. No 0.5% or 1% withholding model is used on this platform. " aria-labelledby="stamp-duty-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;03&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="stamp-duty-title"&gt;3. Prize duty and tax treatment&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;Stamp duty: 1.00 THB for every 200 THB of gross prize or fraction thereof (ceil(gross/200) × 1.00 THB). Prize income under this rule is treated as stamp-duty only; income tax is exempt on the displayed calculation. No 0.5% or 1% withholding model is used on this platform.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="accounts" data-term-section data-searchable-text="4. Accounts and verification One account per verified user where enforced: email, username, and phone are unique at registration. Identity verification requirements may vary by account, product, and channel. We never promise a single fixed verification path for every user." aria-labelledby="accounts-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;04&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="accounts-title"&gt;4. Accounts and verification&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;One account per verified user where enforced: email, username, and phone are unique at registration.&lt;/p&gt;\n
+                                                                            &lt;p&gt;Identity verification requirements may vary by account, product, and channel. We never promise a single fixed verification path for every user.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="age" data-term-section data-searchable-text="5. Age rules Registration: you confirm you can enter into a binding agreement under applicable law and that the information you provide is accurate. A date of birth may be collected for identity verification and is stored for server-side age checks. Purchase: eligibility to purchase or wager may be checked against product rules, responsible-gaming settings, and account status before an order is accepted. Claim: prize claimants must be 20 years of age or older, calculated from the verified date of birth on file — never from a client-supplied age." aria-labelledby="age-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;05&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="age-title"&gt;5. Age rules&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;Registration: you confirm you can enter into a binding agreement under applicable law and that the information you provide is accurate. A date of birth may be collected for identity verification and is stored for server-side age checks.&lt;/p&gt;\n
+                                                                            &lt;p&gt;Purchase: eligibility to purchase or wager may be checked against product rules, responsible-gaming settings, and account status before an order is accepted.&lt;/p&gt;\n
+                                                                            &lt;p&gt;Claim: prize claimants must be 20 years of age or older, calculated from the verified date of birth on file — never from a client-supplied age.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="ticket-ownership" data-term-section data-searchable-text="6. Ticket ownership and transfers Lottery ticket numbers are digit strings with leading zeros preserved. For GLO-style L6 prizes, a claim follows the authorized claimant path for the verified holder; tickets are not freely transferable instruments for claiming purposes on this platform. " aria-labelledby="ticket-ownership-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;06&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="ticket-ownership-title"&gt;6. Ticket ownership and transfers&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;Lottery ticket numbers are digit strings with leading zeros preserved. For GLO-style L6 prizes, a claim follows the authorized claimant path for the verified holder; tickets are not freely transferable instruments for claiming purposes on this platform.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="responsible-gaming" data-term-section data-searchable-text="7. Responsible gaming Where enabled on your account, you can use self-exclusion, deposit/loss limits, and reality checks from your profile and the responsible-gaming settings. These are player-protection tools, not a statement of regulatory approval. " aria-labelledby="responsible-gaming-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;07&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="responsible-gaming-title"&gt;7. Responsible gaming&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;Where enabled on your account, you can use self-exclusion, deposit/loss limits, and reality checks from your profile and the responsible-gaming settings. These are player-protection tools, not a statement of regulatory approval.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="claims" data-term-section data-searchable-text="8. Claims and payouts There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is 2 years from the draw under configured GLO-compatible rules. " aria-labelledby="claims-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;08&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="claims-title"&gt;8. Claims and payouts&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is 2 years from the draw under configured GLO-compatible rules.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="disclaimer" data-term-section data-searchable-text="9. Legal disclaimer This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only. We do not claim government ownership, operation, endorsement, or agency status. No page on this site should be read as an official GLO website. " aria-labelledby="disclaimer-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;09&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="disclaimer-title"&gt;9. Legal disclaimer&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only. We do not claim government ownership, operation, endorsement, or agency status. No page on this site should be read as an official GLO website.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="prohibited" data-term-section data-searchable-text="10. Prohibited conduct Automated abuse of public endpoints, attempted circumvention of rate limits, fraudulent claim or identity information, and attempts to manipulate finalized results may result in account restriction. " aria-labelledby="prohibited-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;10&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="prohibited-title"&gt;10. Prohibited conduct&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;Automated abuse of public endpoints, attempted circumvention of rate limits, fraudulent claim or identity information, and attempts to manipulate finalized results may result in account restriction.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                                                                &lt;section class="terms-section" id="changes" data-term-section data-searchable-text="11. Contact and changes Questions about these Terms: use the contact page. Material changes will publish a new version number and updated effective date on this page; historical versions are never silently rewritten in place without a version bump. " aria-labelledby="changes-title"&gt;\n
+                                &lt;div class="terms-section__heading"&gt;\n
+                                    &lt;span class="terms-section__number"&gt;11&lt;/span&gt;\n
+                                    &lt;div&gt;\n
+                                        &lt;p class="terms-eyebrow"&gt;LEGAL SECTION&lt;/p&gt;\n
+                                        &lt;h2 id="changes-title"&gt;11. Contact and changes&lt;/h2&gt;\n
+                                    &lt;/div&gt;\n
+                                &lt;/div&gt;\n
+                                &lt;div class="terms-section__body"&gt;\n
+                                    &lt;p&gt;Questions about these Terms: use the contact page. Material changes will publish a new version number and updated effective date on this page; historical versions are never silently rewritten in place without a version bump.&lt;/p&gt;\n
+                                                                    &lt;/div&gt;\n
+                                &lt;a class="terms-section__back" href="#terms-contents"&gt;Back to contents ↑&lt;/a&gt;\n
+                            &lt;/section&gt;\n
+                                            &lt;/div&gt;\n
+                &lt;/div&gt;\n
+            &lt;/div&gt;\n
+\n
+            &lt;section class="terms-facts" aria-labelledby="terms-facts-title"&gt;\n
+                &lt;div&gt;\n
+                    &lt;p class="terms-eyebrow"&gt;CONFIGURED REFERENCE&lt;/p&gt;\n
+                    &lt;h2 id="terms-facts-title"&gt;Values used in this document&lt;/h2&gt;\n
+                    &lt;p&gt;These values are rendered from approved legal and product configuration sources. They are not replaced with decorative marketing claims.&lt;/p&gt;\n
+                &lt;/div&gt;\n
+                &lt;dl class="terms-facts__grid"&gt;\n
+                                            &lt;div&gt;&lt;dt&gt;L6 ticket price&lt;/dt&gt;&lt;dd&gt;80.00&lt;/dd&gt;&lt;/div&gt;\n
+                                            &lt;div&gt;&lt;dt&gt;L6 full-sale allocation&lt;/dt&gt;&lt;dd&gt;48,000,000.00&lt;/dd&gt;&lt;/div&gt;\n
+                                            &lt;div&gt;&lt;dt&gt;L6 full-sale units&lt;/dt&gt;&lt;dd&gt;1,000,000&lt;/dd&gt;&lt;/div&gt;\n
+                                            &lt;div&gt;&lt;dt&gt;L6 prize count&lt;/dt&gt;&lt;dd&gt;14,168&lt;/dd&gt;&lt;/div&gt;\n
+                                            &lt;div&gt;&lt;dt&gt;N3 ticket price&lt;/dt&gt;&lt;dd&gt;20.00&lt;/dd&gt;&lt;/div&gt;\n
+                                            &lt;div&gt;&lt;dt&gt;N3 prize pool&lt;/dt&gt;&lt;dd&gt;60%&lt;/dd&gt;&lt;/div&gt;\n
+                                            &lt;div&gt;&lt;dt&gt;Stamp duty divisor&lt;/dt&gt;&lt;dd&gt;200&lt;/dd&gt;&lt;/div&gt;\n
+                                            &lt;div&gt;&lt;dt&gt;Claim window&lt;/dt&gt;&lt;dd&gt;2 years&lt;/dd&gt;&lt;/div&gt;\n
+                                    &lt;/dl&gt;\n
+            &lt;/section&gt;\n
+\n
+            &lt;section class="terms-contact" aria-labelledby="terms-contact-title"&gt;\n
+                &lt;div&gt;\n
+                    &lt;p class="terms-eyebrow"&gt;QUESTIONS ABOUT THESE TERMS?&lt;/p&gt;\n
+                    &lt;h2 id="terms-contact-title"&gt;Use the real support route&lt;/h2&gt;\n
+                    &lt;p&gt;For questions about the published Terms, contact support. Legal content is versioned and should not be interpreted from a search result excerpt alone.&lt;/p&gt;\n
+                &lt;/div&gt;\n
+                &lt;div class="terms-contact__links"&gt;\n
+                    &lt;a class="terms-button terms-button--gold" href="http://localhost/contact"&gt;CONTACT SUPPORT&lt;/a&gt;\n
+                    &lt;a class="terms-button terms-button--quiet" href="http://localhost/privacy"&gt;PRIVACY POLICY&lt;/a&gt;\n
+                    &lt;a class="terms-button terms-button--quiet" href="http://localhost/fees"&gt;PLATFORM FEES&lt;/a&gt;\n
+                &lt;/div&gt;\n
+            &lt;/section&gt;\n
+            &lt;/div&gt;\n
+&lt;/div&gt;\n
+    &lt;/main&gt;\n
+\n
+    &lt;!-- Global Platform Footer --&gt;\n
+    &lt;footer class="pp-footer bg-slate-900/60 border-t border-slate-800/80 backdrop-blur-xl py-12 text-xs text-slate-400" role="contentinfo"&gt;\n
+    &lt;div class="pp-footer__inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8"&gt;\n
+        &lt;!-- Top Section: Brand + Links Grid --&gt;\n
+        &lt;nav class="pp-footer__nav grid grid-cols-1 md:grid-cols-4 gap-8" aria-label="ফুটার নেভিগেশন"&gt;\n
+            &lt;!-- Brand Column --&gt;\n
+            &lt;div class="space-y-3 md:col-span-1"&gt;\n
+                &lt;div class="flex items-center space-x-2.5"&gt;\n
+                    &lt;div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center font-black text-sm text-slate-950"&gt;\n
+                        TL\n
+                    &lt;/div&gt;\n
+                    &lt;a href="http://localhost" class="font-extrabold text-white text-base tracking-tight hover:text-amber-300 transition"&gt;\n
+                        Thai Lottery\n
+                    &lt;/a&gt;\n
+                &lt;/div&gt;\n
+                &lt;p class="text-xs text-slate-400 leading-relaxed"&gt;লটারি তথ্য, ফলাফল অনুসন্ধান, অ্যাকাউন্ট সহায়তা ও কনফিগার করা সেবার জন্য স্বাধীন প্ল্যাটফর্ম।&lt;/p&gt;\n
+                            &lt;/div&gt;\n
+\n
+            &lt;!-- Lottery Lanes --&gt;\n
+            &lt;div class="space-y-3"&gt;\n
+                &lt;h4 class="font-bold text-white text-xs uppercase tracking-wider"&gt;লটারি বিভাগ&lt;/h4&gt;\n
+                &lt;ul class="space-y-2"&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/national-lottery" class="hover:text-emerald-400 transition"&gt;L6 লটারি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/weekly-lottery" class="hover:text-emerald-400 transition"&gt;সাপ্তাহিক লটারি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/bingo-lottery" class="hover:text-emerald-400 transition"&gt;বিঙ্গো লটারি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/pcso-lottery" class="hover:text-emerald-400 transition"&gt;PCSO লটারি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/results" class="hover:text-emerald-400 transition"&gt;লটারির ফলাফল&lt;/a&gt;&lt;/li&gt;\n
+                &lt;/ul&gt;\n
+            &lt;/div&gt;\n
+\n
+            &lt;!-- Public Information --&gt;\n
+            &lt;div class="space-y-3"&gt;\n
+                &lt;h4 class="font-bold text-white text-xs uppercase tracking-wider"&gt;তথ্য&lt;/h4&gt;\n
+                &lt;ul class="space-y-2"&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/services" class="hover:text-emerald-400 transition"&gt;আমাদের সেবাসমূহ&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/about" class="hover:text-emerald-400 transition"&gt;প্ল্যাটফর্ম সম্পর্কে&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/vision" class="hover:text-emerald-400 transition"&gt;দৃষ্টিভঙ্গি ও লক্ষ্য&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/how-to-play" class="hover:text-emerald-400 transition"&gt;খেলার নিয়ম&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/faq" class="hover:text-emerald-400 transition"&gt;সাধারণ প্রশ্ন&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/check" class="hover:text-emerald-400 transition"&gt;টিকিট যাচাই&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/sales-points" class="hover:text-emerald-400 transition"&gt;বিক্রয় কেন্দ্র&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/fees" class="hover:text-emerald-400 transition"&gt;প্ল্যাটফর্ম ফি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/discounts" class="hover:text-emerald-400 transition"&gt;লটারি ছাড়&lt;/a&gt;&lt;/li&gt;\n
+                &lt;/ul&gt;\n
+            &lt;/div&gt;\n
+\n
+            &lt;!-- Legal &amp; Compliance --&gt;\n
+            &lt;div class="space-y-3"&gt;\n
+                &lt;h4 class="font-bold text-white text-xs uppercase tracking-wider"&gt;আইন ও সহায়তা&lt;/h4&gt;\n
+                &lt;ul class="space-y-2"&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/terms" class="hover:text-emerald-400 transition"&gt;সেবার শর্তাবলি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/privacy" class="hover:text-emerald-400 transition"&gt;গোপনীয়তা নীতি&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/account-verification-guide" class="hover:text-emerald-400 transition"&gt;অ্যাকাউন্ট যাচাই নির্দেশিকা&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/account-grades" class="hover:text-emerald-400 transition"&gt;অ্যাকাউন্ট গ্রেড&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/prize-verification" class="hover:text-emerald-400 transition"&gt;পুরস্কার যাচাই&lt;/a&gt;&lt;/li&gt;\n
+                    &lt;li&gt;&lt;a href="http://localhost/contact" class="hover:text-emerald-400 transition"&gt;যোগাযোগ&lt;/a&gt;&lt;/li&gt;\n
+                &lt;/ul&gt;\n
+            &lt;/div&gt;\n
+        &lt;/nav&gt;\n
+\n
+        &lt;!-- Legal Disclaimer &amp; Copyright --&gt;\n
+        &lt;div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left"&gt;\n
+            &lt;p class="pp-footer__legal text-[11px] text-slate-500 max-w-2xl"&gt;\n
+                &amp;copy; 2026 Thai Lottery.\n
+                সর্বস্বত্ব সংরক্ষিত। এই স্বাধীন প্ল্যাটফর্ম কোনো সরকারি লটারি কর্তৃপক্ষ দ্বারা পরিচালিত বা অনুমোদিত নয়। প্রকাশিত ফলাফল ও প্রযোজ্য নিয়ম নির্ভরযোগ্য উৎসে যাচাই করুন।\n
+            &lt;/p&gt;\n
+            \n
+            &lt;div class="flex items-center space-x-4 shrink-0 text-[11px]"&gt;\n
+                &lt;span class="text-slate-600"&gt;সংস্করণ v1.0.0&lt;/span&gt;\n
+            &lt;/div&gt;\n
+        &lt;/div&gt;\n
+    &lt;/div&gt;\n
+&lt;/footer&gt;\n
+\n
+    &lt;!-- Core Scripts --&gt;\n
+        &lt;/body&gt;\n
+&lt;/html&gt;\n
+' [UTF-8](length: 48554) contains "শর্তাবলির মূল পাঠ বর্তমানে ইংরেজিতে দেখানো হচ্ছে" [UTF-8](length: 132).
+
+/tmp/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/tmp/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:710
+/home/user/tests/Feature/Locale/BanglaPublicPagesTest.php:58</failure>
+      </testcase>
+      <testcase name="test_every_static_public_pages_reference_has_a_bangla_override" file="/home/user/tests/Feature/Locale/BanglaPublicPagesTest.php" line="65" class="Tests\Feature\Locale\BanglaPublicPagesTest" classname="Tests.Feature.Locale.BanglaPublicPagesTest" assertions="649" time="0.068899"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Locale\LocaleNegotiationTest" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" tests="10" assertions="83" errors="0" failures="0" skipped="0" time="0.453303">
+      <testcase name="test_the_lang_query_param_switches_the_locale" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="48" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="6" time="0.048028"/>
+      <testcase name="test_the_locale_query_param_still_switches_the_locale" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="61" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="6" time="0.040454"/>
+      <testcase name="test_an_explicit_choice_is_written_to_the_session_and_read_back" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="70" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="5" time="0.045080"/>
+      <testcase name="test_a_persisted_choice_survives_a_request_asking_for_another_language" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="84" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="4" time="0.040646"/>
+      <testcase name="test_the_browser_header_is_ignored_and_the_cache_header_says_so" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="99" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="18" time="0.058289"/>
+      <testcase name="test_an_explicit_choice_overrides_a_stale_session_value" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="118" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="5" time="0.043485"/>
+      <testcase name="test_values_this_app_cannot_serve_are_ignored_rather_than_trusted" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="129" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="27" time="0.053524"/>
+      <testcase name="test_no_controller_negotiates_the_locale_for_itself" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="148" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="1" time="0.037126"/>
+      <testcase name="test_the_middleware_is_registered_in_the_groups_not_globally" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="171" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="3" time="0.028642"/>
+      <testcase name="test_the_operator_canned_response_picker_follows_the_negotiated_locale" file="/home/user/tests/Feature/Locale/LocaleNegotiationTest.php" line="181" class="Tests\Feature\Locale\LocaleNegotiationTest" classname="Tests.Feature.Locale.LocaleNegotiationTest" assertions="8" time="0.058029"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Locale\NotificationCenterLocaleTest" file="/home/user/tests/Feature/Locale/NotificationCenterLocaleTest.php" tests="3" assertions="161" errors="0" failures="0" skipped="0" time="0.176507">
+      <testcase name="test_notification_center_renders_thai_and_bangla" file="/home/user/tests/Feature/Locale/NotificationCenterLocaleTest.php" line="17" class="Tests\Feature\Locale\NotificationCenterLocaleTest" classname="Tests.Feature.Locale.NotificationCenterLocaleTest" assertions="8" time="0.053537"/>
+      <testcase name="test_every_static_notification_reference_has_thai_and_bangla_values" file="/home/user/tests/Feature/Locale/NotificationCenterLocaleTest.php" line="36" class="Tests\Feature\Locale\NotificationCenterLocaleTest" classname="Tests.Feature.Locale.NotificationCenterLocaleTest" assertions="101" time="0.085457"/>
+      <testcase name="test_dynamic_notification_event_and_lifecycle_labels_are_localized" file="/home/user/tests/Feature/Locale/NotificationCenterLocaleTest.php" line="70" class="Tests\Feature\Locale\NotificationCenterLocaleTest" classname="Tests.Feature.Locale.NotificationCenterLocaleTest" assertions="52" time="0.037513"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Locale\PublicDiscountLocaleTest" file="/home/user/tests/Feature/Locale/PublicDiscountLocaleTest.php" tests="7" assertions="116" errors="0" failures="0" skipped="0" time="0.342902">
+      <testcase name="test_public_discount_controller_accepts_the_supported_bangla_locale" file="/home/user/tests/Feature/Locale/PublicDiscountLocaleTest.php" line="14" class="Tests\Feature\Locale\PublicDiscountLocaleTest" classname="Tests.Feature.Locale.PublicDiscountLocaleTest" assertions="2" time="0.048589"/>
+      <testcase name="test_discount_static_interface_renders_in_thai_and_bangla" file="/home/user/tests/Feature/Locale/PublicDiscountLocaleTest.php" line="21" class="Tests\Feature\Locale\PublicDiscountLocaleTest" classname="Tests.Feature.Locale.PublicDiscountLocaleTest" assertions="9" time="0.064077"/>
+      <testcase name="test_verification_result_and_discount_table_use_bangla_overrides" file="/home/user/tests/Feature/Locale/PublicDiscountLocaleTest.php" line="39" class="Tests\Feature\Locale\PublicDiscountLocaleTest" classname="Tests.Feature.Locale.PublicDiscountLocaleTest" assertions="84" time="0.036910"/>
+      <testcase name="test_public_discount_page_renders_only_published_affiliate_bands" file="/home/user/tests/Feature/Locale/PublicDiscountLocaleTest.php" line="81" class="Tests\Feature\Locale\PublicDiscountLocaleTest" classname="Tests.Feature.Locale.PublicDiscountLocaleTest" assertions="11" time="0.057058"/>
+      <testcase name="test_unpublished_affiliate_bands_are_not_rendered" file="/home/user/tests/Feature/Locale/PublicDiscountLocaleTest.php" line="101" class="Tests\Feature\Locale\PublicDiscountLocaleTest" classname="Tests.Feature.Locale.PublicDiscountLocaleTest" assertions="3" time="0.046138"/>
+      <testcase name="test_public_discount_api_includes_only_published_affiliate_bands" file="/home/user/tests/Feature/Locale/PublicDiscountLocaleTest.php" line="111" class="Tests\Feature\Locale\PublicDiscountLocaleTest" classname="Tests.Feature.Locale.PublicDiscountLocaleTest" assertions="4" time="0.038620"/>
+      <testcase name="test_lotto_discount_alias_renders_the_same_canonical_discount_page" file="/home/user/tests/Feature/Locale/PublicDiscountLocaleTest.php" line="122" class="Tests\Feature\Locale\PublicDiscountLocaleTest" classname="Tests.Feature.Locale.PublicDiscountLocaleTest" assertions="3" time="0.051511"/>
+    </testsuite>
+    <testsuite name="Tests\Unit\Build\CiRuntimeContractTest" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" tests="8" assertions="55" errors="0" failures="0" skipped="0" time="0.080310">
+      <testsuite name="Tests\Unit\Build\CiRuntimeContractTest::test_every_php_setup_uses_the_project_php_version" tests="2" assertions="9" errors="0" failures="0" skipped="0" time="0.003889">
+        <testcase name="test_every_php_setup_uses_the_project_php_version with data set &quot;test pipeline&quot;" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" line="20" class="Tests\Unit\Build\CiRuntimeContractTest" classname="Tests.Unit.Build.CiRuntimeContractTest" assertions="5" time="0.003059"/>
+        <testcase name="test_every_php_setup_uses_the_project_php_version with data set &quot;security pipeline&quot;" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" line="20" class="Tests\Unit\Build\CiRuntimeContractTest" classname="Tests.Unit.Build.CiRuntimeContractTest" assertions="4" time="0.000829"/>
+      </testsuite>
+      <testcase name="test_php_test_jobs_declare_intl_gd_and_the_sqlite_test_driver" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" line="50" class="Tests\Unit\Build\CiRuntimeContractTest" classname="Tests.Unit.Build.CiRuntimeContractTest" assertions="21" time="0.002752"/>
+      <testcase name="test_primary_job_checks_the_runtime_before_installing_dependencies" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" line="68" class="Tests\Unit\Build\CiRuntimeContractTest" classname="Tests.Unit.Build.CiRuntimeContractTest" assertions="1" time="0.002773"/>
+      <testcase name="test_environment_is_prepared_before_install_but_key_generation_waits_for_vendor" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" line="78" class="Tests\Unit\Build\CiRuntimeContractTest" classname="Tests.Unit.Build.CiRuntimeContractTest" assertions="4" time="0.002710"/>
+      <testcase name="test_ci_environment_is_isolated_and_keeps_automatic_payout_disabled" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" line="93" class="Tests\Unit\Build\CiRuntimeContractTest" classname="Tests.Unit.Build.CiRuntimeContractTest" assertions="8" time="0.001844"/>
+      <testcase name="test_runtime_gate_reports_actual_extension_and_encoder_availability" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" line="108" class="Tests\Unit\Build\CiRuntimeContractTest" classname="Tests.Unit.Build.CiRuntimeContractTest" assertions="7" time="0.035324"/>
+      <testcase name="test_runtime_gate_fails_closed_if_the_jpeg_encoder_is_unavailable" file="/home/user/tests/Unit/Build/CiRuntimeContractTest.php" line="125" class="Tests\Unit\Build\CiRuntimeContractTest" classname="Tests.Unit.Build.CiRuntimeContractTest" assertions="5" time="0.031019"/>
+    </testsuite>
+    <testsuite name="Tests\Unit\Build\NativeVerifierBuildContractTest" file="/home/user/tests/Unit/Build/NativeVerifierBuildContractTest.php" tests="6" assertions="45" errors="0" failures="0" skipped="0" time="0.012560">
+      <testcase name="test_build_gate_is_valid_bash_and_rejects_arguments_before_tool_lookup" file="/home/user/tests/Unit/Build/NativeVerifierBuildContractTest.php" line="14" class="Tests\Unit\Build\NativeVerifierBuildContractTest" classname="Tests.Unit.Build.NativeVerifierBuildContractTest" assertions="3" time="0.003637"/>
+      <testcase name="test_missing_tool_is_an_explicit_failure_not_a_skipped_success" file="/home/user/tests/Unit/Build/NativeVerifierBuildContractTest.php" line="26" class="Tests\Unit\Build\NativeVerifierBuildContractTest" classname="Tests.Unit.Build.NativeVerifierBuildContractTest" assertions="3" time="0.002875"/>
+      <testcase name="test_build_gate_is_locked_host_specific_and_cannot_target_the_money_worker" file="/home/user/tests/Unit/Build/NativeVerifierBuildContractTest.php" line="35" class="Tests\Unit\Build\NativeVerifierBuildContractTest" classname="Tests.Unit.Build.NativeVerifierBuildContractTest" assertions="16" time="0.000136"/>
+      <testcase name="test_every_unfiltered_php_ci_gate_builds_native_before_the_suite" file="/home/user/tests/Unit/Build/NativeVerifierBuildContractTest.php" line="55" class="Tests\Unit\Build\NativeVerifierBuildContractTest" classname="Tests.Unit.Build.NativeVerifierBuildContractTest" assertions="9" time="0.003030"/>
+      <testcase name="test_isolated_cross_language_job_uses_real_native_and_an_isolated_environment" file="/home/user/tests/Unit/Build/NativeVerifierBuildContractTest.php" line="87" class="Tests\Unit\Build\NativeVerifierBuildContractTest" classname="Tests.Unit.Build.NativeVerifierBuildContractTest" assertions="6" time="0.002765"/>
+      <testcase name="test_required_native_runtime_tests_have_no_skip_or_fake_process_guard" file="/home/user/tests/Unit/Build/NativeVerifierBuildContractTest.php" line="113" class="Tests\Unit\Build\NativeVerifierBuildContractTest" classname="Tests.Unit.Build.NativeVerifierBuildContractTest" assertions="8" time="0.000116"/>
+    </testsuite>
+    <testsuite name="Tests\Unit\Config\DatabaseDriverOptionsTest" file="/home/user/tests/Unit/Config/DatabaseDriverOptionsTest.php" tests="5" assertions="20" errors="0" failures="0" skipped="0" time="0.198580">
+      <testcase name="the_modern_and_legacy_ssl_ca_attribute_ids_are_identical" file="/home/user/tests/Unit/Config/DatabaseDriverOptionsTest.php" line="51" class="Tests\Unit\Config\DatabaseDriverOptionsTest" classname="Tests.Unit.Config.DatabaseDriverOptionsTest" assertions="1" time="0.039178"/>
+      <testcase name="the_mysql_options_array_is_keyed_by_the_ssl_ca_attribute_id" file="/home/user/tests/Unit/Config/DatabaseDriverOptionsTest.php" line="79" class="Tests\Unit\Config\DatabaseDriverOptionsTest" classname="Tests.Unit.Config.DatabaseDriverOptionsTest" assertions="1" time="0.043276"/>
+      <testcase name="no_project_config_file_references_a_deprecated_pdo_mysql_constant" file="/home/user/tests/Unit/Config/DatabaseDriverOptionsTest.php" line="116" class="Tests\Unit\Config\DatabaseDriverOptionsTest" classname="Tests.Unit.Config.DatabaseDriverOptionsTest" assertions="4" time="0.043357"/>
+      <testcase name="the_database_config_prefers_the_modern_pdo_mysql_attribute_name" file="/home/user/tests/Unit/Config/DatabaseDriverOptionsTest.php" line="180" class="Tests\Unit\Config\DatabaseDriverOptionsTest" classname="Tests.Unit.Config.DatabaseDriverOptionsTest" assertions="9" time="0.036587"/>
+      <testcase name="the_mysql_connection_definition_is_still_intact" file="/home/user/tests/Unit/Config/DatabaseDriverOptionsTest.php" line="314" class="Tests\Unit\Config\DatabaseDriverOptionsTest" classname="Tests.Unit.Config.DatabaseDriverOptionsTest" assertions="5" time="0.036183"/>
+    </testsuite>
+    <testsuite name="Tests\Unit\Config\SqliteLockingConfigurationTest" file="/home/user/tests/Unit/Config/SqliteLockingConfigurationTest.php" tests="3" assertions="11" errors="0" failures="0" skipped="0" time="0.119439">
+      <testcase name="test_sqlite_reserves_the_writer_before_transactional_reads" file="/home/user/tests/Unit/Config/SqliteLockingConfigurationTest.php" line="17" class="Tests\Unit\Config\SqliteLockingConfigurationTest" classname="Tests.Unit.Config.SqliteLockingConfigurationTest" assertions="3" time="0.045270"/>
+      <testcase name="test_a_new_connection_applies_its_bounded_busy_timeout" file="/home/user/tests/Unit/Config/SqliteLockingConfigurationTest.php" line="32" class="Tests\Unit\Config\SqliteLockingConfigurationTest" classname="Tests.Unit.Config.SqliteLockingConfigurationTest" assertions="2" time="0.035572"/>
+      <testcase name="test_begin_itself_serializes_two_writers_before_either_reads_a_row" file="/home/user/tests/Unit/Config/SqliteLockingConfigurationTest.php" line="50" class="Tests\Unit\Config\SqliteLockingConfigurationTest" classname="Tests.Unit.Config.SqliteLockingConfigurationTest" assertions="6" time="0.038597"/>
+    </testsuite>
+    <testsuite name="Tests\Unit\Production\CiEnvironmentGuardTest" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" tests="19" assertions="53" errors="0" failures="0" skipped="0" time="0.022085">
+      <testcase name="test_secret_free_template_requires_a_generated_key_before_schema_commands" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="23" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001603"/>
+      <testcase name="test_only_the_named_disposable_loopback_mysql_account_is_accepted" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="33" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="2" time="0.001210"/>
+      <testsuite name="Tests\Unit\Production\CiEnvironmentGuardTest::test_unsafe_provisioning_is_refused_without_echoing_values" tests="15" assertions="45" errors="0" failures="0" skipped="0" time="0.017018">
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;production env&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001188"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;development env&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001259"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;debug&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001157"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;wrong connection&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001130"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;wrong database&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001200"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;lookalike basename outside repo&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001112"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;in memory not runner store&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001110"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;fixture source&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001142"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;fixture priority&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001092"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;fixture lane&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001076"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;missing explicit flag&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001119"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;enabled merchant&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001128"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;live payout&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001101"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;automatic payout&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001078"/>
+        <testcase name="test_unsafe_provisioning_is_refused_without_echoing_values with data set &quot;invalid key&quot;" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="64" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="3" time="0.001126"/>
+      </testsuite>
+      <testcase name="test_ci_marker_is_required_even_with_safe_facts" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="74" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="1" time="0.001088"/>
+      <testcase name="test_a_symlinked_database_file_cannot_retarget_the_allowlist" file="/home/user/tests/Unit/Production/CiEnvironmentGuardTest.php" line="79" class="Tests\Unit\Production\CiEnvironmentGuardTest" classname="Tests.Unit.Production.CiEnvironmentGuardTest" assertions="2" time="0.001167"/>
+    </testsuite>
+    <testsuite name="Tests\Unit\Production\DependencyAuditBoundaryTest" file="/home/user/tests/Unit/Production/DependencyAuditBoundaryTest.php" tests="6" assertions="37" errors="0" failures="0" skipped="0" time="0.011877">
+      <testcase name="test_locked_yaml_parser_includes_the_recursion_security_patch" file="/home/user/tests/Unit/Production/DependencyAuditBoundaryTest.php" line="19" class="Tests\Unit\Production\DependencyAuditBoundaryTest" classname="Tests.Unit.Production.DependencyAuditBoundaryTest" assertions="3" time="0.002758"/>
+      <testcase name="test_deep_inline_input_is_rejected_by_the_real_parser_without_unbounded_recursion" file="/home/user/tests/Unit/Production/DependencyAuditBoundaryTest.php" line="30" class="Tests\Unit\Production\DependencyAuditBoundaryTest" classname="Tests.Unit.Production.DependencyAuditBoundaryTest" assertions="2" time="0.001599"/>
+      <testsuite name="Tests\Unit\Production\DependencyAuditBoundaryTest::test_normal_configuration_retains_exact_string_values" tests="3" assertions="3" errors="0" failures="0" skipped="0" time="0.000795">
+        <testcase name="test_normal_configuration_retains_exact_string_values with data set #0" file="/home/user/tests/Unit/Production/DependencyAuditBoundaryTest.php" line="38" class="Tests\Unit\Production\DependencyAuditBoundaryTest" classname="Tests.Unit.Production.DependencyAuditBoundaryTest" assertions="1" time="0.000535"/>
+        <testcase name="test_normal_configuration_retains_exact_string_values with data set #1" file="/home/user/tests/Unit/Production/DependencyAuditBoundaryTest.php" line="38" class="Tests\Unit\Production\DependencyAuditBoundaryTest" classname="Tests.Unit.Production.DependencyAuditBoundaryTest" assertions="1" time="0.000167"/>
+        <testcase name="test_normal_configuration_retains_exact_string_values with data set #2" file="/home/user/tests/Unit/Production/DependencyAuditBoundaryTest.php" line="38" class="Tests\Unit\Production\DependencyAuditBoundaryTest" classname="Tests.Unit.Production.DependencyAuditBoundaryTest" assertions="1" time="0.000094"/>
+      </testsuite>
+      <testcase name="test_all_workflows_parse_and_each_locked_install_has_a_dependency_gate" file="/home/user/tests/Unit/Production/DependencyAuditBoundaryTest.php" line="49" class="Tests\Unit\Production\DependencyAuditBoundaryTest" classname="Tests.Unit.Production.DependencyAuditBoundaryTest" assertions="29" time="0.006725"/>
+    </testsuite>
+  </testsuite>
+</testsuites>

@@ -15,71 +15,19 @@ use App\Exceptions\PayoutTransferException;
 use App\Models\AuditLog;
 use App\Models\Payment;
 use App\Models\Payout;
+use App\Models\User;
+use App\Services\Finance\ExternalPayoutCompletionService;
+use App\Services\Finance\PayoutApprovalGuard;
+use App\Services\Finance\PayoutApprovalService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
-/**
- * The OUTBOUND leg: executes and records payout transfers through the
- * codebase's existing payment abstraction.
- *
- * WHAT "THE EXISTING PAYMENT ABSTRACTION" MEANS HERE
- * --------------------------------------------------
- * A transfer is not a new kind of financial record: it is a PAYMENT row
- * carrying (method, gateway, amount, currency) polymorphically attached to
- * the payout it settles ((payable_type, payable_id) = Payout). Deposits,
- * withdrawals and payout transfers therefore project through one analytics
- * view, and failure/failure-reason/captured_at live in their canonical
- * columns rather than in a bespoke transfer table.
- *
- * TRANSFER VS. WALLET LANE
- * ------------------------
- * The wallet-method leg of a prize never comes here: crediting the player's
- * in-system wallet is the batch executor's own per-payout ledger write,
- * because that wallet movement has no gateway. This lane accepts the two
- * EXTERNAL methods:
- *
- *   BankTransfer  records a payment whose gateway is the bank-transfer
- *                 driver name; execution completion arrives later through
- *                 banks/backoffice (complete() with the gateway reference)
- *   Cheque        records the physical instrument lane ('manual' gateway);
- *                 complete() is the drawer-operator's confirmation gesture
- *
- * IDEMPOTENCY, AGAINST THE ONLY RETRY THAT MATTERS
- * ------------------------------------------------
- * The retry that matters is the one after the money may already have
- * moved: the worker died, the network cut after the bank accepted, the
- * operator clicked twice. The payout's metadata.transfer stamp carries the
- * idempotency anchor; a transfer invoked with a key already stamped is a
- * REPLAY and re-serves the stored record, never a new execution. A second
- * payment row for one anchor is impossible by this check + the payout
- * lock.
- *
- * AMOUNT DRIFT
- * ------------
- * The approved amount and the transfer amount must be the same decimal
- * STRING at bcmath equality. Drift is refused regardless of direction:
- * over-pay is embezzlement-shaped; under-pay is a short-pay the player
- * discovers at the branch.
- *
- * STATE GUARDS
- * ------------
- * Only payouts the execution lane can still pay (Pending / Processing)
- * admit a transfer; Completed handles replay, Refunded/Reversed/Cancelled
- * forbid. Money never moves without the payout's own state agreeing.
- */
 class PayoutTransferService
 {
-    /**
-     * Metadata lane recording the transfer per payout.
-     */
     public const METADATA_KEY = 'transfer';
 
     /**
-     * Execute (open) a transfer lane for a payout.
-     *
-     * @return array<string, mixed>  The transfer record (payment reference,
-     *                               lane status, anchor), identical on
-     *                               replay by anchor.
+     * @return array<string, mixed>
      *
      * @throws PayoutTransferException
      */
@@ -89,7 +37,6 @@ class PayoutTransferService
             throw PayoutTransferException::alreadyRunning((int) DB::transactionLevel());
         }
 
-        // Method gate first — a malformed lane refuses before it touches a row.
         if ($data->method === PrizePayoutMethod::Wallet) {
             throw PayoutTransferException::gatewayRefused(
                 $data->payoutReference,
@@ -109,53 +56,72 @@ class PayoutTransferService
                 ->where('reference_number', $data->payoutReference)
                 ->first();
 
-            if (! $payout instanceof Payout) {
+            if (! $payout instanceof Payout || $payout->trashed()) {
                 throw PayoutTransferException::missingPayout($data->payoutReference);
             }
 
-            // REPLAY BY ANCHOR: already stamped with THIS key → re-serve.
-            $existing = $this->recordFor($payout);
-
-            if (is_array($existing) && ($existing['idempotency_key'] ?? null) === $data->idempotencyKey) {
-                return $existing;
+            $guard = app(PayoutTransferGuard::class);
+            $rawMeta = $payout->getRawOriginal('metadata');
+            if ($rawMeta !== null && ! is_array($payout->metadata)) {
+                $guard->refuse($payout);
+            }
+            $metadata = is_array($payout->metadata) ? $payout->metadata : [];
+            if (array_key_exists(self::METADATA_KEY, $metadata) && ! is_array($metadata[self::METADATA_KEY])) {
+                $guard->refuse($payout);
             }
 
-            // A transfer stamped with a DIFFERENT anchor on the same payout:
-            // the same obligation being spent a second time. Refusing is the
-            // only legal answer. (A legitimate retry always reuses its key.)
-            if (is_array($existing) && ($existing['lane_status'] ?? null) !== 'failed') {
-                throw PayoutTransferException::duplicateTransfer($data->idempotencyKey);
+            $guard->identity($payout, $data);
+
+            $existing = $metadata[self::METADATA_KEY] ?? null;
+            if (is_array($existing)) {
+                if (($existing['idempotency_key'] ?? null) !== $data->idempotencyKey
+                    || ($existing['batch_key'] ?? null) !== $data->batchKey
+                    || ($existing['payout_reference'] ?? null) !== $data->payoutReference
+                    || ($existing['method'] ?? null) !== $data->method->value
+                    || ($existing['currency'] ?? null) !== $data->currency->value
+                    || bccomp((string) ($existing['amount'] ?? ''), (string) $payout->amount, 2) !== 0) {
+                    throw PayoutTransferException::duplicateTransfer($data->idempotencyKey);
+                }
+
+                $guard->payment($payout, $existing);
+                $laneStatus = $existing['lane_status'] ?? null;
+
+                if ($laneStatus === 'open' && $payout->status === PayoutStatus::Processing && $payout->financial_transaction_id === null) {
+                    return $existing;
+                }
+                if ($laneStatus === 'failed' && $payout->status === PayoutStatus::Failed && $payout->financial_transaction_id === null) {
+                    app(PayoutEvidenceService::class)->assertAttached($payout, $existing);
+
+                    return $existing;
+                }
+                if ($laneStatus === 'completed' && $payout->status === PayoutStatus::Completed && $payout->financial_transaction_id !== null) {
+                    app(PayoutEvidenceService::class)->assertAttached($payout, $existing);
+
+                    return $existing;
+                }
+
+                $guard->refuse($payout);
             }
 
-            // AMOUNT DRIFT.
-            if (bccomp(bcadd($data->amount, '0.00', 2), (string) $payout->amount, 2) !== 0) {
-                throw PayoutTransferException::amountDrift(
-                    $data->payoutReference,
-                    (string) $payout->amount,
-                    bcadd($data->amount, '0.00', 2),
-                );
-            }
-
-            // STATE GUARD.
-            if (! in_array($payout->status, [PayoutStatus::Pending, PayoutStatus::Processing], true)) {
-                throw PayoutTransferException::payoutStateForbids(
-                    $data->payoutReference,
-                    $payout->status->value,
-                );
+            if ($payout->status !== PayoutStatus::Pending
+                || $payout->financial_transaction_id !== null
+                || Payment::withTrashed()->where('payable_type', Payout::class)->where('payable_id', $payout->id)->exists()) {
+                $guard->refuse($payout);
             }
 
             $method = $this->methodOf($data->method);
-            $gateway = $this->gatewayOf($data->method);
+            $gateway = $guard->gateway($payout);
+            $scope = $guard->account($payout);
+            $factsHash = app(PayoutApprovalGuard::class)->fingerprint($payout);
 
-            // The payment row: the canonical financial record of the leg.
-            $payment = new Payment();
+            $payment = new Payment;
             $payment->fill([
                 'reference_number' => $this->derivePaymentReference($data->idempotencyKey),
-                'user_id' => $data->beneficiaryUserId,
+                'user_id' => (int) $payout->user_id,
                 'payable_type' => Payout::class,
                 'payable_id' => (int) $payout->getKey(),
                 'method' => $method->value,
-                'amount' => bcadd($data->amount, '0.00', 2),
+                'amount' => (string) $payout->amount,
                 'fee' => '0.00',
                 'gateway' => $gateway,
                 'gateway_reference' => null,
@@ -163,200 +129,263 @@ class PayoutTransferService
                     'payout_transfer' => true,
                     'batch_key' => $data->batchKey,
                     'idempotency_key' => $data->idempotencyKey,
-                    'context' => $data->context,
+                    'account_scope' => $scope,
+                    'facts_hash' => $factsHash,
                 ],
             ]);
-            $payment->currency = $data->currency;
+            $payment->currency = $payout->currency;
             $payment->status = PaymentStatus::Pending;
             $payment->save();
 
             $record = [
                 'idempotency_key' => $data->idempotencyKey,
                 'batch_key' => $data->batchKey,
-                'payout_reference' => $data->payoutReference,
+                'payout_reference' => $payout->reference_number,
                 'payment_reference' => (string) $payment->reference_number,
                 'method' => $data->method->value,
-                'amount' => bcadd($data->amount, '0.00', 2),
-                'currency' => $data->currency->value,
+                'amount' => (string) $payout->amount,
+                'currency' => $payout->currency->value,
+                'account_scope' => $scope,
+                'facts_hash' => $factsHash,
+                'gateway_reference' => null,
                 'lane_status' => 'open',
                 'opened_at' => Carbon::now()->toIso8601String(),
                 'completed_at' => null,
             ];
 
+            $payout->status = PayoutStatus::Processing;
             $this->writeRecord($payout, $record);
 
-            $this->recordAudit($payout, sprintf(
-                'Payout transfer opened: %s %s via %s (payment %s, batch %s).',
-                bcadd($data->amount, '0.00', 2),
-                $data->currency->value,
+            $this->audit($payout, null, sprintf(
+                'Payout transfer record opened: %s %s via %s (payment %s).',
+                (string) $payout->amount,
+                $payout->currency->value,
                 $data->method->value,
                 $payment->reference_number,
-                $data->batchKey,
-            ), RiskLevel::High);
+            ));
 
             return $record;
-        });
+        }, 3);
     }
 
     /**
-     * Confirm a transfer's money landed: gateway/backoffice/operator
-     * completion gesture. Payment turns Captured; payout completes.
-     *
-     * Idempotent by anchor: completing twice re-serves the completed record.
-     *
      * @return array<string, mixed>
      *
      * @throws PayoutTransferException
      */
-    public function complete(PayoutTransferData $data, string $gatewayReference): array
-    {
-        return DB::transaction(function () use ($data, $gatewayReference): array {
+    public function complete(
+        PayoutTransferData $data,
+        string $gatewayReference,
+        ?User $actor = null,
+        bool $evidenceVerified = false,
+        string $note = '',
+        ?int $evidenceId = null,
+    ): array {
+        $reviewer = app(PayoutTransferAccess::class)->authorize($actor, PayoutTransferAccess::REVIEW);
+
+        if (! $evidenceVerified
+            || mb_strlen(trim($note)) < 15
+            || mb_strlen($note) > 1000
+            || $gatewayReference === ''
+            || trim($gatewayReference) !== $gatewayReference
+            || strlen($gatewayReference) > 255
+            || preg_match('/[\x00-\x1f\x7f]/', $gatewayReference) === 1) {
+            throw PayoutTransferException::gatewayRefused(
+                $data->payoutReference,
+                'Independent confirmation, verified evidence, note and exact provider reference are required.',
+            );
+        }
+
+        return DB::transaction(function () use ($data, $gatewayReference, $reviewer, $note, $evidenceId): array {
+            $current = app(PayoutTransferAccess::class)->authorize($reviewer, PayoutTransferAccess::REVIEW);
             $payout = Payout::query()->lockForUpdate()
                 ->where('reference_number', $data->payoutReference)
                 ->first();
 
-            if (! $payout instanceof Payout) {
+            if (! $payout instanceof Payout || $payout->trashed()) {
                 throw PayoutTransferException::missingPayout($data->payoutReference);
             }
 
-            $record = $this->recordFor($payout);
+            $guard = app(PayoutTransferGuard::class);
+            $guard->identity($payout, $data);
 
-            if (! is_array($record) || ($record['idempotency_key'] ?? null) !== $data->idempotencyKey) {
-                throw PayoutTransferException::gatewayRefused(
-                    $data->payoutReference,
-                    'no open transfer lane with this anchor exists; completion has nothing to land on',
-                );
+            $approval = $payout->metadata['approval'] ?? [];
+            if ((int) $current->id === (int) $payout->user_id || (int) $current->id === (int) ($approval['maker_user_id'] ?? 0)) {
+                $guard->refuse($payout);
             }
+
+            $record = $this->recordFor($payout);
+            if (! is_array($record) || ($record['idempotency_key'] ?? null) !== $data->idempotencyKey) {
+                $guard->refuse($payout);
+            }
+
+            $payment = $guard->payment($payout, $record);
 
             if (($record['lane_status'] ?? null) === 'completed') {
-                return $record; // replay-safe
+                if ($payout->status !== PayoutStatus::Completed
+                    || $payout->financial_transaction_id === null
+                    || ($record['gateway_reference'] ?? null) !== $gatewayReference
+                    || ($evidenceId !== null && (int) ($record['evidence_id'] ?? 0) !== $evidenceId)) {
+                    $guard->refuse($payout);
+                }
+
+                app(PayoutEvidenceService::class)->consume($payout, $current, 'completed', $gatewayReference, $evidenceId ?? ($record['evidence_id'] ?? null), true);
+                app(PayoutEvidenceService::class)->assertAttached($payout, $record);
+                app(OutboundProviderReferenceService::class)->assertBound($payout, $payment->gateway, $record['account_scope'], $gatewayReference, $payment);
+                app(PayoutApprovalService::class)->complete($payout, (int) $current->id);
+
+                return $record;
             }
 
-            if (($record['lane_status'] ?? null) !== 'open') {
-                throw PayoutTransferException::gatewayRefused(
-                    $data->payoutReference,
-                    sprintf('transfer lane is %s; only an open lane completes', (string) ($record['lane_status'] ?? 'unknown')),
-                );
+            if (($record['lane_status'] ?? null) !== 'open' || $payout->status !== PayoutStatus::Processing || $payout->financial_transaction_id !== null) {
+                $guard->refuse($payout);
             }
 
-            if (bccomp(bcadd($data->amount, '0.00', 2), (string) ($record['amount'] ?? ''), 2) !== 0) {
-                throw PayoutTransferException::amountDrift(
-                    $data->payoutReference,
-                    (string) ($record['amount'] ?? ''),
-                    bcadd($data->amount, '0.00', 2),
-                );
-            }
+            $consumedEvidenceId = app(PayoutEvidenceService::class)->consume($payout, $current, 'completed', $gatewayReference, $evidenceId, false);
+            app(PayoutTransferReferenceService::class)->bind($payout, $payment, $gatewayReference);
+            $tx = app(ExternalPayoutCompletionService::class)->post($payout);
 
-            // Payment: captured with the external reference named.
-            $payment = Payment::query()->lockForUpdate()
-                ->where('reference_number', (string) $record['payment_reference'])
-                ->first();
+            $payment->status = PaymentStatus::Captured;
+            $payment->gateway_reference = $gatewayReference;
+            $payment->captured_at = Carbon::now();
+            $payment->save();
 
-            if ($payment instanceof Payment) {
-                $payment->status = PaymentStatus::Captured;
-                $payment->gateway_reference = $gatewayReference;
-                $payment->captured_at = Carbon::now();
-                $payment->save();
-            }
-
-            // Payout: completed, money moved.
+            $payout->financial_transaction_id = $tx->id;
             $payout->status = PayoutStatus::Completed;
             $payout->processed_at = Carbon::now();
-            $payout->save();
 
             $record = array_merge($record, [
                 'lane_status' => 'completed',
                 'gateway_reference' => $gatewayReference,
+                'evidence_id' => $consumedEvidenceId,
+                'reviewed_by' => (int) $current->id,
+                'review_note_sha256' => hash('sha256', $note),
                 'completed_at' => Carbon::now()->toIso8601String(),
             ]);
-            $this->writeRecord($payout, $record);
 
-            $this->recordAudit($payout, sprintf(
-                'Payout transfer COMPLETED: %s %s settled to beneficiary #%d (gateway ref %s).',
-                (string) ($record['amount'] ?? ''),
-                (string) ($record['currency'] ?? ''),
-                $data->beneficiaryUserId,
-                $gatewayReference,
-            ), RiskLevel::High);
+            $this->writeRecord($payout, $record);
+            app(PayoutApprovalService::class)->complete($payout, (int) $current->id);
+
+            $this->audit($payout, $current, 'Independently confirmed external prize transfer completed.', [
+                'evidence_id' => $consumedEvidenceId,
+                'note_sha256' => hash('sha256', $note),
+                'financial_transaction_id' => (int) $tx->id,
+            ]);
 
             return $record;
-        });
+        }, 3);
     }
 
     /**
-     * Mark a transfer failed: the refusal came back from the bank, or the
-     * drawer voided the cheque. Payout turns Failed so ops sees it; the
-     * lane stamp permits a FRESH anchor (a corrected transfer) to open.
-     *
      * @return array<string, mixed>
      */
-    public function fail(PayoutTransferData $data, string $reason): array
-    {
-        return DB::transaction(function () use ($data, $reason): array {
+    public function fail(
+        PayoutTransferData $data,
+        string $reason,
+        ?User $actor = null,
+        bool $evidenceVerified = false,
+        ?int $evidenceId = null,
+    ): array {
+        $reviewer = app(PayoutTransferAccess::class)->authorize($actor, PayoutTransferAccess::REVIEW);
+
+        if (! $evidenceVerified || mb_strlen(trim($reason)) < 15 || mb_strlen($reason) > 1000) {
+            throw PayoutTransferException::gatewayRefused(
+                $data->payoutReference,
+                'Independent final refusal attestation and note are required.',
+            );
+        }
+
+        return DB::transaction(function () use ($data, $reason, $reviewer, $evidenceId): array {
+            $current = app(PayoutTransferAccess::class)->authorize($reviewer, PayoutTransferAccess::REVIEW);
             $payout = Payout::query()->lockForUpdate()
                 ->where('reference_number', $data->payoutReference)
                 ->first();
 
-            if (! $payout instanceof Payout) {
+            if (! $payout instanceof Payout || $payout->trashed()) {
                 throw PayoutTransferException::missingPayout($data->payoutReference);
             }
 
-            $record = $this->recordFor($payout);
+            $guard = app(PayoutTransferGuard::class);
+            $guard->identity($payout, $data);
 
-            if (! is_array($record) || ($record['idempotency_key'] ?? null) !== $data->idempotencyKey) {
-                throw PayoutTransferException::gatewayRefused(
-                    $data->payoutReference,
-                    'no open transfer lane with this anchor exists; nothing to fail',
-                );
+            $approval = $payout->metadata['approval'] ?? [];
+            if ((int) $current->id === (int) $payout->user_id || (int) $current->id === (int) ($approval['maker_user_id'] ?? 0)) {
+                $guard->refuse($payout);
             }
+
+            $record = $this->recordFor($payout);
+            if (! is_array($record) || ($record['idempotency_key'] ?? null) !== $data->idempotencyKey) {
+                $guard->refuse($payout);
+            }
+
+            $payment = $guard->payment($payout, $record);
 
             if (($record['lane_status'] ?? null) === 'failed') {
-                return $record; // replay-safe
+                if ($payout->status !== PayoutStatus::Failed
+                    || $payout->financial_transaction_id !== null
+                    || ($evidenceId !== null && (int) ($record['evidence_id'] ?? 0) !== $evidenceId)) {
+                    $guard->refuse($payout);
+                }
+
+                app(PayoutEvidenceService::class)->consume($payout, $current, 'failed', null, $evidenceId ?? ($record['evidence_id'] ?? null), true);
+                app(PayoutEvidenceService::class)->assertAttached($payout, $record);
+
+                return $record;
             }
 
-            if (($record['lane_status'] ?? null) === 'completed') {
-                throw PayoutTransferException::gatewayRefused(
-                    $data->payoutReference,
-                    'a completed transfer cannot be failed; reversals own money coming back',
-                );
+            if (($record['lane_status'] ?? null) !== 'open' || $payout->status !== PayoutStatus::Processing || $payout->financial_transaction_id !== null) {
+                $guard->refuse($payout);
             }
 
-            $payment = Payment::query()->lockForUpdate()
-                ->where('reference_number', (string) $record['payment_reference'])
-                ->first();
+            $consumedEvidenceId = app(PayoutEvidenceService::class)->consume($payout, $current, 'failed', null, $evidenceId, false);
 
-            if ($payment instanceof Payment) {
-                $payment->status = PaymentStatus::Failed;
-                $payment->failed_at = Carbon::now();
-                $payment->failure_reason = $reason;
-                $payment->save();
-            }
+            $payment->status = PaymentStatus::Failed;
+            $payment->failed_at = Carbon::now();
+            $payment->failure_reason = 'independently_confirmed_final_refusal';
+            $payment->save();
 
             $payout->status = PayoutStatus::Failed;
             $payout->failed_at = Carbon::now();
-            $payout->save();
+            $payout->failure_reason = 'independently_confirmed_final_refusal';
 
             $record = array_merge($record, [
                 'lane_status' => 'failed',
-                'failure_reason' => $reason,
+                'failure_reason' => 'independently_confirmed_final_refusal',
+                'evidence_id' => $consumedEvidenceId,
+                'reviewed_by' => (int) $current->id,
+                'review_note_sha256' => hash('sha256', $reason),
                 'completed_at' => null,
             ]);
             $this->writeRecord($payout, $record);
 
-            $this->recordAudit($payout, sprintf(
-                'Payout transfer FAILED: %s %s (%s).',
-                (string) ($record['amount'] ?? ''),
-                (string) ($record['currency'] ?? ''),
-                $reason,
-            ), RiskLevel::High);
+            $this->audit($payout, $current, 'Independently confirmed external prize transfer final refusal.', [
+                'evidence_id' => $consumedEvidenceId,
+                'note_sha256' => hash('sha256', $reason),
+            ]);
 
             return $record;
-        });
+        }, 3);
+    }
+
+    public function destinationForReview(Payout $payout, ?User $actor): array
+    {
+        $reviewer = app(PayoutTransferAccess::class)->authorize($actor, PayoutTransferAccess::REVIEW);
+
+        return DB::transaction(function () use ($payout, $reviewer): array {
+            $row = Payout::query()->lockForUpdate()->findOrFail($payout->id);
+            $current = app(PayoutTransferAccess::class)->authorize($reviewer, PayoutTransferAccess::REVIEW);
+            if ((int) $row->user_id === (int) $current->id) {
+                app(PayoutTransferGuard::class)->refuse($row);
+            }
+            app(PayoutApprovalGuard::class)->assertApproved($row, $row->status === PayoutStatus::Completed);
+            $details = app(PayoutApprovalGuard::class)->beneficiary($row);
+            $this->audit($row, $current, 'Authorized operator inspected original external prize destination.');
+
+            return $details;
+        }, 3);
     }
 
     /**
-     * The transfer lane record for a payout, unshaped or null.
-     *
      * @return array<string, mixed>|null
      */
     public function recordFor(Payout $payout): ?array
@@ -367,9 +396,6 @@ class PayoutTransferService
         return is_array($record) ? $record : null;
     }
 
-    /**
-     * Is there an open (uncompleted, unfailed) transfer lane on the payout?
-     */
     public function hasOpenLane(Payout $payout): bool
     {
         $record = $this->recordFor($payout);
@@ -377,9 +403,28 @@ class PayoutTransferService
         return is_array($record) && ($record['lane_status'] ?? null) === 'open';
     }
 
-    /**
-     * Map the domain method onto the abstraction's payment method.
-     */
+    public function audit(Payout $payout, ?User $actor, string $description, array $extra = []): void
+    {
+        $log = new AuditLog;
+
+        $log->fill([
+            'user_id' => $actor?->id,
+            'action' => AuditAction::Payout,
+            'risk_level' => RiskLevel::High,
+            'auditable_type' => Payout::class,
+            'auditable_id' => $payout->getKey(),
+            'description' => $description,
+            'metadata' => array_merge([
+                'payout_id' => (int) $payout->getKey(),
+                'payout_reference' => (string) $payout->reference_number,
+                'lane' => self::METADATA_KEY,
+                'action' => 'payout_transfer',
+            ], $extra),
+        ]);
+
+        $log->save();
+    }
+
     private function methodOf(PrizePayoutMethod $method): PaymentMethod
     {
         return match ($method) {
@@ -392,25 +437,9 @@ class PayoutTransferService
         };
     }
 
-    /**
-     * The gateway name the payment row cites.
-     */
-    private function gatewayOf(PrizePayoutMethod $method): string
-    {
-        return match ($method) {
-            PrizePayoutMethod::BankTransfer => 'bank_transfer',
-            PrizePayoutMethod::Cheque => 'manual',
-            default => 'manual',
-        };
-    }
-
-    /**
-     * Payment reference derives from the anchor: replays derive the same
-     * row-name, never a fresh one.
-     */
     private function derivePaymentReference(string $idempotencyKey): string
     {
-        return 'PT-'.strtoupper(substr($idempotencyKey, 0, 20));
+        return 'PT-'.strtoupper(substr(hash('sha256', 'payout-transfer-payment:'.$idempotencyKey), 0, 61));
     }
 
     /**
@@ -423,27 +452,5 @@ class PayoutTransferService
 
         $payout->metadata = $metadata;
         $payout->save();
-    }
-
-    private function recordAudit(Payout $payout, string $description, RiskLevel $riskLevel): void
-    {
-        $log = new AuditLog();
-
-        $log->fill([
-            'user_id' => null,
-            'action' => AuditAction::Payout,
-            'risk_level' => $riskLevel,
-            'auditable_type' => Payout::class,
-            'auditable_id' => $payout->getKey(),
-            'description' => $description,
-            'metadata' => [
-                'payout_id' => (int) $payout->getKey(),
-                'payout_reference' => (string) $payout->reference_number,
-                'lane' => self::METADATA_KEY,
-                'action' => 'payout_transfer',
-            ],
-        ]);
-
-        $log->save();
     }
 }

@@ -30,7 +30,7 @@ use Throwable;
  * 1. Financial Idempotency: Executes via 3-phase disbursement orchestrator.
  * 2. Concurrency Safety: ShouldBeUnique lock keyed on withdrawal ID prevents duplicate worker collisions.
  * 3. Terminal State Safety: Final withdrawal states (Completed, Failed, Cancelled) exit immediately without re-disbursing.
- * 4. Error Discrimination: Transient network timeouts retry with exponential backoff; permanent validation errors fail immediately.
+ * 4. Error Discrimination: Unhandled infrastructure errors retry with backoff; ambiguous provider outcomes stay pending for reconciliation and are never blindly resent.
  * 5. Secret Protection: Carries only withdrawal ID; never serializes bank credentials or auth tokens into queue payloads.
  */
 class DisburseWithdrawalJob implements ShouldBeUnique, ShouldQueue
@@ -137,7 +137,7 @@ class DisburseWithdrawalJob implements ShouldBeUnique, ShouldQueue
             Log::error('DisburseWithdrawalJob: Permanent WithdrawalException encountered', [
                 'withdrawal_id' => $this->withdrawalId,
                 'error_code' => $e->errorCode(),
-                'message' => $e->getMessage(),
+                'exception_class' => $e::class,
             ]);
 
             $this->fail($e);
@@ -148,19 +148,23 @@ class DisburseWithdrawalJob implements ShouldBeUnique, ShouldQueue
             Log::error('DisburseWithdrawalJob: Permanent FinancialException encountered', [
                 'withdrawal_id' => $this->withdrawalId,
                 'error_code' => $e->errorCode(),
-                'message' => $e->getMessage(),
+                'exception_class' => $e::class,
             ]);
 
             $this->fail($e);
 
             return null;
         } catch (Throwable $e) {
-            // Transient network/gateway communication errors will retry up to $this->tries
+            // The service converts provider transport failures into a pending,
+            // reconciliation-required result. Unhandled infrastructure failures
+            // still retry; the service's processing-state latch prevents a retry
+            // from issuing the external payout a second time.
             Log::warning('DisburseWithdrawalJob: Transient error during disbursement, queue will retry', [
                 'withdrawal_id' => $this->withdrawalId,
                 'attempt' => $this->attempts(),
                 'max_tries' => $this->tries,
-                'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
+                'exception_code' => $e->getCode(),
             ]);
 
             throw $e;
@@ -175,7 +179,8 @@ class DisburseWithdrawalJob implements ShouldBeUnique, ShouldQueue
         Log::critical('DisburseWithdrawalJob: Job permanently failed after max attempts', [
             'withdrawal_id' => $this->withdrawalId,
             'attempts' => $this->attempts(),
-            'error' => $exception->getMessage(),
+            'exception_class' => $exception::class,
+            'exception_code' => $exception->getCode(),
         ]);
 
         $withdrawal = Withdrawal::query()->find($this->withdrawalId);
@@ -189,16 +194,16 @@ class DisburseWithdrawalJob implements ShouldBeUnique, ShouldQueue
                 'auditable_type' => Withdrawal::class,
                 'auditable_id' => $withdrawal->id,
                 'description' => sprintf(
-                    'DisburseWithdrawalJob failed permanently for Withdrawal %s after %d attempts: %s',
+                    'DisburseWithdrawalJob failed permanently for Withdrawal %s after %d attempts; operator reconciliation may be required.',
                     $withdrawal->reference_number,
                     $this->attempts(),
-                    $exception->getMessage(),
                 ),
                 'metadata' => [
                     'withdrawal_id' => $withdrawal->id,
                     'reference_number' => $withdrawal->reference_number,
                     'attempts' => $this->attempts(),
-                    'error' => $exception->getMessage(),
+                    'exception_class' => $exception::class,
+                    'exception_code' => $exception->getCode(),
                 ],
             ]);
             $log->save();

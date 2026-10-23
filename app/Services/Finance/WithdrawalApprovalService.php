@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Finance;
 
-use App\Enums\WalletHoldType;
 use App\Enums\WithdrawalApprovalStatus;
 use App\Enums\WithdrawalStatus;
 use App\Exceptions\FinancialException;
@@ -12,53 +11,12 @@ use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\WithdrawalException;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
+use App\Services\Payment\WithdrawalDisbursementService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
  * The review decision on a withdrawal, and the reservation of the funds.
- *
- * WHAT APPROVAL MEANS FINANCIALLY
- * -------------------------------
- * Approving a withdrawal RESERVES the amount: it moves from available to locked
- * inside the same wallet. The total balance does not change, no value leaves the
- * system and therefore no ledger entry is written yet. The money actually leaves
- * in WithdrawalCompletionService, which consumes the reservation and posts a
- * balanced double entry.
- *
- * Reserving at approval time is the point of the whole design: from this moment
- * the customer cannot spend the same money on a bet, and a second withdrawal
- * cannot be approved against it.
- *
- * TWO SIMULTANEOUS APPROVALS CANNOT RESERVE THE SAME FUNDS
- * Three barriers, in this order:
- *   1. The WALLET row is taken with `FOR UPDATE` before anything is read, so two
- *      approvals against one wallet are serialised by the database. The second one
- *      does not see a stale available balance - it waits, then reads the balance
- *      the first one left behind.
- *   2. The WITHDRAWAL row is then also taken with `FOR UPDATE`, so two approvals
- *      of the SAME request cannot both see status `pending`: the second sees
- *      `approved` and is refused as not approvable.
- *   3. WalletHoldService re-checks the available balance under that same wallet
- *      lock before it increases locked_balance, and the database CHECK constraint
- *      `locked_balance <= balance` is the final backstop.
- * So of two 80.00 approvals against 100.00 available, at most one succeeds and the
- * other fails with InsufficientBalanceException. The available balance can never
- * go negative.
- *
- * LOCK ORDER: WALLET -> FINANCIAL ENTITY -> LEDGER ACCOUNTS, always, in every
- * method here. This matches DepositService, WithdrawalService, both completion
- * services and the Phase 2.1 engine, so no pair of services can deadlock by
- * taking the same two locks in opposite orders.
- *
- * NO PAYMENT GATEWAY. Approving sends nothing anywhere. There is no provider call,
- * no webhook and no credential in this file.
- *
- * SCHEMA NOTE: `withdrawals` really does have a review trail - reviewed_by,
- * reviewed_at, approved_at, rejected_at, rejection_reason - so unlike deposits,
- * the decision is written to real indexed columns. There is still no
- * `approval_status` column, so WithdrawalApprovalStatus is only ever DERIVED from
- * those timestamps and is never persisted.
  */
 final class WithdrawalApprovalService
 {
@@ -80,12 +38,6 @@ final class WithdrawalApprovalService
      */
     public function approve(Withdrawal $withdrawal, ?int $reviewerUserId = null, ?string $note = null): array
     {
-        // MONEY-OUT KYC GATE, BEFORE THE BOUNDARY OPENS: identity certification
-        // must happen before any fund is reserved. The gate runs under its own
-        // transaction (it can legally never open inside ours), detains the
-        // withdrawal into KycRequired when evidence is inadmissible, and lifts a
-        // previous detention back to Pending when valid evidence lands — the
-        // canApprove() lane below then reads a clean state either way.
         $current = $withdrawal->fresh() ?? $withdrawal;
 
         if ($current instanceof Withdrawal && $this->kycGate->requiresGate($current)) {
@@ -94,10 +46,7 @@ final class WithdrawalApprovalService
         }
 
         return $this->withinTransaction(function () use ($withdrawal, $reviewerUserId, $note): array {
-            // 1. WALLET lock first, always.
             $wallet = $this->locks->lock((int) $withdrawal->wallet_id);
-
-            // 2. FINANCIAL ENTITY lock second.
             $current = $this->transitions->lockWithdrawal($withdrawal);
 
             $this->assertWalletMatches($current, $wallet);
@@ -119,11 +68,7 @@ final class WithdrawalApprovalService
 
             $amount = $this->amountOf($current);
 
-            // 3. Reserve. Re-checks the available balance under the wallet lock and
-            //    throws InsufficientBalanceException if the funds are not there.
-            $heldWallet = $this->holds->hold($wallet, $amount, WalletHoldType::Withdrawal, [
-                'withdrawal_id' => (int) $current->getKey(),
-            ]);
+            $heldWallet = app(WithdrawalReservationService::class)->reserve($current, $wallet);
 
             $now = Carbon::now();
 
@@ -152,10 +97,6 @@ final class WithdrawalApprovalService
     /**
      * Refuse the withdrawal and give any reservation back.
      *
-     * The release is idempotent, so re-running a rejection cannot release the
-     * amount twice and cannot create money. The total balance is unchanged by the
-     * whole operation: only the split between available and locked moves back.
-     *
      * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool, snapshot: array{balance: string, available_balance: string, locked_balance: string, currency: string, hold_type: string|null}}
      *
      * @throws WithdrawalException
@@ -174,13 +115,31 @@ final class WithdrawalApprovalService
                 throw WithdrawalException::notRejectable($current->id, $current->status);
             }
 
+            $guard = app(WithdrawalIntegrityGuard::class);
+            $guard->assertTerms($current, $wallet);
+
+            if ((is_array($current->metadata) ? ($current->metadata[WithdrawalDisbursementService::CLAIM] ?? null) : null) !== null) {
+                $guard->refuse();
+            }
+
             $released = false;
             $workingWallet = $wallet;
 
-            if ($current->status->holdsReservedFunds()) {
-                $outcome = $this->holds->releaseIfHeld($wallet, $this->amountOf($current));
+            $reservations = app(WithdrawalReservationService::class);
+            $initialHolds = app(WithdrawalInitialHoldService::class);
+
+            if ($current->status->holdsReservedFunds() || $reservations->exists($current)) {
+                $outcome = $reservations->release($current, $wallet, false);
                 $workingWallet = $outcome['wallet'];
                 $released = $outcome['released'];
+            } else {
+                $initialHolds->assertRequiredExists($current, $wallet);
+
+                if ($initialHolds->exists($current)) {
+                    $outcome = $initialHolds->releasePending($current, $wallet);
+                    $workingWallet = $outcome['wallet'];
+                    $released = $outcome['released'];
+                }
             }
 
             $now = Carbon::now();
@@ -210,21 +169,11 @@ final class WithdrawalApprovalService
     /**
      * Move an approved withdrawal into `processing`.
      *
-     * The reservation stays exactly where it is: this only records that the payout
-     * has been picked up. No balance changes.
-     *
      * @throws WithdrawalException
      * @throws FinancialException
      */
     public function markProcessing(Withdrawal $withdrawal): Withdrawal
     {
-        // CLIFF-EDGE KYC RECHECK, BEFORE THE IRREVERSIBLE FLIP: the approval
-        // gesture and this moment can be seconds (or a queue delay) apart, and
-        // identity evidence can expire in between. The VerifyWithdrawalKycJob's
-        // verdict is the integration contract: a detention aborts processing
-        // HERE — the gate already moved the withdrawal to KycRequired, and the
-        // reservation back-off is the operator's explicit next act, so no money
-        // quietly slips out under stale identity.
         $preCheck = $withdrawal->fresh() ?? $withdrawal;
 
         if ($preCheck instanceof Withdrawal && $this->kycGate->requiresGate($preCheck)) {
@@ -250,9 +199,8 @@ final class WithdrawalApprovalService
                 throw WithdrawalException::notCompletable($current->id, $current->status);
             }
 
-            // The reservation must still be in place, or the payout would be
-            // dispatched against money that is no longer set aside.
             $this->assertReservationIntact($current, $wallet);
+            app(WithdrawalReservationService::class)->assertActive($current, $wallet);
 
             return $this->transitions->transitionWithdrawal($current, WithdrawalStatus::Processing, [
                 'metadata' => $this->mergeMetadata($current, [
@@ -263,44 +211,166 @@ final class WithdrawalApprovalService
     }
 
     /**
-     * Record a failed payout attempt and release the reservation.
-     *
-     * Failure is not a debit: the money never left, so the reservation goes back to
-     * the available balance and no ledger entry is written or removed.
+     * Record a pre-disbursement failure (or verified final failure) and release the reservation.
      *
      * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
      *
      * @throws WithdrawalException
      * @throws FinancialException
      */
-    public function markFailed(Withdrawal $withdrawal, string $reason): array
+    public function markFailed(Withdrawal $withdrawal, string $reason, bool $verifiedFinalFailure = false): array
     {
-        return $this->withinTransaction(function () use ($withdrawal, $reason): array {
+        return $this->failWithdrawal($withdrawal, $reason, [], $verifiedFinalFailure);
+    }
+
+    /**
+     * Finalize a definitive failure reported by a provider response or verified webhook.
+     *
+     * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
+     *
+     * @throws WithdrawalException
+     * @throws FinancialException
+     */
+    public function markProviderFailed(Withdrawal $withdrawal): array
+    {
+        return $this->failWithdrawal(
+            $withdrawal,
+            'The payout provider confirmed that the disbursement failed.',
+            [
+                'reconciliation_required' => false,
+                'disbursement_outcome' => 'provider_declined',
+                'failure_source' => 'provider',
+            ],
+            true,
+        );
+    }
+
+    /**
+     * Finalize a not-paid outcome after a second operator records provider evidence.
+     *
+     * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
+     *
+     * @throws WithdrawalException
+     * @throws FinancialException
+     */
+    public function markReconciledFailed(
+        Withdrawal $withdrawal,
+        int $operatorUserId,
+        string $providerEvidenceReference,
+    ): array {
+        $evidenceReference = trim($providerEvidenceReference);
+
+        if ($operatorUserId < 1
+            || strlen($evidenceReference) > 191
+            || preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:-]{0,190}\z/D', $evidenceReference) !== 1) {
+            throw FinancialException::withCode(
+                'withdrawal_reconciliation_evidence_invalid',
+                'A valid operator and provider confirmation reference are required to reconcile a payout.',
+                ['withdrawal_id' => (int) $withdrawal->getKey()],
+            );
+        }
+
+        return $this->failWithdrawal(
+            $withdrawal,
+            'The payout provider confirmed that no payout was made.',
+            [
+                'reconciliation_required' => false,
+                'disbursement_outcome' => 'confirmed_not_paid',
+                'failure_source' => 'operator_reconciliation',
+                'provider_confirmation_reference' => $evidenceReference,
+                'reconciled_by' => $operatorUserId,
+                'reconciled_at' => Carbon::now()->toIso8601String(),
+            ],
+            true,
+            $operatorUserId,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $additionalMetadata
+     * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
+     */
+    private function failWithdrawal(
+        Withdrawal $withdrawal,
+        string $reason,
+        array $additionalMetadata,
+        bool $providerOutcomeConfirmed,
+        ?int $reconciledBy = null,
+    ): array {
+        return $this->withinTransaction(function () use (
+            $withdrawal,
+            $reason,
+            $additionalMetadata,
+            $providerOutcomeConfirmed,
+            $reconciledBy,
+        ): array {
             $wallet = $this->locks->lock((int) $withdrawal->wallet_id);
             $current = $this->transitions->lockWithdrawal($withdrawal);
 
             $this->assertWalletMatches($current, $wallet);
             $this->assertNotAlreadySettled($current);
 
+            if ($current->status === WithdrawalStatus::Processing && ! $providerOutcomeConfirmed) {
+                throw FinancialException::withCode(
+                    'withdrawal_reconciliation_required',
+                    'A payout with a possibly delivered provider request must be reconciled with provider evidence before its hold can be released.',
+                    ['withdrawal_id' => (int) $current->getKey()],
+                );
+            }
+
+            if ($reconciledBy !== null) {
+                if ($current->status !== WithdrawalStatus::Processing) {
+                    throw WithdrawalException::notRejectable($current->id, $current->status);
+                }
+
+                if ($current->reviewed_by !== null && (int) $current->reviewed_by === $reconciledBy) {
+                    throw FinancialException::withCode(
+                        'withdrawal_reconciliation_separation_of_duties',
+                        'A different operator must reconcile a payout than the operator who approved it.',
+                        ['withdrawal_id' => (int) $current->getKey()],
+                    );
+                }
+            }
+
             if (! $current->status->canTransitionTo(WithdrawalStatus::Failed)) {
                 throw WithdrawalException::notRejectable($current->id, $current->status);
+            }
+
+            $guard = app(WithdrawalIntegrityGuard::class);
+            $guard->assertTerms($current, $wallet);
+
+            if ((is_array($current->metadata) ? ($current->metadata[WithdrawalDisbursementService::CLAIM] ?? null) : null) !== null && ! $providerOutcomeConfirmed) {
+                $guard->refuse();
             }
 
             $released = false;
             $workingWallet = $wallet;
 
-            if ($current->status->holdsReservedFunds()) {
-                $outcome = $this->holds->releaseIfHeld($wallet, $this->amountOf($current));
+            $reservations = app(WithdrawalReservationService::class);
+            $initialHolds = app(WithdrawalInitialHoldService::class);
+
+            if ($current->status->holdsReservedFunds() || $reservations->exists($current)) {
+                $outcome = $reservations->release($current, $wallet, $providerOutcomeConfirmed);
                 $workingWallet = $outcome['wallet'];
                 $released = $outcome['released'];
+            } else {
+                $initialHolds->assertRequiredExists($current, $wallet);
+
+                if ($initialHolds->exists($current)) {
+                    $outcome = $initialHolds->releasePending($current, $wallet);
+                    $workingWallet = $outcome['wallet'];
+                    $released = $outcome['released'];
+                }
             }
+
+            $metadata = array_merge($additionalMetadata, [
+                'failed_at' => Carbon::now()->toIso8601String(),
+                'hold_released' => $released,
+            ]);
 
             $failed = $this->transitions->transitionWithdrawal($current, WithdrawalStatus::Failed, [
                 'rejection_reason' => $reason,
-                'metadata' => $this->mergeMetadata($current, [
-                    'failed_at' => Carbon::now()->toIso8601String(),
-                    'hold_released' => $released,
-                ]),
+                'metadata' => $this->mergeMetadata($current, $metadata),
             ]);
 
             $this->holds->assertInvariant($workingWallet);
@@ -429,10 +499,6 @@ final class WithdrawalApprovalService
 
     private function withinTransaction(\Closure $callback): mixed
     {
-        if (DB::transactionLevel() > 0) {
-            return $callback();
-        }
-
         return DB::transaction($callback);
     }
 }

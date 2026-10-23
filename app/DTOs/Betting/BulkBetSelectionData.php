@@ -33,7 +33,7 @@ final readonly class BulkBetSelectionData
         // legacy input: payout authority remains server-side in the purchase
         // pipeline and is never taken from the client/test payload.
         $resolvedMarket = $marketKey !== '' ? $marketKey : (string) ($market ?? '');
-        $this->marketKey = match (strtolower($resolvedMarket)) { 'top_3' => '3d_direct', 'bottom_2' => '2d_bottom', 'top_2' => '2d_top', default => $resolvedMarket };
+        $this->marketKey = strtolower(trim($resolvedMarket));
         $this->number = $number;
         $this->stake = $stake;
     }

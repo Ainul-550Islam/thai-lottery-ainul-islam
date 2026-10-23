@@ -48,10 +48,6 @@ return [
     'captcha' => [
         'enabled' => (bool) env('AUTH_CAPTCHA_ENABLED', true),
         'driver' => (string) env('AUTH_CAPTCHA_DRIVER', 'local'),
-        'providers' => [
-            'turnstile' => ['enabled' => (bool) env('TURNSTILE_ENABLED', false)],
-            'hcaptcha' => ['enabled' => (bool) env('HCAPTCHA_ENABLED', false)],
-        ],
         // Seconds a challenge stays verifiable after issue.
         'ttl_seconds' => (int) env('AUTH_CAPTCHA_TTL_SECONDS', 600),
         // Failed verifications per session before the challenge is
@@ -61,6 +57,17 @@ return [
         // Surfaces that carry a CAPTCHA gate.
         'login' => (bool) env('AUTH_CAPTCHA_LOGIN', true),
         'password_reset' => (bool) env('AUTH_CAPTCHA_PASSWORD_RESET', true),
+        // External (Turnstile / hCaptcha) Siteverify policy. Timeouts are seconds;
+        // max_age_seconds is per provider and cannot exceed the provider's own token TTL.
+        'external' => [
+            'connect_timeout_seconds' => (int) env('AUTH_CAPTCHA_CONNECT_TIMEOUT', 2),
+            'timeout_seconds' => (int) env('AUTH_CAPTCHA_TIMEOUT', 5),
+            'clock_skew_seconds' => (int) env('AUTH_CAPTCHA_CLOCK_SKEW', 5),
+            'max_age_seconds' => [
+                'turnstile' => (int) env('AUTH_CAPTCHA_TURNSTILE_MAX_AGE', 300),
+                'hcaptcha' => (int) env('AUTH_CAPTCHA_HCAPTCHA_MAX_AGE', 120),
+            ],
+        ],
     ],
 
     /*

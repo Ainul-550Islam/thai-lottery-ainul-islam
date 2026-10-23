@@ -69,18 +69,14 @@ class WalletService
         ?string $idempotencyKey = null,
         array|string $options = [],
     ): FinancialTransaction {
-        if (is_string($options)) $options = ['description' => $options];
-        $wallet = is_int($wallet) ? Wallet::query()->findOrFail($wallet) : $wallet;
-        $amount = is_string($amount) ? Money::of($amount, $wallet->currency) : $amount;
-        if (is_string($type)) {
-            $resolved = FinancialTransactionType::tryFrom($type);
-            if ($resolved === null) {
-                $options['description'] ??= $type;
-                $resolved = FinancialTransactionType::Adjustment;
-            }
-            $type = $resolved;
+        if (is_string($options)) {
+            $options = ['description' => $options];
         }
-        return $this->canonical->credit($wallet, $amount, $type, $idempotencyKey, $options);
+        $wallet = $this->resolveWallet($wallet);
+        $money = $this->resolveMoney($amount, $wallet);
+        $transactionType = $this->resolveType($type, $options);
+
+        return $this->canonical->credit($wallet, $money, $transactionType, $idempotencyKey, $options);
     }
 
     /**
@@ -91,19 +87,57 @@ class WalletService
         Money|string $amount,
         string|FinancialTransactionType $type = FinancialTransactionType::Withdrawal,
         ?string $idempotencyKey = null,
-        array $options = [],
+        array|string $options = [],
     ): FinancialTransaction {
-        $wallet = is_int($wallet) ? Wallet::query()->findOrFail($wallet) : $wallet;
-        $amount = is_string($amount) ? Money::of($amount, $wallet->currency) : $amount;
-        if (is_string($type)) {
-            $resolved = FinancialTransactionType::tryFrom($type);
-            if ($resolved === null) {
-                $options['description'] ??= $type;
-                $resolved = FinancialTransactionType::Adjustment;
-            }
-            $type = $resolved;
+        if (is_string($options)) {
+            $options = ['description' => $options];
         }
-        return $this->canonical->debit($wallet, $amount, $type, $idempotencyKey, $options);
+        $wallet = $this->resolveWallet($wallet);
+        $money = $this->resolveMoney($amount, $wallet);
+        $transactionType = $this->resolveType($type, $options);
+
+        return $this->canonical->debit($wallet, $money, $transactionType, $idempotencyKey, $options);
+    }
+
+    /**
+     * An int wallet id is loaded here so the canonical engine always receives a model.
+     */
+    private function resolveWallet(Wallet|int $wallet): Wallet
+    {
+        return $wallet instanceof Wallet ? $wallet : Wallet::query()->findOrFail($wallet);
+    }
+
+    /**
+     * A decimal string is read in the wallet's own currency; a Money object passes through.
+     */
+    private function resolveMoney(Money|string $amount, Wallet $wallet): Money
+    {
+        return $amount instanceof Money ? $amount : Money::of($amount, $wallet->currency);
+    }
+
+    /**
+     * A known transaction type (by value or case name) resolves to that type. Any other
+     * string is kept as the ledger description and recorded as an Adjustment, so a caller's
+     * sentence is never mistaken for an external money movement.
+     *
+     * @param  array<string, mixed>  $options  receives the description when one is not given
+     */
+    private function resolveType(string|FinancialTransactionType $type, array &$options): FinancialTransactionType
+    {
+        if ($type instanceof FinancialTransactionType) {
+            return $type;
+        }
+
+        $resolved = FinancialTransactionType::tryFrom($type)
+            ?? collect(FinancialTransactionType::cases())->first(fn (FinancialTransactionType $case): bool => $case->name === $type);
+
+        if ($resolved !== null) {
+            return $resolved;
+        }
+
+        $options['description'] ??= $type;
+
+        return FinancialTransactionType::Adjustment;
     }
 
     /**

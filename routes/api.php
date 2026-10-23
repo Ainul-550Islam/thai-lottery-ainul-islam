@@ -2,9 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\LegalDocumentAdminController;
 use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
 use App\Http\Controllers\Api\V1\AccountGradeApiController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController;
+use App\Http\Controllers\Api\V1\Admin\Security\BlockedIpController;
+use App\Http\Controllers\Api\V1\Admin\Security\FraudAlertController;
+use App\Http\Controllers\Api\V1\Admin\Security\MalwareReviewController;
+use App\Http\Controllers\Api\V1\Admin\Security\SecurityOverviewController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BetAmendmentController;
 use App\Http\Controllers\Api\V1\BetCancellationController;
@@ -34,12 +39,13 @@ use App\Http\Controllers\Api\V1\TicketProductController;
 use App\Http\Controllers\Api\V1\TicketVerificationController;
 use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\WalletConversionController;
-use App\Http\Middleware\RequireConversionIdempotencyKey;
 use App\Http\Controllers\Api\V1\WeeklyLotteryController;
 use App\Http\Controllers\Api\V1\WithdrawalController;
 use App\Http\Controllers\Betting\ThaiLotteryBettingController;
 use App\Http\Controllers\GloResultsPageController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\Legal\AccountAgeVerificationController;
+use App\Http\Controllers\Legal\LegalConsentController;
 use App\Http\Controllers\LottoDiscountController;
 use App\Http\Controllers\Payment\DepositMethodsPageController;
 use App\Http\Controllers\Payment\WithdrawalMethodsPageController;
@@ -160,6 +166,49 @@ Route::prefix('v1/auth')
 
 /*
 |--------------------------------------------------------------------------
+| Legal acknowledgement and age-attestation APIs
+|--------------------------------------------------------------------------
+*/
+Route::prefix('v1/legal')
+    ->name('api.v1.legal.')
+    ->middleware(['auth:sanctum', 'throttle:api', 'active'])
+    ->group(function (): void {
+        Route::get('/documents/current', [LegalConsentController::class, 'currentApi'])->name('documents.current');
+        Route::get('/consents', [LegalConsentController::class, 'historyApi'])->name('consents.history');
+        Route::post('/consents', [LegalConsentController::class, 'storeApi'])
+            ->middleware('throttle:account-verification')
+            ->name('consents.store');
+        Route::get('/age-attestation', [AccountAgeVerificationController::class, 'statusApi'])->name('age-attestation.status');
+        Route::post('/age-attestation', [AccountAgeVerificationController::class, 'storeApi'])
+            ->middleware('throttle:account-verification')
+            ->name('age-attestation.store');
+    });
+
+Route::prefix('v1/admin/legal-documents')
+    ->name('api.v1.admin.legal-documents.')
+    ->middleware(['auth:sanctum', 'throttle:api', 'active', 'can:manage-legal-documents'])
+    ->group(function (): void {
+        Route::get('/', [LegalDocumentAdminController::class, 'index'])->name('index');
+        Route::get('/template/{type}/{locale}', [LegalDocumentAdminController::class, 'template'])
+            ->where(['type' => 'terms|privacy', 'locale' => 'en|th'])
+            ->name('template');
+        Route::post('/', [LegalDocumentAdminController::class, 'store'])->name('store');
+        Route::get('/{document}', [LegalDocumentAdminController::class, 'show'])
+            ->whereNumber('document')
+            ->name('show');
+        Route::put('/{document}', [LegalDocumentAdminController::class, 'update'])
+            ->whereNumber('document')
+            ->name('update');
+        Route::patch('/{document}', [LegalDocumentAdminController::class, 'update'])
+            ->whereNumber('document')
+            ->name('patch');
+        Route::post('/{document}/publish', [LegalDocumentAdminController::class, 'publish'])
+            ->whereNumber('document')
+            ->name('publish');
+    });
+
+/*
+|--------------------------------------------------------------------------
 | Account grade (parity batch)
 |--------------------------------------------------------------------------
 |
@@ -208,33 +257,39 @@ Route::middleware(['throttle:glo.public'])->group(function (): void {
     // actor and every controller must derive ownership from that actor.
     Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function (): void {
         Route::get('/v1/lotto/user/balance', [ThaiLotteryBettingController::class, 'getUserBalanceApi'])->name('api.v1.lotto.user.balance');
-        Route::post('/v1/lotto/bets/place', [ThaiLotteryBettingController::class, 'placeWagersApi'])->name('api.v1.lotto.bets.place');
+        Route::post('/v1/lotto/bets/place', [ThaiLotteryBettingController::class, 'placeWagersApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.lotto.bets.place');
         Route::get('/v1/player/dashboard/summary', [PlayerDashboardController::class, 'getSummaryApi'])->name('api.v1.player.dashboard.summary');
         Route::get('/v1/player/dashboard/wagers', [PlayerDashboardController::class, 'getRecentWagersApi'])->name('api.v1.player.dashboard.wagers');
-        Route::post('/v1/player/dashboard/wagers/{ticketId}/cancel', [PlayerDashboardController::class, 'cancelWagerApi'])->name('api.v1.player.dashboard.wagers.cancel');
+        Route::post('/v1/player/dashboard/wagers/{ticketId}/cancel', [PlayerDashboardController::class, 'cancelWagerApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.player.dashboard.wagers.cancel');
         Route::get('/v1/wallet/summary', [WalletController::class, 'show'])->name('api.v1.wallet.summary');
-        Route::post('/v1/wallet/conversions/quote', [WalletConversionController::class, 'quote'])
-            ->name('api.v1.wallet.conversions.quote');
-        Route::post('/v1/wallet/conversions', [WalletConversionController::class, 'store'])
-            ->middleware(RequireConversionIdempotencyKey::class)
-            ->name('api.v1.wallet.conversions.store');
-        Route::get('/v1/wallet/conversions/{reference}', [WalletConversionController::class, 'show'])
-            ->where('reference', '[A-Za-z0-9_-]{8,80}')
-            ->name('api.v1.wallet.conversions.show');
-        Route::post('/v1/wallet/conversions/{reference}/reverse', [WalletConversionController::class, 'reverse'])
-            ->middleware(RequireConversionIdempotencyKey::class)
-            ->where('reference', '[A-Za-z0-9_-]{8,80}')
-            ->name('api.v1.wallet.conversions.reverse');
-        Route::post('/v1/wallet/deposit', [DepositController::class, 'store'])->middleware('throttle:deposit')->name('api.v1.wallet.deposit');
-        Route::post('/v1/wallet/withdraw', [WithdrawalController::class, 'store'])->middleware('throttle:withdrawal')->name('api.v1.wallet.withdraw');
+        Route::post('/v1/wallet/deposit', [DepositController::class, 'store'])
+            ->middleware(['throttle:deposit', 'adult', 'legal.current'])
+            ->name('api.v1.wallet.deposit');
+        Route::post('/v1/wallet/withdraw', [WithdrawalController::class, 'store'])
+            ->middleware(['throttle:withdrawal', 'adult', 'legal.current'])
+            ->name('api.v1.wallet.withdraw');
         Route::get('/v1/deposit/methods', [DepositMethodsPageController::class, 'getDepositMethodsApi'])->name('api.v1.deposit.methods');
-        Route::post('/v1/deposit/promptpay/generate', [DepositMethodsPageController::class, 'generatePromptPayApi'])->name('api.v1.deposit.promptpay.generate');
-        Route::post('/v1/deposit/bank-transfer/intent', [DepositMethodsPageController::class, 'createBankTransferIntentApi'])->name('api.v1.deposit.bank-transfer.intent');
-        Route::post('/v1/deposit/crypto/address', [DepositMethodsPageController::class, 'generateCryptoDepositApi'])->name('api.v1.deposit.crypto.address');
-        Route::post('/v1/deposit/verify-slip', [DepositMethodsPageController::class, 'verifySlipApi'])->name('api.v1.deposit.verify-slip');
+        Route::post('/v1/deposit/promptpay/generate', [DepositMethodsPageController::class, 'generatePromptPayApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.deposit.promptpay.generate');
+        Route::post('/v1/deposit/bank-transfer/intent', [DepositMethodsPageController::class, 'createBankTransferIntentApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.deposit.bank-transfer.intent');
+        Route::post('/v1/deposit/crypto/address', [DepositMethodsPageController::class, 'generateCryptoDepositApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.deposit.crypto.address');
+        Route::post('/v1/deposit/verify-slip', [DepositMethodsPageController::class, 'verifySlipApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.deposit.verify-slip');
         Route::get('/v1/deposit/status/{depositId}', [DepositController::class, 'show'])->name('api.v1.deposit.status');
         Route::get('/v1/withdrawal/methods', [WithdrawalMethodsPageController::class, 'getWithdrawalMethodsApi'])->name('api.v1.withdrawal.methods');
-        Route::post('/v1/withdrawal/request', [WithdrawalController::class, 'store'])->middleware('throttle:withdrawal')->name('api.v1.withdrawal.request');
+        Route::post('/v1/withdrawal/request', [WithdrawalController::class, 'store'])
+            ->middleware(['throttle:withdrawal', 'adult', 'legal.current'])
+            ->name('api.v1.withdrawal.request');
         Route::get('/v1/withdrawal/recent', [WithdrawalController::class, 'index'])->name('api.v1.withdrawal.recent');
         Route::get('/v1/withdrawal/status/{withdrawal}', [WithdrawalController::class, 'show'])->name('api.v1.withdrawal.status');
         Route::get('/v1/player/security/limits', [PlayerSecuritySettingsController::class, 'getLimitsApi'])->name('api.v1.player.security.limits');
@@ -244,12 +299,20 @@ Route::middleware(['throttle:glo.public'])->group(function (): void {
         Route::post('/v1/player/profile/update', [PlayerProfilePortalController::class, 'updateProfileApi'])->name('api.v1.player.profile.update');
         Route::post('/v1/player/profile/password', [PlayerProfilePortalController::class, 'changePasswordApi'])->name('api.v1.player.profile.password');
         Route::post('/v1/player/profile/pin', [PlayerProfilePortalController::class, 'setSecurityPinApi'])->name('api.v1.player.profile.pin');
-        Route::post('/v1/player/profile/transfer', [PlayerProfilePortalController::class, 'transferBalanceApi'])->name('api.v1.player.profile.transfer');
-        Route::post('/v1/player/profile/bank', [PlayerProfilePortalController::class, 'bindBankAccountApi'])->name('api.v1.player.profile.bank');
+        Route::post('/v1/player/profile/transfer', [PlayerProfilePortalController::class, 'transferBalanceApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.player.profile.transfer');
+        Route::post('/v1/player/profile/bank', [PlayerProfilePortalController::class, 'bindBankAccountApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.player.profile.bank');
         Route::get('/v1/player/history', [LotteryHistoryPortalController::class, 'getHistoryApi'])->name('api.v1.player.history');
         Route::get('/v1/player/history/{slipId}', [LotteryHistoryPortalController::class, 'getSlipDetailApi'])->name('api.v1.player.history.detail');
-        Route::post('/v1/player/history/rebet/{slipId}', [LotteryHistoryPortalController::class, 'rebetSlipApi'])->name('api.v1.player.history.rebet');
-        Route::post('/v1/player/history/cancel/{slipId}', [LotteryHistoryPortalController::class, 'cancelSlipApi'])->name('api.v1.player.history.cancel');
+        Route::post('/v1/player/history/rebet/{slipId}', [LotteryHistoryPortalController::class, 'rebetSlipApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.player.history.rebet');
+        Route::post('/v1/player/history/cancel/{slipId}', [LotteryHistoryPortalController::class, 'cancelSlipApi'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('api.v1.player.history.cancel');
         Route::get('/v1/player/settings', [PlayerSettingsPortalController::class, 'getAllSettingsApi'])->name('api.v1.player.settings');
         Route::post('/v1/player/settings/general', [PlayerSettingsPortalController::class, 'updateGeneralSettingsApi'])->name('api.v1.player.settings.general');
         Route::post('/v1/player/settings/security', [PlayerSettingsPortalController::class, 'updateSecuritySettingsApi'])->name('api.v1.player.settings.security');
@@ -261,12 +324,14 @@ Route::middleware(['throttle:glo.public'])->group(function (): void {
         Route::post('/v1/player/settings/self-exclusion', [PlayerSettingsPortalController::class, 'applySelfExclusionApi'])->name('api.v1.player.settings.self-exclusion');
     });
 
-    // The Terms controller mirrors the Privacy one method for method. Its
-    // routes were never registered, so every endpoint below returned 404
-    // while the controller sat unreachable in the codebase.
+    // Versioned public legal-document reads share the current publication
+    // pointer. The legacy acceptance URL remains authenticated and records
+    // both the current Terms acceptance and Privacy Notice acknowledgement.
     Route::get('/v1/public/terms', [PublicLegalTermsController::class, 'getTermsApi'])->name('api.v1.public.terms');
     Route::get('/v1/public/terms/search', [PublicLegalTermsController::class, 'searchTermsApi'])->name('api.v1.public.terms.search');
-    Route::post('/v1/public/terms/accept', [PublicLegalTermsController::class, 'acceptTermsApi'])->name('api.v1.public.terms.accept');
+    Route::post('/v1/public/terms/accept', [LegalConsentController::class, 'storeApi'])
+        ->middleware(['auth:sanctum', 'active', 'throttle:api'])
+        ->name('api.v1.public.terms.accept');
     Route::get('/v1/public/terms/download', [PublicLegalTermsController::class, 'downloadTermsApi'])->name('api.v1.public.terms.download');
     Route::get('/v1/public/privacy', [PublicLegalPrivacyController::class, 'getPrivacyApi'])->name('api.v1.public.privacy');
     Route::get('/v1/public/privacy/search', [PublicLegalPrivacyController::class, 'searchPrivacyApi'])->name('api.v1.public.privacy.search');
@@ -484,7 +549,7 @@ Route::prefix('v1')
         // The purchase route. The only mutating endpoint in this phase, and the
         // only one carrying the tighter `throttle:bet` limiter.
         Route::post('/bets/purchase', [BetPurchaseController::class, 'store'])
-            ->middleware('throttle:bet')
+            ->middleware(['throttle:bet', 'adult', 'legal.current'])
             ->name('bets.purchase');
 
         // Multi-selection slip and permutation (กลับเลข) purchasing. Both run
@@ -493,12 +558,12 @@ Route::prefix('v1')
         Route::post('/bets/quote', [BulkBetController::class, 'quote'])
             ->name('bets.quote');
         Route::post('/bets/purchase-bulk', [BulkBetController::class, 'purchase'])
-            ->middleware('throttle:bet')
+            ->middleware(['throttle:bet', 'adult', 'legal.current'])
             ->name('bets.purchase-bulk');
         Route::post('/bets/permutations/preview', [BulkBetController::class, 'previewPermutation'])
             ->name('bets.permutations.preview');
         Route::post('/bets/permutations/purchase', [BulkBetController::class, 'purchasePermutation'])
-            ->middleware('throttle:bet')
+            ->middleware(['throttle:bet', 'adult', 'legal.current'])
             ->name('bets.permutations.purchase');
 
         // Cancellation and amendment of the caller's own bet. The {bet}
@@ -507,10 +572,11 @@ Route::prefix('v1')
         // resolution (a foreign bet is a 404, indistinguishable from unknown).
         Route::post('/bets/{bet}/cancel', [BetCancellationController::class, 'store'])
             ->where('bet', '[A-Za-z0-9-]{1,64}')
+            ->middleware(['adult', 'legal.current'])
             ->name('bets.cancel');
         Route::post('/bets/{bet}/amend', [BetAmendmentController::class, 'store'])
             ->where('bet', '[A-Za-z0-9-]{1,64}')
-            ->middleware('throttle:bet')
+            ->middleware(['throttle:bet', 'adult', 'legal.current'])
             ->name('bets.amend');
 
         // Ticket verification (owner-scoped detail) and share links.
@@ -569,7 +635,9 @@ Route::prefix('v1')
 
         // KYC status and document upload.
         Route::get('/kyc/status', [KycController::class, 'status'])->name('kyc.status');
-        Route::post('/kyc/upload', [KycController::class, 'upload'])->name('kyc.upload');
+        Route::post('/kyc/upload', [KycController::class, 'upload'])
+            ->middleware(['throttle:account-verification', 'legal.current'])
+            ->name('kyc.upload');
 
         // Responsible gaming limits and self-exclusion.
         Route::get('/responsible-gaming', [ResponsibleGamingController::class, 'show'])->name('responsible-gaming.show');
@@ -623,7 +691,9 @@ Route::prefix('v1')
             ->name('glo.freezes.release');
 
         // GLO-12/14 claim mutations (401/403 default deny; claimant may submit own claim).
-        Route::post('/glo/claims', [GloController::class, 'submitClaim'])->name('glo.claims.store');
+        Route::post('/glo/claims', [GloController::class, 'submitClaim'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('glo.claims.store');
         Route::get('/glo/claims/{claim}', [GloController::class, 'claim'])->name('glo.claims.show');
         Route::post('/glo/claims/{claim}/review', [GloController::class, 'reviewClaim'])
             ->middleware('glo.permission:'.AdminAccess::MANAGE_GLO_PRIZE_CLAIMS)
@@ -637,7 +707,9 @@ Route::prefix('v1')
         Route::post('/glo/claims/{claim}/pay', [GloController::class, 'payClaim'])
             ->middleware('glo.permission:'.AdminAccess::EXECUTE_GLO_PRIZE_PAYMENTS)
             ->name('glo.claims.pay');
-        Route::post('/glo/claims/{claim}/cancel', [GloController::class, 'cancelClaim'])->name('glo.claims.cancel');
+        Route::post('/glo/claims/{claim}/cancel', [GloController::class, 'cancelClaim'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('glo.claims.cancel');
 
         // GLO-17 authenticated user: saved tickets + own notification deliveries.
         Route::get('/glo/me/tickets', [GloController::class, 'listMySavedTickets'])->name('glo.me.tickets');
@@ -684,13 +756,38 @@ Route::prefix('v1')
 | methods.
 |
 */
+Route::prefix('v1')
+    ->name('api.v1.wallet.conversions.')
+    ->middleware(['auth:sanctum', 'active', 'throttle:api'])
+    ->group(function (): void {
+        Route::get('/wallet/conversions', [WalletConversionController::class, 'index'])
+            ->name('index');
+        Route::get('/wallet/conversions/summary', [WalletConversionController::class, 'summary'])
+            ->name('summary');
+        Route::post('/wallet/conversions/quote', [WalletConversionController::class, 'quote'])
+            ->middleware(['adult', 'legal.current', 'conversion.enabled', 'throttle:wallet-conversion-quote'])
+            ->name('quote');
+        Route::post('/wallet/conversions', [WalletConversionController::class, 'store'])
+            ->middleware(['adult', 'legal.current', 'conversion.enabled', 'conversion.idempotency', 'throttle:wallet-conversion-execute'])
+            ->name('store');
+        Route::get('/wallet/conversions/{reference}', [WalletConversionController::class, 'show'])
+            ->where('reference', '[A-Za-z0-9_-]{1,80}')
+            ->name('show');
+        Route::post('/wallet/conversions/{reference}/reverse', [WalletConversionController::class, 'reverse'])
+            ->where('reference', '[A-Za-z0-9_-]{1,80}')
+            ->middleware(['adult', 'legal.current', 'conversion.idempotency', 'throttle:wallet-conversion-admin'])
+            ->name('reverse');
+    });
+
 Route::prefix('v1/deposits')
     ->name('api.v1.deposits.')
     ->middleware(['auth:sanctum', 'active', 'throttle:api'])
     ->group(function (): void {
         Route::get('/methods', [DepositController::class, 'methods'])->name('methods');
         Route::get('/', [DepositController::class, 'index'])->name('index');
-        Route::post('/', [DepositController::class, 'store'])->middleware('throttle:deposit')->name('store');
+        Route::post('/', [DepositController::class, 'store'])
+            ->middleware(['throttle:deposit', 'adult', 'legal.current'])
+            ->name('store');
         Route::get('/{deposit}', [DepositController::class, 'show'])->name('show');
     });
 
@@ -724,9 +821,13 @@ Route::prefix('v1/payments')
     ->group(function (): void {
         Route::get('/providers', [PaymentController::class, 'providers'])->name('providers');
         Route::get('/methods', [PaymentController::class, 'methods'])->name('methods');
-        Route::post('/intents', [PaymentController::class, 'createIntent'])->name('intents.create');
+        Route::post('/intents', [PaymentController::class, 'createIntent'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('intents.create');
         Route::get('/intents/{intent}', [PaymentController::class, 'showIntent'])->name('intents.show');
-        Route::post('/intents/{intent}/cancel', [PaymentController::class, 'cancelIntent'])->name('intents.cancel');
+        Route::post('/intents/{intent}/cancel', [PaymentController::class, 'cancelIntent'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('intents.cancel');
     });
 
 /*
@@ -767,13 +868,17 @@ Route::prefix('v1/payments')
 */
 Route::prefix('v1/payments/webhook')
     ->name('api.v1.payments.webhook.')
-    ->middleware([\Illuminate\Routing\Middleware\ThrottleRequests::class, 'webhook.signature'])
+    ->middleware(['throttle:webhook', 'webhook.signature'])
     ->group(function (): void {
         Route::post('/{gateway}', [PaymentWebhookController::class, 'handle'])->name('handle');
         // Hardened envelope lane (batch-12): signature verification
         // BEFORE persistence, exactly-once by fingerprint, async apply.
         Route::post('/v2/{gateway}', [PaymentWebhookController::class, 'receive'])->name('receive');
     });
+
+Route::post('v1/payments/stripe-followups', \App\Http\Controllers\Api\V1\StripeDepositFollowupController::class)
+    ->middleware('throttle:webhook')
+    ->name('api.v1.payments.stripe-followups');
 
 /*
 |--------------------------------------------------------------------------
@@ -813,9 +918,13 @@ Route::prefix('v1/withdrawals')
     ->middleware(['auth:sanctum', 'active', 'throttle:api'])
     ->group(function (): void {
         Route::get('/', [WithdrawalController::class, 'index'])->name('index');
-        Route::post('/', [WithdrawalController::class, 'store'])->middleware('throttle:withdrawal')->name('store');
+        Route::post('/', [WithdrawalController::class, 'store'])
+            ->middleware(['throttle:withdrawal', 'adult', 'legal.current'])
+            ->name('store');
         Route::get('/{withdrawal}', [WithdrawalController::class, 'show'])->name('show');
-        Route::post('/{withdrawal}/cancel', [WithdrawalController::class, 'cancel'])->name('cancel');
+        Route::post('/{withdrawal}/cancel', [WithdrawalController::class, 'cancel'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('cancel');
     });
 
 /*
@@ -836,7 +945,9 @@ Route::prefix('v1/payouts')
     ->group(function (): void {
         Route::get('/', [PayoutController::class, 'index'])->name('index');
         Route::get('/{payout}', [PayoutController::class, 'show'])->name('show');
-        Route::post('/{payout}/cancel', [PayoutController::class, 'cancel'])->name('cancel');
+        Route::post('/{payout}/cancel', [PayoutController::class, 'cancel'])
+            ->middleware(['adult', 'legal.current'])
+            ->name('cancel');
     });
 
 /*
@@ -856,7 +967,9 @@ Route::prefix('v1/prize-claims')
     ->middleware(['auth:sanctum', 'active', 'throttle:api'])
     ->group(function (): void {
         Route::get('/', [PrizeClaimController::class, 'index'])->name('index');
-        Route::post('/', [PrizeClaimController::class, 'store'])->middleware('throttle:withdrawal')->name('store');
+        Route::post('/', [PrizeClaimController::class, 'store'])
+            ->middleware(['throttle:withdrawal', 'adult', 'legal.current'])
+            ->name('store');
         Route::get('/{bet}', [PrizeClaimController::class, 'show'])->name('show');
     });
 
@@ -947,6 +1060,18 @@ Route::prefix('v1/admin')
         Route::post('/reports', [OperationsController::class, 'askReport'])->name('reports.ask');
         Route::get('/reports/{queryFingerprint}/export', [OperationsController::class, 'exportReport'])->name('reports.export');
         Route::get('/audit-logs', [OperationsController::class, 'auditQuery'])->name('audit.query');
+
+        Route::prefix('security')->name('security.')->group(function (): void {
+            Route::get('/overview', [SecurityOverviewController::class, 'overview'])->name('overview');
+            Route::get('/ip-blocks', [BlockedIpController::class, 'index'])->name('ip-blocks.index');
+            Route::post('/ip-blocks', [BlockedIpController::class, 'store'])->name('ip-blocks.store');
+            Route::post('/ip-blocks/{id}/unblock', [BlockedIpController::class, 'unblock'])->name('ip-blocks.unblock');
+            Route::get('/fraud-alerts', [FraudAlertController::class, 'index'])->name('fraud-alerts.index');
+            Route::get('/fraud-alerts/{id}', [FraudAlertController::class, 'show'])->name('fraud-alerts.show');
+            Route::post('/fraud-alerts/{id}/review', [FraudAlertController::class, 'review'])->name('fraud-alerts.review');
+            Route::get('/malware-scans', [MalwareReviewController::class, 'index'])->name('malware-scans.index');
+            Route::post('/malware-scans/{id}/rescan', [MalwareReviewController::class, 'rescan'])->name('malware-scans.rescan');
+        });
     });
 
 /*

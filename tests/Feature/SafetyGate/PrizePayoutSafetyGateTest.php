@@ -18,10 +18,10 @@ use App\Models\Payout;
 use App\Models\Wallet;
 use App\Services\Betting\BetPurchaseService;
 use App\Services\Draw\DrawLifecycleService;
-use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\RealPrizeSettlementService;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Feature\Payment\PaymentTestCase;
+use Tests\Feature\Queue\Concerns\ConfirmsQueueDraw;
 
 /**
  * P0-B: prize payout safety gate — DISABLED / DRY_RUN / LIVE.
@@ -33,6 +33,7 @@ use Tests\Feature\Payment\PaymentTestCase;
  */
 final class PrizePayoutSafetyGateTest extends PaymentTestCase
 {
+    use ConfirmsQueueDraw;
     private function configure(string $mode, string $autoBelow = '1000000.00'): void
     {
         config([
@@ -77,13 +78,7 @@ final class PrizePayoutSafetyGateTest extends PaymentTestCase
             idempotencyKey: 'safety-gate-'.$idempotencySuffix,
         ));
 
-        $lifecycle = app(DrawLifecycleService::class);
-        $draw = $lifecycle->close($draw);
-        $draw = $lifecycle->markResultPending($draw);
-        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
-            'first_prize' => '456123',
-            'bottom_two' => '45',
-        ]);
+        $draw = $this->confirmQueueDraw($draw);
 
         return ['draw' => $draw, 'wallet' => $player['wallet'], 'player' => $player];
     }

@@ -6,6 +6,7 @@ namespace App\Services\Payment\Drivers;
 
 use App\DTOs\Payment\GatewayDepositResponse;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
+use App\DTOs\Payment\WebhookMoneyFacts;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
@@ -90,19 +91,9 @@ class CryptoGateway extends AbstractPaymentGateway
             return false;
         }
 
-        $timestamp = trim((string) $request->header('X-Timestamp', ''));
-        if ($timestamp === '' || ! ctype_digit($timestamp)) {
-            return false;
-        }
+        $expected = hash_hmac('sha256', $request->getContent(), $secret);
 
-        $tolerance = max(0, (int) config('security.webhook.timestamp_tolerance_seconds', 300));
-        if ($tolerance > 0 && abs(time() - (int) $timestamp) > $tolerance) {
-            return false;
-        }
-
-        $expected = hash_hmac('sha256', $timestamp.'.'.$request->getContent(), $secret);
-
-        return hash_equals($expected, strtolower($provided));
+        return hash_equals($expected, $provided);
     }
 
     public function parseWebhook(Request $request): WebhookPayload
@@ -111,10 +102,10 @@ class CryptoGateway extends AbstractPaymentGateway
 
         $txId = (string) ($data['txid'] ?? $data['transaction_id'] ?? $data['id'] ?? '');
         $invoiceId = (string) ($data['invoice_id'] ?? $data['order_id'] ?? $data['reference'] ?? '');
-        $amount = (string) ($data['amount'] ?? '0.00');
+        $amount = WebhookMoneyFacts::decimal($data['amount'] ?? null);
         $status = strtoupper((string) ($data['status'] ?? ''));
 
-        $currency = isset($data['currency']) ? (Currency::tryFrom(strtoupper((string) $data['currency'])) ?? Currency::USD) : Currency::USD;
+        $currency = WebhookMoneyFacts::currency($data['currency'] ?? null);
 
         $eventType = match ($status) {
             'CONFIRMED', 'COMPLETED', 'PAID', 'SUCCESS' => WebhookEventType::DepositSuccess,

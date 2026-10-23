@@ -69,7 +69,7 @@ class GloWriteBoundaryTest extends TestCase
         // would fail the second half of every test here. ResultPending is the
         // real state a GLO result is processed in.
         $this->draw = Draw::factory()->create([
-            'draw_number' => 'GLO-WRITE-BOUNDARY',
+            'draw_number' => 'GLO-2026-09-16',
             'status' => DrawStatus::Drawing,
             'scheduled_at' => now()->subDays(1),
         ]);

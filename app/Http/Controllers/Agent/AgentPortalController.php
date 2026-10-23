@@ -161,9 +161,12 @@ final class AgentPortalController extends Controller
     public function referralDetail(Request $request, string $reference): View
     {
         $agent = $this->agentFor($request);
+        // Scan in bounded chunks and stop at the match. Loading the whole referral
+        // set first grew memory with the size of an agent's network.
         $user = User::query()
             ->whereJsonContains('preferences->referred_by_agent_id', $agent->getKey())
-            ->get(['id', 'status', 'created_at'])
+            ->select(['id', 'status', 'created_at'])
+            ->lazyById(200, column: 'id')
             ->first(static fn (User $candidate): bool => hash_equals(
                 hash('sha256', 'agent-referral|'.$agent->getKey().'|'.$candidate->getKey()),
                 $reference,

@@ -1,0 +1,74 @@
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.27
+Configuration: /home/user/phpunit.xml
+
+.............................................................   61 / 1260 (  4%)
+.............................................................  122 / 1260 (  9%)
+.............................................................  183 / 1260 ( 14%)
+.....................................E.....................SS  244 / 1260 ( 19%)
+SS...........................................................  305 / 1260 ( 24%)
+..................................SS.........................  366 / 1260 ( 29%)
+...............................................SSSS..........  427 / 1260 ( 33%)
+........................................................S....  488 / 1260 ( 38%)
+.............................................................  549 / 1260 ( 43%)
+.......................................SSSSSS................  610 / 1260 ( 48%)
+.............................................................  671 / 1260 ( 53%)
+.............................................................  732 / 1260 ( 58%)
+.SSSSSS......................................................  793 / 1260 ( 62%)
+.............................................................  854 / 1260 ( 67%)
+..................................SSSSSSSSS..................  915 / 1260 ( 72%)
+.............................................................  976 / 1260 ( 77%)
+...........................................SSSSSSSS.......... 1037 / 1260 ( 82%)
+............................................................. 1098 / 1260 ( 87%)
+............................................................. 1159 / 1260 ( 91%)
+............................................................. 1220 / 1260 ( 96%)
+.....................................E.E                      1260 / 1260 (100%)
+
+Time: 03:55.433, Memory: 161.00 MB
+
+There were 3 errors:
+
+1) Tests\Feature\Finance\FinancialReconciliationComprehensiveTest::test_15_reversal_uses_compensating_transaction
+App\Exceptions\FinancialException: Reversal requires unambiguous original accounting and a matching canonical compensation; controlled review is required.
+
+/home/user/app/Exceptions/FinancialException.php:55
+/home/user/app/Services/Finance/ReversalIntegrityGuard.php:31
+/home/user/app/Services/Finance/ReversalIntegrityGuard.php:37
+/home/user/app/Services/Finance/ReversalIntegrityGuard.php:77
+/home/user/app/Services/Finance/FinancialReversalService.php:240
+/home/user/app/Services/Finance/FinancialReversalService.php:59
+/home/user/app/Services/Finance/WalletLockService.php:235
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:35
+/home/user/app/Services/Finance/WalletLockService.php:235
+/home/user/app/Services/Finance/FinancialReversalService.php:58
+/home/user/app/Services/Finance/FinancialTransactionService.php:160
+/home/user/app/Services/Finance/FinancialReversalService.php:57
+/home/user/tests/Feature/Finance/FinancialReconciliationComprehensiveTest.php:505
+
+2) Tests\Unit\Ledger\AutomatedBankReconciliationTest::test_reconciles_matched_deposits_and_payouts_with_zero_variance
+Illuminate\Database\Eloquent\MassAssignmentException: Add fillable property [id, ledger_transaction_id, account_id, direction] to allow mass assignment on [App\Models\LedgerEntry].
+
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:713
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:1749
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:1218
+/tmp/vendor/laravel/framework/src/Illuminate/Support/Traits/ForwardsCalls.php:23
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:2544
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:2560
+/home/user/tests/Unit/Ledger/AutomatedBankReconciliationTest.php:58
+
+3) Tests\Unit\Accounting\ThaiRevenueDepartmentTaxReportServiceTest::test_generates_accurate_monthly_withholding_tax_summary
+Illuminate\Database\Eloquent\MassAssignmentException: Add fillable property [id] to allow mass assignment on [App\Models\Payout].
+
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:639
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:713
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:1749
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php:1218
+/tmp/vendor/laravel/framework/src/Illuminate/Support/Traits/ForwardsCalls.php:23
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:2544
+/tmp/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php:2560
+/home/user/tests/Unit/Accounting/ThaiRevenueDepartmentTaxReportServiceTest.php:26
+
+ERRORS!
+Tests: 1260, Assertions: 11666, Errors: 3, Skipped: 40.

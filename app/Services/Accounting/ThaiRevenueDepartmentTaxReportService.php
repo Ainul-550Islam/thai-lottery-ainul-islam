@@ -40,19 +40,23 @@ class ThaiRevenueDepartmentTaxReportService
         $taxPeriod = $startDate->format('Y-m');
 
         foreach ($payouts as $payout) {
-            $totalGross = bcadd($totalGross, (string) $payout->gross_amount, 4);
-            $totalWht = bcadd($totalWht, (string) $payout->wht_tax_amount, 4);
-            $totalNet = bcadd($totalNet, (string) $payout->net_amount, 4);
+            $grossExact = bcadd((string) $payout->gross_amount, '0', 4);
+            $whtExact = bcadd((string) $payout->wht_tax_amount, '0', 4);
+            $netExact = bcadd((string) $payout->net_amount, '0', 4);
+
+            $totalGross = bcadd($totalGross, $grossExact, 4);
+            $totalWht = bcadd($totalWht, $whtExact, 4);
+            $totalNet = bcadd($totalNet, $netExact, 4);
 
             $csvRows[] = sprintf(
-                '%s,%s,%s,%s,%.4f,%.4f,%.4f,%s',
+                '%s,%s,%s,%s,%s,%s,%s,%s',
                 $taxPeriod,
                 $payout->id,
                 $payout->user_id,
                 $payout->prize_tier,
-                (float) $payout->gross_amount,
-                (float) $payout->wht_tax_amount,
-                (float) $payout->net_amount,
+                $grossExact,
+                $whtExact,
+                $netExact,
                 $payout->paid_at?->toIso8601String() ?? ''
             );
         }

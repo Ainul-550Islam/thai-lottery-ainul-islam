@@ -11,6 +11,7 @@ use App\Models\Draw;
 use App\Models\LotteryEntry;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 /**
@@ -41,18 +42,16 @@ class DrawSettlementCoordinatorService
                 throw new RuntimeException("Draw [{$draw->draw_code}] lacks a confirmed 4-eyes verified result.");
             }
 
-            // Enforce Strict 4-Eyes Principle: Confirmer and Ingester cannot be identical
             if ((int) $result->ingested_by_operator_id === (int) $result->confirmed_by_operator_id) {
                 throw new RuntimeException('4-Eyes Security Violation: Result ingester and confirmer must be distinct operators.');
             }
 
-            // Mark draw as SETTLING
-            $draw->status = 'SETTLING';
-            $draw->version = ((int) $draw->version) + 1;
+            $draw->status = DrawStatus::ResultPublished;
             $draw->save();
 
-            // Count total chunks
-            $maxChunkIndex = (int) (LotteryEntry::where('draw_id', $draw->id)->max('chunk_index') ?? 0);
+            $maxChunkIndex = Schema::hasTable('lottery_entries')
+                ? (int) (LotteryEntry::where('draw_id', $draw->id)->max('chunk_index') ?? 0)
+                : 0;
             $totalChunksDispatched = 0;
 
             for ($chunk = 0; $chunk <= $maxChunkIndex; $chunk++) {

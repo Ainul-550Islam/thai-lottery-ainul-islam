@@ -6,6 +6,7 @@ use App\Models\AccountGradeSnapshot;
 use App\Models\AccountVerification;
 use App\Models\Agent;
 use App\Models\Bet;
+use App\Models\Chat\ChatConversation;
 use App\Models\Draw;
 use App\Models\GloPrizeClaim;
 use App\Models\GloTicketFreeze;
@@ -18,6 +19,7 @@ use App\Policies\AccountGradePolicy;
 use App\Policies\AccountVerificationPolicy;
 use App\Policies\AgentPolicy;
 use App\Policies\BetPolicy;
+use App\Policies\ChatConversationPolicy;
 use App\Policies\DrawPolicy;
 use App\Policies\GloPrizeClaimPolicy;
 use App\Policies\GloTicketFreezePolicy;
@@ -47,6 +49,7 @@ class AuthServiceProvider extends ServiceProvider
         AccountVerification::class => AccountVerificationPolicy::class,
         GloTicketFreeze::class => GloTicketFreezePolicy::class,
         GloPrizeClaim::class => GloPrizeClaimPolicy::class,
+        ChatConversation::class => ChatConversationPolicy::class,
     ];
 
     public function boot(): void
@@ -69,6 +72,12 @@ class AuthServiceProvider extends ServiceProvider
         // unauthenticated or non-operator request from reaching that layer.
         Gate::define('access-admin', function ($user): bool {
             return AdminAccess::canAccessPanel($user);
+        });
+
+        // Publishing a Terms or Privacy Notice is a controlled system-setting
+        // action. The API route also requires an active authenticated operator.
+        Gate::define('manage-legal-documents', function ($user): bool {
+            return AdminAccess::allows($user, AdminAccess::MANAGE_SYSTEM_SETTINGS);
         });
     }
 }

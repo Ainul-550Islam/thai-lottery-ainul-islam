@@ -13,19 +13,31 @@ use InvalidArgumentException;
 /** No request, database, cache, log, CAPTCHA or money side effects. */
 final class BotScoreCalculator
 {
-    public function __construct(private readonly Repository $config) {}
+    private readonly Repository $config;
+
+    public function __construct(?Repository $config = null)
+    {
+        $this->config = $config ?? app('config');
+    }
 
     /** @param iterable<SignalResult> $signals */
     public function calculate(iterable $signals): BotDecisionData
     {
-        $mode = $this->mode($this->config->get('bot.mode', 'log'));
+        $rawMode = $this->config->get('bot.mode', 'log');
+        $mode = $this->mode($rawMode === 'log_only' ? 'log' : $rawMode);
         $enabled = $this->config->get('bot.enabled', true);
         if (! is_bool($enabled)) {
             throw new InvalidArgumentException('bot.enabled must be boolean.');
         }
 
-        $challenge = $this->integer($this->config->get('bot.thresholds.challenge', 40), 1, 100);
-        $block = $this->integer($this->config->get('bot.thresholds.block', 80), 1, 100);
+        $overrideBlock = $this->config->get('bot.block_threshold');
+        if ($overrideBlock !== null) {
+            $block = $this->integer($overrideBlock, 2, 100);
+            $challenge = min($this->integer($this->config->get('bot.thresholds.challenge', 40), 1, 100), $block - 1);
+        } else {
+            $challenge = $this->integer($this->config->get('bot.thresholds.challenge', 40), 1, 100);
+            $block = $this->integer($this->config->get('bot.thresholds.block', 80), 1, 100);
+        }
         if ($challenge >= $block) {
             throw new InvalidArgumentException('Challenge threshold must be below block threshold.');
         }
@@ -51,7 +63,7 @@ final class BotScoreCalculator
             if (! is_array($settings)) {
                 throw new InvalidArgumentException('Bot signal is not configured.');
             }
-            $signalMode = $this->mode($settings['mode'] ?? 'log');
+            $signalMode = $this->mode(($settings['mode'] ?? 'log') === 'log_only' ? 'log' : ($settings['mode'] ?? 'log'));
             if (! is_bool($settings['enabled'] ?? null)) {
                 throw new InvalidArgumentException('Signal enabled flag must be boolean.');
             }

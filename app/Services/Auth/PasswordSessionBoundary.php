@@ -5,45 +5,47 @@ declare(strict_types=1);
 namespace App\Services\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\Request;
-use LogicException;
-
-/** Safely retire the browser session when an operator changes its own password. */
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+/**
+ * Brackets an admin password change so the session side effects cannot run early.
+ *
+ * prepare() runs before anything is mutated. It refuses to start inside an
+ * enclosing database transaction: a change that is still uncommitted when the
+ * session is torn down could be rolled back after the browser was logged out.
+ *
+ * finish() runs after the change has committed. When the operator edited their own
+ * account, the current session no longer matches the stored credential, so it is
+ * ended here. Other sessions of the target are retired by the credential
+ * generation, when the schema records one. A session that is not the operator's
+ * is never touched by this class.
+ */
 final class PasswordSessionBoundary
 {
-    private const REQUEST_ATTRIBUTE = 'security.password_change.boundary_user_id';
-
-    public function __construct(private readonly DatabaseManager $database) {}
-
-    /** Refuse an enclosing transaction so logout can never happen before commit. */
     public function prepare(Request $request, User $target): void
     {
-        if (! $target->exists || $target->getKey() === null) {
-            throw new LogicException('Password session boundary requires a persisted account.');
+        if (DB::transactionLevel() > 0) {
+            throw new \RuntimeException(
+                'A password change cannot start inside an enclosing database transaction.',
+            );
         }
-        if ($this->database->connection()->transactionLevel() > 0) {
-            throw new LogicException('Password changes cannot be nested in an outer transaction.');
-        }
-
-        $request->attributes->set(self::REQUEST_ATTRIBUTE, (int) $target->getKey());
     }
 
-    /** Invalidate the current session only after the credential transaction succeeds. */
     public function finish(Request $request, User $target): void
     {
-        $boundUserId = $request->attributes->get(self::REQUEST_ATTRIBUTE);
-        $request->attributes->remove(self::REQUEST_ATTRIBUTE);
-        if (! is_int($boundUserId) || $boundUserId !== (int) $target->getKey()) {
-            throw new LogicException('Password session boundary does not match the prepared account.');
-        }
-        if (! $request->hasSession() || (int) $request->user()?->getAuthIdentifier() !== $boundUserId) {
+        $operatorIsTarget = $request->user() !== null
+            && (int) $request->user()->getAuthIdentifier() === (int) $target->getKey();
+
+        if (! $operatorIsTarget) {
             return;
         }
 
-        auth()->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        Auth::guard()->logout();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
     }
 }

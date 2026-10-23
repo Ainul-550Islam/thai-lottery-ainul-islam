@@ -95,6 +95,13 @@ final class AgeVerificationService
         $record = $user->ageVerification;
 
         if (! $record instanceof AgeVerification || $record->status !== 'eligible') {
+            if ($user->date_of_birth instanceof Carbon
+                && ! $user->date_of_birth->isFuture()
+                && $user->date_of_birth->age >= $this->minimumAge()
+                && $user->kycDocuments()->where('status', 'verified')->exists()) {
+                return true;
+            }
+
             return false;
         }
 

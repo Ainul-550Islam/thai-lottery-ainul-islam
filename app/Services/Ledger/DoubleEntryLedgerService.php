@@ -162,24 +162,24 @@ class DoubleEntryLedgerService
             $account->current_balance = $newBalance;
             $account->save();
 
-            $entry = LedgerEntry::create([
-                'ledger_transaction_id' => $txUuid,
-                'account_id' => (string) $account->id,
-                'direction' => $isDebit ? 'DEBIT' : 'CREDIT',
-                'sequence' => $idx + 1,
+            DB::table('ledger_entries')->insert([
                 'ledger_account_id' => $account->id,
                 'financial_transaction_id' => $financialTxId,
+                'ledger_transaction_id' => $txUuid,
                 'wallet_id' => isset($entryData['wallet_id']) ? (int) $entryData['wallet_id'] : null,
                 'type' => $isDebit ? 'debit' : 'credit',
+                'direction' => $isDebit ? 'DEBIT' : 'CREDIT',
+                'sequence' => ((int) $idx) + 1,
                 'amount' => $entryAmount,
+                'balance_after' => $newBalance,
                 'currency' => $currency,
                 'description' => $description,
                 'reference_type' => $referenceType,
                 'reference_id' => ctype_digit($referenceId) ? (int) $referenceId : null,
                 'posted_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
             ]);
-            $entry->balance_after = $newBalance;
-            $entry->save();
         }
 
         return $transaction;

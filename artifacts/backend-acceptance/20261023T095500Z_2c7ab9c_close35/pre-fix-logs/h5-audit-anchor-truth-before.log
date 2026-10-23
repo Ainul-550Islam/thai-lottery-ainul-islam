@@ -1,0 +1,138 @@
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.27
+Configuration: /home/user/phpunit.xml
+
+FFEFEEEF.E.                                                       11 / 11 (100%)
+
+Time: 00:05.318, Memory: 76.50 MB
+
+There were 5 errors:
+
+1) Tests\Feature\Audit\AuditAnchorTruthTest::the_two_spellings_are_named_once_and_the_old_one_is_never_written
+Error: Undefined constant App\Models\AuditLog::ANCHOR_KEY
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:238
+
+2) Tests\Feature\Audit\AuditAnchorTruthTest::the_desk_finds_a_kyc_pass_row_by_its_anchor
+Error: Undefined constant App\Models\AuditLog::ANCHOR_KEY
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:302
+
+3) Tests\Feature\Audit\AuditAnchorTruthTest::the_desk_finds_a_prize_disbursement_row_by_its_anchor
+Error: Undefined constant App\Models\AuditLog::ANCHOR_KEY
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:331
+
+4) Tests\Feature\Audit\AuditAnchorTruthTest::a_lane_that_already_had_the_right_name_is_still_found_and_still_dedupes
+Error: Undefined constant App\Models\AuditLog::ANCHOR_KEY
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:361
+
+5) Tests\Feature\Audit\AuditAnchorTruthTest::the_scope_matches_an_anchor_and_nothing_else
+Error: Undefined constant App\Models\AuditLog::ANCHOR_KEY
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:431
+
+--
+
+There were 4 failures:
+
+1) Tests\Feature\Audit\AuditAnchorTruthTest::every_audit_writer_stamps_the_key_from_the_model
+app/Listeners/RecordAdminOperationAudit.php spells the metadata key by hand instead of naming it once
+Failed asserting that 1 is identical to 0.
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:183
+
+2) Tests\Feature\Audit\AuditAnchorTruthTest::no_reader_spells_an_anchor_json_path_by_hand
+the anchor's json address belongs to the model that owns the column, or a reader drifts from a writer in silence:
+  - app/Listeners/RecordSecurityEventAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordFinancialReconciliationAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordNotificationReceiptAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordMfaVerificationAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordAdminOperationAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordPaymentReconciliationAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordComplianceActionAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordNotificationAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordPrizeDisbursementAudit.php: metadata->anchor
+  - app/Listeners/RecordPaymentWebhookAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordDrawCertificationAudit.php: metadata->anchor
+  - app/Listeners/RecordWithdrawalKycAudit.php: json_extract(metadata, '$.anchor')
+  - app/Listeners/RecordProviderOperationAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordSelfExclusionAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordPlayerProtectionActionAudit.php: metadata->audit_anchor
+  - app/Listeners/RecordRetailTicketAllocationAudit.php: metadata->anchor
+  - app/Services/ResponsibleGaming/ResponsibleGamingLimitService.php: metadata->audit_anchor
+  - app/Services/Operations/AdminAuditQueryService.php: metadata->audit_anchor
+Failed asserting that two arrays are identical.
+--- Expected
++++ Actual
+@@ @@
+-Array &0 []
++Array &0 [
++    0 => 'app/Listeners/RecordSecurityEventAudit.php: metadata->audit_anchor',
++    1 => 'app/Listeners/RecordFinancialReconciliationAudit.php: metadata->audit_anchor',
++    2 => 'app/Listeners/RecordNotificationReceiptAudit.php: metadata->audit_anchor',
++    3 => 'app/Listeners/RecordMfaVerificationAudit.php: metadata->audit_anchor',
++    4 => 'app/Listeners/RecordAdminOperationAudit.php: metadata->audit_anchor',
++    5 => 'app/Listeners/RecordPaymentReconciliationAudit.php: metadata->audit_anchor',
++    6 => 'app/Listeners/RecordComplianceActionAudit.php: metadata->audit_anchor',
++    7 => 'app/Listeners/RecordNotificationAudit.php: metadata->audit_anchor',
++    8 => 'app/Listeners/RecordPrizeDisbursementAudit.php: metadata->anchor',
++    9 => 'app/Listeners/RecordPaymentWebhookAudit.php: metadata->audit_anchor',
++    10 => 'app/Listeners/RecordDrawCertificationAudit.php: metadata->anchor',
++    11 => 'app/Listeners/RecordWithdrawalKycAudit.php: json_extract(metadata, '$.anchor')',
++    12 => 'app/Listeners/RecordProviderOperationAudit.php: metadata->audit_anchor',
++    13 => 'app/Listeners/RecordSelfExclusionAudit.php: metadata->audit_anchor',
++    14 => 'app/Listeners/RecordPlayerProtectionActionAudit.php: metadata->audit_anchor',
++    15 => 'app/Listeners/RecordRetailTicketAllocationAudit.php: metadata->anchor',
++    16 => 'app/Services/ResponsibleGaming/ResponsibleGamingLimitService.php: metadata->audit_anchor',
++    17 => 'app/Services/Operations/AdminAuditQueryService.php: metadata->audit_anchor',
++]
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:227
+
+3) Tests\Feature\Audit\AuditAnchorTruthTest::every_anchor_key_literal_outside_the_model_is_an_agreed_non_audit_key
+a fifth file spelling an `anchor` key like this is a second source of truth, not a rename
+Failed asserting that two arrays are identical.
+--- Expected
++++ Actual
+@@ @@
+ Array &0 [
+     0 => 'app/Events/WithdrawalKycApproved.php',
+-    1 => 'app/Services/Operations/AdminAuditQueryService.php',
+-    2 => 'app/Services/Ticket/TicketQrVerificationService.php',
+-    3 => 'app/Services/Withdrawal/WithdrawalKycGateService.php',
++    1 => 'app/Listeners/RecordAdminOperationAudit.php',
++    2 => 'app/Listeners/RecordComplianceActionAudit.php',
++    3 => 'app/Listeners/RecordDrawCertificationAudit.php',
++    4 => 'app/Listeners/RecordFinancialReconciliationAudit.php',
++    5 => 'app/Listeners/RecordMfaVerificationAudit.php',
++    6 => 'app/Listeners/RecordNotificationAudit.php',
++    7 => 'app/Listeners/RecordNotificationReceiptAudit.php',
++    8 => 'app/Listeners/RecordPaymentReconciliationAudit.php',
++    9 => 'app/Listeners/RecordPaymentWebhookAudit.php',
++    10 => 'app/Listeners/RecordPlayerProtectionActionAudit.php',
++    11 => 'app/Listeners/RecordPrizeDisbursementAudit.php',
++    12 => 'app/Listeners/RecordProviderOperationAudit.php',
++    13 => 'app/Listeners/RecordRetailTicketAllocationAudit.php',
++    14 => 'app/Listeners/RecordSecurityEventAudit.php',
++    15 => 'app/Listeners/RecordSelfExclusionAudit.php',
++    16 => 'app/Listeners/RecordWithdrawalKycAudit.php',
++    17 => 'app/Services/Operations/AdminAuditQueryService.php',
++    18 => 'app/Services/Operations/AdminOperationService.php',
++    19 => 'app/Services/ResponsibleGaming/ResponsibleGamingLimitService.php',
++    20 => 'app/Services/Ticket/TicketQrVerificationService.php',
++    21 => 'app/Services/Withdrawal/WithdrawalKycGateService.php',
+ ]
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:279
+
+4) Tests\Feature\Audit\AuditAnchorTruthTest::a_row_written_under_the_old_spelling_is_still_findable
+the pre-cluster row is evidence too: a rename that hides it rewrites history
+Failed asserting that 0 is identical to 1.
+
+/home/user/tests/Feature/Audit/AuditAnchorTruthTest.php:389
+
+ERRORS!
+Tests: 11, Assertions: 11, Errors: 5, Failures: 4.

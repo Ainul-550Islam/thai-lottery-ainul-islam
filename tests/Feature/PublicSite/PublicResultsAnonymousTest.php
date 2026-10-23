@@ -9,9 +9,13 @@ use App\Enums\GloSourceState;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Models\User;
+use App\Services\Draw\DrawLifecycleService;
+use App\Services\Draw\DrawResultConfirmationService;
+use App\Services\Draw\DrawResultIngestionService;
 use App\Services\Lottery\GloPublicPrizeSummaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Tests\Feature\PublicSite\Concerns\PublishesProviderResults;
 use Tests\TestCase;
 
 /**
@@ -21,6 +25,7 @@ use Tests\TestCase;
  */
 final class PublicResultsAnonymousTest extends TestCase
 {
+    use PublishesProviderResults;
     use RefreshDatabase;
 
     public function test_home_is_public_without_login(): void
@@ -115,19 +120,14 @@ final class PublicResultsAnonymousTest extends TestCase
     public function test_prize_summary_does_not_promote_unknown_result_provider_to_verified(): void
     {
         Cache::forget('home.prize-summary');
-        $draw = Draw::factory()->create([
+        $draw = Draw::factory()->closed()->create([
             'scheduled_at' => now()->subDay(),
-            'status' => DrawStatus::ResultPublished,
             'draw_number' => 'unknown-provider-1',
         ]);
-        DrawResult::query()->create([
-            'draw_id' => $draw->getKey(),
-            'first_prize' => '123456',
-            'second_prize' => [],
-            'third_prize' => [],
-            'consolation_prizes' => [],
-            'metadata' => ['glo' => ['import_provider' => 'unrecognized-source']],
-        ]);
+        $draw = app(DrawLifecycleService::class)->markResultPending($draw);
+        $card = ['first_prize' => '123456', 'bottom_two' => '45'];
+        app(DrawResultIngestionService::class)->ingest((int) $draw->getKey(), $card, 'internal', (int) User::factory()->create()->getKey());
+        app(DrawResultConfirmationService::class)->confirm((int) $draw->getKey(), (int) User::factory()->create()->getKey(), $card);
 
         $summary = app(GloPublicPrizeSummaryService::class)->highlight();
 
@@ -176,23 +176,12 @@ final class PublicResultsAnonymousTest extends TestCase
 
     public function test_publish_command_publishes_fingerprinted_result_once(): void
     {
-        $draw = Draw::factory()->create([
+        $draw = Draw::factory()->closed()->create([
             // A published result belongs to a draw that has been held.
             'scheduled_at' => now()->subDay(),
-            'status' => DrawStatus::ResultPublished,
             'draw_number' => 'fp-100',
         ]);
-        DrawResult::query()->create([
-            'draw_id' => $draw->getKey(),
-            'first_prize' => '100100',
-            'second_prize' => [],
-            'third_prize' => [],
-            'consolation_prizes' => [],
-            'metadata' => ['glo' => [
-                'import_fingerprint' => 'fp-v1-abc',
-                'import_provider' => 'fixture',
-            ]],
-        ]);
+        $this->publishProviderResult($draw, 'fixture', '100100');
 
         $this->artisan('glo:publish-public-result', ['--draw' => (string) $draw->getKey()])
             ->assertSuccessful();

@@ -46,17 +46,13 @@ class ConversionDirectionRule implements ValidationRule
         }
 
         if (! (bool) config('conversions.enabled', true)) {
-            $fail('Wallet conversions are temporarily unavailable.');
+            $fail(__('wallet_conversion.rejection_feature_disabled'));
 
             return;
         }
 
         if (! (bool) config('conversions.directions.'.$direction->value.'.enabled', true)) {
-            $fail(sprintf(
-                'The %s direction is temporarily unavailable. Currently available: %s.',
-                $direction->label(),
-                $this->availableList(),
-            ));
+            $fail(__('wallet_conversion.rejection_direction_disabled'));
         }
     }
 

@@ -1,16 +1,22 @@
 <?php
 
+use App\Exceptions\ResponsibleGamingLimitException;
+use App\Exceptions\SelfExclusionException;
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\AuthenticateBoundSession;
 use App\Http\Middleware\BotDetectionMiddleware;
 use App\Http\Middleware\ConfiguredIpAccessMiddleware;
 use App\Http\Middleware\CorrelationIdMiddleware;
+use App\Http\Middleware\EnsureAdult;
 use App\Http\Middleware\EnsureDrawIsOpen;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\EnsureWalletConversionEnabled;
 use App\Http\Middleware\EnsureWalletIsActive;
 use App\Http\Middleware\GloEnsurePermission;
 use App\Http\Middleware\HoneypotMiddleware;
 use App\Http\Middleware\PublicLegalHeaders;
+use App\Http\Middleware\RequireConversionIdempotencyKey;
+use App\Http\Middleware\RequireCurrentLegalConsent;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackMemberPresence;
@@ -22,7 +28,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Log;
@@ -179,20 +184,63 @@ return Application::configure(basePath: dirname(__DIR__))
             ->appendOutputTo(storage_path('logs/operations-readiness.log'))
             ->description('Report which provider lanes are configured and which commands are scheduled');
 
+        $schedule->command('conversions:expire-quotes')
+            ->everyFiveMinutes()
+            ->withoutOverlapping(5)
+            ->onOneServer()
+            ->timezone(config('app.timezone', 'UTC'))
+            ->appendOutputTo(storage_path('logs/conversion-quote-expiry.log'))
+            ->description('Mark expired wallet conversion quotes so they cannot be executed');
+
+        $schedule->command('conversions:reconcile-ledger')
+            ->hourly()
+            ->withoutOverlapping(15)
+            ->onOneServer()
+            ->timezone(config('app.timezone', 'UTC'))
+            ->appendOutputTo(storage_path('logs/conversion-ledger-reconcile.log'))
+            ->description('Reconcile completed wallet conversions against their ledger entries');
+
+        $schedule->job(new \App\Jobs\Chat\WarnIdleChatConversationsJob)
+            ->everyMinute()
+            ->withoutOverlapping(5)
+            ->onOneServer()
+            ->description('Warn idle live-chat conversations before automatic closure');
+
+        $schedule->job(new \App\Jobs\Chat\CloseIdleChatConversationsJob)
+            ->everyMinute()
+            ->withoutOverlapping(5)
+            ->onOneServer()
+            ->description('Close live-chat conversations that remain idle past the warning window');
+
+        $schedule->job(new \App\Jobs\Chat\ScanChatSlaBreachesJob)
+            ->everyMinute()
+            ->withoutOverlapping(5)
+            ->onOneServer()
+            ->description('Scan open live-chat conversations for SLA breaches');
+
+        $schedule->job(new \App\Jobs\Chat\RedactChatMessagesJob)
+            ->dailyAt('02:35')
+            ->withoutOverlapping(30)
+            ->onOneServer()
+            ->description('Redact retained live-chat messages past the PII retention window');
+
+        $schedule->job(new \App\Jobs\ExpireBlockedIpRulesJob)
+            ->everyFiveMinutes()
+            ->withoutOverlapping(5)
+            ->onOneServer()
+            ->description('Deactivate expired IP block rules');
+
     })
     ->withMiddleware(function (Middleware $middleware): void {
-        // Replace the framework proxy middleware in-place, before IP consumers.
-        // The app policy has explicit peers only; no Host/platform wildcard fallback.
-        $middleware->replace(
-            TrustProxies::class,
-            App\Http\Middleware\TrustProxies::class,
-        );
-
         // Record only authenticated member activity, throttled to one write per minute.
         $middleware->web(append: [TrackMemberPresence::class]);
+        $middleware->appendToGroup('web', SetLocale::class);
+        $middleware->appendToGroup('api', SetLocale::class);
 
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
+            'adult' => EnsureAdult::class,
+            'legal.current' => RequireCurrentLegalConsent::class,
             // Opt-in observation only until CAPTCHA/enforcement integration is complete.
             'bot' => BotDetectionMiddleware::class,
             'honeypot' => HoneypotMiddleware::class,
@@ -208,6 +256,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'glo.permission' => GloEnsurePermission::class,
             // Safe public-cache headers for /about, /vision, /terms only (guest GETs).
             'public.legal' => PublicLegalHeaders::class,
+            // Cash <-> Win conversion lane.
+            'conversion.enabled' => EnsureWalletConversionEnabled::class,
+            'conversion.idempotent' => RequireConversionIdempotencyKey::class,
+            'conversion.idempotency' => RequireConversionIdempotencyKey::class,
         ]);
 
         // Applied globally: security headers, and a correlation id pinned on the way in and
@@ -217,7 +269,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // kind of request that must still present security headers and a trace id.
         $middleware->append(SecurityHeaders::class);
         $middleware->append(CorrelationIdMiddleware::class);
-        $middleware->append(SetLocale::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // ---------------------------------------------------------------------
@@ -247,7 +298,25 @@ return Application::configure(basePath: dirname(__DIR__))
         //
         // The detail is not lost. It goes to the log, where operators can read it and
         // players cannot.
+        $exceptions->render(function (ResponsibleGamingLimitException|SelfExclusionException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return ApiResponse::error(
+                    strtolower($e->errorCode()),
+                    'Responsible gaming policy refused the requested operation.',
+                    422,
+                );
+            }
+
+            return back()->withErrors([
+                'limits' => 'Responsible gaming policy refused the requested operation.',
+            ]);
+        });
+
         $exceptions->render(function (Throwable $e, Request $request) {
+            if ($e instanceof \App\Exceptions\ChatException) {
+                return $e->render($request);
+            }
+
             if (! $request->is('api/*') && ! $request->expectsJson()) {
                 return null;
             }

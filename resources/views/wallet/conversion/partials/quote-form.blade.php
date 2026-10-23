@@ -47,6 +47,7 @@
         data-wc-amount-hint="{{ __('wallet_conversion.script_amount_hint') }}"
         data-wc-unpriced-note="{{ __('wallet_conversion.script_unpriced_note') }}"
         data-wc-no-crypto-note="{{ __('wallet_conversion.script_no_crypto_note') }}"
+        data-wc-unavailable="{{ __('wallet_conversion.script_unavailable') }}"
     >
         @csrf
 
@@ -57,8 +58,11 @@
 
         <input type="hidden" name="direction" value="{{ $direction->value }}">
 
-        @if (session('conversion_quote_reference'))
-            <input type="hidden" name="quote_reference" value="{{ session('conversion_quote_reference') }}" data-wc-quote-reference>
+        @php
+            $resolvedQuoteRef = $activeQuoteReference ?? null;
+        @endphp
+        @if (is_string($resolvedQuoteRef) && $resolvedQuoteRef !== '')
+            <input type="hidden" name="quote_reference" value="{{ $resolvedQuoteRef }}" data-wc-quote-reference>
         @else
             <input type="hidden" name="quote_reference" value="" data-wc-quote-reference>
         @endif
@@ -110,6 +114,10 @@
         <p class="wc-preview__note" data-wc-preview-note hidden></p>
 
         @error('direction')
+            <p class="wc-field__error" role="alert">{{ $message }}</p>
+        @enderror
+
+        @error('currency')
             <p class="wc-field__error" role="alert">{{ $message }}</p>
         @enderror
 

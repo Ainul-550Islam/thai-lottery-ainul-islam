@@ -69,12 +69,12 @@ class SendFinancialAlertJob implements ShouldQueue
         $log = new AuditLog;
         $log->fill([
             'user_id' => null,
-            'action' => AuditAction::Reconcile,
+            'action' => AuditAction::SecurityAlert,
             'risk_level' => $this->severity,
-            'auditable_type' => AuditLog::class,
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf('%s: %s', $this->title, $this->message),
-            'metadata' => $this->metadata,
+            'metadata' => $this->metadata + ['lane' => 'financial_alert'],
         ]);
         $log->save();
     }

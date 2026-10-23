@@ -13,17 +13,32 @@ return new class extends Migration
         // Existing unpinned runs are deliberately NOT guessed/backfilled.
         // They require operator reconciliation before any resume can succeed.
         Schema::table('settlement_runs', function (Blueprint $table): void {
-            $table->string('result_fingerprint', 64)->nullable();
-            $table->string('participants_fingerprint', 64)->nullable();
-            $table->unsignedBigInteger('max_bet_id')->nullable();
-            $table->decimal('approval_threshold', 20, 2)->nullable();
+            if (! Schema::hasColumn('settlement_runs', 'result_fingerprint')) {
+                $table->string('result_fingerprint', 64)->nullable();
+            }
+            if (! Schema::hasColumn('settlement_runs', 'participants_fingerprint')) {
+                $table->string('participants_fingerprint', 64)->nullable();
+            }
+            if (! Schema::hasColumn('settlement_runs', 'max_bet_id')) {
+                $table->unsignedBigInteger('max_bet_id')->nullable();
+            }
+            if (! Schema::hasColumn('settlement_runs', 'approval_threshold')) {
+                $table->decimal('approval_threshold', 20, 2)->nullable();
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::table('settlement_runs', function (Blueprint $table): void {
-            $table->dropColumn(['result_fingerprint', 'participants_fingerprint', 'max_bet_id', 'approval_threshold']);
-        });
+        $columns = array_values(array_filter(
+            ['participants_fingerprint', 'max_bet_id', 'approval_threshold'],
+            static fn (string $column): bool => Schema::hasColumn('settlement_runs', $column),
+        ));
+
+        if ($columns !== []) {
+            Schema::table('settlement_runs', function (Blueprint $table) use ($columns): void {
+                $table->dropColumn($columns);
+            });
+        }
     }
 };

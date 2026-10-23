@@ -16,6 +16,10 @@ use App\Models\DrawResult;
  */
 final class ResultsPageService
 {
+    public function __construct(
+        private readonly PublishedResultSourceResolver $resolver,
+    ) {}
+
     /**
      * @return array{
      *     currentStatus: ?Draw,
@@ -35,6 +39,7 @@ final class ResultsPageService
     public function resultsData(): array
     {
         $currentStatus = Draw::query()->orderByDesc('scheduled_at')->first();
+        $isProduction = (string) config('app.env') === 'production' || app()->environment('production');
 
         $latestQuery = Draw::query()
             ->whereIn('status', ['result_published', 'completed'])
@@ -42,6 +47,7 @@ final class ResultsPageService
             ->orderByDesc('scheduled_at')
             ->limit(12);
 
+        $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
         $rows = [];
         foreach ($latestQuery->get() as $draw) {
             $result = DrawResult::query()->where('draw_id', $draw->getKey())->first();
@@ -49,18 +55,13 @@ final class ResultsPageService
                 continue;
             }
 
-            $meta = is_array($result->metadata) ? $result->metadata : [];
-            $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
-            $provider = strtolower(trim((string) ($lane['import_provider'] ?? '')));
+            if ($isProduction && $this->resolver->isDeclaredFixture($result)) {
+                continue;
+            }
 
-            // Explicit allowlist mapping: unknown never degrades to official
-            $sourceState = match ($provider) {
-                'official', 'official_api', 'official_scraper', 'glo_official' => GloSourceState::OfficialSourceVerified,
-                'fixture', 'fixture_only' => GloSourceState::FixtureOnly,
-                'internal', 'manual', 'admin_entry' => GloSourceState::InternalReconciled,
-                'not_configured' => GloSourceState::NotConfigured,
-                default => GloSourceState::Unavailable,
-            };
+            $meta = is_array($result->metadata) ? $result->metadata : [];
+            $lane = is_array($meta[$tierKey] ?? null) ? $meta[$tierKey] : [];
+            $sourceState = $this->resolver->resolve($result, $draw);
 
             $rows[] = [
                 'draw_number' => (string) $draw->draw_number,

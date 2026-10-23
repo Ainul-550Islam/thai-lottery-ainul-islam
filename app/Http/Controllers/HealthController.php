@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Observability\SystemHealthService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Health, Liveness & Readiness Probe Endpoints.
@@ -39,13 +40,38 @@ class HealthController
     }
 
     /**
-     * Detailed Health & Degraded State Check.
+     * Health & Degraded State Check.
+     *
+     * Public callers receive only the overall status and timestamp. The full
+     * dependency, queue, and reconciliation report is returned only when the
+     * request carries the configured X-Health-Token header. If no token is
+     * configured, the detailed report is never returned (fail closed).
      */
-    public function health(): JsonResponse
+    public function health(Request $request): JsonResponse
     {
         $report = $this->healthService->checkDetailedHealth();
         $httpStatus = $report['status'] === 'UNHEALTHY' ? 503 : 200;
 
+        if (! $this->isDetailAuthorized($request)) {
+            return response()->json([
+                'status' => $report['status'],
+                'timestamp' => $report['timestamp'],
+            ], $httpStatus);
+        }
+
         return response()->json($report, $httpStatus);
+    }
+
+    private function isDetailAuthorized(Request $request): bool
+    {
+        $expected = config('app.health_detail_token');
+
+        if (! is_string($expected) || strlen($expected) < 32) {
+            return false;
+        }
+
+        $provided = $request->header('X-Health-Token');
+
+        return is_string($provided) && hash_equals($expected, $provided);
     }
 }

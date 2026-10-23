@@ -105,4 +105,18 @@ interface WalletConversionServiceContract
      * Whether conversions are available at all, or for one specific direction.
      */
     public function isEnabled(?WalletConversionDirection $direction = null): bool;
+
+    /**
+     * Quotes the member still holds, unexpired and unconsumed.
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Models\WalletConversionQuote>
+     */
+    public function openQuotesForUser(int $userId): \Illuminate\Support\Collection;
+
+    /**
+     * Count of conversions per status for one member, every status present.
+     *
+     * @return array<string, int>
+     */
+    public function summaryForUser(int $userId): array;
 }

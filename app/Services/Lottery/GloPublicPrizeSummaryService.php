@@ -99,7 +99,7 @@ class GloPublicPrizeSummaryService
                     'amount' => $first['amount'],
                     'draw_number' => (string) $draw->draw_number,
                     'draw_date' => $draw->scheduled_at?->toDateString(),
-                    'source_state' => $source->value,
+                    'source_state' => $source,
                     'fixture_sample' => $fixture,
                     'message' => $verified ? null : 'Prize schedule shown; result source status: '.$source.'.',
                 ];

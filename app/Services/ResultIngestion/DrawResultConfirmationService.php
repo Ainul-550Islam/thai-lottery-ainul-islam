@@ -31,34 +31,35 @@ class DrawResultConfirmationService
             $drawResult = DrawResult::with('draw')->where('id', $drawResultId)->lockForUpdate()->firstOrFail();
 
             if ($drawResult->verification_status === 'CONFIRMED') {
-                return $drawResult; // Already confirmed
+                return $drawResult;
             }
 
-            // 🛑 STRICT 4-EYES PRINCIPLE: Ingesting operator CANNOT confirm their own result
             if ((int) $drawResult->ingested_by_operator_id === (int) $confirmingOperatorId) {
                 throw new RuntimeException(
                     "4-Eyes Governance Violation: Ingesting operator [{$drawResult->ingested_by_operator_id}] cannot confirm the result."
                 );
             }
 
-            // Fingerprint Fail-Closed Check
             if (empty($drawResult->payload_fingerprint)) {
                 throw new RuntimeException('Security Violation: Result payload has no cryptographic fingerprint.');
             }
 
-            // Mark as CONFIRMED
-            $drawResult->verification_status = 'CONFIRMED';
-            $drawResult->confirmed_by_operator_id = (int) $confirmingOperatorId;
-            $drawResult->confirmed_at = now();
-            $drawResult->save();
+            $metadata = $drawResult->metadata ?? [];
+            $metadata['verification_status'] = 'CONFIRMED';
+            $metadata['confirmed_by_operator_id'] = (int) $confirmingOperatorId;
+            $metadata['confirmed_at'] = now()->toIso8601String();
 
-            // Trigger asynchronous batch settlement pipeline
+            $drawResult->forceFill([
+                'published_at' => now(),
+                'metadata' => $metadata,
+            ])->save();
+
             $this->settlementCoordinator->initiateSettlement(
                 drawId: (int) $drawResult->draw_id,
                 initiatingOperatorId: (int) $confirmingOperatorId
             );
 
-            return $drawResult;
+            return $drawResult->fresh();
         });
     }
 }

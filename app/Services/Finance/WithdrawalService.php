@@ -16,6 +16,8 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Compliance\WithdrawalKycGateService as ComplianceKycGate;
+use App\Services\Payment\WithdrawalDisbursementService;
+use App\Services\Payment\WithdrawalProviderAccountService;
 use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -24,35 +26,6 @@ use Illuminate\Support\Str;
 
 /**
  * Creating and cancelling a withdrawal REQUEST.
- *
- * THE ONE RULE THAT MATTERS HERE
- * ------------------------------
- * A withdrawal request must not simply subtract money. This class performs no
- * balance mutation of its own: it never writes `balance`, never writes
- * `locked_balance`, and never inserts a ledger entry. It checks that the money is
- * actually there and records the intent with status `pending`.
- *
- * The money then moves in exactly two later, separate steps, both of which go
- * through the finance engine:
- *   1. WithdrawalApprovalService reserves it   (available -> locked, total unchanged)
- *   2. WithdrawalCompletionService consumes it (locked released, then a real debit
- *      with a balanced double-entry posting)
- *
- * WHY THE BALANCE IS CHECKED AT REQUEST TIME BUT NOT RESERVED
- * Refusing an impossible request immediately gives the customer an honest answer,
- * and it is what keeps an over-drawn request out of the review queue. It is only a
- * read: the funds stay spendable until an approval reserves them, and the approval
- * re-checks under a row lock, so this early check can never be relied on as the
- * safety barrier. It is a courtesy, not the guarantee.
- *
- * NO PAYMENT GATEWAY. No Stripe, no crypto, no bKash, no Nagad, no provider SDK,
- * no webhook, no credential. `payout_details` is written through the model's
- * `encrypted:array` cast and is never logged, never returned in an exception and
- * never copied into metadata.
- *
- * LOCK ORDER: WALLET -> FINANCIAL ENTITY -> LEDGER ACCOUNTS, unchanged.
- *
- * EXACT ARITHMETIC ONLY. Money over bcmath; no float anywhere in this file.
  */
 final class WithdrawalService
 {
@@ -84,15 +57,13 @@ final class WithdrawalService
     ): Withdrawal {
         $amount->assertPositive('withdrawal amount');
         Money::assertExactArithmeticIsAvailable();
+        app(\App\Services\Compliance\RealMoneyGate::class)->assertOpen('withdrawal');
 
         $normalisedKey = $idempotencyKey === null ? null : $this->idempotency->normaliseKey($idempotencyKey);
 
         $fee = $this->resolveFee($amount, $options);
         $netAmount = $this->resolveNetAmount($amount, $fee);
 
-        // RESPONSIBLE GAMING (batch-14): consumed lane by design —
-        // the facade keeps money-OUT open under exclusion while any
-        // wallet lock from the desk still gates downstream.
         /** @var User|null $rgUser */
         $rgUser = User::query()->find($wallet->user_id);
 
@@ -100,14 +71,11 @@ final class WithdrawalService
             app(ResponsibleGamingEnforcementService::class)
                 ->assertWithdrawalAllowed($rgUser);
 
-            // P0-D: server-authoritative KYC gate BEFORE the request is even
-            // recorded. Threshold exception is documented in config/finance.php.
-            // Client-supplied kyc_* fields are never consulted here.
             app(ComplianceKycGate::class)
                 ->assertCanWithdraw($rgUser, $amount->toString(), $amount->currency());
         }
 
-        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options): Withdrawal {
+        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options, $rgUser): Withdrawal {
             $lockedWallet = $this->locks->lock((int) $wallet->getKey());
 
             $this->assertWalletAllowsWithdrawal($lockedWallet, $amount->currency());
@@ -123,7 +91,8 @@ final class WithdrawalService
                 }
             }
 
-            // Read-only sufficiency check. No hold is taken here.
+            app(StripeRefundWithdrawalGuard::class)->assertAllowed($lockedWallet);
+
             $available = $this->holds->availableAmount($lockedWallet);
 
             if ($available->isLessThan($amount)) {
@@ -134,6 +103,16 @@ final class WithdrawalService
                     $lockedWallet->currency,
                 );
             }
+
+            if ($rgUser instanceof User) {
+                app(\App\Services\Compliance\MoneyFlowAmlObservationService::class)->observe(
+                    $rgUser,
+                    \App\Services\Compliance\MoneyFlowAmlObservationService::FLOW_WITHDRAWAL,
+                    ['amount' => $amount->toString(), 'currency' => $amount->currency()->value],
+                );
+            }
+
+            $metadata = $this->buildMetadata($options, $method);
 
             $withdrawal = new Withdrawal;
 
@@ -152,17 +131,19 @@ final class WithdrawalService
                 'payout_details' => isset($options['payout_details']) && is_array($options['payout_details'])
                     ? $options['payout_details']
                     : null,
-                'metadata' => $this->buildMetadata($options),
+                'metadata' => $metadata,
             ]);
 
             $withdrawal->uuid = (string) Str::uuid();
-
             $withdrawal->status = WithdrawalStatus::Pending;
             $withdrawal->financial_transaction_id = null;
             $withdrawal->requested_at = Carbon::now();
             $withdrawal->approved_at = null;
             $withdrawal->rejected_at = null;
             $withdrawal->completed_at = null;
+
+            $metadata[WithdrawalIntegrityGuard::TERMS_KEY] = app(WithdrawalIntegrityGuard::class)->termsFingerprint($withdrawal);
+            $withdrawal->metadata = $metadata;
 
             try {
                 $withdrawal->save();
@@ -204,9 +185,6 @@ final class WithdrawalService
     /**
      * Move the request into manual review.
      *
-     * A bookkeeping step only: no funds are reserved by entering review, so the
-     * customer can still spend the money until an approval reserves it.
-     *
      * @throws WithdrawalException
      * @throws FinancialException
      */
@@ -230,13 +208,6 @@ final class WithdrawalService
     /**
      * Cancel the request and give back any reservation.
      *
-     * Release is idempotent: if a previous run already released the hold, this
-     * changes no balance and still finishes the cancellation. It can therefore
-     * neither create money nor double-release it.
-     *
-     * A completed withdrawal is NOT cancellable. Money that has already left needs
-     * a new reversing transaction, not a status edit.
-     *
      * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
      *
      * @throws WithdrawalException
@@ -258,13 +229,31 @@ final class WithdrawalService
                 throw WithdrawalException::notCancellable($current->id, $current->status);
             }
 
+            $guard = app(WithdrawalIntegrityGuard::class);
+            $guard->assertTerms($current, $lockedWallet);
+
+            if ((is_array($current->metadata) ? ($current->metadata[WithdrawalDisbursementService::CLAIM] ?? null) : null) !== null) {
+                $guard->refuse();
+            }
+
             $released = false;
             $wallet = $lockedWallet;
 
-            if ($current->status->holdsReservedFunds()) {
-                $outcome = $this->holds->releaseIfHeld($lockedWallet, $this->amountOf($current));
+            $reservations = app(WithdrawalReservationService::class);
+            $initialHolds = app(WithdrawalInitialHoldService::class);
+
+            if ($current->status->holdsReservedFunds() || $reservations->exists($current)) {
+                $outcome = $reservations->release($current, $lockedWallet, false);
                 $wallet = $outcome['wallet'];
                 $released = $outcome['released'];
+            } else {
+                $initialHolds->assertRequiredExists($current, $lockedWallet);
+
+                if ($initialHolds->exists($current)) {
+                    $outcome = $initialHolds->releasePending($current, $lockedWallet);
+                    $wallet = $outcome['wallet'];
+                    $released = $outcome['released'];
+                }
             }
 
             $updated = $this->transitions->transitionWithdrawal($current, WithdrawalStatus::Cancelled, [
@@ -471,7 +460,7 @@ final class WithdrawalService
             $mismatches['amount'] = (string) $existing->amount;
         }
 
-        if (bccomp((string) $existing->fee, $fee->amount(), $amount->scale()) !== 0) {
+        if (bccomp((string) $existing->fee, $fee->amount(), $fee->scale()) !== 0) {
             $mismatches['fee'] = (string) $existing->fee;
         }
 
@@ -522,14 +511,21 @@ final class WithdrawalService
      * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
-    private function buildMetadata(array $options): array
+    private function buildMetadata(array $options, PaymentMethod $method): array
     {
         $metadata = isset($options['metadata']) && is_array($options['metadata'])
             ? $options['metadata']
             : [];
 
-        unset($metadata['payout_details']);
+        unset(
+            $metadata['payout_details'],
+            $metadata[WithdrawalDisbursementService::CLAIM],
+            $metadata[WithdrawalProviderAccountService::METADATA_KEY],
+            $metadata[WithdrawalIntegrityGuard::TERMS_KEY],
+        );
 
+        $metadata[WithdrawalProviderAccountService::METADATA_KEY] = app(WithdrawalProviderAccountService::class)
+            ->current($method->value);
         $metadata['requested_at'] = Carbon::now()->toIso8601String();
 
         return $metadata;
@@ -569,10 +565,6 @@ final class WithdrawalService
 
     private function withinTransaction(\Closure $callback): mixed
     {
-        if (DB::transactionLevel() > 0) {
-            return $callback();
-        }
-
         return DB::transaction($callback);
     }
 }

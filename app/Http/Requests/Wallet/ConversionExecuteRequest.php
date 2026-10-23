@@ -10,7 +10,11 @@ use App\Enums\Currency;
 use App\Enums\WalletConversionChannel;
 use App\Rules\ConversionAmountRule;
 use App\Rules\ConversionDirectionRule;
+use App\Http\Responses\ApiResponse;
+use App\Support\Wallet\ConversionCurrency;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
 /**
@@ -95,17 +99,7 @@ class ConversionExecuteRequest extends FormRequest
 
     public function currency(): Currency
     {
-        $requested = $this->input('currency');
-
-        if (is_string($requested)) {
-            $enum = Currency::tryFrom(strtoupper(trim($requested)));
-
-            if ($enum !== null) {
-                return $enum;
-            }
-        }
-
-        return Currency::tryFrom((string) config('conversions.currency', '')) ?? Currency::primary();
+        return ConversionCurrency::forRequest($this);
     }
 
     public function toEngineRequest(int $userId, WalletConversionChannel $channel): ConversionRequestData
@@ -120,5 +114,40 @@ class ConversionExecuteRequest extends FormRequest
             'quote_reference' => $this->validated('quote_reference'),
             'audit_context' => ConversionAuditContextData::fromRequest($this, $channel)->toArray(),
         ]);
+    }
+
+    /**
+     * JSON callers get the platform error envelope with a stable code: a missing
+     * key is `idempotency_key_required`, a malformed key is
+     * `idempotency_key_invalid`, and anything else is `validation_failed`. Web
+     * callers keep the framework's redirect with its errors.
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        $keyFailures = array_keys($validator->failed()['idempotency_key'] ?? []);
+
+        // A missing or malformed key on a browser form is a tampered request, not a
+        // typo the member can fix in place, so it is answered with a 422 status
+        // rather than a redirect that would look like a successful form round trip.
+        if (! $this->expectsJson()) {
+            if ($keyFailures !== []) {
+                abort(422, (string) $validator->errors()->first('idempotency_key'));
+            }
+
+            parent::failedValidation($validator);
+        }
+
+        $code = match (true) {
+            in_array('Required', $keyFailures, true) => 'idempotency_key_required',
+            $keyFailures !== [] => 'idempotency_key_invalid',
+            default => 'validation_failed',
+        };
+
+        throw new HttpResponseException(ApiResponse::error(
+            code: $code,
+            message: $validator->errors()->first() ?: 'The conversion request is invalid.',
+            status: 422,
+            details: ['errors' => $validator->errors()->toArray()],
+        ));
     }
 }

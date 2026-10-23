@@ -44,7 +44,7 @@ class AuditLogService
         ?int $userId,
         AuditAction|string $action,
         RiskLevel|string $riskLevel,
-        Model|string|null $auditable,
+        ?Model $auditable,
         string $description,
         array $metadata = [],
         array $oldValues = [],
@@ -53,8 +53,9 @@ class AuditLogService
         $actionEnum = is_string($action) ? (AuditAction::tryFrom($action) ?? AuditAction::Update) : $action;
         $riskEnum = is_string($riskLevel) ? (RiskLevel::tryFrom($riskLevel) ?? RiskLevel::Medium) : $riskLevel;
 
-        $auditableType = $auditable instanceof Model ? get_class($auditable) : (is_string($auditable) ? $auditable : null);
-        $auditableId = $auditable instanceof Model ? (int) $auditable->getKey() : null;
+        $subjectKey = $auditable instanceof Model ? $auditable->getKey() : null;
+        $auditableType = $subjectKey === null ? null : get_class($auditable);
+        $auditableId = $subjectKey === null ? null : (int) $subjectKey;
 
         $log = new AuditLog;
         $log->fill([
