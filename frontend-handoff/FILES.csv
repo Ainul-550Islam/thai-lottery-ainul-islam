@@ -322,7 +322,7 @@ resources/js/svgdeposit.js,4169,0o644,bd93772a6ff36b22b56c66568843791d487be61db4
 resources/js/svgwithdraw.js,4782,0o644,62ef48f3509c8429406463dc590d8786ce58a6fc805e9ce7dc8464a03c77c7fe,"Current frontend source snapshot; includes pre-existing and modified source, not all newly authored"
 resources/js/thai-lottery-betting.js,830,0o644,c577d40a8bc99d11e5b6f0eddc2bb1d73e9c8164e039f607e5f3f0615608180d,"Current frontend source snapshot; includes pre-existing and modified source, not all newly authored"
 resources/js/theme-toggle.js,3507,0o644,3fdefde6c87f3f76b3027424943de57b4a49341a30918f166402ce1cb0138390,"Current frontend source snapshot; includes pre-existing and modified source, not all newly authored"
-resources/js/wallet-conversion.js,13738,0o644,182db17d514897f23e74bf2665b369b80f0ce3a5529aa721ba69176ea74faf48,"Current frontend source snapshot; includes pre-existing and modified source, not all newly authored"
+resources/js/wallet-conversion.js,14299,0o644,5770b63ba3b2af6b6ea08ee8ee1c83f8d8c81b72292405efd12bb36c2fccde63,"Current frontend source snapshot; includes pre-existing and modified source, not all newly authored"
 resources/js/wallet-management.js,1057,0o644,1a47a81ad1f0f059ec4aff81bc0712770320e1504b7adeebfaf42885bdb5e4fe,"Current frontend source snapshot; includes pre-existing and modified source, not all newly authored"
 resources/js/wallet/wallet-balance.js,7968,0o644,f7284f5c45aa7c17509a50fe32b187bb409156ee6f4410ada6b7859ae298d7b0,"Current frontend source snapshot; includes pre-existing and modified source, not all newly authored"
 resources/js/weekly-lottery.js,758,0o644,d76ba1f1d07e4348c5cd76e063dfc8082cc69aee40062effb89c74f4b99cc74b,"Current frontend source snapshot; includes pre-existing and modified source, not all newly authored"
@@ -597,4 +597,5 @@ tests/js/public-page-enhancements.test.mjs,11737,0o644,68935efb361f801e139db0e06
 tests/js/public-request-lifecycle.test.mjs,8521,0o644,5bfdb4db7cf42d8ce230401b53bfe3beacc2c5f0c6f1f3901258238d5e9b2339,Frontend test/verification source; browser PHP files are test-only helpers
 tests/js/public-shortcut-continuation.test.mjs,2183,0o644,e73019a057f7d01b8101add0e91a0c175df4ec671ead472a14063dd7e09a430f,Frontend test/verification source; browser PHP files are test-only helpers
 tests/js/terms-navigation-continuation.test.mjs,7080,0o644,28e446b546e91c0ce607e1de02ff84b8fda2ed75cd42f235bac99a98fa32cc1f,Frontend test/verification source; browser PHP files are test-only helpers
+tests/js/wallet-preview-lifecycle.test.mjs,6894,0o644,6e36565ee7d192b046fb0c73369fae73449e8ca2ca6d332ca4081e538cc86db3,"Frontend-only preview lifecycle regression tests; source diagnostics, not browser acceptance"
 vite.config.js,6443,0o644,973adcc6fcefaea4435a968fd97c24b50cfcb04bd2bc86dbdb39dc9745a449f6,Existing build/test/runtime configuration copied byte-identically; not edited for this delivery

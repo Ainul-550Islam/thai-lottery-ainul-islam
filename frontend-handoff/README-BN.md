@@ -45,3 +45,11 @@ Checkpoint541 SHA256: `02fdccf806eb7a350afbb78de81137dacd3a21bb42555f516f4c8684c
 এই frontend-only ZIP-এ `.github/workflows/` ইচ্ছাকৃতভাবে নেই, যাতে আলাদা Git push-এ backend/DevOps workflows অকারণে চালু না হয়। অপরিবর্তিত `tests/dependencies/security-gate.test.mjs`-এর একটি test পূর্ণ repository-র পাঁচটি CI file পড়ে। ফলে শুধু ZIP extract করে পুরো Node command চালালে **152 PASS/1 FAIL (missing CI context, exit1)**; test বাদ দেওয়া বা দুর্বল করা হয়নি। মূল পূর্ণ repository checkpoint-এ এই একই source-এর153/153 PASS ছিল। ZIP থেকে markup16/16 ও worker19/19 আলাদাভাবে চালানো হয়েছে; বিস্তারিত detached ZIP-VERIFICATION.json-এ থাকবে। CI-context failure-কে PASS বা release certification বলা হয়নি।
 
 পূর্ণ frontend snapshot হলেও এটিকে পুরো platform release-ready বলা হয়নি। নতুন request অনুযায়ী frontend-only ZIP দেওয়া হয়েছে; পুরো backend/workspace duplicate ZIP নয়।
+
+## Follow-up: wallet preview lifecycle — parent ada6a498ff5028c597ab325fbd75193378e8123d
+
+The initial import described above contained 599 source files and five handoff files. This follow-up contains 600 source files and five handoff files, 605 files total. It changes only wallet-preview display invalidation and adds eight strict regression cases. The full source inventory is FILES.csv; the earlier selected checkpoint is retained and updated, not expanded into a claim of complete runtime acceptance.
+
+Changing the amount now invalidates old preview responses immediately, including during debounce and when empty/invalid/out-of-range values prevent another request. No fee formula, route, request field, CSRF header, quote/execute flow, idempotency key, backend, CI or version pin changes.
+
+Source-level Node20.20.2 VM/DOM-port diagnostic: original pushed source 2 passed/6 failed; overlay source 8 passed/0 failed/0 skipped using the same tests. This is not Node24, browser, Laravel, financial-runtime or CI acceptance. Existing CI failures, DevOps runtime alignment and PWA owner review remain open. Earlier CHECKLIST statuses are not promoted by these source checks.

@@ -204,6 +204,21 @@
         var previewTimer = null;
         var previewSeq = 0;
 
+        function invalidatePreview() {
+            // Invalidate immediately, before debounce/validation can return early.
+            // A response for the previous input must never price the current one.
+            previewSeq += 1;
+            if (previewFee) {
+                previewFee.textContent = '—';
+            }
+            if (previewNet) {
+                previewNet.textContent = '—';
+            }
+            if (previewRate) {
+                previewRate.textContent = '—';
+            }
+        }
+
         function showNote(message) {
             if (!previewNote) {
                 return;
@@ -327,6 +342,7 @@
 
         if (amountInput) {
             amountInput.addEventListener('input', function () {
+                invalidatePreview();
                 if (previewTimer) {
                     window.clearTimeout(previewTimer);
                 }
