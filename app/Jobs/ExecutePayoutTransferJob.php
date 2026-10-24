@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\DTOs\Payment\PayoutTransferData;
 use App\Enums\AuditAction;
 use App\Enums\PayoutApprovalStatus;
 use App\Enums\PayoutStatus;
@@ -14,6 +13,7 @@ use App\Enums\RiskLevel;
 use App\Exceptions\PayoutTransferException;
 use App\Models\AuditLog;
 use App\Models\Payout;
+use App\Services\Payment\PayoutTransferGuard;
 use App\Services\Payment\PayoutTransferService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -24,39 +24,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-/**
- * Opens the outbound transfer lane for every approved payout in a batch's
- * membership — the hand-off from "batch says these may pay" to "the
- * transfer service recorded they are paying".
- *
- * WHAT IT DOES — AND DELEGATES
- * ----------------------------
- * The job SELECTS and delegates; {@see PayoutTransferService} does every
- * money-respecting step (gateway/session record, drift guards, state
- * guards, idempotency by anchor). The job itself takes no wallet and
- * touches no ledger.
- *
- * WHO IS SELECTED
- * ---------------
- * Payouts whose metadata.batch.batch_key names the batch this job runs
- * for, whose row status is still Pending, whose approval lane is Approved
- * (the four-eyes gate must have landed before money moves), and who have
- * NO open transfer lane yet — a rerun of this job is therefore a no-op
- * for rows already opened, making the job idempotent by selection.
- *
- * EXTERNAL METHODS ONLY
- * ---------------------
- * The claim's chosen payout method (payout.metadata.claim.payout_method)
- * is consulted: wallet-method members skip the external lane entirely —
- * the internal wallet executor credits those. Bank-transfer and cheque
- * members get a transfer lane each.
- *
- * RETRY SAFETY
- * ------------
- * One failing member collects into the failure list and never stops the
- * run; anchors derived by the DTO mean the retried member lands back on
- * its own lane even across worker restarts.
- */
 class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
@@ -64,33 +31,17 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    /**
-     * Maximum retry attempts before failing permanently.
-     */
     public int $tries = 3;
 
     /**
-     * Exponential backoff delays in seconds.
-     *
      * @var list<int>
      */
     public array $backoff = [15, 60, 180];
 
-    /**
-     * Execution timeout in seconds.
-     */
     public int $timeout = 180;
 
-    /**
-     * Unique lock duration in seconds.
-     */
     public int $uniqueFor = 300;
 
-    /**
-     * @param  string  $batchKey  The batch whose membership this run
-     *                            executes transfers for.
-     * @param  int|null  $chunkSize  Members per run (bounded for backlog).
-     */
     public function __construct(
         public readonly string $batchKey,
         public readonly ?int $chunkSize = null,
@@ -99,18 +50,12 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
         $this->afterCommit();
     }
 
-    /**
-     * Unique identifier for the concurrency lock: one transfer run per
-     * batch per minute at most.
-     */
     public function uniqueId(): string
     {
         return 'execute_payout_transfer_'.$this->batchKey.'_'.now()->format('Y-m-d-H-i');
     }
 
     /**
-     * Run the transfer-open pass over the batch's membership.
-     *
      * @return array{selected: int, opened: int, skipped_wallet: int, failed: int, failures: list<array<string, mixed>>, executed_at: string}
      */
     public function handle(PayoutTransferService $service): array
@@ -142,35 +87,17 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
         foreach ($query->get() as $payout) {
             $selected++;
 
-            $claim = is_array($payout->metadata['claim'] ?? null) ? $payout->metadata['claim'] : [];
-            $methodValue = (string) ($claim['payout_method'] ?? 'bank_transfer');
-            $method = PrizePayoutMethod::tryFrom($methodValue) ?? PrizePayoutMethod::BankTransfer;
-
-            if ($method === PrizePayoutMethod::Wallet) {
-                $skippedWallet++;
-
-                continue;
-            }
-
-            $data = new PayoutTransferData(
-                batchKey: $this->batchKey,
-                payoutReference: (string) $payout->reference_number,
-                beneficiaryUserId: (int) $payout->user_id,
-                method: $method,
-                amount: (string) $payout->amount,
-                currency: $payout->currency,
-                beneficiary: is_array($claim['beneficiary'] ?? null) ? $claim['beneficiary'] : null,
-                idempotencyKey: PayoutTransferData::deriveIdempotencyKey(
-                    $this->batchKey,
-                    (string) $payout->reference_number,
-                    (int) $payout->user_id,
-                    (string) $payout->amount,
-                    $payout->currency,
-                ),
-                context: ['source' => 'execute-payout-transfer-job'],
-            );
-
             try {
+                $data = app(PayoutTransferGuard::class)->fromRow($payout);
+                if ($data->method === PrizePayoutMethod::Wallet) {
+                    $skippedWallet++;
+
+                    continue;
+                }
+                if ($data->batchKey !== $this->batchKey) {
+                    app(PayoutTransferGuard::class)->refuse($payout);
+                }
+
                 $service->transfer($data);
                 $opened++;
             } catch (PayoutTransferException $e) {
@@ -178,13 +105,16 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
                 $failures[] = [
                     'payout_id' => (int) $payout->getKey(),
                     'payout_reference' => (string) $payout->reference_number,
-                    'code' => $e->errorCode(),
+                    'code' => 'PAYOUT_AUTHORITY_OR_FINANCIAL_GUARD',
+                    'error_code' => $e->errorCode(),
                 ];
-
-                Log::warning('ExecutePayoutTransferJob: member refused by transfer service', [
+            } catch (Throwable) {
+                $failed++;
+                $failures[] = [
                     'payout_id' => (int) $payout->getKey(),
-                    'code' => $e->errorCode(),
-                ]);
+                    'payout_reference' => (string) $payout->reference_number,
+                    'code' => 'PAYOUT_AUTHORITY_OR_FINANCIAL_GUARD',
+                ];
             }
         }
 
@@ -197,14 +127,6 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
             'executed_at' => now()->toIso8601String(),
         ];
 
-        Log::info('ExecutePayoutTransferJob: pass complete', [
-            'batch_key' => $this->batchKey,
-            'selected' => $selected,
-            'opened' => $opened,
-            'skipped_wallet' => $skippedWallet,
-            'failed' => $failed,
-        ]);
-
         if ($selected > 0) {
             $this->recordSummary($summary);
         }
@@ -212,10 +134,6 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
         return $summary;
     }
 
-    /**
-     * A thrown run is retried by the queue; per-member anchors make the
-     * retry join already-opened lanes instead of re-opening them.
-     */
     public function failed(?Throwable $exception): void
     {
         Log::error('ExecutePayoutTransferJob: run failed', [
@@ -236,8 +154,8 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Payout,
             'risk_level' => RiskLevel::Medium,
-            'auditable_type' => 'payout_transfer_run',
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'Payout transfer run for batch [%s]: %d selected, %d opened, %d internal-wallet skipped, %d failed.',
                 $this->batchKey,
@@ -247,6 +165,7 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
                 $summary['failed'],
             ),
             'metadata' => [
+                'lane' => 'payout_transfer_run',
                 'batch_key' => $this->batchKey,
                 'selected' => $summary['selected'],
                 'opened' => $summary['opened'],

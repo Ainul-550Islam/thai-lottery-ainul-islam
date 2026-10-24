@@ -7,7 +7,11 @@ namespace App\Services\Finance;
 use App\Enums\Currency;
 use App\Exceptions\FinancialException;
 use App\Models\Wallet;
+use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\DeadlockException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Pessimistic row locking for wallets.
@@ -44,6 +48,7 @@ final class WalletLockService
      */
     public function lock(int $walletId): Wallet
     {
+        $walletId = FinancialRecordIdentifier::parse($walletId, 'wallet_identifier_invalid');
         $this->assertInsideTransaction('lock wallet');
 
         $wallet = Wallet::query()
@@ -130,14 +135,20 @@ final class WalletLockService
     {
         $this->assertInsideTransaction('lock wallets');
 
-        $ids = array_values(array_unique(array_map('intval', $walletIds)));
-
-        if ($ids === []) {
+        if ($walletIds === []) {
             throw FinancialException::withCode(
                 'wallet_lock_empty_set',
                 'At least one wallet identifier is required in order to lock.',
             );
         }
+
+        $parsed = [];
+
+        foreach ($walletIds as $rawId) {
+            $parsed[] = FinancialRecordIdentifier::parse($rawId, 'wallet_identifier_invalid');
+        }
+
+        $ids = array_values(array_unique($parsed));
 
         sort($ids, SORT_NUMERIC);
 
@@ -174,16 +185,9 @@ final class WalletLockService
      */
     public function relock(Wallet $wallet): Wallet
     {
-        $key = $wallet->getKey();
+        $key = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
 
-        if (! is_int($key) && ! is_string($key)) {
-            throw FinancialException::withCode(
-                'wallet_not_persisted',
-                'Cannot lock a wallet that has not been persisted.',
-            );
-        }
-
-        return $this->lock((int) $key);
+        return $this->lock($key);
     }
 
     /**
@@ -191,7 +195,93 @@ final class WalletLockService
      */
     public function insideTransaction(): bool
     {
-        return DB::transactionLevel() > 0;
+        $connection = DB::connection();
+
+        return $connection->transactionLevel() > 0
+            && $connection->getPdo()->inTransaction();
+    }
+
+    /**
+     * Assert that framework transaction depth and write-PDO transaction state agree.
+     *
+     * @throws FinancialException
+     */
+    public function assertConsistentTransactionState(): int
+    {
+        return $this->assertConsistentTransactionStateOn(DB::connection());
+    }
+
+    /**
+     * Run a callback inside a verified physical transaction or savepoint boundary.
+     *
+     * @template TResult
+     *
+     * @param  callable(): TResult  $callback
+     * @return TResult
+     *
+     * @throws FinancialException
+     */
+    public function withinTransaction(callable $callback, bool $useSavepointWhenNested = true): mixed
+    {
+        $connection = DB::connection();
+        $entryLevel = $this->assertConsistentTransactionStateOn($connection);
+        $writePdo = $connection->getPdo();
+
+        if ($entryLevel > 0 && ! $useSavepointWhenNested) {
+            return $callback();
+        }
+
+        try {
+            return $connection->transaction(static fn (): mixed => $callback());
+        } catch (DeadlockException $exception) {
+            if ($entryLevel > 0
+                && $connection->transactionLevel() === $entryLevel
+                && $connection->getPdo() === $writePdo
+                && $writePdo->inTransaction()
+                && ! $this->isNativeDeadlockAbort($exception, $connection)
+                && $connection->getQueryGrammar()->supportsSavepoints()) {
+                $writePdo->exec(
+                    $connection->getQueryGrammar()->compileSavepointRollBack('trans'.($entryLevel + 1)),
+                );
+            }
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @throws FinancialException
+     */
+    private function assertConsistentTransactionStateOn(ConnectionInterface $connection): int
+    {
+        $level = $connection->transactionLevel();
+        $physical = $connection->getPdo()->inTransaction();
+
+        if (($level > 0) !== $physical) {
+            throw FinancialException::withCode(
+                'wallet_transaction_state_invalid',
+                'Database transaction counter and physical write PDO transaction state do not agree.',
+                ['transaction_level' => $level, 'pdo_in_transaction' => $physical],
+            );
+        }
+
+        return $level;
+    }
+
+    private function isNativeDeadlockAbort(Throwable $exception, ConnectionInterface $connection): bool
+    {
+        if (! in_array($connection->getDriverName(), ['mysql', 'mariadb'], true)) {
+            return false;
+        }
+
+        $cause = $exception instanceof DeadlockException && $exception->getPrevious() instanceof Throwable
+            ? $exception->getPrevious()
+            : $exception;
+        $driverCode = $cause instanceof QueryException
+            ? ($cause->errorInfo[1] ?? ($cause->getPrevious() instanceof \PDOException ? ($cause->getPrevious()->errorInfo[1] ?? null) : null))
+            : ($cause instanceof \PDOException ? ($cause->errorInfo[1] ?? null) : null);
+
+        return in_array($driverCode, [1213, '1213'], true);
     }
 
     /**

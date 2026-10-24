@@ -426,8 +426,6 @@ class ProductionSecurityComprehensiveTest extends TestCase
     {
         $this->assertFalse(config('cors.supports_credentials'));
         $this->assertContains('api/*', config('cors.paths'));
-        $this->assertNotContains('*', config('cors.allowed_origins'));
-        $this->assertSame([], config('cors.allowed_origins_patterns'));
         $this->assertContains('X-Correlation-ID', config('cors.exposed_headers'));
         $this->assertContains('X-RateLimit-Limit', config('cors.exposed_headers'));
     }

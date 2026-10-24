@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\Payment;
 
 use App\Enums\PaymentMethod;
+use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payments\PublicPaymentMethodsService;
 use Illuminate\Support\Facades\Config;
+use Mockery;
+use RuntimeException;
 
 /**
  * P1-23: Parity between public payment capability claims and gateway manager execution.
@@ -70,6 +73,24 @@ final class PublicPaymentCapabilityParityTest extends PaymentTestCase
         $this->assertSame('bank_transfer', $resultValid['methods'][0]['code']);
     }
 
+    public function test_currency_query_failure_does_not_invent_thb_support(): void
+    {
+        Config::set('payment.deposit.enabled', true);
+        Config::set('payment.deposit.allowed_methods', ['stripe']);
+
+        $driver = Mockery::mock(PaymentGatewayInterface::class);
+        $driver->shouldReceive('supportsCurrency')->andThrow(new RuntimeException('currency capability unavailable'));
+
+        $manager = Mockery::mock(PaymentGatewayManager::class);
+        $manager->shouldReceive('isDepositCapable')->with(PaymentMethod::Stripe)->andReturn(true);
+        $manager->shouldReceive('driver')->with(PaymentMethod::Stripe)->andReturn($driver);
+
+        $result = (new PublicPaymentMethodsService($manager))->publicMethods();
+
+        $this->assertSame('NOT_CONFIGURED', $result['status']);
+        $this->assertSame([], $result['methods']);
+    }
+
     public function test_all_advertised_methods_match_gateway_manager_deposit_capability(): void
     {
         Config::set('payment.deposit.enabled', true);
@@ -92,6 +113,15 @@ final class PublicPaymentCapabilityParityTest extends PaymentTestCase
         foreach ($result['methods'] as $methodInfo) {
             $enum = PaymentMethod::from($methodInfo['code']);
             $this->assertTrue($manager->isDepositCapable($enum), "Method {$methodInfo['code']} must be deposit-capable in gateway manager.");
+
+            $driver = $manager->driver($enum);
+            $expectedCurrencies = [];
+            foreach ($enum->supportedCurrencies() as $currency) {
+                if ($driver->supportsCurrency($currency)) {
+                    $expectedCurrencies[] = $currency->value;
+                }
+            }
+            $this->assertSame($expectedCurrencies, $methodInfo['currencies']);
         }
     }
 }

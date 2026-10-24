@@ -27,7 +27,7 @@ final class RecordNotificationReceiptAudit
         $exists = AuditLog::query()
             ->where('auditable_type', NotificationReceipt::class)
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_HOURS))
-            ->whereJsonContains('metadata->audit_anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
 
         if ($exists) {
@@ -44,7 +44,7 @@ final class RecordNotificationReceiptAudit
                 'risk_rating' => RiskLevel::Medium->value,
                 'receipt_fingerprint' => $receipt->receipt_fingerprint,
                 'delivery_state' => $receipt->delivery_state,
-                'audit_anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'note' => $note,
             ],
         ]);

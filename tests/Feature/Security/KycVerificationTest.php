@@ -13,12 +13,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
-use Tests\Concerns\RecordsCurrentLegalConsent;
 use Tests\TestCase;
 
 final class KycVerificationTest extends TestCase
 {
-    use RecordsCurrentLegalConsent;
     use RefreshDatabase;
 
     private User $player;
@@ -37,7 +35,6 @@ final class KycVerificationTest extends TestCase
         Role::firstOrCreate(['name' => 'player', 'guard_name' => 'web']);
 
         $this->player = User::factory()->create(['status' => UserStatus::Active]);
-        $this->recordCurrentLegalConsent($this->player);
         $this->player->assignRole('player');
 
         $this->admin = User::factory()->create(['status' => UserStatus::Active]);

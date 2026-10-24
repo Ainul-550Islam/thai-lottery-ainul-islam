@@ -16,8 +16,11 @@ final class PublishedResultSourceResolver
 {
     public function __construct(private readonly DrawResultPublicationService $publication) {}
 
-    public function resolve(?DrawResult $result, ?Draw $draw): GloSourceState
+    public function resolve(Draw|DrawResult|null $first, Draw|DrawResult|null $second = null): GloSourceState
     {
+        $result = $first instanceof DrawResult ? $first : ($second instanceof DrawResult ? $second : null);
+        $draw = $first instanceof Draw ? $first : ($second instanceof Draw ? $second : null);
+
         if ($result === null || $draw === null) {
             return GloSourceState::Unavailable;
         }

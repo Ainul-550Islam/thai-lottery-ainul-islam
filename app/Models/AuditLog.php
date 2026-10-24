@@ -55,6 +55,10 @@ class AuditLog extends Model
      */
     public const UPDATED_AT = null;
 
+    public const ANCHOR_KEY = 'audit_anchor';
+
+    public const LEGACY_ANCHOR_KEY = 'anchor';
+
     /**
      * Every column is written once, at insert time, by the audit service.
      *
@@ -109,6 +113,27 @@ class AuditLog extends Model
     protected static function booted(): void
     {
         static::creating(static function (self $auditLog): void {
+            $type = $auditLog->auditable_type;
+            $id = $auditLog->auditable_id;
+
+            if ($type === null && $id !== null) {
+                throw new \LogicException("auditable_id [{$id}] names no subject.");
+            }
+
+            if ($type !== null) {
+                $isModel = (class_exists($type) && is_subclass_of($type, Model::class))
+                    || \Illuminate\Database\Eloquent\Relations\Relation::getMorphedModel($type) !== null;
+                if (! $isModel) {
+                    throw new \LogicException("auditable_type [{$type}] is neither a model class nor a morph alias.");
+                }
+                if ($id === null) {
+                    throw new \LogicException("auditable_type [{$type}] has no id.");
+                }
+                if ((int) $id <= 0) {
+                    throw new \LogicException("auditable_id [{$id}] is not a primary key.");
+                }
+            }
+
             if ($auditLog->request_id === null || $auditLog->request_id === '') {
                 $auditLog->request_id = CorrelationContext::get();
             }
@@ -236,6 +261,18 @@ class AuditLog extends Model
     public function scopeForAuditable(Builder $query, string $type, int $id): Builder
     {
         return $query->where('auditable_type', $type)->where('auditable_id', $id);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeAnchoredBy(Builder $query, string $anchor): Builder
+    {
+        return $query->where(function (Builder $q) use ($anchor): void {
+            $q->where('metadata->'.self::ANCHOR_KEY, $anchor)
+                ->orWhere('metadata->'.self::LEGACY_ANCHOR_KEY, $anchor);
+        });
     }
 
     /**

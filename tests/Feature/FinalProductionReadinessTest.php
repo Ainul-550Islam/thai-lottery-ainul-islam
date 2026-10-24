@@ -51,17 +51,17 @@ use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\Privacy\PrivacyPolicyService;
 use App\Services\PublicPages\TermsPageService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Tests\TestCase;
+use Tests\Feature\Agent\Concerns\BuildsCommissionCancellation;
+use Tests\Feature\Finance\FinancialMasterTestCase;
 
 /**
  * Final Master Production Readiness Test Suite (Prompt 4 Acceptance Gate).
  */
-class FinalProductionReadinessTest extends TestCase
+class FinalProductionReadinessTest extends FinancialMasterTestCase
 {
-    use RefreshDatabase;
+    use BuildsCommissionCancellation;
 
     /**
      * 1. Public Routes Availability & Multi-Locale Rendering.
@@ -162,11 +162,11 @@ class FinalProductionReadinessTest extends TestCase
 
         $walletService = app(WalletService::class);
 
-        $w1Thb = $walletService->getOrCreateWallet($user1->id, Currency::THB->value);
-        $w2Thb = $walletService->getOrCreateWallet($user2->id, Currency::THB->value);
+        $w1Thb = $walletService->getOrCreateWallet($user1, Currency::THB);
+        $w2Thb = $walletService->getOrCreateWallet($user2, Currency::THB);
 
-        $walletService->credit($w1Thb->id, '1000.00', 'Credit User 1');
-        $walletService->credit($w2Thb->id, '200.00', 'Credit User 2');
+        $this->creditFixture($w1Thb, '1000.00', 'Credit User 1');
+        $this->creditFixture($w2Thb, '200.00', 'Credit User 2');
 
         $this->assertEquals('1000.00', (string) $w1Thb->fresh()->balance);
         $this->assertEquals('200.00', (string) $w2Thb->fresh()->balance);
@@ -201,8 +201,8 @@ class FinalProductionReadinessTest extends TestCase
         $walletService = app(WalletService::class);
         $webhookService = app(ProcessPaymentWebhookService::class);
 
-        $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
-        $initialBalance = $wallet->balance;
+        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
+        $initialBalance = (string) $wallet->balance;
 
         $externalId = 'WH-REL-' . uniqid();
         $payload = [
@@ -217,14 +217,14 @@ class FinalProductionReadinessTest extends TestCase
         // 1st delivery
         $res1 = $webhookService->process('nagad', $payload, $externalId);
         $this->assertTrue($res1->successful);
-        $this->assertEquals(bcadd((string) $initialBalance, '300.00', 2), (string) $wallet->fresh()->balance);
+        $this->assertEquals(bcadd($initialBalance, '300.00', 2), (string) $wallet->fresh()->balance);
 
         // 2nd delivery (replayed)
         $res2 = $webhookService->process('nagad', $payload, $externalId);
         $this->assertTrue($res2->successful);
         $this->assertTrue($res2->replayed);
         // Balance must not change on replay
-        $this->assertEquals(bcadd((string) $initialBalance, '300.00', 2), (string) $wallet->fresh()->balance);
+        $this->assertEquals(bcadd($initialBalance, '300.00', 2), (string) $wallet->fresh()->balance);
     }
 
     /**
@@ -236,17 +236,14 @@ class FinalProductionReadinessTest extends TestCase
         $walletService = app(WalletService::class);
         $bulkBetService = app(BulkBetService::class);
 
-        $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
-        $walletService->credit($wallet->id, '1000.00', 'Initial balance');
-
-        $draw = Draw::factory()->create([
-            'status' => DrawStatus::Open->value,
-            'betting_close_at' => Carbon::now()->addHours(2),
-        ]);
+        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
+        $this->creditFixture($wallet, '1000.00', 'Initial balance');
 
         $selections = [
-            new BulkBetSelectionData(marketKey: 'top_3', number: '789', stake: '100.00'),
+            new BulkBetSelectionData(marketKey: '3d_direct', number: '789', stake: '100.00'),
         ];
+
+        $draw = $this->openBulkDrawForTest($selections);
 
         $clientKey = 'SLIP-RELEASE-' . uniqid();
         $result = $bulkBetService->purchase($user->id, $draw->id, $selections, $clientKey);
@@ -306,37 +303,15 @@ class FinalProductionReadinessTest extends TestCase
      */
     public function test_agent_commission_settlement(): void
     {
-        $agentUser = User::factory()->create();
-        $walletService = app(WalletService::class);
-        $walletService->getOrCreateWallet($agentUser->id, Currency::THB->value);
-
-        $agent = Agent::create([
-            'user_id' => $agentUser->id,
-            'agent_code' => 'AGT999',
-            'status' => AgentStatus::Active->value,
-            'currency' => Currency::THB->value,
-            'commission_rate' => '0.0500',
-        ]);
-
-        $draw = Draw::factory()->create();
-
-        $commission = AgentCommission::create([
-            'agent_id' => $agent->id,
-            'draw_id' => $draw->id,
-            'bet_id' => 1,
-            'stake_amount' => '1000.00',
-            'commission_amount' => '50.00',
-            'currency' => Currency::THB->value,
-            'status' => CommissionStatus::Accrued->value,
-            'reference_number' => 'COMM-REL-' . uniqid(),
-        ]);
+        $f = $this->commissionFixture(parent: false);
+        $commission = AgentCommission::query()->where('draw_id', $f['draw']->id)->sole();
 
         $settlementService = app(AgentSettlementService::class);
-        $result = $settlementService->settleForDraw((int) $draw->id);
+        $result = $settlementService->settleForDraw((int) $f['draw']->id);
 
         $this->assertEquals(1, $result->commissionsSettled);
-        $this->assertEquals('50.00', $result->totalCommissionPaid);
-        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status);
+        $this->assertEquals('0.50', $result->totalCommissionPaid);
+        $this->assertSame(CommissionStatus::Paid, $commission->fresh()->status);
     }
 
     /**
@@ -365,7 +340,7 @@ class FinalProductionReadinessTest extends TestCase
         $healthService = app(HealthCheckService::class);
 
         $live = $healthService->isLive();
-        $this->assertEquals('UP', $live['status']);
+        $this->assertEquals('healthy', $live['status']);
 
         $ready = $healthService->isReady();
         $this->assertTrue($ready['ready']);

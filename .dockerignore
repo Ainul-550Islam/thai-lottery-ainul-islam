@@ -27,6 +27,7 @@ repo
 runtime
 uploads
 deployment
+docker/php-fpm
 *.log
 *.zip
 *.pem

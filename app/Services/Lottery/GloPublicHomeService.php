@@ -157,15 +157,26 @@ class GloPublicHomeService
     {
         try {
             $status = $this->liveDraw->liveStatus();
-            $replay = (string) ($status['replay_status'] ?? 'not_configured');
+            $liveStatus = strtolower((string) ($status['live_status'] ?? 'unavailable'));
+            $replayStatus = strtolower((string) ($status['replay_status'] ?? 'unavailable'));
+            $publicStatus = match ($liveStatus) {
+                'configured' => 'CONFIGURED',
+                'not_configured' => 'NOT_CONFIGURED',
+                default => 'UNAVAILABLE',
+            };
+            $publicReplayStatus = match ($replayStatus) {
+                'configured' => 'CONFIGURED',
+                'not_configured' => 'NOT_CONFIGURED',
+                default => 'UNAVAILABLE',
+            };
 
             return [
-                'status' => ($status['live_status'] ?? 'not_configured') === 'configured'
-                    ? 'CONFIGURED'
-                    : 'NOT_CONFIGURED',
-                'live_status' => (string) ($status['live_status'] ?? 'not_configured'),
-                'replay_status' => $replay === 'configured' ? 'CONFIGURED' : 'NOT_CONFIGURED',
-                'source_state' => (string) ($status['source_state'] ?? GloSourceState::NotConfigured->value),
+                'status' => $publicStatus,
+                'live_status' => $liveStatus,
+                'replay_status' => $publicReplayStatus,
+                'source_state' => (string) ($status['source_state'] ?? ($liveStatus === 'not_configured'
+                    ? GloSourceState::NotConfigured->value
+                    : GloSourceState::Unavailable->value)),
                 'provider' => $status['provider'] ?? null,
                 'embed_url' => $status['embed_url'] ?? null,
                 'message' => (string) ($status['message'] ?? ''),
@@ -210,7 +221,9 @@ class GloPublicHomeService
     }
 
     /**
-     * GLO product summary (L6 / N3) from official config only.
+     * GLO product catalogue (L6 / N3) projected from application config.
+     * This is catalogue metadata only; it is not a live source verification or
+     * confirmation that tickets are currently available.
      *
      * @return array{status: string, products: list<array<string, mixed>>}
      */
@@ -228,27 +241,27 @@ class GloPublicHomeService
         }
 
         return [
-            'status' => 'VERIFIED',
+            'status' => 'CATALOGUE_ONLY',
             'products' => [
                 [
                     'code' => 'L6',
-                    'name' => 'Government Lottery L6',
+                    'name' => 'L6 lottery product',
                     'ticket_price' => $l6Price,
                     'currency' => 'THB',
                     'digits' => (int) config('glo.l6.digits', 6),
-                    'prize_model' => 'official_full_sale',
+                    'prize_model' => 'configured_l6_schedule',
                     'headline_prize' => $firstPrize,
-                    'notes' => 'Official full-sale prize schedule; stamp duty ceil(gross/200); income tax exempt.',
+                    'notes' => 'Prize and claim details come from this project’s configuration; confirm current rules and availability with the responsible source.',
                 ],
                 [
                     'code' => 'N3',
-                    'name' => 'N3 companion product',
+                    'name' => 'N3 lottery product',
                     'ticket_price' => $n3Price,
                     'currency' => 'THB',
                     'digits' => (int) config('glo.n3.digits', 3),
                     'prize_model' => (string) config('glo.n3.prize_engine.mode', 'pool_variable'),
                     'headline_prize' => null,
-                    'notes' => 'Sales-based prize pool; payouts are draw-calculated, never fixed historical amounts.',
+                    'notes' => 'Prize calculation follows the configured N3 rules; check the current published rules for details.',
                 ],
             ],
         ];

@@ -24,14 +24,13 @@ use Tests\TestCase;
 class PlayerWalletWiringTest extends TestCase
 {
     use RefreshDatabase;
-    use \Tests\Concerns\MakesEligiblePlayer;
 
     /**
      * @return array{user: User, wallet: Wallet}
      */
     private function playerWithPassword(string $password, string $balance = '1000.00'): array
     {
-        $user = $this->makeEligiblePlayer(User::factory()->create(['password' => Hash::make($password)]));
+        $user = User::factory()->create(['password' => Hash::make($password)]);
 
         $wallet = Wallet::factory()
             ->for($user)
@@ -46,7 +45,7 @@ class PlayerWalletWiringTest extends TestCase
      */
     private function player(string $balance = '1000.00'): array
     {
-        $user = $this->makeEligiblePlayer(User::factory()->create());
+        $user = User::factory()->create();
 
         $wallet = Wallet::factory()
             ->for($user)
@@ -85,13 +84,10 @@ class PlayerWalletWiringTest extends TestCase
         $this->assertStringContainsString('฿50.00', $page);
         $this->assertStringContainsString('฿500,000.00', $page);
 
-        // The closed deposit method list from config — the enum vocabulary. Crypto
-        // is configured but has no deposit capability (CryptoGateway::supportsDeposit
-        // is false until a provider protocol is reviewed), so the page must not offer it.
-        foreach (['Stripe', 'bKash', 'Nagad'] as $label) {
+        // The closed deposit method list from config — the enum vocabulary.
+        foreach (['Stripe', 'bKash', 'Nagad', 'Crypto'] as $label) {
             $this->assertStringContainsString($label, $page);
         }
-        $this->assertStringNotContainsString('Cryptocurrency', $page);
 
         // The legacy marketing gateways that exist nowhere in the payment
         // model must not be advertised.

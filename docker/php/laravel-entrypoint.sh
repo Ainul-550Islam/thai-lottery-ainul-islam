@@ -24,8 +24,6 @@ load_secret_file() {
             APP_KEY) current_value=${APP_KEY:-} ;;
             DB_PASSWORD) current_value=${DB_PASSWORD:-} ;;
             REDIS_PASSWORD) current_value=${REDIS_PASSWORD:-} ;;
-            HEALTH_DETAIL_TOKEN) current_value=${HEALTH_DETAIL_TOKEN:-} ;;
-            BACKUP_ENCRYPTION_KEY) current_value=${BACKUP_ENCRYPTION_KEY:-} ;;
             *)
                 printf '%s\n' "Unsupported secret variable: ${variable_name}" >&2
                 exit 1
@@ -43,20 +41,10 @@ if [ "${APP_ENV:-production}" = "production" ]; then
     load_secret_file APP_KEY "${APP_KEY_FILE:-}" yes
     load_secret_file DB_PASSWORD "${DB_PASSWORD_FILE:-}" yes
     load_secret_file REDIS_PASSWORD "${REDIS_PASSWORD_FILE:-}" yes
-    # Optional in every environment. A missing detailed-health token is a
-    # documented, safe degradation (/up/health returns only the public summary),
-    # and a missing backup key is reported by ops:preflight and by the backup
-    # command rather than at container start, so a container that only serves
-    # traffic still boots. `ops:preflight` is what makes them required for a
-    # *release*, which is the correct place for that judgement.
-    load_secret_file HEALTH_DETAIL_TOKEN "${HEALTH_DETAIL_TOKEN_FILE:-}" no
-    load_secret_file BACKUP_ENCRYPTION_KEY "${BACKUP_ENCRYPTION_KEY_FILE:-}" no
 else
     load_secret_file APP_KEY "${APP_KEY_FILE:-}" no
     load_secret_file DB_PASSWORD "${DB_PASSWORD_FILE:-}" no
     load_secret_file REDIS_PASSWORD "${REDIS_PASSWORD_FILE:-}" no
-    load_secret_file HEALTH_DETAIL_TOKEN "${HEALTH_DETAIL_TOKEN_FILE:-}" no
-    load_secret_file BACKUP_ENCRYPTION_KEY "${BACKUP_ENCRYPTION_KEY_FILE:-}" no
 fi
 
 exec /usr/local/bin/docker-php-entrypoint "$@"

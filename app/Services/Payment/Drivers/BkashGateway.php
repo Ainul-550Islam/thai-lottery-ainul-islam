@@ -6,6 +6,7 @@ namespace App\Services\Payment\Drivers;
 
 use App\DTOs\Payment\GatewayDepositResponse;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
+use App\DTOs\Payment\WebhookMoneyFacts;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
@@ -166,10 +167,10 @@ class BkashGateway extends AbstractPaymentGateway
         $paymentId = (string) ($data['paymentID'] ?? $data['payment_id'] ?? '');
         $trxId = (string) ($data['trxID'] ?? $data['transaction_id'] ?? '');
         $invoice = (string) ($data['merchantInvoiceNumber'] ?? $data['invoice_number'] ?? $data['reference'] ?? '');
-        $amount = (string) ($data['amount'] ?? '0.00');
+        $amount = WebhookMoneyFacts::decimal($data['amount'] ?? null);
         $status = strtoupper((string) ($data['transactionStatus'] ?? $data['status'] ?? ''));
 
-        $currency = isset($data['currency']) ? (Currency::tryFrom(strtoupper((string) $data['currency'])) ?? Currency::BDT) : Currency::BDT;
+        $currency = WebhookMoneyFacts::currency($data['currency'] ?? null);
 
         $eventType = match ($status) {
             'COMPLETED', 'SUCCESS', 'SUCCESSFUL' => WebhookEventType::DepositSuccess,

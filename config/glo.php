@@ -238,6 +238,23 @@ return [
         'full_sale_units' => '1000000',
         'full_allocation' => '48000000.00',
         'total_prize_count' => 14168,
+
+        // Fail-closed GLO L6 public/API purchase capability and reservation contract.
+        // Remains disabled (NOT_CONFIGURED) until real_money is enabled, an official
+        // result source (without fixture fallback) is configured, current legal
+        // publications exist, and an authorized custodian inventory provider + seated
+        // draw series are active.
+        'purchase' => [
+            'enabled' => (bool) env('GLO_L6_PURCHASE_ENABLED', false),
+            'inventory_provider_mode' => env('GLO_L6_INVENTORY_PROVIDER_MODE', 'not_configured'),
+            'custodian_provider_ref' => env('GLO_L6_CUSTODIAN_PROVIDER_REF'),
+            'reservation_ttl_seconds' => (int) env('GLO_L6_RESERVATION_TTL_SECONDS', 300),
+            'max_tickets_per_order' => (int) env('GLO_L6_MAX_TICKETS_PER_ORDER', 10),
+            'require_official_result_source' => (bool) env('GLO_L6_REQUIRE_OFFICIAL_RESULT_SOURCE', true),
+            'require_legal_publications' => (bool) env('GLO_L6_REQUIRE_LEGAL_PUBLICATIONS', true),
+            'require_seated_inventory' => (bool) env('GLO_L6_REQUIRE_SEATED_INVENTORY', true),
+            'pricing_rule_version' => (string) env('GLO_L6_PRICING_RULE_VERSION', 'glo-l6-2026.1'),
+        ],
     ],
 
     /*

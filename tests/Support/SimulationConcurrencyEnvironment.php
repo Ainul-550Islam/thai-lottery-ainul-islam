@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use RuntimeException;
 
 /** Test-only admission policy for a genuinely shared non-monetary race. */
 final class SimulationConcurrencyEnvironment
@@ -66,7 +67,7 @@ final class SimulationConcurrencyEnvironment
         $reason = self::refusalReason($connection, $project);
 
         if ($reason !== null) {
-            throw new \RuntimeException($reason);
+            throw new RuntimeException($reason);
         }
 
         $connection['url'] = null;

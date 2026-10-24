@@ -36,6 +36,7 @@ class GloResultImport extends Model
     protected $fillable = [
         'import_reference',
         'draw_id',
+        'draw_date',
         'provider',
         'mode',
         'endpoint',
@@ -43,6 +44,8 @@ class GloResultImport extends Model
         'status',
         'result_fingerprint',
         'payload_summary',
+        'raw_payload',
+        'normalized_payload',
         'failure_reason',
         'imported_by',
         'imported_at',
@@ -54,6 +57,48 @@ class GloResultImport extends Model
             'payload_summary' => 'array',
             'imported_at' => 'datetime',
         ];
+    }
+
+    public function setRawPayloadAttribute(mixed $value): void
+    {
+        $summary = is_array($this->payload_summary) ? $this->payload_summary : [];
+        $summary['raw_payload'] = $value;
+        $this->payload_summary = $summary;
+    }
+
+    public function getRawPayloadAttribute(): mixed
+    {
+        $summary = is_array($this->payload_summary) ? $this->payload_summary : [];
+
+        return $summary['raw_payload'] ?? null;
+    }
+
+    public function setNormalizedPayloadAttribute(mixed $value): void
+    {
+        $summary = is_array($this->payload_summary) ? $this->payload_summary : [];
+        $summary['normalized_payload'] = $value;
+        $this->payload_summary = $summary;
+    }
+
+    public function getNormalizedPayloadAttribute(): mixed
+    {
+        $summary = is_array($this->payload_summary) ? $this->payload_summary : [];
+
+        return $summary['normalized_payload'] ?? null;
+    }
+
+    public function setDrawDateAttribute(mixed $value): void
+    {
+        $summary = is_array($this->payload_summary) ? $this->payload_summary : [];
+        $summary['draw_date'] = $value;
+        $this->payload_summary = $summary;
+    }
+
+    public function getDrawDateAttribute(): mixed
+    {
+        $summary = is_array($this->payload_summary) ? $this->payload_summary : [];
+
+        return $summary['draw_date'] ?? null;
     }
 
     public function draw(): BelongsTo

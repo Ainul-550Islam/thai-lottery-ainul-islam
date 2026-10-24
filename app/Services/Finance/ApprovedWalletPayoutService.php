@@ -54,7 +54,6 @@ final class ApprovedWalletPayoutService
             $row->processed_at = now();
             $row->save();
             app(PayoutApprovalService::class)->complete($row);
-            app(\App\Services\Prize\PrizeClaimCompletionService::class)->complete($row);
             event(new PrizePayoutCompleted($row, $row->user, CorrelationContext::get()));
 
             return ['result' => 'paid', 'amount' => (string) $row->amount];

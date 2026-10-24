@@ -69,23 +69,10 @@ class ProductionSafetyServiceProvider extends ServiceProvider
         $violations = self::violations();
 
         if ($violations !== []) {
-            $message = "Refusing to boot: unsafe production configuration.\n  - "
-                .implode("\n  - ", $violations);
-
-            // In a console context the useful thing is the list of violations
-            // and a non-zero exit code. Throwing produces the same list buried
-            // in a stack trace, which is what an operator reads at 2am — and a
-            // deploy pipeline greps stdout, not a PHP trace. The violations
-            // themselves are configuration *names*, never values, so they are
-            // safe to print and to keep in a build log.
-            if ($this->app->runningInConsole()) {
-                fwrite(STDERR, PHP_EOL.$message.PHP_EOL.PHP_EOL
-                    .'Nothing was started. Fix the configuration above; this guard has no bypass flag on purpose.'.PHP_EOL);
-
-                exit(2);
-            }
-
-            throw new RuntimeException($message);
+            throw new RuntimeException(
+                "Refusing to boot: unsafe production configuration.\n  - "
+                .implode("\n  - ", $violations)
+            );
         }
     }
 
@@ -162,6 +149,19 @@ class ProductionSafetyServiceProvider extends ServiceProvider
         if (config('glo.sources.fall_through_to_fixture') === true) {
             $violations[] = 'glo.sources.fall_through_to_fixture is true; a failed official GLO fetch would answer with '
                 .'synthetic fixture vectors and publish them.';
+        }
+
+        $gloPriority = config('glo.sources.priority', []);
+        if (is_string($gloPriority)) {
+            $gloPriority = array_filter(array_map('trim', explode(',', $gloPriority)));
+        }
+        if (is_array($gloPriority)) {
+            foreach ($gloPriority as $entry) {
+                if (is_string($entry) && strtolower(trim($entry)) === 'fixture') {
+                    $violations[] = 'glo.sources.priority contains fixture; synthetic fixture vectors must never be in the production GLO priority ladder.';
+                    break;
+                }
+            }
         }
 
         // ── Debug / disclosure ─────────────────────────────────────────────

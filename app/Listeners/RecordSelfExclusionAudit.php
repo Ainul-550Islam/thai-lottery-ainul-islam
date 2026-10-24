@@ -48,7 +48,7 @@ final class RecordSelfExclusionAudit
         $exists = AuditLog::query()
             ->where('auditable_type', SelfExclusion::class)
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_HOURS))
-            ->whereJsonContains('metadata->audit_anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
 
         if ($exists) {
@@ -66,7 +66,7 @@ final class RecordSelfExclusionAudit
                 'status' => $exclusion->status->value,
                 'request_fingerprint' => $exclusion->request_fingerprint,
                 'ends_at' => $exclusion->ends_at->toIso8601String(),
-                'audit_anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'note' => $note,
             ],
         ]);

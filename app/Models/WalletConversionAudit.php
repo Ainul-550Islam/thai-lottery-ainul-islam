@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\WalletConversionChannel;
+use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * One auditable event on the conversion lane — a quote issued, a conversion
@@ -17,19 +19,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class WalletConversionAudit extends Model
 {
+    public $timestamps = false;
+
     protected $table = 'wallet_conversion_audits';
 
     protected $fillable = [
         'wallet_conversion_id',
         'reference',
-        'event',
-        'error_code',
-        'channel',
+        'user_id',
         'actor_user_id',
+        'event',
+        'direction',
+        'channel',
+        'error_code',
+        'message',
+        'checks',
+        'context',
+        'metadata',
         'ip_address',
         'user_agent',
         'request_id',
-        'context',
         'recorded_at',
     ];
 
@@ -40,9 +49,26 @@ class WalletConversionAudit extends Model
     {
         return [
             'channel' => WalletConversionChannel::class,
+            'checks' => 'array',
             'context' => 'array',
+            'metadata' => 'array',
             'recorded_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $audit): void {
+            $audit->recorded_at ??= Carbon::now();
+        });
+
+        static::updating(function (): void {
+            throw new DomainException('Wallet conversion audit records are append-only and cannot be updated.');
+        });
+
+        static::deleting(function (): void {
+            throw new DomainException('Wallet conversion audit records are append-only and cannot be deleted.');
+        });
     }
 
     /**
@@ -58,5 +84,15 @@ class WalletConversionAudit extends Model
     public function conversion(): BelongsTo
     {
         return $this->belongsTo(WalletConversion::class, 'wallet_conversion_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_user_id');
     }
 }

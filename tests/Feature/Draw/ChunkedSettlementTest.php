@@ -25,7 +25,9 @@ use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\RealPrizeSettlementService;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use Tests\Feature\Payment\PaymentTestCase;
+use Tests\Feature\Queue\Concerns\ConfirmsQueueDraw;
 
 /**
  * Chunked real-money settlement.
@@ -54,6 +56,8 @@ use Tests\Feature\Payment\PaymentTestCase;
  */
 final class ChunkedSettlementTest extends PaymentTestCase
 {
+    use ConfirmsQueueDraw;
+
     private function configureSafety(string $mode = 'LIVE', string $autoApproveBelow = '1000000.00'): void
     {
         config([
@@ -104,14 +108,7 @@ final class ChunkedSettlementTest extends PaymentTestCase
             ));
         }
 
-        $lifecycle = app(DrawLifecycleService::class);
-        $draw = $lifecycle->close($draw);
-        $draw = $lifecycle->markResultPending($draw);
-
-        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
-            'first_prize' => '456123',
-            'bottom_two' => '45',
-        ]);
+        $draw = $this->confirmQueueDraw($draw);
 
         return [
             'draw' => $draw->refresh(),
@@ -146,7 +143,7 @@ final class ChunkedSettlementTest extends PaymentTestCase
         // Nothing has been processed, so four bets remain.
         $this->assertSame(4, $orchestrator->remainingBets($run));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('cannot finalize');
 
         $orchestrator->finalize($run);

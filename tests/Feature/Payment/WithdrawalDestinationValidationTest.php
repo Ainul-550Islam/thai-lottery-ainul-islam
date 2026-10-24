@@ -22,6 +22,7 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
         parent::setUp();
 
         Config::set('payment.withdrawal.enabled', true);
+        Config::set('payment.gateways.bank_transfer.enabled', true);
         Config::set('payment.withdrawal.allowed_methods', ['bank_transfer', 'bkash', 'nagad', 'crypto']);
         Config::set('payment.supported_banks', [
             'BBL' => 'Bangkok Bank',

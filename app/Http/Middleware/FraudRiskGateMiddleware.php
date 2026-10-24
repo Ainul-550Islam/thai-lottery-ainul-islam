@@ -11,9 +11,13 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Class FraudRiskGateMiddleware
- *
  * Pre-transaction risk gate applied to high-exposure financial endpoints.
+ *
+ * Supports:
+ * - `fraud.mode = 'observe'`: evaluates risk and attaches `fraud_decision_observed`
+ *   to request attributes without blocking.
+ * - `fraud.mode = 'enforce'` (default): enforces DENY (403), HOLD_FOR_REVIEW (202),
+ *   and STEP_UP (403 unless `step_up_verified` attribute is true).
  */
 class FraudRiskGateMiddleware
 {
@@ -23,13 +27,14 @@ class FraudRiskGateMiddleware
 
     public function handle(Request $request, Closure $next, string $eventType = 'TRANSACTION'): Response
     {
-        $userId = (string) ($request->user()?->id ?? $request->input('user_id', ''));
-        $amount = (string) $request->input('amount', '0.0000');
-        $currency = (string) $request->input('currency', 'THB');
-
-        if ($userId === '') {
+        $user = $request->user();
+        if ($user === null) {
             return $next($request);
         }
+
+        $userId = (string) $user->getAuthIdentifier();
+        $amount = (string) $request->input('amount', $request->input('stake_amount', '0.0000'));
+        $currency = strtoupper((string) $request->input('currency', 'THB'));
 
         $decision = $this->riskEngine->evaluateTransactionRisk(
             eventType: strtoupper($eventType),
@@ -38,10 +43,16 @@ class FraudRiskGateMiddleware
             currency: $currency,
             context: [
                 'client_ip' => $request->ip(),
-                'account_number' => (string) $request->input('account_number', ''),
-                'account_name' => (string) $request->input('account_name', ''),
-            ]
+                'route' => $request->route()?->getName() ?? $request->path(),
+            ],
         );
+
+        $mode = strtolower((string) config('fraud.mode', 'enforce'));
+        if ($mode === 'observe') {
+            $request->attributes->set('fraud_decision_observed', $decision);
+
+            return $next($request);
+        }
 
         if ($decision->decision === FraudDecision::DENY) {
             return response()->json([
@@ -59,6 +70,15 @@ class FraudRiskGateMiddleware
                 'message' => 'Transaction is held for administrative compliance review.',
                 'fraud_alert_id' => $decision->fraudAlertId,
             ], Response::HTTP_ACCEPTED);
+        }
+
+        if ($decision->decision === FraudDecision::STEP_UP && $request->attributes->get('step_up_verified') !== true) {
+            return response()->json([
+                'success' => false,
+                'error' => 'TRANSACTION_STEP_UP_REQUIRED',
+                'message' => 'Step-up multi-factor verification is required for this transaction.',
+                'fraud_alert_id' => $decision->fraudAlertId,
+            ], Response::HTTP_FORBIDDEN);
         }
 
         return $next($request);

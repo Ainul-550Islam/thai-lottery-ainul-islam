@@ -13,6 +13,7 @@ use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 class FraudAlertController extends Controller
@@ -23,7 +24,7 @@ class FraudAlertController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $this->authorize('viewAny', FraudAlert::class);
+        Gate::forUser($request->user())->authorize('viewAny', FraudAlert::class);
 
         $query = FraudAlert::with('cases')->orderBy('created_at', 'desc');
 
@@ -38,10 +39,10 @@ class FraudAlertController extends Controller
         return FraudAlertResource::collection($query->paginate(20));
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         $alert = FraudAlert::with('cases')->findOrFail($id);
-        $this->authorize('view', $alert);
+        Gate::forUser($request->user())->authorize('view', $alert);
 
         return response()->json([
             'success' => true,
@@ -51,6 +52,8 @@ class FraudAlertController extends Controller
 
     public function review(ReviewFraudAlertRequest $request, string $id): JsonResponse
     {
+        Gate::forUser($request->user())->authorize('viewAny', FraudAlert::class);
+
         $reviewerId = (string) $request->user()?->id;
 
         try {

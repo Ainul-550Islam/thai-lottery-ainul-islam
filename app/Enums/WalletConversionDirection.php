@@ -23,6 +23,11 @@ enum WalletConversionDirection: string
         };
     }
 
+    public function labelKey(): string
+    {
+        return 'wallet_conversion.direction_'.$this->value;
+    }
+
     /**
      * The wallet the money leaves.
      */

@@ -314,12 +314,31 @@ final class FinancialStateTransitionService
 
         $this->assertDepositTransition($fresh, $target);
 
+        if (in_array($target, [DepositStatus::Cancelled, DepositStatus::Rejected, DepositStatus::Failed], true)) {
+            $attempt = DB::table(\App\Services\Payment\DepositCheckoutService::TABLE)
+                ->where('deposit_id', $fresh->id)
+                ->lockForUpdate()
+                ->first();
+            $this->assertInsideTransaction('deposit status transition');
+
+            if ($attempt !== null && in_array($attempt->state, ['dispatching', 'unknown', 'response_received'], true)) {
+                throw FinancialException::withCode(
+                    'checkout_outcome_unknown',
+                    'An unresolved checkout reservation cannot be released by a local cancel, review or failure transition.',
+                    ['deposit_id' => (int) $fresh->id, 'checkout_state' => $attempt->state],
+                );
+            }
+        }
+
+        $this->assertInsideTransaction('deposit status transition');
+
         $fresh->status = $target;
 
         foreach ($attributes as $column => $value) {
             $fresh->{$column} = $value;
         }
 
+        $this->assertInsideTransaction('deposit status transition');
         $fresh->save();
 
         return $fresh;
@@ -341,6 +360,7 @@ final class FinancialStateTransitionService
         $fresh = $this->lockWithdrawal($withdrawal);
 
         $this->assertWithdrawalTransition($fresh, $target);
+        $this->assertInsideTransaction('withdrawal status transition');
 
         $fresh->status = $target;
 
@@ -348,6 +368,7 @@ final class FinancialStateTransitionService
             $fresh->{$column} = $value;
         }
 
+        $this->assertInsideTransaction('withdrawal status transition');
         $fresh->save();
 
         return $fresh;
@@ -366,16 +387,10 @@ final class FinancialStateTransitionService
     {
         $this->assertInsideTransaction('deposit row lock');
 
-        $key = $this->keyOf($deposit);
-
-        if ($key === null) {
-            throw FinancialException::withCode(
-                'financial_entity_not_persisted',
-                'An unsaved deposit cannot be locked.',
-            );
-        }
+        $key = FinancialRecordIdentifier::fromModel($deposit, 'financial_entity_not_persisted');
 
         $locked = Deposit::query()->whereKey($key)->lockForUpdate()->first();
+        $this->assertInsideTransaction('deposit row lock');
 
         if (! $locked instanceof Deposit) {
             throw FinancialException::withCode(
@@ -400,16 +415,10 @@ final class FinancialStateTransitionService
     {
         $this->assertInsideTransaction('withdrawal row lock');
 
-        $key = $this->keyOf($withdrawal);
-
-        if ($key === null) {
-            throw FinancialException::withCode(
-                'financial_entity_not_persisted',
-                'An unsaved withdrawal cannot be locked.',
-            );
-        }
+        $key = FinancialRecordIdentifier::fromModel($withdrawal, 'financial_entity_not_persisted');
 
         $locked = Withdrawal::query()->whereKey($key)->lockForUpdate()->first();
+        $this->assertInsideTransaction('withdrawal row lock');
 
         if (! $locked instanceof Withdrawal) {
             throw FinancialException::withCode(
@@ -423,11 +432,36 @@ final class FinancialStateTransitionService
     }
 
     /**
+     * Re-read a financial transaction with `FOR UPDATE`.
+     *
+     * @throws FinancialException
+     */
+    public function lockFinancialTransaction(FinancialTransaction $transaction): FinancialTransaction
+    {
+        $this->assertInsideTransaction('financial transaction row lock');
+
+        $key = FinancialRecordIdentifier::fromModel($transaction, 'financial_entity_not_persisted');
+
+        $locked = FinancialTransaction::query()->whereKey($key)->lockForUpdate()->first();
+        $this->assertInsideTransaction('financial transaction row lock');
+
+        if (! $locked instanceof FinancialTransaction) {
+            throw FinancialException::withCode(
+                'financial_entity_missing',
+                sprintf('Financial transaction %d no longer exists.', $key),
+                ['transaction_id' => $key],
+            );
+        }
+
+        return $locked;
+    }
+
+    /**
      * Whether a database transaction is currently open.
      */
     public function insideTransaction(): bool
     {
-        return DB::transactionLevel() > 0;
+        return app(WalletLockService::class)->insideTransaction();
     }
 
     /**

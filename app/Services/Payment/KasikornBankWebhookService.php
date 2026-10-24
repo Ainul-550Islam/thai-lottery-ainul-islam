@@ -66,11 +66,16 @@ class KasikornBankWebhookService
             throw new InvalidArgumentException('Invalid KBank signature.');
         }
 
-        $transRef = (string) ($payload['tx_id'] ?? $payload['transaction_no'] ?? '');
-        $amount = number_format((float) ($payload['amount'] ?? 0), 4, '.', '');
-        $userId = (string) ($payload['customer_id'] ?? $payload['reference_1'] ?? '');
+        $transRef = trim((string) ($payload['tx_id'] ?? $payload['transaction_no'] ?? ''));
+        $rawAmount = $payload['amount'] ?? null;
+        $amount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($rawAmount, 4, 'kbank.amount');
+        $currency = strtoupper(trim((string) ($payload['currency'] ?? 'THB')));
+        if ($currency !== 'THB') {
+            throw new InvalidArgumentException("Unsupported KBank payment currency [{$currency}].");
+        }
+        $userId = trim((string) ($payload['customer_id'] ?? $payload['reference_1'] ?? ''));
 
-        if (empty($transRef) || empty($userId) || bccomp($amount, '0.0000', 4) <= 0) {
+        if ($transRef === '' || $userId === '') {
             throw new InvalidArgumentException('Invalid KBank payment payload parameters.');
         }
 
@@ -103,7 +108,7 @@ class KasikornBankWebhookService
                 gatewayReferenceId: $transRef,
                 currency: 'THB',
                 feeAmount: '0.0000',
-                rawPayload: $payload
+                rawPayload: PaymentLogSanitizer::sanitize($payload),
             );
 
             return [
@@ -113,7 +118,7 @@ class KasikornBankWebhookService
                 'trans_ref' => $transRef,
             ];
         } finally {
-            $this->lockService->releaseLock($lock);
+            $this->lockService->releaseLock($lockKey, $lock);
         }
     }
 }

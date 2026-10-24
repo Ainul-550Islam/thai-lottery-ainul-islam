@@ -11,51 +11,13 @@ use App\Exceptions\FinancialException;
 use App\Models\Deposit;
 use App\Models\FinancialTransaction;
 use App\Models\Wallet;
+use App\Services\Payment\DepositProviderAccountService;
+use App\Services\Payment\FinancialProviderReferenceService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
  * The only place a deposit is turned into wallet balance.
- *
- * THE TWO FAILURES THIS CLASS EXISTS TO PREVENT
- * ---------------------------------------------
- * 1. "Deposit confirmed but wallet not credited."
- *    Impossible, because the credit and the status change happen inside ONE
- *    database transaction. The status is only written after the finance engine has
- *    returned a persisted financial transaction, and if the status write fails the
- *    credit is rolled back with it. There is no code path that marks a deposit
- *    confirmed without a linked transaction id.
- *
- * 2. "Wallet credited twice."
- *    Prevented three times over:
- *      a. The DEPOSIT row is taken with `FOR UPDATE`, so two callers cannot both
- *         see a completable status.
- *      b. A deposit that is already confirmed, or already carries a
- *         financial_transaction_id, is never credited again - it is reported as a
- *         replay.
- *      c. The credit is keyed by an idempotency key DERIVED FROM THE DEPOSIT ID.
- *         `financial_transactions.idempotency_key` is UNIQUE, so even if every
- *         application-level check were bypassed, the second credit attempt resolves
- *         to the first transaction instead of inserting a new one. This is the
- *         guarantee that does not depend on getting the locking right.
- *
- * WHICH AMOUNT REACHES THE WALLET
- * `net_amount`, which the audited migration defines as "the amount that reaches
- * the wallet after the fee". With the audited default fee of 0.00 percent,
- * net_amount equals amount, so a 100.00 deposit credits exactly 100.00. The value
- * is read from the stored column rather than recomputed, so a later fee change
- * cannot retroactively alter a settled deposit.
- *
- * NO MANUAL LEDGER INSERTION. This class never touches `ledger_entries`. It calls
- * WalletService::credit(), which delegates to FinancialTransactionService, which is
- * the only thing in the codebase that posts through LedgerPostingService. So the
- * double entry is guaranteed to be balanced by the engine, not by this file.
- *
- * NO PAYMENT GATEWAY. Completion here is an internal settlement step. It calls no
- * provider, verifies no signature and holds no credential. Wiring a real provider
- * callback into this method belongs to a later phase.
- *
- * LOCK ORDER: WALLET -> FINANCIAL ENTITY -> LEDGER ACCOUNTS.
  */
 final class DepositCompletionService
 {
@@ -72,11 +34,6 @@ final class DepositCompletionService
     /**
      * Settle an approved deposit into the wallet.
      *
-     * Idempotent by design: calling it again on an already-confirmed deposit
-     * returns the original transaction with credited = false and replayed = true,
-     * and moves no money. That is what makes a retried provider callback or a
-     * re-run command safe.
-     *
      * @param  array<string, mixed>  $options  description, metadata, provider, provider_reference
      * @return array{deposit: Deposit, transaction: FinancialTransaction, wallet: Wallet, credited: bool, replayed: bool, amount: string}
      *
@@ -90,29 +47,31 @@ final class DepositCompletionService
         return $this->withinTransaction(function () use ($deposit, $idempotencyKey, $options): array {
             // 1. WALLET lock first.
             $wallet = $this->locks->lock((int) $deposit->wallet_id);
+
+            // 2. Player mutex second.
             app(DepositAdmission::class)->lockPlayer($wallet);
 
-            // 2. FINANCIAL ENTITY lock second.
+            // 3. FINANCIAL ENTITY lock third.
             $current = $this->transitions->lockDeposit($deposit);
 
             $this->assertWalletMatches($current, $wallet);
+
             $guard = app(DepositIntegrityGuard::class);
             $guard->assertTerms($current, $wallet);
-            $scope = app(\App\Services\Payment\DepositProviderAccountService::class)->assertActive($current);
 
-            // Already settled: report the replay, credit nothing.
-            if ($current->status === DepositStatus::Confirmed) {
-                $replay = $this->replayResult($current, $wallet);
-                $guard->assertProof($current, $wallet, $replay['transaction'], $this->idempotencyKeyFor($current));
-
-                return $replay;
+            $canonicalKey = $this->idempotencyKeyFor($current);
+            if ($idempotencyKey !== null && $this->idempotency->normaliseKey($idempotencyKey) !== $canonicalKey) {
+                $guard->refuse();
             }
 
-            // Credited but not yet marked - only reachable if a process died between
-            // two statements of an earlier attempt. Finish the bookkeeping using the
-            // transaction that already exists. No second credit.
+            // Already settled: report the replay after verifying canonical proof, credit nothing.
+            if ($current->status === DepositStatus::Confirmed) {
+                return $this->replayResult($current, $wallet, $options);
+            }
+
+            // Credited but not yet marked.
             if ($current->financial_transaction_id !== null) {
-                return $this->healUnmarkedDeposit($current, $wallet);
+                return $this->healUnmarkedDeposit($current, $wallet, $options);
             }
 
             if (! $current->status->canComplete()) {
@@ -120,38 +79,27 @@ final class DepositCompletionService
             }
 
             $this->assertWalletCanReceive($current, $wallet);
+            app(DepositAdmission::class)->assertAllowed($wallet, (string) $current->amount, (int) $current->getKey());
 
-            $candidateRef = array_key_exists('provider_reference', $options) ? $options['provider_reference'] : $current->provider_reference;
-            $provider = $this->stringOption($options, 'provider') ?? $current->provider;
-            if ($candidateRef !== null || array_key_exists('provider_reference', $options)) {
-                [$canonicalProvider, $verifiedRef] = $guard->reference($current, $options);
-                $boundPayment = $guard->payment($current, $canonicalProvider, $verifiedRef);
-                app(\App\Services\Payment\FinancialProviderReferenceService::class)->bind($current, $canonicalProvider, $scope, $verifiedRef, $boundPayment);
-                $provider = $canonicalProvider;
-                $candidateRef = $verifiedRef;
-            }
+            [$provider, $reference] = $guard->reference($current, $options);
+            $scope = app(DepositProviderAccountService::class)->assertActive($current);
+            $payment = $guard->payment($current, $provider, $reference, true);
+            app(FinancialProviderReferenceService::class)->bind($current, $provider, $scope, $reference, $payment);
 
             $amount = $this->creditableAmount($current);
-            $key = $idempotencyKey ?? $this->idempotencyKeyFor($current);
 
-            if ($key !== $this->idempotencyKeyFor($current)) {
-                $guard->refuse();
-            }
-
-            // 3. The finance engine posts the balanced double entry and moves the
-            //    balance. Nothing in this file writes a ledger row or a balance.
             $transaction = $this->wallets->credit(
                 wallet: $wallet,
                 amount: $amount,
                 type: FinancialTransactionType::Deposit,
-                idempotencyKey: $key,
+                idempotencyKey: $canonicalKey,
                 options: [
                     'description' => isset($options['description']) && is_string($options['description'])
                         ? $options['description']
                         : sprintf('Deposit %s settled', $current->reference_number),
                     'reference_type' => Deposit::class,
                     'reference_id' => (int) $current->getKey(),
-                    'metadata' => array_merge(
+                    'metadata' => array_replace(
                         isset($options['metadata']) && is_array($options['metadata']) ? $options['metadata'] : [],
                         [
                             'deposit_id' => (int) $current->getKey(),
@@ -163,12 +111,13 @@ final class DepositCompletionService
                 ],
             );
 
-            // 4. Only now is the deposit marked, in the same transaction.
+            $guard->assertProof($current, $wallet, $transaction, $canonicalKey);
+
             $confirmed = $this->transitions->transitionDeposit($current, DepositStatus::Confirmed, [
                 'financial_transaction_id' => (int) $transaction->getKey(),
                 'confirmed_at' => Carbon::now(),
                 'provider' => $provider,
-                'provider_reference' => $candidateRef ?? $current->provider_reference,
+                'provider_reference' => $reference,
                 'metadata' => $this->mergeMetadata($current, [
                     'completed_at' => Carbon::now()->toIso8601String(),
                     'credited_amount' => $amount->toString(),
@@ -179,7 +128,6 @@ final class DepositCompletionService
             $freshWallet = $this->locks->relock($wallet);
 
             $this->assertCredited($confirmed);
-            $guard->assertProof($confirmed, $freshWallet, $transaction, $key);
 
             return [
                 'deposit' => $confirmed,
@@ -192,22 +140,58 @@ final class DepositCompletionService
         });
     }
 
-    public function verifySettled(Deposit $deposit): void
+    /**
+     * Prove that a confirmed deposit has intact original terms, provider binding,
+     * and a balanced canonical financial transaction.
+     *
+     * @param  array<string, mixed>  $options
+     *
+     * @throws FinancialException
+     */
+    public function verifySettled(Deposit $row, array $options = []): FinancialTransaction
     {
-        $this->withinTransaction(function () use ($deposit): void {
-            $wallet = $this->locks->lock((int) $deposit->wallet_id);
-            $current = $this->transitions->lockDeposit($deposit);
-            $tx = $this->existingTransactionFor($current);
-            if ($current->status !== DepositStatus::Confirmed || ! $tx instanceof FinancialTransaction) {
-                app(DepositIntegrityGuard::class)->refuse();
-            }
-            app(DepositIntegrityGuard::class)->assertProof($current, $wallet, $tx, $this->idempotencyKeyFor($current));
-        });
+        $guard = app(DepositIntegrityGuard::class);
+        $lock = DB::transactionLevel() > 0;
+
+        /** @var Wallet|null $wallet */
+        $wallet = Wallet::withTrashed()
+            ->when($lock, static fn ($q) => $q->lockForUpdate())
+            ->find($row->wallet_id);
+
+        /** @var Deposit|null $current */
+        $current = Deposit::withTrashed()
+            ->when($lock, static fn ($q) => $q->lockForUpdate())
+            ->find($row->id);
+
+        if (! $wallet instanceof Wallet
+            || ! $current instanceof Deposit
+            || $current->status !== DepositStatus::Confirmed
+            || $current->confirmed_at === null
+            || $current->financial_transaction_id === null) {
+            $guard->refuse();
+        }
+
+        $this->assertWalletMatches($current, $wallet);
+        [$provider, $reference] = $guard->reference($current, $options);
+        $scope = app(DepositProviderAccountService::class)->stored($current);
+        $payment = $guard->payment($current, $provider, $reference, $lock);
+        app(FinancialProviderReferenceService::class)->assertBound($current, $provider, $scope, $reference, $payment);
+
+        /** @var FinancialTransaction|null $tx */
+        $tx = FinancialTransaction::withTrashed()
+            ->when($lock, static fn ($q) => $q->lockForUpdate())
+            ->find($current->financial_transaction_id);
+
+        if (! $tx instanceof FinancialTransaction) {
+            $guard->refuse();
+        }
+
+        $guard->assertProof($current, $wallet, $tx, $this->idempotencyKeyFor($current));
+
+        return $tx;
     }
 
     /**
-     * The amount that reaches the wallet: the stored net amount.
-     *
      * @throws DepositException
      */
     public function creditableAmount(Deposit $deposit): Money
@@ -225,13 +209,6 @@ final class DepositCompletionService
         return $net;
     }
 
-    /**
-     * The deterministic credit key for a deposit.
-     *
-     * Derived from the deposit id alone, so every completion attempt for one
-     * deposit produces the same key and therefore at most one credit transaction
-     * for the lifetime of that deposit.
-     */
     public function idempotencyKeyFor(Deposit $deposit): string
     {
         return $this->idempotency->deterministicKey(
@@ -240,9 +217,6 @@ final class DepositCompletionService
         );
     }
 
-    /**
-     * The credit transaction for a deposit, if one exists.
-     */
     public function existingTransactionFor(Deposit $deposit): ?FinancialTransaction
     {
         if ($deposit->financial_transaction_id !== null) {
@@ -252,42 +226,25 @@ final class DepositCompletionService
         return $this->idempotency->existingFor($this->idempotencyKeyFor($deposit));
     }
 
-    /**
-     * Whether the deposit may be settled right now, without throwing.
-     */
     public function canComplete(Deposit $deposit): bool
     {
         return $deposit->status->canComplete() && $deposit->financial_transaction_id === null;
     }
 
-    /**
-     * Whether the deposit has already been settled.
-     */
     public function isSettled(Deposit $deposit): bool
     {
         return $deposit->status === DepositStatus::Confirmed && $deposit->financial_transaction_id !== null;
     }
 
     /**
-     * Report an already-settled deposit without moving money.
-     *
+     * @param  array<string, mixed>  $options
      * @return array{deposit: Deposit, transaction: FinancialTransaction, wallet: Wallet, credited: bool, replayed: bool, amount: string}
      *
-     * @throws DepositException
+     * @throws FinancialException
      */
-    private function replayResult(Deposit $deposit, Wallet $wallet): array
+    private function replayResult(Deposit $deposit, Wallet $wallet, array $options = []): array
     {
-        $transaction = $this->existingTransactionFor($deposit);
-
-        if (! $transaction instanceof FinancialTransaction) {
-            // Confirmed with no transaction anywhere is the one state this design
-            // must never produce. Refuse loudly instead of crediting to "fix" it,
-            // because crediting here would be indistinguishable from a double credit.
-            throw DepositException::inconsistentState(
-                (int) $deposit->getKey(),
-                'the deposit is confirmed but no financial transaction exists for it',
-            );
-        }
+        $transaction = $this->verifySettled($deposit, $options);
 
         return [
             'deposit' => $deposit,
@@ -300,38 +257,38 @@ final class DepositCompletionService
     }
 
     /**
-     * Finish the bookkeeping for a deposit whose credit exists but whose status was
-     * never written. Credits nothing.
-     *
+     * @param  array<string, mixed>  $options
      * @return array{deposit: Deposit, transaction: FinancialTransaction, wallet: Wallet, credited: bool, replayed: bool, amount: string}
      *
      * @throws DepositException
      * @throws FinancialException
      */
-    private function healUnmarkedDeposit(Deposit $deposit, Wallet $wallet): array
+    private function healUnmarkedDeposit(Deposit $deposit, Wallet $wallet, array $options = []): array
     {
-        $transaction = FinancialTransaction::query()->whereKey($deposit->financial_transaction_id)->first();
+        $guard = app(DepositIntegrityGuard::class);
+
+        /** @var FinancialTransaction|null $transaction */
+        $transaction = FinancialTransaction::withTrashed()->lockForUpdate()->find($deposit->financial_transaction_id);
 
         if (! $transaction instanceof FinancialTransaction) {
-            throw DepositException::inconsistentState(
-                (int) $deposit->getKey(),
-                'the deposit points at a financial transaction that does not exist',
-            );
+            $guard->refuse();
         }
+
+        $guard->assertProof($deposit, $wallet, $transaction, $this->idempotencyKeyFor($deposit));
+
+        [$provider, $reference] = $guard->reference($deposit, $options);
+        $scope = app(DepositProviderAccountService::class)->stored($deposit);
+        $payment = $guard->payment($deposit, $provider, $reference, true);
+        app(FinancialProviderReferenceService::class)->assertBound($deposit, $provider, $scope, $reference, $payment);
 
         if (! $deposit->status->canTransitionTo(DepositStatus::Confirmed)) {
             throw DepositException::notCompletable($deposit->id, $deposit->status);
         }
 
-        app(DepositIntegrityGuard::class)->assertProof(
-            $deposit,
-            $wallet,
-            $transaction,
-            $this->idempotencyKeyFor($deposit),
-        );
-
         $confirmed = $this->transitions->transitionDeposit($deposit, DepositStatus::Confirmed, [
             'confirmed_at' => $deposit->confirmed_at ?? Carbon::now(),
+            'provider' => $provider,
+            'provider_reference' => $reference,
             'metadata' => $this->mergeMetadata($deposit, [
                 'reconciled_at' => Carbon::now()->toIso8601String(),
                 'reconciliation_note' => 'Status completed from an existing credit transaction; no new credit was made.',
@@ -349,8 +306,6 @@ final class DepositCompletionService
     }
 
     /**
-     * A confirmed deposit must always carry its transaction link and timestamp.
-     *
      * @throws DepositException
      */
     private function assertCredited(Deposit $deposit): void
@@ -410,22 +365,8 @@ final class DepositCompletionService
         return array_merge($existing, $additions);
     }
 
-    /**
-     * @param  array<string, mixed>  $options
-     */
-    private function stringOption(array $options, string $key): ?string
-    {
-        return isset($options[$key]) && is_string($options[$key]) && $options[$key] !== ''
-            ? $options[$key]
-            : null;
-    }
-
     private function withinTransaction(\Closure $callback): mixed
     {
-        if (DB::transactionLevel() > 0) {
-            return $callback();
-        }
-
-        return DB::transaction($callback);
+        return $this->locks->withinTransaction($callback);
     }
 }

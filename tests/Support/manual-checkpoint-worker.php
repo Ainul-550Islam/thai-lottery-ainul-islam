@@ -23,7 +23,7 @@ try {
         || ! is_string($input['ready'] ?? null) || ! is_string($input['release'] ?? null)
         || ! is_string($input['token'] ?? null) || preg_match('/^[a-f0-9]{32}$/D', $input['token']) !== 1
         || is_file($root.'/bootstrap/cache/config.php')) {
-        throw new \RuntimeException('MANUAL_CHECKPOINT_PROBE_REFUSED');
+        throw new RuntimeException('MANUAL_CHECKPOINT_PROBE_REFUSED');
     }
 
     $temporary = realpath(sys_get_temp_dir());
@@ -34,7 +34,7 @@ try {
         || preg_match('/^manual-checkpoint-[a-zA-Z0-9]+$/D', basename($release)) !== 1
         || preg_match('/^'.preg_quote(basename($release), '/').'-ready-[01]$/D', basename($ready)) !== 1
         || is_link($ready) || is_link($release)) {
-        throw new \RuntimeException('MANUAL_CHECKPOINT_BARRIER_REFUSED');
+        throw new RuntimeException('MANUAL_CHECKPOINT_BARRIER_REFUSED');
     }
 
     require $root.'/vendor/autoload.php';
@@ -53,14 +53,14 @@ try {
     }
 
     if (file_put_contents($ready, $input['token'], LOCK_EX) === false) {
-        throw new \RuntimeException('MANUAL_CHECKPOINT_READY_FAILED');
+        throw new RuntimeException('MANUAL_CHECKPOINT_READY_FAILED');
     }
     chmod($ready, 0600);
     $deadline = microtime(true) + 15;
 
     while (! is_file($release) || file_get_contents($release) !== $input['token']) {
         if (microtime(true) >= $deadline) {
-            throw new \RuntimeException('MANUAL_CHECKPOINT_BARRIER_EXPIRED');
+            throw new RuntimeException('MANUAL_CHECKPOINT_BARRIER_EXPIRED');
         }
         usleep(1000);
     }

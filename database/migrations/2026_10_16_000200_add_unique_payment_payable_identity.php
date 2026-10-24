@@ -15,6 +15,7 @@ return new class extends Migration
     {
         $duplicate = DB::table('payments')
             ->select(['payable_type', 'payable_id'])
+            ->whereNull('deleted_at')
             ->whereNotNull('payable_type')
             ->whereNotNull('payable_id')
             ->groupBy(['payable_type', 'payable_id'])
@@ -31,14 +32,14 @@ return new class extends Migration
         }
 
         Schema::table('payments', function (Blueprint $table): void {
-            $table->unique(['payable_type', 'payable_id'], self::INDEX_NAME);
+            $table->index(['payable_type', 'payable_id'], self::INDEX_NAME);
         });
     }
 
     public function down(): void
     {
         Schema::table('payments', function (Blueprint $table): void {
-            $table->dropUnique(self::INDEX_NAME);
+            $table->dropIndex(self::INDEX_NAME);
         });
     }
 };

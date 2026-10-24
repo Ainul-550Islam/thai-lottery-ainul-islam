@@ -229,11 +229,16 @@ final class Batch7ApiSurfaceTest extends TestCase
 
     public function test_maker_checker_publish_flow_end_to_end(): void
     {
-        $draw = Draw::factory()->create(['status' => \App\Enums\DrawStatus::Closed]);
+        $draw = Draw::factory()->create([
+            'status' => \App\Enums\DrawStatus::Closed,
+            'scheduled_at' => now()->subMinutes(15),
+            'closed_at' => now()->subMinutes(20),
+        ]);
         app(\App\Services\Draw\DrawLifecycleService::class)->markResultPending($draw);
 
         $staged = $this->apiAs($this->adminToken, 'POST', '/api/v1/draws/'.$draw->id.'/result/ingest', [
                 'first_prize' => '123456',
+                'bottom_two' => '42',
                 'source' => 'manual',
             ]);
         $staged->assertStatus(201);
@@ -245,6 +250,7 @@ final class Batch7ApiSurfaceTest extends TestCase
         // A checker (a different operator) confirms.
         $confirmed = $this->apiAs($this->admin2Token, 'POST', '/api/v1/draws/'.$draw->id.'/result/confirm', [
                 'first_prize' => '123456',
+                'bottom_two' => '42',
                 'notes' => 'Verified against the physical announcement sheet.',
             ]);
         $confirmed->assertStatus(200);
@@ -403,6 +409,7 @@ final class Batch7ApiSurfaceTest extends TestCase
     {
         $draw = Draw::factory()->create(['status' => \App\Enums\DrawStatus::ResultPublished]);
         $draw->completed_at = now();
+        $draw->save();
 
         $bet = new Bet();
         $bet->forceFill([

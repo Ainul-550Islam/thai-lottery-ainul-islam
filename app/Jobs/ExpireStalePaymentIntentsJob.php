@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentTransactionStatus;
+use App\Enums\QueueName;
 use App\Models\Payment;
 use App\Models\PaymentIntent;
 use App\Services\Payment\PaymentIntentService;
@@ -34,7 +35,7 @@ final class ExpireStalePaymentIntentsJob implements ShouldQueue
 
     public function __construct()
     {
-        $this->onQueue('finance-reconciliation');
+        $this->onQueue(QueueName::Reconciliation->value);
     }
 
     public function handle(PaymentIntentService $intents): void

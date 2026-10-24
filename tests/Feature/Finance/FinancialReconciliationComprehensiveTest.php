@@ -497,16 +497,20 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
     public function test_15_reversal_uses_compensating_transaction(): void
     {
         $player = $this->createReconciledPlayer('500.00', Currency::THB);
-        $deposit = Deposit::where('wallet_id', $player['wallet']->id)->firstOrFail();
+        $originalTx = app(WalletService::class)->credit(
+            $player['wallet']->fresh(),
+            Money::of('200.00', Currency::THB),
+            FinancialTransactionType::Deposit,
+            'recon-unmanaged-credit-15'
+        );
 
-        $originalTx = FinancialTransaction::find($deposit->financial_transaction_id);
-
-        // Execute compensating reversal
-        $reversalTx = $this->reversalService->reverse($originalTx, 1, null, 'Customer chargeback');
+        // Execute compensating reversal on the unmanaged wallet credit
+        $reversalTx = $this->reversalService->reverse($originalTx, 1, null, 'Synthetic credit reversal');
 
         $this->assertSame(TransactionStatus::Reversed, $originalTx->fresh()->status);
         $this->assertSame(TransactionStatus::Completed, $reversalTx->status);
         $this->assertSame(FinancialTransactionType::Reversal->toTransactionType(), $reversalTx->type);
+        $this->assertSame('500.00', (string) $player['wallet']->fresh()->balance);
 
         // Reconciliation of balanced reversal must pass
         $report = $this->reconciliationService->reconcile();

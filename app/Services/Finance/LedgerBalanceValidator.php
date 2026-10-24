@@ -8,6 +8,7 @@ use App\Enums\Currency;
 use App\Enums\LedgerEntryType;
 use App\Exceptions\FinancialException;
 use App\Models\FinancialTransaction;
+use App\Models\LedgerEntry;
 
 /**
  * Guards the fundamental accounting invariant: SUM(debits) === SUM(credits).
@@ -169,13 +170,14 @@ final class LedgerBalanceValidator
     public function assertTransactionBalanced(FinancialTransaction $transaction): void
     {
         Money::assertExactArithmeticIsAvailable();
+        $transactionId = FinancialRecordIdentifier::fromModel($transaction, 'financial_entity_not_persisted');
 
         $currency = $transaction->currency;
         $debit = Money::zero($currency);
         $credit = Money::zero($currency);
         $count = 0;
 
-        foreach ($transaction->ledgerEntries()->get() as $entry) {
+        foreach (LedgerEntry::query()->where('financial_transaction_id', $transactionId)->get() as $entry) {
             $count++;
             $amount = Money::fromDatabase((string) $entry->amount, $currency);
 
@@ -192,9 +194,9 @@ final class LedgerBalanceValidator
                 sprintf(
                     'Financial transaction %d has no ledger entries; a money movement '
                     .'without a double-entry posting is not permitted.',
-                    (int) $transaction->getKey(),
+                    $transactionId,
                 ),
-                ['transaction_id' => (int) $transaction->getKey()],
+                ['transaction_id' => $transactionId],
             );
         }
 

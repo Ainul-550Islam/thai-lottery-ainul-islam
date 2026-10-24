@@ -20,7 +20,10 @@ use Illuminate\Support\Facades\Cache;
  */
 class GloPublicPrizeSummaryService
 {
-    public function __construct(private readonly GloPrizeCatalogue $catalogue) {}
+    public function __construct(
+        private readonly GloPrizeCatalogue $catalogue,
+        private readonly GloPublicResultService $publicResults,
+    ) {}
 
     /**
      * @return array{
@@ -61,7 +64,7 @@ class GloPublicPrizeSummaryService
                         'fixture_sample' => false,
                         'message' => $first === null
                             ? 'Prize summary unavailable'
-                            : 'Official prize schedule; no published result yet.',
+                            : 'Configured prize schedule; no published result is associated with it.',
                     ];
                 }
 
@@ -78,28 +81,27 @@ class GloPublicPrizeSummaryService
                         'draw_date' => $draw->scheduled_at?->toDateString(),
                         'source_state' => GloSourceState::Unavailable->value,
                         'fixture_sample' => false,
-                        'message' => 'No verified prize summary for the current draw.',
+                        'message' => 'No prize summary is available for the current draw.',
                     ];
                 }
 
-                $meta = is_array($result->metadata) ? $result->metadata : [];
-                $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
-                $provider = (string) ($lane['import_provider'] ?? '');
-                $fixture = $provider === 'fixture';
-                $source = $fixture
-                    ? GloSourceState::FixtureOnly
-                    : GloSourceState::OfficialSourceVerified;
+                // Delegate provenance classification to the same source-state
+                // policy used by public result pages. Unknown/admin/manual
+                // providers must never be promoted to official verification.
+                $source = $this->publicResults->sourceStateFor($result, $draw);
+                $fixture = $source === GloSourceState::FixtureOnly->value;
+                $verified = $source === GloSourceState::OfficialSourceVerified->value;
 
                 return [
-                    'status' => 'VERIFIED',
+                    'status' => $verified ? 'VERIFIED' : 'AVAILABLE',
                     'tier' => $first['tier'],
                     'label' => $first['label'],
                     'amount' => $first['amount'],
                     'draw_number' => (string) $draw->draw_number,
                     'draw_date' => $draw->scheduled_at?->toDateString(),
-                    'source_state' => $source->value,
+                    'source_state' => $source,
                     'fixture_sample' => $fixture,
-                    'message' => null,
+                    'message' => $verified ? null : 'Prize schedule shown; result source status: '.$source.'.',
                 ];
             });
         } catch (\Throwable $e) {

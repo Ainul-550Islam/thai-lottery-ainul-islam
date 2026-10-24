@@ -21,6 +21,7 @@ enum WalletConversionStatus: string
     case Completed = 'completed';
     case Reversed = 'reversed';
     case Failed = 'failed';
+    case Expired = 'expired';
 
     public function label(): string
     {
@@ -31,7 +32,23 @@ enum WalletConversionStatus: string
             self::Completed => 'Completed',
             self::Reversed => 'Reversed',
             self::Failed => 'Failed',
+            self::Expired => 'Expired',
         };
+    }
+
+    public function labelKey(): string
+    {
+        return 'wallet_conversion.status_'.$this->value;
+    }
+
+    public function isSuccessful(): bool
+    {
+        return $this === self::Completed;
+    }
+
+    public function isSettled(): bool
+    {
+        return in_array($this, self::settledStates(), true);
     }
 
     /**
@@ -54,11 +71,16 @@ enum WalletConversionStatus: string
     public function allowedTransitions(): array
     {
         return match ($this) {
-            self::Quoted => [self::Pending, self::Processing, self::Failed],
-            self::Pending => [self::Processing, self::Completed, self::Failed],
+            self::Quoted => [self::Pending, self::Processing, self::Failed, self::Expired],
+            self::Pending => [self::Processing, self::Failed, self::Expired],
             self::Processing => [self::Completed, self::Failed],
             self::Completed => [self::Reversed],
-            self::Reversed, self::Failed => [],
+            self::Reversed, self::Failed, self::Expired => [],
         };
+    }
+
+    public function canTransitionTo(self $next): bool
+    {
+        return in_array($next, $this->allowedTransitions(), true);
     }
 }

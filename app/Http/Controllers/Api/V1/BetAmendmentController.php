@@ -42,9 +42,9 @@ class BetAmendmentController
                 $request->validated(),
             ));
         } catch (BetDomainException $e) {
-            return ApiResponse::error($e->codeKey(), $e->getMessage(), 422);
+            return ApiResponse::error($e->errorCode(), $e->getMessage(), 422);
         } catch (BetPurchaseException $e) {
-            return ApiResponse::error($e->getErrorCode(), $e->getMessage(), 422);
+            return ApiResponse::error($e->errorCode(), $e->getMessage(), 422);
         }
 
         return ApiResponse::success(

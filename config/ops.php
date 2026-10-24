@@ -63,54 +63,6 @@ return [
         // because a health report for a feature that is switched off is noise
         // that looks like a finding.
         'chat_health' => (bool) env('OPS_LANE_CHAT_HEALTH', true),
-
-        // The scheduler's own liveness. This is the one lane whose absence
-        // cannot be detected from any other lane: if the scheduler stops,
-        // nothing else in this file ever runs to say so. `ops:health` fails the
-        // probe when the heartbeat is older than
-        // ops.thresholds.scheduler_heartbeat_minutes.
-        'heartbeat' => (bool) env('OPS_LANE_HEARTBEAT', true),
-
-        // Encrypted database backup. Also its own lane: a backup that is
-        // switched off produces no error anywhere, and the first symptom is a
-        // restore that has nothing to restore.
-        'backup' => (bool) env('OPS_LANE_BACKUP', true),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Monitoring thresholds
-    |--------------------------------------------------------------------------
-    |
-    | Read by `ops:health` (exit codes 0/1/2) so an external monitor can alert
-    | on the command's exit code alone, without parsing output. Values are
-    | deliberately conservative: a degraded signal that fires a little early is
-    | cheap, a critical signal that fires after payouts stopped is not.
-    |
-    */
-    'thresholds' => [
-        'failed_jobs_degraded' => (int) env('OPS_THRESHOLD_FAILED_JOBS', 10),
-        'scheduler_heartbeat_minutes' => (int) env('OPS_THRESHOLD_HEARTBEAT_MINUTES', 10),
-        'backup_age_hours' => (int) env('OPS_THRESHOLD_BACKUP_AGE_HOURS', 26),
-        'disk_free_percent_critical' => (float) env('OPS_THRESHOLD_DISK_FREE_CRITICAL', 5.0),
-        'disk_free_percent_degraded' => (float) env('OPS_THRESHOLD_DISK_FREE_DEGRADED', 15.0),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Backup schedule
-    |--------------------------------------------------------------------------
-    |
-    | `routes/console.php` schedules `backup:execute-encrypted-worm` using these
-    | values. They live in config rather than in the schedule closure so an
-    | operator can move the backup window without editing code (and so the
-    | values appear in a config dump during an incident).
-    |
-    */
-    'backup_schedule' => [
-        'enabled' => (bool) env('OPS_LANE_BACKUP', true),
-        'at' => env('OPS_BACKUP_AT', '02:20'),
-        'timezone' => env('OPS_BACKUP_TIMEZONE'),
     ],
 
 ];

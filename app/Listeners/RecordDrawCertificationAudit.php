@@ -44,7 +44,7 @@ final class RecordDrawCertificationAudit
         $already = AuditLog::query()
             ->where('auditable_type', DrawCertification::class)
             ->where('auditable_id', (int) $certification->getKey())
-            ->where('metadata->anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
 
         if ($already) {
@@ -67,7 +67,7 @@ final class RecordDrawCertificationAudit
                 $event->certifierReference,
             ),
             'metadata' => [
-                'anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'certification_key' => substr($event->certificationKey, 0, 12),
                 'draw_id' => $event->drawId,
                 'draw_reference' => $event->drawReference,

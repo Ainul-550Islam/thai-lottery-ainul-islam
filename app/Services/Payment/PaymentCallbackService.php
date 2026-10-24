@@ -7,26 +7,18 @@ namespace App\Services\Payment;
 use App\DTOs\Payment\PaymentCallbackData;
 use App\DTOs\Payment\PaymentWebhookData;
 use App\Enums\AuditAction;
-use App\Enums\DepositStatus;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
-use App\Enums\PaymentTransactionStatus;
 use App\Enums\RiskLevel;
-use App\Enums\WithdrawalStatus;
 use App\Exceptions\FinancialException;
 use App\Exceptions\PaymentReconciliationException;
 use App\Models\AuditLog;
 use App\Models\Deposit;
-use App\Models\FinancialTransaction;
 use App\Models\Payment;
-use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Finance\DepositCompletionService;
 use App\Services\Finance\DepositIntegrityGuard;
-use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WithdrawalCompletionService;
-use App\Services\Finance\WithdrawalIntegrityGuard;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Payment callback normalization + application.
@@ -39,7 +31,7 @@ final class PaymentCallbackService
     ) {}
 
     /**
-     * READ-ONLY status projection for browser-return pages.
+     * READ-ONLY status projection for browser-return pages (FINAL AUDIT #2).
      *
      * @return array{
      *     found: bool,
@@ -93,24 +85,32 @@ final class PaymentCallbackService
             return ['found' => false, 'reason' => 'reference_not_found'];
         }
 
-        $provenPaid = false;
-        if ($payment->status === PaymentStatus::Captured) {
-            $payable = $payment->payable;
-            $hasBareDepositFixture = $payable instanceof Deposit
-                && (! is_array($payable->metadata) || ! array_key_exists(DepositIntegrityGuard::TERMS_KEY, $payable->metadata))
-                && $payable->financial_transaction_id === null
-                && $payable->status === DepositStatus::Pending;
+        $paid = $payment->status === PaymentStatus::Captured;
 
-            $provenPaid = $hasBareDepositFixture || $this->hasCanonicalSettlementProof($payment);
+        if ($paid && $payment->payable_type === Deposit::class) {
+            $deposit = Deposit::withTrashed()->find($payment->payable_id);
+            if (! $deposit instanceof Deposit) {
+                $paid = false;
+            } elseif (array_key_exists(DepositIntegrityGuard::TERMS_KEY, $deposit->metadata ?? [])) {
+                try {
+                    $this->depositCompletion->verifySettled($deposit);
+                } catch (FinancialException) {
+                    $paid = false;
+                }
+            }
+        } elseif ($paid && $payment->payable_type === Withdrawal::class) {
+            $withdrawal = Withdrawal::withTrashed()->find($payment->payable_id);
+            if (! $withdrawal instanceof Withdrawal || ! $this->withdrawalCompletion->isSettled($withdrawal)) {
+                $paid = false;
+            }
         }
 
-        $state = match (true) {
-            $provenPaid => 'confirmed',
-            $payment->status === PaymentStatus::Captured => 'pending',
-            $payment->status === PaymentStatus::Failed => 'failed',
-            $payment->status === PaymentStatus::Cancelled => 'cancelled',
-            in_array($payment->status, [PaymentStatus::Refunded, PaymentStatus::PartiallyRefunded, PaymentStatus::Disputed], true) => 'updated',
-            default => 'pending',
+        $state = match ($payment->status) {
+            PaymentStatus::Captured => $paid ? 'confirmed' : 'pending',
+            PaymentStatus::Failed => 'failed',
+            PaymentStatus::Cancelled => 'cancelled',
+            PaymentStatus::Refunded, PaymentStatus::PartiallyRefunded, PaymentStatus::Disputed => 'updated',
+            PaymentStatus::Pending, PaymentStatus::Authorized => 'pending',
         };
 
         return [
@@ -119,53 +119,8 @@ final class PaymentCallbackService
             'document_reference' => (is_array($payment->metadata) ? ($payment->metadata['deposit_reference'] ?? $payment->metadata['withdrawal_reference'] ?? null) : null)
                 ?? $payment->reference_number,
             'state' => $state,
-            'paid' => $provenPaid,
+            'paid' => $paid,
         ];
-    }
-
-    private function hasCanonicalSettlementProof(Payment $payment): bool
-    {
-        try {
-            $payable = $payment->payable;
-            if ($payable instanceof Deposit) {
-                $wallet = Wallet::query()->find($payable->wallet_id);
-                $tx = $payable->financial_transaction_id !== null
-                    ? FinancialTransaction::query()->find($payable->financial_transaction_id)
-                    : null;
-                if (! $wallet instanceof Wallet || ! $tx instanceof FinancialTransaction || $payable->status !== DepositStatus::Confirmed) {
-                    return false;
-                }
-                app(DepositIntegrityGuard::class)->assertProof(
-                    $payable,
-                    $wallet,
-                    $tx,
-                    $this->depositCompletion->idempotencyKeyFor($payable),
-                );
-
-                return true;
-            }
-            if ($payable instanceof Withdrawal) {
-                $wallet = Wallet::query()->find($payable->wallet_id);
-                $tx = $payable->financial_transaction_id !== null
-                    ? FinancialTransaction::query()->find($payable->financial_transaction_id)
-                    : null;
-                if (! $wallet instanceof Wallet || ! $tx instanceof FinancialTransaction || $payable->status !== WithdrawalStatus::Completed) {
-                    return false;
-                }
-                app(WithdrawalIntegrityGuard::class)->assertProof(
-                    $payable,
-                    $wallet,
-                    $tx,
-                    $this->withdrawalCompletion->idempotencyKeyFor($payable),
-                );
-
-                return true;
-            }
-        } catch (\Throwable) {
-            return false;
-        }
-
-        return false;
     }
 
     private static function safeReference(?string $reference): ?string
@@ -180,6 +135,8 @@ final class PaymentCallbackService
     }
 
     /**
+     * Normalize a verified provider payload into a callback fact-set.
+     *
      * @throws PaymentReconciliationException
      */
     public function normalizeFromPayload(string $providerCode, array $payload): PaymentCallbackData
@@ -225,151 +182,62 @@ final class PaymentCallbackService
     }
 
     /**
+     * Apply a normalized, verified callback to internal state.
+     *
      * @return array{payment: Payment, replayed: bool, applied_at: ?string}
      *
      * @throws PaymentReconciliationException
      */
     public function apply(PaymentCallbackData $callback): array
     {
-        /** @var Payment|null $payment */
-        $payment = Payment::withTrashed()
+        $rows = Payment::withTrashed()
             ->where('gateway', strtolower($callback->providerCode))
             ->where('gateway_reference', $callback->externalReference)
-            ->first();
+            ->limit(2)
+            ->get();
 
-        if (! $payment instanceof Payment) {
+        if ($rows->count() !== 1 || $rows->first()->trashed()) {
             throw PaymentReconciliationException::missingTransaction($callback->providerCode, $callback->externalReference);
         }
 
-        if ($payment->trashed()) {
-            throw FinancialException::withCode('deposit_original_evidence_conflict', 'Soft-deleted payment record cannot authorize callback completion.');
+        /** @var Payment $payment */
+        $payment = $rows->first();
+
+        if (bccomp(self::moneyOf((string) $payment->amount), self::moneyOf($callback->amount), 2) !== 0) {
+            throw PaymentReconciliationException::amountMismatch(
+                $callback->externalReference,
+                self::moneyOf((string) $payment->amount),
+                self::moneyOf($callback->amount),
+                ($payment->currency instanceof \BackedEnum ? (string) $payment->currency->value : (string) $payment->currency),
+            );
+        }
+
+        if (strtoupper(($payment->currency instanceof \BackedEnum ? (string) $payment->currency->value : (string) $payment->currency)) !== $callback->currency) {
+            throw PaymentReconciliationException::malformed(
+                sprintf('currency fork: paper speaks %s, callback speaks %s', ($payment->currency instanceof \BackedEnum ? (string) $payment->currency->value : (string) $payment->currency), $callback->currency),
+                ['reference' => $callback->externalReference],
+            );
         }
 
         if ($payment->payable_type === Deposit::class) {
-            $applied = app(DepositCallbackApplicationService::class)->apply($callback, $payment);
-            if (! $applied['replayed']) {
-                $this->recordAudit($applied['payment'], sprintf(
-                    'Callback applied: [%s/%s] → %s',
-                    $callback->providerCode,
-                    $callback->externalReference,
-                    $callback->providerStatus->value,
-                ), RiskLevel::High);
-            }
-
-            return $applied;
+            $out = app(DepositCallbackApplicationService::class)->apply($callback, $payment);
+        } elseif ($payment->payable_type === Withdrawal::class) {
+            $out = app(WithdrawalCallbackApplicationService::class)->apply($callback, $payment);
+        } else {
+            throw PaymentReconciliationException::missingTransaction($callback->providerCode, $callback->externalReference);
         }
 
-        if ($payment->payable_type === Withdrawal::class) {
-            $applied = app(WithdrawalCallbackApplicationService::class)->apply($callback, $payment);
-            if (! $applied['replayed']) {
-                $this->recordAudit($applied['payment'], sprintf(
-                    'Callback applied: [%s/%s] → %s',
-                    $callback->providerCode,
-                    $callback->externalReference,
-                    $callback->providerStatus->value,
-                ), RiskLevel::High);
-            }
-
-            return $applied;
-        }
-
-        return DB::transaction(function () use ($callback): array {
-            /** @var Payment|null $payment */
-            $payment = Payment::withTrashed()
-                ->lockForUpdate()
-                ->where('gateway', strtolower($callback->providerCode))
-                ->where('gateway_reference', $callback->externalReference)
-                ->first();
-
-            if (! $payment instanceof Payment) {
-                throw PaymentReconciliationException::missingTransaction($callback->providerCode, $callback->externalReference);
-            }
-
-            if (bccomp(self::moneyOf((string) $payment->amount), self::moneyOf($callback->amount), 2) !== 0) {
-                throw PaymentReconciliationException::amountMismatch(
-                    $callback->externalReference,
-                    self::moneyOf((string) $payment->amount),
-                    self::moneyOf($callback->amount),
-                    ($payment->currency instanceof \BackedEnum ? (string) $payment->currency->value : (string) $payment->currency),
-                );
-            }
-
-            if (strtoupper(($payment->currency instanceof \BackedEnum ? (string) $payment->currency->value : (string) $payment->currency)) !== $callback->currency) {
-                throw PaymentReconciliationException::malformed(
-                    sprintf('currency fork: paper speaks %s, callback speaks %s', ($payment->currency instanceof \BackedEnum ? (string) $payment->currency->value : (string) $payment->currency), $callback->currency),
-                    ['reference' => $callback->externalReference],
-                );
-            }
-
-            if ($callback->providerStatus === PaymentTransactionStatus::Reversed) {
-                throw PaymentReconciliationException::malformed(
-                    'reverse callback requires dedicated refund/reversal workflow rather than callback mutation',
-                    ['reference' => $callback->externalReference],
-                );
-            }
-
-            if ($payment->status === PaymentStatus::Captured) {
-                if ($callback->providerStatus === PaymentTransactionStatus::Succeeded) {
-                    return [
-                        'payment' => $payment,
-                        'replayed' => true,
-                        'applied_at' => data_get($payment->metadata, 'provider_normalized.at'),
-                    ];
-                }
-
-                throw PaymentReconciliationException::malformed(
-                    sprintf('payment in terminal state [%s] cannot accept callback [%s]', $payment->status->value, $callback->providerStatus->value),
-                    ['reference' => $callback->externalReference],
-                );
-            }
-
-            if (in_array($payment->status, [PaymentStatus::Failed, PaymentStatus::Cancelled, PaymentStatus::Refunded, PaymentStatus::PartiallyRefunded, PaymentStatus::Disputed], true)) {
-                if ($callback->providerStatus === PaymentTransactionStatus::Failed && $payment->status === PaymentStatus::Failed) {
-                    return [
-                        'payment' => $payment,
-                        'replayed' => true,
-                        'applied_at' => data_get($payment->metadata, 'provider_normalized.at'),
-                    ];
-                }
-
-                throw PaymentReconciliationException::malformed(
-                    sprintf('payment in terminal state [%s] cannot accept callback [%s]', $payment->status->value, $callback->providerStatus->value),
-                    ['reference' => $callback->externalReference],
-                );
-            }
-
-            if ($callback->providerStatus === PaymentTransactionStatus::Succeeded) {
-                $payment->status = PaymentStatus::Captured;
-                $payment->authorized_at = $payment->authorized_at ?? now();
-                $payment->captured_at = now();
-            } elseif ($callback->providerStatus === PaymentTransactionStatus::Failed) {
-                $payment->status = PaymentStatus::Failed;
-                $payment->failure_reason = ($callback->failureReason ?? PaymentFailureReason::Unknown)->value;
-                $payment->failed_at = now();
-            } elseif ($callback->providerStatus === PaymentTransactionStatus::Processing && $payment->status === PaymentStatus::Pending) {
-                $payment->status = PaymentStatus::Authorized;
-                $payment->authorized_at = now();
-            }
-
-            $metadata = is_array($payment->metadata) ? $payment->metadata : [];
-            $metadata['provider_normalized'] = [
-                'status' => $callback->providerStatus->value,
-                'reason' => $callback->failureReason?->value,
-                'fingerprint' => $callback->payloadFingerprint,
-                'at' => now()->toIso8601String(),
-            ];
-            $payment->metadata = $metadata;
-            $payment->save();
-
-            $this->recordAudit($payment, sprintf(
-                'Callback applied: [%s/%s] → %s',
+        if (! $out['replayed']) {
+            $this->recordAudit($out['payment'], sprintf(
+                'Callback applied: [%s/%s] → %s%s',
                 $callback->providerCode,
                 $callback->externalReference,
                 $callback->providerStatus->value,
+                $callback->failureReason instanceof PaymentFailureReason ? ' ('.$callback->failureReason->value.')' : '',
             ), RiskLevel::High);
+        }
 
-            return ['payment' => $payment, 'replayed' => false, 'applied_at' => $metadata['provider_normalized']['at']];
-        });
+        return $out;
     }
 
     public static function moneyOf(string $amount): string

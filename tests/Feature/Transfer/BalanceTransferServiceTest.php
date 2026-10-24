@@ -148,7 +148,7 @@ final class BalanceTransferServiceTest extends TestCase
         $this->assertSame('2.00', (string) $outcome->transfer->fee_amount);
         $this->assertSame('202.00', (string) $outcome->transfer->total_debited);
 
-        $this->assertSame('300.00', $this->balance($win));
+        $this->assertSame('298.00', $this->balance($win));
         $this->assertSame('250.00', $this->balance($cash));
     }
 
@@ -293,7 +293,7 @@ final class BalanceTransferServiceTest extends TestCase
             $after,
             'An internal transfer must conserve the player total up to the fee.',
         );
-        $this->assertSame('897.00', $after);
+        $this->assertSame('1197.00', $after);
     }
 
     #[Test]

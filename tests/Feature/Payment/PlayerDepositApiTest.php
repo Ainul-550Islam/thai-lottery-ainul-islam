@@ -16,6 +16,18 @@ use PHPUnit\Framework\Attributes\Test;
 
 final class PlayerDepositApiTest extends PaymentTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        \Illuminate\Support\Facades\Http::fake([
+            'api.stripe.com/*' => \Illuminate\Support\Facades\Http::response([
+                'id' => 'cs_test_player_deposit_api',
+                'url' => 'https://checkout.stripe.com/pay/cs_test_player_deposit_api',
+            ], 200),
+        ]);
+    }
+
     #[Test]
     public function authenticated_player_can_initiate_stripe_deposit(): void
     {
@@ -26,6 +38,7 @@ final class PlayerDepositApiTest extends PaymentTestCase
             'amount' => '500.00',
             'method' => 'stripe',
             'currency' => 'THB',
+            'idempotency_key' => 'player-deposit-stripe-001',
         ]);
 
         $response->assertStatus(201);
@@ -86,6 +99,7 @@ final class PlayerDepositApiTest extends PaymentTestCase
             'amount' => '500.00',
             'method' => 'stripe',
             'currency' => 'THB',
+            'idempotency_key' => 'player-deposit-fee-once-001',
         ]);
 
         $response->assertStatus(201);
@@ -128,6 +142,7 @@ final class PlayerDepositApiTest extends PaymentTestCase
             'amount' => '500.00',
             'method' => 'stripe',
             'currency' => 'THB',
+            'idempotency_key' => 'player-deposit-fee-ignore-001',
             'fee' => '0.01',
             'fee_amount' => '0.01',
             'net_amount' => '499.99',
@@ -151,6 +166,7 @@ final class PlayerDepositApiTest extends PaymentTestCase
             'amount' => '500.00',
             'method' => 'stripe',
             'currency' => 'THB',
+            'idempotency_key' => 'player-deposit-zero-fee-001',
         ])->assertStatus(201);
 
         $deposit = Deposit::query()->where('user_id', $player['user']->id)->firstOrFail();

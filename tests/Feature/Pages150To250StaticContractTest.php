@@ -97,9 +97,24 @@ final class Pages150To250StaticContractTest extends TestCase
     {
         $english = require base_path('lang/en/admin_release.php');
         $thai = require base_path('lang/th/admin_release.php');
+        $bangla = require base_path('lang/bn/admin_release.php');
 
         self::assertSame(self::keys($english), self::keys($thai));
+        self::assertSame(self::keys($english), self::keys($bangla));
         self::assertSame(self::placeholders($english), self::placeholders($thai));
+        self::assertSame(self::placeholders($english), self::placeholders($bangla));
+    }
+
+    public function test_admin_translation_maps_have_exact_key_and_placeholder_parity(): void
+    {
+        $english = require base_path('lang/en/admin.php');
+        $thai = require base_path('lang/th/admin.php');
+        $bangla = require base_path('lang/bn/admin.php');
+
+        self::assertSame(self::keys($english), self::keys($thai));
+        self::assertSame(self::keys($english), self::keys($bangla));
+        self::assertSame(self::placeholders($english), self::placeholders($thai));
+        self::assertSame(self::placeholders($english), self::placeholders($bangla));
     }
 
     public function test_canonical_finance_lottery_and_rust_boundaries_are_present(): void

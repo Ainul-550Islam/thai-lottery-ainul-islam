@@ -36,7 +36,7 @@ final class RecordSecurityEventAudit
         $exists = AuditLog::query()
             ->where('auditable_type', SecurityEvent::class)
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_HOURS))
-            ->whereJsonContains('metadata->audit_anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
 
         if ($exists) {
@@ -53,7 +53,7 @@ final class RecordSecurityEventAudit
                 'risk_rating' => $event->risk_level->severity() >= 70 ? RiskLevel::High->value : RiskLevel::Medium->value,
                 'event_type' => $event->event_type->value,
                 'event_fingerprint' => $event->event_fingerprint,
-                'audit_anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'note' => $note,
             ],
         ]);

@@ -5,30 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Payout;
+use App\Services\Prize\ClaimWindowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Claim status / eligibility / result representation.
- *
- * SANITIZATION CONTRACT
- * The claim lane stores a few things that must never cross this boundary in
- * raw shape:
- * - the internal review completion stamps and the reviewer roster
- *   (which operator saw this, when — that is the court's business);
- * - audit-trail internals and failed-rule diagnostics (the enumeration of
- *   exactly which fraud rule fired is operational-security material);
- * - raw payouts-bet linkage internals beyond the business id print.
- *
- * What the response keeps: the three identifiers the player quotes (bet id,
- * payout reference where minted, payout id), the lifecycle stamps of the
- * claim itself, the money triple the player may know, and the window.
- *
- * This resource accepts TWO shapes of backing record: a payout row with a
- * claim lane on it (the canonical stored record), or a bare service RESULT
- * array (the composition PrizeClaimService returns). Both route through the
- * same output keys so screens never branch on representation.
- *
  * @mixin Payout
  */
 final class PrizeClaimResource extends JsonResource
@@ -40,8 +21,6 @@ final class PrizeClaimResource extends JsonResource
     {
         $record = $this->resource;
 
-        // Service-result composition path: already a plain array keyed on
-        // the service's resultRow fields.
         if (is_array($record)) {
             return [
                 'bet_id' => (int) ($record['bet_id'] ?? 0),
@@ -54,7 +33,7 @@ final class PrizeClaimResource extends JsonResource
                 'no_op' => (bool) ($record['no_op'] ?? false),
                 'payout_reference' => isset($record['payout_reference']) ? (string) $record['payout_reference'] : null,
                 'payout_status' => isset($record['payout_status']) ? (string) $record['payout_status'] : null,
-                'window_open' => isset($record['window_open']) ? (bool) $record['window_open'] : null,
+                'window_open' => isset($record['window_open']) ? (bool) $record['window_open'] : false,
             ];
         }
 
@@ -78,9 +57,7 @@ final class PrizeClaimResource extends JsonResource
             'no_op' => false,
             'payout_reference' => (string) $payout->reference_number,
             'payout_status' => $payout->status?->value,
-            'window_open' => isset($window['status'])
-                ? ((string) $window['status'] === 'open')
-                : null,
+            'window_open' => app(ClaimWindowService::class)->allowsClaim($payout),
         ];
     }
 }

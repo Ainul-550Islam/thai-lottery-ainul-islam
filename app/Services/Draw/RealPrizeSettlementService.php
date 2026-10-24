@@ -371,11 +371,13 @@ class RealPrizeSettlementService
         int $limit,
         string $safetyMode,
         ?Currency $currencySoFar = null,
+        ?string $pinnedApprovalThreshold = null,
+        bool $allowCallerTransaction = false,
     ): array {
         $drawId = (int) $draw->getKey();
         $limit = max(1, $limit);
 
-        if (DB::transactionLevel() > 0) {
+        if (! $allowCallerTransaction && DB::transactionLevel() > 0) {
             // Same rule as settle(): the rollback guarantee must belong to this
             // chunk. Inside a caller's transaction, a failure here could be
             // swallowed by an outer catch and the partial chunk — including
@@ -383,7 +385,7 @@ class RealPrizeSettlementService
             throw SettlementSimulationException::alreadyRunning($drawId, DB::transactionLevel());
         }
 
-        return DB::transaction(function () use ($draw, $drawId, $result, $afterBetId, $limit, $safetyMode, $currencySoFar): array {
+        return DB::transaction(function () use ($draw, $drawId, $result, $afterBetId, $limit, $safetyMode, $currencySoFar, $pinnedApprovalThreshold): array {
             $bets = $this->lockedBetsAfter($drawId, $afterBetId, $limit);
 
             $stats = [
@@ -442,9 +444,11 @@ class RealPrizeSettlementService
                 }
 
                 if (! $betTouched) {
-                    $stats['last_bet_id'] = (int) $bet->getKey();
-
-                    continue;
+                    throw SettlementSimulationException::selectionUnreadable(
+                        (int) $bet->getKey(),
+                        sprintf('bet %d on draw %d has no selection items to settle', (int) $bet->getKey(), $drawId),
+                        ['draw_id' => $drawId, 'bet_id' => (int) $bet->getKey()],
+                    );
                 }
 
                 $stats['bets_settled']++;
@@ -452,7 +456,7 @@ class RealPrizeSettlementService
                 if ($betHasWinner && bccomp($betPrize, '0.00', 2) > 0) {
                     $currency = $stats['currency'] instanceof Currency ? $stats['currency'] : $this->defaultCurrency();
 
-                    $payout = $this->payWinningBet($bet, $betPrize, $currency, $safetyMode);
+                    $payout = $this->payWinningBet($bet, $betPrize, $currency, $safetyMode, $pinnedApprovalThreshold);
 
                     $this->writeBet($bet, true, $betPrize, $payout);
                     $stats['payouts_created']++;
@@ -481,8 +485,17 @@ class RealPrizeSettlementService
      *
      * @throws DrawLifecycleException
      */
-    public function finalizeChunkedSettlement(Draw $draw, array $totals = []): Draw
+    public function finalizeChunkedSettlement(Draw $draw, array $totals = [], bool $verifiedByOrchestrator = false): Draw
     {
+        if (! $verifiedByOrchestrator) {
+            $run = SettlementRun::query()->where('draw_id', (int) $draw->getKey())->first();
+            if (! $run instanceof SettlementRun) {
+                throw new \RuntimeException(sprintf('No persisted settlement run exists for draw %d.', (int) $draw->getKey()));
+            }
+
+            app(ChunkedSettlementOrchestrator::class)->assertCompletionProof($draw, $run);
+        }
+
         return DB::transaction(function () use ($draw, $totals): Draw {
             $locked = $this->lifecycle->lockForUpdate((int) $draw->getKey());
             $state = $this->lifecycle->currentState($locked);
@@ -727,20 +740,31 @@ class RealPrizeSettlementService
      *
      * @throws \App\Exceptions\FinancialException
      */
-    private function payWinningBet(Bet $bet, string $prize, Currency $currency, string $safetyMode): Payout
-    {
+    private function payWinningBet(
+        Bet $bet,
+        string $prize,
+        Currency $currency,
+        string $safetyMode,
+        ?string $pinnedApprovalThreshold = null,
+    ): Payout {
         $betId = (int) $bet->getKey();
         $drawId = (int) $bet->draw_id;
         $userId = (int) $bet->user_id;
 
-        $needsApproval = $this->requiresApproval($prize);
+        $reference = $this->payoutReference($drawId, $betId);
+        $existingPayout = Payout::query()->where('reference_number', $reference)->first();
+        if ($existingPayout instanceof Payout) {
+            return $existingPayout;
+        }
+
+        $needsApproval = $this->requiresApproval($prize, $pinnedApprovalThreshold);
 
         $payout = new Payout();
         $payout->fill([
             // Deterministic per (draw, bet): a second payout for the same bet
             // in the same draw dies on the unique index even if every other
             // guard somehow let it through.
-            'reference_number' => $this->payoutReference($drawId, $betId),
+            'reference_number' => $reference,
             'draw_id' => $drawId,
             'bet_id' => $betId,
             'user_id' => $userId,
@@ -833,12 +857,20 @@ class RealPrizeSettlementService
      * High-value prizes require four-eyes approval under LIVE mode.
      * auto_approve_below is the exclusive upper bound for automatic completion.
      */
-    public function requiresApproval(string $prize): bool
+    public function requiresApproval(string $prize, ?string $pinnedThreshold = null): bool
     {
         $threshold = (string) config('finance.prize_payout.auto_approve_below', '1000000.00');
+        $effective = is_numeric($threshold) || is_string($threshold) ? bcadd($threshold, '0.00', 2) : '1000000.00';
+
+        if ($pinnedThreshold !== null && is_numeric($pinnedThreshold)) {
+            $pinned = bcadd($pinnedThreshold, '0.00', 2);
+            if (bccomp($pinned, $effective, 2) < 0) {
+                $effective = $pinned;
+            }
+        }
 
         // At or above threshold → approval. Below → automatic (existing design).
-        return bccomp($prize, is_numeric($threshold) || is_string($threshold) ? bcadd($threshold, '0.00', 2) : '1000000.00', 2) >= 0;
+        return bccomp($prize, $effective, 2) >= 0;
     }
 
     private function recordSafetyAudit(Payout $payout, string $safetyMode, string $prize, string $outcome): void

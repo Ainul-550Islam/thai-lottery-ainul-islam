@@ -224,6 +224,7 @@ class GloResultFallbackTest extends TestCase
     {
         config([
             'glo.sources.priority' => ['official', 'fixture'],
+            'glo.sources.fall_through_to_fixture' => true,
             'glo.sources.breaker.failure_threshold' => 1,
         ]);
 
@@ -283,6 +284,7 @@ class GloResultFallbackTest extends TestCase
     {
         config([
             'glo.sources.priority' => ['official', 'fixture'],
+            'glo.sources.fall_through_to_fixture' => true,
             'glo.sources.breaker.failure_threshold' => 1,
             'glo.sources.breaker.cooldown_seconds' => 60,
         ]);
@@ -359,7 +361,10 @@ class GloResultFallbackTest extends TestCase
     #[Test]
     public function when_every_source_fails_the_answer_contains_no_numbers(): void
     {
-        config(['glo.sources.priority' => ['official', 'fixture']]);
+        config([
+            'glo.sources.priority' => ['official', 'fixture'],
+            'glo.sources.fall_through_to_fixture' => true,
+        ]);
 
         $this->mock(GloOfficialResultProvider::class, function ($mock): void {
             $mock->shouldReceive('name')->andReturn('official');

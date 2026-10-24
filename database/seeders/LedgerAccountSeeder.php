@@ -81,6 +81,11 @@ class LedgerAccountSeeder extends Seeder
                 'asset',
                 'Withdrawals approved and deducted from a wallet but not yet paid out. Holds the money in transit so an approved-but-unpaid withdrawal is never invisible.',
             ],
+            WalletService::ACCOUNT_WALLET_TRANSFER_CLEARING => [
+                'Wallet Transfer Clearing',
+                'asset',
+                'Clearing account for internal Cash <-> Win pocket transfers.',
+            ],
             WalletService::ACCOUNT_PLAYER_LIABILITY => [
                 'Player Liability',
                 'liability',

@@ -269,6 +269,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'conversion.enabled' => EnsureWalletConversionEnabled::class,
             'conversion.idempotent' => RequireConversionIdempotencyKey::class,
             'conversion.idempotency' => RequireConversionIdempotencyKey::class,
+            'fraud.gate' => \App\Http\Middleware\FraudRiskGateMiddleware::class,
         ]);
 
         // Applied globally: security headers, and a correlation id pinned on the way in and
@@ -323,13 +324,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($e instanceof \App\Exceptions\ChatException) {
-                $context = $e->logContext();
-                $headers = [];
-                if (isset($context['retry_after']) && is_int($context['retry_after']) && $context['retry_after'] > 0) {
-                    $headers['Retry-After'] = (string) $context['retry_after'];
-                }
-
-                return response()->json($e->toArray(), $e->httpStatus(), $headers);
+                return $e->render($request);
             }
 
             if (! $request->is('api/*') && ! $request->expectsJson()) {

@@ -12,6 +12,7 @@ use App\Services\Network\IpBlocklistService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 class BlockedIpController extends Controller
@@ -22,6 +23,8 @@ class BlockedIpController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        Gate::forUser($request->user())->authorize('viewAny', BlockedIp::class);
+
         $query = BlockedIp::orderBy('created_at', 'desc');
 
         if ($request->has('active')) {
@@ -37,6 +40,8 @@ class BlockedIpController extends Controller
 
     public function store(StoreBlockedIpRequest $request): JsonResponse
     {
+        Gate::forUser($request->user())->authorize('create', BlockedIp::class);
+
         $actorId = (string) $request->user()?->id;
 
         $blockedIp = $this->blocklistService->blockIp(
@@ -56,6 +61,10 @@ class BlockedIpController extends Controller
 
     public function unblock(Request $request, string $id): JsonResponse
     {
+        /** @var BlockedIp $rule */
+        $rule = BlockedIp::findOrFail($id);
+        Gate::forUser($request->user())->authorize('update', $rule);
+
         $actorId = (string) $request->user()?->id;
         $reason = (string) $request->input('reason', 'Administrative manual unblock.');
 

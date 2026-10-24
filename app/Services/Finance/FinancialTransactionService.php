@@ -11,6 +11,8 @@ use App\Enums\TransactionStatus;
 use App\Exceptions\FinancialException;
 use App\Models\FinancialTransaction;
 use App\Models\Wallet;
+use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\DeadlockException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -86,16 +88,7 @@ final class FinancialTransactionService
         Money::assertExactArithmeticIsAvailable();
         $amount->assertPositive('transaction amount');
 
-        $walletId = $wallet->getKey();
-
-        if (! is_int($walletId) && ! is_numeric($walletId)) {
-            throw FinancialException::withCode(
-                'wallet_not_persisted',
-                'Cannot execute a financial transaction against an unpersisted wallet.',
-            );
-        }
-
-        $walletId = (int) $walletId;
+        $walletId = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
 
         if ($type === FinancialTransactionType::Reversal) {
             throw FinancialException::withCode(
@@ -125,7 +118,7 @@ final class FinancialTransactionService
         );
 
         return $this->executeWithDeadlockRetry(
-            fn (): FinancialTransaction => DB::transaction(
+            fn (): FinancialTransaction => $this->locks->withinTransaction(
                 fn (): FinancialTransaction => $this->performInsideTransaction(
                     $walletId,
                     $amount,
@@ -150,6 +143,11 @@ final class FinancialTransactionService
      */
     public function executeWithDeadlockRetry(\Closure $work): mixed
     {
+        $entryLevel = $this->locks->assertConsistentTransactionState();
+        $connection = DB::connection();
+        $writePdo = $connection->getPdo();
+        $ownsRoot = $entryLevel === 0;
+
         $maxAttempts = max(1, (int) config('finance.locking.max_retries', 3));
         $delayMilliseconds = max(0, (int) config('finance.locking.retry_delay_milliseconds', 150));
 
@@ -160,8 +158,11 @@ final class FinancialTransactionService
 
             try {
                 return $work();
-            } catch (QueryException $exception) {
-                if (! $this->isRetryableLockFailure($exception) || $attempt >= $maxAttempts) {
+            } catch (QueryException|DeadlockException $exception) {
+                if (! $ownsRoot
+                    || $attempt >= $maxAttempts
+                    || ! $this->isRetryableLockFailure($exception, $connection)
+                    || ! $this->returnedToCleanRoot($connection, $writePdo)) {
                     throw $exception;
                 }
 
@@ -183,17 +184,27 @@ final class FinancialTransactionService
      */
     public function markFailed(FinancialTransaction $transaction, ?string $reason = null): FinancialTransaction
     {
-        $this->transitionTo($transaction, TransactionStatus::Failed);
+        $fresh = app(FinancialStateTransitionService::class)->lockFinancialTransaction($transaction);
+
+        $this->transitionTo($fresh, TransactionStatus::Failed);
 
         if ($reason !== null) {
-            $metadata = $transaction->metadata ?? [];
+            $metadata = is_array($fresh->metadata) ? $fresh->metadata : [];
             $metadata['failure_reason'] = $reason;
-            $transaction->metadata = $metadata;
+            $fresh->metadata = $metadata;
         }
 
-        $transaction->save();
+        if (! $this->locks->insideTransaction()) {
+            throw FinancialException::withCode(
+                'financial_state_transition_outside_transaction',
+                'A financial transaction status transition must run inside a database transaction.',
+                ['operation' => 'financial transaction status transition'],
+            );
+        }
 
-        return $transaction;
+        $fresh->save();
+
+        return $fresh;
     }
 
     /**
@@ -238,6 +249,14 @@ final class FinancialTransactionService
      */
     public function transitionTo(FinancialTransaction $transaction, TransactionStatus $target): FinancialTransaction
     {
+        if (! $this->locks->insideTransaction()) {
+            throw FinancialException::withCode(
+                'financial_state_transition_outside_transaction',
+                'A financial transaction status transition must run inside a database transaction.',
+                ['operation' => 'financial transaction status transition'],
+            );
+        }
+
         if (! $transaction->status->canTransitionTo($target)) {
             throw FinancialException::withCode(
                 'transaction_invalid_status_transition',
@@ -281,8 +300,6 @@ final class FinancialTransactionService
         $wallet = $walletSide === LedgerEntryType::Credit
             ? $this->locks->lockForCredit($walletId, $amount->currency())
             : $this->locks->lockForDebit($walletId, $amount->currency());
-
-        app(WithdrawalHoldFloor::class)->assertCovered($wallet);
 
         $expectation = [
             'type' => $type,
@@ -488,17 +505,31 @@ final class FinancialTransactionService
     /**
      * Deadlocks and lock-wait timeouts are transient; everything else is not.
      */
-    private function isRetryableLockFailure(QueryException $exception): bool
+    private function isRetryableLockFailure(QueryException|DeadlockException $exception, ConnectionInterface $connection): bool
     {
-        $driverCode = $exception->errorInfo[1] ?? null;
-
-        if (is_int($driverCode)) {
-            return in_array($driverCode, [self::ERROR_DEADLOCK, self::ERROR_LOCK_WAIT_TIMEOUT], true);
+        if (! in_array($connection->getDriverName(), ['mysql', 'mariadb'], true)) {
+            return false;
         }
 
-        $message = strtolower($exception->getMessage());
+        $cause = $exception instanceof DeadlockException && $exception->getPrevious() instanceof QueryException
+            ? $exception->getPrevious()
+            : ($exception instanceof QueryException ? $exception : null);
 
-        return str_contains($message, 'deadlock found')
-            || str_contains($message, 'lock wait timeout exceeded');
+        if (! $cause instanceof QueryException) {
+            return false;
+        }
+
+        $driverCode = $cause->errorInfo[1]
+            ?? ($cause->getPrevious() instanceof \PDOException ? ($cause->getPrevious()->errorInfo[1] ?? null) : null);
+
+        return in_array($driverCode, [self::ERROR_DEADLOCK, self::ERROR_LOCK_WAIT_TIMEOUT, '1213', '1205'], true);
+    }
+
+    private function returnedToCleanRoot(ConnectionInterface $connection, object $writePdo): bool
+    {
+        return DB::connection() === $connection
+            && $connection->getPdo() === $writePdo
+            && $connection->transactionLevel() === 0
+            && ! $writePdo->inTransaction();
     }
 }

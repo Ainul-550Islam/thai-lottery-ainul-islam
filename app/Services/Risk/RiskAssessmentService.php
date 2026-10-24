@@ -11,6 +11,7 @@ use App\Exceptions\RiskException;
 use App\Models\Draw;
 use App\Services\Finance\Money;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The single entry point a betting flow calls before money moves.
@@ -170,45 +171,63 @@ class RiskAssessmentService
     {
         $this->locks->assertInsideTransaction('reserve risk capacity for a bet');
 
-        $this->assertDrawAcceptsBets($drawId);
+        return DB::transaction(function () use ($drawId, $betType, $selections): array {
+            app(DrawRiskAdmission::class)->lock($drawId);
 
-        $currency = $this->resolver->currency();
-        $entries = [];
+            $currency = $this->resolver->currency();
+            $entries = [];
+            $seen = [];
 
-        foreach ($selections as $selection) {
-            $entries[] = [
-                'number' => $this->numbers->normalize($selection['number'], $betType),
-                'stake' => $this->money->money($selection['stake'], $currency),
-                'multiplier' => $selection['multiplier']
-                    ?? $this->multiplierFor($betType, $selection['market'] ?? null),
+            foreach ($selections as $selection) {
+                $number = $this->numbers->normalize($selection['number'], $betType);
+
+                if (isset($seen[$number])) {
+                    throw new RiskConfigurationException(
+                        sprintf('Duplicate number %s (%s) in selection is not supported.', $number, $betType->value),
+                        'RISK_DUPLICATE_SELECTION',
+                        [
+                            'draw_id' => $drawId,
+                            'bet_type' => $betType->value,
+                            'number' => $number,
+                        ],
+                    );
+                }
+
+                $seen[$number] = true;
+                $entries[] = [
+                    'number' => $number,
+                    'stake' => $this->money->money($selection['stake'], $currency),
+                    'multiplier' => $selection['multiplier']
+                        ?? $this->multiplierFor($betType, $selection['market'] ?? null),
+                ];
+            }
+
+            $reservations = $this->engine->reserveMany($drawId, $betType, $entries);
+
+            $totalStake = Money::zero($currency);
+            $totalPayout = Money::zero($currency);
+
+            foreach ($reservations as $reservation) {
+                $totalStake = $totalStake->plus(
+                    $this->money->money((string) $reservation['stake'], $currency),
+                );
+                $totalPayout = $totalPayout->plus(
+                    $this->money->money((string) $reservation['potential_payout'], $currency),
+                );
+            }
+
+            return [
+                'reserved' => true,
+                'decision' => \App\Enums\RiskDecision::Allow->value,
+                'reason_code' => RiskDecisionService::REASON_ALLOWED,
+                'reason' => 'Capacity was reserved for every number in the selection.',
+                'draw_id' => $drawId,
+                'bet_type' => $betType->value,
+                'total_stake' => $totalStake->amount(),
+                'total_potential_payout' => $totalPayout->amount(),
+                'reservations' => $reservations,
             ];
-        }
-
-        $reservations = $this->engine->reserveMany($drawId, $betType, $entries);
-
-        $totalStake = Money::zero($currency);
-        $totalPayout = Money::zero($currency);
-
-        foreach ($reservations as $reservation) {
-            $totalStake = $totalStake->plus(
-                $this->money->money((string) $reservation['stake'], $currency),
-            );
-            $totalPayout = $totalPayout->plus(
-                $this->money->money((string) $reservation['potential_payout'], $currency),
-            );
-        }
-
-        return [
-            'reserved' => true,
-            'decision' => \App\Enums\RiskDecision::Allow->value,
-            'reason_code' => RiskDecisionService::REASON_ALLOWED,
-            'reason' => 'Capacity was reserved for every number in the selection.',
-            'draw_id' => $drawId,
-            'bet_type' => $betType->value,
-            'total_stake' => $totalStake->amount(),
-            'total_potential_payout' => $totalPayout->amount(),
-            'reservations' => $reservations,
-        ];
+        });
     }
 
     /**
@@ -226,35 +245,53 @@ class RiskAssessmentService
     {
         $this->locks->assertInsideTransaction('release risk capacity for a bet');
 
-        $currency = $this->resolver->currency();
-        $released = [];
+        return DB::transaction(function () use ($drawId, $betType, $selections): array {
+            $currency = $this->resolver->currency();
+            $released = [];
 
-        // Lock in a deterministic order first, exactly as the reservation path does.
-        $triples = [];
+            // Lock in a deterministic order first, exactly as the reservation path does.
+            $triples = [];
+            $seen = [];
 
-        foreach ($selections as $selection) {
-            $triples[] = [
-                'draw_id' => $drawId,
-                'bet_type' => $betType,
-                'number' => $this->numbers->normalize($selection['number'], $betType),
-            ];
-        }
+            foreach ($selections as $selection) {
+                $number = $this->numbers->normalize($selection['number'], $betType);
 
-        $this->locks->lockMany($triples);
+                if (isset($seen[$number])) {
+                    throw new RiskConfigurationException(
+                        sprintf('Duplicate number %s (%s) in selection is not supported.', $number, $betType->value),
+                        'RISK_DUPLICATE_SELECTION',
+                        [
+                            'draw_id' => $drawId,
+                            'bet_type' => $betType->value,
+                            'number' => $number,
+                        ],
+                    );
+                }
 
-        foreach ($selections as $selection) {
-            $number = $this->numbers->normalize($selection['number'], $betType);
+                $seen[$number] = true;
+                $triples[] = [
+                    'draw_id' => $drawId,
+                    'bet_type' => $betType,
+                    'number' => $number,
+                ];
+            }
 
-            $released[$number] = $this->engine->release(
-                $drawId,
-                $betType,
-                $number,
-                $this->money->money($selection['stake'], $currency),
-                $selection['multiplier'] ?? $this->multiplierFor($betType, $selection['market'] ?? null),
-            );
-        }
+            $this->locks->lockMany($triples);
 
-        return $released;
+            foreach ($selections as $selection) {
+                $number = $this->numbers->normalize($selection['number'], $betType);
+
+                $released[$number] = $this->engine->release(
+                    $drawId,
+                    $betType,
+                    $number,
+                    $this->money->money($selection['stake'], $currency),
+                    $selection['multiplier'] ?? $this->multiplierFor($betType, $selection['market'] ?? null),
+                );
+            }
+
+            return $released;
+        });
     }
 
     /**

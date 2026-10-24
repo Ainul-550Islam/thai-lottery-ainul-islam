@@ -45,7 +45,8 @@ final readonly class ConversionReconciliationData
         public array $pending = [],
         public ?DateTimeImmutable $windowFrom = null,
         public ?DateTimeImmutable $windowTo = null,
-    ) {}
+    ) {
+    }
 
     /**
      * True when the completed conversions reconcile: the amount that left the

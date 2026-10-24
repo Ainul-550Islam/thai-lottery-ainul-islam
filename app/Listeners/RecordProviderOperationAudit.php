@@ -40,7 +40,7 @@ final class RecordProviderOperationAudit
         $exists = AuditLog::query()
             ->where('auditable_type', ProviderOperation::class)
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_HOURS))
-            ->whereJsonContains('metadata->audit_anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
 
         if ($exists) {
@@ -59,7 +59,7 @@ final class RecordProviderOperationAudit
                 'status' => $change->status->value,
                 'change_fingerprint' => $change->change_fingerprint,
                 'evidence_fingerprint' => $change->evidence_fingerprint,
-                'audit_anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'note' => $note,
             ],
         ]);

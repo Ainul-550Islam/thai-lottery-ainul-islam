@@ -18,6 +18,7 @@ use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 /**
  * Part 61 — the AML orchestrator now has callers on the money side.
@@ -48,7 +49,7 @@ final class MoneyFlowAmlObservationTest extends TestCase
     {
         parent::setUp();
         $this->seed(LedgerAccountSeeder::class);
-        config(['aml.freshness_seconds' => 0]);
+        config(['aml.freshness_seconds' => 0, 'real_money.enabled' => true]);
     }
 
     private function account(): User
@@ -72,7 +73,7 @@ final class MoneyFlowAmlObservationTest extends TestCase
             public function measure(int $userId): array
             {
                 if ($this->throws) {
-                    throw new \RuntimeException('assessment backend unavailable');
+                    throw new RuntimeException('assessment backend unavailable');
                 }
 
                 return [
@@ -122,7 +123,7 @@ final class MoneyFlowAmlObservationTest extends TestCase
         $this->reportingAml(AmlRiskLevel::Critical);
         config(['aml.mode' => 'enforce']);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('prohibited');
 
         app(MoneyFlowAmlObservationService::class)
@@ -163,7 +164,7 @@ final class MoneyFlowAmlObservationTest extends TestCase
         $this->reportingAml(null, throws: true);
         config(['aml.mode' => 'enforce']);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('unavailable');
 
         app(MoneyFlowAmlObservationService::class)

@@ -395,6 +395,19 @@ return [
             ],
         ],
 
+        'sandbox' => [
+            // Deterministic non-production contract/webhook adapter. Hard-blocked
+            // when APP_ENV=production or REAL_MONEY_ENABLED=true, and marked
+            // GatewayIntegrationStatus::Simulated so live payment surfaces never expose it.
+            'enabled' => (bool) env('PAYMENT_SANDBOX_ADAPTER_ENABLED', false),
+            'driver' => 'sandbox',
+            'webhook_secret' => env('PAYMENT_SANDBOX_WEBHOOK_SECRET'),
+            'signature_header' => 'X-Sandbox-Signature',
+            'supported_currencies' => ['THB', 'USD', 'BDT'],
+            'supports_deposit' => true,
+            'supports_withdrawal' => true,
+        ],
+
     ],
 
     'checkout_lookup' => [

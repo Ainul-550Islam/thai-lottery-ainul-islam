@@ -14,6 +14,7 @@ use App\Exceptions\RiskConfigurationException;
 use App\Models\NumberLimit;
 use App\Services\Finance\Money;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The pre-bet number limit engine: assesses capacity, and atomically reserves it.
@@ -263,92 +264,97 @@ class NumberLimitEngine
     ): array {
         $this->locks->assertInsideTransaction('reserve number limit capacity');
 
-        $this->numbers->assertBetTypeEnabled($betType);
-        $this->numbers->assertBetTypeDigitsAgreeWithConfig($betType);
+        return DB::transaction(function () use ($drawId, $betType, $rawNumber, $stake, $multiplier): array {
+            $this->numbers->assertBetTypeEnabled($betType);
+            $this->numbers->assertBetTypeDigitsAgreeWithConfig($betType);
 
-        $number = $this->numbers->normalize($rawNumber, $betType);
-        $this->money->assertPositiveStake($stake);
-        $this->assertStakeWithinConfiguredBounds($stake);
+            $number = $this->numbers->normalize($rawNumber, $betType);
+            $this->money->assertPositiveStake($stake);
+            $this->assertStakeWithinConfiguredBounds($stake);
 
-        $normalisedMultiplier = $this->money->normaliseMultiplier($multiplier);
-        $potentialPayout = $this->money->potentialPayout($stake, $normalisedMultiplier);
+            $normalisedMultiplier = $this->money->normaliseMultiplier($multiplier);
+            $potentialPayout = $this->money->potentialPayout($stake, $normalisedMultiplier);
 
-        // A global block is independent of the row, so it is checked before locking.
-        if ($this->hotNumbers->isGloballyBlocked($number)) {
-            throw \App\Exceptions\HotNumberException::globallyBlocked($number, $betType->value);
-        }
-
-        // From here on, every amount used in a decision comes from the LOCKED row.
-        $limit = $this->locks->lock($drawId, $betType, $number);
-        $statusBefore = $this->resolver->statusOf($limit);
-        $this->locks->assertActive($limit, $number, $betType, $drawId);
-
-        $increments = [
-            ExposureType::Stake->value => $stake,
-            ExposureType::PotentialPayout->value => $potentialPayout,
-        ];
-
-        $movements = [];
-
-        foreach (ExposureType::enforced() as $type) {
-            $increment = $increments[$type->value];
-            $resolved = $this->exposure->ceiling($limit, $type);
-            $ceiling = $resolved['ceiling'];
-            $current = $this->exposure->current($limit, $type);
-            $projected = $this->money->project($current, $increment);
-
-            if (! $this->money->fitsWithinCeiling($projected, $ceiling)) {
-                // Refused inside the lock, before any column is written. Nothing is
-                // committed by this class, so the caller's rollback is clean.
-                throw NumberLimitExceededException::forCeiling(
-                    $type,
-                    $number,
-                    $betType->value,
-                    $current->amount(),
-                    $increment->amount(),
-                    $projected->amount(),
-                    $ceiling->amount(),
-                    (int) $limit->getKey(),
-                    $drawId,
-                );
+            // A global block is independent of the row, so it is checked before locking.
+            if ($this->hotNumbers->isGloballyBlocked($number)) {
+                throw \App\Exceptions\HotNumberException::globallyBlocked($number, $betType->value);
             }
 
-            $movements[$type->value] = [
-                'before' => $current->amount(),
-                'reserved' => $increment->amount(),
-                'after' => $projected->amount(),
-                'ceiling' => $ceiling->amount(),
-                'ceiling_source' => $resolved['source'],
-                'remaining_after' => $this->money->remainingCapacity($ceiling, $projected)->amount(),
-                'utilisation_after' => $this->money->utilisation($projected, $ceiling),
+            app(DrawRiskAdmission::class)->lock($drawId);
+
+            // From here on, every amount used in a decision comes from the LOCKED row.
+            $limit = $this->locks->lock($drawId, $betType, $number);
+            app(BetRiskOwnershipFloor::class)->assertCovered($limit);
+            $statusBefore = $this->resolver->statusOf($limit);
+            $this->locks->assertActive($limit, $number, $betType, $drawId);
+
+            $increments = [
+                ExposureType::Stake->value => $stake,
+                ExposureType::PotentialPayout->value => $potentialPayout,
             ];
-        }
 
-        $consumed = $this->anyCapacityConsumed($movements);
-        $statusAfter = $consumed && $this->hotNumbers->blockOnExceeded()
-            ? NumberLimitStatus::Exceeded
-            : $statusBefore;
+            $movements = [];
 
-        $this->writeCounters($limit, $movements, $statusBefore, $statusAfter, $consumed);
+            foreach (ExposureType::enforced() as $type) {
+                $increment = $increments[$type->value];
+                $resolved = $this->exposure->ceiling($limit, $type);
+                $ceiling = $resolved['ceiling'];
+                $current = $this->exposure->current($limit, $type);
+                $projected = $this->money->project($current, $increment);
 
-        $level = $this->worstLevelOf($movements);
+                if (! $this->money->fitsWithinCeiling($projected, $ceiling)) {
+                    // Refused inside the lock, before any column is written. Nothing is
+                    // committed by this class, so the caller's rollback is clean.
+                    throw NumberLimitExceededException::forCeiling(
+                        $type,
+                        $number,
+                        $betType->value,
+                        $current->amount(),
+                        $increment->amount(),
+                        $projected->amount(),
+                        $ceiling->amount(),
+                        (int) $limit->getKey(),
+                        $drawId,
+                    );
+                }
 
-        return [
-            'reserved' => true,
-            'number_limit_id' => (int) $limit->getKey(),
-            'draw_id' => $drawId,
-            'bet_type' => $betType->value,
-            'number' => $number,
-            'stake' => $stake->amount(),
-            'multiplier' => $normalisedMultiplier,
-            'potential_payout' => $potentialPayout->amount(),
-            'status_before' => $statusBefore->value,
-            'status_after' => $statusAfter->value,
-            'exposures' => $movements,
-            'level' => $level,
-            'capacity_consumed' => $consumed,
-            'alerts' => $this->raiseReservationAlerts($limit, $movements, $consumed, $level),
-        ];
+                $movements[$type->value] = [
+                    'before' => $current->amount(),
+                    'reserved' => $increment->amount(),
+                    'after' => $projected->amount(),
+                    'ceiling' => $ceiling->amount(),
+                    'ceiling_source' => $resolved['source'],
+                    'remaining_after' => $this->money->remainingCapacity($ceiling, $projected)->amount(),
+                    'utilisation_after' => $this->money->utilisation($projected, $ceiling),
+                ];
+            }
+
+            $consumed = $this->anyCapacityConsumed($movements);
+            $statusAfter = $consumed && $this->hotNumbers->blockOnExceeded()
+                ? NumberLimitStatus::Exceeded
+                : $statusBefore;
+
+            $this->writeCounters($limit, $movements, $statusBefore, $statusAfter, $consumed);
+
+            $level = $this->worstLevelOf($movements);
+
+            return [
+                'reserved' => true,
+                'number_limit_id' => (int) $limit->getKey(),
+                'draw_id' => $drawId,
+                'bet_type' => $betType->value,
+                'number' => $number,
+                'stake' => $stake->amount(),
+                'multiplier' => $normalisedMultiplier,
+                'potential_payout' => $potentialPayout->amount(),
+                'status_before' => $statusBefore->value,
+                'status_after' => $statusAfter->value,
+                'exposures' => $movements,
+                'level' => $level,
+                'capacity_consumed' => $consumed,
+                'alerts' => $this->raiseReservationAlerts($limit, $movements, $consumed, $level),
+            ];
+        });
     }
 
     /**
@@ -384,67 +390,75 @@ class NumberLimitEngine
     ): array {
         $this->locks->assertInsideTransaction('release number limit capacity');
 
-        $number = $this->numbers->normalize($rawNumber, $betType);
-        $stake->assertNotNegative('stake');
-        $potentialPayout = $this->money->potentialPayout($stake, $multiplier);
+        return DB::transaction(function () use ($drawId, $betType, $rawNumber, $stake, $multiplier): array {
+            $number = $this->numbers->normalize($rawNumber, $betType);
+            $stake->assertNotNegative('stake');
+            $potentialPayout = $this->money->potentialPayout($stake, $multiplier);
 
-        $limit = $this->locks->lock($drawId, $betType, $number);
-        $statusBefore = $this->resolver->statusOf($limit);
+            $limit = $this->locks->lock($drawId, $betType, $number);
+            $statusBefore = $this->resolver->statusOf($limit);
 
-        $decrements = [
-            ExposureType::Stake->value => $stake,
-            ExposureType::PotentialPayout->value => $potentialPayout,
-        ];
-
-        $movements = [];
-        $attributes = [];
-
-        foreach (ExposureType::enforced() as $type) {
-            $current = $this->exposure->current($limit, $type);
-            $decrement = $decrements[$type->value];
-            $raw = $current->minus($decrement);
-            $clamped = $raw->isNegative();
-            $after = $clamped
-                ? Money::zero($current->currency(), $current->scale())
-                : $raw;
-
-            $movements[$type->value] = [
-                'before' => $current->amount(),
-                'released' => $decrement->amount(),
-                'after' => $after->amount(),
-                'clamped' => $clamped,
+            $decrements = [
+                ExposureType::Stake->value => $stake,
+                ExposureType::PotentialPayout->value => $potentialPayout,
             ];
 
-            $column = $type->currentColumn();
+            $movements = [];
+            $attributes = [];
 
-            if ($column !== null) {
-                $attributes[$column] = $after->amount();
+            foreach (ExposureType::enforced() as $type) {
+                $current = $this->exposure->current($limit, $type);
+                $decrement = $decrements[$type->value];
+                $raw = $current->minus($decrement);
+                $clamped = $raw->isNegative();
+                $after = $clamped
+                    ? Money::zero($current->currency(), $current->scale())
+                    : $raw;
+
+                $movements[$type->value] = [
+                    'before' => $current->amount(),
+                    'released' => $decrement->amount(),
+                    'after' => $after->amount(),
+                    'clamped' => $clamped,
+                ];
+
+                $column = $type->currentColumn();
+
+                if ($column !== null) {
+                    $attributes[$column] = $after->amount();
+                }
             }
-        }
 
-        // Releasing capacity can make an Exceeded row sellable again. Only that
-        // transition is performed: a Suspended or Removed row was set by an operator
-        // and is never reopened by an automatic release.
-        $statusAfter = $statusBefore;
+            app(BetRiskOwnershipFloor::class)->assertCovered(
+                $limit,
+                $movements[ExposureType::Stake->value]['after'] ?? null,
+                $movements[ExposureType::PotentialPayout->value]['after'] ?? null,
+            );
 
-        if ($statusBefore->isExceeded() && ! $this->anyReleasedCapacityStillConsumed($limit, $movements)) {
-            $statusAfter = NumberLimitStatus::Active;
-            $attributes['status'] = LimitStatus::Active;
-            $attributes['exceeded_at'] = null;
-        }
+            // Releasing capacity can make an Exceeded row sellable again. Only that
+            // transition is performed: a Suspended or Removed row was set by an operator
+            // and is never reopened by an automatic release.
+            $statusAfter = $statusBefore;
 
-        // current_amount, current_payout_exposure, status and exceeded_at are
-        // deliberately absent from the model's $fillable, so forceFill is the correct
-        // way for the engine that owns them to write them.
-        $limit->forceFill($attributes)->save();
+            if ($statusBefore->isExceeded() && ! $this->anyReleasedCapacityStillConsumed($limit, $movements)) {
+                $statusAfter = NumberLimitStatus::Active;
+                $attributes['status'] = LimitStatus::Active;
+                $attributes['exceeded_at'] = null;
+            }
 
-        return [
-            'released' => true,
-            'number_limit_id' => (int) $limit->getKey(),
-            'status_before' => $statusBefore->value,
-            'status_after' => $statusAfter->value,
-            'exposures' => $movements,
-        ];
+            // current_amount, current_payout_exposure, status and exceeded_at are
+            // deliberately absent from the model's $fillable, so forceFill is the correct
+            // way for the engine that owns them to write them.
+            $limit->forceFill($attributes)->save();
+
+            return [
+                'released' => true,
+                'number_limit_id' => (int) $limit->getKey(),
+                'status_before' => $statusBefore->value,
+                'status_after' => $statusAfter->value,
+                'exposures' => $movements,
+            ];
+        });
     }
 
     /**
@@ -469,33 +483,53 @@ class NumberLimitEngine
     {
         $this->locks->assertInsideTransaction('reserve number limit capacity in bulk');
 
-        $triples = [];
+        return DB::transaction(function () use ($drawId, $betType, $entries): array {
+            app(DrawRiskAdmission::class)->lock($drawId);
 
-        foreach ($entries as $entry) {
-            $triples[] = [
-                'draw_id' => $drawId,
-                'bet_type' => $betType,
-                'number' => $this->numbers->normalize($entry['number'], $betType),
-            ];
-        }
+            $triples = [];
+            $seen = [];
 
-        // Take every lock first, in id order, before evaluating any ceiling.
-        $this->locks->lockMany($triples);
+            foreach ($entries as $entry) {
+                $number = $this->numbers->normalize($entry['number'], $betType);
 
-        $results = [];
+                if (isset($seen[$number])) {
+                    throw new RiskConfigurationException(
+                        sprintf('Duplicate number %s (%s) in bulk reservation is not supported.', $number, $betType->value),
+                        'RISK_DUPLICATE_SELECTION',
+                        [
+                            'draw_id' => $drawId,
+                            'bet_type' => $betType->value,
+                            'number' => $number,
+                        ],
+                    );
+                }
 
-        foreach ($entries as $entry) {
-            $number = $this->numbers->normalize($entry['number'], $betType);
-            $results[$number] = $this->reserve(
-                $drawId,
-                $betType,
-                $number,
-                $entry['stake'],
-                $entry['multiplier'],
-            );
-        }
+                $seen[$number] = true;
+                $triples[] = [
+                    'draw_id' => $drawId,
+                    'bet_type' => $betType,
+                    'number' => $number,
+                ];
+            }
 
-        return $results;
+            // Take every lock first, in id order, before evaluating any ceiling.
+            $this->locks->lockMany($triples);
+
+            $results = [];
+
+            foreach ($entries as $entry) {
+                $number = $this->numbers->normalize($entry['number'], $betType);
+                $results[$number] = $this->reserve(
+                    $drawId,
+                    $betType,
+                    $number,
+                    $entry['stake'],
+                    $entry['multiplier'],
+                );
+            }
+
+            return $results;
+        });
     }
 
     /**
