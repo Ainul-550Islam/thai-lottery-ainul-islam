@@ -1,0 +1,10 @@
+This branch deletes four paths that existed at the base commit.
+
+docker/nginx/conf.d/app.conf   -> replaced by docker/nginx/nginx.conf
+docker/php-fpm/Dockerfile      -> replaced by docker/php/Dockerfile
+docker/php-fpm/opcache.ini     -> opcache settings now live in docker/php/php.ini
+docker/php-fpm/php.ini         -> replaced by docker/php/php.ini
+
+Applying C-changes.patch removes them automatically. If you copy files by hand
+instead, delete these four paths yourself, otherwise the old PHP-FPM image
+definition stays in the tree next to the new one.

@@ -1,65 +1,55 @@
 # =============================================================================
-# Thai Lottery — Production Compose
-# =============================================================================
+# Thai Lottery — production Compose stack
 #
-# WHY THIS FILE EXISTS
-# The repository contained NO Dockerfile, NO compose file, NO nginx config and
-# NO php-fpm config anywhere — `find . -iname "*docker*"` returned nothing. The
-# only deployment artifact was one supervisord snippet for a single queue worker
-# (deployment/supervisor/thai-lottery-worker.conf). The brief's requirement —
-# "Validate PHP-FPM, Nginx, Redis, PostgreSQL, and Rust Worker Docker
-# configurations for production" — could not be validated because none existed.
+# WHAT THIS FILE IS RESPONSIBLE FOR
+#   nginx (TLS edge) · app (php-fpm 8.4) · horizon (queue) · scheduler (exactly
+#   one) · reverb (websockets) · settlement-worker (Rust) · mysql · redis ·
+#   migrate (one-shot) · preflight (one-shot) · backup (optional profile)
 #
-# WHAT THIS PROVIDES
-#   nginx        TLS-terminating edge, serves static, proxies to php-fpm
-#   app          php-fpm 8.4 runtime, read-only rootfs, no shell in prod image
-#   horizon      queue workers (settlement / payouts / webhooks / notifications)
-#   scheduler    `schedule:work` — exactly ONE replica, ever
-#   db           PostgreSQL 16 (see the DATABASE MIGRATION NOTE below)
-#   redis        Redis 7, AOF on, used for cache + locks + queues
-#   reverb       WebSocket server (Laravel Reverb) — was BROADCAST_CONNECTION=log
-#   settlement-worker  the Rust hot-path worker
+# HARDENING APPLIED BELOW (and why)
+#   read_only root filesystems  A compromised FPM worker cannot rewrite the
+#                               application code that the next request will
+#                               execute. Writable paths are named explicitly:
+#                               storage, bootstrap/cache and a tmpfs /tmp.
+#   cap_drop: ALL               PHP-FPM needs no capabilities. The previous file
+#                               inherited the default set (NET_RAW, SETUID, …)
+#                               which is only useful to an attacker.
+#   no-new-privileges          setuid binaries inside the image cannot escalate.
+#   non-root uid 10001          matches docker/php/Dockerfile's `USER app`.
+#   published ports             only nginx. The database, Redis and Reverb are
+#                               on an `internal: true` network with no route off
+#                               the host.
+#   healthchecks                every service that can hang has one, and the
+#                               dependants wait for it (condition:
+#                               service_healthy) rather than for "started".
+#   logging limits              an unbounded json-file log fills the disk and
+#                               takes the database down with it.
+#   stop_grace_period           Horizon gets two minutes to finish in-flight
+#                               jobs; the previous file gave it ten seconds and
+#                               killed payouts mid-transaction.
 #
-# -----------------------------------------------------------------------------
-# DATABASE MIGRATION NOTE — READ BEFORE FIRST DEPLOY
-# -----------------------------------------------------------------------------
-# The brief targets PostgreSQL. THIS REPOSITORY DOES NOT CURRENTLY RUN ON IT.
-# `config/database.php` declares `'default' => env('DB_CONNECTION', 'pgsql')`
-# while `.env.example` sets `DB_CONNECTION=mysql` and CI runs on sqlite. Three
-# different engines across three surfaces is not a configuration, it is an
-# untested claim. Before PostgreSQL is switched on you MUST:
+# WHY nginx NO LONGER MOUNTS ./public FROM THE HOST
+#   The previous compose mounted the developer's working copy into the web
+#   root. The `public/build/manifest.json` it expects is produced by the Vite
+#   build *inside the image*, so on a clean host nginx served a directory with
+#   no assets at all — a site with no CSS and 404s on every script. nginx now
+#   serves the same named volume the app image populates, so the bytes it
+#   serves are the bytes that were built and verified.
 #
-#   1. Run the migration suite against PostgreSQL in CI (see
-#      .github/workflows/ci.yml — add a matrix leg with pgsql).
-#   2. Port the raw SQL in FinancialReconciliationService and
-#      PayoutReconciliationService: GROUP_CONCAT is MySQL-only. On PostgreSQL
-#      it is STRING_AGG, and on PostgreSQL the silent-truncation hazard below
-#      does not exist.
-#   3. Re-check every `selectRaw` for backtick quoting and `IFNULL`/`NOW()`
-#      usages.
-#
-# The safest sequence is: SHIP ON MYSQL FIRST (the engine the code and its
-# tests were actually written against), then migrate to PostgreSQL as a
-# deliberate, tested project. Deploying to PostgreSQL because the brief names
-# it, without doing (1)-(3), trades a known-good engine for a guess.
-#
-# -----------------------------------------------------------------------------
-# THE GROUP_CONCAT HAZARD (applies while on MySQL)
-# -----------------------------------------------------------------------------
-# MySQL silently truncates GROUP_CONCAT at `group_concat_max_len` (default
-# 1024 bytes) WITHOUT raising an error. FinancialReconciliationService uses
-# GROUP_CONCAT to compress ledger amounts into strings that are then summed in
-# PHP (see its own note at FinancialReconciliationService.php:1063). Past ~100
-# amounts the concatenated list is cut and the reconciliation reports a
-# discrepancy that does not exist — or, worse, fails to report one that does.
-# The `db` service below sets group_concat_max_len to 1MB at the session level
-# via `command`, and the migration to PostgreSQL removes the class of bug
-# entirely. Setting it in compose is a mitigation, not a fix.
+# DATABASE
+#   MySQL 8.4, because that is the engine the code and its test suite were
+#   written against and CI exercises. config/database.php defaults to pgsql;
+#   moving to it is a deliberate, tested project (the raw SQL in
+#   FinancialReconciliationService uses MySQL's GROUP_CONCAT). See
+#   docs/ops/OPS-RUNBOOK.md. `group_concat_max_len` is raised below because
+#   MySQL truncates GROUP_CONCAT silently at 1 KiB, which can make a
+#   reconciliation report a discrepancy that does not exist.
 #
 # SECRETS
-# Every credential is `*_FILE` or an env var with no default. Nothing in this
-# file carries a usable secret, and no service falls back to a placeholder.
-# -----------------------------------------------------------------------------
+#   Every credential is a mounted Docker secret (`*_FILE`) or an environment
+#   variable with no default and a `:?` guard. Nothing here carries a usable
+#   secret, and no service falls back to a placeholder.
+# =============================================================================
 
 name: thai-lottery
 
@@ -70,11 +60,14 @@ x-app-image: &app-image
     target: runtime
     args:
       PHP_VERSION: "8.4"
+  image: ${APP_IMAGE:-thai-lottery/app:local}
 
 x-app-env: &app-env
   APP_ENV: production
   APP_DEBUG: "false"
   LOG_CHANNEL: stderr
+  LOG_FORMAT: json
+  LOG_REDACT_SENSITIVE: "true"
   APP_KEY_FILE: /run/secrets/app_key
   DB_CONNECTION: mysql
   DB_HOST: db
@@ -89,6 +82,23 @@ x-app-env: &app-env
   BROADCAST_CONNECTION: reverb
   SESSION_SECURE_COOKIE: "true"
   SESSION_ENCRYPT: "true"
+  BACKUP_ENCRYPTION_KEY_FILE: /run/secrets/backup_key
+  BACKUP_PATH: /var/www/html/storage/app/backups
+  HEALTH_DETAIL_TOKEN_FILE: /run/secrets/health_token
+
+x-app-hardening: &app-hardening
+  read_only: true
+  init: true
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
 
 x-app-depends: &app-depends
   db:
@@ -98,13 +108,46 @@ x-app-depends: &app-depends
   migrate:
     condition: service_completed_successfully
 
+x-app-volumes: &app-volumes
+  - app-storage:/var/www/html/storage
+  - app-bootstrap-cache:/var/www/html/bootstrap/cache
+  # Populated from the image on first start (Docker copies the image's
+  # directory contents into a fresh named volume, ownership included), then
+  # mounted read-only into nginx. This is what makes nginx serve the assets that
+  # were actually built instead of whatever happens to be in the host checkout.
+  - app-public:/var/www/html/public
+
+x-app-secrets: &app-secrets
+  - app_key
+  - db_password
+  - backup_key
+  - health_token
+
 services:
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Preflight — proves the release is deployable BEFORE anything migrates.
+  # ───────────────────────────────────────────────────────────────────────────
+  preflight:
+    <<: [*app-image, *app-hardening]
+    restart: "no"
+    environment:
+      <<: *app-env
+    command: ["php", "artisan", "ops:preflight", "--environment=production"]
+    secrets: *app-secrets
+    volumes: *app-volumes
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Database
   # ───────────────────────────────────────────────────────────────────────────
   db:
-    image: mysql:8.4
+    image: mysql:8.4@sha256:76f0358884cb92d9a086d24e5671c38048d3fef40f2588703d73eb55392d6b69
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: "${DB_DATABASE:?DB_DATABASE is required}"
@@ -131,13 +174,19 @@ services:
       timeout: 5s
       retries: 12
       start_period: 40s
+    stop_grace_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Redis — cache, locks, queues, sessions
   # ───────────────────────────────────────────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:57e4255cc971b1c8d6f8a6ca283ac01bc3ecdd914273ef6bfaede87aaecd6541
     restart: unless-stopped
     command: >
       redis-server
@@ -148,20 +197,26 @@ services:
       --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
     volumes:
       - redis-data:/data
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 12
-    environment:
-      REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
-  # Migrations — one-shot, must complete before the app starts
+  # Migrations — one shot, after preflight, before the application starts
   # ───────────────────────────────────────────────────────────────────────────
   migrate:
-    <<: *app-image
+    <<: [*app-image, *app-hardening]
     restart: "no"
     environment:
       <<: *app-env
@@ -171,8 +226,11 @@ services:
              php artisan route:cache &&
              php artisan view:cache &&
              php artisan event:cache"
-    secrets: [app_key, db_password]
+    secrets: *app-secrets
+    volumes: *app-volumes
     depends_on:
+      preflight:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
@@ -183,85 +241,123 @@ services:
   # Application — php-fpm
   # ───────────────────────────────────────────────────────────────────────────
   app:
-    <<: *app-image
+    <<: [*app-image, *app-hardening]
     restart: unless-stopped
     environment:
       <<: *app-env
-    secrets: [app_key, db_password]
+    secrets: *app-secrets
+    volumes: *app-volumes
     depends_on: *app-depends
-    volumes:
-      - app-storage:/var/www/html/storage
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2g
+    stop_grace_period: 60s
+    healthcheck:
+      # The image's own HEALTHCHECK is the php-fpm ping; declaring it here also
+      # gives `docker compose ps` and the depends_on graph something to wait on.
+      test: ["CMD", "/usr/local/bin/php-fpm-healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Nginx — the only service exposed to the internet
   # ───────────────────────────────────────────────────────────────────────────
   nginx:
-    image: nginx:1.27-alpine
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     restart: unless-stopped
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./public:/var/www/html/public:ro
-      - app-storage:/var/www/html/storage:ro
+      - ./docker/nginx/snippets:/etc/nginx/snippets:ro
       - ./docker/nginx/certs:/etc/nginx/certs:ro
+      # Assets come from the image build, not from the host checkout.
+      - app-public:/var/www/html/public:ro
+      - app-storage:/var/www/html/storage:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     networks: [backend, edge]
 
   # ───────────────────────────────────────────────────────────────────────────
-  # Horizon — queue workers (replaces the single supervisord worker)
+  # Horizon — queue workers (settlement, payouts, webhooks, notifications)
   # ───────────────────────────────────────────────────────────────────────────
   horizon:
-    <<: *app-image
+    <<: [*app-image, *app-hardening]
     restart: unless-stopped
     environment:
       <<: *app-env
     command: ["php", "artisan", "horizon"]
-    secrets: [app_key, db_password]
+    secrets: *app-secrets
+    volumes: *app-volumes
     depends_on: *app-depends
-    volumes:
-      - app-storage:/var/www/html/storage
-    # Horizon's own auto-restart on memory/time limits is configured in
-    # config/horizon.php. `restart: unless-stopped` covers the process itself.
+    # 120s so an in-flight payout transaction can commit or roll back cleanly.
     stop_grace_period: 120s
+    healthcheck:
+      # `horizon:status` exits non-zero when no master supervises the pool; the
+      # container being alive is not the same as workers existing.
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Scheduler — EXACTLY ONE replica. Two schedulers double-fire every task.
   # ───────────────────────────────────────────────────────────────────────────
   scheduler:
-    <<: *app-image
+    <<: [*app-image, *app-hardening]
     restart: unless-stopped
     environment:
       <<: *app-env
     command: ["php", "artisan", "schedule:work"]
-    secrets: [app_key, db_password]
+    secrets: *app-secrets
+    volumes: *app-volumes
     depends_on: *app-depends
-    volumes:
-      - app-storage:/var/www/html/storage
-    # Do NOT scale this service.
-    deploy:
-      replicas: 1
+    stop_grace_period: 60s
+    healthcheck:
+      # The heartbeat the scheduler writes each minute; `ops:health` reads the
+      # same file. A scheduler that is up but not scheduling fails here.
+      test: ["CMD", "php", "artisan", "ops:heartbeat", "--show"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
     networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
-  # Reverb — WebSocket server. Without it, every one of the seven
-  # ShouldBroadcast events in app/Events/ writes to a log file and no client
-  # ever receives a result push.
+  # Reverb — WebSocket server for result pushes
   # ───────────────────────────────────────────────────────────────────────────
   reverb:
-    <<: *app-image
+    <<: [*app-image, *app-hardening]
     restart: unless-stopped
     environment:
       <<: *app-env
       REVERB_SERVER_HOST: 0.0.0.0
       REVERB_SERVER_PORT: "8080"
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
-    secrets: [app_key, db_password]
+    secrets: *app-secrets
+    volumes: *app-volumes
     depends_on: *app-depends
+    stop_grace_period: 30s
     networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
@@ -272,15 +368,61 @@ services:
       context: .
       dockerfile: docker/rust/Dockerfile
     restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     environment:
       WORKER_BIND: "0.0.0.0:9101"
       RUST_LOG: "info"
       PRIZE_PAYOUT_SAFETY_MODE: "${PRIZE_PAYOUT_SAFETY_MODE:-DISABLED}"
-      DATABASE_URL_FILE: /run/secrets/database_url
-      SETTLEMENT_WORKER_HMAC_SECRET_FILE: /run/secrets/settlement_worker_hmac_secret
-    secrets: [database_url, settlement_worker_hmac_secret]
+      # The worker reads DATABASE_URL from the environment and falls back to the
+      # file Docker mounts at /run/secrets/database_url (see main.rs). Passing a
+      # `DATABASE_URL_FILE` variable would look like configuration while being
+      # read by nothing, so the mount is relied on directly.
+      #
+      # NOTE: settlement_worker_hmac_secret is mounted because request-signature
+      # verification lives in the worker, but the current worker source never
+      # loads it — an application-level gap recorded in HANDOFF-C.md, not a
+      # container one.
+    secrets:
+      - database_url
+      - settlement_worker_hmac_secret
     depends_on:
       db:
+        condition: service_healthy
+    healthcheck:
+      # The worker's own --healthcheck mode; there is no shell in this image.
+      test: ["CMD", "/settlement-worker", "--healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks: [backend]
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Backup — not a daemon. Run on demand or from the host's cron:
+  #   docker compose --profile ops run --rm backup
+  # The archive lands in the app-storage volume and is pruned by the command.
+  # ───────────────────────────────────────────────────────────────────────────
+  backup:
+    <<: [*app-image, *app-hardening]
+    profiles: [ops]
+    restart: "no"
+    environment:
+      <<: *app-env
+    command: ["bash", "scripts/ops/backup.sh", "--json"]
+    secrets: *app-secrets
+    volumes: *app-volumes
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks: [backend]
 
@@ -289,12 +431,19 @@ networks:
     driver: bridge
   backend:
     driver: bridge
+    # No route off the host: the database, Redis and Reverb are unreachable from
+    # anything except the containers above.
     internal: true
 
 volumes:
   db-data:
   redis-data:
+  # storage and public are populated by the image build. A fresh named volume
+  # inherits the image's directory contents AND ownership, so uid 10001 can
+  # write to storage from the first request.
   app-storage:
+  app-public:
+  app-bootstrap-cache:
 
 secrets:
   app_key:
@@ -302,6 +451,10 @@ secrets:
   db_password:
     external: true
   db_root_password:
+    external: true
+  backup_key:
+    external: true
+  health_token:
     external: true
   database_url:
     external: true

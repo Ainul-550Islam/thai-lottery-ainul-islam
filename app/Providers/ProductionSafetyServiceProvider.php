@@ -69,10 +69,23 @@ class ProductionSafetyServiceProvider extends ServiceProvider
         $violations = self::violations();
 
         if ($violations !== []) {
-            throw new RuntimeException(
-                "Refusing to boot: unsafe production configuration.\n  - "
-                .implode("\n  - ", $violations)
-            );
+            $message = "Refusing to boot: unsafe production configuration.\n  - "
+                .implode("\n  - ", $violations);
+
+            // In a console context the useful thing is the list of violations
+            // and a non-zero exit code. Throwing produces the same list buried
+            // in a stack trace, which is what an operator reads at 2am — and a
+            // deploy pipeline greps stdout, not a PHP trace. The violations
+            // themselves are configuration *names*, never values, so they are
+            // safe to print and to keep in a build log.
+            if ($this->app->runningInConsole()) {
+                fwrite(STDERR, PHP_EOL.$message.PHP_EOL.PHP_EOL
+                    .'Nothing was started. Fix the configuration above; this guard has no bypass flag on purpose.'.PHP_EOL);
+
+                exit(2);
+            }
+
+            throw new RuntimeException($message);
         }
     }
 

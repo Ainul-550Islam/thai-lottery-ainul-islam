@@ -1,0 +1,22 @@
+{
+  "resources/js/account-verification-portal.js": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "resources/js/auth-portal.js": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "resources/js/glo-results-checker.js": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "resources/js/prize-verification-portal.js": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  }
+}

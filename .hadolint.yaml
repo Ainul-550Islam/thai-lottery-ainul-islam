@@ -1,0 +1,19 @@
+# hadolint — Dockerfile lint policy for this repository.
+#
+# The bar: anything hadolint calls an ERROR fails the build. Warnings and notes
+# are visible but do not block, because the remaining ones are deliberate and
+# explained below rather than overlooked.
+failure-threshold: error
+
+ignored:
+  # DL3018 — "pin versions in apk add".
+  #
+  # Every apk call in this repository installs *runtime* libraries or build
+  # dependencies of extensions compiled in the same layer (phpize, gd, intl,
+  # pdo_*). Alpine publishes new point releases of a package within days of an
+  # upstream security fix; pinning to the exact version that existed on the day
+  # this file was written would freeze those libraries at a known-vulnerable
+  # version and break the build as soon as the mirror rotates the old package
+  # out. The reproducibility guarantee here comes from the digest-pinned base
+  # image instead: same digest, same Alpine release, same package set.
+  - DL3018

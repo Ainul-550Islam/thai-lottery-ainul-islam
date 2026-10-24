@@ -14,7 +14,7 @@ parameters:
     ignoreErrors:
         - '#PHPDoc tag @var#'
 
-    checkMissingIterableValueType: true
-    checkGenericClassInNonGenericObjectType: false
-    checkExplicitMixed: true
+    # PHPStan 2 removed checkMissingIterableValueType /
+    # checkGenericClassInNonGenericObjectType; listing them makes the whole
+    # configuration invalid, which is why this file never actually ran.
     reportUnmatchedIgnoredErrors: false

@@ -1,0 +1,25 @@
+# Scoped static analysis for the platform/operations code (Agent C).
+#
+# WHY A SECOND CONFIG
+# -------------------
+# `phpstan.neon` analyses app/, config/, database/ and routes/ at level 8, which
+# is the intent — but it had never actually run (it listed two parameters that
+# PHPStan 2 rejects, so the whole configuration was invalid), and a full run
+# over the application takes far longer than a CI job should.
+#
+# This file inherits the project rules and narrows the paths to the code this
+# branch owns, so the gate runs in seconds and can be made blocking today.
+# Widening it back to the whole application is a separate, tracked task that
+# needs a baseline of the existing findings — see docs/ops/HANDOFF-C.md.
+includes:
+    - phpstan.neon
+
+parameters:
+    paths:
+        - app/Support/Backup
+        - app/Support/Ops
+        - app/Logging
+        - app/Console/Commands/Ops
+        - app/Console/Commands/Infrastructure
+        - app/Services/Infrastructure
+    reportUnmatchedIgnoredErrors: false

@@ -34,10 +34,10 @@ jobs:
       PRIZE_PAYOUT_SAFETY_MODE: DISABLED
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@d52fc211a0436f8839a587b3b5b8efddab4744ea
         with:
           php-version: '8.4'
           extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, pdo_mysql, bcmath, sodium, zip, intl, gd, pcntl, posix, redis
@@ -47,10 +47,17 @@ jobs:
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: '.nvmrc'
           cache: npm
+
+      - name: Install the reviewed npm release
+        run: |
+          set -euo pipefail
+          reviewed="$(node -p "require('./package.json').packageManager")"
+          npm install -g "${reviewed#npm@}"
+          echo "npm $(npm --version) (reviewed: ${reviewed})"
 
       - name: Build browser assets
         run: |
@@ -487,7 +494,7 @@ jobs:
 
       - name: Upload sanitized financial evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: financial-server-race-evidence
           path: |
@@ -532,7 +539,7 @@ jobs:
 
       - name: Preserve lifecycle boundary receipts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: lifecycle-boundary-receipts
           path: |
@@ -552,7 +559,7 @@ jobs:
 
       - name: Preserve financial retry ownership receipts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: financial-retry-ownership-receipts
           path: |
@@ -575,7 +582,7 @@ jobs:
 
       - name: Preserve canonical financial routing checks
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: canonical-financial-identifiers
           path: evidence/financial-identifiers-ci.xml
@@ -596,7 +603,7 @@ jobs:
 
       - name: Preserve financial model routing verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: financial-model-routing-context
           path: evidence/financial-model-context-ci.xml
@@ -617,7 +624,7 @@ jobs:
 
       - name: Preserve direct ledger admission verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: direct-ledger-posting-admission
           path: evidence/ledger-posting-admission-ci.xml
@@ -640,7 +647,7 @@ jobs:
 
       - name: Preserve current-read journal evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: transaction-root-journal-current-read
           path: |
@@ -673,7 +680,7 @@ jobs:
 
       - name: Retain draft journal identity verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-draft-identity
           path: evidence/ledger-draft-identity-ci.xml
@@ -693,7 +700,7 @@ jobs:
 
       - name: Retain account balance projection verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-balance-projection
           path: evidence/ledger-balance-projection-ci.xml
@@ -713,7 +720,7 @@ jobs:
 
       - name: Retain ledger monetary encoding verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-entry-money
           path: evidence/ledger-entry-money-ci.xml
@@ -733,7 +740,7 @@ jobs:
 
       - name: Retain ledger text and JSON payload verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-entry-payload
           path: evidence/ledger-entry-payload-ci.xml
@@ -753,7 +760,7 @@ jobs:
 
       - name: Retain ledger write context verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-write-boundary
           path: evidence/ledger-write-boundary-ci.xml
@@ -773,7 +780,7 @@ jobs:
 
       - name: Retain ledger reentrancy verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-reentrancy
           path: evidence/ledger-reentrancy-ci.xml
@@ -794,7 +801,7 @@ jobs:
 
       - name: Retain posting input witness verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-input-witness
           path: evidence/ledger-input-witness-ci.xml
@@ -815,7 +822,7 @@ jobs:
 
       - name: Retain callback journal admission verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-callback-journal
           path: evidence/ledger-callback-journal-ci.xml
@@ -836,7 +843,7 @@ jobs:
 
       - name: Retain refused model save verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ledger-write-refusal
           path: evidence/ledger-write-refusal-ci.xml
@@ -857,7 +864,7 @@ jobs:
 
       - name: Retain refused wallet save verification
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: wallet-write-refusal
           path: evidence/wallet-write-refusal-ci.xml
