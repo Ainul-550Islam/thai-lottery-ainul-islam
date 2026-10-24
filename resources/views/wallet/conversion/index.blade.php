@@ -74,7 +74,7 @@
 <main class="wc-shell" role="main">
     <header class="wc-header">
         <div>
-            <h1 class="wc-title">{{ __('wallet_conversion.page_title') }}</h1>
+            <h1 class="wc-title">{{ \Illuminate\Support\Facades\Lang::has('wallet_conversion.page_heading') ? __('wallet_conversion.page_heading') : __('wallet_conversion.page_title') }}</h1>
             <p class="wc-lead">{{ __('wallet_conversion.page_lead') }}</p>
         </div>
 

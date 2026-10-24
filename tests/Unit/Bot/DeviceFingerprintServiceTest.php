@@ -9,7 +9,6 @@ use Illuminate\Config\Repository;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class DeviceFingerprintServiceTest extends TestCase
 {
@@ -96,19 +95,19 @@ final class DeviceFingerprintServiceTest extends TestCase
     #[DataProvider('invalidKeys')]
     public function test_invalid_keys_are_refused(string $key): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->service($key)->fingerprint($this->request('192.0.2.1'));
     }
 
     public function test_missing_key_is_refused(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         (new DeviceFingerprintService(new Repository))->fingerprint($this->request('192.0.2.1'));
     }
 
     public function test_invalid_client_ip_is_refused(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->service()->fingerprint($this->request('not-an-ip'));
     }
 }

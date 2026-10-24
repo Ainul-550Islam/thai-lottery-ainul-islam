@@ -6,7 +6,6 @@ namespace App\Services\Payment\Drivers;
 
 use App\DTOs\Payment\GatewayDepositResponse;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
-use App\DTOs\Payment\WebhookMoneyFacts;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
@@ -69,17 +68,6 @@ class StripeGateway extends AbstractPaymentGateway
         $currency = $deposit->currency ?? Currency::THB;
         $amountInCents = bcmul((string) $deposit->amount, '100', 0);
 
-        $metadata = [
-            'deposit_reference' => (string) $deposit->reference_number,
-            'deposit_id' => (string) $deposit->id,
-            'user_id' => (string) $deposit->user_id,
-            'wallet_id' => (string) $deposit->wallet_id,
-        ];
-
-        if (isset($options['checkout_attempt']) && is_string($options['checkout_attempt']) && $options['checkout_attempt'] !== '') {
-            $metadata['checkout_attempt'] = $options['checkout_attempt'];
-        }
-
         $params = [
             'mode' => 'payment',
             'client_reference_id' => $deposit->reference_number,
@@ -99,18 +87,17 @@ class StripeGateway extends AbstractPaymentGateway
                     'quantity' => 1,
                 ],
             ],
-            'metadata' => $metadata,
+            'metadata' => [
+                'deposit_reference' => $deposit->reference_number,
+            ],
         ];
 
         try {
             $stableReference = is_string($deposit->uuid) && $deposit->uuid !== ''
                 ? $deposit->uuid
                 : $deposit->reference_number;
-            $idempotencyHeader = isset($options['checkout_dispatch_key']) && is_string($options['checkout_dispatch_key']) && $options['checkout_dispatch_key'] !== ''
-                ? $options['checkout_dispatch_key']
-                : 'deposit-'.$stableReference;
             $response = Http::withToken($secretKey)
-                ->withHeaders(['Idempotency-Key' => $idempotencyHeader])
+                ->withHeaders(['Idempotency-Key' => 'deposit-'.$stableReference])
                 ->asForm()
                 ->post('https://api.stripe.com/v1/checkout/sessions', $params);
 
@@ -225,10 +212,11 @@ class StripeGateway extends AbstractPaymentGateway
             ?? null;
 
         $providerReference = $object['id'] ?? null;
-        $currency = WebhookMoneyFacts::currency($object['currency'] ?? null);
+        $currencyString = strtoupper((string) ($object['currency'] ?? 'THB'));
+        $currency = Currency::tryFrom($currencyString) ?? Currency::THB;
 
-        $amountRaw = $object['amount_total'] ?? $object['amount'] ?? null;
-        $amount = WebhookMoneyFacts::minorUnits($amountRaw);
+        $amountRaw = $object['amount_total'] ?? $object['amount'] ?? 0;
+        $amount = bcdiv((string) $amountRaw, '100', 2);
 
         $eventType = match ($type) {
             'checkout.session.completed', 'payment_intent.succeeded' => WebhookEventType::DepositSuccess,

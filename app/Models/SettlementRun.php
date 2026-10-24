@@ -22,6 +22,10 @@ use Illuminate\Support\Carbon;
  * @property string $status
  * @property int $chunk_size
  * @property int $cursor_bet_id
+ * @property int $max_bet_id
+ * @property string|null $participants_fingerprint
+ * @property string|null $approval_threshold
+ * @property string|null $outcomes_fingerprint
  * @property int $bets_total
  * @property int $bets_settled
  * @property int $selections_evaluated
@@ -58,6 +62,10 @@ class SettlementRun extends Model
         'status',
         'chunk_size',
         'cursor_bet_id',
+        'max_bet_id',
+        'participants_fingerprint',
+        'approval_threshold',
+        'outcomes_fingerprint',
         'bets_total',
         'bets_settled',
         'selections_evaluated',
@@ -69,10 +77,6 @@ class SettlementRun extends Model
         'currency',
         'mode',
         'safety_mode',
-        'result_fingerprint',
-        'participants_fingerprint',
-        'max_bet_id',
-        'approval_threshold',
         'chunks_processed',
         'started_at',
         'last_chunk_at',
@@ -89,6 +93,9 @@ class SettlementRun extends Model
         return [
             'chunk_size' => 'integer',
             'cursor_bet_id' => 'integer',
+            'max_bet_id' => 'integer',
+            'approval_threshold' => 'decimal:2',
+            'outcomes_fingerprint' => 'string',
             'bets_total' => 'integer',
             'bets_settled' => 'integer',
             'selections_evaluated' => 'integer',
@@ -97,8 +104,6 @@ class SettlementRun extends Model
             'payouts_created' => 'integer',
             'total_stake' => 'decimal:2',
             'total_prize' => 'decimal:2',
-            'max_bet_id' => 'integer',
-            'approval_threshold' => 'decimal:2',
             'chunks_processed' => 'integer',
             'started_at' => 'datetime',
             'last_chunk_at' => 'datetime',

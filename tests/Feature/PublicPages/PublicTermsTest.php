@@ -41,19 +41,30 @@ final class PublicTermsTest extends TestCase
     }
 
     // 2
-    public function test_version_comes_from_config_and_is_v1_0_0_default(): void
+    public function test_version_comes_from_config_and_is_v1_0_1_default(): void
     {
+        // CORRECTED: this test used to pin the Terms page to the SHARED legal.version
+        // (v1.0.0) while TermsRevisionIsolationTest pins it to the Terms document's own
+        // revision (v1.0.1) and asserts that a Terms bump must not reversion Privacy.
+        // Both cannot hold, and the isolation rule is the one that matches how the
+        // documents are actually edited: Terms and Privacy carry separate revisions,
+        // dates and cache busters. The shared legal.version stays v1.0.0 and is still
+        // the value the Privacy page renders.
         $this->assertSame('v1.0.0', config('legal.version'));
+        $this->assertSame('v1.0.1', config('legal.terms.version'));
         $content = $this->termsContent();
-        $this->assertStringContainsString('data-pp-legal-version="v1.0.0"', $content);
+        $this->assertStringContainsString('data-pp-legal-version="v1.0.1"', $content);
         $this->assertStringContainsString('data-pp-version', $content);
-        $this->assertStringContainsString('v1.0.0', $content);
+        $this->assertStringContainsString('v1.0.1', $content);
     }
 
     // 3
     public function test_effective_date_is_static_from_config_not_dynamic_per_request(): void
     {
-        $effective = (string) config('legal.effective_at');
+        // Same correction as the version test above: the Terms document dates its own
+        // revision. The shared legal.effective_at still governs the Privacy page.
+        $effective = (string) config('legal.terms.effective_at');
+        $this->assertSame('2026-09-24', (string) config('legal.effective_at'));
         $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $effective);
         $content = $this->termsContent();
         $this->assertStringContainsString('data-pp-effective', $content);
@@ -64,7 +75,7 @@ final class PublicTermsTest extends TestCase
             str_replace($effective, '', $content),
         );
         $content2 = $this->termsContent();
-        $this->assertStringContainsString((string) config('legal.updated_at'), $content2);
+        $this->assertStringContainsString((string) config('legal.terms.updated_at'), $content2);
     }
 
     // 4

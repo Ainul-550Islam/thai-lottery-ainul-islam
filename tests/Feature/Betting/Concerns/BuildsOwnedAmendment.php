@@ -11,11 +11,15 @@ use Tests\Feature\Agent\Concerns\BuildsPaidCommissionCancellation;
 
 trait BuildsOwnedAmendment
 {
+    use BuildsOwnedBetPurchase;
     use BuildsPaidCommissionCancellation;
 
     protected function amendmentFixture(Currency $currency = Currency::THB, bool $paid = false): array
     {
         $f = $paid ? $this->paidFixture($currency) : $this->commissionFixture($currency);
+        // The commission fixtures build a bare factory user; the amend endpoint is gated
+        // by `adult` and `legal.current`, so the owner has to be onboarded to reach it.
+        $this->attestPlayer($f['user']);
         $this->provisionBetLimitForTest($f['draw'], '3d_direct', '008');
 
         return $f;

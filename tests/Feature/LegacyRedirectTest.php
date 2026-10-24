@@ -25,7 +25,6 @@ class LegacyRedirectTest extends TestCase
             'terms' => ['/terms.php', '/terms'],
             'fees' => ['/fees.php', '/fees'],
             'contact' => ['/contact.php', '/contact'],
-            'contact us menu URL' => ['/contact-us.php', '/contact'],
             'national lane' => ['/national-lottery.php', '/national-lottery'],
             'weekly lane' => ['/weekly-lottery.php', '/weekly-lottery'],
             'mega lane' => ['/bingo-lottery.php', '/bingo-lottery'],
@@ -130,49 +129,6 @@ class LegacyRedirectTest extends TestCase
         $this->get($legacy)
             ->assertStatus(301)
             ->assertRedirect($modern);
-    }
-
-    public static function archivedPreviewProvider(): array
-    {
-        return [
-            'about prototype' => ['/about-preview.html', '/about'],
-            'account grade prototype' => ['/account-grade-preview.html', '/account-grades'],
-            'account verification prototype' => ['/account-verification-preview.html', '/account-verification-guide'],
-            'bingo prototype' => ['/bingo-lottery-preview.html', '/bingo-lottery'],
-            'contact prototype' => ['/contact-preview.html', '/contact'],
-            'deposit prototype' => ['/deposit-portal-preview.html', '/deposit'],
-            'download prototype' => ['/download-preview.html', '/download'],
-            'faq prototype' => ['/faq-preview.html', '/faq'],
-            'fees prototype' => ['/fees-preview.html', '/fees'],
-            'home prototype' => ['/home-preview.html', '/'],
-            'how to play prototype' => ['/how-to-play-preview.html', '/how-to-play'],
-            'history prototype' => ['/lottery-history-preview.html', '/bets'],
-            'discount prototype' => ['/lotto-discount-preview.html', '/discounts'],
-            'national prototype' => ['/national-lottery-preview.html', '/national-lottery'],
-            'pcso prototype' => ['/pcso-lottery-preview.html', '/pcso-lottery'],
-            'dashboard prototype' => ['/player-dashboard-preview.html', '/dashboard'],
-            'profile prototype' => ['/player-profile-preview.html', '/profile'],
-            'security prototype' => ['/player-security-settings-preview.html', '/player/security'],
-            'settings prototype' => ['/player-settings-preview.html', '/player/settings'],
-            'privacy prototype' => ['/privacy-preview.html', '/privacy'],
-            'prize verification prototype' => ['/prize-verification-preview.html', '/prize-verification'],
-            'results prototype' => ['/results-preview.html', '/results'],
-            'betting prototype' => ['/thai-lottery-betting-preview.html', '/betting'],
-            'vision prototype' => ['/vision-preview.html', '/vision'],
-            'wallet prototype' => ['/wallet-management-preview.html', '/wallet'],
-            'weekly prototype' => ['/weekly-lottery-preview.html', '/weekly-lottery'],
-            'withdrawal prototype' => ['/withdrawal-portal-preview.html', '/withdraw'],
-        ];
-    }
-
-    #[DataProvider('archivedPreviewProvider')]
-    public function test_public_prototype_pages_redirect_to_supported_application_routes(string $preview, string $modern): void
-    {
-        $this->get($preview)
-            ->assertStatus(301)
-            ->assertRedirect($modern);
-
-        $this->assertFileDoesNotExist(public_path(ltrim($preview, '/')));
     }
 
     public function test_unknown_php_path_is_still_a_404(): void

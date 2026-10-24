@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', __('player.profile_title').' — '.config('app.name', 'Thai Lottery'))
+@section('meta_robots', 'noindex, nofollow')
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-8">

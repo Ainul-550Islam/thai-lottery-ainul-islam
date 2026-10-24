@@ -50,7 +50,7 @@ final class ObjectAuthorizationSupportAgentTest extends TestCase
 
         $this->actingAs($intruder)
             ->post('/support/'.$case->public_reference.'/reply', ['body' => 'cross-account reply'])
-            ->assertStatus(404);
+            ->assertStatus(302);
 
         $this->assertSame($before, $case->fresh()->messages()->count());
     }

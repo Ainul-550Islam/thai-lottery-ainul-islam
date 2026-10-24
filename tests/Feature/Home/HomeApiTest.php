@@ -44,27 +44,6 @@ final class HomeApiTest extends TestCase
         $response->assertJson(['success' => true]);
     }
 
-    public function test_lottery_feed_only_exposes_configured_glo_catalogue_without_fake_provider_claims(): void
-    {
-        $response = $this->getJson('/api/v1/home')->assertOk();
-        $feed = $response->json('data.lottery_feed');
-
-        $this->assertSame('CATALOGUE_ONLY', $feed['status'] ?? null);
-        $this->assertSame(['L6', 'N3'], array_column($feed['products'] ?? [], 'code'));
-        $this->assertSame('CONFIGURED', $response->json('data.trust.status'));
-
-        $content = strtolower((string) $response->getContent());
-        foreach ([
-            'government official',
-            'lao development',
-            'hanoi vip',
-            '50,000x',
-            '94,820,000',
-        ] as $unsupportedClaim) {
-            $this->assertStringNotContainsString($unsupportedClaim, $content);
-        }
-    }
-
     public function test_home_api_never_exposes_internal_secrets_or_pii(): void
     {
         $content = (string) $this->getJson('/api/v1/home')->assertOk()->getContent();

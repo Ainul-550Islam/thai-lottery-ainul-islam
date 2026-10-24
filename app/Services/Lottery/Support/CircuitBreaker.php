@@ -92,7 +92,7 @@ final class CircuitBreaker
         }
 
         try {
-            $state = $this->state($source, $policy);
+            $state = $this->state($source);
 
             if ($state['state'] === self::STATE_CLOSED) {
                 return true;
@@ -141,7 +141,7 @@ final class CircuitBreaker
         }
 
         try {
-            $state = $this->state($source, $policy);
+            $state = $this->state($source);
             $state['failures'] = (int) $state['failures'] + 1;
             $state['last_failure_at'] = now()->toIso8601String();
             $state['probes_taken'] = 0;
@@ -202,7 +202,7 @@ final class CircuitBreaker
      */
     public function describe(string $source, BreakerPolicy $policy): array
     {
-        $state = $this->state($source, $policy);
+        $state = $this->state($source);
 
         $retryAfter = 0;
 
@@ -237,9 +237,9 @@ final class CircuitBreaker
     /**
      * @return array{state: string, failures: int, opened_at: string|null, last_success_at: string|null, last_failure_at: string|null, probes_taken: int}
      */
-    private function state(string $source, ?BreakerPolicy $policy = null): array
+    private function state(string $source): array
     {
-        $stored = $this->cache->get($this->key($source, $policy));
+        $stored = $this->cache->get($this->key($source, null));
 
         if (! is_array($stored)) {
             return [

@@ -19,33 +19,17 @@ class FraudAlertPolicy
         return $this->isComplianceOfficer($user);
     }
 
-    public function review(?User $user, FraudAlert|string|null $alert = null): bool
+    public function review(?User $user, ?FraudAlert $alert = null): bool
     {
-        if (! $this->isComplianceOfficer($user)) {
-            return false;
-        }
-
-        if ($alert instanceof FraudAlert && $alert->user_id !== null && trim((string) $alert->user_id) !== '') {
-            if ((string) $alert->user_id === (string) $user->getKey()) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->isComplianceOfficer($user);
     }
 
     private function isComplianceOfficer(?User $user): bool
     {
-        if (! $user instanceof User || ! $user->isActive()) {
+        if (! $user) {
             return false;
         }
 
-        if ($user->isSuperAdmin() || $user->isAdmin()) {
-            return true;
-        }
-
-        return $user->hasAnyRole(['compliance_officer', 'risk_auditor', 'security_officer'])
-            || $user->checkPermissionTo('view risk alerts')
-            || $user->checkPermissionTo('manage risk limits');
+        return (bool) ($user->is_admin ?? false) || in_array($user->role ?? '', ['admin', 'compliance_officer', 'risk_auditor'], true);
     }
 }

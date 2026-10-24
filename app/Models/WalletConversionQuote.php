@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\ConversionFeeBearer;
+use App\Enums\Currency;
 use App\Enums\WalletConversionDirection;
-use DomainException;
+use App\Enums\WalletConversionQuoteStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * A priced promise with an expiry.
@@ -22,34 +22,7 @@ use Illuminate\Support\Carbon;
  */
 class WalletConversionQuote extends Model
 {
-    private const TWO_DECIMAL_FIELDS = [
-        'amount_in',
-        'fee_amount',
-        'amount_out',
-    ];
-
-    private const IMMUTABLE_TERMS = [
-        'reference',
-        'user_id',
-        'direction',
-        'currency',
-        'amount_in',
-        'fee_amount',
-        'amount_out',
-        'rate',
-        'fee_bearer',
-        'fee_rule_key',
-        'fee_rule_version',
-        'limits',
-        'issued_at',
-        'expires_at',
-    ];
-
     protected $table = 'wallet_conversion_quotes';
-
-    protected $attributes = [
-        'status' => 'open',
-    ];
 
     protected $fillable = [
         'reference',
@@ -63,14 +36,21 @@ class WalletConversionQuote extends Model
         'fee_bearer',
         'fee_rule_key',
         'fee_rule_version',
-        'limits',
         'status',
-        'idempotency_key',
+        // The tariff that priced this quote, the channel it was asked from and the
+        // hash of the request that produced it. Stored on the row because a quote is
+        // an offer: what it says must be reconstructible from the row alone, without
+        // the config that happened to be loaded when it was issued.
+        'fee_rate',
+        'channel',
+        'request_fingerprint',
+        'limits',
         'issued_at',
-        'expires_at',
+        'description',
+        'idempotency_key',
         'converted_id',
         'consumed_at',
-        'description',
+        'expires_at',
     ];
 
     /**
@@ -80,89 +60,18 @@ class WalletConversionQuote extends Model
     {
         return [
             'direction' => WalletConversionDirection::class,
+            'currency' => Currency::class,
+            'status' => WalletConversionQuoteStatus::class,
             'fee_bearer' => ConversionFeeBearer::class,
             'amount_in' => 'decimal:2',
-            'fee_amount' => 'decimal:2',
-            'amount_out' => 'decimal:2',
-            'rate' => 'decimal:8',
+            'fee_rate' => 'decimal:8',
             'limits' => 'array',
             'issued_at' => 'datetime',
+            'fee_amount' => 'decimal:2',
+            'amount_out' => 'decimal:2',
             'consumed_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
-    }
-
-    public function setAttribute($key, $value)
-    {
-        if ($value !== null && in_array($key, self::TWO_DECIMAL_FIELDS, true)) {
-            $raw = is_int($value) ? (string) $value : (is_string($value) ? trim($value) : null);
-            if ($raw === null || preg_match('/^\d+(?:\.\d{1,2})?$/', $raw) !== 1) {
-                throw new DomainException(sprintf('Quote field %s must be a non-negative decimal with at most two fractional digits.', $key));
-            }
-        }
-
-        if ($value !== null && $key === 'rate') {
-            $raw = is_int($value) ? (string) $value : (is_string($value) ? trim($value) : null);
-            if ($raw === null || preg_match('/^\d+(?:\.\d{1,8})?$/', $raw) !== 1) {
-                throw new DomainException('Quote rate must be a non-negative decimal with at most eight fractional digits.');
-            }
-        }
-
-        return parent::setAttribute($key, $value);
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $quote): void {
-            $quote->status ??= 'open';
-            $quote->issued_at ??= Carbon::now();
-        });
-
-        static::saving(function (self $quote): void {
-            $amountIn = (string) ($quote->attributes['amount_in'] ?? '0');
-            $feeAmount = (string) ($quote->attributes['fee_amount'] ?? '0');
-            $amountOut = (string) ($quote->attributes['amount_out'] ?? '0');
-
-            if (bccomp($amountIn, '0', 2) <= 0 || bccomp($feeAmount, '0', 2) < 0 || bccomp($amountOut, '0', 2) < 0) {
-                throw new DomainException('Quote monetary values must be non-negative.');
-            }
-
-            if (bccomp(bcsub($amountIn, $feeAmount, 2), $amountOut, 2) !== 0) {
-                throw new DomainException('Quote amount_in minus fee_amount must equal amount_out.');
-            }
-        });
-
-        static::updating(function (self $quote): void {
-            foreach (self::IMMUTABLE_TERMS as $field) {
-                if ($quote->isDirty($field)) {
-                    throw new DomainException(sprintf('Quote field %s is immutable.', $field));
-                }
-            }
-
-            $originalStatus = (string) $quote->getRawOriginal('status');
-            $nextStatus = (string) $quote->status;
-
-            if ($originalStatus !== 'open') {
-                throw new DomainException('A closed quote cannot be reopened or modified.');
-            }
-
-            if (! in_array($nextStatus, ['open', 'consumed', 'expired'], true)) {
-                throw new DomainException(sprintf('Invalid quote status %s.', $nextStatus));
-            }
-
-            if ($nextStatus === 'consumed') {
-                if ($quote->isExpired()) {
-                    throw new DomainException('An expired quote cannot be consumed.');
-                }
-                if ($quote->converted_id === null || $quote->consumed_at === null) {
-                    throw new DomainException('Consuming a quote requires converted_id and consumed_at.');
-                }
-            }
-        });
-
-        static::deleting(function (): void {
-            throw new DomainException('Wallet conversion quotes are immutable and cannot be deleted.');
-        });
     }
 
     /**
@@ -170,9 +79,32 @@ class WalletConversionQuote extends Model
      * quote itself answers; whether its clock has run out is a separate check
      * so the sweep can relabel rows exactly once.
      */
+    /**
+     * Is this quote still spendable right now?
+     *
+     * The same three facts the open scope uses, asked of one already-loaded row:
+     * open status, no spend recorded, and not past its expiry instant.
+     */
+    public function isOpen(): bool
+    {
+        $status = $this->status instanceof WalletConversionQuoteStatus
+            ? $this->status
+            : WalletConversionQuoteStatus::tryFrom((string) $this->status);
+
+        return $status === WalletConversionQuoteStatus::Open
+            && $this->converted_id === null
+            && $this->consumed_at === null
+            && $this->expires_at !== null
+            && $this->expires_at->isFuture();
+    }
+
     public function scopeOpen(Builder $query): Builder
     {
-        return $query->where('status', 'open')
+        // "Open" is not only the status word. A row that has been spent carries the
+        // conversion it paid for and the instant it was spent, and either of those
+        // facts outranks a status column that says `open` — a half-written lifecycle
+        // must never be able to re-offer a price that has already been charged.
+        return $query->where('status', WalletConversionQuoteStatus::Open->value)
             ->whereNull('converted_id')
             ->whereNull('consumed_at');
     }
@@ -189,18 +121,10 @@ class WalletConversionQuote extends Model
 
     public function isExpired(): bool
     {
-        if (! $this->expires_at instanceof Carbon) {
+        if ($this->expires_at === null) {
             return false;
         }
 
-        return $this->expires_at->lte(Carbon::now());
-    }
-
-    public function isOpen(): bool
-    {
-        return (string) $this->status === 'open'
-            && $this->converted_id === null
-            && $this->consumed_at === null
-            && ! $this->isExpired();
+        return $this->expires_at->isPast();
     }
 }

@@ -201,6 +201,9 @@ return [
     'affiliate_band_internal' => 'Internal pilot',
     'affiliate_eligibility_standard' => 'Open to any verified account approved as an affiliate.',
     'affiliate_eligibility_partner' => 'Approved partners meeting the published volume and compliance conditions.',
+    // Call-to-action under the band table. It existed only in the Bangla file, so the
+    // English and Thai pages rendered the raw key path in the contact button.
+    'affiliate_contact' => 'Contact us about affiliate eligibility',
     'affiliate_eligibility_internal' => 'Internal use only.',
 
     // -- Shared ------------------------------------------------------------

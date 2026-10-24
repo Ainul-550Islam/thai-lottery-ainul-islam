@@ -160,8 +160,12 @@ final class WalletConversionApiController
         $code = (string) $exception->errorCode();
 
         $status = match ($code) {
+            // Authorisation refusals are 403: the request was well formed and the money
+            // is in a reversible state, so re-sending it cannot help.
+            'reversal_forbidden', 'conversion_reversal_forbidden' => 403,
+            'rate_limited' => 429,
             'idempotency_conflict' => 409,
-            'feature_disabled', 'direction_disabled' => 503,
+            'feature_disabled', 'direction_disabled', 'currency_not_configured' => 503,
             default => 422,
         };
 

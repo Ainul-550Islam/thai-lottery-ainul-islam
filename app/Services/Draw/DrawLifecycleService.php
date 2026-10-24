@@ -6,9 +6,7 @@ namespace App\Services\Draw;
 
 use App\Enums\DrawLifecycleState;
 use App\Exceptions\DrawLifecycleException;
-use App\Models\Bet;
 use App\Models\Draw;
-use App\Models\NumberLimit;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\DB;
 
@@ -169,15 +167,19 @@ class DrawLifecycleService
         $drawId = (int) $draw->getKey();
 
         return $this->withLockedDraw($drawId, function (Draw $locked) use ($target, $context, $drawId, $coordinator): Draw {
-            if ($target === DrawLifecycleState::Cancelled) {
-                if ($coordinator !== null) {
-                    $coordinator->assertLifecyclePermit($locked);
-                } else {
-                    $this->assertDirectCancelAllowed($locked);
-                }
-            }
-
             $current = $this->currentState($locked);
+
+            // Cancelling a draw that sold bets is not a status change, it is a refund of
+            // every member. The coordinator is the only object that can prove that, and it
+            // exists only inside a freshly authorized cancellation dispatch — a stored
+            // 'refunded' flag, a force flag or a client context cannot stand in for it.
+            if ($target === DrawLifecycleState::Cancelled && $this->requiresCoordinator($drawId)) {
+                if (! $coordinator instanceof DrawCancellationService) {
+                    throw DrawLifecycleException::coordinatorRequired($drawId);
+                }
+
+                $coordinator->assertLifecyclePermit($locked);
+            }
 
             $this->assertTransitionAllowed($drawId, $current, $target, $context);
 
@@ -203,6 +205,12 @@ class DrawLifecycleService
                     'cancelled_at' => now()->toIso8601String(),
                     'note' => 'draws has no cancelled_at column; recorded in metadata by Phase 5.1',
                 ];
+
+                if (isset($context['draw_cancellation_id'])) {
+                    // The draw row points at the cancellation that refunded it, so the
+                    // status can never be read as a bare label.
+                    $metadata['lifecycle']['draw_cancellation_id'] = (int) $context['draw_cancellation_id'];
+                }
                 $locked->metadata = $metadata;
             }
 
@@ -210,6 +218,27 @@ class DrawLifecycleService
 
             return $locked;
         }, $draw);
+    }
+
+    /**
+     * Whether cancelling this draw has to go through the owned coordinator.
+     *
+     * Two things make a bare status change a lie: sold bets (each of which owes a proved
+     * refund) and standing risk on a number limit (capacity that was reserved by somebody
+     * this lifecycle has no record of how to pay back). An "empty" draw is only empty when
+     * it has neither.
+     */
+    private function requiresCoordinator(int $drawId): bool
+    {
+        if (DB::table('bets')->where('draw_id', $drawId)->exists()) {
+            return true;
+        }
+
+        return DB::table('number_limits')->where('draw_id', $drawId)
+            ->where(static function ($query): void {
+                $query->where('current_amount', '>', 0)->orWhere('current_payout_exposure', '>', 0);
+            })
+            ->exists();
     }
 
     /**
@@ -512,34 +541,6 @@ class DrawLifecycleService
 
         if (! $current->canTransitionTo($target)) {
             throw DrawLifecycleException::invalidTransition($drawId, $current, $target, $context);
-        }
-    }
-
-    private function assertDirectCancelAllowed(Draw $draw): void
-    {
-        $drawId = (int) $draw->getKey();
-
-        $hasWagerHistory = Bet::withTrashed()->where('draw_id', $drawId)->lockForUpdate()->exists()
-            || DB::table('bet_purchase_ownerships')->where('draw_id', $drawId)->lockForUpdate()->exists()
-            || DB::table('draw_cancellation_ownerships')->where('draw_id', $drawId)->lockForUpdate()->exists()
-            || NumberLimit::query()
-                ->where('draw_id', $drawId)
-                ->where(static function ($query): void {
-                    $query->where('current_amount', '!=', '0.00')
-                        ->orWhere('current_payout_exposure', '!=', '0.00');
-                })
-                ->lockForUpdate()
-                ->exists();
-
-        if ($hasWagerHistory) {
-            throw new DrawLifecycleException(
-                sprintf(
-                    'Draw %s has wager or exposure history and must be cancelled through DrawCancellationService.',
-                    (string) $draw->draw_number,
-                ),
-                'draw_cancellation_coordinator_required',
-                ['draw_id' => $drawId],
-            );
         }
     }
 

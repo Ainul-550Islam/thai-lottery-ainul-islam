@@ -26,6 +26,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Idempotent on purpose: 2026_10_13_000100/000200 already create these three
+        // tables. Before this guard, a clean database failed here with
+        // "table wallet_conversions already exists", which took every
+        // database-backed test down with it.
         if (! Schema::hasTable('wallet_conversions')) {
             Schema::create('wallet_conversions', function (Blueprint $table): void {
                 $table->id();
@@ -67,6 +71,11 @@ return new class extends Migration
             });
         }
 
+
+        // Idempotent on purpose: 2026_10_13_000100/000200 already create these three
+        // tables. Before this guard, a clean database failed here with
+        // "table wallet_conversions already exists", which took every
+        // database-backed test down with it.
         if (! Schema::hasTable('wallet_conversion_quotes')) {
             Schema::create('wallet_conversion_quotes', function (Blueprint $table): void {
                 $table->id();
@@ -92,6 +101,11 @@ return new class extends Migration
             });
         }
 
+
+        // Idempotent on purpose: 2026_10_13_000100/000200 already create these three
+        // tables. Before this guard, a clean database failed here with
+        // "table wallet_conversions already exists", which took every
+        // database-backed test down with it.
         if (! Schema::hasTable('wallet_conversion_audits')) {
             Schema::create('wallet_conversion_audits', function (Blueprint $table): void {
                 $table->id();
@@ -112,6 +126,7 @@ return new class extends Migration
                 $table->index(['recorded_at', 'error_code'], 'wc_audit_refusals');
             });
         }
+
     }
 
     public function down(): void

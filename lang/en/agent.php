@@ -42,4 +42,22 @@ return [
     'no_records' => 'No records are available for this projection.',
     'no_data' => 'NO_DATA',
     'not_configured' => 'NOT_CONFIGURED',
+    // Dynamic vocabulary. Views and API payloads carry these states and statuses as
+    // raw machine values, so the English file needs a label for each one as well:
+    // without it a missing key rendered as the literal "agent.value_accrued".
+    'state_available' => 'Available',
+    'state_no_data' => 'No data',
+    'unknown_value' => 'Unavailable',
+    'value_active' => 'Active',
+    'value_inactive' => 'Inactive',
+    'value_suspended' => 'Suspended',
+    'value_terminated' => 'Terminated',
+    'value_banned' => 'Banned',
+    'value_pending_verification' => 'Pending verification',
+    'value_accrued' => 'Accrued',
+    'value_calculated' => 'Calculated',
+    'value_payable' => 'Payable',
+    'value_paid' => 'Paid',
+    'value_reversed' => 'Reversed',
+    'value_cancelled' => 'Cancelled',
 ];

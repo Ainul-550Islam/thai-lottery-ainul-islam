@@ -57,13 +57,21 @@ final class WalletService
     /** Funds committed to a pending withdrawal. */
     public const ACCOUNT_WITHDRAWAL_CLEARING = '1100';
 
-    /** Funds in transit between a player's own pockets. */
-    public const ACCOUNT_WALLET_TRANSFER_CLEARING = '1300';
-
     /** Player balances owed by the operator. */
     public const ACCOUNT_PLAYER_LIABILITY = '2000';
 
     /** Retained earnings / owner's equity, used for adjustments. */
+    /**
+     * Neutral parking account for pocket-to-pocket transfers.
+     *
+     * A transfer moves value between two wallets the same player owns. Posting the
+     * two legs straight at each other nets to zero and leaves an auditor with no
+     * account to reconcile a transfer lane against, so the lane has a named
+     * clearing account of its own. It must exist as a row (LedgerAccountSeeder) or
+     * the transfer invariant suite reports a missing chart-of-accounts entry.
+     */
+    public const ACCOUNT_WALLET_TRANSFER_CLEARING = '1150';
+
     public const ACCOUNT_ADJUSTMENT_EQUITY = '3000';
 
     /** Stakes recognised as revenue. */
@@ -88,6 +96,8 @@ final class WalletService
      */
     public function getOrCreateWallet(int|User $user, string|Currency $currency = 'THB'): Wallet
     {
+        // Validate the caller's identity set before any routing SQL: a model whose
+        // key or routing context was tampered with must never reach a query.
         $userId = $user instanceof User
             ? FinancialRecordIdentifier::fromModel($user, 'wallet_user_not_persisted')
             : FinancialRecordIdentifier::parse($user, 'wallet_user_not_persisted');
@@ -115,6 +125,8 @@ final class WalletService
         ?string $idempotencyKey = null,
         array $options = [],
     ): FinancialTransaction {
+        $this->assertWalletIdentity($wallet);
+
         return $this->transactions()->execute(
             wallet: $wallet,
             amount: $amount,
@@ -140,6 +152,8 @@ final class WalletService
         ?string $idempotencyKey = null,
         array $options = [],
     ): FinancialTransaction {
+        $this->assertWalletIdentity($wallet);
+
         return $this->transactions()->execute(
             wallet: $wallet,
             amount: $amount,
@@ -164,6 +178,8 @@ final class WalletService
      */
     public function lockFunds(Wallet $wallet, Money $amount, ?string $reason = null): Wallet
     {
+        $this->assertWalletIdentity($wallet);
+
         $amount->assertPositive('amount to reserve');
 
         return $this->withinTransaction(function () use ($wallet, $amount, $reason): Wallet {
@@ -201,6 +217,7 @@ final class WalletService
             }
 
             $this->persistWallet($locked, 'reserve');
+            app(WithdrawalHoldFloor::class)->assertCovered($locked);
 
             return $locked;
         });
@@ -213,11 +230,14 @@ final class WalletService
      */
     public function unlockFunds(Wallet $wallet, Money $amount): Wallet
     {
+        $this->assertWalletIdentity($wallet);
+
         $amount->assertPositive('amount to release');
 
         return $this->withinTransaction(function () use ($wallet, $amount): Wallet {
             $locked = $this->locks->relock($wallet);
             $this->assertCurrency($locked, $amount->currency());
+            app(WithdrawalHoldFloor::class)->assertCovered($locked);
 
             $currentlyLocked = $this->money($locked->locked_balance, $locked->currency);
 
@@ -250,6 +270,7 @@ final class WalletService
             }
 
             $this->persistWallet($locked, 'release');
+            app(WithdrawalHoldFloor::class)->assertCovered($locked);
 
             return $locked;
         });
@@ -265,6 +286,8 @@ final class WalletService
      */
     public function lock(Wallet $wallet, Money $amount, ?string $reason = null): Wallet
     {
+        $this->assertWalletIdentity($wallet);
+
         return $this->lockFunds($wallet, $amount, $reason);
     }
 
@@ -275,6 +298,8 @@ final class WalletService
      */
     public function unlock(Wallet $wallet, Money $amount): Wallet
     {
+        $this->assertWalletIdentity($wallet);
+
         return $this->unlockFunds($wallet, $amount);
     }
 
@@ -289,6 +314,8 @@ final class WalletService
      */
     public function lockWallet(Wallet $wallet, string $reason): Wallet
     {
+        $this->assertWalletIdentity($wallet);
+
         if (trim($reason) === '') {
             throw FinancialException::withCode(
                 'wallet_lock_reason_required',
@@ -324,6 +351,8 @@ final class WalletService
      */
     public function unlockWallet(Wallet $wallet): Wallet
     {
+        $this->assertWalletIdentity($wallet);
+
         return $this->withinTransaction(function () use ($wallet): Wallet {
             $locked = $this->locks->relock($wallet);
 
@@ -368,11 +397,15 @@ final class WalletService
      */
     public function applyCredit(Wallet $lockedWallet, Money $amount, FinancialTransactionType $type): Money
     {
+        // The caller's instance is read-only input: a refusal must leave it exactly
+        // as it was handed in, so the mutation is applied to a detached copy.
+        $lockedWallet = $this->detachedWallet($lockedWallet);
+
+        $this->assertWalletIdentity($lockedWallet);
+
         $this->assertInsideTransaction();
         $amount->assertPositive('credit amount');
-        $lockedWallet = $this->locks->relock($lockedWallet);
         $this->assertCurrency($lockedWallet, $amount->currency());
-        app(WithdrawalHoldFloor::class)->assertCovered($lockedWallet);
 
         if (! $lockedWallet->canCredit()) {
             throw FinancialException::withCode(
@@ -410,11 +443,15 @@ final class WalletService
      */
     public function applyDebit(Wallet $lockedWallet, Money $amount, FinancialTransactionType $type): Money
     {
+        // The caller's instance is read-only input: a refusal must leave it exactly
+        // as it was handed in, so the mutation is applied to a detached copy.
+        $lockedWallet = $this->detachedWallet($lockedWallet);
+
+        $this->assertWalletIdentity($lockedWallet);
+
         $this->assertInsideTransaction();
         $amount->assertPositive('debit amount');
-        $lockedWallet = $this->locks->relock($lockedWallet);
         $this->assertCurrency($lockedWallet, $amount->currency());
-        app(WithdrawalHoldFloor::class)->assertCovered($lockedWallet);
 
         if (! $lockedWallet->canDebit()) {
             throw FinancialException::withCode(
@@ -451,6 +488,11 @@ final class WalletService
         $lockedWallet->version = (int) $lockedWallet->version + 1;
         $this->persistWallet($lockedWallet, 'debit');
 
+        // Spending must never consume money another owner already holds: after the
+        // write, what is left has to be at least what the wallet's live reservations
+        // and financial holds own. Without this, a debit can quietly strand a hold.
+        app(WithdrawalHoldFloor::class)->assertCovered($lockedWallet);
+
         return $balance;
     }
 
@@ -466,11 +508,15 @@ final class WalletService
      */
     public function applyReversal(Wallet $lockedWallet, Money $amount, LedgerEntryType $originalWalletSide): Money
     {
+        // The caller's instance is read-only input: a refusal must leave it exactly
+        // as it was handed in, so the mutation is applied to a detached copy.
+        $lockedWallet = $this->detachedWallet($lockedWallet);
+
+        $this->assertWalletIdentity($lockedWallet);
+
         $this->assertInsideTransaction();
         $amount->assertPositive('reversal amount');
-        $lockedWallet = $this->locks->relock($lockedWallet);
         $this->assertCurrency($lockedWallet, $amount->currency());
-        app(WithdrawalHoldFloor::class)->assertCovered($lockedWallet);
 
         $current = $this->money($lockedWallet->balance, $lockedWallet->currency);
 
@@ -498,6 +544,9 @@ final class WalletService
         $lockedWallet->balance = $balance->toString();
         $lockedWallet->version = (int) $lockedWallet->version + 1;
         $this->persistWallet($lockedWallet, 'reversal');
+
+        // The same floor applies to a compensation debit.
+        app(WithdrawalHoldFloor::class)->assertCovered($lockedWallet);
 
         return $balance;
     }
@@ -528,9 +577,8 @@ final class WalletService
             // Settlement moves cash between the operator and the player.
             FinancialTransactionType::Settlement => self::ACCOUNT_SYSTEM_CASH,
 
-            // Manual corrections land on equity; internal pocket transfers use the transfer clearing account.
-            FinancialTransactionType::Adjustment => self::ACCOUNT_ADJUSTMENT_EQUITY,
-            FinancialTransactionType::Transfer => self::ACCOUNT_WALLET_TRANSFER_CLEARING,
+            // Manual corrections and internal transfers land on equity.
+            FinancialTransactionType::Adjustment, FinancialTransactionType::Transfer => self::ACCOUNT_ADJUSTMENT_EQUITY,
 
             // A reversal has no intrinsic counterpart: the service reverses the
             // original entries instead of deriving new accounts, so asking for a
@@ -571,25 +619,61 @@ final class WalletService
      * @param  \Closure(): TReturn  $callback
      * @return TReturn
      */
-    private function withinTransaction(\Closure $callback): mixed
+    /**
+     * Save a wallet mutation and require the store to confirm it.
+     *
+     * A model event may return false to veto persistence without throwing, and a
+     * truthful API must not report money, a reserve or a freeze that storage
+     * refused. Anything other than a literal true is a refusal, raised here with
+     * only the admitted wallet id and an internal operation literal.
+     *
+     * @throws FinancialException
+     */
+    /**
+     * A same-row copy used for persistence, so the caller's model is never
+     * mutated by a money operation (and never carries a refused change).
+     */
+    private function detachedWallet(Wallet $wallet): Wallet
     {
-        return $this->locks->withinTransaction($callback);
+        $copy = clone $wallet;
+        $copy->setRawAttributes($wallet->getAttributes(), true);
+
+        return $copy;
+    }
+
+    private function persistWallet(Wallet $wallet, string $operation): void
+    {
+        // Captured before model events run: a listener must not be able to change
+        // which wallet the refusal is reported against.
+        $walletId = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
+
+        if ($wallet->save() === true) {
+            return;
+        }
+
+        throw FinancialException::withCode(
+            'wallet_write_refused',
+            sprintf('Persistence of wallet %d was refused by the storage layer; no %s is reported.', $walletId, $operation),
+            ['wallet_id' => $walletId, 'operation' => $operation],
+        );
     }
 
     /**
+     * Every wallet entry point proves the caller's identity set first, so a
+     * coerced, overflowed or rerouted key is refused before any SQL.
+     *
      * @throws FinancialException
      */
-    private function persistWallet(Wallet $wallet, string $operation): void
+    private function assertWalletIdentity(Wallet $wallet): int
     {
-        $walletId = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
+        return FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
+    }
 
-        if ($wallet->save() !== true) {
-            throw FinancialException::withCode(
-                'wallet_write_refused',
-                'Wallet persistence was refused by a model listener.',
-                ['wallet_id' => $walletId, 'operation' => $operation],
-            );
-        }
+    private function withinTransaction(\Closure $callback): mixed
+    {
+        // Wallet lock/unlock retain a nested savepoint under an existing caller
+        // transaction, and every path samples the physical transaction state first.
+        return $this->locks->withinTransaction($callback);
     }
 
     /**
@@ -668,6 +752,9 @@ final class WalletService
      */
     private function assertInsideTransaction(): void
     {
+        // A low-level balance mutation never opens its own transaction, so it needs
+        // the caller's transaction to be BOTH framework-counted and physically open.
+        // A stale counter would post rows that nothing can roll back.
         if (! $this->locks->insideTransaction()) {
             throw FinancialException::withCode(
                 'wallet_mutation_outside_transaction',

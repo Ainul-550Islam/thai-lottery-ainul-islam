@@ -141,10 +141,6 @@ class PaymentVerificationService
 
         // Consumed already? Replay the recorded outcome instead of crediting twice.
         if ($deposit->status === DepositStatus::Confirmed) {
-            $this->completions->verifySettled($deposit, array_filter([
-                'provider_reference' => $providerReference,
-            ], static fn ($v) => $v !== null));
-
             return $this->resultRow($deposit, alreadyConsumed: true);
         }
 
@@ -211,38 +207,22 @@ class PaymentVerificationService
      */
     private function findDeposit(?string $providerReference, ?string $depositReference): ?Deposit
     {
-        if ($depositReference !== null) {
-            $rows = Deposit::withTrashed()
-                ->where('reference_number', $depositReference)
-                ->limit(2)
-                ->get();
-
-            if ($rows->count() !== 1 || $rows->first()->trashed()) {
-                return null;
-            }
-
-            return $rows->first();
-        }
-
         if ($providerReference !== null) {
-            $rows = Deposit::withTrashed()
+            $deposit = Deposit::query()
                 ->where('provider_reference', $providerReference)
                 ->orderBy('id')
-                ->limit(2)
-                ->get();
+                ->first();
 
-            if ($rows->count() > 1) {
-                throw PaymentVerificationException::proofInvalid(
-                    'manual',
-                    'the provider reference is ambiguous across multiple historical deposit records',
-                );
-            }
-
-            $deposit = $rows->first();
-
-            if ($deposit instanceof Deposit && ! $deposit->trashed()) {
+            if ($deposit instanceof Deposit) {
                 return $deposit;
             }
+        }
+
+        if ($depositReference !== null) {
+            return Deposit::query()
+                ->where('reference_number', $depositReference)
+                ->orderBy('id')
+                ->first();
         }
 
         return null;

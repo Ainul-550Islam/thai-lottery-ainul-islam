@@ -39,6 +39,14 @@ final class SecurityHeaders
             $response->headers->set($header, (string) $value);
         }
 
+        // Private pages must be unindexable even when a crawler reaches them
+        // without a session: the sign-in and recovery forms, and everything behind
+        // the `auth` middleware. `X-Robots-Tag` is the header half of that; the
+        // <meta name="robots"> half lives in the layouts.
+        if ($this->isPrivatePage($request)) {
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+        }
+
         if ($request->isSecure() && ! empty($config['hsts_max_age'])) {
             $hsts = 'max-age='.(int) $config['hsts_max_age'];
 
@@ -127,5 +135,55 @@ final class SecurityHeaders
         }
 
         return implode('; ', $parts);
+    }
+
+    /**
+     * Guest-facing pages that must never be indexed.
+     *
+     * An explicit list rather than a pattern: `/login` is public, `/login-as-admin`
+     * would not be, and guessing from a prefix is how a private page ends up
+     * crawlable.
+     *
+     * @var list<string>
+     */
+    private const PRIVATE_GUEST_PATHS = [
+        'login',
+        'register',
+        'forgot-password',
+        'reset-password',
+        'reset-password/*',
+        'legal/consent',
+        'account/age-verification',
+    ];
+
+    /**
+     * Whether the current request is a private (non-indexable) page.
+     */
+    private function isPrivatePage(Request $request): bool
+    {
+        if ($request->is(self::PRIVATE_GUEST_PATHS)) {
+            return true;
+        }
+
+        $route = $request->route();
+
+        if ($route === null) {
+            return false;
+        }
+
+        // Any route that requires authentication is private by definition — this
+        // covers the player area and every admin/agent surface without keeping a
+        // second list of URLs that could drift from routes/web.php.
+        foreach ($route->gatherMiddleware() as $middleware) {
+            if (! is_string($middleware)) {
+                continue;
+            }
+
+            if ($middleware === 'auth' || str_starts_with($middleware, 'auth:') || $middleware === 'admin.auth') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Enums\QueueName;
 use App\Enums\WalletReservationStatus;
 use App\Exceptions\WalletReservationException;
 use App\Models\WalletReservation;
@@ -30,7 +29,7 @@ final class ExpireWalletReservationsJob implements ShouldQueue
 
     public function __construct()
     {
-        $this->onQueue(QueueName::Reconciliation->value);
+        $this->onQueue('finance-reconciliation');
     }
 
     public function handle(WalletReservationService $reservations): void

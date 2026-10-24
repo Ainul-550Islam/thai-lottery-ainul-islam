@@ -9,13 +9,14 @@ use App\Models\LedgerTransaction;
 use App\Services\Broadcast\RealtimeSyncService;
 use App\Services\Ledger\DoubleEntryLedgerService;
 use App\Services\Lock\DistributedLockService;
-use App\Services\Payment\PaymentLogSanitizer;
 use App\Services\Wallet\WalletMutationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
+ * Class DepositProcessingService
+ *
  * Ingestion and settlement engine for external payment gateways, crypto deposits, and bank wires.
  */
 class DepositProcessingService
@@ -44,18 +45,16 @@ class DepositProcessingService
         }
 
         $userIdStr = (string) $userId;
-        $normalizedCurrency = strtoupper(trim($currency));
         $idempotencyKey = "DEP-{$gatewayProvider}-{$gatewayReferenceId}";
-        $sanitizedPayload = PaymentLogSanitizer::sanitize($rawPayload);
 
         return $this->lockService->runWithLock("deposit:user:{$userIdStr}", function () use (
             $userIdStr,
             $amount,
             $gatewayProvider,
             $gatewayReferenceId,
-            $normalizedCurrency,
+            $currency,
             $feeAmount,
-            $sanitizedPayload,
+            $rawPayload,
             $idempotencyKey
         ) {
             return DB::transaction(function () use (
@@ -63,31 +62,15 @@ class DepositProcessingService
                 $amount,
                 $gatewayProvider,
                 $gatewayReferenceId,
-                $normalizedCurrency,
+                $currency,
                 $feeAmount,
-                $sanitizedPayload,
+                $rawPayload,
                 $idempotencyKey
             ) {
-                $existing = DepositTransaction::where('idempotency_key', $idempotencyKey)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($existing instanceof DepositTransaction) {
-                    $sameTerms = (string) $existing->user_id === $userIdStr
-                        && strtoupper((string) $existing->currency) === $normalizedCurrency
-                        && bccomp((string) $existing->amount, $amount, 4) === 0
-                        && bccomp((string) $existing->fee_amount, $feeAmount, 4) === 0;
-
-                    if (! $sameTerms) {
-                        throw new InvalidArgumentException(sprintf(
-                            'Idempotency key [%s] is already bound to different deposit terms.',
-                            $idempotencyKey,
-                        ));
-                    }
-
-                    if ($existing->isCompleted()) {
-                        return $existing;
-                    }
+                // Idempotency check: prevent duplicate deposit credits
+                $existing = DepositTransaction::where('idempotency_key', $idempotencyKey)->first();
+                if ($existing && $existing->isCompleted()) {
+                    return $existing;
                 }
 
                 $netAmount = bcsub($amount, $feeAmount, 4);
@@ -98,12 +81,13 @@ class DepositProcessingService
                 $depositUuid = Str::uuid()->toString();
                 $depositNumber = 'DEP-'.date('Ymd').'-'.strtoupper(Str::random(10));
 
+                // Atomic Wallet Balance Increment + Single Balanced Double-Entry Ledger Posting
                 $this->walletMutationService->credit(
                     userId: $userIdStr,
                     amount: $netAmount,
                     referenceType: 'DEPOSIT_SETTLEMENT',
                     referenceId: $depositUuid,
-                    currency: $normalizedCurrency,
+                    currency: $currency,
                     walletType: 'main',
                     idempotencyKey: "WALLET-{$idempotencyKey}",
                     description: "Confirmed deposit from {$gatewayProvider} ref: {$gatewayReferenceId}"
@@ -111,6 +95,7 @@ class DepositProcessingService
 
                 $ledgerTx = LedgerTransaction::where('idempotency_key', "WALLET-{$idempotencyKey}")->firstOrFail();
 
+                // Persist Deposit Record
                 return DepositTransaction::create([
                     'id' => $depositUuid,
                     'user_id' => $userIdStr,
@@ -120,11 +105,11 @@ class DepositProcessingService
                     'amount' => $amount,
                     'fee_amount' => $feeAmount,
                     'net_amount' => $netAmount,
-                    'currency' => $normalizedCurrency,
+                    'currency' => $currency,
                     'status' => 'COMPLETED',
                     'idempotency_key' => $idempotencyKey,
                     'ledger_transaction_id' => $ledgerTx->id,
-                    'gateway_raw_payload' => $sanitizedPayload,
+                    'gateway_raw_payload' => $rawPayload,
                     'completed_at' => now(),
                 ]);
             }, attempts: 3);

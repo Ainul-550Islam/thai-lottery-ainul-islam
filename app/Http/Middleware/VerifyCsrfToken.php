@@ -19,17 +19,25 @@ final class VerifyCsrfToken extends BaseVerifyCsrfToken
     /**
      * Narrow, justified URI allowlist for signed external provider webhooks only.
      *
+     * THE CONSTANT IS THE CONTRACT.
+     * `bootstrap/app.php` reads `VerifyCsrfToken::WEBHOOK_EXCEPTIONS` when it
+     * registers the middleware, and the security regression suite asserts on the
+     * same array. Without the constant the framework threw
+     * "Undefined constant ...::WEBHOOK_EXCEPTIONS" while booting
+     * bootstrap/app.php, so every artisan command and every HTTP request failed
+     * before a single route was matched.
+     *
      * @var list<string>
      */
     public const WEBHOOK_EXCEPTIONS = [
         'api/v1/payments/webhook/*',
-        'api/v1/webhooks/deposit/*',
         'api/v1/stripe/deposit-reviews/webhook',
         'api/payment/webhooks/*',
     ];
 
     /**
-     * Narrow, justified URI allowlist for signed external provider webhooks only.
+     * Laravel reads this property; it is derived from the constant so the two can
+     * never disagree, and no exemption can exist in one place but not the other.
      *
      * @var array<int, string>
      */

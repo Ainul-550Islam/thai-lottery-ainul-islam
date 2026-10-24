@@ -6,35 +6,24 @@ use App\Models\AccountGradeSnapshot;
 use App\Models\AccountVerification;
 use App\Models\Agent;
 use App\Models\Bet;
-use App\Models\BlockedIp;
-use App\Models\Chat\ChatConversation;
 use App\Models\Draw;
-use App\Models\FraudAlert;
-use App\Models\GloL6TicketReservation;
 use App\Models\GloPrizeClaim;
-use App\Models\GloTicket;
 use App\Models\GloTicketFreeze;
 use App\Models\GradeDiscountSnapshot;
 use App\Models\LedgerEntry;
 use App\Models\Payment;
 use App\Models\Ticket;
-use App\Models\UploadScanRecord;
 use App\Models\Wallet;
 use App\Policies\AccountGradePolicy;
 use App\Policies\AccountVerificationPolicy;
 use App\Policies\AgentPolicy;
 use App\Policies\BetPolicy;
-use App\Policies\BlockedIpPolicy;
-use App\Policies\ChatConversationPolicy;
 use App\Policies\DrawPolicy;
-use App\Policies\FraudAlertPolicy;
-use App\Policies\GloL6TicketPolicy;
 use App\Policies\GloPrizeClaimPolicy;
 use App\Policies\GloTicketFreezePolicy;
 use App\Policies\LedgerPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\TicketPolicy;
-use App\Policies\UploadScanRecordPolicy;
 use App\Policies\WalletPolicy;
 use App\Support\Admin\AdminAccess;
 use Illuminate\Support\Facades\Gate;
@@ -58,12 +47,6 @@ class AuthServiceProvider extends ServiceProvider
         AccountVerification::class => AccountVerificationPolicy::class,
         GloTicketFreeze::class => GloTicketFreezePolicy::class,
         GloPrizeClaim::class => GloPrizeClaimPolicy::class,
-        GloTicket::class => GloL6TicketPolicy::class,
-        GloL6TicketReservation::class => GloL6TicketPolicy::class,
-        BlockedIp::class => BlockedIpPolicy::class,
-        FraudAlert::class => FraudAlertPolicy::class,
-        UploadScanRecord::class => UploadScanRecordPolicy::class,
-        ChatConversation::class => ChatConversationPolicy::class,
     ];
 
     public function boot(): void
@@ -73,9 +56,7 @@ class AuthServiceProvider extends ServiceProvider
         }
 
         Gate::before(function ($user, $ability) {
-            return (method_exists($user, 'isActive') ? $user->isActive() : true) && $user->hasRole('super-admin')
-                ? true
-                : null;
+            return $user->hasRole('super-admin') ? true : null;
         });
 
         // /metrics operator gate: staff-or-higher only (super-admin short-circuits above).

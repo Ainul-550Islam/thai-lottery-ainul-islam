@@ -26,11 +26,6 @@ enum WalletConversionChannel: string
         };
     }
 
-    public function labelKey(): string
-    {
-        return 'wallet_conversion.channel_'.$this->value;
-    }
-
     /**
      * Channels a member can initiate from. Admin and console are operator
      * channels and never appear on a member's own request.
@@ -43,8 +38,14 @@ enum WalletConversionChannel: string
         };
     }
 
-    public function isOperator(): bool
+    /**
+     * Stable translation key for the member-facing conversion screens.
+     *
+     * The labels live in lang/<locale>/wallet_conversion.php next to every other
+     * string this lane shows, so there is no second translation namespace to drift.
+     */
+    public function labelKey(): string
     {
-        return ! $this->isMemberChannel();
+        return "wallet_conversion.channel_{$this->value}";
     }
 }

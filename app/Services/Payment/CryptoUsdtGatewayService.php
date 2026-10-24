@@ -20,8 +20,6 @@ class CryptoUsdtGatewayService
 
     private const DEFAULT_USDT_THB_RATE = '36.5000';
 
-    private const NON_PROD_FIXTURE_PUBKEY = '41a614f803b6fd7c629f032c504764bd14aedda4';
-
     private const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
     public function __construct(
@@ -32,23 +30,13 @@ class CryptoUsdtGatewayService
 
     /**
      * Generate a deterministic user deposit address for USDT (TRC-20).
-     *
-     * FAIL-CLOSED IN PRODUCTION / LIVE MONEY:
-     * Refuses to fall back to the public test vector when `app.env === 'production'`
-     * or `real_money.enabled === true`.
      */
     public function getUserDepositAddress(string $userId): string
     {
-        $masterPubkey = trim($this->configString('services.crypto.trc20_master_pubkey', ''));
-
-        if ($masterPubkey === '') {
-            if ($this->isLiveOrProductionRuntime()) {
-                throw new RuntimeException('Crypto TRC-20 master pubkey is not configured; refusing insecure address derivation.');
-            }
-
-            $masterPubkey = self::NON_PROD_FIXTURE_PUBKEY;
-        }
-
+        $masterPubkey = $this->configString(
+            'services.crypto.trc20_master_pubkey',
+            (string) env('CRYPTO_TRC20_MASTER_PUBKEY', '41a614f803b6fd7c629f032c504764bd14aedda4')
+        );
         $rawBytes = hash_hmac('sha512', $userId, $masterPubkey, true);
 
         $chars = '';
@@ -82,23 +70,16 @@ class CryptoUsdtGatewayService
             throw new InvalidArgumentException('Invalid TRON TRC-20 address format.');
         }
 
-        $normalizedUsdt = PaymentDecimalNormalizer::normalizePositive($usdtAmount, 6, 'usdt_amount');
-        $cleanTxHash = trim($txHash);
-        if ($cleanTxHash === '') {
-            throw new InvalidArgumentException('Transaction hash cannot be empty.');
-        }
-
-        $lockKey = "lock:payment:crypto:usdt:{$cleanTxHash}";
+        $lockKey = "lock:payment:crypto:usdt:{$txHash}";
         $lock = $this->lockService->acquireLock($lockKey, 60);
 
         if (! $lock) {
-            throw new RuntimeException("Concurrent processing for blockchain tx [{$cleanTxHash}].");
+            throw new RuntimeException("Concurrent processing for blockchain tx [{$txHash}].");
         }
 
         try {
-            $exchangeRateRaw = $this->configString('services.crypto.usdt_thb_rate', self::DEFAULT_USDT_THB_RATE);
-            $exchangeRate = PaymentDecimalNormalizer::normalizePositive($exchangeRateRaw, 4, 'usdt_thb_rate');
-            $thbAmount = bcmul($normalizedUsdt, $exchangeRate, 4);
+            $exchangeRate = $this->configString('services.crypto.usdt_thb_rate', self::DEFAULT_USDT_THB_RATE);
+            $thbAmount = bcmul($usdtAmount, $exchangeRate, 4);
 
             $fraudData = [
                 'event_id' => (string) Str::uuid(),
@@ -107,7 +88,7 @@ class CryptoUsdtGatewayService
                 'amount' => $thbAmount,
                 'currency' => 'THB',
                 'client_ip' => $clientIp,
-                'reference_id' => "TRC20-{$cleanTxHash}",
+                'reference_id' => "TRC20-{$txHash}",
             ];
 
             $this->fraudDetectionService->evaluateTransactionRisk($fraudData);
@@ -116,24 +97,21 @@ class CryptoUsdtGatewayService
                 userId: $userId,
                 amount: $thbAmount,
                 gatewayProvider: 'CRYPTO_USDT_TRC20',
-                gatewayReferenceId: "TRC20-{$cleanTxHash}",
+                gatewayReferenceId: "TRC20-{$txHash}",
                 currency: 'THB',
                 feeAmount: '0.0000',
-                rawPayload: PaymentLogSanitizer::sanitize([
-                    'tx_hash' => $cleanTxHash,
+                rawPayload: [
+                    'tx_hash' => $txHash,
                     'to_address' => $toAddress,
-                    'usdt_amount' => $normalizedUsdt,
+                    'usdt_amount' => $usdtAmount,
                     'exchange_rate' => $exchangeRate,
                     'confirmations' => $confirmations,
-                ]),
+                ]
             );
 
             $app = Facade::getFacadeApplication();
             if ($app !== null && $app->bound('log')) {
-                Log::info('Credited verified TRC-20 USDT deposit.', [
-                    'tx_hash' => $cleanTxHash,
-                    'thb_credited' => $thbAmount,
-                ]);
+                Log::info("Successfully credited crypto deposit [{$txHash}] for user [{$userId}]: {$usdtAmount} USDT -> {$thbAmount} THB.");
             }
 
             return [
@@ -142,7 +120,7 @@ class CryptoUsdtGatewayService
                 'deposit_id' => (string) $deposit->id,
             ];
         } finally {
-            $this->lockService->releaseLock($lockKey, $lock);
+            $this->lockService->releaseLock($lock);
         }
     }
 
@@ -162,18 +140,5 @@ class CryptoUsdtGatewayService
         }
 
         return (string) $container->make('config')->get($key, $default);
-    }
-
-    private function isLiveOrProductionRuntime(): bool
-    {
-        $container = Container::getInstance();
-        if (! $container->bound('config')) {
-            return false;
-        }
-
-        $cfg = $container->make('config');
-        $env = strtolower((string) $cfg->get('app.env', 'production'));
-
-        return $env === 'production' || (bool) $cfg->get('real_money.enabled', false);
     }
 }

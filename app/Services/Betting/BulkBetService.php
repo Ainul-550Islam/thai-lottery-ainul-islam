@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Betting;
 
+use App\DTOs\Betting\BulkBetPlacementResult;
 use App\Enums\BetPurchaseStatus;
 use App\Enums\Currency;
 use App\Exceptions\BetDomainException;
 use App\Exceptions\BetPurchaseException;
+use App\Models\Draw;
+use App\Models\User;
 
 /**
  * Multi-selection slip purchase — the GLO UBF "cart".
@@ -179,45 +182,95 @@ class BulkBetService
     }
 
     /**
-     * Object-shaped slip placement over purchase().
+     * Place a whole slip and hand back the bets themselves.
+     *
+     * Same pipeline, same per-item keys and same partial-success rule as
+     * purchase(); the difference is the answer. purchase() reports "what
+     * happened to each item" for the API lane, this returns the models a caller
+     * that wants to act on the bets needs. A replayed item contributes its bet
+     * but no stake: the slip owns those bets, yet this call moved no money and
+     * reporting otherwise would double-count revenue on every retry.
      *
      * @param  list<\App\DTOs\Betting\BulkBetSelectionData>  $selections
      */
-    public function placeBulkBet(
-        \App\Models\User $user,
-        \App\Models\Draw $draw,
-        array $selections,
-        string $clientKey,
-    ): \App\DTOs\Betting\BulkBetPlacementResult {
-        $report = $this->purchase((int) $user->getKey(), (int) $draw->getKey(), $selections, $clientKey);
+    public function placeBulkBet(User|int $user, Draw|int $draw, array $selections, string $clientKey): BulkBetPlacementResult
+    {
+        $this->assertSelectionCap($selections);
 
-        $betIds = [];
-        foreach ($report['items'] as $item) {
-            if (isset($item['bet_id']) && is_int($item['bet_id'])) {
-                $betIds[] = $item['bet_id'];
-            }
-        }
-
-        $betsById = $betIds === []
-            ? collect()
-            : \App\Models\Bet::query()->whereIn('id', $betIds)->get()->keyBy('id');
+        $userId = $user instanceof User ? (int) $user->getKey() : $user;
+        $drawId = $draw instanceof Draw ? (int) $draw->getKey() : $draw;
 
         $bets = [];
-        foreach ($betIds as $betId) {
-            $bet = $betsById->get($betId);
-            if ($bet instanceof \App\Models\Bet) {
-                $bets[] = $bet;
+        $items = [];
+        $purchased = 0;
+        $replayed = 0;
+        $refused = 0;
+        $totalStake = '0.00';
+
+        foreach ($selections as $index => $selection) {
+            $derivedKey = $this->itemKey($clientKey, $index, $selection);
+
+            $record = [
+                'index' => $index,
+                'outcome' => 'refused',
+                'selection' => $selection->identity(),
+                'stake' => $selection->stake,
+                'bet_id' => null,
+                'bet_number' => null,
+                'ticket_number' => null,
+                'potential_payout' => null,
+                'reason' => null,
+                'idempotency_key' => $derivedKey,
+            ];
+
+            try {
+                $result = $this->purchases->purchaseFromRequest(
+                    $userId,
+                    $selection->toPurchasePayload($drawId, $derivedKey),
+                );
+
+                $isReplay = $result->status === BetPurchaseStatus::Replayed;
+
+                $record['outcome'] = $isReplay ? 'replayed' : 'purchased';
+                $record['bet_id'] = (int) $result->bet->getKey();
+                $record['bet_number'] = (string) $result->bet->bet_number;
+                $record['ticket_number'] = (string) $result->ticket->ticket_number;
+                $record['potential_payout'] = bcadd((string) $result->bet->potential_payout, '0', 2);
+
+                $bets[] = $result->bet;
+
+                if ($isReplay) {
+                    $replayed++;
+                } else {
+                    $purchased++;
+                    $totalStake = bcadd($totalStake, (string) $result->bet->stake_amount, 2);
+                }
+            } catch (BetDomainException | BetPurchaseException $e) {
+                $refused++;
+                $record['reason'] = $e->getMessage();
+            } catch (\Throwable $e) {
+                // Infrastructure faults are not item-level refusals: report and rethrow so
+                // raw driver/provider text never reaches a player-facing slip report.
+                report($e);
+
+                throw $e;
             }
+
+            $items[] = $record;
         }
 
-        return new \App\DTOs\Betting\BulkBetPlacementResult(
+        $currency = $draw instanceof Draw
+            ? ($draw->currency instanceof Currency ? $draw->currency->value : (string) $draw->currency)
+            : (string) config('lottery.currencies.default', Currency::THB->value);
+
+        return new BulkBetPlacementResult(
             bets: $bets,
-            totalStake: (string) $report['total_charged'],
-            purchased: (int) $report['purchased'],
-            replayed: (int) $report['replayed'],
-            refused: (int) $report['refused'],
-            currency: (string) $report['currency'],
-            items: $report['items'],
+            totalStake: $totalStake,
+            purchased: $purchased,
+            replayed: $replayed,
+            refused: $refused,
+            currency: $currency !== '' ? $currency : Currency::THB->value,
+            items: $items,
         );
     }
 

@@ -23,13 +23,13 @@ try {
         || ! is_string($input['token'] ?? null)
         || preg_match('/^[a-f0-9]{32}$/D', $input['token']) !== 1
         || is_file($project.'/bootstrap/cache/config.php')) {
-        throw new RuntimeException('SIMULATION_PROBE_INPUT_REFUSED');
+        throw new \RuntimeException('SIMULATION_PROBE_INPUT_REFUSED');
     }
 
     require $project.'/vendor/autoload.php';
 
     if (! SimulationConcurrencyEnvironment::barrierIsAllowed($input['ready'], $input['release'])) {
-        throw new RuntimeException('SIMULATION_PROBE_BARRIER_REFUSED');
+        throw new \RuntimeException('SIMULATION_PROBE_BARRIER_REFUSED');
     }
 
     $connection = SimulationConcurrencyEnvironment::normalizeConnection($input['connection'], $project);
@@ -50,7 +50,7 @@ try {
     $actualConfiguration = SimulationConcurrencyEnvironment::normalizeConnection($actual->getConfig(), $project);
 
     if ($actualConfiguration['database'] !== $connection['database'] || DB::transactionLevel() !== 0) {
-        throw new RuntimeException('SIMULATION_PROBE_CONNECTION_REFUSED');
+        throw new \RuntimeException('SIMULATION_PROBE_CONNECTION_REFUSED');
     }
 
     $busyTimeout = null;
@@ -59,19 +59,19 @@ try {
         $busyTimeout = (int) $actual->selectOne('PRAGMA busy_timeout')->timeout;
 
         if ($busyTimeout < 1) {
-            throw new RuntimeException('SIMULATION_PROBE_WAIT_REFUSED');
+            throw new \RuntimeException('SIMULATION_PROBE_WAIT_REFUSED');
         }
     }
 
     if (file_put_contents($input['ready'], $input['token'], LOCK_EX) === false) {
-        throw new RuntimeException('SIMULATION_PROBE_READY_FAILED');
+        throw new \RuntimeException('SIMULATION_PROBE_READY_FAILED');
     }
     chmod($input['ready'], 0600);
     $deadline = microtime(true) + 15;
 
     while (! is_file($input['release']) || file_get_contents($input['release']) !== $input['token']) {
         if (microtime(true) >= $deadline) {
-            throw new RuntimeException('SIMULATION_PROBE_BARRIER_EXPIRED');
+            throw new \RuntimeException('SIMULATION_PROBE_BARRIER_EXPIRED');
         }
         usleep(1000);
     }
@@ -87,7 +87,7 @@ try {
     $result = $app->make(DrawSettlementSimulationService::class)->settle($input['draw_id']);
 
     if (! $result->isSimulation()) {
-        throw new RuntimeException('SIMULATION_PROBE_MODE_REFUSED');
+        throw new \RuntimeException('SIMULATION_PROBE_MODE_REFUSED');
     }
 
     ksort($writes);

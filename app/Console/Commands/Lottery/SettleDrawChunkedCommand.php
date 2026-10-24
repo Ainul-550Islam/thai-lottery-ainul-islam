@@ -10,17 +10,71 @@ use App\Models\SettlementRun;
 use App\Services\Draw\ChunkedSettlementOrchestrator;
 use App\Services\Draw\RealPrizeSettlementService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
  * Settle a published draw in CHUNKS instead of in one transaction.
+ *
+ * ============================================================================
+ * WHAT THIS IS FOR
+ * ============================================================================
+ * RealPrizeSettlementService::settle() settles a whole draw in a single database
+ * transaction: every bet locked, one items query per bet, every selection DTO
+ * retained, no resumption if it fails at slip 99,000. That is serviceable for a
+ * small draw and is not serviceable for the 100,000+ slip draw this platform is
+ * specified to handle.
+ *
+ * This command drives the same money logic in slices of `chunk_size` bets, with
+ * the cursor and the running totals recorded on a settlement_runs row. The money
+ * is moved by the SAME service — same payWinningBet(), same deterministic
+ * per-(draw, bet) payout reference, same per-bet wallet idempotency key — so the
+ * chunked path is not a second settlement implementation and cannot drift from
+ * the first.
+ *
+ * ============================================================================
+ * IT IS NOT GATED ON lottery.automation.auto_settle, AND THAT IS DELIBERATE
+ * ============================================================================
+ * SettleDrawsCommand is gated on the automation switch because it runs
+ * unattended on a schedule. This command does not: it requires an explicit
+ * --draw, because an operator naming one draw is the reason the delay exists.
+ * Gating it on the same flag would also mean that an operator debugging a stuck
+ * draw could not resume it without enabling unattended settlement for every
+ * other draw in the estate.
+ *
+ * What it IS gated on is finance.prize_payout.safety_mode, unchanged and
+ * enforced inside payWinningBet(): anything other than LIVE prepares payout
+ * obligations without crediting a wallet. `--dry-run` here does not weaken that
+ * — it refuses to start a run at all unless the safety mode is already
+ * non-LIVE, so a dry run can never be the thing that discovers LIVE was on.
+ *
+ * ============================================================================
+ * USAGE
+ * ============================================================================
+ *   php artisan lottery:settle-draw-chunked --draw=42
+ *       Run to completion in this process, chunk after chunk.
+ *
+ *   php artisan lottery:settle-draw-chunked --draw=42 --queue
+ *       Open the run and hand the chunks to the queue (financial-critical).
+ *       One job per chunk; each job re-dispatches the next. Use this for a
+ *       large draw: it keeps a single worker from being tied up for the run.
+ *
+ *   php artisan lottery:settle-draw-chunked --draw=42 --chunk=2000
+ *       Chunk size for a NEW run. A run already in flight keeps the chunk size
+ *       it was opened with, so this cannot change the shape of work under it.
+ *
+ *   php artisan lottery:settle-draw-chunked --draw=42 --status
+ *       Report where the run is and write nothing.
+ *
+ *   php artisan lottery:settle-draw-chunked --draw=42 --resume
+ *       Resume an interrupted (aborted) run from its cursor.
+ *
+ * Exit codes: 0 success or nothing-to-do, 1 a refusal or a failure that needs
+ * an operator. A run that is half settled and needs attention reports 1, because
+ * a half-settled draw is not a success.
  */
 final class SettleDrawChunkedCommand extends Command
 {
-    private const DURABLE_QUEUE_DRIVERS = ['database', 'redis', 'sqs', 'beanstalkd'];
-
     /**
      * @var string
      */
@@ -41,6 +95,10 @@ final class SettleDrawChunkedCommand extends Command
     public function handle(ChunkedSettlementOrchestrator $orchestrator): int
     {
         if (DB::transactionLevel() > 0) {
+            // The whole point of chunking is that each chunk owns its own
+            // transaction. Started inside somebody else's transaction, every
+            // chunk would join it and the run would become the monolithic
+            // transaction again, wearing a cursor.
             $this->error('Refusing to run inside a database transaction: each chunk must own its own transaction.');
 
             return self::FAILURE;
@@ -66,34 +124,21 @@ final class SettleDrawChunkedCommand extends Command
             return self::FAILURE;
         }
 
-        $drawId = (int) $draw->getKey();
-
         if ((bool) $this->option('status')) {
-            return $this->reportStatus($orchestrator, $drawId);
+            return $this->reportStatus($orchestrator, (int) $draw->getKey());
         }
 
-        if ((bool) $this->option('dry-run')) {
-            if ($this->settlementSafetyMode() === RealPrizeSettlementService::SAFETY_LIVE) {
-                $this->error(sprintf(
-                    'Refusing --dry-run: finance.prize_payout.safety_mode is %s. Set it to %s or %s first if you intended to rehearse.',
-                    RealPrizeSettlementService::SAFETY_LIVE,
-                    RealPrizeSettlementService::SAFETY_DRY_RUN,
-                    RealPrizeSettlementService::SAFETY_DISABLED,
-                ));
-
-                return self::FAILURE;
-            }
-
-            $existingForDryCheck = $orchestrator->runFor($drawId);
-            if ($existingForDryCheck instanceof SettlementRun && (string) $existingForDryCheck->safety_mode === RealPrizeSettlementService::SAFETY_LIVE) {
-                $this->error('Refusing --dry-run: the existing settlement run for this draw was pinned under LIVE safety mode.');
-
-                return self::FAILURE;
-            }
-        }
-
-        if ((bool) $this->option('queue') && ! $this->hasDurableQueueDriver()) {
-            $this->error('Refusing --queue: default queue connection does not use a durable driver.');
+        if ((bool) $this->option('dry-run') && $this->settlementSafetyMode() === RealPrizeSettlementService::SAFETY_LIVE) {
+            // A dry run must not be the thing that discovers LIVE was on. In
+            // LIVE this command would open payout obligations and credit
+            // wallets; "--dry-run should have been safe" is not a position to be
+            // in after the money moved.
+            $this->error(sprintf(
+                'Refusing --dry-run: finance.prize_payout.safety_mode is %s. Set it to %s or %s first if you intended to rehearse.',
+                RealPrizeSettlementService::SAFETY_LIVE,
+                RealPrizeSettlementService::SAFETY_DRY_RUN,
+                RealPrizeSettlementService::SAFETY_DISABLED,
+            ));
 
             return self::FAILURE;
         }
@@ -107,23 +152,42 @@ final class SettleDrawChunkedCommand extends Command
             return self::FAILURE;
         }
 
+        if ((bool) $this->option('queue') && ($driver = $this->refusedQueueDriver()) !== null) {
+            // BEFORE the run is opened, and before any resume reopens one. A
+            // handoff onto a non-durable driver is not a slower handoff, it is a
+            // LOST settlement: the job runs inline (sync) or is discarded (null),
+            // and the run row that was opened for it says work is in flight when
+            // nothing owns it. Refusing first means a refusal leaves no trace.
+            $this->error(sprintf(
+                'Refusing --queue: the default queue connection uses the [%s] driver, which does not durably hold a settlement job. '
+                .'A settlement chunk must survive a worker restart, so it needs a durable driver (database, redis, sqs, beanstalkd).',
+                $driver,
+            ));
+
+            return self::FAILURE;
+        }
+
         try {
             if ((bool) $this->option('resume')) {
-                return $this->resume($orchestrator, $drawId, $chunkSize);
+                return $this->resume($orchestrator, (int) $draw->getKey(), $chunkSize);
             }
 
-            $existing = $orchestrator->runFor($drawId);
-            if ($existing instanceof SettlementRun && $existing->status === SettlementRun::STATUS_ABORTED) {
+            $run = $orchestrator->start((int) $draw->getKey(), $chunkSize, $this->actorId());
+
+            if ((bool) $this->option('dry-run') && $this->pinnedLive($run)) {
+                // The run was opened while the estate was LIVE. --dry-run on an
+                // existing run is not a rehearsal of that run — its chunks will
+                // keep paying under the mode they were pinned to, and every one
+                // of them credits a wallet.
                 $this->error(sprintf(
-                    'Settlement run %d for draw %d is paused/aborted; pass --resume after reviewing the failure.',
-                    (int) $existing->getKey(),
-                    $drawId,
+                    'Refusing --dry-run: run %d was pinned to %s when it was opened, and its chunks keep that mode. '
+                    .'Nothing was dispatched.',
+                    (int) $run->getKey(),
+                    RealPrizeSettlementService::SAFETY_LIVE,
                 ));
 
                 return self::FAILURE;
             }
-
-            $run = $orchestrator->start($drawId, $chunkSize, $this->actorId());
 
             $this->line($orchestrator->describe($run));
         } catch (Throwable $e) {
@@ -139,44 +203,32 @@ final class SettleDrawChunkedCommand extends Command
         }
 
         if ((bool) $this->option('queue')) {
-            return $this->dispatchChunkJob($drawId, $run);
+            if ((string) $run->status !== SettlementRun::STATUS_OPEN) {
+                // An aborted run is resumable, not disposable. Queueing a chunk
+                // against it would either do nothing (the job returns early on a
+                // non-open run) while the operator is told it was dispatched, or
+                // silently reopen a run somebody deliberately stopped. Say so and
+                // leave the row exactly as it is.
+                $this->error(sprintf(
+                    'Run %d for draw %d is %s, not open. Nothing was dispatched. '
+                    .'Re-run with --resume once the reason for the interruption is addressed.',
+                    (int) $run->getKey(),
+                    (int) $draw->getKey(),
+                    (string) $run->status,
+                ));
+
+                return self::FAILURE;
+            }
+
+            return $this->dispatchChunk((int) $draw->getKey(), $run);
         }
 
-        return $this->runToCompletion($orchestrator, $drawId, $chunkSize);
+        return $this->runToCompletion($orchestrator, (int) $draw->getKey(), $chunkSize);
     }
 
-    private function hasDurableQueueDriver(): bool
-    {
-        $defaultConnection = (string) config('queue.default', '');
-        if ($defaultConnection === '') {
-            return false;
-        }
-
-        $driver = (string) config("queue.connections.{$defaultConnection}.driver", '');
-
-        return in_array($driver, self::DURABLE_QUEUE_DRIVERS, true);
-    }
-
-    private function dispatchChunkJob(int $drawId, SettlementRun $run): int
-    {
-        try {
-            Bus::dispatch(new SettleDrawChunkJob($drawId, (int) $run->getKey(), (int) $run->cursor_bet_id));
-        } catch (Throwable) {
-            $this->error('Queue dispatch was not confirmed by the queue broker; the settlement run remains open for retry.');
-
-            return self::FAILURE;
-        }
-
-        $this->info(sprintf(
-            'Dispatched the first chunk job for draw %d (run %d). Each job re-dispatches the next; watch settlement_runs row %d for progress.',
-            $drawId,
-            (int) $run->getKey(),
-            (int) $run->getKey(),
-        ));
-
-        return self::SUCCESS;
-    }
-
+    /**
+     * Drive the run here, chunk after chunk, reporting as it goes.
+     */
     private function runToCompletion(ChunkedSettlementOrchestrator $orchestrator, int $drawId, ?int $chunkSize): int
     {
         try {
@@ -212,6 +264,9 @@ final class SettleDrawChunkedCommand extends Command
             (string) ($run->currency ?? ''),
         ));
 
+        // Say the safety mode out loud. An operator reading the log needs to know
+        // whether those payouts actually credited wallets, and in DRY_RUN they
+        // did not — the obligations exist and the money did not move.
         if ((string) $run->safety_mode !== RealPrizeSettlementService::SAFETY_LIVE) {
             $this->warn(sprintf(
                 'Safety mode was %s: payout obligations were recorded and NO wallet was credited.',
@@ -222,12 +277,29 @@ final class SettleDrawChunkedCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * Resume an interrupted run. Never opens one: a resume that silently started
+     * a fresh run would hide the reason the previous one stopped.
+     */
     private function resume(ChunkedSettlementOrchestrator $orchestrator, int $drawId, ?int $chunkSize): int
     {
+        // runFor() is the pure lookup; resume() on the orchestrator drives the
+        // run to completion, which is what the non-queue branch below wants but
+        // the --queue branch does not. Look up first, then decide.
         $run = $orchestrator->runFor($drawId);
 
         if (! $run instanceof SettlementRun) {
             $this->error(sprintf('There is no settlement run for draw %d to resume. Start one without --resume.', $drawId));
+
+            return self::FAILURE;
+        }
+
+        if ((bool) $this->option('dry-run') && $this->pinnedLive($run)) {
+            $this->error(sprintf(
+                'Refusing --dry-run: run %d was pinned to %s when it was opened. Nothing was dispatched.',
+                (int) $run->getKey(),
+                RealPrizeSettlementService::SAFETY_LIVE,
+            ));
 
             return self::FAILURE;
         }
@@ -241,6 +313,8 @@ final class SettleDrawChunkedCommand extends Command
         }
 
         if ($chunkSize !== null && $chunkSize !== (int) $run->chunk_size) {
+            // Not an error, but worth saying: the run keeps the chunk size it
+            // was opened with, so --chunk has no effect on an existing run.
             $this->warn(sprintf(
                 'Ignoring --chunk=%d: run %d was opened with chunk_size=%d and keeps it.',
                 $chunkSize,
@@ -250,14 +324,27 @@ final class SettleDrawChunkedCommand extends Command
         }
 
         if ((bool) $this->option('queue')) {
-            $run = $orchestrator->reopen($run);
+            if ((string) $run->status !== SettlementRun::STATUS_OPEN) {
+                // Reopening is the whole meaning of --resume: an operator has
+                // looked at the interruption and wants the remaining chunks to
+                // run. It is not implied by --queue on its own.
+                $run->forceFill([
+                    'status' => SettlementRun::STATUS_OPEN,
+                    'failure_reason' => null,
+                ])->save();
 
-            return $this->dispatchChunkJob($drawId, $run);
+                $this->line(sprintf('Reopened run %d for this resume.', (int) $run->getKey()));
+            }
+
+            return $this->dispatchChunk($drawId, $run->refresh());
         }
 
         return $this->runToCompletion($orchestrator, $drawId, null);
     }
 
+    /**
+     * Report where a draw's run is. Writes nothing.
+     */
     private function reportStatus(ChunkedSettlementOrchestrator $orchestrator, int $drawId): int
     {
         $run = $orchestrator->runFor($drawId);
@@ -288,6 +375,9 @@ final class SettleDrawChunkedCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * Every run that is not complete — what an operator needs after being paged.
+     */
     private function reportAllRuns(): int
     {
         $runs = SettlementRun::query()
@@ -327,6 +417,78 @@ final class SettleDrawChunkedCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * Dispatch exactly one chunk job, from the run's RECORDED cursor, and only
+     * report success when the dispatch was accepted.
+     *
+     * The cursor is passed explicitly rather than left null so the delivery
+     * carries the resume point it was planned against: a duplicate or delayed
+     * delivery of an older message is refused by the job instead of rewinding
+     * the run. The run keeps its own cursor, which is what a resume re-reads.
+     *
+     * A rejected dispatch is a FAILURE, and the run row is deliberately left
+     * open and resumable. Saying "Dispatched" when the broker refused the
+     * message is how a draw quietly stops being settled while the operator
+     * believes it is queued.
+     */
+    private function dispatchChunk(int $drawId, SettlementRun $run): int
+    {
+        try {
+            SettleDrawChunkJob::dispatch($drawId, (int) $run->getKey(), (int) $run->cursor_bet_id);
+        } catch (Throwable $e) {
+            // The broker's own message is not repeated to the terminal: it can
+            // name hosts, credentials or queue internals. The operator needs the
+            // fact and the run id, and the detail belongs in the log.
+            report($e);
+
+            $this->error(sprintf(
+                'Chunk job dispatch for run %d was not confirmed by the queue; run %d remains open at cursor %d. '
+                .'Nothing was lost — re-run with --resume once the queue is healthy.',
+                (int) $run->getKey(),
+                (int) $run->getKey(),
+                (int) $run->cursor_bet_id,
+            ));
+
+            return self::FAILURE;
+        }
+
+        $this->info(sprintf(
+            'Dispatched the chunk job for draw %d (run %d) at cursor %d. Each job re-dispatches the next; watch settlement_runs row %d for progress.',
+            $drawId,
+            (int) $run->getKey(),
+            (int) $run->cursor_bet_id,
+            (int) $run->getKey(),
+        ));
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * The driver that makes --queue unsafe, or null when the default queue
+     * connection is one that durably holds a job.
+     *
+     * A WHITELIST, not a blacklist. New Laravel drivers arrive with new failure
+     * modes (deferred, background, failover all landed after sync/null were
+     * already known), and a blacklist would treat each new one as durable until
+     * somebody remembered to add it. A settlement chunk is money: it is queued
+     * only on a driver that has been reviewed for the job to survive a restart.
+     */
+    private function refusedQueueDriver(): ?string
+    {
+        $connection = (string) config('queue.default', 'sync');
+        $driver = (string) config(sprintf('queue.connections.%s.driver', $connection), $connection);
+
+        return in_array($driver, ['database', 'redis', 'sqs', 'beanstalkd'], true) ? null : $driver;
+    }
+
+    /**
+     * Resolve --draw by id or draw number.
+     *
+     * A numeric selector matches an ID first and then a draw number, because
+     * both are plausible and an operator typing `--draw=7` means one of them.
+     * ID wins only because it is the unambiguous reading; if no draw has that id
+     * the draw-number reading is tried rather than reported as not found.
+     */
     private function resolveDraw(string $selector): ?Draw
     {
         if (ctype_digit($selector)) {
@@ -340,11 +502,22 @@ final class SettleDrawChunkedCommand extends Command
         return Draw::query()->where('draw_number', $selector)->first();
     }
 
+    private function pinnedLive(SettlementRun $run): bool
+    {
+        return (string) $run->safety_mode === RealPrizeSettlementService::SAFETY_LIVE;
+    }
+
     private function settlementSafetyMode(): string
     {
         return app(RealPrizeSettlementService::class)->safetyMode();
     }
 
+    /**
+     * The operator running the command, if the environment identifies one.
+     *
+     * started_by is nullable and this is best-effort: not being able to name the
+     * operator is not a reason to refuse to settle a draw.
+     */
     private function actorId(): ?int
     {
         $id = config('lottery.settlement.actor_user_id', env('LOTTERY_SETTLEMENT_ACTOR_ID'));

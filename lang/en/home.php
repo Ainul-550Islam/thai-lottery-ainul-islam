@@ -74,6 +74,10 @@ return [
     'footer_results' => 'Results Hub',
     'footer_checker' => 'Ticket Checker',
     'footer_sales' => 'Sales Points',
+    // Rendered in the footer of every page. It carries the non-affiliation disclosure the
+    // legal tests pin; it used to be absent from all three language files, so the footer
+    // rendered the raw key path instead of the statement.
+    'independent_disclaimer' => 'This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only; this site is not the official GLO website and we do not claim government ownership, agency status, licensing, or endorsement.',
     'footer_terms' => 'Terms of Service',
     'footer_fees' => 'Fee Schedule',
     'footer_contact' => 'Contact Us',

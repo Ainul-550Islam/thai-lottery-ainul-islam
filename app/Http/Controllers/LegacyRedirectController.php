@@ -48,8 +48,6 @@ class LegacyRedirectController extends Controller
         'terms.php' => 'terms',
         'fees.php' => 'fees',
         'contact.php' => 'contact',
-        // The live competitor's header/footer uses the long Contact Us slug.
-        'contact-us.php' => 'contact',
         'national-lottery.php' => 'national-lottery.index',
         'weekly-lottery.php' => 'weekly-lottery.index',
         'bingo-lottery.php' => 'bingo-lottery.index',

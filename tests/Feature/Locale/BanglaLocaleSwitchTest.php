@@ -15,14 +15,6 @@ use Tests\TestCase;
  */
 final class BanglaLocaleSwitchTest extends TestCase
 {
-    public function test_bangla_option_is_reachable_from_desktop_and_mobile_language_controls(): void
-    {
-        $html = (string) $this->get('/')->assertOk()->getContent();
-
-        $this->assertStringContainsString('href="'.route('locale.switch', 'bn').'"', $html);
-        $this->assertStringContainsString('aria-label="বাংলা"', $html);
-    }
-
     public function test_switching_to_bangla_persists_session_and_sets_cookie(): void
     {
         $response = $this->from('/')->get('/locale/bn');

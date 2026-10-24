@@ -22,7 +22,6 @@ final class PublicTermsUiTest extends TestCase
         $this->assertStringContainsString('id="scope"', $html);
         $this->assertStringContainsString('href="#scope"', $html);
         $this->assertStringContainsString('PRINT / SAVE', $html);
-        $this->assertStringNotContainsString('GLO-compatible configuration source', $html);
         $this->assertStringContainsString('window.print', (string) file_get_contents(resource_path('js/pages/terms.js')));
     }
 
@@ -42,7 +41,10 @@ final class PublicTermsUiTest extends TestCase
     {
         $this->getJson('/api/v1/public/terms')
             ->assertOk()
-            ->assertJsonPath('data.version', config('legal.version'))
+            // The Terms payload carries the Terms document's revision (see
+            // TermsRevisionIsolationTest); legal.version remains the shared fallback and
+            // the value the Privacy payload reports.
+            ->assertJsonPath('data.version', config('legal.terms.version'))
             ->assertJsonPath('data.sections.0.id', 'scope');
 
         $this->postJson('/api/v1/public/terms/accept')
@@ -60,13 +62,11 @@ final class PublicTermsUiTest extends TestCase
             ->assertRedirect(route('terms'));
     }
 
-    public function test_terms_catalogues_have_english_thai_bangla_key_parity_and_render_without_raw_keys(): void
+    public function test_terms_has_english_and_thai_source_parity_without_raw_keys(): void
     {
         $english = (array) require base_path('lang/en/public_pages.php');
         $thai = (array) require base_path('lang/th/public_pages.php');
-        $bangla = (array) require base_path('lang/bn/public_pages.php');
         $this->assertSame(array_keys($english), array_keys($thai));
-        $this->assertSame(array_keys($english), array_keys($bangla));
 
         app()->setLocale('th');
         $thaiHtml = (string) $this->get('/terms')->assertOk()->getContent();

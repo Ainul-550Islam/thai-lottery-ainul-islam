@@ -7,6 +7,7 @@ namespace App\DTOs\Wallet;
 use App\Enums\WalletConversionDirection;
 use App\Enums\WalletConversionStatus;
 use DateTimeImmutable;
+use InvalidArgumentException;
 
 /**
  * The filter set for reading a member's or an operator's conversion history.
@@ -27,6 +28,7 @@ use DateTimeImmutable;
 final readonly class ConversionHistoryFilterData
 {
     public const DEFAULT_PER_PAGE = 20;
+
     public const MAX_PER_PAGE = 100;
 
     /**
@@ -41,8 +43,7 @@ final readonly class ConversionHistoryFilterData
         public int $perPage = self::DEFAULT_PER_PAGE,
         public int $page = 1,
         public ?string $search = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Build a clamped filter from raw query input.
@@ -54,7 +55,11 @@ final readonly class ConversionHistoryFilterData
         $direction = $data['direction'] ?? null;
 
         if (! $direction instanceof WalletConversionDirection) {
-            $direction = WalletConversionDirection::tryFromString(is_string($direction) ? $direction : null);
+            if ($direction !== null && ! is_string($direction)) {
+                throw new InvalidArgumentException('A conversion history direction filter must be a single value.');
+            }
+
+            $direction = WalletConversionDirection::tryFromString($direction);
         }
 
         $rawStatuses = $data['statuses'] ?? $data['status'] ?? [];
@@ -66,9 +71,22 @@ final readonly class ConversionHistoryFilterData
         $statuses = [];
 
         foreach ($rawStatuses as $candidate) {
+            // A filter value that is not a scalar is not a status this platform has
+            // ever published — `statuses[0][bad]=value` arrives as an array. Dropping
+            // it silently would answer a malformed request with somebody's history and
+            // invite the caller to believe the filter was applied; casting it to a
+            // string would raise "Array to string conversion" inside a warning handler
+            // and surface as a 500. Neither is acceptable, so the malformed value is
+            // named and refused.
+            if (! $candidate instanceof WalletConversionStatus && ! is_scalar($candidate)) {
+                throw new InvalidArgumentException(
+                    'A conversion history status filter must be a single published status value.',
+                );
+            }
+
             $status = $candidate instanceof WalletConversionStatus
                 ? $candidate
-                : WalletConversionStatus::tryFrom(strtolower(trim((string) $candidate)));
+                : WalletConversionStatus::tryFrom(strtolower(trim((string) $candidate, " \t\n\r\0\x0B")));
 
             if ($status instanceof WalletConversionStatus) {
                 $statuses[] = $status;
@@ -82,7 +100,7 @@ final readonly class ConversionHistoryFilterData
             from: self::dateOrNull($data['from'] ?? null),
             to: self::dateOrNull($data['to'] ?? null),
             perPage: self::clampPerPage($data['per_page'] ?? null),
-            page: max(1, (int) ($data['page'] ?? 1)),
+            page: self::pageOrFirst($data['page'] ?? null),
             search: self::stringOrNull($data['search'] ?? null),
         );
     }
@@ -136,8 +154,29 @@ final readonly class ConversionHistoryFilterData
         ];
     }
 
+    /**
+     * A page number below one, or one that is not a single scalar, is page one:
+     * the member asked for history and history starts at the beginning.
+     */
+    private static function pageOrFirst(mixed $value): int
+    {
+        if ($value === null) {
+            return 1;
+        }
+
+        if (! is_scalar($value)) {
+            throw new InvalidArgumentException('A conversion history page number must be a single value.');
+        }
+
+        return max(1, (int) $value);
+    }
+
     private static function clampPerPage(mixed $value): int
     {
+        if ($value !== null && ! is_scalar($value)) {
+            throw new InvalidArgumentException('A conversion history page size must be a single value.');
+        }
+
         $perPage = (int) ($value ?? self::DEFAULT_PER_PAGE);
 
         if ($perPage < 1) {
@@ -168,7 +207,13 @@ final readonly class ConversionHistoryFilterData
             return null;
         }
 
-        $string = trim((string) $value);
+        if (! is_scalar($value)) {
+            throw new InvalidArgumentException(
+                'A conversion history filter value must be a single scalar value.',
+            );
+        }
+
+        $string = trim((string) $value, " \t\n\r\0\x0B");
 
         return $string === '' ? null : $string;
     }

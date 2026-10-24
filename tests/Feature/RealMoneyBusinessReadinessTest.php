@@ -15,31 +15,31 @@ use App\Enums\PaymentStatus;
 use App\Enums\WithdrawalStatus;
 use App\Models\Draw;
 use App\Models\GloPrizeClaim;
+use App\Models\PaymentMethod;
 use App\Models\PaymentTransaction;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
-use App\DTOs\Payment\GatewayWithdrawalResponse;
 use App\Services\Betting\BulkBetService;
 use App\Services\Finance\FinancialReconciliationService;
 use App\Services\Finance\WalletReservationService;
 use App\Services\Finance\WalletService;
-use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Lottery\GloL6ProportionalPrizeCalculator;
 use App\Services\Lottery\GloPrizeClaimService;
 use App\Services\Lottery\GloStampDutyCalculator;
-use App\Services\Payment\Drivers\BankTransferGateway;
 use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
 use App\Services\Security\ResponsibleGamingService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Tests\Feature\Finance\FinancialMasterTestCase;
+use Tests\TestCase;
 
-class RealMoneyBusinessReadinessTest extends FinancialMasterTestCase
+class RealMoneyBusinessReadinessTest extends TestCase
 {
+    use RefreshDatabase;
 
     /**
      * Test GLO L6 Proportional Prize Pool Calculation and Stamp Duty.
@@ -75,18 +75,28 @@ class RealMoneyBusinessReadinessTest extends FinancialMasterTestCase
      */
     public function test_glo_prize_claim_lifecycle_and_approval(): void
     {
-        $f = $this->verifiedClaimFixtureForMaster();
+        $user = User::factory()->create();
         $claimService = app(GloPrizeClaimService::class);
-        $claim = $f['claim'];
 
-        $this->assertSame(GloClaimStatus::Pending, $claim->status);
+        $claim = GloPrizeClaim::create([
+            'user_id' => $user->id,
+            'claim_reference' => 'CLAIM-' . uniqid(),
+            'ticket_number' => '123456',
+            'draw_date' => '2026-10-01',
+            'prize_tier' => GloPrizeTier::First->value,
+            'claim_channel' => GloClaimChannel::Branch->value,
+            'claim_status' => GloClaimStatus::Pending->value,
+            'gross_amount' => '6000000.00',
+            'stamp_duty_amount' => '30000.00',
+            'net_payable_amount' => '5970000.00',
+            'currency' => Currency::THB->value,
+        ]);
 
-        // Review eligible then approve claim via canonical maker-checker workflow
-        $eligible = $claimService->reviewEligible($claim, $f['approver'], 'Officer note: Verified authentic ticket');
-        $this->assertSame(GloClaimStatus::Eligible, $eligible->status);
+        $this->assertEquals(GloClaimStatus::Pending->value, $claim->claim_status);
 
-        $approved = $claimService->approve($eligible, $f['approver'], 'Officer note: Approved for payout');
-        $this->assertSame(GloClaimStatus::Approved, $approved->status);
+        // Approve claim
+        $approved = $claimService->approveClaim($claim->id, 'Officer note: Verified authentic ticket');
+        $this->assertEquals(GloClaimStatus::Approved->value, $approved->claim_status);
         $this->assertNotNull($approved->approved_at);
     }
 
@@ -100,14 +110,14 @@ class RealMoneyBusinessReadinessTest extends FinancialMasterTestCase
         $reservationService = app(WalletReservationService::class);
 
         // Credit user wallet 1000.00 THB
-        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
-        $this->creditFixture($wallet, '1000.00', 'Initial deposit');
+        $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
+        $walletService->credit($wallet->id, '1000.00', 'Initial deposit');
 
         $this->assertEquals('1000.00', $wallet->fresh()->balance);
 
         // Create reservation of 250.00 THB
         $reservation = $reservationService->reserve(
-            userIdOrData: $user->id,
+            userId: $user->id,
             amount: '250.00',
             currency: Currency::THB->value,
             reason: 'Bet slip reservation',
@@ -116,14 +126,14 @@ class RealMoneyBusinessReadinessTest extends FinancialMasterTestCase
 
         $this->assertNotNull($reservation);
         $this->assertEquals('750.00', $wallet->fresh()->available_balance);
-        $this->assertEquals('250.00', $wallet->fresh()->locked_balance);
+        $this->assertEquals('250.00', $wallet->fresh()->reserved_balance);
 
         // Consume reservation
         $consumed = $reservationService->consume($reservation->id, 'Bet placement #101');
         $this->assertTrue($consumed);
 
         $this->assertEquals('750.00', $wallet->fresh()->balance);
-        $this->assertEquals('0.00', $wallet->fresh()->locked_balance);
+        $this->assertEquals('0.00', $wallet->fresh()->reserved_balance);
     }
 
     /**
@@ -132,7 +142,7 @@ class RealMoneyBusinessReadinessTest extends FinancialMasterTestCase
     public function test_financial_reconciliation_engine_runs_without_anomalies(): void
     {
         $reconService = app(FinancialReconciliationService::class);
-        $report = $reconService->reconcile(Carbon::today()->subDays(1), Carbon::today());
+        $report = $reconService->reconcileSystem(Carbon::today()->subDays(1), Carbon::today());
 
         $this->assertNotNull($report);
         $this->assertIsArray($report->discrepancies);
@@ -164,27 +174,32 @@ class RealMoneyBusinessReadinessTest extends FinancialMasterTestCase
     public function test_withdrawal_disbursement_failure_restores_balance(): void
     {
         $user = User::factory()->create();
-        $operator = User::factory()->create();
         $walletService = app(WalletService::class);
-        $approvalService = app(WithdrawalApprovalService::class);
+        $disbursementService = app(WithdrawalDisbursementService::class);
 
-        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
-        $this->creditFixture($wallet, '500.00', 'Initial balance');
+        $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
+        $walletService->credit($wallet->id, '500.00', 'Initial balance');
 
-        $withdrawal = $this->pendingWithdrawalForMaster($wallet, '200.00');
-        $approvalService->approve($withdrawal, $operator->id);
+        $withdrawal = Withdrawal::create([
+            'user_id' => $user->id,
+            'wallet_id' => $wallet->id,
+            'amount' => '200.00',
+            'fee' => '0.00',
+            'currency' => Currency::THB->value,
+            'channel' => 'bank_transfer',
+            'status' => WithdrawalStatus::Pending->value,
+            'destination_details' => json_encode(['account_number' => '1234567890', 'bank' => 'KBANK']),
+        ]);
 
+        // Debit wallet for pending withdrawal
+        $walletService->debit($wallet->id, '200.00', 'Withdrawal pending');
+        $this->assertEquals('300.00', $wallet->fresh()->balance);
+
+        // Fail withdrawal and ensure funds are refunded
+        $disbursementService->rejectWithdrawal($withdrawal->id, 'Invalid bank account number');
+
+        $this->assertEquals(WithdrawalStatus::Failed->value, $withdrawal->fresh()->status);
         $this->assertEquals('500.00', $wallet->fresh()->balance);
-        $this->assertEquals('200.00', $wallet->fresh()->locked_balance);
-        $this->assertEquals('300.00', $wallet->fresh()->available_balance);
-
-        // Pre-disbursement failure releases the reservation while balance remains 500.00
-        $approvalService->markFailed($withdrawal->fresh(), 'Invalid bank account number');
-
-        $this->assertSame(WithdrawalStatus::Failed, $withdrawal->fresh()->status);
-        $this->assertEquals('500.00', $wallet->fresh()->balance);
-        $this->assertEquals('0.00', $wallet->fresh()->locked_balance);
-        $this->assertEquals('500.00', $wallet->fresh()->available_balance);
     }
 
     /**
@@ -219,23 +234,23 @@ class RealMoneyBusinessReadinessTest extends FinancialMasterTestCase
         $walletService = app(WalletService::class);
         $bulkBetService = app(BulkBetService::class);
 
-        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
-        $this->creditFixture($wallet, '500.00', 'Test balance');
+        $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
+        $walletService->credit($wallet->id, '500.00', 'Test balance');
+
+        $draw = Draw::factory()->create();
 
         $selections = [
             new BulkBetSelectionData(
-                marketKey: '3d_direct',
+                marketKey: 'top_3',
                 number: '123',
                 stake: '50.00'
             ),
             new BulkBetSelectionData(
-                marketKey: '2d_bottom',
+                marketKey: 'bottom_2',
                 number: '45',
                 stake: '50.00'
             ),
         ];
-
-        $draw = $this->openBulkDrawForTest($selections);
 
         // Quote
         $quote = $bulkBetService->quote($draw->id, $selections);

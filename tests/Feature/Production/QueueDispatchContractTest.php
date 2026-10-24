@@ -56,6 +56,7 @@ final class QueueDispatchContractTest extends TestCase
     private const DEFERRED = [
         // ── Phase 5.2: real-money disbursement ──────────────────────────
         'DisburseApprovedPrizeJob' => 'Phase 5.2 real-money payout. Gated behind PRIZE_PAYOUT_SAFETY_MODE=LIVE, which is DISABLED by default and asserted by ProductionConfigSafetyTest.',
+        'ExecutePayoutTransferJob' => 'Phase 5.2. Fans a payout batch into transfers; has no meaning until disbursement exists.',
         'DisburseWithdrawalJob' => 'Phase 5.2. Withdrawal disbursement shares the payout rails.',
         'ProcessPrizeSettlementJob' => 'Phase 5.2. The monetary counterpart of the non-monetary settlement simulation.',
         'ProcessFinancialReconciliationJob' => 'Phase 5.2. Reconciles money movements that cannot occur while payout is DISABLED.',

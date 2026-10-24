@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountGradeController;
-use App\Http\Controllers\Admin\AdminTransferController;
-use App\Http\Controllers\Admin\IpAccessRuleController;
 use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
 use App\Http\Controllers\Admin\PayoutApprovalIntakeController;
 use App\Http\Controllers\Admin\PayoutEvidenceController;
@@ -26,20 +24,21 @@ use App\Http\Controllers\Legal\LegalConsentController;
 use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\LotteryHubController;
 use App\Http\Controllers\LotteryPurchasePageController;
-use App\Http\Controllers\MemberRewardsController;
 use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\NationalLotteryController;
 use App\Http\Controllers\NotificationCenterController;
 use App\Http\Controllers\PcsoLotteryController;
 use App\Http\Controllers\Player\PlayerSecuritySettingsController;
-use App\Http\Controllers\PublicBlogController;
+use App\Http\Controllers\PublicAndroidApkController;
 use App\Http\Controllers\PublicDownloadAppController;
+use App\Http\Controllers\PublicBlogController;
 use App\Http\Controllers\PublicFaqController;
 use App\Http\Controllers\PublicGradeController;
 use App\Http\Controllers\PublicHowToPlayController;
 use App\Http\Controllers\PublicLottoDiscountController;
 use App\Http\Controllers\PublicPagesController;
 use App\Http\Controllers\PublicPrizeVerificationController;
+use App\Http\Controllers\PublicServicesPageController;
 use App\Http\Controllers\PublicVerificationController;
 use App\Http\Controllers\ResultsController;
 use App\Http\Controllers\SitemapController;
@@ -169,9 +168,7 @@ Route::middleware('auth')->group(function (): void {
         ->where('reference', '[A-Za-z0-9_-]{1,80}')
         ->name('player.wallet.conversion.show');
 
-    Route::get('/wallet/transfer/panel', [BalanceTransferController::class, 'panel'])
-        ->middleware('throttle:60,1')
-        ->name('player.transfer.panel');
+    Route::get('/wallet/transfer/panel', [BalanceTransferController::class, 'panel'])->name('player.transfer.panel');
     Route::match(['get', 'post'], '/wallet/transfer/quote', [BalanceTransferController::class, 'quote'])->name('player.transfer.quote');
     Route::post('/wallet/transfer', [BalanceTransferController::class, 'store'])
         ->middleware(['active', 'adult', 'legal.current'])
@@ -250,25 +247,6 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/account/grade/refresh', [AccountGradeController::class, 'refresh'])
         ->middleware('throttle:account-grade')
         ->name('account.grade.refresh');
-
-    // Rewards and member engagement. Financial redemptions retain the
-    // active/adult/current-consent boundary and the user/IP-keyed limiter.
-    Route::get('/rewards', [MemberRewardsController::class, 'index'])->name('member.rewards');
-    Route::post('/rewards/coupons/redeem', [MemberRewardsController::class, 'redeemCoupon'])
-        ->middleware(['active', 'adult', 'legal.current', 'throttle:financial-critical'])
-        ->name('member.rewards.coupons.redeem');
-    Route::post('/rewards/loyalty/redeem', [MemberRewardsController::class, 'redeemLoyalty'])
-        ->middleware(['active', 'adult', 'legal.current', 'throttle:financial-critical'])
-        ->name('member.rewards.loyalty.redeem');
-    Route::post('/rewards/push/register', [MemberRewardsController::class, 'registerPushToken'])
-        ->middleware(['active', 'legal.current', 'throttle:30,1'])
-        ->name('member.rewards.push.register');
-    Route::post('/rewards/push/revoke', [MemberRewardsController::class, 'revokePushToken'])
-        ->middleware(['active', 'legal.current', 'throttle:30,1'])
-        ->name('member.rewards.push.revoke');
-    Route::post('/rewards/testimonials', [MemberRewardsController::class, 'submitTestimonial'])
-        ->middleware(['active', 'legal.current', 'throttle:5,1'])
-        ->name('member.rewards.testimonials.submit');
 });
 
 /*
@@ -295,7 +273,14 @@ Route::get('/withdrawal', fn () => redirect()->route('player.withdraw'))
 Route::get('/wallet/withdrawal', fn () => redirect()->route('player.withdraw'))
     ->middleware('auth')->name('wallet.withdrawal');
 Route::get('/betting', [ThaiLotteryBettingController::class, 'index'])->name('betting.index');
-Route::get('/lotto/betting', fn () => redirect()->route('betting.index', request()->query(), 301))->name('lotto.betting');
+// Legacy duplicate of the canonical /betting page. A 301 (not a 302) so search
+// engines consolidate the two URLs instead of indexing both, and the query string
+// is carried across so ?lang= and campaign parameters survive the hop.
+Route::get('/lotto/betting', fn (\Illuminate\Http\Request $request) => redirect()->route(
+    'betting.index',
+    $request->query(),
+    301,
+))->name('lotto.betting');
 // Dedicated GLO L6 home. It uses the canonical public GLO services and is
 // intentionally separate from the legacy /results page, whose historical
 // controller is not a source for live GLO data.
@@ -360,12 +345,52 @@ Route::get('/sales-points', [HomeController::class, 'salesPoints'])->name('sales
 
 // Public informational + legal pages (versioned Terms from config/legal.php).
 // public.legal = PublicLegalHeaders middleware: safe guest GET cache only.
-Route::get('/services', [PublicPagesController::class, 'services'])
+// `/services` used to name PublicPagesController::services, a method that does
+// not exist, so the public page 500'd while the route still looked healthy. It
+// is served by its own single-action page controller instead: an invokable
+// class, not a closure, because `php artisan route:cache` cannot serialise
+// closures and the deployment checklist runs it.
+Route::get('/services', PublicServicesPageController::class)
     ->middleware('public.legal')
     ->name('services');
 Route::get('/our-services', fn () => redirect()->route('services', [], 301))
     ->middleware('public.legal')
     ->name('our-services');
+
+/*
+| Public blog (D5).
+|
+| THE CONTROLLER EXISTED, THE ROUTES DID NOT.
+| PublicBlogController, both Blade views, the per-locale blog catalogues and the
+| blog stylesheet were all committed, and every view builds its links with the
+| named routes blog.index and blog.show - but no route declared those names, so
+| /blog/{locale} and /blog/{locale}/{slug} answered 404 and any page rendering
+| a blog link threw.
+|
+| THE LOCALE IS A PATH SEGMENT, not a query parameter: /blog/en/x and /blog/th/y
+| are separate crawlable URLs, which is the whole point of a trilingual blog. The
+| bare /blog entry point redirects to the negotiated locale so a shared link lands
+| on the language the visitor is already using, without inventing a fourth URL
+| that search engines would have to disambiguate.
+*/
+Route::get('/blog', function (\Illuminate\Http\Request $request) {
+    return redirect()->route(
+        'blog.index',
+        array_merge(['locale' => (string) app()->getLocale()], $request->query()),
+        302,
+    );
+})->middleware('public.legal')->name('blog');
+
+Route::get('/blog/{locale}', [PublicBlogController::class, 'index'])
+    ->whereIn('locale', \App\Support\SupportedLocale::ALL)
+    ->middleware('public.legal')
+    ->name('blog.index');
+
+Route::get('/blog/{locale}/{slug}', [PublicBlogController::class, 'show'])
+    ->whereIn('locale', \App\Support\SupportedLocale::ALL)
+    ->where('slug', '[A-Za-z0-9\-_]{1,160}')
+    ->middleware('public.legal')
+    ->name('blog.show');
 Route::get('/about', [PublicPagesController::class, 'about'])
     ->middleware('public.legal')
     ->name('about');
@@ -450,22 +475,6 @@ Route::get('/how-to-play', [PublicHowToPlayController::class, 'index'])
 Route::get('/faq', [PublicFaqController::class, 'index'])
     ->middleware('public.legal')
     ->name('faq');
-
-/*
-|--------------------------------------------------------------------------
-| Public blog: locale is a required, validated canonical path segment.
-|--------------------------------------------------------------------------
-*/
-Route::redirect('/blog', '/blog/en')->name('blog.index.redirect');
-Route::middleware('throttle:60,1')->group(function (): void {
-    Route::get('/blog/{locale}', [PublicBlogController::class, 'index'])
-        ->where('locale', 'en|th|bn')
-        ->name('blog.index');
-    Route::get('/blog/{locale}/{slug}', [PublicBlogController::class, 'show'])
-        ->where('locale', 'en|th|bn')
-        ->where('slug', '[a-z0-9][a-z0-9-]{0,190}')
-        ->name('blog.show');
-});
 
 /*
 |--------------------------------------------------------------------------
@@ -830,6 +839,24 @@ Route::get('/app', [PublicDownloadAppController::class, 'index'])
     ->middleware('public.legal')
     ->name('app');
 
+/*
+| Signed Android artifact endpoints (android/README.md contract).
+|
+| These two URLs are what an installer actually fetches, and until now nothing
+| routed them, so every request - verified release or not - was a framework 404
+| with no caching or content-type contract. They stay fail-closed: the controller
+| serves a body only when AndroidApkReleaseService can re-verify the binary
+| against its manifest, and otherwise answers 404 with no-store headers so no
+| client or CDN can cache a stale artifact. No `public.legal` middleware here:
+| these are binary/JSON responses, not legal-gated HTML pages, and a legal
+| interstitial between a user and an APK would be an install hazard.
+*/
+Route::get('/app/thai-apk.apk', [PublicAndroidApkController::class, 'apk'])
+    ->name('app.apk');
+
+Route::get('/app/thai-apk.manifest.json', [PublicAndroidApkController::class, 'manifest'])
+    ->name('app.apk.manifest');
+
 // XML sitemap (FINAL AUDIT #15): canonical public URLs only — no auth,
 // admin, API, search-form, payment-return or legacy .php duplicates.
 // Read-only and cacheable.
@@ -905,33 +932,6 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'can:access-ad
     Route::post('/api/reconciliation', [LottoFinExecutiveDashboardController::class, 'runReconciliation'])
         ->middleware(['throttle:admin-analytics', 'can:access-admin'])
         ->name('api.reconciliation.run');
-
-    // Network access rules use the dedicated controller/manager rather than
-    // the payout or legacy console handlers. The manager repeats authorization
-    // and self-lockout checks for every mutation.
-    Route::prefix('ip-access/rules')->name('ip-access.rules.')->middleware('throttle:admin-analytics')->group(function (): void {
-        Route::get('/', [IpAccessRuleController::class, 'index'])->name('index');
-        Route::get('/manage', [IpAccessRuleController::class, 'manage'])->name('manage');
-        Route::post('/', [IpAccessRuleController::class, 'store'])
-            ->middleware('throttle:30,1')
-            ->name('store');
-        Route::post('/{ruleId}/revoke', [IpAccessRuleController::class, 'revoke'])
-            ->where('ruleId', '[0-9]+')
-            ->middleware('throttle:30,1')
-            ->name('revoke');
-    });
-
-    // Balance-transfer operator desk is intentionally read-only. There is no
-    // admin.transfers.reverse route: the configured independent maker-checker
-    // approval workflow is not implemented, so exposing a direct reversal
-    // endpoint would bypass a financial control.
-    Route::get('/transfers', [AdminTransferController::class, 'index'])
-        ->middleware('can:transfer.view_any')
-        ->name('transfers.index');
-    Route::get('/transfers/{reference}', [AdminTransferController::class, 'show'])
-        ->where('reference', '[A-Za-z0-9_-]{1,32}')
-        ->middleware('can:transfer.view_any')
-        ->name('transfers.show');
 
     // Operational projections. Each request is permission-checked again in the
     // controller so a route alias cannot widen access to another panel.

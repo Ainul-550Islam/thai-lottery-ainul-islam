@@ -6,6 +6,7 @@ namespace Tests\Feature\Agent;
 
 use App\Enums\AgentStatus;
 use App\Enums\CommissionStatus;
+use App\Exceptions\FinancialException;
 use App\Models\AgentCommission;
 use App\Models\FinancialTransaction;
 use App\Models\Wallet;
@@ -59,17 +60,25 @@ final class CommissionRefundReversalTest extends AgentTestCase
         $this->assertSame('10.00', (string) $agent->total_commission_earned);
         $this->assertSame('10.00', (string) $agent->total_commission_paid);
 
-        // Reverse bet commission
-        $reversed = $this->reversalService()->reverseForBet($bet, 'Bet voided after settlement');
-
-        $this->assertCount(1, $reversed);
+        // A paid commission is a managed payout obligation: this legacy direct path
+        // cannot prove the money back, so it must refuse rather than relabel the row
+        // reversed and decrement the counters while the wallet keeps the money. The
+        // supported recovery is the original-bound compensation workflow, which the
+        // paid-cancellation suite proves end to end.
+        try {
+            $this->reversalService()->reverseForBet($bet, 'Bet voided after settlement');
+            $this->fail('A paid commission was relabelled reversed without recovering its money.');
+        } catch (FinancialException $refusal) {
+            $this->assertSame('agent_commission_reversal_unproved', $refusal->errorCode());
+        }
 
         $agentWallet->refresh();
-        $this->assertSame('0.00', (string) $agentWallet->balance);
+        $this->assertSame('10.00', (string) $agentWallet->balance);
 
         $agent->refresh();
-        $this->assertSame('0.00', (string) $agent->total_commission_earned);
-        $this->assertSame('0.00', (string) $agent->total_commission_paid);
+        $this->assertSame('10.00', (string) $agent->total_commission_earned);
+        $this->assertSame('10.00', (string) $agent->total_commission_paid);
+        $this->assertNotSame(CommissionStatus::Reversed, AgentCommission::query()->where('bet_id', $bet->id)->sole()->status);
 
         // Ledger transactions must all be balanced
         $validator = app(LedgerBalanceValidator::class);

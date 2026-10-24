@@ -22,14 +22,20 @@ enum ConversionFeeBearer: string
         };
     }
 
-    public function labelKey(): string
-    {
-        return 'wallet_conversion.fee_bearer_'.$this->value;
-    }
-
     public static function fromConfig(mixed $value): self
     {
         return self::tryFrom(is_string($value) ? strtolower(trim($value)) : '')
             ?? self::Source;
+    }
+
+    /**
+     * Stable translation key for the member-facing conversion screens.
+     *
+     * The labels live in lang/<locale>/wallet_conversion.php next to every other
+     * string this lane shows, so there is no second translation namespace to drift.
+     */
+    public function labelKey(): string
+    {
+        return "wallet_conversion.fee_bearer_{$this->value}";
     }
 }

@@ -33,7 +33,7 @@ final class RecordPaymentReconciliationAudit
             ->where('auditable_type', PaymentReconciliation::class)
             ->where('auditable_id', (int) $row->getKey())
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_ANCHOR_HOURS))
-            ->anchoredBy($anchor)
+            ->whereJsonContains('metadata->audit_anchor', $anchor)
             ->exists();
 
         if ($already) {
@@ -59,7 +59,7 @@ final class RecordPaymentReconciliationAudit
                 $row->observed_amount === null ? '(unobserved)' : (string) $row->observed_amount,
             ),
             'metadata' => [
-                AuditLog::ANCHOR_KEY => $anchor,
+                'audit_anchor' => $anchor,
                 'reconciliation_key' => (string) $row->reconciliation_key,
                 'payment_id' => (int) $row->payment_id,
                 'provider' => (string) $row->provider,

@@ -104,8 +104,43 @@ class WalletConversionPolicy
      * trail, and a role that can both read and alter the trail is not an
      * auditor.
      */
+    /**
+     * Does this principal hold an operator role?
+     *
+     * READ FROM THE LOADED SNAPSHOT WHEN THERE IS ONE, ON PURPOSE. This policy is
+     * the *presentation* answer: it decides whether a panel shows the reverse
+     * button, and a panel that has already hydrated a user must not fire an extra
+     * query per row to re-ask a question it just answered. The consequence is
+     * that this answer can be stale — a role removed in another process is still
+     * visible to a model loaded a moment earlier.
+     *
+     * That is safe only because the policy is NOT the financial boundary. Every
+     * reversal passes through ConversionReversalAuthority, which re-reads roles,
+     * permissions, guards and user status from the database inside the
+     * transaction, under lock, and refuses on its own. So a stale "yes" here
+     * costs a refused request, never a moved balance. A stale "no" costs nothing
+     * but a reload. Making this method fresh-looking would not add safety — it
+     * would only move the same decision to a second place where the two copies
+     * can disagree.
+     */
+    private function holdsAnyRole(User $user): bool
+    {
+        if ($user->relationLoaded('roles')) {
+            return $user->roles->isNotEmpty();
+        }
+
+        return $user->roles()->exists();
+    }
+
     public function reverse(User $user, WalletConversion $conversion): bool
     {
+        // A member holds no operator role, so they are refused here without the
+        // permission lookup. Checking a permission a member cannot hold is how a
+        // refusal turned into a server error.
+        if (! $this->holdsAnyRole($user)) {
+            return false;
+        }
+
         if (AdminAccess::isReadOnly($user)) {
             return false;
         }

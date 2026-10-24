@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\DTOs\Wallet;
 
-use App\Enums\Currency;
 use App\Enums\ConversionFeeBearer;
+use App\Enums\Currency;
+use App\Exceptions\Wallet\ConversionException;
 use App\Enums\WalletConversionDirection;
-use App\Support\Wallet\ConversionCurrency;
 
 /**
  * The exact, itemised fee a direction charges on one amount.
@@ -47,12 +47,24 @@ final readonly class ConversionFeeBreakdownData
         public ?string $effectiveTo = null,
         public ?string $labelKey = null,
         public ?string $descriptionKey = null,
-    ) {
-    }
+    ) {}
 
     public static function currencyOf(self $breakdown): Currency
     {
-        return ConversionCurrency::parse($breakdown->currency);
+        // No fallback to the primary currency. A breakdown whose currency is not a
+        // supported code is a broken price, and silently reading it as THB would let a
+        // mispriced USD conversion be posted as Thai baht.
+        $currency = Currency::tryFrom((string) $breakdown->currency);
+
+        if ($currency === null) {
+            throw ConversionException::failure(
+                'currency_invalid',
+                'The fee breakdown carries a currency this system does not support.',
+                ['currency' => (string) $breakdown->currency],
+            );
+        }
+
+        return $currency;
     }
 
     public function hasFee(): bool

@@ -67,7 +67,7 @@ class RecordWithdrawalKycAudit
             'withdrawal_reference' => $payload['withdrawal_reference'],
             'user_id' => $payload['user_id'],
             'evidence_document_id' => $payload['evidence_document_id'],
-            AuditLog::ANCHOR_KEY => $payload['anchor'],
+            'anchor' => $payload['anchor'],
             'was_detained' => $payload['was_detained'],
             'action' => self::ACTION_MARKER,
         ];
@@ -109,7 +109,7 @@ class RecordWithdrawalKycAudit
             ->where('auditable_type', Withdrawal::class)
             ->where('auditable_id', (int) $event->withdrawal->getKey())
             ->whereRaw("json_extract(metadata, '$.action') = ?", [self::ACTION_MARKER])
-            ->anchoredBy($event->anchor)
+            ->whereRaw("json_extract(metadata, '$.anchor') = ?", [$event->anchor])
             ->exists();
     }
 }

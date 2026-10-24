@@ -22,6 +22,12 @@ use Illuminate\Support\Facades\DB;
  * SelfExclusionService — create / activate / expire self-exclusions.
  * The live gate is DERIVED server-side (status + server clock) and
  * blocks prohibited account activity; no client may lift it.
+ *
+ * THE TWO LANES CORRESPOND: the legacy per-user
+ * `responsible_gaming_limits.self_excluded_until` row is stamped at
+ * activation/expiry so pre-existing gates (`User::isSelfExcluded`,
+ * PrizeEligibilityService) keep telling the same truth — the
+ * pronouncement lane stays authoritative, never edited outside here.
  */
 final class SelfExclusionService
 {
@@ -33,48 +39,33 @@ final class SelfExclusionService
      * THE SEATED REQUEST: one (user, scope, reason, window) = one
      * row, replayed for free. A PLAYER under an active exclusion
      * cannot re-request (the gate refuses by name).
+     *
+     * @return array{exclusion: SelfExclusion, replayed: bool}
      */
     public function request(SelfExclusionData $data): SelfExclusion
     {
         return DB::transaction(function () use ($data): SelfExclusion {
-            $playerLock = app(ResponsibleGamingPlayerLock::class);
-            $playerLock->lock($data->userId);
-
             $fingerprint = $data->requestFingerprint();
 
             /** @var SelfExclusion|null $existing */
-            $existing = SelfExclusion::query()
-                ->where('request_fingerprint', $fingerprint)
-                ->lockForUpdate()
-                ->first();
+            $existing = SelfExclusion::query()->where('request_fingerprint', $fingerprint)->first();
 
             if ($existing instanceof SelfExclusion) {
-                return $existing;
+                return $existing; // deterministic replay, free of arithmetic
             }
 
             /** @var SelfExclusion|null $active */
             $active = SelfExclusion::query()
                 ->where('user_id', $data->userId)
-                ->whereIn('status', [SelfExclusionStatus::Active->value, SelfExclusionStatus::Requested->value])
+                ->where('status', SelfExclusionStatus::Active->value)
                 ->lockForUpdate()
                 ->get()
-                ->first(fn (SelfExclusion $s) => $s->currentlyGates()
-                    || ($s->status === SelfExclusionStatus::Requested && $s->effective_at !== null && $s->effective_at->lte(now()) && $s->ends_at !== null && $s->ends_at->isFuture()));
+                ->first(fn (SelfExclusion $s) => $s->currentlyGates());
 
             if ($active instanceof SelfExclusion) {
                 throw SelfExclusionException::activeExclusion($data->userId, $active->ends_at->toIso8601String());
             }
 
-            $legacy = ResponsibleGamingLimit::withTrashed()
-                ->where('user_id', $data->userId)
-                ->lockForUpdate()
-                ->first();
-
-            if ($legacy instanceof ResponsibleGamingLimit && $legacy->self_excluded_until !== null && $legacy->self_excluded_until->isFuture()) {
-                throw SelfExclusionException::activeExclusion($data->userId, $legacy->self_excluded_until->toIso8601String());
-            }
-
-            /** @var SelfExclusion $row */
             $row = SelfExclusion::query()->create([
                 'user_id' => $data->userId,
                 'status' => SelfExclusionStatus::Requested,
@@ -91,33 +82,25 @@ final class SelfExclusionService
 
     /**
      * ACTIVATE: immediate-effect exclusions move Requested → Active
-     * the moment the server clock crosses effective_at.
+     * the moment the server clock crosses effective_at. The
+     * SelfExclusionActivated envelope flies before the transaction
+     * commits; the legacy row is stamped in the same seat.
      */
     public function activate(int|SelfExclusion $exclusion): SelfExclusion
     {
-        $exclusionId = $exclusion instanceof SelfExclusion ? (int) $exclusion->id : $exclusion;
-
-        return DB::transaction(function () use ($exclusionId): SelfExclusion {
-            $playerLock = app(ResponsibleGamingPlayerLock::class);
-            $ownerId = $playerLock->forRecord('self_exclusions', $exclusionId);
-
+        return DB::transaction(function () use ($exclusion): SelfExclusion {
             /** @var SelfExclusion $locked */
-            $locked = SelfExclusion::query()->lockForUpdate()->findOrFail($exclusionId);
-            $playerLock->assertOwner($ownerId, (int) $locked->user_id);
+            $locked = SelfExclusion::query()->lockForUpdate()->findOrFail(
+                $exclusion instanceof SelfExclusion ? $exclusion->id : $exclusion,
+            );
 
             if ($locked->status === SelfExclusionStatus::Active) {
-                return $locked;
+                return $locked; // idempotent claim
             }
 
             if (! $locked->status->canTransitionTo(SelfExclusionStatus::Active)) {
                 throw SelfExclusionException::invalidTransition(
                     self::ref($locked), $locked->status->value, SelfExclusionStatus::Active->value,
-                );
-            }
-
-            if ($locked->effective_at !== null && now()->lt($locked->effective_at)) {
-                throw SelfExclusionException::invalidTransition(
-                    self::ref($locked), $locked->status->value, SelfExclusionStatus::Active->value.' (effective time not reached)',
                 );
             }
 
@@ -139,25 +122,20 @@ final class SelfExclusionService
      */
     public function expire(SelfExclusion $exclusion): SelfExclusion
     {
-        $exclusionId = (int) $exclusion->id;
-
-        return DB::transaction(function () use ($exclusionId): SelfExclusion {
-            $playerLock = app(ResponsibleGamingPlayerLock::class);
-            $ownerId = $playerLock->forRecord('self_exclusions', $exclusionId);
-
+        return DB::transaction(function () use ($exclusion): SelfExclusion {
             /** @var SelfExclusion $locked */
-            $locked = SelfExclusion::query()->lockForUpdate()->findOrFail($exclusionId);
-            $playerLock->assertOwner($ownerId, (int) $locked->user_id);
+            $locked = SelfExclusion::query()->lockForUpdate()->findOrFail($exclusion->id);
 
             if ($locked->status === SelfExclusionStatus::Expired) {
                 return $locked;
             }
 
             if ($locked->status !== SelfExclusionStatus::Active) {
-                return $locked;
+                return $locked; // never-active requests do not lapse this lane
             }
 
             if (now()->lt($locked->ends_at)) {
+                // End time not reached — physics alone decides; fail-closed.
                 throw SelfExclusionException::invalidTransition(
                     self::ref($locked), SelfExclusionStatus::Active->value, SelfExclusionStatus::Expired->value.' (end time not reached)',
                 );
@@ -180,15 +158,9 @@ final class SelfExclusionService
      */
     public function cancel(SelfExclusion $exclusion, string $cancelledBy): SelfExclusion
     {
-        $exclusionId = (int) $exclusion->id;
-
-        return DB::transaction(function () use ($exclusionId, $cancelledBy): SelfExclusion {
-            $playerLock = app(ResponsibleGamingPlayerLock::class);
-            $ownerId = $playerLock->forRecord('self_exclusions', $exclusionId);
-
+        return DB::transaction(function () use ($exclusion, $cancelledBy): SelfExclusion {
             /** @var SelfExclusion $locked */
-            $locked = SelfExclusion::query()->lockForUpdate()->findOrFail($exclusionId);
-            $playerLock->assertOwner($ownerId, (int) $locked->user_id);
+            $locked = SelfExclusion::query()->lockForUpdate()->findOrFail($exclusion->id);
 
             if ($locked->status === SelfExclusionStatus::Cancelled) {
                 return $locked;
@@ -196,10 +168,6 @@ final class SelfExclusionService
 
             if (! $locked->status->canTransitionTo(SelfExclusionStatus::Cancelled)) {
                 throw SelfExclusionException::forbiddenCancellation(self::ref($locked), $locked->status->value);
-            }
-
-            if ($locked->effective_at !== null && $locked->effective_at->lte(now())) {
-                throw SelfExclusionException::forbiddenCancellation(self::ref($locked), 'effective_window_entered');
             }
 
             $locked->status = SelfExclusionStatus::Cancelled;
@@ -215,43 +183,34 @@ final class SelfExclusionService
 
     /**
      * THE FAIL-CLOSED GATE: the player is excluded iff an ACTIVE
-     * exclusion whose end is in the future exists, OR a REQUESTED
-     * exclusion whose effective_at has passed and ends_at is in the future.
+     * exclusion whose end is in the future exists. Derived anew at
+     * every call; never a stored flag.
      */
-    public function hasActiveExclusion(int $userId, bool $forUpdate = false): bool
+    public function hasActiveExclusion(int $userId): bool
     {
-        return $this->currentActiveFor($userId, $forUpdate) instanceof SelfExclusion;
+        return SelfExclusion::query()
+            ->where('user_id', $userId)
+            ->where('status', SelfExclusionStatus::Active->value)
+            ->where('ends_at', '>', now())
+            ->exists();
     }
 
-    public function currentActiveFor(int $userId, bool $forUpdate = false): ?SelfExclusion
+    public function currentActiveFor(int $userId): ?SelfExclusion
     {
-        $now = now();
-
-        $query = SelfExclusion::query()
-            ->where('user_id', $userId)
-            ->where('ends_at', '>', $now)
-            ->where(static function ($q) use ($now, $forUpdate): void {
-                $q->where('status', SelfExclusionStatus::Active->value);
-                if ($forUpdate) {
-                    $q->orWhere(static function ($sub) use ($now): void {
-                        $sub->where('status', SelfExclusionStatus::Requested->value)
-                            ->where('effective_at', '<=', $now);
-                    });
-                }
-            })
-            ->orderByDesc('ends_at');
-
-        if ($forUpdate) {
-            $query->lockForUpdate();
-        }
-
         /** @var SelfExclusion|null $active */
-        $active = $query->first();
+        $active = SelfExclusion::query()
+            ->where('user_id', $userId)
+            ->where('status', SelfExclusionStatus::Active->value)
+            ->orderByDesc('ends_at')
+            ->first();
 
-        return $active instanceof SelfExclusion ? $active : null;
+        return $active instanceof SelfExclusion && $active->currentlyGates() ? $active : null;
     }
 
     /**
+     * Pending requests whose effective moment the server clock has
+     * crossed — the activation sweep reads this page by page.
+     *
      * @return Collection<int, SelfExclusion>
      */
     public function dueForActivation(int $limit = 100): Collection
@@ -277,13 +236,14 @@ final class SelfExclusionService
             ->get();
     }
 
+    /**
+     * The two lanes agree: legacy row holds excluded-until for the
+     * active lane, and is cleared (never shortened) on expiry/cancel.
+     */
     private function stampLegacyRow(SelfExclusion $exclusion): void
     {
         /** @var ResponsibleGamingLimit|null $legacy */
-        $legacy = ResponsibleGamingLimit::withTrashed()
-            ->where('user_id', $exclusion->user_id)
-            ->lockForUpdate()
-            ->first();
+        $legacy = ResponsibleGamingLimit::query()->where('user_id', $exclusion->user_id)->lockForUpdate()->first();
 
         if (! $legacy instanceof ResponsibleGamingLimit) {
             $legacy = new ResponsibleGamingLimit;
@@ -291,6 +251,8 @@ final class SelfExclusionService
         }
 
         if ($exclusion->status === SelfExclusionStatus::Active) {
+            // The new lane is authoritative: extend to match unless the
+            // legacy gate already runs LONGER (never silently shorten).
             $current = $legacy->self_excluded_until;
 
             if (! $current instanceof Carbon || $current->lt($exclusion->ends_at)) {

@@ -12,6 +12,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Idempotent on purpose: 2026_10_16_000200 already creates this table. Without
+        // the guard a clean database failed with "table financial_hold_claims already
+        // exists".
         if (! Schema::hasTable('financial_hold_claims')) {
             Schema::create('financial_hold_claims', function (Blueprint $table): void {
                 $table->id();
@@ -31,6 +34,7 @@ return new class extends Migration
                 $table->index(['wallet_id', 'state', 'id']);
             });
         }
+
     }
 
     public function down(): void

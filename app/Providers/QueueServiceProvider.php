@@ -145,7 +145,7 @@ class QueueServiceProvider extends ServiceProvider
         // A worker that stops looping (Redis gone, DB gone) must say so loudly.
         // Silence here is what turns a dead worker into an invisible backlog.
         Event::listen(Looping::class, function (Looping $event): void {
-            if (! is_object($event->queue) || ! method_exists($event->queue, 'size')) {
+            if (! $event->queue) {
                 return;
             }
 
@@ -156,7 +156,7 @@ class QueueServiceProvider extends ServiceProvider
             if ($size > (int) config('queue.alert_backlog_threshold', 1000)) {
                 Log::warning('queue.backlog_growing', [
                     'connection' => $event->connectionName,
-                    'queue' => method_exists($event->queue, 'getQueueName') ? $event->queue->getQueueName() : null,
+                    'queue' => $event->queue->getQueueName(),
                     'size' => $size,
                 ]);
             }

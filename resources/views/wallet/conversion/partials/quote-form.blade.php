@@ -142,7 +142,7 @@
         @if ($dailyRemaining !== null)
             <p class="wc-form__footnote">
                 {{ __('wallet_conversion.daily_remaining', [
-                    'amount' => $dailyRemaining,
+                    'remaining' => $dailyRemaining,
                     'currency' => $currency->value,
                 ]) }}
             </p>

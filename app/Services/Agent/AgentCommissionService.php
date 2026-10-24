@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Agent;
 
 use App\DTOs\Agent\CommissionSettlementResult;
+use App\Models\Agent;
 use App\Models\AgentCommission;
 use App\Models\Bet;
 
@@ -26,6 +27,10 @@ class AgentCommissionService
     /**
      * Calculate and accrue commission for a placed bet.
      *
+     * Accrual is a receivable per bet: this returns the rows that now exist for it,
+     * which is a list (empty for an unreferred sale) rather than a single nullable
+     * row, because one sale can earn both a direct and a parent commission.
+     *
      * @return list<AgentCommission>
      */
     public function accrueForBet(Bet $bet): array
@@ -43,10 +48,11 @@ class AgentCommissionService
 
     /**
      * Reverse commission associated with a cancelled/refunded bet.
-     *
+     */
+    /**
      * @return list<AgentCommission>
      */
-    public function reverseForBet(Bet $bet, string $reason = 'Bet refunded'): array
+    public function reverseForBet(Bet $bet, string $reason): array
     {
         return $this->reversal->reverseForBet($bet, $reason);
     }

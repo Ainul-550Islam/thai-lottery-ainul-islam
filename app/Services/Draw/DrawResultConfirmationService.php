@@ -76,18 +76,9 @@ class DrawResultConfirmationService
      * @throws DrawResultException
      * @throws DrawLifecycleException
      */
-    public function confirm(
-        int $drawId,
-        ?int $confirmedBy = null,
-        array $payload = [],
-        ?string $notes = null,
-        ?int $operatorId = null,
-        ?array $claimed = null,
-    ): array {
-        $resolvedOperatorId = (int) ($operatorId ?? $confirmedBy ?? 0);
-        $resolvedClaimed = $claimed ?? $payload;
-
-        return DB::transaction(function () use ($drawId, $resolvedOperatorId, $resolvedClaimed, $notes): array {
+    public function confirm(int $drawId, int $operatorId, array $claimed): array
+    {
+        return DB::transaction(function () use ($drawId, $operatorId, $claimed): array {
             $draw = $this->lockedDraw($drawId);
             $record = $this->pendingRecord($draw, throwNotPending: true);
 
@@ -116,34 +107,31 @@ class DrawResultConfirmationService
             // that a future restore cannot silently remove it again.
             $ingestedBy = isset($record['ingested_by']) ? (int) $record['ingested_by'] : null;
 
-            if ($ingestedBy === null || $ingestedBy < 1 || $resolvedOperatorId < 1 || $ingestedBy === $resolvedOperatorId) {
+            if ($ingestedBy === null || $ingestedBy < 1 || $ingestedBy === $operatorId) {
                 throw DrawResultException::confirmationForbidden(
                     $drawId,
                     DrawConfirmationStatus::Pending->value,
-                    $ingestedBy === $resolvedOperatorId
+                    $ingestedBy === $operatorId
                         ? 'confirmed by the same operator who ingested it'
                         : 'confirmed without an attributable ingesting operator',
-                    ['draw_id' => $drawId, 'operator_id' => $resolvedOperatorId],
+                    ['draw_id' => $drawId, 'operator_id' => $operatorId],
                 );
             }
 
             $stored = $record['payload'] ?? [];
-            $claimedNormalized = $this->normalizeClaim($drawId, $resolvedClaimed);
+            $claimedNormalized = $this->normalizeClaim($drawId, $claimed);
 
             $this->assertClaimsAgree($draw->getKey(), $stored, $claimedNormalized);
-            $this->assertTrustedProvenance($drawId, (string) ($record['source'] ?? ''));
 
+            // Publish via the one true publication path.
+            //
+            // The source lane (optional tier/n3/provider structure carried by a
+            // feed payload) is passed through here and written only now —
+            // AFTER the second operator has attested the canonical numbers.
+            // This is the point the write boundary was designed around: the
+            // importer never writes a draw_results row, so the tier lane cannot
+            // reach settlement or public display without two operators.
             $sourceLane = is_array($stored['source_lane'] ?? null) ? $stored['source_lane'] : [];
-
-            $stamp = $record;
-            $stamp['status'] = DrawConfirmationStatus::Confirmed->value;
-            $stamp['confirmed_by'] = $resolvedOperatorId;
-            $stamp['confirmed_at'] = now()->toIso8601String();
-            if ($notes !== null) {
-                $stamp['notes'] = $notes;
-            }
-
-            $this->writeRecord($draw, $stamp, supersedeConfirmedSiblings: true);
 
             $published = $this->publication->publish(
                 $drawId,
@@ -157,12 +145,34 @@ class DrawResultConfirmationService
                 ? (int) $published['result']->getKey()
                 : 0;
 
-            $this->writeSourceLane($published['result'] ?? null, $sourceLane, $resolvedOperatorId, $stamp, $stored, $notes);
+            // ── SOURCE LANE: written now, by the CONFIRMING act.
+            //
+            // The tier/n3/provider structure a feed carried is merged into the
+            // published row's metadata HERE, not at intake. Two reasons this is
+            // the correct place and the correct writer:
+            //
+            //   1. It is the only moment at which a second operator has attested
+            //      the canonical numbers. Everything downstream that reads this
+            //      lane — public tier display, GloN3TicketChecker — is therefore
+            //      reading data a human verified.
+            //   2. The importer is structurally incapable of reaching this row.
+            //      That is the write boundary: an unattended feed cannot publish,
+            //      and cannot even prepare a publishable lane.
+            //
+            // A merge, not a replacement: publication has already written
+            // `bottom_two`, `first_prize_digits` and `published_by_phase`, and
+            // dropping those would break MarketResultResolver.
+            $this->writeSourceLane($published['result'] ?? null, $sourceLane, $operatorId);
 
+            $stamp = $record;
+            $stamp['status'] = DrawConfirmationStatus::Confirmed->value;
+            $stamp['confirmed_by'] = $operatorId;
+            $stamp['confirmed_at'] = now()->toIso8601String();
             $stamp['draw_result_id'] = $drawResultId;
-            $this->writeRecord($draw->fresh() ?? $draw, $stamp, supersedeConfirmedSiblings: true);
 
-            $this->recordAudit($draw, $stamp, $resolvedOperatorId, sprintf(
+            $this->writeRecord($draw, $stamp, supersedeConfirmedSiblings: true);
+
+            $this->recordAudit($draw, $stamp, $operatorId, sprintf(
                 'Confirmed and published official result (first prize %s, bottom two %s).',
                 (string) $stored['first_prize'],
                 (string) $stored['bottom_two'],
@@ -172,7 +182,7 @@ class DrawResultConfirmationService
                 'draw_id' => $drawId,
                 'status' => DrawConfirmationStatus::Confirmed->value,
                 'draw_result_id' => $drawResultId,
-                'confirmed_by' => $resolvedOperatorId,
+                'confirmed_by' => $operatorId,
                 'confirmed_at' => $stamp['confirmed_at'],
                 'published' => true,
             ];
@@ -401,36 +411,6 @@ class DrawResultConfirmationService
         }
     }
 
-    private function assertTrustedProvenance(int $drawId, string $source): void
-    {
-        $trusted = [
-            'internal',
-            'manual',
-            'operator',
-            'operator-cli',
-            'api-operator',
-            'admin',
-            'glo_import:official',
-            'glo_import:fixture',
-        ];
-
-        if (! in_array($source, $trusted, true)) {
-            throw DrawResultException::provenanceForbidden(
-                $drawId,
-                $source,
-                'the persisted source is not in the trusted provenance registry',
-            );
-        }
-
-        if ($source === 'glo_import:fixture' && app()->environment('production')) {
-            throw DrawResultException::provenanceForbidden(
-                $drawId,
-                $source,
-                'fixture provenance cannot be published in production',
-            );
-        }
-    }
-
     /**
      * Merge the optional source lane into a just-published DrawResult.
      *
@@ -463,30 +443,18 @@ class DrawResultConfirmationService
      * @param  mixed  $result  the DrawResult returned by publication, if any
      * @param  array<string, mixed>  $sourceLane
      */
-    private function writeSourceLane(
-        mixed $result,
-        array $sourceLane,
-        int $operatorId,
-        array $stamp = [],
-        array $stored = [],
-        ?string $notes = null,
-    ): void {
+    private function writeSourceLane(mixed $result, array $sourceLane, int $operatorId): void
+    {
         if (! $result instanceof DrawResult) {
             // Nothing was published (a publication path that answered without a
             // row). Refuse to invent one: this method writes to an existing row.
             return;
         }
 
-        if (isset($stored['second_prize']) && is_array($stored['second_prize'])) {
-            $result->second_prize = array_values($stored['second_prize']);
-        }
-
-        if (isset($stored['third_prize']) && is_array($stored['third_prize'])) {
-            $result->third_prize = array_values($stored['third_prize']);
-        }
-
-        if (isset($stored['consolation_prizes']) && is_array($stored['consolation_prizes'])) {
-            $result->consolation_prizes = array_values($stored['consolation_prizes']);
+        if ($sourceLane === []) {
+            // A plain operator paste carries no lane. Leave publication's own
+            // metadata exactly as it is.
+            return;
         }
 
         $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
@@ -497,11 +465,6 @@ class DrawResultConfirmationService
         $tiers = $sourceLane['tiers'] ?? [];
         if (is_array($tiers)) {
             $lane = array_merge($lane, $tiers);
-            foreach (['fourth', 'fifth', 'front_three', 'last_three', 'last_two', 'adjacent_first'] as $tKey) {
-                if (isset($tiers[$tKey]) && is_array($tiers[$tKey])) {
-                    $metadata[$tKey] = array_values($tiers[$tKey]);
-                }
-            }
         }
 
         if (isset($sourceLane['n3']) && is_array($sourceLane['n3'])) {
@@ -516,45 +479,14 @@ class DrawResultConfirmationService
             $lane['import_fingerprint'] = (string) $sourceLane['import_fingerprint'];
         }
 
-        if (isset($sourceLane['import_reference'])) {
-            $lane['import_reference'] = (string) $sourceLane['import_reference'];
-        }
+        $lane['imported_at'] = now()->toIso8601String();
 
-        if ($sourceLane !== []) {
-            $lane['imported_at'] = now()->toIso8601String();
-            $lane['lane_confirmed_by'] = $operatorId;
-            $metadata[$tierKey] = $lane;
-        }
+        // Attribution: which SECOND operator let this lane onto the row. This is
+        // the value an auditor reads to answer "who vouched for the tier list
+        // the public is looking at".
+        $lane['lane_confirmed_by'] = $operatorId;
 
-        $provenance = (string) ($stamp['provenance'] ?? ($stamp['source'] ?? 'internal'));
-        $provenanceRef = $stamp['provenance_reference'] ?? ($lane['import_reference'] ?? null);
-
-        if (($provenanceRef === null || $provenanceRef === '') && str_starts_with($provenance, 'glo_import:')) {
-            $importProvider = substr($provenance, strlen('glo_import:'));
-            $importQuery = \App\Models\GloResultImport::query()
-                ->where('draw_id', $result->draw_id)
-                ->where('provider', $importProvider)
-                ->where('status', 'imported');
-            if (! empty($lane['import_fingerprint'])) {
-                $importQuery->where('result_fingerprint', (string) $lane['import_fingerprint']);
-            }
-            $matchedImport = $importQuery->latest('id')->first();
-            if ($matchedImport instanceof \App\Models\GloResultImport) {
-                $provenanceRef = $matchedImport->import_reference;
-            }
-        }
-
-        $ingestedBy = isset($stamp['ingested_by']) ? (int) $stamp['ingested_by'] : null;
-        $confirmedAt = (string) ($stamp['confirmed_at'] ?? now()->toIso8601String());
-
-        $metadata['provenance'] = $provenance;
-        $metadata['provenance_reference'] = $provenanceRef;
-        $metadata['four_eyes'] = array_filter([
-            'ingested_by' => $ingestedBy,
-            'confirmed_by' => $operatorId,
-            'confirmed_at' => $confirmedAt,
-            'notes' => $notes,
-        ], static fn (mixed $v): bool => $v !== null);
+        $metadata[$tierKey] = $lane;
 
         $result->metadata = $metadata;
         $result->save();

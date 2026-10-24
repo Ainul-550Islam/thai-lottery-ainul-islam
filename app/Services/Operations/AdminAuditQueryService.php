@@ -35,7 +35,7 @@ final class AdminAuditQueryService
                 'auditable_id' => $builder->where('auditable_id', (int) $value),
                 'on_or_after' => $builder->where('created_at', '>=', self::stamp((string) $value)),
                 'on_or_before' => $builder->where('created_at', '<=', self::stamp((string) $value)),
-                'audit_anchor' => $builder->anchoredBy((string) $value),
+                'audit_anchor' => $builder->whereJsonContains('metadata->audit_anchor', (string) $value),
                 default => throw AdminOperationException::malformed("unsupported audit filter [{$field}]"),
             };
         }

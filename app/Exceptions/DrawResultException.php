@@ -40,8 +40,6 @@ class DrawResultException extends RuntimeException
 
     public const CODE_MISMATCH_CONFIRMED = 'RESULT_MISMATCH_CONFIRMED';
 
-    public const CODE_PROVENANCE_FORBIDDEN = 'RESULT_PROVENANCE_FORBIDDEN';
-
     /**
      * @param  array<string, scalar|null>  $context
      */
@@ -186,22 +184,6 @@ class DrawResultException extends RuntimeException
                 'field' => $field,
                 'stored_value' => $stored,
                 'claimed_value' => $driven,
-            ],
-        );
-    }
-
-    public static function provenanceForbidden(
-        int $drawId,
-        string $provenance,
-        string $reason,
-        array $context = [],
-    ): self {
-        return new self(
-            sprintf('The result for draw #%d cannot be published: %s.', $drawId, $reason),
-            self::CODE_PROVENANCE_FORBIDDEN,
-            $context + [
-                'draw_id' => $drawId,
-                'provenance' => $provenance,
             ],
         );
     }

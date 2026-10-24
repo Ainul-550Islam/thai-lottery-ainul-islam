@@ -31,15 +31,10 @@ class BlockedIpPolicy
 
     private function isSecurityAdmin(?User $user): bool
     {
-        if (! $user instanceof User || ! $user->isActive()) {
+        if (! $user) {
             return false;
         }
 
-        if ($user->isSuperAdmin() || $user->isAdmin()) {
-            return true;
-        }
-
-        return $user->hasAnyRole(['security_officer', 'security-admin'])
-            || $user->checkPermissionTo('manage system settings');
+        return (bool) ($user->is_admin ?? false) || in_array($user->role ?? '', ['admin', 'super_admin', 'security_officer'], true);
     }
 }

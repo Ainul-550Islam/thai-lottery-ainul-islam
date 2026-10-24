@@ -148,6 +148,11 @@ final class BalanceTransferServiceTest extends TestCase
         $this->assertSame('2.00', (string) $outcome->transfer->fee_amount);
         $this->assertSame('202.00', (string) $outcome->transfer->total_debited);
 
+        // The source pocket pays amount + fee (config/transfer.php fee_model
+        // 'on_top'), so 500.00 - 202.00 = 298.00. The earlier expectation of
+        // 300.00 ignored the fee this same test asserts 202.00 for, and
+        // contradicted the cash->win twin above (1000.00 -> 899.00 on a 101.00
+        // debit). The destination is credited the amount only: 50.00 + 200.00.
         $this->assertSame('298.00', $this->balance($win));
         $this->assertSame('250.00', $this->balance($cash));
     }
@@ -293,6 +298,10 @@ final class BalanceTransferServiceTest extends TestCase
             $after,
             'An internal transfer must conserve the player total up to the fee.',
         );
+        // 1200.00 held before the move, fee 3.00 on 300.00 at the published 1%
+        // rate, so 1197.00. The previous literal (897.00) could not be reached
+        // from this fixture by any fee model and contradicted the invariant
+        // asserted on the line above.
         $this->assertSame('1197.00', $after);
     }
 

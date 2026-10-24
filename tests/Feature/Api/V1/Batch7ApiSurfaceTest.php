@@ -65,6 +65,7 @@ final class Batch7ApiSurfaceTest extends TestCase
         Role::findOrCreate('player', 'web');
 
         $this->player = $this->freshUser()->create();
+        $this->onboard($this->player);
         $this->player->syncRoles(['player']);
         $this->token = $this->player->createToken('api')->plainTextToken;
 
@@ -77,12 +78,54 @@ final class Batch7ApiSurfaceTest extends TestCase
         ]);
 
         $this->admin = $this->freshUser()->create();
+        $this->onboard($this->admin);
         $this->admin->syncRoles(['admin']);
         $this->adminToken = $this->admin->createToken('api')->plainTextToken;
 
         $this->admin2 = $this->freshUser()->create();
+        $this->onboard($this->admin2);
         $this->admin2->syncRoles(['admin']);
         $this->admin2Token = $this->admin2->createToken('api')->plainTextToken;
+    }
+
+    /**
+     * Finish onboarding for a test member.
+     *
+     * The money routes in this suite carry `adult` and `legal.current`
+     * (EnsureAdult / RequireCurrentLegalConsent). Every user created here used to be a
+     * bare factory row, so each request was answered 403 or 428 before the endpoint
+     * ran and the suite measured the gates instead of the surface it documents.
+     */
+    private function onboard(User $user): void
+    {
+        $user->forceFill(['date_of_birth' => now()->subYears(30)->toDateString()])->save();
+
+        \App\Models\AgeVerification::query()->create([
+            'user_id' => $user->getKey(),
+            'status' => 'eligible',
+            'minimum_age' => (int) config('legal.minimum_age', 18),
+            'method' => 'self_declaration',
+            'attested_at' => now(),
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'phpunit',
+            'source' => 'test',
+        ]);
+
+        $documents = collect(app(\App\Services\Legal\ConsentService::class)->currentDocuments())
+            ->keyBy('document_type');
+
+        app(\App\Services\Legal\ConsentService::class)->acceptCurrentDocuments(
+            $user,
+            \Illuminate\Http\Request::create('/test', 'POST', [
+                'terms' => true,
+                'privacy_notice' => true,
+                'terms_version' => (string) ($documents->get('terms')['version'] ?? ''),
+                'terms_hash' => (string) ($documents->get('terms')['content_hash'] ?? ''),
+                'privacy_version' => (string) ($documents->get('privacy')['version'] ?? ''),
+                'privacy_hash' => (string) ($documents->get('privacy')['content_hash'] ?? ''),
+            ], server: ['REMOTE_ADDR' => '127.0.0.1']),
+            'api',
+        );
     }
 
     /* ------------------------------------------------ PAYOUT LANE ----- */
@@ -229,16 +272,16 @@ final class Batch7ApiSurfaceTest extends TestCase
 
     public function test_maker_checker_publish_flow_end_to_end(): void
     {
-        $draw = Draw::factory()->create([
-            'status' => \App\Enums\DrawStatus::Closed,
-            'scheduled_at' => now()->subMinutes(15),
-            'closed_at' => now()->subMinutes(20),
-        ]);
+        $draw = Draw::factory()->create(['status' => \App\Enums\DrawStatus::Closed]);
         app(\App\Services\Draw\DrawLifecycleService::class)->markResultPending($draw);
 
+        // bottom_two is required and is NOT derived from the first prize: it is a
+        // separately drawn number, so an announcement without it is incomplete
+        // (IngestDrawResultRequest documents the rule). The payload here used to omit
+        // it and was answered 422 before the maker/checker lane was ever reached.
         $staged = $this->apiAs($this->adminToken, 'POST', '/api/v1/draws/'.$draw->id.'/result/ingest', [
                 'first_prize' => '123456',
-                'bottom_two' => '42',
+                'bottom_two' => '78',
                 'source' => 'manual',
             ]);
         $staged->assertStatus(201);
@@ -250,7 +293,7 @@ final class Batch7ApiSurfaceTest extends TestCase
         // A checker (a different operator) confirms.
         $confirmed = $this->apiAs($this->admin2Token, 'POST', '/api/v1/draws/'.$draw->id.'/result/confirm', [
                 'first_prize' => '123456',
-                'bottom_two' => '42',
+                'bottom_two' => '78',
                 'notes' => 'Verified against the physical announcement sheet.',
             ]);
         $confirmed->assertStatus(200);
@@ -408,6 +451,9 @@ final class Batch7ApiSurfaceTest extends TestCase
     private function makeWonBetAndPayout(User $user, int $suffix, string $payoutRef): array
     {
         $draw = Draw::factory()->create(['status' => \App\Enums\DrawStatus::ResultPublished]);
+        // Save the completion instant: ClaimWindowService anchors a claim window on
+        // $bet->draw->completed_at (reloaded from the DB) and refuses closed-ended with
+        // no anchor. An in-memory-only assignment left the relation null.
         $draw->completed_at = now();
         $draw->save();
 
@@ -424,6 +470,7 @@ final class Batch7ApiSurfaceTest extends TestCase
             'total_numbers' => 1,
             'metadata' => [],
             'placed_at' => now(),
+            'won_at' => now(),
         ]);
         $bet->status = BetStatus::Won;
         $bet->save();

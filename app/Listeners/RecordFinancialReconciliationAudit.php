@@ -38,7 +38,7 @@ final class RecordFinancialReconciliationAudit
             ->where('auditable_type', LedgerReconciliation::class)
             ->where('auditable_id', (int) $row->getKey())
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_ANCHOR_HOURS))
-            ->anchoredBy($anchor)
+            ->whereJsonContains('metadata->audit_anchor', $anchor)
             ->exists();
 
         if ($alreadyAudited) {
@@ -65,7 +65,7 @@ final class RecordFinancialReconciliationAudit
                 (string) $row->reservation_effect,
             ),
             'metadata' => [
-                AuditLog::ANCHOR_KEY => $anchor,
+                'audit_anchor' => $anchor,
                 'reconciliation_key' => (string) $row->reconciliation_key,
                 'wallet_id' => (int) $row->wallet_id,
                 'status' => $event->status->value,

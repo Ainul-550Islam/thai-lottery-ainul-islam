@@ -68,9 +68,12 @@ final class DepositApprovalService
     {
         return $this->withinTransaction(function () use ($deposit, $reviewerUserId, $note): array {
             $wallet = $this->locks->lock((int) $deposit->wallet_id);
+            app(DepositAdmission::class)->lockPlayer($wallet);
             $current = $this->transitions->lockDeposit($deposit);
 
             $this->assertWalletMatches($current, $wallet);
+            app(DepositIntegrityGuard::class)->assertTerms($current, $wallet);
+            app(\App\Services\Payment\DepositProviderAccountService::class)->assertActive($current);
             $this->assertNotAlreadyCredited($current);
 
             if (! $current->status->canApprove()) {
@@ -109,9 +112,11 @@ final class DepositApprovalService
     {
         return $this->withinTransaction(function () use ($deposit, $reason, $reviewerUserId): array {
             $wallet = $this->locks->lock((int) $deposit->wallet_id);
+            app(DepositAdmission::class)->lockPlayer($wallet);
             $current = $this->transitions->lockDeposit($deposit);
 
             $this->assertWalletMatches($current, $wallet);
+            app(DepositIntegrityGuard::class)->assertTerms($current, $wallet);
             $this->assertNotAlreadyCredited($current);
 
             if (! $current->status->canReject()) {

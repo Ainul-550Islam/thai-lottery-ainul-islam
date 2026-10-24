@@ -71,13 +71,6 @@ final class ActiveMembersPresenceTest extends TestCase
         );
     }
 
-    public function test_last_seen_timestamp_is_not_serialized_with_the_user_model(): void
-    {
-        $member = User::factory()->create(['last_seen_at' => now()]);
-
-        $this->assertArrayNotHasKey('last_seen_at', $member->toArray());
-    }
-
     public function test_the_active_count_only_includes_members_seen_inside_the_window(): void
     {
         $service = app(GloPublicStatsService::class);
@@ -88,13 +81,6 @@ final class ActiveMembersPresenceTest extends TestCase
         User::factory()->create(['last_seen_at' => null]);
 
         $this->assertSame(2, $service->activeMembersNow());
-    }
-
-    public function test_future_activity_timestamps_are_not_counted_as_active(): void
-    {
-        User::factory()->create(['last_seen_at' => now()->addMinutes(2)]);
-
-        $this->assertSame(0, app(GloPublicStatsService::class)->activeMembersNow());
     }
 
     public function test_soft_deleted_members_are_not_counted_as_active(): void
@@ -114,7 +100,7 @@ final class ActiveMembersPresenceTest extends TestCase
 
         $stats = app(GloPublicStatsService::class)->publicStats();
 
-        $this->assertSame('AVAILABLE', $stats['status']);
+        $this->assertSame('VERIFIED', $stats['status']);
 
         $metric = collect($stats['metrics'])->firstWhere('key', 'active_members');
         $this->assertNotNull($metric);

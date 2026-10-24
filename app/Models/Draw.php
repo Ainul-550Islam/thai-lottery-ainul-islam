@@ -53,19 +53,6 @@ class Draw extends Model
             if ($model->type === null) {
                 $model->type = DrawType::TwoD;
             }
-
-            if ($model->status === DrawStatus::Open) {
-                if (! array_key_exists('betting_open_at', $model->getAttributes())) {
-                    $model->betting_open_at = now()->subMinute();
-                }
-
-                if (! array_key_exists('betting_close_at', $model->getAttributes())) {
-                    $scheduled = $model->scheduled_at;
-                    $model->betting_close_at = ($scheduled instanceof Carbon && $scheduled->isFuture())
-                        ? $scheduled
-                        : now()->addDay();
-                }
-            }
         });
     }
 
@@ -85,66 +72,15 @@ class Draw extends Model
      */
     protected $fillable = [
         'draw_number',
-        'draw_code',
         'type',
-        'game_type',
         // The draw creation contract accepts the initial lifecycle state and
         // currency; subsequent transitions remain explicit assignments by the
         // draw engine.
         'status',
         'currency',
         'scheduled_at',
-        'draw_date',
-        'betting_open_at',
-        'betting_starts_at',
-        'betting_close_at',
-        'betting_ends_at',
-        'total_entries_count',
-        'total_pool_amount',
-        'total_payout_amount',
-        'version',
         'metadata',
     ];
-
-    public function setAttribute($key, $value)
-    {
-        if ($key === 'status' && is_string($value)) {
-            $normalized = strtolower(trim($value));
-            $value = $normalized === 'settled' ? DrawStatus::Completed->value : $normalized;
-        }
-
-        return parent::setAttribute($key, $value);
-    }
-
-    public function fill(array $attributes): static
-    {
-        if (array_key_exists('draw_code', $attributes) && ! array_key_exists('draw_number', $attributes)) {
-            $attributes['draw_number'] = $attributes['draw_code'];
-        }
-
-        if (array_key_exists('draw_date', $attributes) && ! array_key_exists('scheduled_at', $attributes)) {
-            $attributes['scheduled_at'] = $attributes['draw_date'];
-        }
-
-        if (array_key_exists('betting_starts_at', $attributes) && ! array_key_exists('betting_open_at', $attributes)) {
-            $attributes['betting_open_at'] = $attributes['betting_starts_at'];
-        }
-
-        if (array_key_exists('betting_ends_at', $attributes) && ! array_key_exists('betting_close_at', $attributes)) {
-            $attributes['betting_close_at'] = $attributes['betting_ends_at'];
-        }
-
-        if (array_key_exists('status', $attributes) && is_string($attributes['status'])) {
-            $attributes['status'] = strtolower($attributes['status']);
-        }
-
-        return parent::fill($attributes);
-    }
-
-    public function getDrawCodeAttribute(): string
-    {
-        return (string) ($this->attributes['draw_number'] ?? '');
-    }
 
     /**
      * @return array<string, string>
@@ -239,24 +175,6 @@ class Draw extends Model
     public function canAcceptBets(): bool
     {
         return $this->status->canAcceptBets();
-    }
-
-    public function isOpenForBetting(): bool
-    {
-        if (! $this->canAcceptBets()) {
-            return false;
-        }
-
-        $now = now();
-        if ($this->betting_open_at instanceof Carbon && $this->betting_open_at->isAfter($now)) {
-            return false;
-        }
-
-        if ($this->betting_close_at instanceof Carbon && $this->betting_close_at->isBefore($now)) {
-            return false;
-        }
-
-        return true;
     }
 
     public function isFinal(): bool

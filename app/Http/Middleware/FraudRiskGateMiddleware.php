@@ -11,13 +11,25 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
+ * Class FraudRiskGateMiddleware
+ *
  * Pre-transaction risk gate applied to high-exposure financial endpoints.
  *
- * Supports:
- * - `fraud.mode = 'observe'`: evaluates risk and attaches `fraud_decision_observed`
- *   to request attributes without blocking.
- * - `fraud.mode = 'enforce'` (default): enforces DENY (403), HOLD_FOR_REVIEW (202),
- *   and STEP_UP (403 unless `step_up_verified` attribute is true).
+ * TWO MODES, ONE ENGINE
+ * config('fraud.mode') decides what the gate may do with the engine's verdict:
+ *  - 'enforce' (default): DENY is refused, HOLD_FOR_REVIEW is parked, and STEP_UP
+ *    is refused with TRANSACTION_STEP_UP_REQUIRED unless the request already
+ *    carries a verified step-up (attributes['step_up_verified']).
+ *  - 'observe': nothing is blocked. The verdict is attached to the request as
+ *    fraud_decision_observed so telemetry and shadow runs can be measured before
+ *    the policy is enforced.
+ *
+ * STEP_UP AND OBSERVE WERE MISSING ENTIRELY
+ * Only DENY and HOLD_FOR_REVIEW were handled, so a STEP_UP verdict - the engine's
+ * answer for "correct credentials, unverified device" - fell straight through to
+ * the money-moving controller, and 'observe' mode blocked live traffic. Both are
+ * fixed here rather than at the call sites, so every guarded route behaves the
+ * same way.
  */
 class FraudRiskGateMiddleware
 {
@@ -27,14 +39,13 @@ class FraudRiskGateMiddleware
 
     public function handle(Request $request, Closure $next, string $eventType = 'TRANSACTION'): Response
     {
-        $user = $request->user();
-        if ($user === null) {
+        $userId = (string) ($request->user()?->id ?? $request->input('user_id', ''));
+        $amount = (string) $request->input('amount', '0.0000');
+        $currency = (string) $request->input('currency', 'THB');
+
+        if ($userId === '') {
             return $next($request);
         }
-
-        $userId = (string) $user->getAuthIdentifier();
-        $amount = (string) $request->input('amount', $request->input('stake_amount', '0.0000'));
-        $currency = strtoupper((string) $request->input('currency', 'THB'));
 
         $decision = $this->riskEngine->evaluateTransactionRisk(
             eventType: strtoupper($eventType),
@@ -43,15 +54,32 @@ class FraudRiskGateMiddleware
             currency: $currency,
             context: [
                 'client_ip' => $request->ip(),
-                'route' => $request->route()?->getName() ?? $request->path(),
-            ],
+                'account_number' => (string) $request->input('account_number', ''),
+                'account_name' => (string) $request->input('account_name', ''),
+            ]
         );
 
-        $mode = strtolower((string) config('fraud.mode', 'enforce'));
-        if ($mode === 'observe') {
+        $enforcing = strtolower((string) config('fraud.mode', 'enforce')) === 'enforce';
+
+        if (! $enforcing) {
+            // Observe mode is telemetry only: attach the verdict, never intercept.
             $request->attributes->set('fraud_decision_observed', $decision);
 
             return $next($request);
+        }
+
+        if ($decision->decision === FraudDecision::STEP_UP) {
+            if ($request->attributes->get('step_up_verified') === true) {
+                return $next($request);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => 'TRANSACTION_STEP_UP_REQUIRED',
+                'message' => 'Additional verification is required before this transaction can proceed.',
+                'reason_codes' => $decision->reasonCodes,
+                'fraud_alert_id' => $decision->fraudAlertId,
+            ], Response::HTTP_FORBIDDEN);
         }
 
         if ($decision->decision === FraudDecision::DENY) {
@@ -70,15 +98,6 @@ class FraudRiskGateMiddleware
                 'message' => 'Transaction is held for administrative compliance review.',
                 'fraud_alert_id' => $decision->fraudAlertId,
             ], Response::HTTP_ACCEPTED);
-        }
-
-        if ($decision->decision === FraudDecision::STEP_UP && $request->attributes->get('step_up_verified') !== true) {
-            return response()->json([
-                'success' => false,
-                'error' => 'TRANSACTION_STEP_UP_REQUIRED',
-                'message' => 'Step-up multi-factor verification is required for this transaction.',
-                'fraud_alert_id' => $decision->fraudAlertId,
-            ], Response::HTTP_FORBIDDEN);
         }
 
         return $next($request);

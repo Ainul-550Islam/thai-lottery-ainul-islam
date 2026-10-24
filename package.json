@@ -11,7 +11,6 @@
         "build": "vite build",
         "e2e:public": "playwright test tests/browser/public-smoke.spec.mjs",
         "test:dependencies": "node --test tests/dependencies/security-gate.test.mjs",
-        "test:frontend": "node --test tests/frontend/*.test.mjs",
         "security:dependencies": "node scripts/dependency_security_gate.mjs"
     },
     "devDependencies": {

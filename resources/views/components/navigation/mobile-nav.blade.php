@@ -41,7 +41,7 @@
             <div class="flex items-center space-x-1 border border-slate-700 rounded-lg p-0.5 bg-slate-950">
                 <a href="{{ route('locale.switch', 'en') }}" class="px-3 py-1 rounded text-xs font-bold {{ app()->getLocale() === 'en' ? 'bg-emerald-600 text-white' : 'text-slate-400' }}">EN</a>
                 <a href="{{ route('locale.switch', 'th') }}" class="px-3 py-1 rounded text-xs font-bold {{ app()->getLocale() === 'th' ? 'bg-emerald-600 text-white' : 'text-slate-400' }}">TH</a>
-                <a href="{{ route('locale.switch', 'bn') }}" lang="bn" hreflang="bn" class="px-3 py-1 rounded text-xs font-bold {{ app()->getLocale() === 'bn' ? 'bg-emerald-600 text-white' : 'text-slate-400' }}" aria-label="বাংলা">বাংলা</a>
+                <a href="{{ route('locale.switch', 'bn') }}" lang="bn" class="px-3 py-1 rounded text-xs font-bold {{ app()->getLocale() === 'bn' ? 'bg-emerald-600 text-white' : 'text-slate-400' }}" aria-label="বাংলা">বাংলা</a>
             </div>
         </div>
 

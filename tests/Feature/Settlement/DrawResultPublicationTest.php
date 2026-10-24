@@ -261,8 +261,8 @@ final class DrawResultPublicationTest extends SettlementTestCase
 
         try {
             $this->publication()->publish($drawId, [
-                'first_prize' => self::FIRST_PRIZE,
-                'bottom_two' => self::BOTTOM_TWO,
+                'first_prize' => '999999',
+                'bottom_two' => '99',
             ]);
             $this->fail('A draw whose result is published must refuse a second publication.');
         } catch (DrawLifecycleException $exception) {
@@ -295,8 +295,8 @@ final class DrawResultPublicationTest extends SettlementTestCase
 
         try {
             $this->publication()->publish($drawId, [
-                'first_prize' => self::FIRST_PRIZE,
-                'bottom_two' => self::BOTTOM_TWO,
+                'first_prize' => '999999',
+                'bottom_two' => '99',
             ]);
             $this->fail('An existing result row must block publication regardless of the state.');
         } catch (DrawLifecycleException $exception) {

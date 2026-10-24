@@ -20,6 +20,11 @@ final class GatewayWithdrawalResponse
         public readonly ?string $errorMessage = null,
         public readonly array $rawResponse = [],
         public readonly array $metadata = [],
+        /**
+         * True when the platform does not know what the provider did. The hold
+         * and the reservation must then stay in place until provider evidence is
+         * obtained; it is never a licence to resend or release.
+         */
         public readonly bool $outcomeUnknown = false,
     ) {}
 
@@ -51,6 +56,20 @@ final class GatewayWithdrawalResponse
         );
     }
 
+    /**
+     * The provider gave no final answer: a transport timeout, a dropped
+     * connection, or a success reply whose provider reference cannot be used.
+     *
+     * This is deliberately NOT `completed()` and NOT `failed()`:
+     *  - `failed()` would let the caller release the member's hold and free the
+     *    reservation, but the money may already have left the platform.
+     *  - `completed()` would debit the wallet, but the payout is not proved.
+     * It is pending-with-unknown-state: the hold and reservation stay in place,
+     * the obligation stays Processing, and only provider evidence obtained
+     * through the reconciliation workflow may settle it. A known provider
+     * reference is still carried so the identity can be reserved against
+     * another withdrawal claiming the same reference.
+     */
     public static function uncertain(
         ?string $providerReference = null,
         array $rawResponse = [],
@@ -60,12 +79,13 @@ final class GatewayWithdrawalResponse
             successful: false,
             isPending: true,
             providerReference: $providerReference,
+            errorMessage: 'The payout provider did not return a final outcome; reconciliation is required.',
+            outcomeUnknown: true,
             rawResponse: $rawResponse,
             metadata: array_merge([
-                'state' => 'outcome_unknown',
+                'state' => 'unknown',
                 'reconciliation_required' => true,
             ], $metadata),
-            outcomeUnknown: true,
         );
     }
 
@@ -90,9 +110,9 @@ final class GatewayWithdrawalResponse
         return [
             'successful' => $this->successful,
             'is_pending' => $this->isPending,
-            'outcome_unknown' => $this->outcomeUnknown,
             'provider_reference' => $this->providerReference,
             'error_message' => $this->errorMessage,
+            'outcome_unknown' => $this->outcomeUnknown,
             'metadata' => $this->metadata,
         ];
     }

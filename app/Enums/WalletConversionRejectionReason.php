@@ -28,9 +28,16 @@ enum WalletConversionRejectionReason: string
     case QuoteNotFound = 'quote_not_found';
     case IdempotencyConflict = 'idempotency_conflict';
     case RateLimited = 'rate_limited';
-    case FeeRuleInvalid = 'fee_rule_invalid';
-    case CurrencyNotConfigured = 'currency_not_configured';
+    // The lane is denominated in one currency and there is no FX here. A request in
+    // another denomination is a mismatch, not a conversion.
     case CurrencyMismatch = 'currency_mismatch';
+    // No usable `conversions.currency`: the lane cannot price anything at all.
+    case CurrencyNotConfigured = 'currency_not_configured';
+    // The published tariff is missing or not valid. Distinct from FeatureDisabled: the
+    // lane may be switched on and still be unable to price anything, and telling a
+    // member "unavailable" when an operator has simply unpublished the fee row sends
+    // support looking in the wrong place.
+    case FeeRuleInvalid = 'fee_rule_invalid';
 
     public function label(): string
     {
@@ -51,9 +58,9 @@ enum WalletConversionRejectionReason: string
             self::QuoteNotFound => 'Quote not found',
             self::IdempotencyConflict => 'Idempotency key conflict',
             self::RateLimited => 'Too many attempts',
-            self::FeeRuleInvalid => 'Fee schedule not configured',
-            self::CurrencyNotConfigured => 'Currency not configured',
             self::CurrencyMismatch => 'Currency mismatch',
+            self::CurrencyNotConfigured => 'Conversions are not available in any currency right now',
+            self::FeeRuleInvalid => 'The conversion fee schedule is unavailable',
         };
     }
 
@@ -67,7 +74,11 @@ enum WalletConversionRejectionReason: string
             self::IdempotencyConflict => 409,
             self::RateLimited => 429,
             self::FeatureDisabled,
-            self::DirectionDisabled => 503,
+            self::DirectionDisabled,
+            // A lane with no valid currency, or no valid price, is a service that is
+            // down, not a request the member got wrong.
+            self::CurrencyNotConfigured,
+            self::FeeRuleInvalid,
             self::AccountSuspended,
             self::SelfExclusionActive,
             self::WalletLocked,
@@ -96,16 +107,26 @@ enum WalletConversionRejectionReason: string
         };
     }
 
-    public function labelKey(): string
-    {
-        return 'wallet_conversion.rejection_'.$this->value;
-    }
-
     /**
      * The translation key for the member-facing explanation, when one exists.
      */
     public function messageKey(): ?string
     {
-        return $this->labelKey();
+        // The `rejection_` keys are the ones the lang files actually carry (they are
+        // also what the engine's refusal messages and the validation messages use), so
+        // the member-facing reason and the machine code resolve to the same sentence
+        // instead of two near-copies that can drift apart.
+        return 'wallet_conversion.rejection_'.$this->value;
+    }
+
+    /**
+     * Stable translation key for the member-facing conversion screens.
+     *
+     * The labels live in lang/<locale>/wallet_conversion.php next to every other
+     * string this lane shows, so there is no second translation namespace to drift.
+     */
+    public function labelKey(): string
+    {
+        return "wallet_conversion.rejection_{$this->value}";
     }
 }

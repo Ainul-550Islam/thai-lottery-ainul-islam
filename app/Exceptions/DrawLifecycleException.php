@@ -69,6 +69,30 @@ class DrawLifecycleException extends RuntimeException
     }
 
     /**
+     * A draw with bet history cannot be cancelled by the lifecycle alone.
+     *
+     * Changing the status of a draw that sold bets would leave every one of those bets
+     * standing against a cancelled draw: no refund, no released capacity, no cancelled
+     * commission. Only the owned draw-cancellation coordinator can do that, because only
+     * it proves each member's refund before the status changes. This exception is what a
+     * bare status transition gets instead.
+     *
+     * @param  array<string, scalar|null>  $context
+     */
+    public static function coordinatorRequired(int $drawId, array $context = []): self
+    {
+        return new self(
+            sprintf(
+                'Draw %d has bet history and cannot be cancelled by a lifecycle transition alone; '
+                .'the owned draw-cancellation coordinator must cancel and refund its members first.',
+                $drawId,
+            ),
+            'draw_cancellation_coordinator_required',
+            ['draw_id' => $drawId] + $context,
+        );
+    }
+
+    /**
      * A transition the lifecycle table does not declare.
      *
      * @param  array<string, scalar|null>  $context

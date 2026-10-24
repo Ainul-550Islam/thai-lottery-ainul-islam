@@ -1,7 +1,7 @@
 {
     "name": "thai-lottery/system",
     "type": "project",
-    "description": "Real Online Thai Lottery System - Production-grade Laravel 12 application",
+    "description": "Real Online Thai Lottery System - Production-grade Laravel 11 application",
     "keywords": [
         "laravel",
         "lottery",

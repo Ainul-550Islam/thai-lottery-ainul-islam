@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', __('public_pages.login_meta_title'))
+@section('meta_robots', 'noindex, nofollow')
 @section('meta_description', __('public_pages.login_meta_description'))
 
 @section('content')

@@ -23,11 +23,6 @@ enum WalletConversionDirection: string
         };
     }
 
-    public function labelKey(): string
-    {
-        return 'wallet_conversion.direction_'.$this->value;
-    }
-
     /**
      * The wallet the money leaves.
      */
@@ -80,5 +75,16 @@ enum WalletConversionDirection: string
             self::CashToWin => self::WinToCash,
             self::WinToCash => self::CashToWin,
         };
+    }
+
+    /**
+     * Stable translation key for the member-facing conversion screens.
+     *
+     * The labels live in lang/<locale>/wallet_conversion.php next to every other
+     * string this lane shows, so there is no second translation namespace to drift.
+     */
+    public function labelKey(): string
+    {
+        return "wallet_conversion.direction_{$this->value}";
     }
 }

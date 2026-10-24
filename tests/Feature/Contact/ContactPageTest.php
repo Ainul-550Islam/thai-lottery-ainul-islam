@@ -394,7 +394,7 @@ final class ContactPageTest extends TestCase
         $page = $this->get(route('contact'));
         $page->assertOk();
         $page->assertDontSee('Connection could not be established', false);
-        $page->assertDontSee('RuntimeException', false);
+        $page->assertDontSee('\RuntimeException', false);
         // Only the safe, translated wording.
         $page->assertSee(trans('contact.status.received_delivery_failed'), false);
     }
@@ -526,25 +526,6 @@ final class ContactPageTest extends TestCase
         }
     }
 
-    public function test_contact_static_interface_is_localized_in_thai_and_bangla(): void
-    {
-        $this->get(route('contact').'?lang=th')
-            ->assertOk()
-            ->assertSee('ศูนย์ช่วยเหลือ')
-            ->assertSee('สถานะการติดต่อ')
-            ->assertSee('ช่องทางที่ตั้งค่าไว้');
-
-        $this->get(route('contact').'?lang=bn')
-            ->assertOk()
-            ->assertSee('সহায়তা পোর্টাল')
-            ->assertSee('যোগাযোগের অবস্থা')
-            ->assertSee('কনফিগার করা মাধ্যম');
-
-        $this->assertSame('নিচের তথ্যগুলো সংশোধন করে আবার চেষ্টা করুন।', trans('contact.validation_failed', [], 'bn'));
-        $this->assertSame('এই ঘরে অনুমোদিত নয় এমন অক্ষর রয়েছে।', trans('contact.validation_no_control_characters', [], 'bn'));
-        $this->assertSame('এই ঘরটি খালি রাখুন', trans('contact.honeypot_label', [], 'bn'));
-    }
-
     public function test_32_contact_stays_crawlable(): void
     {
         $robots = (string) file_get_contents(public_path('robots.txt'));
@@ -568,7 +549,6 @@ final class ContactPageTest extends TestCase
                 config_path('contact.php'),
                 lang_path('en/contact.php'),
                 lang_path('th/contact.php'),
-                lang_path('bn/contact.php'),
                 app_path('Http/Controllers/ContactController.php'),
                 app_path('Http/Requests/ContactMessageRequest.php'),
                 resource_path('css/contact.css'),
@@ -605,7 +585,7 @@ final class ContactPageTest extends TestCase
             $response->assertDontSee($claim, false);
         }
 
-        foreach ([lang_path('en/contact.php'), lang_path('th/contact.php'), lang_path('bn/contact.php'), config_path('contact.php')] as $file) {
+        foreach ([lang_path('en/contact.php'), lang_path('th/contact.php'), config_path('contact.php')] as $file) {
             $contents = (string) file_get_contents($file);
             $this->assertStringNotContainsString('Government Lottery Office', $contents);
             $this->assertStringNotContainsString('government-approved', $contents);

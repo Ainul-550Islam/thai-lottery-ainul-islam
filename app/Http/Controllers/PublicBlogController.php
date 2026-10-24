@@ -190,13 +190,20 @@ final class PublicBlogController
         };
     }
 
+    /**
+     * Which language to render the blog in.
+     *
+     * $fromPath is the {locale} segment of /blog/{locale}/{slug} - an explicit,
+     * addressable choice in the URL itself, so it outranks everything. With no
+     * segment the request's negotiated locale wins; the old ?locale= fallback was
+     * a second, competing negotiation that ignored ?lang= and the session.
+     *
+     * Unsupported values fall back to the default rather than 404: a blog with no
+     * translation is not a broken blog.
+     */
     private function locale(Request $request, ?string $fromPath = null): string
     {
-        $candidate = $fromPath ?? App::getLocale();
-
-        // Unsupported locales fall back to the default rather than 404: a
-        // blog with no translation is not a broken blog.
-        return SupportedLocale::normalise($candidate) ?? SupportedLocale::EN;
+        return SupportedLocale::normalise($fromPath) ?? SupportedLocale::normalise(app()->getLocale()) ?? SupportedLocale::EN;
     }
 
     private function enabled(): bool

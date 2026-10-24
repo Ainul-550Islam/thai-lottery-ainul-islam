@@ -8,7 +8,6 @@ use App\DTOs\ResponsibleGaming\SelfExclusionData;
 use App\Enums\BetStatus;
 use App\Enums\Currency;
 use App\Enums\DrawStatus;
-use App\Enums\WalletType;
 use App\Enums\PaymentMethod;
 use App\Exceptions\FinancialException;
 use App\Exceptions\InsufficientBalanceException;
@@ -250,17 +249,12 @@ final class PlayerWebController
         /** @var User $user */
         $user = Auth::user();
 
-        $wallets = Wallet::query()
+        $wallet = Wallet::query()
             ->where('user_id', $user->id)
-            ->get();
+            ->first();
 
-        $wallet = $wallets->firstWhere('type', WalletType::Primary) ?? $wallets->first();
-
-        $now = now();
         $openDraw = Draw::query()
             ->where('status', DrawStatus::Open)
-            ->where(static fn ($q) => $q->whereNull('betting_open_at')->orWhere('betting_open_at', '<=', $now))
-            ->where(static fn ($q) => $q->whereNull('betting_close_at')->orWhere('betting_close_at', '>', $now))
             ->first();
 
         $marketOptions = [];
@@ -370,6 +364,11 @@ final class PlayerWebController
             'totalDeposited' => $totalDeposited,
             'totalPrizesWon' => $totalPrizesWon,
             'selectedCurrency' => $selectedCurrency,
+            // The Cash <-> Win panel. Same TransferPanelService the JSON endpoint
+            // (BalanceTransferController::panel) uses, so the server-rendered panel
+            // and the API can never disagree about a player's pockets or limits.
+            // The view includes the partial only when this key is present.
+            'transferPanel' => $this->transferPanel($user),
         ]);
     }
 
@@ -765,11 +764,9 @@ final class PlayerWebController
             'new_password' => ['required', 'string', new StrongPasswordRule],
         ]);
 
-        app(\App\Services\Auth\PasswordChangeService::class)->change(
-            $user,
-            $request->string('current_password')->value(),
-            $request->string('new_password')->value(),
-        );
+        $user->update([
+            'password' => Hash::make($request->string('new_password')->value()),
+        ]);
 
         return redirect()->route('player.profile')->with('success', 'Password updated successfully.');
     }
@@ -850,5 +847,31 @@ final class PlayerWebController
         );
 
         return redirect()->route('player.profile')->with('success', 'Responsible gaming limits saved.');
+    }
+
+    /**
+     * Panel data for the wallet page, or null when the pane cannot be built.
+     *
+     * A failure here must not take the whole wallet page down: the balance cards
+     * and the ledger are the reason the player opened the page, and the transfer
+     * panel is one section of it. The refusal is logged with the player id (never
+     * the amounts) so an operator can see it, and the view renders without the
+     * panel — it does not render a fabricated "transfers disabled" state, because
+     * an exception is not the same statement as an operator switch.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function transferPanel(User $user): ?array
+    {
+        try {
+            return app(\App\Services\Transfer\TransferPanelService::class)->panelData($user);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('wallet.transfer_panel_unavailable', [
+                'user_id' => (int) $user->getKey(),
+                'exception' => $e::class,
+            ]);
+
+            return null;
+        }
     }
 }

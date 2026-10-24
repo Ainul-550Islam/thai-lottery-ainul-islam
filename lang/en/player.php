@@ -197,6 +197,11 @@ return [
     'nav_results' => 'Results',
     'nav_check_ticket' => 'Check Ticket',
     'nav_contact' => 'Contact',
+    // The mobile navigation links to these three public pages; the keys existed only
+    // in the Bangla file, so English and Thai readers saw the raw key path.
+    'nav_services' => 'Our services',
+    'nav_about' => 'About us',
+    'nav_lotto_discount' => 'Lottery discounts',
     'language_label' => 'Language',
     'close_menu' => 'Close menu',
     'logout' => 'Log Out',

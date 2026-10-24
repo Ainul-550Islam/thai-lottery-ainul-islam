@@ -12,8 +12,16 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Middleware to negotiate and set the active application locale.
  *
- * Supports query parameters, session persistence and cookies. All values use
- * the central SupportedLocale allowlist to keep locale handling consistent.
+ * Supports query parameters (?lang=bn or ?locale=bn), session persistence,
+ * and cookies — every value validated through App\Support\SupportedLocale, which
+ * is the single allow-list (en, th, bn).
+ *
+ * WHY THE LOCAL LIST WAS REMOVED
+ * This class used to validate against a private ['en', 'th'] constant. Bangla was
+ * added to SupportedLocale and lang/bn was populated, but `?lang=bn`, `/locale/bn`,
+ * the session value and the cookie were all silently rejected here, so a Bangla
+ * request rendered in the previously active language. Validating through
+ * SupportedLocale means a language is enabled in exactly one place.
  */
 class SetLocale
 {
@@ -21,9 +29,9 @@ class SetLocale
     {
         $locale = null;
 
-        // 1. Explicit query parameter (?lang=en|th|bn)
-        $queryLocale = $request->query('lang') ?? $request->query('locale');
-        if (is_string($queryLocale) && SupportedLocale::isSupported($queryLocale)) {
+        // 1. Explicit query parameter (?lang=bn or ?locale=bn)
+        $queryLocale = SupportedLocale::normalise($request->query('lang') ?? $request->query('locale'));
+        if ($queryLocale !== null) {
             $locale = $queryLocale;
             if ($request->hasSession()) {
                 $request->session()->put('locale', $locale);
@@ -32,18 +40,12 @@ class SetLocale
 
         // 2. Session-persisted locale
         if ($locale === null && $request->hasSession() && $request->session()->has('locale')) {
-            $sessionLocale = (string) $request->session()->get('locale');
-            if (SupportedLocale::isSupported($sessionLocale)) {
-                $locale = $sessionLocale;
-            }
+            $locale = SupportedLocale::normalise($request->session()->get('locale'));
         }
 
         // 3. Cookie-persisted locale
         if ($locale === null && $request->hasCookie('locale')) {
-            $cookieLocale = (string) $request->cookie('locale');
-            if (SupportedLocale::isSupported($cookieLocale)) {
-                $locale = $cookieLocale;
-            }
+            $locale = SupportedLocale::normalise($request->cookie('locale'));
         }
 
         if ($locale !== null) {

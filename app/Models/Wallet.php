@@ -16,7 +16,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 /**
  * User wallet.
@@ -90,15 +89,6 @@ class Wallet extends Model
         'type',
         'currency',
     ];
-
-    public function setAttribute($key, $value)
-    {
-        if ($key === 'type' && is_string($value) && in_array(strtolower(trim($value)), ['main', 'cash'], true)) {
-            $value = WalletType::Primary;
-        }
-
-        return parent::setAttribute($key, $value);
-    }
 
     /**
      * @return array<string, string>
@@ -266,20 +256,5 @@ class Wallet extends Model
     public function scopePrimary(Builder $query): Builder
     {
         return $query->where('type', WalletType::Primary);
-    }
-
-    public function fresh($with = []): ?static
-    {
-        if (! $this->exists) {
-            return null;
-        }
-
-        $query = ($this->connection !== null && $this->connection !== DB::getDefaultConnection())
-            ? (new static)->newQueryWithoutScopes()
-            : $this->newQueryWithoutScopes();
-
-        return $this->setKeysForSelectQuery($query)
-            ->with(is_string($with) ? func_get_args() : $with)
-            ->first();
     }
 }

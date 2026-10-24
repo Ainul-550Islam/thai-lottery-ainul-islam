@@ -40,7 +40,7 @@ final class AgentInactiveBehaviorTest extends AgentTestCase
         $this->assertCount(0, $commissions);
     }
 
-    public function test_agent_suspended_after_accrual_does_not_get_paid_at_settlement(): void
+    public function test_agent_suspended_after_accrual_is_held_unpaid_at_settlement(): void
     {
         $agent = $this->createAgent('0.0500', AgentStatus::Active);
         $playerData = $this->createPlayer('1000.00', $agent);
@@ -61,6 +61,13 @@ final class AgentInactiveBehaviorTest extends AgentTestCase
         $this->assertSame('0.00', (string) $agentWallet->balance);
 
         $commission->refresh();
+
+        // A suspension is a HOLD, not forfeiture: the commission stays accrued and
+        // unpaid, and reactivation pays this same original source (the payout suite
+        // proves that half). Silently cancelling it would destroy the agent's
+        // receivable on the strength of a temporary status.
         $this->assertSame(CommissionStatus::Accrued, $commission->status);
+        $this->assertNull($commission->financial_transaction_id);
+        $this->assertNull($commission->paid_at);
     }
 }

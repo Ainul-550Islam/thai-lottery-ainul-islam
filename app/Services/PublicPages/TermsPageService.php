@@ -25,11 +25,15 @@ final class TermsPageService
     public function data(?string $locale = null): array
     {
         $locale = $locale !== null && $locale !== '' ? $locale : (string) app()->getLocale();
-        $version = (string) config('legal.version', 'v1.0.0');
-        $effectiveAt = (string) config('legal.effective_at', '');
-        $updatedAt = (string) config('legal.updated_at', '');
+        // Terms read their own revision (config/legal.php -> terms.*), falling back to
+        // the shared legal.version for installations that never set one. Reading the
+        // shared key alone meant a Terms edit silently rewrote the Privacy version and
+        // effective date shown to every reader.
+        $version = (string) config('legal.terms.version', config('legal.version', 'v1.0.0'));
+        $effectiveAt = (string) config('legal.terms.effective_at', config('legal.effective_at', ''));
+        $updatedAt = (string) config('legal.terms.updated_at', config('legal.updated_at', ''));
         if ($effectiveAt === '') {
-            $effectiveAt = (string) config('legal.updated_at', '');
+            $effectiveAt = $updatedAt;
         }
         $notConfigured = $this->text->line('terms_not_configured', $locale)
             ?: $this->text->line('not_configured', $locale);

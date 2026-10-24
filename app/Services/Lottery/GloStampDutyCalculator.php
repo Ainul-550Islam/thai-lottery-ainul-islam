@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
-use App\DTOs\Lottery\GloStampDutyReport;
 use InvalidArgumentException;
 
 /**
@@ -79,19 +78,6 @@ class GloStampDutyCalculator
         }
 
         return $net;
-    }
-
-    public function calculateDuty(string $grossPrize): GloStampDutyReport
-    {
-        $parts = $this->breakdown($grossPrize);
-
-        return new GloStampDutyReport(
-            grossPrizeThb: $parts['gross_prize'],
-            stampDutyThb: $parts['stamp_duty'],
-            netPayoutThb: $parts['net_prize'],
-            isIncomeTaxExempt: $parts['income_tax'] === '0.00',
-            rule: $parts['rule'],
-        );
     }
 
     /**

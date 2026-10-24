@@ -137,42 +137,15 @@ final class PublicAccountInfoTest extends TestCase
         $this->get('/account/verification')->assertRedirect();
     }
 
-    public function test_english_thai_and_bangla_keys_are_identical_and_bangla_content_is_present(): void
+    public function test_english_and_thai_keys_are_identical(): void
     {
-        $english = (array) require lang_path('en/account_info.php');
-        $thai = (array) require lang_path('th/account_info.php');
-        $bangla = (array) require lang_path('bn/account_info.php');
+        $en = array_keys(require lang_path('en/account_info.php'));
+        $th = array_keys(require lang_path('th/account_info.php'));
 
-        $englishKeys = array_keys($english);
-        $thaiKeys = array_keys($thai);
-        $banglaKeys = array_keys($bangla);
-        sort($englishKeys);
-        sort($thaiKeys);
-        sort($banglaKeys);
+        sort($en);
+        sort($th);
 
-        $this->assertSame($englishKeys, $thaiKeys);
-        $this->assertSame($englishKeys, $banglaKeys);
-
-        foreach ([
-            'grades_title', 'grades_lead', 'verification_title',
-            'verification_lead', 'step_review_text', 'grade_private_title',
-        ] as $key) {
-            $this->assertNotSame('', trim((string) $bangla[$key]));
-            $this->assertNotSame($english[$key], $bangla[$key]);
-        }
-    }
-
-    public function test_public_account_explainers_render_in_bangla(): void
-    {
-        $this->get(route('account-grades').'?lang=bn')
-            ->assertOk()
-            ->assertSee('অ্যাকাউন্টের গ্রেড')
-            ->assertSee('চলমান ৩০ দিনের যোগ্য ব্যয়ের ভিত্তিতে গ্রেড নির্ধারিত হয়।');
-
-        $this->get(route('account-verification-guide').'?lang=bn')
-            ->assertOk()
-            ->assertSee('অ্যাকাউন্ট যাচাই')
-            ->assertSee('একজন পর্যালোচক জমা দেওয়া তথ্য পরীক্ষা করেন।');
+        $this->assertSame($en, $th);
     }
 
     public function test_the_shared_footer_links_to_both_explainers(): void

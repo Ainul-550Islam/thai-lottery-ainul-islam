@@ -14,14 +14,12 @@ use App\Http\Middleware\EnsureWalletConversionEnabled;
 use App\Http\Middleware\EnsureWalletIsActive;
 use App\Http\Middleware\GloEnsurePermission;
 use App\Http\Middleware\HoneypotMiddleware;
-use App\Http\Middleware\NoIndexPrivateResponses;
 use App\Http\Middleware\PublicLegalHeaders;
 use App\Http\Middleware\RequireConversionIdempotencyKey;
 use App\Http\Middleware\RequireCurrentLegalConsent;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackMemberPresence;
-use App\Http\Middleware\TrustProxies;
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Http\Middleware\VerifyWebhookSignature;
 use App\Http\Responses\ApiResponse;
@@ -235,17 +233,28 @@ return Application::configure(basePath: dirname(__DIR__))
 
     })
     ->withMiddleware(function (Middleware $middleware): void {
-        // Replace framework defaults with hardened application middleware:
-        // 1) TrustProxies validates CIDR entries in config('network.trusted_proxies'),
-        //    strips X-Forwarded-Host, and fails closed (503) on malformed/wildcard config.
-        // 2) VerifyCsrfToken enforces narrow signed-webhook CSRF exemptions only (never api/*).
-        $middleware->replace(\Illuminate\Http\Middleware\TrustProxies::class, TrustProxies::class);
+        // Trusted proxies: ONE knob, read by the middleware that already runs.
+        //
+        // Illuminate\Http\Middleware\TrustProxies is in the framework's default global
+        // stack and reads config('trustedproxy.proxies') itself, so the proxy list lives
+        // in config/trustedproxy.php and nowhere else - pinning it here as well would
+        // recreate the two-source drift this replaces.
+        //
+        // The header mask, however, cannot come from config: the middleware exposes it
+        // only as a property or a static. The framework default believes
+        // X-Forwarded-Host and X-Forwarded-Prefix too, which lets a trusted peer rewrite
+        // the host a signed URL is generated for. Only FOR and PROTO are installed here.
+        $middleware->trustProxies(headers:
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR
+            | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+        );
+
+        // VerifyCsrfToken enforces narrow signed-webhook CSRF exemptions only (never api/*).
         $middleware->validateCsrfTokens(except: VerifyCsrfToken::WEBHOOK_EXCEPTIONS);
 
         // Record only authenticated member activity, throttled to one write per minute.
         $middleware->web(append: [TrackMemberPresence::class]);
         $middleware->appendToGroup('web', SetLocale::class);
-        $middleware->appendToGroup('web', NoIndexPrivateResponses::class);
         $middleware->appendToGroup('api', SetLocale::class);
 
         $middleware->alias([

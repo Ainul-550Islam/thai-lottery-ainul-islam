@@ -38,7 +38,7 @@ final class RecordMfaVerificationAudit
         $exists = AuditLog::query()
             ->where('auditable_type', MfaChallenge::class)
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_HOURS))
-            ->anchoredBy($anchor)
+            ->whereJsonContains('metadata->audit_anchor', $anchor)
             ->exists();
 
         if ($exists) {
@@ -57,7 +57,7 @@ final class RecordMfaVerificationAudit
                 'channel' => $challenge->channel,
                 'status' => $challenge->status->value,
                 'attempts' => $challenge->attempts,
-                AuditLog::ANCHOR_KEY => $anchor,
+                'audit_anchor' => $anchor,
                 // REDACTION LAW: no answer, secret or device payload ever
                 // appears below this line — fingerprints and outcomes alone.
             ],

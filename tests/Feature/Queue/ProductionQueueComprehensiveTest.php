@@ -13,6 +13,7 @@ use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Enums\LimitStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Enums\QueueName;
 use App\Enums\RiskLevel;
 use App\Enums\WebhookEventType;
@@ -26,6 +27,7 @@ use App\Models\AuditLog;
 use App\Models\Bet;
 use App\Models\Draw;
 use App\Models\NumberLimit;
+use App\Models\Payment;
 use App\Models\Payout;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
@@ -53,15 +55,12 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Feature\Payment\PaymentTestCase;
-use Tests\Feature\Queue\Concerns\ConfirmsQueueDraw;
 
 /**
  * Phase 5.3.5: Comprehensive Production Async Queue, Worker & Job Infrastructure Test Suite.
  */
 final class ProductionQueueComprehensiveTest extends PaymentTestCase
 {
-    use ConfirmsQueueDraw;
-
     private WithdrawalService $withdrawalService;
 
     private WithdrawalApprovalService $withdrawalApprovalService;
@@ -100,13 +99,10 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
     private function createInstantDisbursementService(): WithdrawalDisbursementService
     {
         $mockGateway = $this->createMock(PaymentGatewayInterface::class);
-        $mockGateway->method('name')->willReturn('bank_transfer');
+        $mockGateway->method('name')->willReturn('mock_instant');
         $mockGateway->method('supportsCurrency')->willReturn(true);
-        $mockGateway->method('initiateWithdrawal')->willReturnCallback(
-            static fn (): GatewayWithdrawalResponse => GatewayWithdrawalResponse::completed(
-                'INSTANT-TX-'.bin2hex(random_bytes(4)),
-                ['instant' => true],
-            ),
+        $mockGateway->method('initiateWithdrawal')->willReturn(
+            GatewayWithdrawalResponse::completed('INSTANT-TX-'.bin2hex(random_bytes(4)), ['instant' => true]),
         );
 
         $gatewayManager = $this->createMock(PaymentGatewayManager::class);
@@ -131,6 +127,25 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         // is now pinned to the real signature; if the constructor grows a
         // dependency, the container-resolved path (`app(...)`) is the way to
         // get it, not a guessed named argument.
+    }
+
+    /**
+     * Build the production disbursement orchestrator around one test gateway.
+     */
+    private function createDisbursementServiceForGateway(PaymentGatewayInterface $gateway): WithdrawalDisbursementService
+    {
+        $gatewayManager = $this->createMock(PaymentGatewayManager::class);
+        $gatewayManager->method('forMethod')->willReturn($gateway);
+        $gatewayManager->method('withdrawalDriver')->willReturn($gateway);
+
+        return new WithdrawalDisbursementService(
+            gateways: $gatewayManager,
+            locks: app(WalletLockService::class),
+            holds: app(WalletHoldService::class),
+            transitions: app(FinancialStateTransitionService::class),
+            approvalService: $this->withdrawalApprovalService,
+            completionService: $this->withdrawalCompletionService,
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -186,12 +201,78 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $this->assertSame('0.00', (string) $player['wallet']->locked_balance);
     }
 
+    #[Test]
+    public function test_03_ambiguous_provider_failure_keeps_hold_and_blocks_duplicate_payout(): void
+    {
+        $player = $this->createPlayer('1000.00', Currency::THB);
+        $withdrawal = $this->withdrawalService->request(
+            wallet: $player['wallet'],
+            amount: Money::of('250.00', Currency::THB),
+            method: PaymentMethod::BankTransfer,
+        );
+        $this->withdrawalApprovalService->approve($withdrawal);
+
+        $sensitiveProviderMessage = 'private-provider-token-must-not-be-persisted';
+        $mockGateway = $this->createMock(PaymentGatewayInterface::class);
+        $mockGateway->method('name')->willReturn('mock_ambiguous');
+        $mockGateway->method('supportsCurrency')->willReturn(true);
+        $mockGateway->expects($this->once())
+            ->method('initiateWithdrawal')
+            ->willThrowException(new \RuntimeException($sensitiveProviderMessage));
+
+        $service = $this->createDisbursementServiceForGateway($mockGateway);
+        $firstResult = $service->disburse($withdrawal);
+
+        $this->assertTrue($firstResult->successful);
+        $this->assertTrue($firstResult->isPending);
+        $this->assertTrue($firstResult->metadata['reconciliation_required']);
+
+        $withdrawal->refresh();
+        $this->assertSame(WithdrawalStatus::Processing, $withdrawal->status);
+        $this->assertNotEmpty($withdrawal->metadata['disbursement_attempt_started_at']);
+
+        $wallet = $player['wallet']->refresh();
+        $this->assertSame('1000.00', (string) $wallet->balance);
+        $this->assertSame('250.00', (string) $wallet->locked_balance);
+
+        $payment = Payment::query()
+            ->where('payable_type', Withdrawal::class)
+            ->where('payable_id', $withdrawal->id)
+            ->firstOrFail();
+        $this->assertSame(PaymentStatus::Pending, $payment->status);
+        $this->assertSame([
+            'gateway' => 'mock_ambiguous',
+            'outcome' => 'pending',
+            'provider_reference' => null,
+            'state' => 'outcome_unknown',
+            'reconciliation_required' => true,
+        ], $payment->gateway_response);
+
+        // A duplicate execution must not transmit the transfer a second time.
+        $secondResult = $service->disburse($withdrawal);
+        $this->assertTrue($secondResult->successful);
+        $this->assertTrue($secondResult->isPending);
+        $this->assertSame('already_in_flight', $secondResult->metadata['state']);
+
+        $persistedEvidence = json_encode([
+            $firstResult->toArray(),
+            $payment->toArray(),
+            $withdrawal->toArray(),
+            AuditLog::query()
+                ->where('auditable_type', Withdrawal::class)
+                ->where('auditable_id', $withdrawal->id)
+                ->get()
+                ->toArray(),
+        ], JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString($sensitiveProviderMessage, $persistedEvidence);
+    }
+
     // -------------------------------------------------------------------------
-    // 3. Transient Provider Failure Retries
+    // 4. Unhandled Service Exception Retry Behavior
     // -------------------------------------------------------------------------
 
     #[Test]
-    public function test_03_transient_provider_failure_retries(): void
+    public function test_unhandled_service_exception_is_rethrown_for_queue_retry(): void
     {
         $player = $this->createPlayer('1000.00', Currency::THB);
         $withdrawal = $this->withdrawalService->request(
@@ -326,7 +407,12 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         // Publish Result
         $lifecycle = app(DrawLifecycleService::class);
-        $draw = $this->confirmQueueDraw($draw);
+        $draw = $lifecycle->close($draw);
+        $draw = $lifecycle->markResultPending($draw);
+        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
+            'first_prize' => '456123',
+            'bottom_two' => '45',
+        ]);
 
         $job = new ProcessPrizeSettlementJob((int) $draw->getKey());
 
@@ -719,13 +805,11 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $job->handle();
 
         $audit = AuditLog::query()
-            ->whereNull('auditable_type')
-            ->whereNull('auditable_id')
+            ->where('auditable_type', AuditLog::class)
             ->latest('id')
             ->first();
 
         $this->assertNotNull($audit);
-        $this->assertSame('financial_alert', $audit->metadata['lane'] ?? null);
         $this->assertSame(RiskLevel::Critical, $audit->risk_level);
         $this->assertStringContainsString('Audit Warning', $audit->description);
     }

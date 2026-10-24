@@ -296,18 +296,6 @@ class AgentOnboardingService
 
     /**
      * Ensure the agent has a wallet to receive commission payouts.
-     *
-     * Part 69 — this is one of only two places in app/ that writes a money
-     * column outside `App\Services\Finance` (the other is WalletService itself).
-     * It is deliberate and narrow: the assignments below run only inside
-     * `if (! $wallet instanceof Wallet)`, so they initialise a wallet that does
-     * not exist yet to '0.00'. Nothing here moves money, so there is no ledger
-     * row to miss.
-     *
-     * `MoneyWriteCoverageService` names this file as its single exception and
-     * `MoneyWriteCoverageTest` pins the exception to exactly lines 312–317, so
-     * adding a balance mutation here — as opposed to initialising a new wallet —
-     * fails the build instead of quietly moving money without a ledger row.
      */
     private function ensureAgentWallet(User $user, Currency $currency): Wallet
     {

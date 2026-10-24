@@ -15,14 +15,11 @@ use Illuminate\Support\Facades\Cache;
  * Public, database-backed platform statistics for the Home page.
  *
  * NEVER invents marketing counters. Every figure is a COUNT over real tables,
- * cached with a short bounded TTL and no private user segments. The section
- * reports AVAILABLE for database-derived counts, not external verification;
- * when a query fails it reports UNAVAILABLE rather than a fabricated number.
+ * cached with a short bounded TTL and no private user segments. When a query
+ * fails the section reports UNAVAILABLE rather than a fabricated number.
  */
 class GloPublicStatsService
 {
-    public const ACTIVE_WINDOW_MINUTES = 15;
-
     /**
      * @return array{
      *     status: string,
@@ -38,52 +35,43 @@ class GloPublicStatsService
         try {
             /** @var array{status: string, generated_at: string, metrics: list<array<string, mixed>>, message: string|null} $payload */
             $payload = Cache::remember('home.stats', $ttl, function (): array {
-                $now = now();
                 $members = (int) User::query()->whereNull('deleted_at')->count();
-                $publishedResults = (int) DrawResult::query()
-                    ->whereHas('draw', fn ($query) => $query->whereIn('status', [
-                        'completed',
-                        'result_published',
-                    ]))
-                    ->count();
+                $publishedResults = (int) DrawResult::query()->whereNull('deleted_at')->count();
                 $salesPoints = (int) GloSalesPoint::query()
                     ->where('status', 'active')
-                    ->where(function ($q) use ($now): void {
-                        $q->whereNull('valid_from')->orWhere('valid_from', '<=', $now);
-                    })
-                    ->where(function ($q) use ($now): void {
-                        $q->whereNull('valid_to')->orWhere('valid_to', '>=', $now);
+                    ->where(function ($q): void {
+                        $q->whereNull('valid_to')->orWhere('valid_to', '>=', now());
                     })
                     ->count();
                 $drawsCompleted = (int) Draw::query()
-                    ->where('status', 'completed')
+                    ->whereIn('status', ['completed', 'result_published'])
                     ->count();
 
                 return [
-                    'status' => 'AVAILABLE',
+                    'status' => 'VERIFIED',
                     'generated_at' => Carbon::now()->toIso8601String(),
                     'metrics' => [
                         [
                             'key' => 'registered_members',
-                            'label' => (string) trans('home.stats_registered_accounts', [], app()->getLocale()),
+                            'label' => 'Registered members',
                             'value' => (string) $members,
                             'available' => true,
                         ],
                         [
                             'key' => 'published_results',
-                            'label' => (string) trans('home.stats_published_results', [], app()->getLocale()),
+                            'label' => 'Published results',
                             'value' => (string) $publishedResults,
                             'available' => true,
                         ],
                         [
                             'key' => 'sales_points',
-                            'label' => (string) trans('home.stats_active_sales_point_records', [], app()->getLocale()),
+                            'label' => 'Active sales points',
                             'value' => (string) $salesPoints,
                             'available' => true,
                         ],
                         [
                             'key' => 'draws_completed',
-                            'label' => (string) trans('home.stats_completed_draws', [], app()->getLocale()),
+                            'label' => 'Draws completed',
                             'value' => (string) $drawsCompleted,
                             'available' => true,
                         ],
@@ -91,22 +79,6 @@ class GloPublicStatsService
                     'message' => null,
                 ];
             });
-
-            try {
-                $activeMembers = $this->activeMembersNow();
-            } catch (\Throwable $e) {
-                report($e);
-                $activeMembers = null;
-            }
-
-            $payload['metrics'][] = [
-                'key' => 'active_members',
-                'label' => (string) trans('home.stats_active_members', [
-                    'minutes' => self::ACTIVE_WINDOW_MINUTES,
-                ], app()->getLocale()),
-                'value' => $activeMembers === null ? '0' : (string) $activeMembers,
-                'available' => $activeMembers !== null,
-            ];
 
             return $payload;
         } catch (\Throwable $e) {
@@ -122,23 +94,7 @@ class GloPublicStatsService
     }
 
     /**
-     * Count non-deleted users with authenticated activity in the rolling window.
-     */
-    public function activeMembersNow(): int
-    {
-        $now = now();
-        $cutoff = $now->copy()->subMinutes(self::ACTIVE_WINDOW_MINUTES);
-
-        return (int) User::query()
-            ->whereNull('deleted_at')
-            ->whereNotNull('last_seen_at')
-            ->where('last_seen_at', '>=', $cutoff)
-            ->where('last_seen_at', '<=', $now)
-            ->count();
-    }
-
-    /**
-     * Force-refresh the cached metrics (the live active-member count is never cached).
+     * Force-refresh the public stats cache (used when a verified result lands).
      */
     public function flush(): void
     {

@@ -21,7 +21,6 @@ enum WalletConversionStatus: string
     case Completed = 'completed';
     case Reversed = 'reversed';
     case Failed = 'failed';
-    case Expired = 'expired';
 
     public function label(): string
     {
@@ -32,20 +31,29 @@ enum WalletConversionStatus: string
             self::Completed => 'Completed',
             self::Reversed => 'Reversed',
             self::Failed => 'Failed',
-            self::Expired => 'Expired',
         };
     }
 
-    public function labelKey(): string
-    {
-        return 'wallet_conversion.status_'.$this->value;
-    }
-
+    /**
+     * Did money move because of this row?
+     *
+     * True for a completed conversion and for a completed reversal: both are
+     * movements, and the reversal is the one that gives the money back. Deliberately
+     * false for Reversed, which describes the ORIGINAL after it was undone — reading
+     * that as success would let a reversed movement count as a movement in reports.
+     */
     public function isSuccessful(): bool
     {
         return $this === self::Completed;
     }
 
+    /**
+     * Has this row's money movement happened and stayed put?
+     *
+     * This is the state the accounting proof insists on before it will accept a row
+     * as evidence: a pending or processing conversion describes an intention, and a
+     * failed one describes an intention that did not happen.
+     */
     public function isSettled(): bool
     {
         return in_array($this, self::settledStates(), true);
@@ -71,16 +79,22 @@ enum WalletConversionStatus: string
     public function allowedTransitions(): array
     {
         return match ($this) {
-            self::Quoted => [self::Pending, self::Processing, self::Failed, self::Expired],
-            self::Pending => [self::Processing, self::Failed, self::Expired],
+            self::Quoted => [self::Pending, self::Processing, self::Failed],
+            self::Pending => [self::Processing, self::Completed, self::Failed],
             self::Processing => [self::Completed, self::Failed],
             self::Completed => [self::Reversed],
-            self::Reversed, self::Failed, self::Expired => [],
+            self::Reversed, self::Failed => [],
         };
     }
 
-    public function canTransitionTo(self $next): bool
+    /**
+     * Stable translation key for the member-facing conversion screens.
+     *
+     * The labels live in lang/<locale>/wallet_conversion.php next to every other
+     * string this lane shows, so there is no second translation namespace to drift.
+     */
+    public function labelKey(): string
     {
-        return in_array($next, $this->allowedTransitions(), true);
+        return "wallet_conversion.status_{$this->value}";
     }
 }

@@ -12,6 +12,7 @@ use App\Exceptions\InvalidFinancialStateTransitionException;
 use App\Models\Deposit;
 use App\Models\FinancialTransaction;
 use App\Models\Withdrawal;
+use App\Services\Payment\DepositCheckoutService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -58,6 +59,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class FinancialStateTransitionService
 {
+    public function __construct(private readonly WalletLockService $locks) {}
+
     /** Short, non-sensitive entity labels used in exceptions. */
     public const ENTITY_DEPOSIT = 'deposit';
 
@@ -312,24 +315,14 @@ final class FinancialStateTransitionService
 
         $fresh = $this->lockDeposit($deposit);
 
+        // Cancelling or failing a deposit whose provider dispatch may still be live
+        // would let a settled payment arrive against a closed row.
+        $this->assertCheckoutResolved($fresh, $target);
+
         $this->assertDepositTransition($fresh, $target);
 
-        if (in_array($target, [DepositStatus::Cancelled, DepositStatus::Rejected, DepositStatus::Failed], true)) {
-            $attempt = DB::table(\App\Services\Payment\DepositCheckoutService::TABLE)
-                ->where('deposit_id', $fresh->id)
-                ->lockForUpdate()
-                ->first();
-            $this->assertInsideTransaction('deposit status transition');
-
-            if ($attempt !== null && in_array($attempt->state, ['dispatching', 'unknown', 'response_received'], true)) {
-                throw FinancialException::withCode(
-                    'checkout_outcome_unknown',
-                    'An unresolved checkout reservation cannot be released by a local cancel, review or failure transition.',
-                    ['deposit_id' => (int) $fresh->id, 'checkout_state' => $attempt->state],
-                );
-            }
-        }
-
+        // Recheck before the label is even staged, and again before it is saved:
+        // the reads above are exactly where a physical transaction can die.
         $this->assertInsideTransaction('deposit status transition');
 
         $fresh->status = $target;
@@ -339,6 +332,7 @@ final class FinancialStateTransitionService
         }
 
         $this->assertInsideTransaction('deposit status transition');
+
         $fresh->save();
 
         return $fresh;
@@ -360,6 +354,7 @@ final class FinancialStateTransitionService
         $fresh = $this->lockWithdrawal($withdrawal);
 
         $this->assertWithdrawalTransition($fresh, $target);
+
         $this->assertInsideTransaction('withdrawal status transition');
 
         $fresh->status = $target;
@@ -369,6 +364,7 @@ final class FinancialStateTransitionService
         }
 
         $this->assertInsideTransaction('withdrawal status transition');
+
         $fresh->save();
 
         return $fresh;
@@ -390,6 +386,9 @@ final class FinancialStateTransitionService
         $key = FinancialRecordIdentifier::fromModel($deposit, 'financial_entity_not_persisted');
 
         $locked = Deposit::query()->whereKey($key)->lockForUpdate()->first();
+
+        // A physical commit/rollback can land DURING the real FOR UPDATE read. The
+        // returned row must not be certified as still locked when nothing holds it.
         $this->assertInsideTransaction('deposit row lock');
 
         if (! $locked instanceof Deposit) {
@@ -418,6 +417,7 @@ final class FinancialStateTransitionService
         $key = FinancialRecordIdentifier::fromModel($withdrawal, 'financial_entity_not_persisted');
 
         $locked = Withdrawal::query()->whereKey($key)->lockForUpdate()->first();
+
         $this->assertInsideTransaction('withdrawal row lock');
 
         if (! $locked instanceof Withdrawal) {
@@ -434,6 +434,9 @@ final class FinancialStateTransitionService
     /**
      * Re-read a financial transaction with `FOR UPDATE`.
      *
+     * The lifecycle label of a financial transaction is the record of whether real
+     * money moved, so it is pinned exactly like a deposit or a withdrawal row.
+     *
      * @throws FinancialException
      */
     public function lockFinancialTransaction(FinancialTransaction $transaction): FinancialTransaction
@@ -442,14 +445,15 @@ final class FinancialStateTransitionService
 
         $key = FinancialRecordIdentifier::fromModel($transaction, 'financial_entity_not_persisted');
 
-        $locked = FinancialTransaction::query()->whereKey($key)->lockForUpdate()->first();
+        $locked = FinancialTransaction::withTrashed()->whereKey($key)->lockForUpdate()->first();
+
         $this->assertInsideTransaction('financial transaction row lock');
 
-        if (! $locked instanceof FinancialTransaction) {
+        if (! $locked instanceof FinancialTransaction || $locked->trashed()) {
             throw FinancialException::withCode(
                 'financial_entity_missing',
                 sprintf('Financial transaction %d no longer exists.', $key),
-                ['transaction_id' => $key],
+                ['financial_transaction_id' => $key],
             );
         }
 
@@ -457,11 +461,16 @@ final class FinancialStateTransitionService
     }
 
     /**
-     * Whether a database transaction is currently open.
+     * Whether a database transaction is currently open AND physically alive.
+     *
+     * A positive framework counter alone is not evidence that SQL still holds a
+     * row lock: a raw PDO commit/rollback leaves the counter positive while the
+     * `FOR UPDATE` reads below would be released immediately. The shared wallet
+     * predicate samples the same default write connection the writes will use.
      */
     public function insideTransaction(): bool
     {
-        return app(WalletLockService::class)->insideTransaction();
+        return $this->locks->insideTransaction();
     }
 
     /**
@@ -512,6 +521,47 @@ final class FinancialStateTransitionService
             'financial_state_transition_outside_transaction',
             sprintf('A %s must run inside a database transaction.', $operation),
             ['operation' => $operation],
+        );
+    }
+
+    /**
+     * A deposit whose checkout may still be in the provider's hands cannot be
+     * closed by a lifecycle label.
+     *
+     * @throws FinancialException
+     */
+    private function assertCheckoutResolved(Deposit $deposit, DepositStatus $target): void
+    {
+        if (! in_array($target, [DepositStatus::Cancelled, DepositStatus::Failed, DepositStatus::Rejected], true)) {
+            return;
+        }
+
+        if (! $deposit->exists) {
+            return;
+        }
+
+        $key = FinancialRecordIdentifier::fromModel($deposit, 'financial_entity_not_persisted');
+
+        $attempt = DB::table(DepositCheckoutService::TABLE)
+            ->where('deposit_id', $key)
+            ->lockForUpdate()
+            ->first();
+
+        $this->assertInsideTransaction('deposit checkout read');
+
+        if ($attempt === null || ! in_array((string) $attempt->state, ['dispatching', 'unknown'], true)) {
+            return;
+        }
+
+        throw FinancialException::withCode(
+            'deposit_checkout_unresolved',
+            sprintf(
+                'Deposit %d has a checkout attempt in state "%s"; the provider outcome must be resolved '
+                .'before the deposit can be cancelled, failed or rejected.',
+                $key,
+                (string) $attempt->state,
+            ),
+            ['deposit_id' => $key, 'checkout_state' => (string) $attempt->state],
         );
     }
 

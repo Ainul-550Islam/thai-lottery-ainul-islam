@@ -11,7 +11,6 @@ use App\Models\DrawResult;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\Cache;
-use Tests\Feature\PublicSite\Concerns\PublishesProviderResults;
 use Tests\TestCase;
 
 /**
@@ -21,7 +20,6 @@ use Tests\TestCase;
 class GloPublicResultHistoryTest extends TestCase
 {
     use DatabaseTruncation;
-    use PublishesProviderResults;
 
     private Draw $published;
 
@@ -156,12 +154,16 @@ class GloPublicResultHistoryTest extends TestCase
 
     public function test_result_sheet_can_label_official_when_import_provider_official(): void
     {
-        $draw = Draw::factory()->closed()->create([
-            'scheduled_at' => now()->subDay(),
+        DrawResult::query()->where('draw_id', $this->published->getKey())->update([
+            'metadata' => json_encode([
+                'glo' => [
+                    'import_fingerprint' => 'fp-official-1',
+                    'import_provider' => 'official',
+                ],
+            ]),
         ]);
-        $this->publishProviderResult($draw, 'official', '000001');
 
-        $sheet = $this->getJson('/api/v1/glo/results/sheet?draw='.$draw->draw_number)->json('data');
+        $sheet = $this->getJson('/api/v1/glo/results/sheet')->json('data');
         $this->assertSame('OFFICIAL_SOURCE_VERIFIED', $sheet['source_state']);
         $this->assertSame('GLO VERIFIED SOURCE', $sheet['source_badge']);
     }

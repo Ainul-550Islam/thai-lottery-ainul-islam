@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts\Wallet;
 
+use App\Enums\Currency;
 use App\DTOs\Wallet\ConversionAuditContextData;
 use App\DTOs\Wallet\ConversionHistoryFilterData;
 use App\DTOs\Wallet\ConversionQuoteData;
@@ -118,5 +119,5 @@ interface WalletConversionServiceContract
      *
      * @return array<string, int>
      */
-    public function summaryForUser(int $userId): array;
+    public function summaryForUser(int $userId, ?Currency $currency = null): array;
 }

@@ -8,7 +8,6 @@ use App\Services\Affiliate\AffiliateCommissionDisplayService;
 use App\Services\Lottery\DiscountParityProjectionService;
 use App\Services\Pricing\LottoDiscountService;
 use App\Services\PublicPages\PublicPageDataService;
-use App\Support\SupportedLocale;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,8 +46,12 @@ final class PublicLottoDiscountController
         return view('discounts.index', [
             'discounts' => $data + $meta,
             'matrix' => $matrix,
-            'affiliate' => $this->affiliate->publicCatalogue(),
             'meta' => $meta,
+            // The view has always read $affiliate, but nothing ever passed it, so the
+            // affiliate section fell back to its "not published" branch no matter what
+            // config('discounts.affiliate_display.publish') said. The catalogue below
+            // is the same projection the JSON endpoint now returns.
+            'affiliate' => $this->affiliate->publicCatalogue(),
         ]);
     }
 
@@ -56,10 +59,12 @@ final class PublicLottoDiscountController
     {
         $locale = $this->locale($request);
 
+        $affiliate = $this->affiliate->publicCatalogue();
+
         return response()->json([
             'success' => true,
-            'data' => $this->pages->discounts($locale),
-            'affiliate' => $this->affiliate->publicCatalogue(),
+            'data' => $this->pages->discounts($locale) + ['affiliate' => $affiliate],
+            'affiliate' => $affiliate,
             'meta' => $this->pages->meta('discounts', $locale),
         ]);
     }
@@ -83,9 +88,18 @@ final class PublicLottoDiscountController
         return response()->json(['success' => true, 'data' => $quote]);
     }
 
+    /**
+     * The locale this request is being served in.
+     *
+     * Read from the container, never from the query string. App\Http\Middleware\
+     * SetLocale already negotiated ?lang=/?locale=, the session and the cookie and
+     * called app()->setLocale(); a controller that re-read ?locale= could only
+     * disagree with the language the middleware chose, and it accepted only 'en'
+     * and 'th', so a Bangla request would have been rendered as English content
+     * inside a Bangla document.
+     */
     private function locale(Request $request): string
     {
-        return SupportedLocale::normalise(app()->getLocale())
-            ?? (string) app()->getLocale();
+        return (string) app()->getLocale();
     }
 }

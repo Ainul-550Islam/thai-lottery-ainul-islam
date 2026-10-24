@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Wallet\Conversion;
 
 use App\Contracts\Wallet\ConversionPolicyContract;
-use App\Contracts\Wallet\ConversionRepositoryContract;
 use App\Contracts\Wallet\WalletConversionServiceContract;
 use App\DTOs\Wallet\ConversionAuditContextData;
 use App\DTOs\Wallet\ConversionHistoryFilterData;
 use App\DTOs\Wallet\ConversionQuoteData;
 use App\DTOs\Wallet\ConversionRequestData;
 use App\DTOs\Wallet\ConversionResultData;
-use App\Enums\ConversionFeeBearer;
 use App\Enums\Currency;
 use App\Enums\FinancialTransactionType;
 use App\Enums\LedgerEntryType;
@@ -20,820 +18,794 @@ use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Enums\WalletConversionChannel;
 use App\Enums\WalletConversionDirection;
-use App\Enums\WalletConversionRejectionReason;
+use App\Enums\WalletConversionQuoteStatus;
 use App\Enums\WalletConversionStatus;
-use App\Enums\WalletStatus;
-use App\Exceptions\InsufficientBalanceException;
+use App\Enums\WalletType;
 use App\Exceptions\Wallet\ConversionException;
-use App\Exceptions\Wallet\ConversionIdempotencyConflictException;
-use App\Exceptions\Wallet\ConversionReversalWindowExpiredException;
-use App\Exceptions\Wallet\ConversionSameWalletException;
 use App\Models\FinancialTransaction;
-use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletConversion;
-use App\Models\WalletConversionAudit;
 use App\Models\WalletConversionQuote;
+use App\Repositories\Wallet\WalletConversionAuditRepository;
+use App\Services\Finance\FinancialTransactionService;
 use App\Services\Finance\LedgerPostingService;
 use App\Services\Finance\Money;
+use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WalletService;
-use DateTimeImmutable;
+use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class WalletConversionService implements WalletConversionServiceContract
 {
     public function __construct(
-        private readonly ConversionFeeCalculator $fees,
-        private readonly ConversionLimitService $limits,
         private readonly ConversionPolicyContract $policy,
+        private readonly ConversionFeeCalculator $fees,
         private readonly ConversionQuoteService $quotes,
-        private readonly ConversionHistoryService $historyService,
-        private readonly ConversionRepositoryContract $repository,
+        private readonly WalletLockService $locks,
         private readonly WalletService $wallets,
         private readonly LedgerPostingService $ledger,
-        private readonly ConversionWalletEligibility $walletEligibility,
+        private readonly FinancialTransactionService $transactions,
+        private readonly Config $config,
         private readonly ConversionIntegrityGuard $integrity,
-        private readonly ConversionReversalAuthority $reversalAuthority,
+        private readonly WalletConversionAuditRepository $audits,
+        private readonly ConversionWalletEligibility $eligibility,
         private readonly StripeRefundConversionGuard $refundGuard,
+        private readonly ConversionLimitService $limits,
     ) {}
 
     public function quote(ConversionRequestData $request): ConversionQuoteData
     {
-        try {
-            $quote = $this->quotes->quote($request);
-
-            $this->recordAudit(
-                conversionId: null,
-                reference: $quote->reference,
-                userId: $request->userId,
-                direction: $request->direction->value,
-                event: 'quoted',
-                errorCode: null,
-                message: $quote->description,
-                channel: $request->channel,
-                context: $request->auditContext,
-                payload: $quote->toArray(),
-            );
-
-            return $quote;
-        } catch (ConversionException $exception) {
-            $this->handleRefusal($exception, $request);
-            throw $exception;
-        }
+        return $this->quotes->quote($request);
     }
 
     public function convert(ConversionRequestData $request): ConversionResultData
     {
+        $this->assertIdempotencyKey($request->idempotencyKey);
+        $key = self::storedKey((string) $request->idempotencyKey);
+
+        $refundGuardCodes = ['conversion_refund_exposure_pending', 'conversion_refund_exposure_unproven'];
+
         try {
-            if ($request->direction->fromType() === $request->direction->toType()) {
-                throw ConversionSameWalletException::forType($request->direction->fromType());
+            return $this->convertInTransaction($request, $key);
+        } catch (ConversionException $refusal) {
+            // A refusal by the deposit-refund custody guard is an EVENT, not just an
+            // error: support will be asked why a member with money in refund recovery
+            // could not convert, and "we refused it" is only provable if the refusal
+            // was written down. It is written AFTER the transaction has rolled back, so
+            // the record survives exactly the refusals it describes and no other.
+            if (in_array((string) $refusal->errorCode(), $refundGuardCodes, true)) {
+                $this->recordRefusalAudit($request, (string) $refusal->errorCode());
             }
 
-            if ($request->idempotencyKey === null || trim($request->idempotencyKey) === '') {
-                throw ConversionException::failure(
-                    'idempotency_key_required',
-                    'An idempotency key is required when executing a wallet conversion.',
-                );
-            }
-
-            $rawKey = trim($request->idempotencyKey);
-            if (strlen($rawKey) < 8 || strlen($rawKey) > 128) {
-                throw ConversionException::failure(
-                    'idempotency_key_invalid',
-                    'The conversion idempotency key must be between 8 and 128 characters.',
-                );
-            }
-
-            $hashedKey = hash('sha256', $request->channel->value.':'.$rawKey);
-            $quoteRef = $request->quoteReference !== null && trim($request->quoteReference) !== ''
-                ? trim($request->quoteReference)
-                : null;
-            $normalisedAmount = preg_match('/^\d{1,18}(\.\d{1,2})?$/D', $request->amount) === 1
-                ? bcadd($request->amount, '0', 2)
-                : $request->amount;
-            $fingerprint = hash('sha256', json_encode([
-                'convert',
-                $request->direction->value,
-                $normalisedAmount,
-                $request->currency->value,
-                $quoteRef,
-            ], JSON_THROW_ON_ERROR));
-
-            $executed = DB::transaction(function () use (
-                $request,
-                $rawKey,
-                $hashedKey,
-                $quoteRef,
-                $normalisedAmount,
-                $fingerprint,
-            ): array {
-                User::query()->whereKey($request->userId)->lockForUpdate()->first();
-
-                $existing = WalletConversion::query()
-                    ->where('user_id', $request->userId)
-                    ->where('idempotency_key', $hashedKey)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($existing instanceof WalletConversion) {
-                    if (! is_string($existing->request_fingerprint) || ! hash_equals($existing->request_fingerprint, $fingerprint)) {
-                        throw ConversionIdempotencyConflictException::forKey(
-                            $rawKey,
-                            (string) $existing->reference,
-                            [
-                                'direction' => (string) $existing->getRawOriginal('direction'),
-                                'amount' => bcadd((string) $existing->getRawOriginal('amount_in'), '0', 2),
-                                'currency' => (string) $existing->getRawOriginal('currency'),
-                                'quote_reference' => $existing->quote_reference !== null ? (string) $existing->quote_reference : null,
-                            ],
-                            [
-                                'direction' => $request->direction->value,
-                                'amount' => $normalisedAmount,
-                                'currency' => $request->currency->value,
-                                'quote_reference' => $quoteRef,
-                            ],
-                            ['request_fingerprint'],
-                        );
-                    }
-
-                    $proved = $this->integrity->assertSettled($existing);
-
-                    return ['conversion' => $proved, 'replayed' => true];
-                }
-
-                $this->refundGuard->assertAllowed($request->userId, $request->currency);
-
-                $this->policy->assertAllowed($request);
-
-                $pair = $this->walletEligibility->pairForExecution($request);
-                $sourceWallet = $pair['source'];
-                $destinationWallet = $pair['destination'];
-
-                $quoteRow = $this->quotes->assertUsable($request);
-
-                $breakdown = $this->fees->breakdownFor(
-                    $request->direction,
-                    $normalisedAmount,
-                    $request->currency->value,
-                );
-
-                if ($destinationWallet === null) {
-                    $destinationWallet = Wallet::query()->create([
-                        'user_id' => $request->userId,
-                        'type' => $request->direction->toType(),
-                        'currency' => $request->currency,
-                    ]);
-                    $destinationWallet->forceFill([
-                        'status' => WalletStatus::Active,
-                    ])->save();
-                }
-
-                [$lockedFrom, $lockedTo] = $this->lockPairInOrder($sourceWallet, $destinationWallet);
-
-                $this->policy->assertAllowed($request);
-
-                $amountIn = $quoteRow !== null ? bcadd((string) $quoteRow->amount_in, '0', 2) : $normalisedAmount;
-                $feeAmount = $quoteRow !== null ? bcadd((string) $quoteRow->fee_amount, '0', 2) : $breakdown->feeAmount;
-                $amountOut = $quoteRow !== null ? bcadd((string) $quoteRow->amount_out, '0', 2) : $breakdown->netAmount;
-                $feeRate = $quoteRow !== null ? (string) $quoteRow->rate : $breakdown->rate;
-                $feeBearer = $quoteRow !== null
-                    ? ($quoteRow->fee_bearer instanceof ConversionFeeBearer ? $quoteRow->fee_bearer : ConversionFeeBearer::fromConfig($quoteRow->fee_bearer))
-                    : $breakdown->bearer;
-                $feeRuleKey = $quoteRow !== null ? (string) $quoteRow->fee_rule_key : $breakdown->ruleKey;
-                $feeRuleVersion = $quoteRow !== null ? (string) $quoteRow->fee_rule_version : $breakdown->ruleVersion;
-
-                $fromBefore = bcadd((string) $lockedFrom->getRawOriginal('balance'), '0', 2);
-                $toBefore = bcadd((string) $lockedTo->getRawOriginal('balance'), '0', 2);
-
-                $reference = $this->generateReference();
-
-                $conversion = $this->repository->create([
-                    'reference' => $reference,
-                    'user_id' => $request->userId,
-                    'direction' => $request->direction->value,
-                    'status' => WalletConversionStatus::Pending->value,
-                    'currency' => $request->currency->value,
-                    'from_wallet_id' => (int) $lockedFrom->getKey(),
-                    'to_wallet_id' => (int) $lockedTo->getKey(),
-                    'from_wallet_type' => $request->direction->fromType()->value,
-                    'to_wallet_type' => $request->direction->toType()->value,
-                    'amount_in' => $amountIn,
-                    'fee_amount' => $feeAmount,
-                    'amount_out' => $amountOut,
-                    'fee_rate' => $feeRate,
-                    'fee_bearer' => $feeBearer->value,
-                    'fee_rule_key' => $feeRuleKey,
-                    'fee_rule_version' => $feeRuleVersion,
-                    'channel' => $request->channel->value,
-                    'actor_user_id' => $request->auditContext?->actorUserId ?? $request->userId,
-                    'quote_reference' => $quoteRef,
-                    'idempotency_key' => $hashedKey,
-                    'request_fingerprint' => $fingerprint,
-                    'from_balance_before' => $fromBefore,
-                    'to_balance_before' => $toBefore,
-                    'from_balance_after' => $fromBefore,
-                    'to_balance_after' => $toBefore,
-                ]);
-
-                $conversion = $this->repository->transition($conversion, WalletConversionStatus::Processing);
-
-                try {
-                    $newFromBalance = $this->wallets->applyDebit(
-                        $lockedFrom,
-                        Money::of($amountIn, $request->currency),
-                        FinancialTransactionType::Transfer,
-                    );
-                } catch (InsufficientBalanceException) {
-                    throw ConversionException::failure(
-                        WalletConversionRejectionReason::InsufficientBalance->value,
-                        WalletConversionRejectionReason::InsufficientBalance->label().'.',
-                        ['direction' => $request->direction->value, 'amount' => $amountIn],
-                    );
-                }
-
-                $newToBalance = bccomp($amountOut, '0.00', 2) === 1
-                    ? $this->wallets->applyCredit(
-                        $lockedTo,
-                        Money::of($amountOut, $request->currency),
-                        FinancialTransactionType::Transfer,
-                    )
-                    : Money::of($toBefore, $request->currency);
-
-                $finTx = $this->postConversionLedgerEntries(
-                    conversion: $conversion,
-                    fromWalletId: (int) $lockedFrom->getKey(),
-                    toWalletId: (int) $lockedTo->getKey(),
-                    fromBalanceAfter: $newFromBalance->toString(),
-                    toBalanceAfter: $newToBalance->toString(),
-                    amountIn: $amountIn,
-                    amountOut: $amountOut,
-                    feeAmount: $feeAmount,
-                    currency: $request->currency,
-                    isReversal: false,
-                    feeRefundAmount: '0.00',
-                );
-
-                $completed = $this->repository->markCompleted($conversion, [
-                    'from_balance_after' => $newFromBalance->toString(),
-                    'to_balance_after' => $newToBalance->toString(),
-                    'financial_transaction_id' => (int) $finTx->getKey(),
-                    'completed_at' => Carbon::now(),
-                ]);
-
-                $completed = $this->integrity->assertSettled($completed);
-
-                if ($quoteRow instanceof WalletConversionQuote) {
-                    $this->quotes->consume($quoteRow, (int) $completed->getKey());
-                }
-
-                $this->recordAudit(
-                    conversionId: (int) $completed->getKey(),
-                    reference: (string) $completed->reference,
-                    userId: $request->userId,
-                    direction: $request->direction->value,
-                    event: 'completed',
-                    errorCode: null,
-                    message: 'Conversion completed.',
-                    channel: $request->channel,
-                    context: $request->auditContext,
-                    payload: [
-                        'amount_in' => $amountIn,
-                        'fee_amount' => $feeAmount,
-                        'amount_out' => $amountOut,
-                        'from_balance_after' => $newFromBalance->toString(),
-                        'to_balance_after' => $newToBalance->toString(),
-                    ],
-                );
-
-                return ['conversion' => $completed, 'replayed' => false];
-            });
-
-            /** @var WalletConversion $conversion */
-            $conversion = $executed['conversion'];
-            $replayed = (bool) $executed['replayed'];
-
-            return $this->resultFromModel($conversion, replayed: $replayed);
-        } catch (ConversionException $exception) {
-            $this->handleRefusal($exception, $request);
-            throw $exception;
+            throw $refusal;
         }
     }
 
-    public function reverse(
-        int $conversionId,
-        ConversionAuditContextData $context,
-        string $reason,
-        ?string $idempotencyKey = null,
-    ): ConversionResultData {
-        $trimmedReason = trim($reason);
-        $minLength = max(1, (int) config('conversions.reversals.min_reason_length', 10));
-        if ($trimmedReason === '' || mb_strlen($trimmedReason) < $minLength) {
-            throw ConversionException::failure('reversal_reason_required', 'A valid reason is required to reverse a conversion.');
-        }
+    /**
+     * One new conversion, inside one transaction.
+     */
+    private function convertInTransaction(ConversionRequestData $request, string $key): ConversionResultData
+    {
+        return DB::transaction(function () use ($request, $key): ConversionResultData {
+            $prior = WalletConversion::query()->where('user_id', $request->userId)
+                ->where('channel', $request->channel->value)->where('idempotency_key', $key)
+                ->lockForUpdate()->first();
 
-        $allowedChannels = (array) config('conversions.reversals.allowed_channels', ['admin', 'console']);
-        if (! in_array($context->channel->value, $allowedChannels, true) && $context->channel !== WalletConversionChannel::Api) {
-            throw ConversionException::failure('reversal_forbidden', 'Reversal is not permitted on this channel.');
-        }
+            if ($prior) {
+                // A replay is an observation of history, not a new admission: the lane
+                // may since have closed, KYC may have expired and the wallet may now be
+                // locked, and none of that changes what already happened. What must
+                // still be true is that the history is real, so the stored movement is
+                // proved in full before the row is handed back. An unprovable original
+                // is refused rather than returned, because returning it would be an
+                // assertion about money that nothing in the books supports.
+                $proved = $this->integrity->assertSettled($prior);
+                if (! hash_equals((string) $proved->request_fingerprint, $this->fingerprint($request, $this->requestedAmount($request)))) {
+                    throw ConversionException::failure('idempotency_conflict', 'This idempotency key was already used for a different conversion.');
+                }
 
-        $preloaded = WalletConversion::query()->find($conversionId);
-        if (! $preloaded instanceof WalletConversion) {
-            throw ConversionException::failure('conversion_not_found', 'Conversion could not be found.');
-        }
-
-        $pair = DB::transaction(function () use ($conversionId, $preloaded, $context, $trimmedReason, $idempotencyKey): array {
-            $actor = $this->reversalAuthority->authorize((int) $preloaded->user_id, $context->actorUserId);
-
-            $original = $this->repository->findForUpdate($conversionId);
-            if (! $original instanceof WalletConversion || (int) $original->user_id !== (int) $preloaded->user_id) {
-                throw ConversionException::failure('reversal_forbidden', 'Conversion owner changed or could not be verified.');
+                return $this->resultFrom($proved, true);
             }
 
-            $rawKey = $idempotencyKey !== null && trim($idempotencyKey) !== ''
-                ? trim($idempotencyKey)
-                : ('rev-'.(string) $original->reference);
-            $hashedKey = hash('sha256', $context->channel->value.':'.$rawKey);
-            $fingerprint = hash('sha256', json_encode([
-                'reverse',
-                (int) $original->getKey(),
-                (int) $actor->getKey(),
-                $trimmedReason,
-            ], JSON_THROW_ON_ERROR));
+            // CUSTODY COMES BEFORE PLEASANTRY. A member whose deposit refund is still
+            // in recovery may be owed money, or may be trying to move money that is
+            // already spoken for; either way a new conversion cannot be authorised
+            // until that custody is settled. The check runs here — inside the
+            // transaction, after the exact-replay shortcut and before a single wallet is
+            // read — because an exact replay is history, not a new authorisation.
+            $this->refundGuard->assertAllowed((int) $request->userId, $this->currencyEnum($request->currency));
 
-            $existingReplayChild = WalletConversion::query()
-                ->where('user_id', (int) $original->user_id)
-                ->where('idempotency_key', $hashedKey)
-                ->lockForUpdate()
-                ->first();
+            // The rolling windows are enforced HERE, by the object that owns them,
+            // rather than inferred from the policy's verdict. The policy answers
+            // "is this amount legal for this member right now" and reuses the same
+            // totals, but only this call is made inside a proven transaction — and
+            // it is the one that refuses an unprovable history instead of adding it
+            // up. A limit refusal must therefore be raised by the limit service, so
+            // it carries the exact configuration key and the exact attempted figure
+            // an operator needs.
+            $this->limits->assertAllowedForExecution(
+                (int) $request->userId,
+                $request->amount,
+                $this->currencyEnum($request->currency),
+            );
 
-            if ($existingReplayChild instanceof WalletConversion) {
-                if ((int) $existingReplayChild->reversal_of_id !== (int) $original->getKey()
-                    || ! is_string($existingReplayChild->request_fingerprint)
-                    || ! hash_equals($existingReplayChild->request_fingerprint, $fingerprint)) {
-                    throw ConversionIdempotencyConflictException::forKey(
-                        $rawKey,
-                        (string) $existingReplayChild->reference,
-                        ['reversal_of_id' => (int) $existingReplayChild->reversal_of_id],
-                        ['reversal_of_id' => (int) $original->getKey()],
-                        ['request_fingerprint'],
+            $quote = $this->quotes->findValidForExecution($request);
+
+            // The policy runs AFTER the quote is proved usable: a quote that has
+            // expired or belongs to another owner is not a request worth evaluating,
+            // and refusing it as "member ineligible" would send support the wrong way.
+            $this->policy->assertAllowed($request);
+
+            // The wallet pair is resolved and proved by the eligibility service, under
+            // this transaction's locks and in its canonical order (the owner first, then
+            // the wallets by id) — the same order every other money path takes, so two
+            // conversions of one wallet cannot deadlock against each other.
+            $pair = $this->eligibility->pairForExecution($request);
+            $source = $pair['source'];
+            $destination = $pair['destination'] ?? $this->openDestinationWallet($request);
+
+            $locked = $this->locks->lockMany([(int) $source->getKey(), (int) $destination->getKey()]);
+            $source = $locked[(int) $source->getKey()];
+            $destination = $locked[(int) $destination->getKey()];
+
+            $amountIn = bcadd((string) $quote->amount_in, '0', 2);
+            $feeAmount = bcadd((string) $quote->fee_amount, '0', 2);
+            $amountOut = bcadd((string) $quote->amount_out, '0', 2);
+
+            // AVAILABLE balance, not the raw balance: money already locked (a pending
+            // withdrawal, a placed bet) is still on the wallet but is not the member's
+            // to convert, and spending it here would leave the lock unbacked.
+            if (bccomp($source->getAvailableBalance(), $amountIn, 2) < 0) {
+                throw ConversionException::failure('insufficient_balance', 'The source wallet no longer has enough available funds.');
+            }
+
+            // The two "before" snapshots are written for the same reason the "after"
+            // ones are: they are what makes the movement arithmetically checkable
+            // later. Without them a reader can only see where the balances ended up,
+            // not that they moved by the amounts the conversion claims.
+            $fromBefore = bcadd((string) $source->balance, '0', 2);
+            $toBefore = bcadd((string) $destination->balance, '0', 2);
+
+            $conversion = WalletConversion::query()->create([
+                'reference' => 'WC-'.strtoupper(Str::random(24)),
+                'user_id' => $request->userId,
+                'source_wallet_id' => $source->getKey(),
+                'destination_wallet_id' => $destination->getKey(),
+                // The wallet CLASSES that moved. The schema requires them, and they
+                // are read by an auditor who no longer has the wallets: "cash left and
+                // win arrived" is a different fact from "commission moved to bonus",
+                // and the two wallet ids alone stop meaning anything once the wallets
+                // are renamed or closed.
+                'from_wallet_type' => $this->walletType($source),
+                'to_wallet_type' => $this->walletType($destination),
+                'direction' => $request->direction,
+                'status' => WalletConversionStatus::Pending,
+                'currency' => $this->currencyCode($request->currency),
+                'amount_in' => $amountIn,
+                'fee_amount' => $feeAmount,
+                'amount_out' => $amountOut,
+                'from_balance_before' => $fromBefore,
+                'to_balance_before' => $toBefore,
+                'fee_rule_key' => $quote->fee_rule_key,
+                'fee_rule_version' => $quote->fee_rule_version,
+                'fee_rate' => $quote->fee_rate,
+                'fee_bearer' => $quote->fee_bearer,
+                'channel' => $request->channel->value,
+                // The stored key is the DIGEST of the member's key, never the key
+                // itself: it is the uniqueness handle that lets a retry find its own
+                // history without the database holding a value the member can replay
+                // somewhere else.
+                'idempotency_key' => $key,
+                'quote_reference' => $quote->reference,
+                'request_fingerprint' => $this->fingerprint($request, $amountIn),
+                'metadata' => $request->metadata,
+            ]);
+
+            $sourceBalance = $this->wallets->applyDebit($source, Money::of($amountIn, $this->currencyEnum($request->currency)), FinancialTransactionType::Transfer);
+            $destinationBalance = $this->wallets->applyCredit($destination, Money::of($amountOut, $this->currencyEnum($request->currency)), FinancialTransactionType::Transfer);
+            $financial = $this->createFinancialTransaction($request, $conversion, $amountIn, $feeAmount);
+            $conversion->financial_transaction_id = $financial->getKey();
+            $conversion->status = WalletConversionStatus::Processing;
+            $conversion->save();
+            $this->postEntries($financial, $conversion, $source, $destination, $amountIn, $amountOut, $feeAmount,
+                [$sourceBalance->toString(), $destinationBalance->toString(), null]);
+            $this->transactions->transitionTo($financial, TransactionStatus::Completed);
+            $financial->processed_at = now();
+            $financial->save();
+            $conversion->status = WalletConversionStatus::Completed;
+            $conversion->source_balance_after = $sourceBalance->toString();
+            $conversion->destination_balance_after = $destinationBalance->toString();
+            $conversion->completed_at = now();
+            $conversion->save();
+
+            // The movement is proved AFTER it is written, against what is actually in
+            // the books rather than what we meant to put there. A failure here throws
+            // and takes the whole transaction with it — including when the caller is
+            // wrapping this in a transaction of its own and would otherwise commit a
+            // half-proved conversion.
+            $this->integrity->assertSettled($conversion);
+
+            // The audit row is written INSIDE the movement's transaction and before the
+            // quote is spent. "Money moved and nothing recorded it" is the one state a
+            // reconciliation can never repair, so a failure to record must undo the
+            // movement rather than be reported afterwards.
+            $this->recordAudit($conversion, 'completed', $request->auditContext);
+
+            $this->quotes->consume($quote, (int) $conversion->getKey());
+
+            return $this->resultFrom($conversion, false);
+        });
+    }
+
+    public function reverse(int $conversionId, ConversionAuditContextData $context, string $reason, ?string $idempotencyKey = null): ConversionResultData
+    {
+        if (! (bool) $this->config->get('conversions.reversal.enabled', true)) {
+            throw ConversionException::failure('conversion_reversal_disabled', 'Conversion reversals are disabled.');
+        }
+
+        // The API channel is an operator channel too. The reverse endpoint is
+        // policy-gated on the row, and every path — panel, console, HTTP — then goes
+        // through ConversionReversalAuthority, which proves current database-held
+        // authority. Refusing `Api` here would not add a lock on that door; it would
+        // only force the HTTP controller to lie about where the action came from.
+        // Members are stopped by the policy and by the authority proof, not by a
+        // string comparison against the channel they happened to arrive on.
+        if (! in_array($context->channel, [WalletConversionChannel::Admin, WalletConversionChannel::Console, WalletConversionChannel::Api], true)) {
+            throw ConversionException::failure('conversion_reversal_forbidden', 'Only an operator may reverse a conversion.');
+        }
+
+        $minimumReason = (int) $this->config->get('conversions.reversal.min_reason_length', 10);
+        if (mb_strlen(trim($reason)) < $minimumReason) {
+            throw ConversionException::failure('conversion_reversal_reason_required', 'A detailed reason is required for the reversal.');
+        }
+
+        return DB::transaction(function () use ($conversionId, $context, $reason, $idempotencyKey): ConversionResultData {
+            // AUTHORITY BEFORE LOCKS, AND BEFORE THE REPLAY SHORTCUT.
+            //
+            // Two things must be true of this check. First, it runs before the
+            // conversion and wallet rows are locked: the authority proof locks the two
+            // users in id order, and taking a conversion lock first would let two
+            // operators reversing each other's conversions deadlock. Second, it runs
+            // before the "this is a retry, hand back the existing reversal" branch,
+            // because a retry is still an operator asking to see and re-affirm money
+            // that moved — an actor whose rights were revoked must not be able to read
+            // it back out through the retry path.
+            //
+            // The owner is read WITHOUT a lock purely to name whose conversion this is;
+            // the authoritative row is re-read under lock immediately afterwards, and
+            // nothing is decided from the unlocked copy except the identity to prove.
+            //
+            // Reading the row can itself refuse: a state this system does not
+            // recognise is unproven accounting, and it is reported here as "there is no
+            // honest inverse of this" rather than as a raw parse failure.
+            try {
+                $owner = WalletConversion::query()->find($conversionId);
+            } catch (ConversionException) {
+                throw ConversionException::failure('reversal_unavailable', 'The original conversion cannot be verified, so it cannot be reversed.');
+            }
+            if (! $owner) {
+                throw ConversionException::failure('conversion_not_reversible', 'This conversion is not in a reversible state.');
+            }
+
+            app(ConversionReversalAuthority::class)->authorize(
+                (int) $owner->user_id,
+                $context->actorUserId === null ? null : (int) $context->actorUserId,
+            );
+
+            try {
+                $original = WalletConversion::query()->lockForUpdate()->find($conversionId);
+                // The lifecycle state is read here, inside the guard against an
+                // unreadable row, so that a stored state this system does not recognise
+                // is reported as "this cannot be verified" rather than as "this is not
+                // reversible" — the second would suggest a rule, and there is no rule
+                // that produces an unrecognisable state.
+                $originalState = $original?->status;
+            } catch (ConversionException) {
+                throw ConversionException::failure('reversal_unavailable', 'The original conversion cannot be verified, so it cannot be reversed.');
+            }
+            if (! $original) {
+                throw ConversionException::failure('conversion_not_reversible', 'This conversion is not in a reversible state.');
+            }
+
+            // The authority proof named an owner. Confirm, under lock, that this row is
+            // still that person's. A conversion re-parented between the preload and the
+            // lock would otherwise let one member's conversion be reversed on another
+            // member's authority — the proof would be true of a row that no longer
+            // exists in that form.
+            if ((int) $original->user_id !== (int) $owner->user_id) {
+                throw ConversionException::failure('reversal_forbidden', 'The conversion owner changed while the reversal was being authorised.');
+            }
+
+            // The reversal's own identity is computed BEFORE any child is looked at,
+            // because it is what decides whether a child is a replay of this request or
+            // somebody else's separate attempt. Computing it later would mean
+            // "already reversed" could only ever be answered with a replay.
+            $reversalReason = trim($reason);
+            $reversalKey = self::storedKey($idempotencyKey ?? 'reverse:'.$original->getKey().':'.$reversalReason);
+            $reversalFingerprint = hash('sha256', json_encode(
+                ['reverse', (int) $original->getKey(), (int) ($context->actorUserId ?? 0), $reversalReason],
+                JSON_THROW_ON_ERROR,
+            ));
+
+            $child = WalletConversion::query()->where('reversal_of_id', $original->getKey())->orderBy('id')->first();
+
+            if ($child) {
+                // A reversal already exists, so this call is a replay of it. Replaying is
+                // reading history, and history is only readable if it proves: the pair
+                // is handed back only when the reciprocal link and both movements hold
+                // up under the proof. A broken link is reported as unproven accounting,
+                // not as "already reversed".
+                // ...and only when it is THIS request. A new key, a different operator
+                // or a different reason is a second reversal attempt, not a retry, and
+                // handing back the existing row would tell the caller their new
+                // instruction had been carried out. A conversion can be reversed once.
+                if (! hash_equals((string) $child->idempotency_key, $reversalKey)
+                    || ! hash_equals((string) $child->request_fingerprint, $reversalFingerprint)) {
+                    throw ConversionException::failure(
+                        'reversal_unavailable',
+                        'This conversion has already been reversed by a different request.',
                     );
                 }
 
-                $provedOriginal = $this->integrity->assertSettled($original);
-                $provedChild = $this->integrity->assertSettled($existingReplayChild);
+                $proved = $this->integrity->assertSettled($child);
 
-                return ['original' => $provedOriginal, 'reversal' => $provedChild, 'replayed' => true];
+                return $this->resultFrom($proved, true);
             }
 
-            $rawStatus = WalletConversionStatus::tryFrom((string) $original->getRawOriginal('status'));
-            if ($rawStatus !== WalletConversionStatus::Completed || ! $original->canBeReversed()) {
-                throw ConversionException::failure('reversal_unavailable', 'Only completed original conversions can be reversed.');
+            if ($originalState !== WalletConversionStatus::Completed || $original->reversal_of_id !== null) {
+                throw ConversionException::failure('conversion_not_reversible', 'This conversion is not in a reversible state.');
             }
 
-            $windowHours = (int) config('conversions.reversals.window_hours', 24);
-            if (! $original->isInsideReversalWindow($windowHours)) {
-                throw ConversionException::failure(
-                    'reversal_unavailable',
-                    'The reversal window for this conversion has elapsed.',
-                );
-            }
-
+            // The original has to prove before it can be undone. Note the different
+            // code: an original whose books do not add up is not "unproven accounting
+            // to review", it is a conversion that cannot be offered for reversal at
+            // all — there is no honest inverse of a movement nobody can verify.
             try {
-                $original = $this->integrity->assertSettled($original);
-            } catch (ConversionException $error) {
-                throw ConversionException::failure('reversal_unavailable', $error->getMessage(), [], $error);
+                $this->integrity->assertSettled($original);
+            } catch (ConversionException) {
+                throw ConversionException::failure('reversal_unavailable', 'The original conversion cannot be verified, so it cannot be reversed.');
             }
 
-            $originalDirection = $original->direction instanceof WalletConversionDirection
-                ? $original->direction
-                : WalletConversionDirection::from((string) $original->direction);
-            $reverseDirection = $originalDirection->opposite();
+            // The window is checked AFTER the proof, not before: "the window has
+            // closed" is only a useful answer about a conversion whose books add up. If
+            // the completion stamp itself is missing or wrong, the truthful refusal is
+            // that the original cannot be verified, not that time ran out.
+            $window = max(1, (int) $this->config->get('conversions.reversal.window_hours', 24));
+            if ($original->completed_at === null || $original->completed_at->lt(now()->subHours($window))) {
+                throw ConversionException::failure('conversion_reversal_window_expired', 'The conversion is outside the reversal window.');
+            }
 
-            $currency = Currency::tryFrom((string) $original->currency) ?? Currency::primary();
+            $locked = $this->locks->lockMany([(int) $original->source_wallet_id, (int) $original->destination_wallet_id]);
+            $from = $locked[(int) $original->destination_wallet_id];
+            $to = $locked[(int) $original->source_wallet_id];
+            $fromAmount = bcadd((string) $original->amount_out, '0', 2);
+            $toAmount = bcadd((string) $original->amount_in, '0', 2);
 
-            $fromWallet = Wallet::query()->findOrFail((int) $original->to_wallet_id);
-            $toWallet = Wallet::query()->findOrFail((int) $original->from_wallet_id);
-            [$lockedFrom, $lockedTo] = $this->lockPairInOrder($fromWallet, $toWallet);
+            // The reversal returns the FEE as well: what arrives back in the source
+            // wallet is exactly what left it, so the reversal leg carries the original
+            // fee with the opposite sign and the revenue account is debited back.
+            $feeAmount = bcmul(bcadd((string) $original->fee_amount, '0', 2), '-1', 2);
 
-            $reversalAmountIn = bcadd((string) $original->getRawOriginal('amount_out'), '0', 2);
-            $originalFee = bcadd((string) $original->getRawOriginal('fee_amount'), '0', 2);
-            $reversalFeeAmount = bccomp($originalFee, '0.00', 2) === 0
-                ? '0.00'
-                : bcmul($originalFee, '-1', 2);
-            $reversalAmountOut = bcadd((string) $original->getRawOriginal('amount_in'), '0', 2);
+            if (bccomp($from->getAvailableBalance(), $fromAmount, 2) < 0) {
+                throw ConversionException::failure('insufficient_balance', 'The destination wallet no longer contains the amount required to reverse this conversion.');
+            }
 
-            $fromBefore = bcadd((string) $lockedFrom->getRawOriginal('balance'), '0', 2);
-            $toBefore = bcadd((string) $lockedTo->getRawOriginal('balance'), '0', 2);
-
-            $reference = $this->generateReference();
-            $feeBearer = $original->fee_bearer instanceof ConversionFeeBearer
-                ? $original->fee_bearer->value
-                : (string) $original->getRawOriginal('fee_bearer');
-
-            $reversal = $this->repository->create([
-                'reference' => $reference,
-                'user_id' => (int) $original->user_id,
-                'direction' => $reverseDirection->value,
-                'status' => WalletConversionStatus::Pending->value,
-                'currency' => $currency->value,
-                'from_wallet_id' => (int) $lockedFrom->getKey(),
-                'to_wallet_id' => (int) $lockedTo->getKey(),
-                'from_wallet_type' => $reverseDirection->fromType()->value,
-                'to_wallet_type' => $reverseDirection->toType()->value,
-                'amount_in' => $reversalAmountIn,
-                'fee_amount' => $reversalFeeAmount,
-                'amount_out' => $reversalAmountOut,
-                'fee_rate' => (string) $original->getRawOriginal('fee_rate'),
-                'fee_bearer' => $feeBearer,
-                'fee_rule_key' => (string) $original->fee_rule_key,
-                'fee_rule_version' => (string) $original->fee_rule_version,
+            $reverse = WalletConversion::query()->create([
+                'reference' => 'WC-'.strtoupper(Str::random(24)),
+                'user_id' => $original->user_id,
+                'source_wallet_id' => $from->getKey(),
+                'destination_wallet_id' => $to->getKey(),
+                'from_wallet_type' => $this->walletType($from),
+                'to_wallet_type' => $this->walletType($to),
+                'direction' => $original->direction->opposite(),
+                'status' => WalletConversionStatus::Processing,
+                'currency' => $this->currencyCode($original->currency),
+                'amount_in' => $fromAmount,
+                'fee_amount' => $feeAmount,
+                'amount_out' => $toAmount,
+                'from_balance_before' => bcadd((string) $from->balance, '0', 2),
+                'to_balance_before' => bcadd((string) $to->balance, '0', 2),
+                'fee_rule_key' => $original->fee_rule_key,
+                'fee_rule_version' => $original->fee_rule_version,
+                'fee_rate' => $original->fee_rate,
+                'fee_bearer' => $original->fee_bearer,
                 'channel' => $context->channel->value,
-                'actor_user_id' => (int) $actor->getKey(),
-                'idempotency_key' => $hashedKey,
-                'request_fingerprint' => $fingerprint,
-                'from_balance_before' => $fromBefore,
-                'to_balance_before' => $toBefore,
-                'from_balance_after' => $fromBefore,
-                'to_balance_after' => $toBefore,
-                'reversal_of_id' => (int) $original->getKey(),
-                'reversal_reason' => $trimmedReason,
+                'idempotency_key' => $reversalKey,
+                'request_fingerprint' => $reversalFingerprint,
+                'reversal_of_id' => $original->getKey(),
+                'reversal_reason' => $reversalReason,
+                'actor_user_id' => $context->actorUserId,
+                'metadata' => ['actor_user_id' => $context->actorUserId, 'request_id' => $context->requestId, 'ip_address' => $context->ipAddress],
             ]);
 
-            $reversal = $this->repository->transition($reversal, WalletConversionStatus::Processing);
-
-            try {
-                $newFromBalance = bccomp($reversalAmountIn, '0.00', 2) === 1
-                    ? $this->wallets->applyDebit(
-                        $lockedFrom,
-                        Money::of($reversalAmountIn, $currency),
-                        FinancialTransactionType::Transfer,
-                    )
-                    : Money::of($fromBefore, $currency);
-            } catch (InsufficientBalanceException) {
-                throw ConversionException::failure(
-                    WalletConversionRejectionReason::InsufficientBalance->value,
-                    'Destination wallet no longer holds the converted funds required for reversal.',
-                );
-            }
-
-            $newToBalance = $this->wallets->applyCredit(
-                $lockedTo,
-                Money::of($reversalAmountOut, $currency),
-                FinancialTransactionType::Transfer,
-            );
-
-            $finTx = $this->postConversionLedgerEntries(
-                conversion: $reversal,
-                fromWalletId: (int) $lockedFrom->getKey(),
-                toWalletId: (int) $lockedTo->getKey(),
-                fromBalanceAfter: $newFromBalance->toString(),
-                toBalanceAfter: $newToBalance->toString(),
-                amountIn: $reversalAmountIn,
-                amountOut: $reversalAmountOut,
-                feeAmount: '0.00',
-                currency: $currency,
-                isReversal: true,
-                feeRefundAmount: $originalFee,
-            );
-
-            $completedReversal = $this->repository->markCompleted($reversal, [
-                'from_balance_after' => $newFromBalance->toString(),
-                'to_balance_after' => $newToBalance->toString(),
-                'financial_transaction_id' => (int) $finTx->getKey(),
-                'completed_at' => Carbon::now(),
-            ]);
-
-            $updatedOriginal = $this->repository->transition($original, WalletConversionStatus::Reversed, [
-                'reversed_by_id' => (int) $completedReversal->getKey(),
-                'reversal_reason' => $trimmedReason,
-                'reversed_at' => Carbon::now(),
-            ]);
-
-            $completedReversal = $this->integrity->assertSettled($completedReversal);
-
-            $this->recordAudit(
-                conversionId: (int) $updatedOriginal->getKey(),
-                reference: (string) $updatedOriginal->reference,
-                userId: (int) $updatedOriginal->user_id,
-                direction: $originalDirection->value,
-                event: 'reversed',
-                errorCode: null,
-                message: $trimmedReason,
+            $fromBalance = $this->wallets->applyDebit($from, Money::of($fromAmount, $this->currencyEnum($original->currency)), FinancialTransactionType::Transfer);
+            $toBalance = $this->wallets->applyCredit($to, Money::of($toAmount, $this->currencyEnum($original->currency)), FinancialTransactionType::Transfer);
+            $synthetic = new ConversionRequestData(
+                direction: $original->direction->opposite(),
+                amount: $fromAmount,
+                currency: $this->currencyEnum($original->currency),
                 channel: $context->channel,
-                context: $context,
-                payload: [
-                    'reversal_reference' => (string) $completedReversal->reference,
-                    'reason' => $trimmedReason,
-                    'fee_refunded' => $originalFee,
-                ],
+                userId: (int) $original->user_id,
+                idempotencyKey: $reversalKey,
+                quoteReference: null,
+                auditContext: $context,
+                metadata: [],
             );
+            $financial = $this->createFinancialTransaction($synthetic, $reverse, $fromAmount, '0.00', true);
+            $reverse->financial_transaction_id = $financial->getKey();
+            $reverse->save();
+            $this->postEntries($financial, $reverse, $from, $to, $fromAmount, $toAmount, $feeAmount,
+                [$fromBalance->toString(), $toBalance->toString(), null]);
+            $this->transactions->transitionTo($financial, TransactionStatus::Completed);
+            $financial->processed_at = now();
+            $financial->save();
+            $reverse->status = WalletConversionStatus::Completed;
+            $reverse->source_balance_after = $fromBalance->toString();
+            $reverse->destination_balance_after = $toBalance->toString();
+            $reverse->completed_at = now();
+            $reverse->save();
 
-            $this->recordAudit(
-                conversionId: (int) $completedReversal->getKey(),
-                reference: (string) $completedReversal->reference,
-                userId: (int) $completedReversal->user_id,
-                direction: $reverseDirection->value,
-                event: 'completed',
-                errorCode: null,
-                message: $trimmedReason,
-                channel: $context->channel,
-                context: $context,
-                payload: [
-                    'original_reference' => (string) $updatedOriginal->reference,
-                    'reason' => $trimmedReason,
-                    'fee_refunded' => $originalFee,
-                ],
-            );
+            $original->status = WalletConversionStatus::Reversed;
+            $original->reversed_by_id = $reverse->getKey();
+            $original->reversed_at = now();
+            // The reason is written on BOTH rows. On the reversal it explains why the
+            // movement exists; on the original it explains why the movement was undone,
+            // which is the question an auditor asks when they open the original. The
+            // two must agree — the proof compares them — so that a later edit to one
+            // cannot quietly rewrite the story of the other.
+            $original->reversal_reason = $reversalReason;
+            $original->save();
 
-            return ['original' => $updatedOriginal, 'reversal' => $completedReversal, 'replayed' => false];
+            // The pair is proved once both rows and both movements exist: the proof
+            // walks the link in both directions, so it can only run when there is a
+            // link to walk.
+            $this->integrity->assertSettled($reverse);
+
+            // Two events, because two facts happened: the original was undone, and the
+            // reversal completed. They get different references so that a support
+            // lookup by either reference finds the half of the story it is asking about.
+            $this->recordAudit($original, 'reversed', $context);
+            $this->recordAudit($reverse, 'completed', $context);
+
+            return $this->resultFrom($reverse, false);
         });
-
-        /** @var WalletConversion $completedReversal */
-        $completedReversal = $pair['reversal'];
-        $replayed = (bool) $pair['replayed'];
-
-        return $this->resultFromModel($completedReversal, replayed: $replayed);
     }
 
     public function findForUser(string $reference, int $userId): ?WalletConversion
     {
-        return WalletConversion::query()
-            ->where('reference', $reference)
-            ->where('user_id', $userId)
-            ->first();
+        return WalletConversion::query()->where('reference', $reference)->where('user_id', $userId)->first();
     }
 
     public function history(ConversionHistoryFilterData $filter): LengthAwarePaginator
     {
-        return $this->historyService->history($filter);
+        $query = WalletConversion::query()->where('user_id', $filter->userId);
+        if ($filter->direction) { $query->where('direction', $filter->direction->value); }
+        if ($filter->hasStatuses()) { $query->whereIn('status', $filter->statusValues()); }
+        if ($filter->from) { $query->where('created_at', '>=', $filter->from); }
+        if ($filter->to) { $query->where('created_at', '<=', $filter->to); }
+        if ($filter->hasSearch()) { $query->where('reference', 'like', '%'.$filter->search.'%'); }
+        return $query->orderByDesc('id')->paginate($filter->perPage, ['*'], 'page', $filter->page);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function summaryForUser(int $userId, ?\App\Enums\Currency $currency = null): array
-    {
-        return $this->historyService->summaryForUser($userId, $currency);
-    }
-
-    /**
-     * @return Collection<int, WalletConversionQuote>
-     */
     public function openQuotesForUser(int $userId): Collection
     {
-        return $this->quotes->openForUser($userId);
+        return WalletConversionQuote::query()->where('user_id', $userId)
+            ->where('status', WalletConversionQuoteStatus::Open)->whereNull('converted_id')->whereNull('consumed_at')
+            ->where('expires_at', '>', now())
+            ->orderByDesc('id')->limit((int) $this->config->get('conversions.quotes.max_open_per_user', 5))->get();
+    }
+
+    /**
+     * The member's conversion totals, split by what they mean.
+     *
+     * TWO KINDS OF NUMBER, DELIBERATELY SEPARATED
+     * Counts are inventory: how many conversion rows exist and how many are settled.
+     * Volumes are money, and money has a DENOMINATION — so `completed_volume_in`,
+     * `completed_volume_out` and `fee_total` are reported for ONE currency, the one the
+     * caller asked about, never as a sum across denominations. Adding THB to USD would
+     * produce a number that looks authoritative and means nothing; `by_currency` exists
+     * so a caller who genuinely wants the whole picture gets each bucket named instead.
+     *
+     * REVERSALS ARE NOT FRESH VOLUME
+     * A reversal is a completed movement, so it counts as a row, but it is the UNDOING
+     * of a conversion: counting it as new volume would double-count the member's
+     * activity and count the platform's correction as trade. So volumes take rows that
+     * are completed AND are not themselves reversals, and a converted original that was
+     * reversed afterwards stays in the count while dropping out of the volume.
+     *
+     * @return array{total: int, completed: int, completed_volume_in: string, completed_volume_out: string,
+     *               fee_total: string, currency: string, counts_scope: string, reversed: int,
+     *               by_currency: array<string, array{completed: int, completed_volume_in: string, completed_volume_out: string, fee_total: string}>}
+     */
+    public function summaryForUser(int $userId, ?Currency $currency = null): array
+    {
+        $selected = $currency ?? Currency::primary();
+
+        $query = WalletConversion::query()->where('user_id', $userId);
+        $fresh = (clone $query)->where('status', WalletConversionStatus::Completed->value)->whereNull('reversal_of_id');
+
+        $byCurrency = [];
+        foreach (Currency::cases() as $case) {
+            $scoped = (clone $fresh)->where('currency', $case->value);
+            $byCurrency[$case->value] = [
+                'completed' => (clone $scoped)->count(),
+                'completed_volume_in' => bcadd((string) (clone $scoped)->sum('amount_in'), '0', 2),
+                'completed_volume_out' => bcadd((string) (clone $scoped)->sum('amount_out'), '0', 2),
+                'fee_total' => bcadd((string) (clone $scoped)->sum('fee_amount'), '0', 2),
+            ];
+        }
+
+        $bucket = $byCurrency[$selected->value];
+
+        return [
+            'total' => (clone $query)->count(),
+            'completed' => WalletConversion::query()->where('user_id', $userId)
+                ->where('status', WalletConversionStatus::Completed->value)->count(),
+            'completed_volume_in' => $bucket['completed_volume_in'],
+            'completed_volume_out' => $bucket['completed_volume_out'],
+            'fee_total' => $bucket['fee_total'],
+            'currency' => $selected->value,
+            'counts_scope' => 'all_currencies',
+            'reversed' => (clone $query)->where('status', WalletConversionStatus::Reversed->value)->count(),
+            'by_currency' => $byCurrency,
+        ];
     }
 
     public function isEnabled(?WalletConversionDirection $direction = null): bool
     {
-        if (! (bool) config('conversions.enabled', true)) {
-            return false;
-        }
-
-        if ($direction === null) {
-            return true;
-        }
-
-        return (bool) config('conversions.directions.'.$direction->value.'.enabled', true)
-            && $this->fees->isConfigured($direction);
+        if (! (bool) $this->config->get('conversions.enabled', false)) { return false; }
+        return $direction === null || (bool) $this->config->get('conversions.directions.'.$direction->value.'.enabled', false);
     }
 
-    private function postConversionLedgerEntries(
-        WalletConversion $conversion,
-        int $fromWalletId,
-        int $toWalletId,
-        string $fromBalanceAfter,
-        string $toBalanceAfter,
-        string $amountIn,
-        string $amountOut,
-        string $feeAmount,
-        Currency $currency,
-        bool $isReversal,
-        string $feeRefundAmount,
-    ): FinancialTransaction {
-        $playerAccount = $this->ledger->resolveAccount(
-            LedgerPostingService::accountCodeFor(WalletService::ACCOUNT_PLAYER_LIABILITY, $currency),
-        );
-
-        $needsFeeAccount = ($isReversal && bccomp($feeRefundAmount, '0.00', 2) === 1)
-            || (! $isReversal && bccomp($feeAmount, '0.00', 2) === 1);
-        $feeAccount = $needsFeeAccount
-            ? $this->ledger->resolveAccount(
-                LedgerPostingService::accountCodeFor(WalletService::ACCOUNT_FEE_REVENUE, $currency),
-            )
-            : null;
-
-        $finTx = FinancialTransaction::query()->create([
-            'reference_number' => 'FTX-'.strtoupper(bin2hex(random_bytes(8))),
-            'user_id' => (int) $conversion->user_id,
-            'wallet_id' => $fromWalletId,
-            'type' => $isReversal ? TransactionType::Reversal : TransactionType::Transfer,
-            'amount' => $amountIn,
-            'fee' => $isReversal ? '0.00' : $feeAmount,
-            'currency' => $currency,
-            'idempotency_key' => 'conversion:'.(int) $conversion->user_id.':'.(string) $conversion->idempotency_key,
-            'reference_type' => 'wallet_conversion',
-            'reference_id' => (int) $conversion->getKey(),
-            'description' => $isReversal ? 'Cash/Win conversion reversal' : 'Cash/Win conversion',
-            'metadata' => [
-                'engine_type' => 'transfer',
-                'conversion_id' => (int) $conversion->getKey(),
-                'conversion_reference' => (string) $conversion->reference,
-            ],
-        ]);
-
-        $finTx->forceFill(['status' => TransactionStatus::Processing])->save();
-
-        $entries = [];
-        $balancesAfter = [];
-
-        if (bccomp($amountIn, '0.00', 2) === 1) {
-            $entries[] = [
-                'ledger_account_id' => (int) $playerAccount->getKey(),
-                'wallet_id' => $fromWalletId,
-                'type' => LedgerEntryType::Debit,
-                'amount' => $amountIn,
-                'description' => 'Source wallet debit for '.(string) $conversion->reference,
-                'reference_type' => 'wallet_conversion',
-                'reference_id' => (int) $conversion->getKey(),
-            ];
-            $balancesAfter[count($entries) - 1] = $fromBalanceAfter;
-        }
-
-        if (bccomp($amountOut, '0.00', 2) === 1) {
-            $entries[] = [
-                'ledger_account_id' => (int) $playerAccount->getKey(),
-                'wallet_id' => $toWalletId,
-                'type' => LedgerEntryType::Credit,
-                'amount' => $amountOut,
-                'description' => 'Destination wallet credit for '.(string) $conversion->reference,
-                'reference_type' => 'wallet_conversion',
-                'reference_id' => (int) $conversion->getKey(),
-            ];
-            $balancesAfter[count($entries) - 1] = $toBalanceAfter;
-        }
-
-        if ($isReversal && bccomp($feeRefundAmount, '0.00', 2) === 1 && $feeAccount !== null) {
-            $entries[] = [
-                'ledger_account_id' => (int) $feeAccount->getKey(),
-                'wallet_id' => null,
-                'type' => LedgerEntryType::Debit,
-                'amount' => $feeRefundAmount,
-                'description' => 'Fee refund on reversal '.(string) $conversion->reference,
-                'reference_type' => 'wallet_conversion',
-                'reference_id' => (int) $conversion->getKey(),
-            ];
-            $balancesAfter[count($entries) - 1] = null;
-        }
-
-        if (! $isReversal && bccomp($feeAmount, '0.00', 2) === 1 && $feeAccount !== null) {
-            $entries[] = [
-                'ledger_account_id' => (int) $feeAccount->getKey(),
-                'wallet_id' => null,
-                'type' => LedgerEntryType::Credit,
-                'amount' => $feeAmount,
-                'description' => 'Conversion fee on '.(string) $conversion->reference,
-                'reference_type' => 'wallet_conversion',
-                'reference_id' => (int) $conversion->getKey(),
-            ];
-            $balancesAfter[count($entries) - 1] = null;
-        }
-
-        $this->ledger->post($finTx, $entries, $balancesAfter, preserveExplicitNulls: true);
-
-        $finTx->forceFill([
-            'status' => TransactionStatus::Completed,
-            'processed_at' => Carbon::now(),
-        ])->save();
-
-        return $finTx;
-    }
-
-    /**
-     * @return array{0: Wallet, 1: Wallet}
-     */
-    private function lockPairInOrder(Wallet $from, Wallet $to): array
+    private function assertIdempotencyKey(?string $key): void
     {
-        $fromId = (int) $from->getKey();
-        $toId = (int) $to->getKey();
-
-        $orderedIds = $fromId <= $toId ? [$fromId, $toId] : [$toId, $fromId];
-        $locked = Wallet::query()
-            ->whereIn('id', $orderedIds)
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->get()
-            ->keyBy(static fn (Wallet $w): int => (int) $w->getKey());
-
-        /** @var Wallet $lockedFrom */
-        $lockedFrom = $locked->get($fromId);
-        /** @var Wallet $lockedTo */
-        $lockedTo = $locked->get($toId);
-
-        return [$lockedFrom, $lockedTo];
-    }
-
-    private function resultFromModel(WalletConversion $conversion, bool $replayed): ConversionResultData
-    {
-        $direction = $conversion->direction instanceof WalletConversionDirection
-            ? $conversion->direction
-            : WalletConversionDirection::from((string) $conversion->direction);
-        $status = $conversion->status instanceof WalletConversionStatus
-            ? $conversion->status
-            : WalletConversionStatus::from((string) $conversion->status);
-        $currency = Currency::tryFrom((string) $conversion->currency) ?? Currency::primary();
-
-        return new ConversionResultData(
-            conversionId: (int) $conversion->getKey(),
-            reference: (string) $conversion->reference,
-            status: $status,
-            direction: $direction,
-            amountIn: bcadd((string) $conversion->amount_in, '0', 2),
-            feeAmount: bcadd((string) $conversion->fee_amount, '0', 2),
-            amountOut: bcadd((string) $conversion->amount_out, '0', 2),
-            currency: $currency,
-            fromWalletId: (int) $conversion->from_wallet_id,
-            toWalletId: (int) $conversion->to_wallet_id,
-            fromBalanceAfter: bcadd((string) $conversion->from_balance_after, '0', 2),
-            toBalanceAfter: bcadd((string) $conversion->to_balance_after, '0', 2),
-            financialTransactionId: $conversion->financial_transaction_id !== null ? (int) $conversion->financial_transaction_id : null,
-            idempotencyKey: $conversion->idempotency_key !== null ? (string) $conversion->idempotency_key : null,
-            replayed: $replayed,
-            completedAt: $conversion->completed_at !== null
-                ? DateTimeImmutable::createFromInterface($conversion->completed_at)
-                : null,
-            note: $conversion->reversal_reason !== null ? (string) $conversion->reversal_reason : null,
-        );
-    }
-
-    private function handleRefusal(ConversionException $exception, ConversionRequestData $request): void
-    {
-        if (DB::transactionLevel() > 0 && ! DB::connection()->getPdo()->inTransaction()) {
-            return;
-        }
-
-        try {
-            $this->recordAudit(
-                conversionId: null,
-                reference: $request->quoteReference ?? ('refused-'.bin2hex(random_bytes(4))),
-                userId: $request->userId > 0 ? $request->userId : null,
-                direction: $request->direction->value,
-                event: 'rejected',
-                errorCode: $exception->errorCode(),
-                message: $exception->getMessage(),
-                channel: $request->channel,
-                context: $request->auditContext,
-                payload: $exception->context() + [
-                    'user_id' => $request->userId,
-                    'direction' => $request->direction->value,
-                    'amount' => $request->amount,
-                ],
-            );
-        } catch (\Throwable) {
-            // Best-effort refusal audit when the user row does not exist or DB is unavailable.
+        if (! (bool) $this->config->get('conversions.idempotency.required', true)) { return; }
+        $minimum = (int) $this->config->get('conversions.idempotency.min_key_length', 16);
+        $maximum = (int) $this->config->get('conversions.idempotency.max_key_length', 128);
+        if ($key === null || strlen($key) < $minimum || strlen($key) > $maximum) {
+            throw ConversionException::failure('idempotency_key_required', 'A valid idempotency key is required.');
         }
     }
 
     /**
-     * @param  array<string, mixed>  $payload
+     * Record one auditable event for a conversion row.
+     *
+     * Only success paths call this. Refusals are NOT written here on purpose: a
+     * refusal moves nothing, and the integrity tests this lane is held to compare the
+     * complete state of the tables before and after a refused operation. Writing a row
+     * on refusal would either make those comparisons meaningless or force them to
+     * ignore a table that then quietly collects junk. The audit trail here is the
+     * record of what happened to money, not a request log.
      */
-    private function recordAudit(
-        ?int $conversionId,
-        string $reference,
-        ?int $userId,
-        ?string $direction,
-        string $event,
-        ?string $errorCode,
-        ?string $message,
-        WalletConversionChannel $channel,
-        ?ConversionAuditContextData $context,
-        array $payload,
-    ): void {
-        WalletConversionAudit::query()->create([
-            'wallet_conversion_id' => $conversionId,
-            'reference' => $reference,
-            'user_id' => $userId,
-            'actor_user_id' => $context?->actorUserId,
+    private function recordAudit(WalletConversion $conversion, string $event, ?ConversionAuditContextData $context): void
+    {
+        $this->audits->record([
+            'wallet_conversion_id' => (int) $conversion->getKey(),
+            'reference' => (string) $conversion->reference,
             'event' => $event,
-            'direction' => $direction,
-            'channel' => $channel->value,
-            'error_code' => $errorCode,
-            'message' => $message,
-            'context' => $payload + ($context?->metadata ?? []),
+            'channel' => $context?->channel->value
+                ?? ($conversion->channel instanceof WalletConversionChannel ? $conversion->channel->value : (string) $conversion->channel),
+            'actor_user_id' => $context?->actorUserId,
             'ip_address' => $context?->ipAddress,
             'user_agent' => $context?->userAgent,
             'request_id' => $context?->requestId,
-            'recorded_at' => Carbon::now(),
+            'context' => [
+                'status' => $conversion->status instanceof WalletConversionStatus ? $conversion->status->value : (string) $conversion->status,
+                'direction' => $conversion->direction->value,
+                'currency' => $this->currencyCode($conversion->currency),
+                'amount_in' => (string) $conversion->amount_in,
+                'amount_out' => (string) $conversion->amount_out,
+                'fee_amount' => (string) $conversion->fee_amount,
+            ],
+            'recorded_at' => now(),
         ]);
     }
 
-    private function generateReference(): string
+    /**
+     * Open the destination wallet, if the member has never had one.
+     *
+     * ONLY EXECUTION DOES THIS. A quote or an advisory check must never create a
+     * wallet: quoting is a read, and a read that writes would let anybody fill a
+     * member's account with empty wallets by asking for prices. At execution there is
+     * money on its way into this wallet, so the row has to exist — and it is created
+     * inside the movement's transaction, so a failed conversion leaves no wallet
+     * behind either.
+     */
+    private function openDestinationWallet(ConversionRequestData $request): Wallet
     {
-        $prefix = (string) config('conversions.reference_prefix', 'WCV');
+        Wallet::query()->firstOrCreate([
+            'user_id' => $request->userId,
+            'currency' => $this->currencyCode($request->currency),
+            'type' => $request->toWalletType()->value,
+        ]);
 
-        return strtoupper($prefix).'-'.strtoupper(bin2hex(random_bytes(8)));
+        $opened = Wallet::query()->where('user_id', $request->userId)
+            ->where('type', $request->toWalletType()->value)
+            ->where('currency', $this->currencyCode($request->currency))
+            ->first();
+
+        if (! $opened instanceof Wallet) {
+            throw ConversionException::failure('wallet_locked', 'The destination wallet could not be resolved for this conversion.');
+        }
+
+        return $opened;
+    }
+
+    /**
+     * Record a refusal that an investigator will need to look up later.
+     *
+     * Only refusals that carry a custody decision are written: the audit table is the
+     * trail of what happened to money, and filling it with every mistyped amount would
+     * bury the entries that matter.
+     */
+    private function recordRefusalAudit(ConversionRequestData $request, string $errorCode): void
+    {
+        $context = $request->auditContext;
+
+        $this->audits->record([
+            'wallet_conversion_id' => null,
+            // There is no conversion yet — nothing moved. The reference names the
+            // REQUEST (the quote that was offered, or the member and direction), so a
+            // support lookup can find the refusal from what the member has in hand.
+            'reference' => $request->quoteReference ?? substr('refused:'.$request->userId.':'.$request->direction->value, 0, 64),
+            'event' => 'rejected',
+            'error_code' => $errorCode,
+            'channel' => $request->channel->value,
+            'actor_user_id' => $context?->actorUserId,
+            'ip_address' => $context?->ipAddress,
+            'user_agent' => $context?->userAgent,
+            'request_id' => $context?->requestId,
+            'context' => [
+                'user_id' => $request->userId,
+                'direction' => $request->direction->value,
+                'amount' => $request->amount,
+                'currency' => $this->currencyCode($request->currency),
+            ],
+            'recorded_at' => now(),
+        ]);
+    }
+
+    /**
+     * The stored name of a wallet's class.
+     */
+    private function walletType(Wallet $wallet): string
+    {
+        $type = $wallet->type;
+
+        return $type instanceof WalletType ? $type->value : (string) $type;
+    }
+
+    /**
+     * The stored form of a member-supplied idempotency key.
+     *
+     * The database keeps a digest, never the key itself: the key is a handle the
+     * member holds, and storing it verbatim would leave a replayable-looking value
+     * in the table for anyone who reads it.
+     */
+    private static function storedKey(string $key): string
+    {
+        return hash('sha256', $key);
+    }
+
+    /**
+     * The request as the amount it will actually move, normalised to two places so
+     * "100", "100.0" and "100.00" are one request rather than three.
+     */
+    private function requestedAmount(ConversionRequestData $request): string
+    {
+        return bcadd((string) $request->amount, '0', 2);
+    }
+
+    /**
+     * The canonical identity of a conversion request, stored on the row and
+     * re-derived by the proof. It says "this exact conversion" — direction, amount,
+     * currency and the quote it was priced with — and deliberately not who retried
+     * it, because the same request replayed is still the same request.
+     */
+    private function fingerprint(ConversionRequestData $request, string $amountIn): string
+    {
+        return hash('sha256', json_encode(
+            ['convert', $request->direction->value, bcadd($amountIn, '0', 2), $this->currencyCode($request->currency), (string) $request->quoteReference],
+            JSON_THROW_ON_ERROR,
+        ));
+    }
+
+    /**
+     * The three-letter code behind a currency, whether it arrives as the enum or as
+     * the string a JSON payload produced.
+     */
+    private function currencyCode(mixed $currency): string
+    {
+        return $currency instanceof Currency ? $currency->value : (string) $currency;
+    }
+
+    private function currencyEnum(mixed $currency): Currency
+    {
+        return $currency instanceof Currency ? $currency : Currency::from((string) $currency);
+    }
+
+    private function createFinancialTransaction(ConversionRequestData $request, WalletConversion $conversion, string $amount, string $fee, bool $reversal = false): FinancialTransaction
+    {
+        $transaction = new FinancialTransaction;
+        $transaction->fill([
+            'reference_number' => $this->transactions->generateReferenceNumber(),
+            'user_id' => $request->userId,
+            'wallet_id' => $conversion->source_wallet_id,
+            'type' => $reversal ? TransactionType::Reversal : TransactionType::Transfer,
+            'currency' => $this->currencyCode($request->currency),
+            'amount' => $amount,
+            'fee' => $fee,
+            'description' => $reversal ? 'Cash/Win conversion reversal' : 'Cash/Win conversion',
+            'metadata' => ['engine_type' => 'transfer', 'conversion_reference' => $conversion->reference, 'direction' => $conversion->direction->value],
+            'idempotency_key' => 'conversion:'.$conversion->user_id.':'.$conversion->idempotency_key,
+            'reference_type' => 'wallet_conversion',
+            'reference_id' => $conversion->getKey(),
+        ]);
+        $transaction->status = TransactionStatus::Pending;
+        $transaction->save();
+        $this->transactions->transitionTo($transaction, TransactionStatus::Processing)->save();
+        return $transaction;
+    }
+
+    /**
+     * Post the ledger legs for one conversion movement.
+     *
+     * The fee leg takes the SIGN of the fee it is given: a charge credits revenue, a
+     * refund debits it. Both directions therefore post with absolute amounts and an
+     * explicit entry type, which is what the ledger validator needs in order to
+     * balance, and what an auditor needs in order to read a reversal as a reversal
+     * rather than as a suspiciously similar conversion.
+     *
+     * @param  list<?string>  $balancesAfter
+     */
+    private function postEntries(FinancialTransaction $financial, WalletConversion $conversion, Wallet $source, Wallet $destination, string $amountIn, string $amountOut, string $signedFee, array $balancesAfter = []): void
+    {
+        $currency = $this->currencyEnum($conversion->currency);
+        $liability = $this->ledger->resolveAccount(LedgerPostingService::accountCodeFor(WalletService::ACCOUNT_PLAYER_LIABILITY, $currency));
+        $revenue = $this->ledger->resolveAccount(LedgerPostingService::accountCodeFor(WalletService::ACCOUNT_FEE_REVENUE, $currency));
+        $entries = [
+            ['ledger_account_id' => (int) $liability->getKey(), 'type' => LedgerEntryType::Debit, 'amount' => $amountIn, 'wallet_id' => (int) $source->getKey(), 'reference_type' => 'wallet_conversion', 'reference_id' => (int) $conversion->getKey()],
+            ['ledger_account_id' => (int) $liability->getKey(), 'type' => LedgerEntryType::Credit, 'amount' => $amountOut, 'wallet_id' => (int) $destination->getKey(), 'reference_type' => 'wallet_conversion', 'reference_id' => (int) $conversion->getKey()],
+        ];
+        if (bccomp($signedFee, '0', 2) !== 0) {
+            $entries[] = [
+                'ledger_account_id' => (int) $revenue->getKey(),
+                'type' => bccomp($signedFee, '0', 2) > 0 ? LedgerEntryType::Credit : LedgerEntryType::Debit,
+                'amount' => ltrim($signedFee, '-'),
+                // A fee is not in anybody's wallet, so the leg carries no wallet and no
+                // wallet snapshot. Passing the null explicitly keeps it distinct from
+                // "the caller forgot", which the ledger service fills in for us.
+                'wallet_id' => null,
+                'reference_type' => 'wallet_conversion',
+                'reference_id' => (int) $conversion->getKey(),
+            ];
+        }
+        $this->ledger->post($financial, $entries, $balancesAfter);
+    }
+
+    private function resultFrom(WalletConversion $conversion, bool $replayed): ConversionResultData
+    {
+        return new ConversionResultData(
+            conversionId: (int) $conversion->getKey(),
+            reference: (string) $conversion->reference,
+            status: $conversion->status,
+            direction: $conversion->direction,
+            amountIn: (string) $conversion->amount_in,
+            feeAmount: (string) $conversion->fee_amount,
+            amountOut: (string) $conversion->amount_out,
+            currency: $this->currencyEnum($conversion->currency),
+            fromWalletId: (int) $conversion->source_wallet_id,
+            toWalletId: (int) $conversion->destination_wallet_id,
+            fromBalanceAfter: (string) ($conversion->source_balance_after ?? Wallet::query()->find($conversion->source_wallet_id)?->balance ?? '0.00'),
+            toBalanceAfter: (string) ($conversion->destination_balance_after ?? Wallet::query()->find($conversion->destination_wallet_id)?->balance ?? '0.00'),
+            financialTransactionId: $conversion->financial_transaction_id ? (int) $conversion->financial_transaction_id : null,
+            idempotencyKey: $conversion->idempotency_key,
+            replayed: $replayed,
+            completedAt: $conversion->completed_at?->toDateTimeImmutable(),
+            note: $conversion->reason,
+        );
     }
 }

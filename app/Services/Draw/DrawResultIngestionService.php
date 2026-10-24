@@ -8,6 +8,7 @@ use App\Enums\AuditAction;
 use App\Enums\DrawConfirmationStatus;
 use App\Enums\DrawLifecycleState;
 use App\Enums\RiskLevel;
+use App\Enums\UserStatus;
 use App\Exceptions\DrawResultException;
 use App\Models\AuditLog;
 use App\Models\Draw;
@@ -76,25 +77,35 @@ class DrawResultIngestionService
      *
      * @throws DrawResultException
      */
-    public function ingest(
-        int $drawId,
-        array $payload,
-        string $provenance = 'internal',
-        ?int $ingestedBy = null,
-        ?string $provenanceReference = null,
-        ?string $source = null,
-        ?int $actorUserId = null,
-    ): array {
-        $resolvedSource = $source ?? $provenance;
-        $resolvedActorUserId = $actorUserId ?? $ingestedBy;
-        $resolvedProvenanceRef = $provenanceReference
-            ?? (isset($payload['provenance_reference']) && is_scalar($payload['provenance_reference'])
-                ? (string) $payload['provenance_reference']
-                : (isset($payload['glo']['import_reference']) && is_scalar($payload['glo']['import_reference'])
-                    ? (string) $payload['glo']['import_reference']
-                    : null));
+    public function ingest(int $drawId, array $payload, string $source, ?int $actorUserId = null): array
+    {
+        // WHO staged this result, decided before anything is written.
+        //
+        // A supplied identity is a claim, and the confirmation rule is
+        // four-eyes: the second person must be able to look up the first. An id
+        // that names no live account — zero, negative, a deleted user, a
+        // suspended one — would produce a pending card attributed to nobody (or,
+        // worse, to a row that no longer exists), so it is refused BEFORE the
+        // draw row is touched or an audit line is written. A NULL identity stays
+        // legal and stays explicitly unattributed: that is a feed, and a feed can
+        // never be confirmed by a human.
+        if ($actorUserId !== null) {
+            $maker = User::query()->find($actorUserId);
 
-        return DB::transaction(function () use ($drawId, $payload, $resolvedSource, $resolvedActorUserId, $resolvedProvenanceRef): array {
+            if (! $maker instanceof User || $maker->trashed() || $maker->status !== UserStatus::Active) {
+                throw DrawResultException::confirmationForbidden(
+                    0,
+                    'unattributable_maker',
+                    'ingested a result',
+                    [
+                        'operator_id' => $actorUserId,
+                        'draw_id' => $drawId,
+                    ],
+                );
+            }
+        }
+
+        return DB::transaction(function () use ($drawId, $payload, $source, $actorUserId): array {
             $draw = Draw::query()->lockForUpdate()->find($drawId);
 
             if (! $draw instanceof Draw) {
@@ -112,9 +123,7 @@ class DrawResultIngestionService
                 );
             }
 
-            $this->assertValidMaker($drawId, $resolvedActorUserId);
-
-            $canonical = $this->canonicalize($drawId, $payload, $resolvedSource);
+            $canonical = $this->canonicalize($drawId, $payload, $source);
             $fingerprint = $this->fingerprintFor($canonical);
 
             $existing = $this->currentRecord($draw);
@@ -150,12 +159,10 @@ class DrawResultIngestionService
             $record = [
                 'status' => DrawConfirmationStatus::Pending->value,
                 'fingerprint' => $fingerprint,
-                'source' => $resolvedSource,
-                'provenance' => $resolvedSource,
-                'provenance_reference' => $resolvedProvenanceRef,
+                'source' => $source,
                 'payload' => $canonical,
                 'ingested_at' => now()->toIso8601String(),
-                'ingested_by' => $resolvedActorUserId,
+                'ingested_by' => $actorUserId,
             ];
 
             $metadata = is_array($draw->metadata) ? $draw->metadata : [];
@@ -165,7 +172,7 @@ class DrawResultIngestionService
             $draw->metadata = $metadata;
             $draw->save();
 
-            $this->recordAudit($draw, 'IngestedDrawResult', $record, $resolvedActorUserId, 'Ingested new official result into Pending confirmation state');
+            $this->recordAudit($draw, 'IngestedDrawResult', $record, $actorUserId, 'Ingested new official result into Pending confirmation state');
 
             return $this->resultRow($drawId, $record, noOp: false);
         });
@@ -201,22 +208,8 @@ class DrawResultIngestionService
     public function currentIngestion(int $drawId): ?array
     {
         $draw = Draw::query()->find($drawId);
-        if (! $draw instanceof Draw) {
-            return null;
-        }
 
-        $record = $this->currentRecord($draw);
-        if (! is_array($record)) {
-            return null;
-        }
-
-        $payload = is_array($record['payload'] ?? null) ? $record['payload'] : [];
-
-        return array_merge([
-            'draw_id' => $drawId,
-            'first_prize' => isset($payload['first_prize']) ? (string) $payload['first_prize'] : '',
-            'bottom_two' => isset($payload['bottom_two']) ? (string) $payload['bottom_two'] : '',
-        ], $record);
+        return $draw instanceof Draw ? $this->currentRecord($draw) : null;
     }
 
     /**
@@ -225,33 +218,6 @@ class DrawResultIngestionService
     public function hasIngestion(int $drawId): bool
     {
         return $this->currentIngestion($drawId) !== null;
-    }
-
-    private function assertValidMaker(int $drawId, ?int $actorUserId): void
-    {
-        if ($actorUserId === null) {
-            return;
-        }
-
-        if ($actorUserId < 1) {
-            throw DrawResultException::confirmationForbidden(
-                $drawId,
-                DrawConfirmationStatus::Pending->value,
-                'ingested by an invalid operator identity',
-                ['draw_id' => $drawId, 'operator_id' => $actorUserId],
-            );
-        }
-
-        $maker = User::query()->find($actorUserId);
-
-        if (! $maker instanceof User || ! $maker->isActive()) {
-            throw DrawResultException::confirmationForbidden(
-                $drawId,
-                DrawConfirmationStatus::Pending->value,
-                'ingested by an inactive or missing operator',
-                ['draw_id' => $drawId, 'operator_id' => $actorUserId],
-            );
-        }
     }
 
     /**
@@ -372,30 +338,28 @@ class DrawResultIngestionService
             'bottom_two' => $claimedBottomTwo,
         ];
 
-        if (array_key_exists('second_prize', $payload)) {
-            $canonical['second_prize'] = $this->validatePrizeList(
-                $payload['second_prize'],
-                'second_prize',
-                5,
-                $source,
-                $drawId,
-            );
-        }
-
-        if (array_key_exists('third_prize', $payload)) {
-            $canonical['third_prize'] = $this->validatePrizeList(
-                $payload['third_prize'],
-                'third_prize',
-                10,
-                $source,
-                $drawId,
-            );
-        }
-
-        if (array_key_exists('consolation_prizes', $payload) && is_array($payload['consolation_prizes'])) {
-            $canonical['consolation_prizes'] = array_values(array_map('strval', $payload['consolation_prizes']));
-        }
-
+        // ── OPTIONAL SOURCE-LANE PASSTHROUGH ──────────────────────────────
+        //
+        // A feed may carry more than the two canonical numbers: the remaining
+        // official tiers (fourth, fifth, front 3, last 3, last 2) and an n3
+        // group, plus the identity of the provider that supplied them. Those
+        // values are NOT result numbers and are not what this service
+        // validates — but they must survive as far as the CONFIRMATION act,
+        // because the tier lane inside draw_results.metadata is read by public
+        // result display (GloPublicResultService, ResultsPageService,
+        // GloPublicPrizeSummaryService) and by GloN3TicketChecker.
+        //
+        // Carrying the lane here, and writing it from the confirmation service,
+        // is what keeps the write boundary intact: the lane reaches the
+        // draw_results row at the moment a SECOND operator confirms, never at
+        // intake time. Previously this data was written by the importer
+        // directly, which is how an unconfirmed feed payload could reach a
+        // published row.
+        //
+        // The values are preserved verbatim and influence nothing that is
+        // settled: first_prize and bottom_two above are the only fields
+        // canonicalisation produces, and the fingerprint below is computed over
+        // those two alone.
         $lane = $this->sourceLane($payload);
 
         if ($lane !== null) {
@@ -403,36 +367,6 @@ class DrawResultIngestionService
         }
 
         return $canonical;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function validatePrizeList(mixed $list, string $field, int $maxCount, string $source, int $drawId): array
-    {
-        if (! is_array($list) || ! array_is_list($list) || count($list) > $maxCount) {
-            throw DrawResultException::malformed(
-                $source,
-                sprintf('%s must be a sequential list of at most %d six-digit strings', $field, $maxCount),
-                ['draw_id' => $drawId, 'field' => $field],
-            );
-        }
-
-        $validated = [];
-
-        foreach ($list as $entry) {
-            if (! is_string($entry) || preg_match('/^\d{6}$/', $entry) !== 1) {
-                throw DrawResultException::malformed(
-                    $source,
-                    sprintf('%s entries must be exact six-digit strings', $field),
-                    ['draw_id' => $drawId, 'field' => $field],
-                );
-            }
-
-            $validated[] = $entry;
-        }
-
-        return $validated;
     }
 
     /**
@@ -448,67 +382,35 @@ class DrawResultIngestionService
     private function sourceLane(array $payload): ?array
     {
         $lane = [];
-        $tiers = isset($payload['tiers']) && is_array($payload['tiers']) ? $payload['tiers'] : [];
 
-        foreach (['fourth', 'fifth', 'front_three', 'last_three', 'last_two', 'adjacent_first'] as $tierKey) {
-            if (! isset($tiers[$tierKey]) && isset($payload[$tierKey]) && is_array($payload[$tierKey])) {
-                $tiers[$tierKey] = array_values(array_map('strval', $payload[$tierKey]));
-            }
-        }
-
-        if ($tiers !== []) {
-            $lane['tiers'] = $tiers;
+        if (isset($payload['tiers']) && is_array($payload['tiers']) && $payload['tiers'] !== []) {
+            $lane['tiers'] = $payload['tiers'];
         }
 
         if (isset($payload['n3']) && is_array($payload['n3']) && $payload['n3'] !== []) {
             $lane['n3'] = $payload['n3'];
         }
 
-        $glo = isset($payload['glo']) && is_array($payload['glo']) ? $payload['glo'] : [];
-
         if (isset($payload['provider']) && is_scalar($payload['provider'])) {
             $lane['import_provider'] = (string) $payload['provider'];
-        } elseif (isset($glo['import_provider']) && is_scalar($glo['import_provider'])) {
-            $lane['import_provider'] = (string) $glo['import_provider'];
         }
 
         if (isset($payload['provider_fingerprint']) && is_scalar($payload['provider_fingerprint'])) {
             $lane['import_fingerprint'] = (string) $payload['provider_fingerprint'];
-        } elseif (isset($glo['import_fingerprint']) && is_scalar($glo['import_fingerprint'])) {
-            $lane['import_fingerprint'] = (string) $glo['import_fingerprint'];
-        }
-
-        if (isset($payload['provenance_reference']) && is_scalar($payload['provenance_reference'])) {
-            $lane['import_reference'] = (string) $payload['provenance_reference'];
-        } elseif (isset($glo['import_reference']) && is_scalar($glo['import_reference'])) {
-            $lane['import_reference'] = (string) $glo['import_reference'];
         }
 
         return $lane === [] ? null : $lane;
     }
 
     /**
-     * sha256 over the canonical prize facts: stable across identical re-ingests,
+     * sha256 over the canonical pair: stable across identical re-ingests,
      * different the moment any digit moves.
      *
-     * @param  array<string, mixed>  $canonical
+     * @param  array{first_prize: string, bottom_two: string}  $canonical
      */
-    public static function fingerprintFor(array $canonical): string
+    private function fingerprintFor(array $canonical): string
     {
-        $parts = [
-            (string) ($canonical['first_prize'] ?? ''),
-            (string) ($canonical['bottom_two'] ?? ''),
-        ];
-
-        $second = is_array($canonical['second_prize'] ?? null) ? array_values($canonical['second_prize']) : [];
-        $third = is_array($canonical['third_prize'] ?? null) ? array_values($canonical['third_prize']) : [];
-
-        if ($second !== [] || $third !== []) {
-            $parts[] = implode(',', array_map('strval', $second));
-            $parts[] = implode(',', array_map('strval', $third));
-        }
-
-        return hash('sha256', implode(':', $parts));
+        return hash('sha256', $canonical['first_prize'].':'.$canonical['bottom_two']);
     }
 
     /**

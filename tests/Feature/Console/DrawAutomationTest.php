@@ -576,26 +576,11 @@ final class DrawAutomationTest extends TestCase
     private function publishedDraw(int $publishedMinutesAgo): Draw
     {
         $draw = $this->pendingDraw();
-        $maker = User::factory()->create();
-        $checker = User::factory()->create();
-        $payload = [
+
+        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
             'first_prize' => '456123',
             'bottom_two' => '45',
-        ];
-
-        app(\App\Services\Draw\DrawResultIngestionService::class)->ingest(
-            (int) $draw->getKey(),
-            $payload,
-            'operator',
-            (int) $maker->getKey(),
-            'DRAW-AUTO-INGEST',
-        );
-
-        app(\App\Services\Draw\DrawResultConfirmationService::class)->confirm(
-            (int) $draw->getKey(),
-            (int) $checker->getKey(),
-            $payload,
-        );
+        ]);
 
         $draw->refresh();
 

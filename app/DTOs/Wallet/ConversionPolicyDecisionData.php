@@ -35,8 +35,7 @@ final readonly class ConversionPolicyDecisionData
         public array $checks = [],
         public array $context = [],
         public ?string $message = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, bool|string>  $checks

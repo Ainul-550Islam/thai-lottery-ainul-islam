@@ -168,6 +168,63 @@ final class BetCommissionCancellation
         }
     }
 
+    /**
+     * Prove that this bet's commission recovery is complete, closed and intact.
+     *
+     * READ-ONLY, and deliberately so: it is the proof half of `cancelUnpaid()`,
+     * for coordinators that cancel many bets inside one transaction and must be
+     * able to re-prove every member's recovery without writing anything — the
+     * replay of a draw cancellation, for instance.
+     *
+     * It is not a formality. `agent_commission_compensations.compensation_hash`
+     * is the only record tying a payout reversal to the ledger entries that
+     * moved the agent's money; a replay that skipped this check would report a
+     * complete cancellation over a compensation whose books no longer agree with
+     * it, and the difference would only surface at reconciliation, after the
+     * draw was reported as refunded.
+     *
+     * A commission that is still live (Accrued, Calculated, Payable, Paid) means
+     * the recovery never happened, so it is refused rather than skipped: "no
+     * compensation row" and "compensation never needed" are different facts.
+     */
+    public function assertRecoveryClosed(Bet $bet, object $purchase): void
+    {
+        [$rows, $claims, $agents] = $this->verified($bet, $purchase);
+        $compensation = app(BetCommissionCompensation::class);
+
+        foreach ($rows as $index => $row) {
+            $claim = $claims[$index];
+
+            if ($row->status === CommissionStatus::Reversed) {
+                $receipt = DB::table('agent_commission_payouts')->where('commission_id', $row->id)->lockForUpdate()->first();
+                $wallet = $receipt === null
+                    ? null
+                    : Wallet::query()->whereKey((int) $receipt->wallet_id)->lockForUpdate()->first();
+
+                if (! $wallet instanceof Wallet || $claim->state !== 'cancelled' || $claim->cancelled_at === null) {
+                    $this->refuse();
+                }
+
+                $compensation->assertClosed($bet, $purchase, $row, $agents->get($row->agent_id), $wallet, $claim);
+
+                continue;
+            }
+
+            if ($row->status === CommissionStatus::Cancelled) {
+                if ($claim->state !== 'cancelled' || $claim->cancelled_at === null
+                    || DB::table('agent_commission_compensations')->where('ownership_id', $claim->id)->exists()) {
+                    $this->refuse();
+                }
+
+                $this->assertNoFinancialHistory($row);
+
+                continue;
+            }
+
+            $this->refuse();
+        }
+    }
+
     /** Internal coordinator primitive; the enclosing member transaction owns the complete refund. */
     public function cancelUnpaid(Bet $bet, object $purchase, string $reason, string $stamp, array $wallets = [], ?Wallet $member = null): void
     {

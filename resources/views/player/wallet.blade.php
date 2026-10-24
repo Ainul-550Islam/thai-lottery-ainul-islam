@@ -64,6 +64,20 @@
         </a>
     </div>
 
+    {{--
+        Cash <-> Win transfer panel.
+
+        The partial is included only when the page has panel data. Rendering it
+        unconditionally would ship its own "transfers are currently disabled"
+        banner on every wallet view - a false statement about an enabled lane -
+        so the include stays conditional until the wallet controller passes
+        $transferPanel (see HANDOFF-A.md). Nothing else on this page depends on
+        it: the ledger table below is server-rendered either way.
+    --}}
+    @isset($transferPanel)
+        @include('player.partials.transfer-panel', ['transferPanel' => $transferPanel])
+    @endisset
+
     <!-- Transactions Table -->
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
         <h2 class="text-lg font-bold text-white mb-6">{{ __('player.journal_title') }}</h2>

@@ -287,12 +287,42 @@ final class PublicPageDataService
      * @param  callable(): array<string, mixed>  $producer
      * @return array<string, mixed>
      */
+    /**
+     * The revision that describes the document this page actually publishes.
+     *
+     * 'legal_version' is the field a client compares against what a member consented
+     * to, so it has to name the document's own revision: stamping the shared
+     * legal.version on a Terms payload labelled v1.0.1 Terms as v1.0.0 and made a
+     * re-consent prompt impossible to reason about.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function legalVersionFor(string $page, array $data): string
+    {
+        if ($page === 'terms') {
+            return (string) config('legal.terms.version', $data['version'] ?? config('legal.version', 'v0'));
+        }
+
+        if ($page === 'privacy') {
+            return (string) config('legal.privacy_version', $data['version'] ?? config('legal.version', 'v0'));
+        }
+
+        return (string) config('legal.version', 'v0');
+    }
+
     private function section(string $page, callable $producer, ?string $locale): array
     {
         $locale = $this->locale($locale);
+        // The cache key must carry BOTH documents' revisions, because one cache entry
+        // is written per page: a Terms revision that left the key untouched served the
+        // previous Terms text (and its previous effective date) until the TTL expired.
         $legalVersion = (string) config('legal.content_version', '1')
             .'|'.(string) config('legal.version', 'v0')
-            .'|'.(string) config('legal.privacy_version', config('legal.version', 'v0'));
+            .'|'.(string) config('legal.privacy_version', config('legal.version', 'v0'))
+            .'|'.(string) config('legal.terms.version', config('legal.version', 'v0'))
+            .'|'.(string) config('legal.terms.content_version', '1')
+            .'|'.(string) config('legal.terms.effective_at', '')
+            .'|'.(string) config('legal.terms.updated_at', '');
         $contentVersion = (string) config('public_pages.content_version', '1');
         $sourceVersion = match ($page) {
             'fees' => (string) config('fees.rule_version', '1').'|'.hash('sha256', json_encode(config('fees.categories', []), JSON_THROW_ON_ERROR)),
@@ -316,16 +346,16 @@ final class PublicPageDataService
             if ($ttl === 0) {
                 $data = $producer();
                 $data['content_version'] = (string) config('public_pages.content_version', '1');
-                $data['legal_version'] = (string) config('legal.version', 'v0');
+                $data['legal_version'] = $this->legalVersionFor($page, $data);
 
                 return $data;
             }
 
             /** @var array<string, mixed> $data */
-            $data = Cache::remember($key, $ttl, function () use ($producer): array {
+            $data = Cache::remember($key, $ttl, function () use ($producer, $page): array {
                 $fresh = $producer();
                 $fresh['content_version'] = (string) config('public_pages.content_version', '1');
-                $fresh['legal_version'] = (string) config('legal.version', 'v0');
+                $fresh['legal_version'] = $this->legalVersionFor($page, $fresh);
 
                 return $fresh;
             });
@@ -339,7 +369,9 @@ final class PublicPageDataService
                 'page' => $page,
                 'locale' => $locale,
                 'content_version' => (string) config('public_pages.content_version', '1'),
-                'legal_version' => (string) config('legal.version', 'v0'),
+                // Even the degraded stub must name the document's own revision: a client
+                // that cannot load the text still has to know which revision it failed on.
+                'legal_version' => $this->legalVersionFor($page, []),
             ];
         }
     }

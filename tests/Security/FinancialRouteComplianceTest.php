@@ -50,9 +50,6 @@ final class FinancialRouteComplianceTest extends TestCase
             'api.v1.prize-claims.store' => 'auth:sanctum',
             'api.v1.glo.claims.store' => 'auth:sanctum',
             'api.v1.glo.claims.cancel' => 'auth:sanctum',
-            'api.v1.glo-l6.reservations.store' => 'auth:sanctum',
-            'api.v1.glo-l6.reservations.confirm' => 'auth:sanctum',
-            'api.v1.glo-l6.purchases.store' => 'auth:sanctum',
         ];
     }
 

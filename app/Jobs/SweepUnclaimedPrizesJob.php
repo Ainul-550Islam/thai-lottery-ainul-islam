@@ -16,9 +16,41 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
 use Throwable;
 
+/**
+ * Sweeps ALREADY-EXPIRED unclaimed prizes into the disposal ledger.
+ *
+ * WHERE THIS JOB SITS ON THE LADDER
+ * ---------------------------------
+ * Two separate sweeps keep both earlier trusts intact:
+ *
+ *   ExpireUnclaimedPrizesJob   (claim lifecycle)   claim rows whose window
+ *                                                  lapses turn Expired — the
+ *                                                  moment the prize LAPSES.
+ *                                                  Same run enrolls the lane
+ *                                                  UnclaimedPrizeStatus=Expired.
+ *   THIS job                   (disposal view)     every lane record at
+ *                                                  Expired turns Swept — the
+ *                                                  moment the lapse ENTERS
+ *                                                  disposal accounting.
+ *
+ * CHUNKED, REPLAY-SAFE, TRANSACTION-AWARE
+ * ---------------------------------------
+ * Chunking lives in the service (chunkById with a configurable size): a
+ * backlog writes in steady batches instead of one giant mutation. Replay
+ * safety comes from the selector (only Expired lanes match) plus the
+ * disposal key anchored at expiry time, so a scheduler retry never mints
+ * a new disposal identity. Transaction awareness: each row's stamp is the
+ * service's own one-write mutation; the job itself takes no aggregate
+ * transaction lock and thus can never hold the queue against a backpressure
+ * of already-committed rows.
+ *
+ * OBSERVABILITY
+ * -------------
+ * Per-row audits come from the service; the run closes with exactly one
+ * summary audit line naming swept count and total lapsed money.
+ */
 class SweepUnclaimedPrizesJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
@@ -26,17 +58,32 @@ class SweepUnclaimedPrizesJob implements ShouldBeUnique, ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    /**
+     * Maximum retry attempts before failing permanently.
+     */
     public int $tries = 2;
 
     /**
+     * Exponential backoff delays in seconds.
+     *
      * @var list<int>
      */
     public array $backoff = [30, 90];
 
+    /**
+     * Execution timeout in seconds.
+     */
     public int $timeout = 120;
 
+    /**
+     * Unique lock duration in seconds.
+     */
     public int $uniqueFor = 300;
 
+    /**
+     * @param  int|null  $chunkSize  Rows per sweep chunk (bounded for
+     *                               backlog catch-up runs).
+     */
     public function __construct(
         public readonly ?int $chunkSize = null,
     ) {
@@ -44,13 +91,18 @@ class SweepUnclaimedPrizesJob implements ShouldBeUnique, ShouldQueue
         $this->afterCommit();
     }
 
+    /**
+     * Unique identifier for the concurrency lock: one sweep per day.
+     */
     public function uniqueId(): string
     {
         return 'sweep_unclaimed_prizes_'.now()->format('Y-m-d');
     }
 
     /**
-     * @return array<string, mixed>
+     * Run the disposal sweep.
+     *
+     * @return array{swept_count: int, total_swept_amount: string, disposal_keys: list<string>, executed_at: string}
      */
     public function handle(UnclaimedPrizeService $service): array
     {
@@ -59,28 +111,23 @@ class SweepUnclaimedPrizesJob implements ShouldBeUnique, ShouldQueue
         ]);
 
         $summary = $service->sweepExpired($this->chunkSize);
-        $failedCount = (int) ($summary['failed_count'] ?? 0);
 
         Log::info('SweepUnclaimedPrizesJob: sweep complete', [
             'swept_count' => $summary['swept_count'],
             'total_swept_amount' => $summary['total_swept_amount'],
-            'failed_count' => $failedCount,
         ]);
 
-        if ($summary['swept_count'] > 0 || $failedCount > 0) {
+        if ($summary['swept_count'] > 0) {
             $this->recordSummary($summary);
-        }
-
-        if ($failedCount > 0) {
-            throw new RuntimeException(sprintf(
-                'SweepUnclaimedPrizesJob completed with %d row failure(s).',
-                $failedCount,
-            ));
         }
 
         return $summary;
     }
 
+    /**
+     * A failing sweep is loud in the log and quiet in the queue: the next
+     * scheduled run retries the selector idempotently.
+     */
     public function failed(?Throwable $exception): void
     {
         Log::error('SweepUnclaimedPrizesJob: sweep run failed', [
@@ -90,7 +137,9 @@ class SweepUnclaimedPrizesJob implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * @param  array<string, mixed>  $summary
+     * The run's summary audit line: null user (scheduler), action Update.
+     *
+     * @param  array{swept_count: int, total_swept_amount: string}  $summary
      */
     private function recordSummary(array $summary): void
     {
@@ -99,23 +148,18 @@ class SweepUnclaimedPrizesJob implements ShouldBeUnique, ShouldQueue
         $log->fill([
             'user_id' => null,
             'action' => AuditAction::Update,
-            'risk_level' => ($summary['failed_count'] ?? 0) > 0 ? RiskLevel::High : RiskLevel::Medium,
-            'auditable_type' => null,
-            'auditable_id' => null,
+            'risk_level' => RiskLevel::Medium,
+            'auditable_type' => 'unclaimed_prize_disposal',
+            'auditable_id' => 0,
             'description' => sprintf(
-                'Daily unclaimed-prize disposal sweep swept %d prize(s); %d failed.',
-                (int) ($summary['swept_count'] ?? 0),
-                (int) ($summary['failed_count'] ?? 0),
+                'Unclaimed-prize disposal sweep enrolled %d lapsed prize(s) totalling %s.',
+                $summary['swept_count'],
+                $summary['total_swept_amount'],
             ),
             'metadata' => [
-                'lane' => 'unclaimed_prize_disposal',
-                'swept_count' => (int) ($summary['swept_count'] ?? 0),
-                'total_swept_amount' => $summary['total_swept_amount'] ?? null,
-                'totals_by_currency' => $summary['totals_by_currency'] ?? [],
-                'failed_count' => (int) ($summary['failed_count'] ?? 0),
-                'failed_ids' => $summary['failed_ids'] ?? [],
-                'disposal_keys' => $summary['disposal_keys'] ?? [],
-                'chunk_size' => $this->chunkSize,
+                'swept_count' => $summary['swept_count'],
+                'total_swept_amount' => $summary['total_swept_amount'],
+                'action' => 'unclaimed_prizes_swept',
             ],
         ]);
 

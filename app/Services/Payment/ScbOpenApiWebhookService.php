@@ -68,16 +68,11 @@ class ScbOpenApiWebhookService
             throw new InvalidArgumentException('Invalid SCB signature.');
         }
 
-        $transRef = trim((string) ($payload['transactionId'] ?? $payload['transRef'] ?? ''));
-        $rawAmount = $payload['amount'] ?? null;
-        $amount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($rawAmount, 4, 'scb.amount');
-        $currency = strtoupper(trim((string) ($payload['currency'] ?? 'THB')));
-        if ($currency !== 'THB') {
-            throw new InvalidArgumentException("Unsupported SCB payment currency [{$currency}].");
-        }
-        $userId = trim((string) ($payload['billPaymentRef1'] ?? $payload['ref1'] ?? ''));
+        $transRef = (string) ($payload['transactionId'] ?? $payload['transRef'] ?? '');
+        $amount = number_format((float) ($payload['amount'] ?? 0), 4, '.', '');
+        $userId = (string) ($payload['billPaymentRef1'] ?? $payload['ref1'] ?? '');
 
-        if ($transRef === '' || $userId === '') {
+        if (empty($transRef) || empty($userId) || bccomp($amount, '0.0000', 4) <= 0) {
             throw new InvalidArgumentException('Invalid SCB payment notification payload parameters.');
         }
 
@@ -111,7 +106,7 @@ class ScbOpenApiWebhookService
                 gatewayReferenceId: $transRef,
                 currency: 'THB',
                 feeAmount: '0.0000',
-                rawPayload: PaymentLogSanitizer::sanitize($payload),
+                rawPayload: $payload
             );
 
             return [
@@ -121,7 +116,7 @@ class ScbOpenApiWebhookService
                 'trans_ref' => $transRef,
             ];
         } finally {
-            $this->lockService->releaseLock($lockKey, $lock);
+            $this->lockService->releaseLock($lock);
         }
     }
 }

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', __('player.place_wager_title'))
+@section('meta_robots', 'noindex, nofollow')
 @section('meta_description', __('player.place_wager_lead'))
 
 @section('content')

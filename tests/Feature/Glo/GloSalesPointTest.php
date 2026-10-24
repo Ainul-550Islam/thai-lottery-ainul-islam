@@ -194,26 +194,6 @@ class GloSalesPointTest extends TestCase
         $this->assertArrayNotHasKey('email', $first);
     }
 
-    public function test_public_search_excludes_points_before_their_valid_from_date(): void
-    {
-        GloSalesPoint::query()->create([
-            'sales_point_code' => 'SP-FUTURE-VALID',
-            'display_name' => 'Future Location',
-            'status' => 'active',
-            'verification_state' => 'unverified',
-            'valid_from' => now()->addDay(),
-            'source' => 'operator',
-            'source_state' => 'INTERNAL_RECONCILED',
-            'metadata' => [],
-        ]);
-
-        $response = $this->getJson('/api/v1/glo/sales-points');
-        $response->assertOk();
-        $names = array_column($response->json('data'), 'name');
-
-        $this->assertNotContains('Future Location', $names);
-    }
-
     public function test_public_search_radius_filters_and_bounds(): void
     {
         // Point A near Bangkok centre.

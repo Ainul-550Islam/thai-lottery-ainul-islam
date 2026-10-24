@@ -324,13 +324,15 @@ Route::middleware(['throttle:glo.public'])->group(function (): void {
         Route::post('/v1/player/settings/self-exclusion', [PlayerSettingsPortalController::class, 'applySelfExclusionApi'])->name('api.v1.player.settings.self-exclusion');
     });
 
-    // Versioned public legal-document reads share the current publication
-    // pointer. The legacy acceptance URL remains authenticated and records
-    // both the current Terms acceptance and Privacy Notice acknowledgement.
+    // Versioned public legal-document reads share the current publication pointer.
     Route::get('/v1/public/terms', [PublicLegalTermsController::class, 'getTermsApi'])->name('api.v1.public.terms');
     Route::get('/v1/public/terms/search', [PublicLegalTermsController::class, 'searchTermsApi'])->name('api.v1.public.terms.search');
-    Route::post('/v1/public/terms/accept', [LegalConsentController::class, 'storeApi'])
-        ->middleware(['auth:sanctum', 'active', 'throttle:api'])
+    // Public, unauthenticated, and deliberately inert: consent is recorded by the
+    // authenticated web flow (POST /legal/consent). This URL answers 501
+    // NOT_CONFIGURED so a client can tell "not offered here" from "you are not
+    // allowed" (401) - and so an anonymous POST can never write a consent record.
+    Route::post('/v1/public/terms/accept', [LegalConsentController::class, 'acceptNotConfiguredApi'])
+        ->middleware('throttle:api')
         ->name('api.v1.public.terms.accept');
     Route::get('/v1/public/terms/download', [PublicLegalTermsController::class, 'downloadTermsApi'])->name('api.v1.public.terms.download');
     Route::get('/v1/public/privacy', [PublicLegalPrivacyController::class, 'getPrivacyApi'])->name('api.v1.public.privacy');
@@ -1149,20 +1151,29 @@ Route::prefix('v1/public/home')
 
 Route::prefix('v1/public/download')
     ->name('api.v1.public.download.')
-    ->middleware('throttle:60,1')
     ->group(function (): void {
         Route::get('/builds', [PublicDownloadAppController::class, 'getBuildsApi'])->name('builds');
         Route::post('/verify-checksum', [PublicDownloadAppController::class, 'verifyChecksumApi'])->name('verify-checksum');
         Route::post('/track', [PublicDownloadAppController::class, 'trackDownloadApi'])->name('track');
     });
 
-// Short aliases retained for the public download client. They deliberately
-// share the versioned contract and fail-closed implementation above.
+/*
+| Legacy /api/download/* aliases.
+|
+| The APK checksum and download-telemetry endpoints shipped under
+| /api/v1/public/download/* only, while the clients, the SEO integrity suite and
+| the public download page's own documentation referenced the shorter
+| /api/download/* paths - so those calls answered 404. Both spellings now reach
+| the same controller actions with the same throttle, so a client cannot get a
+| different answer (or no answer) depending on which path it was built against.
+| The alias is POST-only: a GET has no meaning here and 405 is the honest answer.
+*/
 Route::prefix('download')
     ->name('api.download.')
-    ->middleware('throttle:60,1')
+    ->middleware('throttle:api')
     ->group(function (): void {
-        Route::get('/builds', [PublicDownloadAppController::class, 'getBuildsApi'])->name('builds');
-        Route::post('/verify-checksum', [PublicDownloadAppController::class, 'verifyChecksumApi'])->name('verify-checksum');
+        // Compatibility path: same controller evidence, but in the result vocabulary
+        // (MATCHED / MISMATCH) that clients built against this shorter URL already read.
+        Route::post('/verify-checksum', [PublicDownloadAppController::class, 'verifyChecksumLegacyApi'])->name('verify-checksum');
         Route::post('/track', [PublicDownloadAppController::class, 'trackDownloadApi'])->name('track');
     });

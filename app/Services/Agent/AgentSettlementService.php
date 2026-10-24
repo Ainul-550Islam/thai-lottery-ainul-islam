@@ -10,10 +10,12 @@ use App\Models\Agent;
 use App\Models\Draw;
 
 /**
- * Universal Agent Settlement and Payout Service.
+ * Universal Agent Settlement entry point.
  *
- * Handles settling accrued agent commissions per draw or agent-specific settlement requests,
- * balance validations, and wallet disbursements within ACID database transactions.
+ * Every payout shape (per draw or per agent) is a proof-bearing financial fact, so both
+ * delegate to the single owning writer. Keeping one writer is what lets a cancellation
+ * compensate an already-paid commission: only that writer seals the receipt such a
+ * compensation must prove against.
  */
 class AgentSettlementService
 {
@@ -33,8 +35,8 @@ class AgentSettlementService
     }
 
     /**
-     * Alias of settleForDraw() accepting either a Draw model or its id —
-     * the call shape most callers already hold a Draw for.
+     * Alias of settleForDraw() accepting either a Draw model or its id — the call shape
+     * most callers already hold a Draw for.
      */
     public function settleDrawCommissions(Draw|int $draw): CommissionSettlementResult
     {

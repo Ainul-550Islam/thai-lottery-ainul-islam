@@ -6,8 +6,6 @@ namespace App\Services\Lottery;
 
 use App\Enums\DrawStatus;
 use App\Models\Draw;
-use App\Services\Lottery\NationalLotteryDateService;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 
 /**
@@ -26,10 +24,6 @@ use Illuminate\Support\Carbon;
 class GloNextDrawService
 {
     public const TIMEZONE = 'Asia/Bangkok';
-
-    public function __construct(private readonly NationalLotteryDateService $dates)
-    {
-    }
 
     /**
      * @return array{
@@ -75,7 +69,7 @@ class GloNextDrawService
                     ? $upcoming->status->value
                     : (string) $upcoming->status,
                 'scheduled_at_iso' => $when->toIso8601String(),
-                'scheduled_at_display' => $this->formatDisplay($when, $tz),
+                'scheduled_at_display' => $when->format('j M Y, H:i T'),
                 'timezone' => $tz,
                 'source' => 'draw_schedule',
                 'message' => null,
@@ -104,14 +98,6 @@ class GloNextDrawService
             'source' => 'none',
             'message' => 'No upcoming draw is scheduled.',
         ];
-    }
-
-    private function formatDisplay(Carbon $date, string $timezone): string
-    {
-        $localDate = CarbonImmutable::instance($date)->setTimezone($timezone);
-        $dateLabel = $this->dates->formatForDisplay($localDate, (string) app()->getLocale());
-
-        return $dateLabel.', '.$localDate->format('H:i T');
     }
 
     /**
@@ -147,7 +133,7 @@ class GloNextDrawService
                 return [
                     'status' => 'AVAILABLE',
                     'scheduled_at_iso' => $candidate->toIso8601String(),
-                    'scheduled_at_display' => $this->formatDisplay($candidate, $tz),
+                    'scheduled_at_display' => $candidate->format('j M Y, H:i T'),
                     'source' => 'official_calendar',
                     'message' => null,
                 ];

@@ -208,80 +208,44 @@ final class PaymentReconciliationService
         // (provider, event) which names this reference in its payload.
         $observedAmount = null;
         $observedStatus = null;
-        $followupDriftLine = null;
-        $capture = $provider === 'stripe'
-            ? app(StripeDepositSettlementService::class)->observedCapture($payment)
-            : null;
-        $references = $capture['references'] ?? [$reference];
 
         /** @var PaymentWebhook|null $applied */
         $applied = PaymentWebhook::query()
             ->where('provider', $provider)
             ->where('status', PaymentWebhookStatus::Applied->value)
             ->orderByDesc('id')
-            ->get(['event_type', 'payload'])
-            ->first(function (PaymentWebhook $webhook) use ($references): bool {
+            ->get(['payload'])
+            ->first(function (PaymentWebhook $webhook) use ($reference): bool {
                 $payload = is_array($webhook->payload) ? $webhook->payload : [];
                 $facts = is_array($payload['data']['object'] ?? null) ? $payload['data']['object'] : $payload;
 
-                $candidates = array_filter([
+                return in_array($reference, [
                     is_string($facts['reference'] ?? null) ? $facts['reference'] : null,
                     is_string($facts['gateway_reference'] ?? null) ? $facts['gateway_reference'] : null,
                     is_string($facts['payment_reference'] ?? null) ? $facts['payment_reference'] : null,
                     is_string($facts['id'] ?? null) ? $facts['id'] : null,
-                    is_string($facts['charge'] ?? null) ? $facts['charge'] : null,
-                    is_string($facts['payment_intent'] ?? null) ? $facts['payment_intent'] : null,
-                ]);
-
-                return array_intersect($references, $candidates) !== [];
+                ], true);
             });
 
         if ($applied instanceof PaymentWebhook) {
             $payload = is_array($applied->payload) ? $applied->payload : [];
-            $hasObjectEnvelope = is_array($payload['data']['object'] ?? null);
-            $facts = $hasObjectEnvelope ? $payload['data']['object'] : $payload;
-            $objectType = is_string($facts['object'] ?? null) ? $facts['object'] : null;
-            $isFollowup = $hasObjectEnvelope && (
-                in_array($objectType, ['refund', 'dispute'], true)
-                || (int) ($facts['amount_refunded'] ?? 0) > 0
-                || ($facts['refunded'] ?? false) === true
-                || ($facts['disputed'] ?? false) === true
-                || str_starts_with((string) $applied->event_type, 'charge.refund')
-                || str_starts_with((string) $applied->event_type, 'refund.')
-                || str_starts_with((string) $applied->event_type, 'charge.dispute')
-            );
+            $facts = is_array($payload['data']['object'] ?? null) ? $payload['data']['object'] : $payload;
 
-            if ($isFollowup) {
-                $followupDriftLine = sprintf(
-                    'provider-followup: applied provider event [%s] requires operator review',
-                    (string) ($applied->event_type ?? $objectType ?? 'followup'),
-                );
-            } elseif ($hasObjectEnvelope && $capture !== null) {
-                $observedAmount = PaymentCallbackService::moneyOf((string) $capture['amount']);
-                $word = $facts['status'] ?? $payload['status'] ?? null;
-                $observedStatus = is_string($word)
-                    ? PaymentTransactionStatus::fromProviderWord($word)
-                    : PaymentTransactionStatus::Succeeded;
-            } else {
-                if (isset($facts['amount'])) {
-                    $raw = is_string($facts['amount'])
-                        ? trim($facts['amount'])
-                        : (is_int($facts['amount']) ? (string) $facts['amount'] : null);
+            if (isset($facts['amount'])) {
+                $raw = is_string($facts['amount'])
+                    ? trim($facts['amount'])
+                    : (is_int($facts['amount']) ? (string) $facts['amount'] : null);
 
-                    if ($raw !== null && preg_match('/^\d+(\.\d{1,2})?$/', $raw) === 1) {
-                        $observedAmount = PaymentCallbackService::moneyOf($raw);
-                    }
-                }
-
-                $word = $facts['status'] ?? $payload['status'] ?? null;
-
-                if (is_string($word)) {
-                    $observedStatus = PaymentTransactionStatus::fromProviderWord($word);
+                if ($raw !== null && preg_match('/^\d+(\.\d{1,2})?$/', $raw) === 1) {
+                    $observedAmount = PaymentCallbackService::moneyOf($raw);
                 }
             }
-        } elseif ($capture !== null) {
-            $observedAmount = PaymentCallbackService::moneyOf((string) $capture['amount']);
-            $observedStatus = PaymentTransactionStatus::Succeeded;
+
+            $word = $facts['status'] ?? $payload['status'] ?? null;
+
+            if (is_string($word)) {
+                $observedStatus = PaymentTransactionStatus::fromProviderWord($word);
+            }
         }
 
         $data = PaymentReconciliationData::fromInput(
@@ -298,10 +262,6 @@ final class PaymentReconciliationService
         // --- DRIFT LINES ------------------------------------------------
         $driftLines = [];
 
-        if ($followupDriftLine !== null) {
-            $driftLines[] = $followupDriftLine;
-        }
-
         if ($observedAmount !== null && bccomp($expected, $observedAmount, 2) !== 0) {
             $driftLines[] = sprintf('amount: internal paper says %s %s, provider evidence says %s', $expected, $currency, $observedAmount);
         }
@@ -310,7 +270,7 @@ final class PaymentReconciliationService
             $driftLines[] = sprintf('status: internal paper says [%s], provider evidence says [%s]', $internalStatus->value, $observedStatus->value);
         }
 
-        if ($followupDriftLine === null && $observedStatus === null && $internalStatus->isFinal()) {
+        if ($observedStatus === null && $internalStatus->isFinal()) {
             $driftLines[] = 'missing-transaction: internal paper claims finality but the provider evidence room is silent';
         }
 

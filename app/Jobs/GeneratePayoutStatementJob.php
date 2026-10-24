@@ -197,8 +197,8 @@ class GeneratePayoutStatementJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Payout,
             'risk_level' => RiskLevel::Medium,
-            'auditable_type' => null,
-            'auditable_id' => null,
+            'auditable_type' => 'payout_statement_generation',
+            'auditable_id' => 0,
             'description' => sprintf(
                 'Payout statement generation pass: %d eligible, %d generated, %d replayed, %d failed.',
                 $summary['eligible'],
@@ -207,7 +207,6 @@ class GeneratePayoutStatementJob implements ShouldBeUnique, ShouldQueue
                 $summary['failed'],
             ),
             'metadata' => [
-                'lane' => 'payout_statement_generation',
                 'eligible' => $summary['eligible'],
                 'generated' => $summary['generated'],
                 'replayed' => $summary['replayed'],

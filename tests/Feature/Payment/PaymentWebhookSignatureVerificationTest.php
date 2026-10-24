@@ -47,7 +47,7 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
     #[Test]
     public function bkash_webhook_signature_is_verified_correctly(): void
     {
-        $player = $this->createPlayer('0.00', Currency::BDT);
+        $player = $this->createPlayer('0.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '500.00', PaymentMethod::Bkash);
 
         $payload = [
@@ -55,7 +55,6 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
             'trxID' => 'TRX_BKASH_123',
             'merchantInvoiceNumber' => $deposit->reference_number,
             'amount' => '500.00',
-            'currency' => 'BDT',
             'transactionStatus' => 'Completed',
         ];
 
@@ -74,14 +73,13 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
     #[Test]
     public function crypto_webhook_signature_is_verified_correctly(): void
     {
-        $player = $this->createPlayer('100.00', Currency::USD);
+        $player = $this->createPlayer('100.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '250.00', PaymentMethod::Crypto);
 
         $payload = [
             'txid' => '0x9876543210abcdef',
             'invoice_id' => $deposit->reference_number,
             'amount' => '250.00',
-            'currency' => 'USD',
             'status' => 'CONFIRMED',
             'confirmations' => 6,
         ];

@@ -30,8 +30,8 @@ class RolePermissionSeeder extends Seeder
                 'execute glo prize payments',
                 'publish glo public status',
                 'reconcile deposit checkouts',
-                'reconcile stripe deposit settlements',
                 'review stripe deposit followups',
+                'reconcile stripe deposit settlements',
                 'recover confirmed stripe refunds',
             ])),
             'agent' => [

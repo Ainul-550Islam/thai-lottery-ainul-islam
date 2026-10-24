@@ -41,8 +41,7 @@ class LocalBlocklistThreatReputationProvider implements ThreatReputationProvider
         }
 
         $ipBlock = SecurityIpBlock::query()
-            ->where('ip_or_cidr', $normalized)
-            ->where('is_active', true)
+            ->where('ip_address', $normalized)
             ->where(function ($query): void {
                 $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })

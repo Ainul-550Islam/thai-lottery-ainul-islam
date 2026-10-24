@@ -11,10 +11,12 @@ use App\Enums\Currency;
 use App\Enums\FinancialTransactionType;
 use App\Enums\WalletStatus;
 use App\Exceptions\BetDomainException;
+use App\Exceptions\BetPurchaseIdempotencyException;
 use App\Models\AgentCommission;
 use App\Models\AuditLog;
 use App\Models\FinancialTransaction;
 use App\Models\NumberLimit;
+use App\Models\User;
 use App\Services\Agent\AgentCommissionAccrualService;
 use App\Services\Agent\AgentCommissionSettlementService;
 use App\Services\Agent\BetCommissionCancellation;
@@ -25,12 +27,14 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Feature\Agent\Concerns\BuildsCommissionCancellation;
 use Tests\Feature\Betting\Concerns\BuildsOwnedBetPurchase;
+use Tests\Concerns\RecordsCurrentLegalConsent;
 use Tests\Feature\Finance\FinancialMasterTestCase;
 
 class CoordinatedUnpaidCancellationTest extends FinancialMasterTestCase
 {
     use BuildsCommissionCancellation;
     use BuildsOwnedBetPurchase;
+    use RecordsCurrentLegalConsent;
 
     public static function currencies(): array
     {
@@ -152,7 +156,14 @@ class CoordinatedUnpaidCancellationTest extends FinancialMasterTestCase
             app(BetCancellationService::class)->cancel($this->cancellation($f));
             $this->fail('An unproved commission source authorized a member refund.');
         } catch (BetDomainException $error) {
-            $this->assertSame('bet_cancellation_commission_workflow_required', $error->errorCode());
+            // `missing_snapshot` nulls columns that the sealed purchase receipt covers,
+            // so the receipt replay proof refuses before the commission coordinator is
+            // even reached. Either refusal is the same answer to the member: nothing
+            // moved, because this history cannot be proved.
+            $this->assertContains($error->errorCode(), [
+                'bet_cancellation_commission_workflow_required',
+                'bet_purchase_replay_incomplete',
+            ], $case === 'missing_snapshot' ? 'Tampered snapshot must be refused, not migrated.' : '');
         }
         $this->assertSame('90.00', $f['wallet']->fresh()->balance);
         $this->assertSame(BetStatus::Active, $f['bet']->fresh()->status);
@@ -188,6 +199,7 @@ class CoordinatedUnpaidCancellationTest extends FinancialMasterTestCase
     {
         $f = $this->commissionFixture();
         app(AgentCommissionSettlementService::class)->settleForDraw($f['draw']->id);
+        $this->makeHttpEligible($f['user']);
         $before = FinancialTransaction::count();
         $this->actingAs($f['user'], 'sanctum')->postJson('/api/v1/bets/'.$f['bet']->id.'/cancel', [])
             ->assertStatus(422)->assertJsonPath('error.code', 'bet_cancellation_commission_workflow_required');
@@ -225,6 +237,7 @@ class CoordinatedUnpaidCancellationTest extends FinancialMasterTestCase
     public function test_authenticated_http_request_cancels_both_member_purchase_and_owned_receivables(): void
     {
         $f = $this->commissionFixture();
+        $this->makeHttpEligible($f['user']);
         $this->actingAs($f['user'], 'sanctum')->postJson('/api/v1/bets/'.$f['bet']->id.'/cancel', [])
             ->assertOk()->assertJsonPath('data.refund.amount', '10.00')->assertJsonPath('data.replayed', false);
         $this->assertSame('0.00', $f['agent']->fresh()->total_commission_earned);
@@ -258,6 +271,7 @@ class CoordinatedUnpaidCancellationTest extends FinancialMasterTestCase
     public function test_member_wallet_refusal_restores_both_commission_levels(): void
     {
         $f = $this->commissionFixture();
+        $this->makeHttpEligible($f['user']);
         $f['wallet']->forceFill(['status' => WalletStatus::Frozen])->save();
         $this->actingAs($f['user'], 'sanctum')->postJson('/api/v1/bets/'.$f['bet']->id.'/cancel', [])->assertStatus(422);
         $this->assertSame('0.50', $f['agent']->fresh()->total_commission_earned);
@@ -268,14 +282,34 @@ class CoordinatedUnpaidCancellationTest extends FinancialMasterTestCase
         $this->assertDatabaseCount('financial_transactions', 2);
     }
 
-    public function test_older_direct_purchase_with_no_commission_history_remains_usable_without_backfill(): void
+    public function test_purchase_whose_commission_snapshot_was_rewritten_after_sealing_is_refused(): void
     {
+        // The purchase receipt hash covers commission_snapshot_hash/count, so editing
+        // those columns after the purchase committed is a broken seal, not a legacy
+        // row. Cancelling it on the strength of the edited values would refund a stake
+        // against history the ledger never sealed.
         $f = $this->purchaseFixture();
         DB::table('bet_purchase_ownerships')->where('bet_id', $f['bet']->id)->update(['commission_snapshot_hash' => null, 'commission_snapshot_count' => null]);
-        $outcome = app(BetCancellationService::class)->cancel($this->cancelData($f));
-        $this->assertSame('10.00', $outcome->refundAmount);
-        $this->assertSame('100.00', $f['wallet']->fresh()->balance);
-        $this->assertNull(DB::table('bet_purchase_ownerships')->sole()->commission_snapshot_hash);
+        try {
+            app(BetCancellationService::class)->cancel($this->cancelData($f));
+            $this->fail('A rewritten snapshot seal authorized a member refund.');
+        } catch (BetPurchaseIdempotencyException $refusal) {
+            $this->assertSame('bet_purchase_replay_incomplete', $refusal->errorCode());
+        }
+        $this->assertSame('90.00', $f['wallet']->fresh()->balance);
+        $this->assertSame(BetStatus::Active, $f['bet']->fresh()->status);
         $this->assertDatabaseCount('bet_commission_ownerships', 0);
+    }
+
+    /**
+     * The cancellation route is gated by the real 18+ attestation and current
+     * legal-consent middleware. A member who can legally wager is such an adult, so
+     * the fixture makes the actor one instead of bypassing those gates.
+     */
+    private function makeHttpEligible(User $user): void
+    {
+        $user->forceFill(['date_of_birth' => now()->subYears(30)->toDateString()])->save();
+        $this->verifyUserKycForTest($user);
+        $this->recordCurrentLegalConsent($user);
     }
 }

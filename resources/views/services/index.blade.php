@@ -1,13 +1,30 @@
 @extends('layouts.app')
 
-@section('title', $meta['title'].' | '.config('app.name'))
-@section('meta_description', $meta['description'])
-@section('meta_canonical', $meta['canonical'])
-@section('meta_robots', $meta['robots'])
-@section('meta_og_title', $meta['title'])
-@section('meta_og_description', $meta['description'])
-@section('meta_og_type', 'website')
-@section('meta_og_url', $meta['canonical'])
+{{--
+    Head block.
+
+    Every key is read with a fallback. The earlier revision indexed $meta
+    directly, so a controller that supplied five of the eight keys turned this
+    public page into an "Undefined array key" error page instead of a page with
+    a slightly thinner <head>. The page's own lang catalogue is the fallback
+    source, so a missing meta value degrades to the visible heading rather than
+    to a stack trace.
+--}}
+@php
+    $meta = is_array($meta ?? null) ? $meta : [];
+    $metaTitle = (string) ($meta['title'] ?? trans('services.meta_title'));
+    $metaDescription = (string) ($meta['description'] ?? trans('services.meta_description'));
+    $metaCanonical = (string) ($meta['canonical'] ?? url('/services'));
+@endphp
+
+@section('title', $metaTitle.' | '.config('app.name'))
+@section('meta_description', $metaDescription)
+@section('meta_canonical', $metaCanonical)
+@section('meta_robots', (string) ($meta['robots'] ?? 'index,follow'))
+@section('meta_og_title', (string) ($meta['og_title'] ?? $metaTitle))
+@section('meta_og_description', (string) ($meta['og_description'] ?? $metaDescription))
+@section('meta_og_type', (string) ($meta['og_type'] ?? 'website'))
+@section('meta_og_url', (string) ($meta['og_url'] ?? $metaCanonical))
 
 @section('content')
 <section class="mx-auto max-w-6xl space-y-10" aria-labelledby="services-title">

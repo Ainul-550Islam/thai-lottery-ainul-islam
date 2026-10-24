@@ -218,26 +218,33 @@ final class LedgerReconciliationService
         // subset stored inside it (available spending subtracts it).
         $expected = $balance;
 
-        $currencyEnum = $wallet->currency instanceof \App\Enums\Currency
-            ? $wallet->currency
-            : \App\Enums\Currency::from($currency);
+        // The LIABILITY LANE: entries against the PLAYER LIABILITY
+        // account scoped to this wallet. SUM(credit) - SUM(debit),
+        // exact bcmath arithmetic row-by-row (24,2 columns guarantee
+        // exact decimal strings).
         $liabilityAccountId = \App\Models\LedgerAccount::query()
-            ->where('code', LedgerPostingService::accountCodeFor(WalletService::ACCOUNT_PLAYER_LIABILITY, $currencyEnum))
+            ->where('code', WalletService::ACCOUNT_PLAYER_LIABILITY)
             ->value('id');
 
         $hasLanePostings = false;
         $aggregate = '0.00';
 
         if ($liabilityAccountId !== null) {
-            $sides = app(ExactReconciliationReader::class)->sides(
-                DB::table('ledger_entries')
-                    ->where('ledger_account_id', (int) $liabilityAccountId)
-                    ->where('wallet_id', $walletId)
-                    ->where('currency', $currency)
-                    ->whereNull('deleted_at')
-            );
-            $aggregate = bcsub($sides['credit'], $sides['debit'], 2);
-            $hasLanePostings = bccomp($sides['credit'], '0', 2) > 0 || bccomp($sides['debit'], '0', 2) > 0;
+            $entries = LedgerEntry::query()
+                ->where('ledger_account_id', (int) $liabilityAccountId)
+                ->where('wallet_id', $walletId)
+                ->where('currency', $currency)
+                ->get(['type', 'amount']);
+
+            foreach ($entries as $entry) {
+                $hasLanePostings = true;
+                $amount = \App\Services\Finance\WalletReservationService::moneyOf((string) $entry->amount);
+                $type = $entry->type instanceof \BackedEnum ? (string) $entry->type->value : (string) $entry->type;
+
+                $aggregate = $type === 'credit'
+                    ? bcadd($aggregate, $amount, 2)
+                    : bcsub($aggregate, $amount, 2);
+            }
         }
 
         // RESERVATION EFFECT: money NAMED against the wallet which the
@@ -265,10 +272,6 @@ final class LedgerReconciliationService
 
         // --- DRIFT LINES: readable, permanent, evidence-grade -------
         $driftLines = [];
-
-        if ($liabilityAccountId === null) {
-            $driftLines[] = 'missing-currency-liability-account';
-        }
 
         if (bccomp($expected, $aggregate, 2) !== 0) {
             $driftLines[] = sprintf(
@@ -314,10 +317,7 @@ final class LedgerReconciliationService
             // Replay (identical fingerprint + identity, both) serves the
             // recorded row as-is; otherwise refresh the paper (the
             // fingerprint rotates with the facts — batch-10 rule).
-            if ((string) $row->fingerprint === $data->fingerprint
-                && (int) $row->wallet_id === $walletId
-                && $row->status === $status
-                && ($row->drift_lines ?? []) === $driftLines) {
+            if ((string) $row->fingerprint === $data->fingerprint && (int) $row->wallet_id === $walletId) {
                 return $row;
             }
 

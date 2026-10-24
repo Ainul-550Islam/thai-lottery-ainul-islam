@@ -16,22 +16,14 @@ enum WalletConversionReconciliationState: string
     case Balanced = 'balanced';
     case Mismatched = 'mismatched';
 
-    public function isHealthy(): bool
-    {
-        return $this === self::Balanced;
-    }
-
-    public function label(): string
-    {
-        return match ($this) {
-            self::Pending => 'Pending',
-            self::Balanced => 'Balanced',
-            self::Mismatched => 'Mismatched',
-        };
-    }
-
+    /**
+     * Stable translation key for the member-facing conversion screens.
+     *
+     * The labels live in lang/<locale>/wallet_conversion.php next to every other
+     * string this lane shows, so there is no second translation namespace to drift.
+     */
     public function labelKey(): string
     {
-        return 'wallet_conversion.reconciliation_'.$this->value;
+        return "wallet_conversion.reconciliation_{$this->value}";
     }
 }

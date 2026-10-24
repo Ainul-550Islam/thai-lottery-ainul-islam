@@ -26,13 +26,13 @@ try {
         || ! in_array($operation, ['start', 'chunk'], true)
         || ! is_string($ready) || ! is_string($release)
         || ! str_starts_with($ready, $prefix) || ! str_starts_with($release, $prefix)) {
-        throw new RuntimeException('Invalid disposable preview probe.');
+        throw new \RuntimeException('Invalid disposable preview probe.');
     }
 
     $project = dirname(__DIR__, 2);
 
     if (is_file($project.'/bootstrap/cache/config.php')) {
-        throw new RuntimeException('The probe must not bootstrap a cached deployment configuration.');
+        throw new \RuntimeException('The probe must not bootstrap a cached deployment configuration.');
     }
 
     require $project.'/vendor/autoload.php';
@@ -50,14 +50,14 @@ try {
     }
 
     if (file_put_contents($ready, 'ready') === false) {
-        throw new RuntimeException('Cannot signal worker readiness.');
+        throw new \RuntimeException('Cannot signal worker readiness.');
     }
 
     $deadline = microtime(true) + 15;
 
     while (! is_file($release)) {
         if (microtime(true) >= $deadline) {
-            throw new RuntimeException('Preview probe barrier expired.');
+            throw new \RuntimeException('Preview probe barrier expired.');
         }
         usleep(1000);
     }

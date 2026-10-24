@@ -47,8 +47,7 @@ final readonly class ConversionResultData
         public bool $replayed = false,
         public ?DateTimeImmutable $completedAt = null,
         public ?string $note = null,
-    ) {
-    }
+    ) {}
 
     /**
      * True when money genuinely moved as a result of the call that produced

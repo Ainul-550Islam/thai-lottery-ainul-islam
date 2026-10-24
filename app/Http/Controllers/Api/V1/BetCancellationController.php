@@ -44,10 +44,18 @@ class BetCancellationController
                 $request->validated(),
             ));
         } catch (BetDomainException|RiskException $e) {
-            return ApiResponse::error($e->errorCode(), $e->getMessage(), 422);
-        } catch (FinancialException) {
+            // A domain refusal and a risk refusal are the same thing to the caller: the
+            // cancellation did not happen, for a named reason, and nothing moved. They
+            // are answered with the domain code and 422 — never a 500, which would say
+            // the server broke rather than the request was refused, and never a 403,
+            // which would say the caller lacks permission.
+            return ApiResponse::error($e->errorCode() ?? 'bet_cancellation_refused', $e->getMessage(), 422);
+        } catch (FinancialException $e) {
+            // A wallet/ledger refusal is a state the player must not be able to probe:
+            // "wallet 1 is Frozen" tells an attacker which wallet exists and in what
+            // state. The code is kept for support, the detail is not.
             return ApiResponse::error(
-                'bet_cancellation_financial_refusal',
+                $e->errorCode() ?? 'bet_cancellation_financial_refusal',
                 'The cancellation could not be completed safely; preserve the current purchase for review.',
                 422,
             );

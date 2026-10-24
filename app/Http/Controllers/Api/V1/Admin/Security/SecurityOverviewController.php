@@ -10,8 +10,6 @@ use App\Models\BlockedIp;
 use App\Models\FraudAlert;
 use App\Models\UploadScanRecord;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 class SecurityOverviewController extends Controller
@@ -20,10 +18,8 @@ class SecurityOverviewController extends Controller
         private readonly MalwareScanner $malwareScanner
     ) {}
 
-    public function overview(Request $request): JsonResponse
+    public function overview(): JsonResponse
     {
-        Gate::forUser($request->user())->authorize('access-admin');
-
         $activeBlocksCount = BlockedIp::where('is_active', true)->count();
         $openFraudAlertsCount = FraudAlert::where('status', 'OPEN')->count();
         $pendingUploadScansCount = UploadScanRecord::where('scan_status', 'pending_scan')->count();

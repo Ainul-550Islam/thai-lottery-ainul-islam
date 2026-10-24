@@ -27,11 +27,13 @@ use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\Feature\Agent\Concerns\BuildsPaidCommissionCancellation;
+use Tests\Concerns\RecordsCurrentLegalConsent;
 use Tests\Feature\Finance\FinancialMasterTestCase;
 
 final class PaidCommissionCancellationTest extends FinancialMasterTestCase
 {
     use BuildsPaidCommissionCancellation;
+    use RecordsCurrentLegalConsent;
 
     public static function paths(): array
     {
@@ -248,6 +250,13 @@ final class PaidCommissionCancellationTest extends FinancialMasterTestCase
     public function test_actual_authenticated_http_member_refund_includes_paid_compensation(): void
     {
         $f = $this->paidFixture();
+        // The route sits behind the real 18+ attestation and current-legal-consent
+        // middleware, so the actor must be an eligible adult who accepted the current
+        // documents - what a member who can legally wager actually is. The proof under
+        // test is the refund, not a bypass of those gates.
+        $f['user']->forceFill(['date_of_birth' => now()->subYears(30)->toDateString()])->save();
+        $this->verifyUserKycForTest($f['user']);
+        $this->recordCurrentLegalConsent($f['user']);
         $this->actingAs($f['user'])->postJson('/api/v1/bets/'.$f['bet']->id.'/cancel', ['reason' => 'player_request'])->assertOk();
         $this->assertSame('100.00', $f['wallet']->fresh()->balance);
         $this->assertDatabaseCount('agent_commission_compensations', 2);

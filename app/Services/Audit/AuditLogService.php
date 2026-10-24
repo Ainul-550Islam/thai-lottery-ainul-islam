@@ -69,18 +69,8 @@ class AuditLogService
         $riskEnum = is_string($riskLevel) ? (RiskLevel::tryFrom($riskLevel) ?? RiskLevel::Medium) : $riskLevel;
 
         $subjectKey = $auditable instanceof Model ? $auditable->getKey() : null;
-        $hasNumericId = is_int($subjectKey)
-            ? $subjectKey > 0
-            : (is_string($subjectKey) && ctype_digit($subjectKey) && (int) $subjectKey > 0);
-        $auditableType = $hasNumericId && $auditable instanceof Model ? get_class($auditable) : null;
-        $auditableId = $hasNumericId ? (int) $subjectKey : null;
-
-        if (! $hasNumericId && $auditable instanceof Model && $subjectKey !== null) {
-            $metadata = array_merge([
-                'subject_type' => get_class($auditable),
-                'subject_id' => (string) $subjectKey,
-            ], $metadata);
-        }
+        $auditableType = $subjectKey === null ? null : get_class($auditable);
+        $auditableId = $subjectKey === null ? null : (int) $subjectKey;
 
         $log = new AuditLog;
         $log->fill([
@@ -88,7 +78,7 @@ class AuditLogService
             'action' => $actionEnum,
             'risk_level' => $riskEnum,
             'auditable_type' => $auditableType,
-            'auditable_id' => $auditableId,
+            'auditable_id' => $subjectKey === null ? null : $auditableId,
             'description' => $description,
             'old_values' => $this->redact($oldValues),
             'new_values' => $this->redact($newValues),

@@ -9,12 +9,15 @@ use App\Enums\Currency;
 use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Enums\LimitStatus;
+use App\Models\AgeVerification;
 use App\Models\Draw;
 use App\Models\LedgerAccount;
 use App\Models\NumberLimit;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Legal\ConsentService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -73,7 +76,7 @@ abstract class ApiPurchaseTestCase extends TestCase
      */
     protected function fixture(string $balance = '1000.00'): array
     {
-        $user = User::factory()->create();
+        $user = $this->onboardedUser();
 
         $wallet = Wallet::factory()
             ->for($user)
@@ -85,6 +88,62 @@ abstract class ApiPurchaseTestCase extends TestCase
             'wallet' => $wallet,
             'draw' => $this->openDraw(),
         ];
+    }
+
+    /**
+     * A member who has finished onboarding.
+     *
+     * THE MONEY ROUTES ARE GATED, AND THIS SUITE MUST COME THROUGH THE GATE.
+     * /api/v1/bets/purchase and its siblings carry `adult` and `legal.current`
+     * (App\Http\Middleware\EnsureAdult and RequireCurrentLegalConsent). A bare
+     * User::factory() row has no age attestation and no consent record, so every
+     * request here was answered 403 / 428 before the purchase code ran - the suite
+     * was testing the age gate over and over instead of the boundary it documents.
+     * Real members reach these routes only after attesting 18+ and accepting the
+     * current Terms and Privacy Notice, so this helper produces exactly that state.
+     */
+    protected function onboardedUser(): User
+    {
+        $user = User::factory()->create([
+            'date_of_birth' => now()->subYears(30)->toDateString(),
+        ]);
+
+        AgeVerification::query()->create([
+            'user_id' => $user->getKey(),
+            'status' => 'eligible',
+            'minimum_age' => (int) config('legal.minimum_age', 18),
+            'method' => 'self_declaration',
+            'attested_at' => now(),
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'phpunit',
+            'source' => 'test',
+        ]);
+
+        // The consent service records a real acceptance: it re-reads the current
+        // documents and requires the caller to name the exact version and content
+        // hash it is accepting, so the test cannot fabricate a consent row that the
+        // gate would then reject. 'api' is the supported source for a programmatic
+        // acceptance.
+        // currentDocuments() returns a LIST, not a map keyed by document type.
+        $documents = collect(app(ConsentService::class)->currentDocuments())
+            ->keyBy('document_type');
+        $terms = $documents->get('terms', []);
+        $privacy = $documents->get('privacy', []);
+
+        app(ConsentService::class)->acceptCurrentDocuments(
+            $user,
+            Request::create('/test', 'POST', [
+                'terms' => true,
+                'privacy_notice' => true,
+                'terms_version' => $terms['version'],
+                'terms_hash' => $terms['content_hash'],
+                'privacy_version' => $privacy['version'],
+                'privacy_hash' => $privacy['content_hash'],
+            ], server: ['REMOTE_ADDR' => '127.0.0.1']),
+            'api',
+        );
+
+        return $user->refresh();
     }
 
     protected function openDraw(): Draw

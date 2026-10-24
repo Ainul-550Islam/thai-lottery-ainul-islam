@@ -19,23 +19,31 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class TrackMemberPresence
 {
+    /**
+     * Document reads that never count as activity.
+     *
+     * Reading the Terms or the Privacy Notice is a deliberate, often one-off, legal
+     * read: it must not touch the account row at all. Writing last_seen_at from these
+     * pages both inflated the "members active" counter and rewrote the user record
+     * during a request that promises to only read it - the consent-integrity test
+     * caught exactly that, because it compares the whole row before and after.
+     */
+    private const NON_ACTIVITY_PATHS = ['terms', 'privacy', 'legal/consent'];
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
 
+        if (in_array(trim($request->path(), '/'), self::NON_ACTIVITY_PATHS, true)) {
+            return $response;
+        }
+
         $user = $request->user();
 
-        if ($user instanceof User) {
-            try {
-                if (Cache::add('presence:'.$user->getKey(), 1, now()->addMinute())) {
-                    User::query()
-                        ->whereKey($user->getKey())
-                        ->update(['last_seen_at' => now()]);
-                }
-            } catch (\Throwable $exception) {
-                // Presence is an aggregate convenience, never a request blocker.
-                report($exception);
-            }
+        if ($user instanceof User && Cache::add('presence:'.$user->getKey(), 1, now()->addMinute())) {
+            User::query()
+                ->whereKey($user->getKey())
+                ->update(['last_seen_at' => now()]);
         }
 
         return $response;

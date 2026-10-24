@@ -61,7 +61,6 @@ class GloOfficialResultProvider implements GloResultProvider
             'endpoint' => $endpoint,
             'draw_number' => $drawNumber,
             'first_prize' => null,
-            'bottom_two' => null,
             'second_prize' => [],
             'third_prize' => [],
             'n3' => [],
@@ -86,7 +85,6 @@ class GloOfficialResultProvider implements GloResultProvider
 
             if (! $response->successful()) {
                 $empty['status'] = 'not_configured';
-                $empty['outage'] = true;
                 $empty['failure_reason'] = sprintf('HTTP %d from documented endpoint', $response->status());
 
                 return $empty;
@@ -109,7 +107,6 @@ class GloOfficialResultProvider implements GloResultProvider
                 'reason' => $e->getMessage(),
             ]);
             $empty['status'] = 'not_configured';
-            $empty['outage'] = true;
             $empty['failure_reason'] = 'unreachable: '.$e->getMessage();
 
             return $empty;
@@ -139,7 +136,6 @@ class GloOfficialResultProvider implements GloResultProvider
                 'endpoint' => $endpoint,
                 'draw_number' => $draw,
                 'first_prize' => null,
-                'bottom_two' => null,
                 'second_prize' => [],
                 'third_prize' => [],
                 'n3' => [],
@@ -148,9 +144,6 @@ class GloOfficialResultProvider implements GloResultProvider
                 'fingerprint' => null,
             ];
         }
-
-        $lastTwo = $this->digitList($body['last_two'] ?? [], 2);
-        $bottomTwo = count($lastTwo) === 1 ? $lastTwo[0] : null;
 
         $fingerprint = hash('sha256', json_encode([
             $draw,
@@ -165,7 +158,6 @@ class GloOfficialResultProvider implements GloResultProvider
             'endpoint' => $endpoint,
             'draw_number' => $draw,
             'first_prize' => $first,
-            'bottom_two' => $bottomTwo,
             'second_prize' => $seconds,
             'third_prize' => $thirds,
             'n3' => $this->n3From($body),
@@ -174,7 +166,7 @@ class GloOfficialResultProvider implements GloResultProvider
                 'fifth' => $this->digitList($body['fifth'] ?? [], 6),
                 'front_three' => $this->digitList($body['front_three'] ?? [], 3),
                 'last_three' => $this->digitList($body['last_three'] ?? [], 3),
-                'last_two' => $lastTwo,
+                'last_two' => $this->digitList($body['last_two'] ?? [], 2),
             ],
             'failure_reason' => null,
             'fingerprint' => $fingerprint,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Wallet;
 
+use App\Enums\Currency;
 use App\Models\WalletConversion;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -46,7 +47,7 @@ class WalletConversionResource extends JsonResource
             'status' => $conversion->status->value,
             'status_label' => $conversion->status->label(),
 
-            'currency' => (string) $conversion->currency,
+            'currency' => $conversion->currency instanceof Currency ? $conversion->currency->value : (string) $conversion->currency,
             'amount_in' => bcadd((string) $conversion->amount_in, '0', 2),
             'fee_amount' => bcadd((string) $conversion->fee_amount, '0', 2),
             'amount_out' => bcadd((string) $conversion->amount_out, '0', 2),

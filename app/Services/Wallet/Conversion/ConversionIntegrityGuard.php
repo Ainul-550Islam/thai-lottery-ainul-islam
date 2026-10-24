@@ -40,17 +40,22 @@ final class ConversionIntegrityGuard
             }
             $this->movement($root);
             $children = WalletConversion::query()->where('reversal_of_id', $root->id)->orderBy('id')->limit(2)->lockForUpdate()->get();
-            if ($root->status === WalletConversionStatus::Completed) {
+            // Read the stored strings and tryFrom them rather than trusting the enum
+            // cast: a damaged status column is exactly the case this guard exists to
+            // refuse, and a failed cast would surface as a type error instead of the
+            // refusal an auditor needs to see.
+            $rootStatus = WalletConversionStatus::tryFrom((string) $root->getRawOriginal('status'));
+            if ($rootStatus === WalletConversionStatus::Completed) {
                 if ($root->reversed_by_id !== null || $root->reversed_at !== null || $root->reversal_reason !== null || $children->isNotEmpty()) {
                     $this->refuse();
                 }
             } else {
-                if ($root->status !== WalletConversionStatus::Reversed || $children->count() !== 1 || $root->reversed_at === null) {
+                if ($rootStatus !== WalletConversionStatus::Reversed || $children->count() !== 1 || $root->reversed_at === null) {
                     $this->refuse();
                 }
                 $child = $children->sole();
                 $this->movement($child);
-                if ($child->status !== WalletConversionStatus::Completed || (int) $root->reversed_by_id !== (int) $child->id
+                if (WalletConversionStatus::tryFrom((string) $child->getRawOriginal('status')) !== WalletConversionStatus::Completed || (int) $root->reversed_by_id !== (int) $child->id
                     || $child->reversed_by_id !== null || $child->reversed_at !== null
                     || (int) $child->user_id !== (int) $root->user_id || $child->currency !== $root->currency
                     || $child->direction !== $root->direction->opposite()
@@ -80,11 +85,13 @@ final class ConversionIntegrityGuard
 
     private function movement(WalletConversion $row): void
     {
-        $currency = Currency::from($row->currency);
+        // The model casts the currency, so this arrives as the enum; accept the raw
+        // string too, because the proof also reads rows built by older code paths.
+        $currency = $row->currency instanceof Currency ? $row->currency : Currency::from((string) $row->currency);
         $input = $this->exact($row, 'amount_in');
         $output = $this->exact($row, 'amount_out');
         $fee = $this->exact($row, 'fee_amount', $row->reversal_of_id !== null);
-        if (! $row->status->isSettled() || $row->completed_at === null || (int) $row->user_id < 1
+        if (WalletConversionStatus::tryFrom((string) $row->getRawOriginal('status'))?->isSettled() !== true || $row->completed_at === null || (int) $row->user_id < 1
             || (int) $row->from_wallet_id === (int) $row->to_wallet_id
             || $row->from_wallet_type !== $row->direction->fromType()->value || $row->to_wallet_type !== $row->direction->toType()->value
             || bccomp($input, '0', 2) <= 0 || bccomp($output, '0', 2) <= 0 || bccomp(bcsub($input, $fee, 2), $output, 2) !== 0

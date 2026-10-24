@@ -7,11 +7,7 @@ namespace App\Services\Finance;
 use App\Enums\Currency;
 use App\Exceptions\FinancialException;
 use App\Models\Wallet;
-use Illuminate\Database\ConnectionInterface;
-use Illuminate\Database\DeadlockException;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 /**
  * Pessimistic row locking for wallets.
@@ -48,8 +44,11 @@ final class WalletLockService
      */
     public function lock(int $walletId): Wallet
     {
-        $walletId = FinancialRecordIdentifier::parse($walletId, 'wallet_identifier_invalid');
         $this->assertInsideTransaction('lock wallet');
+
+        // Prove the identifier before the routing SELECT: a lossy key must never be
+        // rounded, truncated or coerced into somebody else's wallet row.
+        $walletId = FinancialRecordIdentifier::parse($walletId, 'wallet_identifier_invalid');
 
         $wallet = Wallet::query()
             ->whereKey($walletId)
@@ -135,20 +134,19 @@ final class WalletLockService
     {
         $this->assertInsideTransaction('lock wallets');
 
-        if ($walletIds === []) {
+        // The whole identity set is proved before any SQL, so one malformed entry
+        // cannot lock a subset and then abandon it.
+        $ids = array_values(array_unique(array_map(
+            static fn (mixed $walletId): int => FinancialRecordIdentifier::parse($walletId, 'wallet_identifier_invalid'),
+            $walletIds,
+        )));
+
+        if ($ids === []) {
             throw FinancialException::withCode(
                 'wallet_lock_empty_set',
                 'At least one wallet identifier is required in order to lock.',
             );
         }
-
-        $parsed = [];
-
-        foreach ($walletIds as $rawId) {
-            $parsed[] = FinancialRecordIdentifier::parse($rawId, 'wallet_identifier_invalid');
-        }
-
-        $ids = array_values(array_unique($parsed));
 
         sort($ids, SORT_NUMERIC);
 
@@ -185,103 +183,97 @@ final class WalletLockService
      */
     public function relock(Wallet $wallet): Wallet
     {
-        $key = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
+        return $this->lock(FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted'));
+    }
 
-        return $this->lock($key);
+    /**
+     * Run a callback inside the transaction that owns the row locks it takes.
+     *
+     * THE ONE EXCEPTION TO "THE CALLER OWNS THE BOUNDARY"
+     * The lock methods above still refuse to run outside a transaction, and this
+     * method's existence does not change that: it is the *caller's* way to open a
+     * correctly-shaped boundary without re-implementing it per service. The
+     * boundary and the locks it protects belong together - a caller that opened
+     * its own transaction with a different retry policy would silently get
+     * different deadlock behaviour, and a caller that opened none would get no
+     * protection at all while looking correct.
+     *
+     * RETRIES ARE DELIBERATE, AND ONLY FOR DEADLOCKS.
+     * `$attempts` is passed to DB::transaction, which retries only when the
+     * driver reports a deadlock/serialisation failure - never on a business
+     * refusal, and never after the callback returned. A retry therefore re-runs
+     * the whole callback against re-read, re-locked rows, which is the only safe
+     * way to replay a balance decision.
+     *
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $callback
+     * @return TReturn
+     */
+    public function withinTransaction(callable $callback, bool $savepoint = true): mixed
+    {
+        // Sample the exact connection the wrapper will use, and do it BEFORE a
+        // nested SAVEPOINT can start a replacement SQLite transaction on top of a
+        // physical loss. Divergence is refused, never repaired.
+        $this->assertConsistentTransactionState('wallet_transaction_wrapper');
+
+        // A joining boundary (no savepoint) refuses to invent inner rollback
+        // ownership: an exception caught by the outer caller keeps the outer
+        // caller's semantics. Everything else keeps savepoint isolation.
+        if (! $savepoint && $this->insideTransaction()) {
+            return $callback();
+        }
+
+        return DB::transaction($callback);
     }
 
     /**
      * Whether the caller has an open database transaction.
+     *
+     * A framework counter is not evidence that SQL still holds a row lock: a raw
+     * PDO commit/rollback can leave the counter positive while no physical
+     * transaction exists, and a caller can open a PDO transaction the framework
+     * does not know about. Both are sampled on the current default write
+     * connection.
      */
     public function insideTransaction(): bool
     {
-        $connection = DB::connection();
-
-        return $connection->transactionLevel() > 0
-            && $connection->getPdo()->inTransaction();
+        return DB::transactionLevel() >= 1 && DB::connection()->getPdo()->inTransaction();
     }
 
     /**
-     * Assert that framework transaction depth and write-PDO transaction state agree.
+     * Admission primitive shared by every money boundary.
+     *
+     * - coherent empty state (counter zero, no physical transaction) is allowed;
+     * - coherent active state (counter positive, physical transaction open) is allowed;
+     * - counter-positive/PDO-inactive and counter-zero/PDO-active are both refused
+     *   as `wallet_transaction_state_invalid`.
+     *
+     * It never opens, adopts, commits, rolls back or repairs a transaction and it
+     * issues no SQL, so it can be called before the first routing read.
      *
      * @throws FinancialException
      */
-    public function assertConsistentTransactionState(): int
+    public function assertConsistentTransactionState(string $stage = 'wallet_transaction_state'): void
     {
-        return $this->assertConsistentTransactionStateOn(DB::connection());
-    }
+        $level = DB::transactionLevel();
+        $physical = DB::connection()->getPdo()->inTransaction();
 
-    /**
-     * Run a callback inside a verified physical transaction or savepoint boundary.
-     *
-     * @template TResult
-     *
-     * @param  callable(): TResult  $callback
-     * @return TResult
-     *
-     * @throws FinancialException
-     */
-    public function withinTransaction(callable $callback, bool $useSavepointWhenNested = true): mixed
-    {
-        $connection = DB::connection();
-        $entryLevel = $this->assertConsistentTransactionStateOn($connection);
-        $writePdo = $connection->getPdo();
-
-        if ($entryLevel > 0 && ! $useSavepointWhenNested) {
-            return $callback();
+        if ($level === 0 && $physical === false) {
+            return;
         }
 
-        try {
-            return $connection->transaction(static fn (): mixed => $callback());
-        } catch (DeadlockException $exception) {
-            if ($entryLevel > 0
-                && $connection->transactionLevel() === $entryLevel
-                && $connection->getPdo() === $writePdo
-                && $writePdo->inTransaction()
-                && ! $this->isNativeDeadlockAbort($exception, $connection)
-                && $connection->getQueryGrammar()->supportsSavepoints()) {
-                $writePdo->exec(
-                    $connection->getQueryGrammar()->compileSavepointRollBack('trans'.($entryLevel + 1)),
-                );
-            }
-
-            throw $exception;
-        }
-    }
-
-    /**
-     * @throws FinancialException
-     */
-    private function assertConsistentTransactionStateOn(ConnectionInterface $connection): int
-    {
-        $level = $connection->transactionLevel();
-        $physical = $connection->getPdo()->inTransaction();
-
-        if (($level > 0) !== $physical) {
-            throw FinancialException::withCode(
-                'wallet_transaction_state_invalid',
-                'Database transaction counter and physical write PDO transaction state do not agree.',
-                ['transaction_level' => $level, 'pdo_in_transaction' => $physical],
-            );
+        if ($level >= 1 && $physical === true) {
+            return;
         }
 
-        return $level;
-    }
-
-    private function isNativeDeadlockAbort(Throwable $exception, ConnectionInterface $connection): bool
-    {
-        if (! in_array($connection->getDriverName(), ['mysql', 'mariadb'], true)) {
-            return false;
-        }
-
-        $cause = $exception instanceof DeadlockException && $exception->getPrevious() instanceof Throwable
-            ? $exception->getPrevious()
-            : $exception;
-        $driverCode = $cause instanceof QueryException
-            ? ($cause->errorInfo[1] ?? ($cause->getPrevious() instanceof \PDOException ? ($cause->getPrevious()->errorInfo[1] ?? null) : null))
-            : ($cause instanceof \PDOException ? ($cause->errorInfo[1] ?? null) : null);
-
-        return in_array($driverCode, [1213, '1213'], true);
+        throw FinancialException::withCode(
+            'wallet_transaction_state_invalid',
+            $level >= 1
+                ? 'The framework transaction counter is set but no physical database transaction is open.'
+                : 'A physical database transaction is open that the framework transaction counter does not own.',
+            ['stage' => $stage, 'transaction_level' => $level, 'physical_transaction' => $physical],
+        );
     }
 
     /**

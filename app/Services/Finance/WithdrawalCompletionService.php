@@ -4,19 +4,68 @@ declare(strict_types=1);
 
 namespace App\Services\Finance;
 
+use App\Enums\FinancialTransactionType;
 use App\Enums\WithdrawalStatus;
 use App\Exceptions\FinancialException;
 use App\Exceptions\WithdrawalException;
 use App\Models\FinancialTransaction;
-use App\Models\Payment;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
-use App\Services\Payment\WithdrawalProviderReferenceService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
  * The only place a withdrawal actually takes money out of a wallet.
+ *
+ * WHAT ONE COMPLETION DOES, IN ORDER, INSIDE ONE TRANSACTION
+ * ----------------------------------------------------------
+ *   1. Lock the WALLET row (`FOR UPDATE`).
+ *   2. Lock the WITHDRAWAL row (`FOR UPDATE`).
+ *   3. Verify the reservation taken at approval time still covers the amount.
+ *   4. Consume the reservation: locked_balance goes down, so the amount becomes
+ *      available again for exactly one statement.
+ *   5. Debit that amount through the finance engine, which posts the balanced
+ *      double entry (DEBIT player liability, CREDIT withdrawal clearing) and
+ *      lowers the balance.
+ *   6. Mark the withdrawal completed with its transaction id and timestamp.
+ *
+ * Steps 4 and 5 are in that order on purpose: the database CHECK constraint
+ * `locked_balance <= balance` then holds at every intermediate point. Debiting
+ * first would transiently leave a wallet whose reserved amount exceeds its
+ * balance.
+ *
+ * Net effect on a wallet holding 200.00 with 80.00 reserved:
+ *   balance 200.00 -> 120.00, locked 80.00 -> 0.00, available 120.00 -> 120.00.
+ * The available balance is untouched by completion, because the money being spent
+ * had already been taken out of it at approval time. That is the whole point of
+ * the hold.
+ *
+ * THE FOUR THINGS THIS CLASS MUST NEVER ALLOW
+ *   - Completing twice. The withdrawal row is locked, an already-completed request
+ *     is reported as a replay rather than debited again, and the debit is keyed by
+ *     an idempotency key derived from the withdrawal id against the UNIQUE
+ *     `financial_transactions.idempotency_key`. So even a bypassed check cannot
+ *     produce a second debit.
+ *   - Consuming more than was reserved. The reservation is compared against the
+ *     request amount before anything moves, and WalletHoldService refuses to
+ *     release more than is held.
+ *   - A negative available balance. Consuming only releases what is actually
+ *     reserved, the engine's debit re-checks the available balance under the same
+ *     wallet lock, and three database CHECK constraints (balance >= 0,
+ *     locked_balance >= 0, locked_balance <= balance) are the final backstop. The
+ *     wallet invariant is asserted again after the debit.
+ *   - Creating money. Nothing here credits anything. The only balance movement is
+ *     a debit, and it is posted as a balanced double entry by the engine.
+ *
+ * NO MANUAL LEDGER INSERTION and NO DIRECT BALANCE SETTER. This file writes
+ * neither `ledger_entries` nor `balance`. It calls WalletService::debit(), which
+ * goes through FinancialTransactionService and LedgerPostingService.
+ *
+ * NO PAYMENT GATEWAY. Completion records that the payout was settled; it does not
+ * send it. There is no provider call, no signature check and no credential here.
+ * `provider_reference` is accepted as a non-secret reconciliation string only.
+ *
+ * LOCK ORDER: WALLET -> FINANCIAL ENTITY -> LEDGER ACCOUNTS.
  */
 final class WithdrawalCompletionService
 {
@@ -34,6 +83,9 @@ final class WithdrawalCompletionService
     /**
      * Settle an approved withdrawal: consume the reservation and debit the wallet.
      *
+     * Idempotent: a second call on an already-completed withdrawal returns the
+     * original transaction with debited = false and moves nothing.
+     *
      * @param  array<string, mixed>  $options  description, metadata, provider, provider_reference
      * @return array{withdrawal: Withdrawal, transaction: FinancialTransaction, wallet: Wallet, debited: bool, replayed: bool, amount: string, snapshot: array{balance: string, available_balance: string, locked_balance: string, currency: string, hold_type: string|null}}
      *
@@ -44,18 +96,27 @@ final class WithdrawalCompletionService
     {
         Money::assertExactArithmeticIsAvailable();
 
-        return $this->withinTransaction(function () use ($withdrawal, $options): array {
+        return $this->withinTransaction(function () use ($withdrawal, $idempotencyKey, $options): array {
+            // 1. WALLET lock first.
             $wallet = $this->locks->lock((int) $withdrawal->wallet_id);
+
+            // 2. FINANCIAL ENTITY lock second.
             $current = $this->transitions->lockWithdrawal($withdrawal);
 
             $this->assertWalletMatches($current, $wallet);
+            $guard = app(WithdrawalIntegrityGuard::class);
+            $guard->assertTerms($current, $wallet);
 
             if ($current->status === WithdrawalStatus::Completed) {
-                return $this->replayResult($current, $wallet);
+                $replay = $this->replayResult($current, $wallet);
+                $guard->assertProof($current, $wallet, $replay['transaction'], $this->idempotencyKeyFor($current));
+
+                return $replay;
             }
 
+            // Debited but never marked: finish the bookkeeping, do not debit again.
             if ($current->financial_transaction_id !== null) {
-                app(WithdrawalIntegrityGuard::class)->refuse();
+                return $this->healUnmarkedWithdrawal($current, $wallet);
             }
 
             if (! $current->status->canComplete()) {
@@ -63,54 +124,53 @@ final class WithdrawalCompletionService
             }
 
             $this->assertCurrencyMatches($current, $wallet);
+            app(\App\Services\Payment\WithdrawalProviderAccountService::class)->assertActive($current);
 
             if (! $wallet->canDebit()) {
                 throw WithdrawalException::walletNotDebitable((int) $wallet->getKey(), $wallet->status->value);
             }
 
             $amount = $this->amountOf($current);
-            $reserved = $this->holds->heldAmount($wallet);
-
-            if ($reserved->isLessThan($amount)) {
-                throw WithdrawalException::noReservation(
-                    (int) $current->getKey(),
-                    (int) $wallet->getKey(),
-                    $amount->toString(),
-                    $reserved->toString(),
-                );
+            $key = $idempotencyKey ?? $this->idempotencyKeyFor($current);
+            if ($key !== $this->idempotencyKeyFor($current)) {
+                $guard->refuse();
             }
 
-            $provider = $this->stringOption($options, 'provider') ?? $current->provider;
-            $providerReference = $this->stringOption($options, 'provider_reference') ?? $current->provider_reference;
+            $resolvedProvider = $this->stringOption($options, 'provider') ?? $current->provider;
+            $resolvedReference = $this->stringOption($options, 'provider_reference') ?? $current->provider_reference;
+            $linkedPayment = \App\Models\Payment::withTrashed()
+                ->where('payable_type', Withdrawal::class)
+                ->where('payable_id', $current->getKey())
+                ->lockForUpdate()
+                ->first();
 
-            if ($providerReference !== null) {
-                $payment = Payment::query()
-                    ->where('payable_type', Withdrawal::class)
-                    ->where('payable_id', $current->id)
-                    ->lockForUpdate()
-                    ->first();
+            if ($resolvedReference !== null) {
+                $canonicalProvider = app(\App\Services\Payment\WithdrawalProviderAccountService::class)->canonical($resolvedProvider ?? $current->method->value);
+                app(\App\Services\Payment\WithdrawalProviderReferenceService::class)->bind($current, $canonicalProvider, $resolvedReference, $linkedPayment);
+                $resolvedProvider = $canonicalProvider;
 
-                app(WithdrawalProviderReferenceService::class)->bind(
-                    $current,
-                    $provider ?? $current->method->value,
-                    $providerReference,
-                    $payment,
-                );
-
-                $current->provider = $provider ?? $current->provider;
-                $current->provider_reference = $providerReference;
-                $current->save();
+                // The reference is now bound in the index tables, so the obligation
+                // itself must carry it before the settlement proof runs. Otherwise
+                // assertBound() sees "indexed binding, no reference on the row" and
+                // refuses its own fresh binding as a contradiction. The transition
+                // below persists both values; this only closes the in-transaction gap.
+                $current->provider = $resolvedProvider;
+                $current->provider_reference = $resolvedReference;
+            } else {
+                $guard->assertPayment($current);
             }
 
+            // Settle via canonical reservation ownership (closes reservation + initial hold atomically and debits wallet).
             $transaction = app(WithdrawalReservationService::class)->settle($current, $wallet, $options);
 
+            // Mark completed in the same transaction.
             $now = Carbon::now();
 
             $completed = $this->transitions->transitionWithdrawal($current, WithdrawalStatus::Completed, [
                 'financial_transaction_id' => (int) $transaction->getKey(),
                 'completed_at' => $now,
-                'provider' => $provider,
-                'provider_reference' => $providerReference,
+                'provider' => $resolvedProvider,
+                'provider_reference' => $resolvedReference,
                 'metadata' => $this->mergeMetadata($current, [
                     'completed_at' => $now->toIso8601String(),
                     'debited_amount' => $amount->toString(),
@@ -124,7 +184,7 @@ final class WithdrawalCompletionService
 
             $this->holds->assertInvariant($finalWallet);
             $this->assertSettled($completed);
-            $this->verifySettled($completed);
+            $guard->assertProof($completed, $finalWallet, $transaction, $key);
 
             return [
                 'withdrawal' => $completed,
@@ -138,8 +198,24 @@ final class WithdrawalCompletionService
         });
     }
 
+    public function verifySettled(Withdrawal $withdrawal): void
+    {
+        $this->withinTransaction(function () use ($withdrawal): void {
+            $wallet = $this->locks->lock((int) $withdrawal->wallet_id);
+            $current = $this->transitions->lockWithdrawal($withdrawal);
+            $tx = $this->existingTransactionFor($current);
+            if ($current->status !== WithdrawalStatus::Completed || ! $tx instanceof FinancialTransaction) {
+                app(WithdrawalIntegrityGuard::class)->refuse();
+            }
+            app(WithdrawalIntegrityGuard::class)->assertProof($current, $wallet, $tx, $this->idempotencyKeyFor($current));
+        });
+    }
+
     /**
      * The amount debited from the wallet: the gross request amount.
+     *
+     * The beneficiary receives `net_amount`; the difference is the operator's fee,
+     * which is recorded on the financial transaction's own `fee` column.
      */
     public function amountOf(Withdrawal $withdrawal): Money
     {
@@ -174,40 +250,9 @@ final class WithdrawalCompletionService
         return $withdrawal->status->canComplete() && $withdrawal->financial_transaction_id === null;
     }
 
-    public function verifySettled(Withdrawal $withdrawal): FinancialTransaction
-    {
-        if ($withdrawal->status !== WithdrawalStatus::Completed
-            || $withdrawal->financial_transaction_id === null
-            || $withdrawal->completed_at === null) {
-            app(WithdrawalIntegrityGuard::class)->refuse();
-        }
-
-        $wallet = Wallet::withTrashed()->find($withdrawal->wallet_id);
-        $transaction = FinancialTransaction::withTrashed()->find($withdrawal->financial_transaction_id);
-
-        if (! $wallet instanceof Wallet || ! $transaction instanceof FinancialTransaction) {
-            app(WithdrawalIntegrityGuard::class)->refuse();
-        }
-
-        app(WithdrawalIntegrityGuard::class)->assertProof(
-            $withdrawal,
-            $wallet,
-            $transaction,
-            $this->idempotencyKeyFor($withdrawal),
-        );
-
-        return $transaction;
-    }
-
     public function isSettled(Withdrawal $withdrawal): bool
     {
-        try {
-            $this->verifySettled($withdrawal);
-
-            return true;
-        } catch (FinancialException) {
-            return false;
-        }
+        return $withdrawal->status === WithdrawalStatus::Completed && $withdrawal->financial_transaction_id !== null;
     }
 
     /**
@@ -219,10 +264,62 @@ final class WithdrawalCompletionService
      */
     private function replayResult(Withdrawal $withdrawal, Wallet $wallet): array
     {
-        $transaction = $this->verifySettled($withdrawal);
+        $transaction = $this->existingTransactionFor($withdrawal);
+
+        if (! $transaction instanceof FinancialTransaction) {
+            throw WithdrawalException::inconsistentState(
+                (int) $withdrawal->getKey(),
+                'the withdrawal is completed but no financial transaction exists for it',
+            );
+        }
 
         return [
             'withdrawal' => $withdrawal,
+            'transaction' => $transaction,
+            'wallet' => $wallet,
+            'debited' => false,
+            'replayed' => true,
+            'amount' => Money::fromDatabase((string) $transaction->amount, $withdrawal->currency)->toString(),
+            'snapshot' => $this->holds->snapshot($wallet),
+        ];
+    }
+
+    /**
+     * Finish the bookkeeping for a withdrawal whose debit exists but whose status
+     * was never written. Debits nothing.
+     *
+     * @return array{withdrawal: Withdrawal, transaction: FinancialTransaction, wallet: Wallet, debited: bool, replayed: bool, amount: string, snapshot: array{balance: string, available_balance: string, locked_balance: string, currency: string, hold_type: string|null}}
+     *
+     * @throws WithdrawalException
+     * @throws FinancialException
+     */
+    private function healUnmarkedWithdrawal(Withdrawal $withdrawal, Wallet $wallet): array
+    {
+        $transaction = FinancialTransaction::query()->whereKey($withdrawal->financial_transaction_id)->first();
+
+        if (! $transaction instanceof FinancialTransaction) {
+            throw WithdrawalException::inconsistentState(
+                (int) $withdrawal->getKey(),
+                'the withdrawal points at a financial transaction that does not exist',
+            );
+        }
+
+        if (! $withdrawal->status->canTransitionTo(WithdrawalStatus::Completed)) {
+            throw WithdrawalException::notCompletable($withdrawal->id, $withdrawal->status);
+        }
+
+        $completed = $this->transitions->transitionWithdrawal($withdrawal, WithdrawalStatus::Completed, [
+            'completed_at' => $withdrawal->completed_at ?? Carbon::now(),
+            'metadata' => $this->mergeMetadata($withdrawal, [
+                'reconciled_at' => Carbon::now()->toIso8601String(),
+                'reconciliation_note' => 'Status completed from an existing debit transaction; no new debit was made.',
+                'reconciliation_required' => false,
+                'disbursement_outcome' => 'completed',
+            ]),
+        ]);
+
+        return [
+            'withdrawal' => $completed,
             'transaction' => $transaction,
             'wallet' => $wallet,
             'debited' => false,
@@ -304,6 +401,10 @@ final class WithdrawalCompletionService
 
     private function withinTransaction(\Closure $callback): mixed
     {
+        if (DB::transactionLevel() > 0) {
+            return $callback();
+        }
+
         return DB::transaction($callback);
     }
 }

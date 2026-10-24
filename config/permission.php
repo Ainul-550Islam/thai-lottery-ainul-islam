@@ -99,10 +99,6 @@ return [
         'review glo dealer requests',
         'manage glo sales points',
         'manage ip access rules',
-        // Read-only operator balance-transfer desk. Reversal permissions are
-        // intentionally not seeded while its independent approval workflow
-        // is unavailable.
-        'transfer.view_any',
         'reconcile deposit checkouts',
         'reconcile stripe deposit settlements',
         'review stripe deposit followups',

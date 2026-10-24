@@ -6,7 +6,6 @@ namespace Tests\Feature\Payment;
 
 use App\Enums\Currency;
 use App\Enums\WalletStatus;
-use App\Enums\WalletType;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Broadcast\RealtimeSyncService;
@@ -76,7 +75,7 @@ class ScbWebhookProcessingTest extends TestCase
         $userId = (string) $user->id;
         $wallet = Wallet::factory()->for($user)->create([
             'currency' => Currency::THB,
-            'type' => WalletType::Primary,
+            'type' => 'main',
             'balance' => '0.00',
             'locked_balance' => '0.00',
             'status' => WalletStatus::Active,

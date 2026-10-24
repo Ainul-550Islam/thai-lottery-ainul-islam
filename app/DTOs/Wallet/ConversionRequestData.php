@@ -75,6 +75,10 @@ final readonly class ConversionRequestData
             );
         }
 
+        // A currency is never guessed. When the caller named one it must be a real
+        // code, and when they did not the lane's configured currency is used — with no
+        // fall back to THB, because that fallback is how a misconfigured USD lane
+        // quietly starts moving THB money.
         $currency = array_key_exists('currency', $data)
             ? ConversionCurrency::parse($data['currency'])
             : ConversionCurrency::configured();

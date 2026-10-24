@@ -14,46 +14,53 @@ class FieldEncryptionService
 
     private const IV_LENGTH = 12;
 
-    private const VERSION_PREFIX = 'v1:';
-
     private string $encryptionKey;
 
-    /** @var list<string> */
-    private array $decryptionKeys = [];
-
+    /**
+     * Resolve the key material, or refuse to construct at all.
+     *
+     * WHY THERE IS NO FALLBACK
+     * This constructor used to fall back to a hard-coded base64 secret committed in
+     * this file. Every field encrypted with it could therefore be decrypted by anyone
+     * holding the repository, which is the opposite of what field-level encryption is
+     * for - and it made a missing FIELD_ENCRYPTION_KEY invisible in production. The
+     * service now fails closed: no key material means no instance, so a
+     * misconfiguration surfaces at boot instead of silently weakening the data.
+     *
+     * @throws RuntimeException when no key material is configured
+     */
     public function __construct(?string $key = null)
     {
-        $configuredKey = $key;
+        // Precedence: an explicit key, then the dedicated field key, then the
+        // application key (which Laravel already treats as secret and rotates), and
+        // nothing else. APP_KEY is a legitimate last resort because it is per
+        // installation and never committed; the removed hard-coded literal was not.
+        $rawKey = $key
+            ?? config('app.field_encryption_key')
+            ?? (function (): ?string {
+                $value = env('FIELD_ENCRYPTION_KEY');
 
-        if ($configuredKey === null || trim($configuredKey) === '') {
-            $fieldKey = config('app.field_encryption_key');
-            $configuredKey = is_string($fieldKey) && trim($fieldKey) !== ''
-                ? $fieldKey
-                : (string) config('app.key', '');
+                return is_string($value) && $value !== '' ? $value : null;
+            })()
+            ?? config('app.key');
+
+        if (! is_string($rawKey) || trim($rawKey) === '') {
+            throw new RuntimeException(
+                'Field encryption is not configured: set FIELD_ENCRYPTION_KEY (or app.field_encryption_key).',
+            );
         }
 
-        $decodedPrimary = $this->decodeKeyMaterial($configuredKey);
-        if ($decodedPrimary === '') {
-            throw new RuntimeException('FieldEncryptionService requires non-empty key material; refusing insecure fallback.');
-        }
+        if (str_starts_with($rawKey, 'base64:')) {
+            $decoded = base64_decode(substr($rawKey, 7), true);
 
-        $this->encryptionKey = hash_hkdf('sha256', $decodedPrimary, 32, 'field-encryption-v1');
-        $this->decryptionKeys[] = $this->encryptionKey;
-        // Compatibility derived key for pre-HKDF SHA-256 ciphertexts under the same secret:
-        $this->decryptionKeys[] = hash('sha256', $decodedPrimary, true);
-
-        $previousKeys = config('app.previous_field_encryption_keys', []);
-        if (is_array($previousKeys)) {
-            foreach ($previousKeys as $prev) {
-                if (is_string($prev) && trim($prev) !== '') {
-                    $decodedPrev = $this->decodeKeyMaterial($prev);
-                    if ($decodedPrev !== '') {
-                        $this->decryptionKeys[] = hash_hkdf('sha256', $decodedPrev, 32, 'field-encryption-v1');
-                        $this->decryptionKeys[] = hash('sha256', $decodedPrev, true);
-                    }
-                }
+            if ($decoded === false || $decoded === '') {
+                throw new RuntimeException('Field encryption key is not valid base64.');
             }
+
+            $rawKey = $decoded;
         }
+
+        $this->encryptionKey = hash('sha256', $rawKey, true); // Ensure exact 32 bytes
     }
 
     /**
@@ -83,7 +90,8 @@ class FieldEncryptionService
             throw new RuntimeException('Failed to encrypt sensitive field data.');
         }
 
-        return self::VERSION_PREFIX.base64_encode($iv.$tag.$cipherText);
+        // Pack: IV (12B) + TAG (16B) + CIPHERTEXT
+        return base64_encode($iv.$tag.$cipherText);
     }
 
     /**
@@ -95,11 +103,7 @@ class FieldEncryptionService
             return '';
         }
 
-        $encoded = str_starts_with($payload, self::VERSION_PREFIX)
-            ? substr($payload, strlen(self::VERSION_PREFIX))
-            : $payload;
-
-        $data = base64_decode($encoded, true);
+        $data = base64_decode($payload, true);
         if ($data === false || strlen($data) < (self::IV_LENGTH + self::TAG_LENGTH)) {
             throw new RuntimeException('Invalid encrypted payload structure.');
         }
@@ -108,54 +112,19 @@ class FieldEncryptionService
         $tag = substr($data, self::IV_LENGTH, self::TAG_LENGTH);
         $cipherText = substr($data, self::IV_LENGTH + self::TAG_LENGTH);
 
-        foreach ($this->decryptionKeys as $candidateKey) {
-            $plainText = openssl_decrypt(
-                $cipherText,
-                self::CIPHER,
-                $candidateKey,
-                OPENSSL_RAW_DATA,
-                $iv,
-                $tag
-            );
+        $plainText = openssl_decrypt(
+            $cipherText,
+            self::CIPHER,
+            $this->encryptionKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
 
-            if ($plainText !== false) {
-                return $plainText;
-            }
+        if ($plainText === false) {
+            throw new RuntimeException('Failed to decrypt or tag authentication failed (data tampered).');
         }
 
-        throw new RuntimeException('Data integrity check failed during field decryption (Authentication Tag mismatch).');
-    }
-
-    /**
-     * Deterministic domain-separated HMAC blind index for indexed equality lookups without storing plaintext PII.
-     */
-    public function blindIndex(string $value, string $context = 'default'): string
-    {
-        $indexKey = hash_hkdf('sha256', $this->encryptionKey, 32, 'blind-index:'.$context);
-
-        return hash_hmac('sha256', mb_strtolower(trim($value)), $indexKey);
-    }
-
-    private function decodeKeyMaterial(?string $raw): string
-    {
-        if ($raw === null) {
-            return '';
-        }
-
-        $trimmed = trim($raw);
-        if ($trimmed === '') {
-            return '';
-        }
-
-        if (str_starts_with($trimmed, 'base64:')) {
-            $decoded = base64_decode(substr($trimmed, 7), true);
-            if ($decoded === false || $decoded === '') {
-                throw new RuntimeException('Malformed base64 field encryption key.');
-            }
-
-            return $decoded;
-        }
-
-        return $trimmed;
+        return $plainText;
     }
 }

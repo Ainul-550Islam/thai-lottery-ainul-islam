@@ -322,7 +322,11 @@ final class ChatOperatorController extends Controller
 
         return response()->json([
             'status' => 'OK',
-            'groups' => $this->canned->forPicker(app()->getLocale()),
+            // The operator's own negotiated locale (SetLocale), not a literal 'en'
+            // and not the query string: the picker is fetched with no query at all,
+            // so this used to hand every Thai or Bangla operator the English list
+            // even when translated replies existed.
+            'groups' => $this->canned->forPicker((string) app()->getLocale()),
         ]);
     }
 

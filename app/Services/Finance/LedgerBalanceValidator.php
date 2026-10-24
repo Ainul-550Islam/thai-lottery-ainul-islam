@@ -8,7 +8,6 @@ use App\Enums\Currency;
 use App\Enums\LedgerEntryType;
 use App\Exceptions\FinancialException;
 use App\Models\FinancialTransaction;
-use App\Models\LedgerEntry;
 
 /**
  * Guards the fundamental accounting invariant: SUM(debits) === SUM(credits).
@@ -169,15 +168,21 @@ final class LedgerBalanceValidator
      */
     public function assertTransactionBalanced(FinancialTransaction $transaction): void
     {
+        // The proof reads the transaction and its entries by key, so the key must
+        // first be a canonical positive integer on the canonical writer. A model
+        // carrying a zero, a negative, a suffixed or a foreign-routed key would
+        // otherwise be asked for somebody else's journal — or for none at all,
+        // which would report "no entries" instead of "not a real address".
+        FinancialRecordIdentifier::fromModel($transaction, 'financial_entity_not_persisted');
+
         Money::assertExactArithmeticIsAvailable();
-        $transactionId = FinancialRecordIdentifier::fromModel($transaction, 'financial_entity_not_persisted');
 
         $currency = $transaction->currency;
         $debit = Money::zero($currency);
         $credit = Money::zero($currency);
         $count = 0;
 
-        foreach (LedgerEntry::query()->where('financial_transaction_id', $transactionId)->get() as $entry) {
+        foreach ($transaction->ledgerEntries()->get() as $entry) {
             $count++;
             $amount = Money::fromDatabase((string) $entry->amount, $currency);
 
@@ -194,9 +199,9 @@ final class LedgerBalanceValidator
                 sprintf(
                     'Financial transaction %d has no ledger entries; a money movement '
                     .'without a double-entry posting is not permitted.',
-                    $transactionId,
+                    (int) $transaction->getKey(),
                 ),
-                ['transaction_id' => $transactionId],
+                ['transaction_id' => (int) $transaction->getKey()],
             );
         }
 
@@ -346,16 +351,30 @@ final class LedgerBalanceValidator
         }
 
         /** @var array<string, mixed>|null $metadata */
-        return [
+        $normalised = [
             'ledger_account_id' => $accountId,
             'type' => $type,
             'amount' => $amount,
-            'wallet_id' => $walletId,
             'description' => $description,
             'reference_type' => $referenceType,
             'reference_id' => $referenceId,
             'metadata' => $metadata,
         ];
+
+        // ABSENT AND NULL ARE DIFFERENT FACTS, and the difference survives validation.
+        //
+        // A caller that omits `wallet_id` is saying nothing about the wallet, and the
+        // posting service fills in the transaction's own wallet — that is how every
+        // counterparty leg (system cash, fee revenue) has always been written. A caller
+        // that passes an explicit null is making a statement: this leg lives in no
+        // wallet at all, so it has no wallet and no wallet snapshot. Adding the key
+        // unconditionally would erase that distinction and silently re-home every
+        // explicit-null leg into the player's wallet.
+        if (array_key_exists('wallet_id', $entry)) {
+            $normalised['wallet_id'] = $walletId;
+        }
+
+        return $normalised;
     }
 
     /**

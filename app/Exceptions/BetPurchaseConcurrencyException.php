@@ -55,6 +55,20 @@ final class BetPurchaseConcurrencyException extends BetPurchaseException
     public const SQLSTATE_DUPLICATE_ENTRY = 1062;
 
     /**
+     * SQLite: SQLITE_BUSY (5), SQLITE_LOCKED (6) and SQLITE_BUSY_SNAPSHOT (517).
+     *
+     * The SQLite driver reports contention in its own numbering, so a contract that
+     * only knew the MySQL codes treated a busy database as a permanent failure: the
+     * purchase was abandoned instead of being retried, even though nothing had been
+     * decided about the money.
+     */
+    public const SQLITE_BUSY = 5;
+
+    public const SQLITE_LOCKED = 6;
+
+    public const SQLITE_BUSY_SNAPSHOT = 517;
+
+    /**
      * Two requests carrying the SAME idempotency key raced, and this one lost the
      * insert on the UNIQUE index over bets.idempotency_key.
      *
@@ -154,9 +168,9 @@ final class BetPurchaseConcurrencyException extends BetPurchaseException
         return in_array($code, [
             self::SQLSTATE_DEADLOCK,
             self::SQLSTATE_LOCK_TIMEOUT,
-            5,
-            6,
-            517,
+            self::SQLITE_BUSY,
+            self::SQLITE_LOCKED,
+            self::SQLITE_BUSY_SNAPSHOT,
         ], true);
     }
 

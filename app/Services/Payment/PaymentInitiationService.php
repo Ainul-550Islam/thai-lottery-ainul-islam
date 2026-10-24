@@ -6,7 +6,6 @@ namespace App\Services\Payment;
 
 use App\DTOs\Payment\GatewayDepositResponse;
 use App\Enums\PaymentMethod;
-use App\Exceptions\DepositException;
 use App\Exceptions\FinancialException;
 use App\Models\Deposit;
 use App\Models\Payment;
@@ -15,14 +14,14 @@ use App\Services\Finance\DepositService;
 use App\Services\Finance\Money;
 
 /**
- * Service orchestrating deposit initiation across payment gateway providers.
+ * Orchestrates idempotent deposit creation and provider checkout initiation
+ * through the durable fenced checkout owner.
  */
-class PaymentInitiationService
+final class PaymentInitiationService
 {
     public function __construct(
         private readonly DepositService $depositService,
         private readonly PaymentGatewayManager $gateways,
-        private readonly ?DepositCheckoutService $checkout = null,
     ) {}
 
     /**
@@ -31,7 +30,6 @@ class PaymentInitiationService
      * @param  array<string, mixed>  $options
      * @return array{deposit: Deposit, payment: Payment, gateway_response: GatewayDepositResponse}
      *
-     * @throws DepositException
      * @throws FinancialException
      */
     public function initiateDeposit(
@@ -41,13 +39,12 @@ class PaymentInitiationService
         ?string $idempotencyKey = null,
         array $options = [],
     ): array {
-        $allowedMethods = (array) config('payment.deposit.allowed_methods', []);
-
-        if ($allowedMethods !== [] && ! in_array($method->value, $allowedMethods, true)) {
+        $allowedMethods = config('payment.deposit.allowed_methods', []);
+        if (is_array($allowedMethods) && ! in_array($method->value, $allowedMethods, true)) {
             throw FinancialException::withCode(
                 'payment_method_not_allowed',
                 sprintf('Payment method [%s] is not allowed for deposits.', $method->value),
-                ['method' => $method->value, 'allowed' => $allowedMethods],
+                ['method' => $method->value],
             );
         }
 
@@ -61,35 +58,13 @@ class PaymentInitiationService
             );
         }
 
-        if ($idempotencyKey === null || trim($idempotencyKey) === '') {
-            throw FinancialException::withCode(
-                'checkout_request_key_required',
-                'A stable idempotency key is required for deposit checkout initiation.',
-            );
-        }
-
-        $checkout = $this->checkout ?? app(DepositCheckoutService::class);
-        $checkout->assertTopLevel();
-
-        return $checkout->execute(
-            $wallet,
-            $amount,
-            $method,
-            $idempotencyKey,
-            $options,
-            $driver,
+        return app(DepositCheckoutService::class)->execute(
+            wallet: $wallet,
+            amount: $amount,
+            method: $method,
+            key: $idempotencyKey ?? 'checkout-auto-'.bin2hex(random_bytes(16)),
+            options: $options,
+            driver: $driver,
         );
-    }
-
-    /**
-     * Read-only recovery of an already-recorded durable checkout outcome.
-     *
-     * @return array{deposit: Deposit, payment: Payment, gateway_response: GatewayDepositResponse}
-     *
-     * @throws FinancialException
-     */
-    public function recover(Deposit $deposit): array
-    {
-        return ($this->checkout ?? app(DepositCheckoutService::class))->recover($deposit);
     }
 }

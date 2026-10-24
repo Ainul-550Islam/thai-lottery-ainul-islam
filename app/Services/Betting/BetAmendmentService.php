@@ -5,225 +5,146 @@ declare(strict_types=1);
 namespace App\Services\Betting;
 
 use App\DTOs\BetPurchaseData;
+use App\DTOs\BetPurchaseResult;
 use App\DTOs\Betting\BetAmendmentData;
 use App\DTOs\Betting\BetAmendmentResult;
 use App\DTOs\Betting\BetCancellationData;
 use App\Enums\BetAmendmentStatus;
 use App\Enums\BetCancellationReason;
 use App\Enums\BetStatus;
-use App\Enums\BetType;
 use App\Enums\Currency;
 use App\Exceptions\BetAmendmentException;
-use App\Exceptions\BetCancellationException;
-use App\Exceptions\BetDomainException;
-use App\Exceptions\FinancialException;
-use App\Exceptions\InvalidBetAmendmentException;
-use App\Exceptions\RiskException;
+use App\Exceptions\BetPurchaseException;
+use App\Exceptions\BetPurchaseValidationException;
 use App\Models\Bet;
 use App\Models\BetAmendment;
-use App\Services\Finance\IdempotencyService;
+use App\Models\BetItem;
 use App\Services\Finance\WalletLockService;
-use App\Services\Risk\NumberNormalizationService;
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Bet amendment = refund-and-replace, composed out of the audited primitives.
+ * Bet amendment = refund-and-replace, owned end to end.
+ *
+ * THE SHAPE OF AN AMENDMENT
+ *   1. Everything that can refuse cheaply refuses BEFORE any row is written: the
+ *      caller's scope, the amendment window, the draw, and the replacement proposal
+ *      itself (draw open, market active, number available, stake within the risk
+ *      ceiling, funds sufficient). A refusal here leaves the database untouched.
+ *   2. One committed transaction creates the amendment row, performs the player's
+ *      refund through the ordinary cancellation service, and writes the non-expiring
+ *      ownership row that records what was refunded and what is about to be attempted.
+ *   3. The replacement is then bought through the completely ordinary purchase
+ *      pipeline, carrying a permit minted from that ownership row. When it commits, the
+ *      same transaction that funded it flips the ownership row to applied.
+ *
+ * WHY THE ATTEMPT IS COMMITTED BEFORE THE REPLACEMENT IS TRIED
+ * A refund that has already left the account cannot be undone by a replacement that
+ * fails, and a replacement that may or may not have committed cannot be guessed at. So
+ * the attempt row is durable first, in state `attempting`. From then on the amendment is
+ * either applied (proved by the replacement purchase it owns) or it is stuck at
+ * `attempting` and refuses every retry: an unknown outcome is an operator question, not
+ * something this service re-sends. That is why a permit can only be minted for a claim
+ * that is still untouched.
+ *
+ * WHAT A FAILED REPLACEMENT MEANS FOR THE PLAYER
+ * The old bet is cancelled and the stake is back in the wallet — that half is complete
+ * and is never compensated away. Where the purchase pipeline refused before touching
+ * money for a named, provable reason (a validation refusal), the amendment is recorded
+ * Failed with that code and can be read back forever. Where the reason is unknown, the
+ * attempt stays open and nothing is claimed about it either way.
  */
 class BetAmendmentService
 {
     public function __construct(
+        private readonly DatabaseManager $database,
         private readonly BetCancellationService $cancellations,
-        private readonly BetPurchaseValidator $validator,
-        private readonly BetPurchaseIdempotencyService $purchaseIdempotency,
         private readonly BetAmendmentOwnership $ownership,
-        private readonly NumberNormalizationService $numbers,
-    ) {}
+    ) {
+    }
 
     /**
-     * Apply an amendment: cancel+refund the original, then purchase the replacement.
-     *
-     * @throws BetAmendmentException
-     * @throws InvalidBetAmendmentException
-     * @throws BetCancellationException
+     * Apply an amendment: cancel+refund the original, then buy the replacement.
      */
     public function amend(BetAmendmentData $data): BetAmendmentResult
     {
-        if (DB::transactionLevel() > 0) {
-            $this->ownership->refuse();
+        // A recorded amendment answers for itself. Replay comes first and re-validates
+        // nothing: the draw may have closed, the policy may have changed, and none of
+        // that can un-apply money that already moved.
+        $existing = BetAmendment::query()
+            ->where('idempotency_key', $this->idempotencyKeyFor($data->userId, $data->clientKey))
+            ->where('user_id', $data->userId)
+            ->first();
+
+        if ($existing instanceof BetAmendment) {
+            return $this->replay($existing, $data);
         }
+
+        // A row carrying the RAW client key is not this lane's record: every attempt
+        // this service creates stores an owner-namespaced key (`idempotencyKeyFor`), so
+        // an unnamespaced key is either history from before that rule or a row written
+        // by hand. Either way it is an attempt whose ownership was never enrolled — it
+        // has no attempt row, so nothing can prove whose money moved or how much. It is
+        // refused rather than ignored (which would run a second amendment alongside it)
+        // and refused rather than adopted (which would claim somebody else's history).
+        if (BetAmendment::query()->where('idempotency_key', $data->clientKey)->exists()) {
+            throw BetAmendmentException::replacementRefused(
+                0,
+                'An amendment with this request key exists outside the owned amendment lane; '
+                .'it cannot be replayed or superseded. Controlled review required.',
+                ['bet' => $data->betIdentifier, 'request_key' => $data->clientKey],
+            );
+        }
+
+        $this->assertRoot();
+        $this->assertEnabled();
 
         if (! $data->changesSomething()) {
-            throw InvalidBetAmendmentException::nothingToChange(0, ['bet' => $data->betIdentifier]);
+            throw BetAmendmentException::nothingToChange(0, ['bet' => $data->betIdentifier]);
         }
 
-        $clientKey = $this->purchaseIdempotency->assertClientKeyUsable($data->clientKey);
-        $scopedKey = 'amend-v1-'.$data->userId.'-'.hash('sha256', $clientKey);
+        $bet = $this->resolveBet($data);
+        $this->assertAmendable($bet);
 
-        $hintBet = $this->resolveBet($data, false);
-        $hintClaim = DB::table('bet_purchase_ownerships')->where('bet_id', $hintBet->getKey())->first();
+        $market = $this->marketOf($bet);
+        $oldNumber = $this->firstNumberOf($bet);
+        $oldStake = bcadd((string) $bet->stake_amount, '0', 2);
+        $newNumber = $data->newNumber ?? $oldNumber;
+        $newStake = $data->newStake !== null ? bcadd($data->newStake, '0', 2) : $oldStake;
+        $currency = $this->currencyValue($bet);
+        $replacementKey = $this->replacementClientKey($data->userId, $data->clientKey);
+        $storedKey = $this->idempotencyKeyFor($data->userId, $data->clientKey);
 
-        if (! $hintClaim) {
-            $this->ownership->refuse();
-        }
+        $proposal = new BetPurchaseData(
+            userId: $data->userId,
+            drawId: (int) $bet->draw_id,
+            marketKey: $market,
+            rawNumber: $newNumber,
+            rawStake: $newStake,
+            idempotencyKey: $replacementKey,
+        );
 
-        $hintWalletIds = [(int) $hintClaim->wallet_id];
-        foreach (DB::table('agent_commission_payouts as p')
-            ->join('bet_commission_ownerships as c', 'c.id', '=', 'p.source_ownership_id')
-            ->where('c.purchase_ownership_id', $hintClaim->id)
-            ->orderBy('p.id')
-            ->pluck('p.wallet_id') as $payoutWalletId) {
-            $hintWalletIds[] = (int) $payoutWalletId;
-        }
-        $hintWalletIds = array_values(array_unique(array_filter($hintWalletIds)));
-        sort($hintWalletIds, SORT_NUMERIC);
+        // ---- One committed transaction: the report row, the refund, the attempt ----
+        [$amendment, $attemptId] = $this->database->transaction(function () use ($data, $bet, $proposal, $oldNumber, $oldStake, $newNumber, $newStake, $currency, $market, $replacementKey, $storedKey): array {
+            $wallet = app(WalletLockService::class)->lock($this->fundingWalletId($bet));
 
-        $leg1 = DB::transaction(function () use ($data, $clientKey, $scopedKey, $hintBet, $hintClaim, $hintWalletIds): array {
-            $lockedWallets = app(WalletLockService::class)->lockMany($hintWalletIds);
-            $wallet = $lockedWallets[(int) $hintClaim->wallet_id] ?? app(WalletLockService::class)->lock((int) $hintClaim->wallet_id);
-            $bet = $this->resolveBet($data, true);
-
-            if ((int) $bet->getKey() !== (int) $hintBet->getKey()) {
-                $this->ownership->refuse();
-            }
-
-            $existingOwner = DB::table('bet_amendment_ownerships')
-                ->where('purchase_ownership_id', $hintClaim->id)
-                ->lockForUpdate()
-                ->first();
-
-            $existingAmendments = $this->ownership->rows()
-                ->where(static function ($q) use ($bet, $scopedKey, $clientKey): void {
-                    $q->where('bet_id', $bet->getKey())
-                        ->orWhereIn('idempotency_key', [$scopedKey, $clientKey]);
-                })
-                ->lockForUpdate()
-                ->get();
-
-            if ($existingOwner !== null || $existingAmendments->isNotEmpty()) {
-                if ($existingOwner === null || $existingAmendments->count() !== 1) {
-                    $this->ownership->refuse();
-                }
-
-                /** @var BetAmendment $existingAmendment */
-                $existingAmendment = $existingAmendments->first();
-
-                if ((int) $existingAmendment->getKey() !== (int) $existingOwner->amendment_id
-                    || (int) $existingOwner->user_id !== $data->userId
-                    || (int) $existingAmendment->bet_id !== (int) $bet->getKey()
-                    || $existingAmendment->idempotency_key !== $scopedKey) {
-                    $this->ownership->refuse();
-                }
-
-                $candidateNumber = $this->normaliseReplacementNumber(
-                    $data->newNumber ?? (string) $existingOwner->old_number,
-                    (string) $existingOwner->market,
-                    $bet->type,
-                );
-                $candidateStake = $this->normaliseReplacementStake(
-                    $data->newStake ?? (string) $existingOwner->old_stake,
-                );
-
-                if ($candidateStake === null
-                    || ! hash_equals(
-                        $existingOwner->request_hash,
-                        $this->ownership->requestHash($data->userId, (int) $bet->getKey(), $candidateNumber, $candidateStake),
-                    )) {
-                    throw BetAmendmentException::withCode(
-                        'bet_amendment_request_conflict',
-                        'The amendment idempotency key is already bound to a different replacement request.',
-                    );
-                }
-
-                $replacementBet = $this->ownership->terminal($existingOwner, $existingAmendment, $wallet);
-
-                return [
-                    'replay' => new BetAmendmentResult(
-                        amendment: $existingAmendment,
-                        originalBet: $bet,
-                        replacementBet: $replacementBet,
-                        status: $existingAmendment->status,
-                        refundedAmount: (string) $existingOwner->old_stake,
-                        chargedAmount: $replacementBet instanceof Bet ? (string) $existingOwner->new_stake : null,
-                        currency: (string) $existingOwner->currency,
-                        failureReason: $existingAmendment->failure_reason,
-                    ),
-                ];
-            }
-
-            $this->assertEnabled();
-            $this->assertAmendable($bet);
-
-            $market = $this->marketOf($bet);
-            [, $oldStake, , $item] = app(BetPurchaseOwnership::class)->terms($bet);
-            $oldNumber = (string) $item->number;
-            $rawNewNumber = $data->newNumber ?? $oldNumber;
-            $rawNewStake = $data->newStake ?? $oldStake;
-
-            $canonicalCandidateNumber = $this->normaliseReplacementNumber($rawNewNumber, $market, $bet->type);
-            $normalisedCandidateStake = $this->normaliseReplacementStake($rawNewStake);
-
-            if ($canonicalCandidateNumber === $oldNumber
-                && $normalisedCandidateStake !== null
-                && bccomp($normalisedCandidateStake, $oldStake, 2) === 0) {
-                throw InvalidBetAmendmentException::nothingToChange((int) $bet->getKey(), ['bet' => $data->betIdentifier]);
-            }
-
-            $cancellation = $this->cancellations->cancel(
-                new BetCancellationData(
-                    userId: $data->userId,
-                    betIdentifier: (string) $bet->getKey(),
-                    reason: BetCancellationReason::Amendment,
-                    clientKey: $clientKey.':cancel',
-                ),
-                null,
-                true,
-            );
-
-            $replacementClientKey = app(IdempotencyService::class)->deterministicKey(
-                'amendreplace',
-                $data->userId.'|'.$bet->getKey().'|'.$clientKey,
-            );
-
-            $purchaseData = new BetPurchaseData(
-                userId: $data->userId,
-                drawId: (int) $bet->draw_id,
-                marketKey: $market,
-                rawNumber: $rawNewNumber,
-                rawStake: $rawNewStake,
-                idempotencyKey: $replacementClientKey,
-                metadata: array_filter([
-                    'channel' => $data->metadata['channel'] ?? null,
-                ]),
-            );
-
-            $context = $this->validator->validate($purchaseData);
-            $newNumber = $context->canonicalNumber();
-            $newStake = $context->stake->toString();
-
-            $replacementBetKey = $this->purchaseIdempotency->betKeyFor($purchaseData);
-            $replacementFinancialKey = $this->purchaseIdempotency->financialKeyFor($purchaseData);
-
-            $purchaseClaim = DB::table('bet_purchase_ownerships')->where('bet_id', $bet->getKey())->lockForUpdate()->first();
-
-            if (! $purchaseClaim) {
-                $this->ownership->refuse();
-            }
+            // The original claim is proved BEFORE the refund revokes it: afterwards its
+            // state is 'cancelled' and it can no longer be read as the live owner.
+            $original = app(BetPurchaseOwnership::class)->funded($bet, $wallet);
 
             $amendment = BetAmendment::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'user_id' => $data->userId,
                 'bet_id' => (int) $bet->getKey(),
                 'status' => BetAmendmentStatus::Pending,
-                'currency' => $this->currencyValue($bet),
+                'currency' => $currency,
                 'old_number' => $oldNumber,
                 'old_stake' => $oldStake,
                 'new_number' => $newNumber,
                 'new_stake' => $newStake,
-                'refunded_amount' => $oldStake,
-                'charged_amount' => null,
-                'idempotency_key' => $scopedKey,
-                'expires_at' => null,
+                'refunded_amount' => '0.00',
+                'idempotency_key' => $storedKey,
                 'metadata' => array_filter([
                     'market' => $market,
                     'channel' => $data->metadata['channel'] ?? null,
@@ -231,171 +152,204 @@ class BetAmendmentService
                 ]),
             ]);
 
-            $sourceHash = $this->ownership->sourceHash($purchaseClaim);
-            $requestHash = $this->ownership->requestHash($data->userId, (int) $bet->getKey(), $newNumber, $newStake);
+            // Leg 1: the player's money comes back through the ordinary, fully proved
+            // cancellation lane, so an amendment cannot refund what a cancellation could
+            // not. That lane owns the coordinated part too — an attributed sale's agent
+            // commission is cancelled inside it, before the refund — which is why the
+            // amendment never touches commission rows itself.
+            $cancellation = $this->cancellations->cancel(new BetCancellationData(
+                userId: $data->userId,
+                betIdentifier: (string) $bet->getKey(),
+                reason: BetCancellationReason::Amendment,
+                clientKey: $data->clientKey . ':cancel',
+            ));
 
-            $ownerRow = [
+            $amendment->forceFill(['refunded_amount' => $cancellation->refundAmount])->save();
+
+            // Canonical proposal validation happens HERE, after the refund released the
+            // original reservation and still inside the same transaction. Two reasons:
+            // the replacement must be measured against the capacity this amendment just
+            // gave back (otherwise "same number, bigger stake" could never be legal), and
+            // a refusal must roll the refund back with it — a player is never left
+            // refunded-with-nothing because their replacement could not be accepted.
+            app(BetPurchaseValidator::class)->validate($proposal);
+
+            $insert = [
                 'amendment_id' => (int) $amendment->getKey(),
-                'purchase_ownership_id' => (int) $purchaseClaim->id,
-                'wallet_id' => (int) $purchaseClaim->wallet_id,
+                'purchase_ownership_id' => (int) $original->id,
+                'wallet_id' => (int) $wallet->getKey(),
                 'user_id' => $data->userId,
                 'draw_id' => (int) $bet->draw_id,
-                'currency' => (string) $purchaseClaim->currency,
+                'currency' => $currency,
                 'market' => $market,
                 'old_number' => $oldNumber,
                 'old_stake' => $oldStake,
                 'new_number' => $newNumber,
                 'new_stake' => $newStake,
-                'source_hash' => $sourceHash,
-                'request_hash' => $requestHash,
-                'replacement_client_key' => $replacementClientKey,
-                'replacement_bet_key' => $replacementBetKey,
-                'replacement_financial_key' => $replacementFinancialKey,
+                'source_hash' => $this->ownership->sourceHash($original),
+                'request_hash' => $this->ownership->requestHash($data->userId, (int) $bet->getKey(), $newNumber, $newStake),
+                'replacement_client_key' => $replacementKey,
+                'replacement_bet_key' => app(BetPurchaseIdempotencyService::class)->betKeyFor($proposal),
+                'replacement_financial_key' => app(BetPurchaseIdempotencyService::class)->financialKeyFor($proposal),
                 'refund_transaction_id' => (int) $cancellation->refund->getKey(),
                 'state' => 'attempting',
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
 
-            $ownerRow['terms_hash'] = $this->ownership->termsHash((object) $ownerRow, $amendment);
-            DB::table('bet_amendment_ownerships')->insert($ownerRow);
+            // The terms hash covers the row's own identity, so it is computed over the
+            // finished values and written in the same statement that creates the row.
+            $row = (object) $insert;
+            $insert['terms_hash'] = $this->ownership->termsHash($row, $amendment);
+            $id = DB::table('bet_amendment_ownerships')->insertGetId($insert);
 
-            $permit = BetAmendmentPermit::forFreshClaim($amendment);
-
-            return [
-                'replay' => null,
-                'amendment' => $amendment,
-                'bet' => $bet,
-                'wallet_id' => (int) $purchaseClaim->wallet_id,
-                'purchaseData' => $purchaseData,
-                'permit' => $permit,
-            ];
+            return [$amendment, (int) $id];
         }, 3);
 
-        if ($leg1['replay'] instanceof BetAmendmentResult) {
-            return $leg1['replay'];
-        }
-
-        /** @var BetAmendment $amendment */
-        $amendment = $leg1['amendment'];
-        /** @var Bet $bet */
-        $bet = $leg1['bet'];
-        $walletId = (int) $leg1['wallet_id'];
-        /** @var BetPurchaseData $purchaseData */
-        $purchaseData = $leg1['purchaseData'];
-        /** @var BetAmendmentPermit $permit */
-        $permit = $leg1['permit'];
+        // ---- The replacement attempt ------------------------------------------------
+        // Minted inside a transaction because minting asserts the claim is still fresh
+        // and untouched. It is not a replayable token: once the attempt row leaves
+        // 'attempting' no permit can be minted for it again.
+        $permit = $this->database->transaction(
+            fn (): BetAmendmentPermit => BetAmendmentPermit::forFreshClaim($amendment),
+            3,
+        );
 
         try {
-            app(BetAmendmentReplacement::class)->purchaseAmendment($purchaseData, $permit);
+            // Evaluate the purchase FIRST: the amendment row is only complete once the
+            // replacement transaction (which flips it to applied) has committed, so a
+            // refresh placed before it would read the row as it was a moment ago.
+            $purchase = app(BetAmendmentReplacement::class)->purchaseAmendment($proposal, $permit);
+
+            return $this->appliedResult($amendment->refresh(), $purchase);
         } catch (\Throwable $failure) {
-            return DB::transaction(function () use ($amendment, $bet, $walletId, $failure): BetAmendmentResult {
-                $wallet = app(WalletLockService::class)->lock($walletId);
-                $o = DB::table('bet_amendment_ownerships')->where('amendment_id', $amendment->getKey())->lockForUpdate()->first();
-                $a = $this->ownership->rows()->whereKey($amendment->getKey())->lockForUpdate()->first();
+            // Did it commit after all? An exception can arrive after the purchase's own
+            // transaction committed (lost acknowledgement). The durable answer is the
+            // attempt row, so the outcome is read from there, never inferred from the
+            // exception type.
+            $recovered = $this->recoverApplied($amendment, $attemptId);
 
-                if (! $o || ! $a) {
-                    $this->ownership->refuse();
-                }
-
-                // If the replacement actually committed before the exception was thrown, recover the applied receipt.
-                if ($o->state === 'applied') {
-                    $replacementBet = $this->ownership->terminal($o, $a, $wallet);
-
-                    return new BetAmendmentResult(
-                        amendment: $a,
-                        originalBet: $bet->refresh(),
-                        replacementBet: $replacementBet,
-                        status: $a->status,
-                        refundedAmount: (string) $o->old_stake,
-                        chargedAmount: (string) $o->new_stake,
-                        currency: (string) $o->currency,
-                        failureReason: null,
-                    );
-                }
-
-                if (! ($failure instanceof BetDomainException || $failure instanceof RiskException || $failure instanceof FinancialException)) {
-                    $this->ownership->refuse();
-                }
-
-                $this->ownership->check($o, $a);
-                $this->ownership->original($o, $a, $wallet);
-                $this->ownership->assertNoReplacement($o);
-
-                $failureCode = method_exists($failure, 'errorCode') && $failure->errorCode() !== ''
-                    ? (string) $failure->errorCode()
-                    : 'bet_purchase_refused';
-                $stamp = now()->toDateTimeString();
-
-                DB::table('bet_amendment_ownerships')->where('id', $o->id)->update([
-                    'state' => 'failed',
-                    'failure_code' => $failureCode,
-                    'completed_at' => $stamp,
-                    'updated_at' => now(),
-                ]);
-
-                $a->forceFill([
-                    'status' => BetAmendmentStatus::Failed,
-                    'failure_reason' => $failureCode,
-                ])->save();
-
-                $freshOwner = DB::table('bet_amendment_ownerships')->where('id', $o->id)->lockForUpdate()->first();
-                $freshAmendment = $this->ownership->rows()->whereKey($a->getKey())->lockForUpdate()->first();
-                $this->ownership->terminal($freshOwner, $freshAmendment, $wallet);
-
-                return new BetAmendmentResult(
-                    amendment: $freshAmendment,
-                    originalBet: $bet->refresh(),
-                    replacementBet: null,
-                    status: BetAmendmentStatus::Failed,
-                    refundedAmount: (string) $o->old_stake,
-                    chargedAmount: null,
-                    currency: (string) $o->currency,
-                    failureReason: $failureCode,
-                );
-            }, 3);
-        }
-
-        return DB::transaction(function () use ($amendment, $bet, $walletId): BetAmendmentResult {
-            $wallet = app(WalletLockService::class)->lock($walletId);
-            $o = DB::table('bet_amendment_ownerships')->where('amendment_id', $amendment->getKey())->lockForUpdate()->first();
-            $a = $this->ownership->rows()->whereKey($amendment->getKey())->lockForUpdate()->first();
-
-            if (! $o || ! $a) {
-                $this->ownership->refuse();
+            if ($recovered instanceof BetAmendmentResult) {
+                return $recovered;
             }
 
-            $replacementBet = $this->ownership->terminal($o, $a, $wallet);
+            // A named refusal happened before any money moved in the purchase pipeline, so
+            // the amendment closes as Failed with that exact code — and the refund that
+            // already committed stays exactly where it is. Both the validation lane and the
+            // purchase lane carry a code; the durable row, not the exception class, decided
+            // above whether anything actually committed.
+            $code = match (true) {
+                $failure instanceof BetPurchaseValidationException => $failure->errorCode(),
+                $failure instanceof BetPurchaseException => $failure->errorCode(),
+                default => null,
+            };
 
-            return new BetAmendmentResult(
-                amendment: $a,
-                originalBet: $bet->refresh(),
-                replacementBet: $replacementBet,
-                status: $a->status,
-                refundedAmount: (string) $o->old_stake,
-                chargedAmount: (string) $o->new_stake,
-                currency: (string) $o->currency,
-                failureReason: null,
-            );
-        }, 3);
+            if (is_string($code) && $code !== '') {
+                $this->closeAsFailed($amendment, $code);
+
+                return $this->resultFromRow($amendment->refresh());
+            }
+
+            // Unknown outcome: the refund committed but the replacement's fate is not
+            // decidable from any row. The attempt stays exactly as it is (so no sweep, no
+            // retry and no second purchase can adopt it) and the caller is refused with a
+            // code that names that state instead of a transport error.
+            $this->ownership->refuse();
+        }
     }
 
     /**
-     * Backfill stored Expired on pending rows past their expiry moment, excluding owned attempts.
+     * Backfill stored Expired on pending rows that never acquired an ownership attempt.
+     *
+     * A row WITH an attempt is never expired: its refund may already have committed, and
+     * "expired" would be a claim about money this sweep cannot make.
+     *
+     * @return int rows updated
      */
     public function sweepExpired(): int
     {
         return BetAmendment::query()
             ->expiredPending()
-            ->whereNotExists(static function ($query): void {
-                $query->selectRaw('1')
-                    ->from('bet_amendment_ownerships')
-                    ->whereColumn('bet_amendment_ownerships.amendment_id', 'bet_amendments.id');
-            })
+            ->whereNotIn('id', DB::table('bet_amendment_ownerships')->select('amendment_id'))
             ->update(['status' => BetAmendmentStatus::Expired->value]);
     }
 
-    private function resolveBet(BetAmendmentData $data, bool $lock): Bet
+    // ----------------------------------------------------------------------
+    // Replay
+    // ----------------------------------------------------------------------
+
+    /**
+     * Read a recorded amendment back, proving it from its own ownership row.
+     *
+     * A row on its own is a label. What makes it an outcome is the non-expiring attempt
+     * row: its hashes, its refund, and — when applied — the replacement purchase it owns.
+     * A row without one (a legacy label, a hand-written record) is never adopted.
+     */
+    private function replay(BetAmendment $amendment, BetAmendmentData $data): BetAmendmentResult
+    {
+        return $this->database->transaction(function () use ($amendment, $data): BetAmendmentResult {
+            $attempt = DB::table('bet_amendment_ownerships')->where('amendment_id', (int) $amendment->getKey())->lockForUpdate()->first();
+
+            if (! $attempt) {
+                $this->ownership->refuse();
+            }
+
+            $wallet = app(WalletLockService::class)->lock((int) $attempt->wallet_id);
+            $bet = Bet::withTrashed()->whereKey((int) $amendment->bet_id)->lockForUpdate()->first();
+
+            if (! $bet instanceof Bet || $bet->trashed()) {
+                $this->ownership->refuse();
+            }
+
+            // The caller's payload must be the recorded one. A different stake or number
+            // under the same key is a different request, not a retry.
+            if ($data->userId !== (int) $attempt->user_id
+                || ($data->newStake !== null && bccomp(bcadd($data->newStake, '0', 2), (string) $attempt->new_stake, 2) !== 0)
+                || ($data->newNumber !== null && (string) $data->newNumber !== (string) $attempt->new_number)
+                || $data->betIdentifier !== (string) $bet->getKey()) {
+                throw BetAmendmentException::withCode('bet_amendment_request_conflict',
+                    'This amendment key already records a different request.');
+            }
+
+            if ($attempt->state === 'applied' || $attempt->state === 'failed') {
+                // Both terminal states are proved the same way: the refund, its source
+                // purchase, and (for an applied row) the replacement it owns.
+                $this->ownership->terminal($attempt, $amendment, $wallet);
+            } elseif ($attempt->state === 'attempting') {
+                // An open attempt is not an outcome. The refund may well have committed,
+                // which is exactly why nothing may be inferred or retried: the caller is
+                // told the amendment needs original-specific review.
+                $this->ownership->check($attempt, $amendment);
+                $this->ownership->original($attempt, $amendment, $wallet);
+                $this->ownership->refuse();
+            } else {
+                $this->ownership->refuse();
+            }
+
+            return $this->resultFromRow($amendment, $bet);
+        }, 3);
+    }
+
+    // ----------------------------------------------------------------------
+    // Internals
+    // ----------------------------------------------------------------------
+
+    private function assertRoot(): void
+    {
+        if (DB::transactionLevel() !== 0 || DB::connection()->getPdo()->inTransaction()) {
+            throw BetAmendmentException::withCode('bet_amendment_root_required',
+                'An amendment must own its root transaction; a caller transaction could roll the refund back after it committed.');
+        }
+    }
+
+    private function assertEnabled(): void
+    {
+        if (! (bool) config('lottery.amendment.enabled', true)) {
+            throw BetAmendmentException::disabled();
+        }
+    }
+
+    private function resolveBet(BetAmendmentData $data): Bet
     {
         $identifier = $data->betIdentifier;
 
@@ -407,10 +361,6 @@ class BetAmendmentService
                 $q->where('bet_number', $identifier)->orWhere('uuid', $identifier);
             }
         });
-
-        if ($lock) {
-            $query->lockForUpdate();
-        }
 
         /** @var Bet|null $bet */
         $bet = $query->first();
@@ -429,7 +379,7 @@ class BetAmendmentService
         }
 
         if (! $bet->status->canCancel()) {
-            throw BetAmendmentException::notAmendable((int) $bet->getKey(), 'the bet is already '.$bet->status->value);
+            throw BetAmendmentException::notAmendable((int) $bet->getKey(), 'the bet is already ' . $bet->status->value);
         }
 
         $window = (int) config('lottery.amendment.window_minutes', 60);
@@ -438,13 +388,6 @@ class BetAmendmentService
             if ($placedAt === null || ! $placedAt->copy()->addMinutes($window)->isFuture()) {
                 throw BetAmendmentException::windowExpired((int) $bet->getKey(), $window);
             }
-        }
-    }
-
-    private function assertEnabled(): void
-    {
-        if (! (bool) config('lottery.amendment.enabled', true)) {
-            throw BetAmendmentException::disabled();
         }
     }
 
@@ -459,29 +402,149 @@ class BetAmendmentService
         return $market;
     }
 
-    private function normaliseReplacementNumber(string $rawNumber, string $market, BetType $fallbackBetType): string
+    private function firstNumberOf(Bet $bet): string
     {
-        $mappedType = config("lottery.markets.{$market}.bet_type");
-        $betType = is_string($mappedType) && BetType::tryFrom($mappedType) instanceof BetType
-            ? BetType::from($mappedType)
-            : $fallbackBetType;
+        /** @var BetItem|null $item */
+        $item = $bet->items()->orderBy('id')->first();
 
-        return $this->numbers->tryNormalize($rawNumber, $betType) ?? trim($rawNumber);
-    }
-
-    private function normaliseReplacementStake(string $rawStake): ?string
-    {
-        $trimmed = trim($rawStake);
-
-        if (preg_match('/\A\d+(?:\.\d{1,2})?\z/D', $trimmed) !== 1 || bccomp($trimmed, '0', 2) <= 0) {
-            return null;
-        }
-
-        return bcadd($trimmed, '0', 2);
+        return $item !== null ? (string) $item->number : '';
     }
 
     private function currencyValue(Bet $bet): string
     {
         return $bet->currency instanceof Currency ? $bet->currency->value : (string) $bet->currency;
+    }
+
+    private function fundingWalletId(Bet $bet): int
+    {
+        $walletId = DB::table('bet_purchase_ownerships')->where('bet_id', (int) $bet->getKey())->value('wallet_id');
+
+        if ($walletId === null) {
+            throw BetAmendmentException::notAmendable((int) $bet->getKey(), 'the original purchase is not owned');
+        }
+
+        return (int) $walletId;
+    }
+
+    /**
+     * The replacement's client key.
+     *
+     * Derived, not concatenated: two different amendment keys must never share a
+     * purchase key, and client keys are allowed to be longer than the column the
+     * purchase key is stored in. A hash of the owner and the key is short, stable, and
+     * recomputable on replay — which a truncated concatenation is not.
+     */
+    /**
+     * The idempotency key actually stored for this request.
+     *
+     * `bet_amendments.idempotency_key` is UNIQUE across the whole table, so a raw
+     * client key cannot be stored as-is: two players who happen to send the same
+     * string — and clients generate them from nothing in particular — would
+     * collide, and the second player's amendment would die on a unique index
+     * because somebody else already used "request-1". Namespacing the raw key by
+     * the authenticated owner makes the key mean what the client meant: a retry
+     * of THIS player's request, not an identifier shared with the rest of the
+     * estate. The hash keeps it inside the column's 128 characters however long
+     * the client key is, and hashing avoids leaking a client's chosen string into
+     * an index.
+     */
+    public function idempotencyKeyFor(int $userId, string $clientKey): string
+    {
+        return 'amend-v1-'.$userId.'-'.hash('sha256', $clientKey);
+    }
+
+    private function replacementClientKey(int $userId, string $clientKey): string
+    {
+        return 'amendment-'.substr(hash('sha256', $userId . '|' . $clientKey), 0, 54);
+    }
+
+    private function appliedResult(BetAmendment $amendment, BetPurchaseResult $purchase): BetAmendmentResult
+    {
+        return new BetAmendmentResult(
+            amendment: $amendment,
+            originalBet: Bet::withTrashed()->whereKey((int) $amendment->bet_id)->firstOrFail(),
+            replacementBet: $purchase->bet,
+            status: BetAmendmentStatus::Applied,
+            refundedAmount: bcadd((string) $amendment->refunded_amount, '0', 2),
+            chargedAmount: $amendment->charged_amount !== null ? bcadd((string) $amendment->charged_amount, '0', 2) : null,
+            currency: $amendment->currency instanceof Currency ? $amendment->currency->value : (string) $amendment->currency,
+            failureReason: $amendment->failure_reason,
+        );
+    }
+
+    /**
+     * Read the outcome from the durable rows: did the replacement commit after all?
+     */
+    private function recoverApplied(BetAmendment $amendment, int $attemptId): ?BetAmendmentResult
+    {
+        $row = DB::table('bet_amendment_ownerships')->where('id', $attemptId)->first();
+
+        if (! $row || $row->state !== 'applied') {
+            return null;
+        }
+
+        $replacement = Bet::withTrashed()->where('idempotency_key', (string) $row->replacement_bet_key)->first();
+
+        if (! $replacement instanceof Bet) {
+            return null;
+        }
+
+        $amendment->refresh();
+
+        return new BetAmendmentResult(
+            amendment: $amendment,
+            originalBet: Bet::withTrashed()->whereKey((int) $amendment->bet_id)->firstOrFail(),
+            replacementBet: $replacement,
+            status: BetAmendmentStatus::Applied,
+            refundedAmount: bcadd((string) $amendment->refunded_amount, '0', 2),
+            chargedAmount: $amendment->charged_amount !== null ? bcadd((string) $amendment->charged_amount, '0', 2) : null,
+            currency: $amendment->currency instanceof Currency ? $amendment->currency->value : (string) $amendment->currency,
+            failureReason: null,
+        );
+    }
+
+    private function closeAsFailed(BetAmendment $amendment, string $code): void
+    {
+        $this->database->transaction(function () use ($amendment, $code): void {
+            $attempt = DB::table('bet_amendment_ownerships')->where('amendment_id', (int) $amendment->getKey())->lockForUpdate()->first();
+
+            if (! $attempt || $attempt->state !== 'attempting') {
+                return;
+            }
+
+            DB::table('bet_amendment_ownerships')->where('id', (int) $attempt->id)->update([
+                'state' => 'failed',
+                'failure_code' => $code,
+                'completed_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $amendment->forceFill([
+                'status' => BetAmendmentStatus::Failed,
+                'failure_reason' => $code,
+            ])->save();
+        }, 3);
+    }
+
+    private function resultFromRow(BetAmendment $amendment, ?Bet $originalBet = null): BetAmendmentResult
+    {
+        $originalBet ??= Bet::withTrashed()->whereKey((int) $amendment->bet_id)->firstOrFail();
+
+        return new BetAmendmentResult(
+            amendment: $amendment,
+            originalBet: $originalBet,
+            replacementBet: $amendment->replacement_bet_id !== null
+                ? Bet::withTrashed()->whereKey((int) $amendment->replacement_bet_id)->first()
+                : null,
+            status: $amendment->status,
+            refundedAmount: bcadd((string) $amendment->refunded_amount, '0', 2),
+            chargedAmount: $amendment->charged_amount !== null
+                ? bcadd((string) $amendment->charged_amount, '0', 2)
+                : null,
+            currency: $amendment->currency instanceof Currency
+                ? $amendment->currency->value
+                : (string) $amendment->currency,
+            failureReason: $amendment->failure_reason,
+        );
     }
 }

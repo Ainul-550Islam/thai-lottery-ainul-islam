@@ -31,6 +31,20 @@ final class BetAmendmentOwnership
             'CAST(old_stake AS CHAR) AS exact_old, CAST(new_stake AS CHAR) AS exact_new, CAST(refunded_amount AS CHAR) AS exact_refund, CAST(charged_amount AS CHAR) AS exact_charge');
     }
 
+    /**
+     * Money columns are compared as the database stores them, not through the
+     * model, because a model that has been refreshed (or reloaded from a
+     * relationship) loses the CAST aliases `rows()` adds and would silently
+     * compare nulls. Callers hold a lock before arriving here, so reading the
+     * row again is cheap and cannot race.
+     */
+    private function exact(object $o): object
+    {
+        $row = DB::table('bet_amendments')->where('id', (int) $o->amendment_id)->first();
+
+        return $row ?? $this->refuse();
+    }
+
     public function sourceHash(object $p): string
     {
         return hash('sha256', json_encode([$p->id, $p->bet_id, $p->wallet_id, $p->number_limit_id,
@@ -53,12 +67,13 @@ final class BetAmendmentOwnership
 
     public function check(object $o, BetAmendment $a): void
     {
-        if (DB::transactionLevel() < 1 || (int) $o->amendment_id !== (int) $a->id || (int) $o->user_id !== (int) $a->user_id
-            || $a->currency->value !== $o->currency || $a->old_number !== $o->old_number || $a->new_number !== $o->new_number
-            || bccomp((string) $a->exact_old, $o->old_stake, 2) !== 0 || bccomp((string) $a->exact_new, $o->new_stake, 2) !== 0
-            || bccomp((string) $a->exact_refund, $o->old_stake, 2) !== 0 || $a->expires_at !== null
+        $row = $this->exact($o);
+        if (DB::transactionLevel() < 1 || (int) $row->id !== (int) $a->id || (int) $o->user_id !== (int) $row->user_id
+            || $row->currency !== $o->currency || $row->old_number !== $o->old_number || $row->new_number !== $o->new_number
+            || bccomp((string) $row->old_stake, $o->old_stake, 2) !== 0 || bccomp((string) $row->new_stake, $o->new_stake, 2) !== 0
+            || bccomp((string) $row->refunded_amount, $o->old_stake, 2) !== 0 || $row->expires_at !== null
             || ! hash_equals($o->terms_hash, $this->termsHash($o, $a))
-            || ! hash_equals($o->request_hash, $this->requestHash((int) $o->user_id, (int) $a->bet_id, $o->new_number, $o->new_stake))) {
+            || ! hash_equals($o->request_hash, $this->requestHash((int) $o->user_id, (int) $row->bet_id, $o->new_number, $o->new_stake))) {
             $this->refuse();
         }
     }
@@ -143,9 +158,10 @@ final class BetAmendmentOwnership
     {
         $this->check($o, $a);
         $this->original($o, $a, $wallet);
+        $row = $this->exact($o);
         if ($o->state === 'failed') {
             if ($a->status !== BetAmendmentStatus::Failed || ! $o->completed_at || ! $o->failure_code
-                || $a->failure_reason !== $o->failure_code || $a->replacement_bet_id !== null || $a->exact_charge !== null
+                || $a->failure_reason !== $o->failure_code || $a->replacement_bet_id !== null || $row->charged_amount !== null
                 || $a->applied_at !== null || $o->replacement_ownership_id !== null || $o->replacement_hash !== null) {
                 $this->refuse();
             }
@@ -155,7 +171,7 @@ final class BetAmendmentOwnership
         }
         if ($o->state !== 'applied' || $a->status !== BetAmendmentStatus::Applied || ! $o->completed_at
             || $a->applied_at?->toDateTimeString() !== $o->completed_at || $a->failure_reason !== null || $o->failure_code !== null
-            || ! $o->replacement_hash || $a->exact_charge === null || bccomp((string) $a->exact_charge, $o->new_stake, 2) !== 0) {
+            || ! $o->replacement_hash || $row->charged_amount === null || bccomp((string) $row->charged_amount, $o->new_stake, 2) !== 0) {
             $this->refuse();
         }
         $p = DB::table('bet_purchase_ownerships')->where('id', $o->replacement_ownership_id)->lockForUpdate()->first();

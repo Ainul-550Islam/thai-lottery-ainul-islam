@@ -641,7 +641,11 @@
                 @endif
             </ul>
         @else
-            <p class="mt-4 text-slate-300">{{ trans('home.app_links_unavailable') }}</p>
+            {{-- Report the service's own explanation when it has one. The generic
+                 translation used to mask the specific reason (unconfigured vs.
+                 every URL rejected as unsafe), which is exactly the distinction a
+                 reader needs in order to know whether to contact support. --}}
+            <p class="mt-4 text-slate-300" role="status">{{ trim((string) ($appLinks['message'] ?? '')) !== '' ? trim((string) $appLinks['message']) : trans('home.app_links_unavailable') }}</p>
         @endif
     </section>
 

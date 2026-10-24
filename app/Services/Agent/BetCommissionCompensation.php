@@ -74,6 +74,7 @@ final class BetCommissionCompensation
             || $receipt->cancellation_policy === null || $closed->policy_reference !== $receipt->cancellation_policy
             || ! hash_equals($closed->payout_fact_hash, $this->factHash($receipt))
             || $closed->cancelled_reason !== $purchase->cancelled_reason || $closed->cancelled_at !== $purchase->cancelled_at
+            || $source->cancelled_at !== $closed->cancelled_at || $source->cancelled_reason !== $closed->cancelled_reason
             || $row->reversed_at?->toDateTimeString() !== $purchase->cancelled_at
             || $original->reversed_at?->toDateTimeString() !== $purchase->cancelled_at || (int) $original->reversed_by !== (int) $bet->user_id
             || ($tx->metadata['purchase_ownership_id'] ?? null) !== (int) $purchase->id

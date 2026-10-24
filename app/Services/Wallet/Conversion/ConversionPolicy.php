@@ -7,13 +7,11 @@ namespace App\Services\Wallet\Conversion;
 use App\Contracts\Wallet\ConversionPolicyContract;
 use App\DTOs\Wallet\ConversionPolicyDecisionData;
 use App\DTOs\Wallet\ConversionRequestData;
-use App\Enums\KycStatus;
 use App\Enums\WalletConversionRejectionReason;
-use App\Enums\WalletStatus;
 use App\Exceptions\Wallet\ConversionDisabledException;
 use App\Exceptions\Wallet\ConversionException;
-use App\Models\User;
-use App\Models\Wallet;
+use App\Exceptions\Wallet\ConversionLimitExceededException;
+use App\Support\Wallet\ConversionCurrency;
 
 /**
  * Every reason this platform refuses a conversion, answered by one object.
@@ -30,11 +28,30 @@ final class ConversionPolicy implements ConversionPolicyContract
     public function __construct(
         private readonly ConversionFeeCalculator $fees,
         private readonly ConversionLimitService $limits,
+        private readonly ConversionWalletEligibility $wallets,
+        private readonly ConversionMemberEligibility $members,
     ) {}
 
     public function evaluate(ConversionRequestData $request): ConversionPolicyDecisionData
     {
         $checks = [];
+
+        // 0. The lane must know what currency it is denominated in, and the request
+        //    must be in that currency. This comes FIRST because everything below is
+        //    arithmetic in a denomination: limits, fees and balances are all expressed
+        //    in it, so a wrong or missing denomination makes every later answer
+        //    meaningless rather than merely wrong.
+        try {
+            $configured = ConversionCurrency::configured();
+        } catch (ConversionException) {
+            return ConversionPolicyDecisionData::deny(WalletConversionRejectionReason::CurrencyNotConfigured, $checks);
+        }
+        $checks['currency_configured'] = true;
+
+        $checks['currency_matches'] = $request->currency === $configured;
+        if (! $checks['currency_matches']) {
+            return $this->deny(WalletConversionRejectionReason::CurrencyMismatch, $checks, $request);
+        }
 
         // 1. The feature must be on.
         $checks['feature_enabled'] = (bool) config('conversions.enabled', true);
@@ -63,66 +80,99 @@ final class ConversionPolicy implements ConversionPolicyContract
 
         // 5-7. The amount must sit inside its envelope, and the rolling windows
         // must have head-room for it.
+        //
+        // The per-transaction bounds are answered from configuration by the value
+        // object. The rolling windows are NOT re-implemented here: the limit service
+        // owns the history read, the exact decimal summation and the unprovable-row
+        // refusal, and this method only translates its answer into a decision. Two
+        // implementations of "how much has this member already converted today" is
+        // how a page ends up promising head-room the engine then refuses.
         $limits = $this->limits->limits($request->currency);
-        $violations = array_merge(
-            $limits->transactionViolations($request->amount),
-            $limits->rollingViolations(
-                $request->amount,
-                $this->limits->dailyTotal($request->userId),
-                $this->limits->monthlyTotal($request->userId),
-            ),
-        );
+        $violations = $limits->transactionViolations($request->amount);
         $checks['amount_minimum'] = ! in_array(WalletConversionRejectionReason::BelowMinimum, $violations, true);
         $checks['amount_maximum'] = ! in_array(WalletConversionRejectionReason::AboveMaximum, $violations, true);
-        $checks['daily_limit'] = ! in_array(WalletConversionRejectionReason::DailyLimitExceeded, $violations, true);
-        $checks['monthly_limit'] = ! in_array(WalletConversionRejectionReason::MonthlyLimitExceeded, $violations, true);
         if ($violations !== []) {
             return $this->deny($violations[0], $checks, $request);
         }
 
-        // 8-10. The source wallet must exist, be active, and hold the funds.
-        $source = Wallet::query()
-            ->where('user_id', $request->userId)
-            ->where('type', $request->direction->fromType()->value)
-            ->where('currency', $request->currency->value)
-            ->first();
+        $checks['daily_limit'] = true;
+        $checks['monthly_limit'] = true;
 
-        $checks['wallet_present'] = $source instanceof Wallet;
-        $checks['wallet_active'] = $source instanceof Wallet && $source->status === WalletStatus::Active;
-        $available = $source instanceof Wallet ? (string) $source->balance : '0.00';
-        $checks['balance_sufficient'] = bccomp($available, $request->amount, 2) >= 0;
+        try {
+            $this->limits->assertAllowed($request->userId, $request->amount, $request->currency);
+        } catch (ConversionLimitExceededException $breached) {
+            $reason = $breached->rejectionReason() ?? WalletConversionRejectionReason::DailyLimitExceeded;
+            $checks[$reason === WalletConversionRejectionReason::MonthlyLimitExceeded ? 'monthly_limit' : 'daily_limit'] = false;
 
-        if (! $checks['wallet_present'] || ! $checks['wallet_active']) {
-            return $this->deny(WalletConversionRejectionReason::WalletLocked, $checks, $request);
-        }
-        if (! $checks['balance_sufficient']) {
-            return $this->deny(WalletConversionRejectionReason::InsufficientBalance, $checks, $request);
+            return $this->deny($reason, $checks, $request, $breached->getMessage());
+        } catch (ConversionException $unproven) {
+            // An unprovable history is a refusal, not a zero. The member is told the
+            // limit cannot be shown right now rather than that they have head-room.
+            $checks['daily_limit'] = false;
+            $checks['monthly_limit'] = false;
+
+            return $this->deny(
+                WalletConversionRejectionReason::DailyLimitExceeded,
+                $checks,
+                $request,
+                $unproven->getMessage(),
+            );
         }
 
         // 11-14. The member must exist, be verified, and be in good standing.
-        $user = User::query()->find($request->userId);
-        $checks['member_exists'] = $user instanceof User;
-        if (! $checks['member_exists']) {
-            return $this->deny(WalletConversionRejectionReason::AccountSuspended, $checks, $request);
+        //
+        // The facts are NOT read here from the User model. ConversionMemberEligibility
+        // owns them — current rows rather than a cached principal or an old snapshot,
+        // the canonical self-exclusion table as well as the legacy projection including
+        // soft-deleted safety rows, and KYC evidence that is neither deleted nor
+        // expired — and this method only translates its refusal into a decision. A
+        // second copy of those rules is how the page came to offer a form that the
+        // engine then refused, and a model-based answer is what let a stale
+        // `users.status` survive a mid-request suspension.
+        $checks['member_eligible'] = true;
+        try {
+            $this->members->assertAllowed($request->userId);
+        } catch (ConversionException $refusal) {
+            $checks['member_eligible'] = false;
+            $reason = $refusal->rejectionReason();
+
+            if ($reason === null || ! in_array($reason, [
+                WalletConversionRejectionReason::AccountSuspended,
+                WalletConversionRejectionReason::SelfExclusionActive,
+                WalletConversionRejectionReason::KycNotVerified,
+            ], true)) {
+                // Any other refusal (a lost transaction, an unknown code) is still a
+                // refusal. Closed by default: an unrecognised reason never becomes an
+                // allowance, and it is reported as an account restriction because that
+                // is the only safe member-facing explanation we can stand behind.
+                $reason = WalletConversionRejectionReason::AccountSuspended;
+            }
+
+            return $this->deny($reason, $checks, $request, $refusal->getMessage());
         }
 
-        /** @var User $user */
-        $checks['kyc_verified'] = ! (bool) config('conversions.gates.require_kyc', true)
-            || $user->kycStatus() === KycStatus::Verified;
-        if (! $checks['kyc_verified']) {
-            return $this->deny(WalletConversionRejectionReason::KycNotVerified, $checks, $request);
-        }
+        // The wallet facts come AFTER the person checks on purpose: a member with no
+        // wallets at all is first a member whose identity is unverified, and telling
+        // them "wallet locked" would send them to support about the wrong thing —
+        // wallets are created when identity is verified, so the wallet problem is a
+        // consequence, never the cause.
+        //
+        // The facts themselves are NOT re-implemented here. ConversionWalletEligibility
+        // owns them — both wallets rather than just the source, deletion, the wallet
+        // lock, raw status values the enum does not know, and the available balance
+        // rather than the gross one — and this method only translates its refusal into
+        // a decision. Two copies of "is this wallet usable" is how the page came to
+        // invite members into a form the engine would refuse.
+        try {
+            $this->wallets->assertAdvisoryAllowed($request);
+            $checks['wallet_eligible'] = true;
+        } catch (ConversionException $refusal) {
+            $checks['wallet_eligible'] = false;
 
-        $checks['account_active'] = ! (bool) config('conversions.gates.block_if_suspended', true)
-            || $user->isActive();
-        if (! $checks['account_active']) {
-            return $this->deny(WalletConversionRejectionReason::AccountSuspended, $checks, $request);
-        }
-
-        $checks['self_exclusion_clear'] = ! (bool) config('conversions.gates.block_if_self_excluded', true)
-            || ! $user->isSelfExcluded();
-        if (! $checks['self_exclusion_clear']) {
-            return $this->deny(WalletConversionRejectionReason::SelfExclusionActive, $checks, $request);
+            return $this->deny(match ((string) $refusal->errorCode()) {
+                WalletConversionRejectionReason::InsufficientBalance->value => WalletConversionRejectionReason::InsufficientBalance,
+                default => WalletConversionRejectionReason::WalletLocked,
+            }, $checks, $request);
         }
 
         return ConversionPolicyDecisionData::allow($checks, ['amount' => $request->amount]);
@@ -160,12 +210,13 @@ final class ConversionPolicy implements ConversionPolicyContract
         WalletConversionRejectionReason $reason,
         array $checks,
         ConversionRequestData $request,
+        ?string $message = null,
     ): ConversionPolicyDecisionData {
         return ConversionPolicyDecisionData::deny(
             $reason,
             $checks,
             ['direction' => $request->direction->value, 'amount' => $request->amount],
-            $reason->label().'.',
+            $message ?? ($reason->label().'.'),
         );
     }
 }

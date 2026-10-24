@@ -17,6 +17,7 @@ trait StripeRefundRecoveryFixture
     protected function refundFixture(): array
     {
         $f = $this->reviewFixture();
+        $this->onboardWagerPlayer($f['user']);
         config(['payment.refund_recovery.stripe.enabled' => true]);
         $f['actor']->givePermissionTo(StripeRefundRecoveryAccess::RECOVER);
         $event = $this->followupEvent();
@@ -35,6 +36,51 @@ trait StripeRefundRecoveryFixture
         $this->fakeRefundProof($f['proof']);
 
         return $f;
+    }
+
+    /**
+     * Make the fixture player admissible for the money endpoints.
+     *
+     * The refund-wager contract is asserted through `/api/v1/bets/purchase`, which sits
+     * behind `adult` and `legal.current`. A bare factory user would be refused for its age
+     * attestation long before the refund guard is consulted, so the fixture onboards the
+     * player exactly as a real signup would.
+     */
+    protected function onboardWagerPlayer(\App\Models\User $user): void
+    {
+        if ($user->date_of_birth === null) {
+            $user->forceFill(['date_of_birth' => now()->subYears(30)->toDateString()])->save();
+        }
+
+        \App\Models\AgeVerification::query()->create([
+            'user_id' => $user->getKey(),
+            'status' => 'eligible',
+            'minimum_age' => (int) config('legal.minimum_age', 18),
+            'method' => 'self_declaration',
+            'attested_at' => now(),
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'phpunit',
+            'source' => 'test',
+        ]);
+
+        $documents = collect(app(\App\Services\Legal\ConsentService::class)->currentDocuments())->keyBy('document_type');
+        $terms = $documents->get('terms', []);
+        $privacy = $documents->get('privacy', []);
+
+        app(\App\Services\Legal\ConsentService::class)->acceptCurrentDocuments(
+            $user,
+            \Illuminate\Http\Request::create('/test', 'POST', [
+                'terms' => true,
+                'privacy_notice' => true,
+                'terms_version' => $terms['version'] ?? '',
+                'terms_hash' => $terms['content_hash'] ?? '',
+                'privacy_version' => $privacy['version'] ?? '',
+                'privacy_hash' => $privacy['content_hash'] ?? '',
+            ], server: ['REMOTE_ADDR' => '127.0.0.1']),
+            'api',
+        );
+
+        $user->refresh();
     }
 
     protected function fakeRefundProof(array $proof, ?\Closure $hook = null): void

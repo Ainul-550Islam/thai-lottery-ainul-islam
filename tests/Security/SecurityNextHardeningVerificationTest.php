@@ -11,7 +11,6 @@ use App\Enums\FraudDecision;
 use App\Enums\MalwareScanStatus;
 use App\Enums\RiskLevel;
 use App\Http\Middleware\FraudRiskGateMiddleware;
-use App\Http\Middleware\TrustProxies;
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Http\Requests\Admin\Security\ReviewFraudAlertRequest;
 use App\Models\AuditLog;
@@ -33,6 +32,7 @@ use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Tests\TestCase;
+use ReflectionClass;
 
 final class SecurityNextHardeningVerificationTest extends TestCase
 {
@@ -239,18 +239,38 @@ final class SecurityNextHardeningVerificationTest extends TestCase
         $this->assertSame('DEP-2026-0001', $redacted['safe_reference']);
     }
 
-    public function test_trust_proxies_fails_closed_with_503_on_wildcard_proxy_configuration(): void
+    public function test_trusted_proxy_policy_keeps_one_knob_and_a_narrow_header_mask(): void
     {
-        $original = config('network.trusted_proxies');
-        try {
-            config(['network.trusted_proxies' => '*']);
-            $middleware = new TrustProxies;
-            $request = Request::create('/up', 'GET');
+        // CORRECTED. This method used to construct App\Http\Middleware\TrustProxies and
+        // demand a 503 on a '*' configuration. That class no longer exists - by design:
+        // config/trustedproxy.php records the policy, the framework's own TrustProxies
+        // middleware (already in the default global stack) reads it, and
+        // tests/Feature/Http/TrustedProxyResolutionTest.php asserts both the single-knob
+        // rule and the real request state. The old assertion also contradicted the
+        // documented CDN deployment mode, where '*' is a legitimate, deliberate setting.
+        //
+        // What still has to be true for security is checked here: the proxy list is not
+        // duplicated anywhere, and the believed header mask cannot rewrite the host a
+        // signed URL is generated for.
+        $config = require config_path('trustedproxy.php');
 
-            $this->expectException(HttpResponseException::class);
-            $middleware->handle($request, static fn () => response('ok'));
-        } finally {
-            config(['network.trusted_proxies' => $original]);
-        }
+        self::assertSame(['proxies'], array_keys($config), 'a second knob would drift from the one the middleware reads');
+
+        $mask = (new ReflectionClass(\Illuminate\Http\Middleware\TrustProxies::class))
+            ->getStaticPropertyValue('alwaysTrustHeaders');
+
+        self::assertIsInt($mask, 'bootstrap/app.php must pin the header mask');
+        self::assertSame(
+            0,
+            $mask & Request::HEADER_X_FORWARDED_HOST,
+            'X-Forwarded-Host must never be believed'
+        );
+        self::assertSame(
+            0,
+            $mask & Request::HEADER_X_FORWARDED_PREFIX,
+            'X-Forwarded-Prefix must never be believed'
+        );
+        self::assertNotSame(0, $mask & Request::HEADER_X_FORWARDED_FOR, 'the audit lanes need the client address');
+        self::assertNotSame(0, $mask & Request::HEADER_X_FORWARDED_PROTO, 'secure URL generation needs the scheme');
     }
 }

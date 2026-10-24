@@ -55,9 +55,15 @@
                 <p class="terms-eyebrow">04 · LEGAL AGREEMENT</p>
                 <h1 id="terms-title">{{ $terms['title'] ?? 'Terms of Use' }}</h1>
                 <p>{{ $terms['meta_description'] ?? 'Versioned public terms governing use of this platform.' }}</p>
-                <p class="terms-identity-note">This page uses the independent platform’s approved public legal content. This site is an independent platform and not the official GLO website; we do not claim government ownership, official agency status, licensing, or endorsement.</p>
+                {{-- The disclosure used to be an English literal in the Blade file, so Thai and
+                     Bangla readers were shown an English legal statement. It is now the
+                     translated key, and exactly one element carries this class so a reader (or
+                     a test) can find the single authoritative statement. --}}
+                <p class="terms-identity-note">{{ trans('public_pages.terms_identity_note') }}</p>
                 @if (($terms['locale'] ?? app()->getLocale()) === 'bn')
-                    <p class="terms-identity-note" role="note"><strong>{{ trans('public_pages.terms_language_notice_title') }}:</strong> {{ trans('public_pages.terms_language_notice') }}</p>
+                    {{-- Separate class on purpose: this is a reading aid about the language of
+                         the text, not a second identity statement. --}}
+                    <p class="terms-language-note" role="note"><strong>{{ trans('public_pages.terms_language_notice_title') }}:</strong> {{ trans('public_pages.terms_language_notice') }}</p>
                 @endif
             </div>
             <div class="terms-document" aria-hidden="true">

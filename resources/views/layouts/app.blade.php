@@ -21,8 +21,22 @@
     @hasSection('meta_canonical')
         <link rel="canonical" href="@yield('meta_canonical')">
     @endif
+    {{--
+        Robots directive.
+
+        `meta_robots` is the documented name; `robots` is accepted as well because
+        several account pages (notifications, support, …) had always declared
+        @section('robots', 'noindex, nofollow') and this layout only ever read
+        `meta_robots`, so their noindex was silently dropped and private account
+        pages were served as indexable. Reading both means neither spelling can
+        disappear; new views should use `meta_robots`.
+    --}}
     @hasSection('meta_robots')
         <meta name="robots" content="@yield('meta_robots')">
+    @else
+        @hasSection('robots')
+            <meta name="robots" content="@yield('robots')">
+        @endif
     @endif
     @hasSection('meta_og_title')
         <meta property="og:title" content="@yield('meta_og_title')">
@@ -82,7 +96,7 @@
                     <div class="hidden sm:flex items-center space-x-0.5 border border-slate-700/80 rounded-xl p-0.5 text-xs font-bold bg-slate-950/60 shadow-inner">
                         <a href="{{ route('locale.switch', 'en') }}" class="px-2.5 py-1 rounded-lg transition {{ app()->getLocale() === 'en' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200' }}">EN</a>
                         <a href="{{ route('locale.switch', 'th') }}" class="px-2.5 py-1 rounded-lg transition {{ app()->getLocale() === 'th' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200' }}">TH</a>
-                        <a href="{{ route('locale.switch', 'bn') }}" lang="bn" hreflang="bn" class="px-2.5 py-1 rounded-lg transition {{ app()->getLocale() === 'bn' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200' }}" aria-label="বাংলা">বাংলা</a>
+                        <a href="{{ route('locale.switch', 'bn') }}" lang="bn" class="px-2.5 py-1 rounded-lg transition {{ app()->getLocale() === 'bn' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200' }}" aria-label="বাংলা">বাংলা</a>
                     </div>
 
                     @auth

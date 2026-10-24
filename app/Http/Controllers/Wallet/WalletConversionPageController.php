@@ -140,7 +140,12 @@ class WalletConversionPageController
             )),
             'conversionEnabled' => (bool) config('conversions.enabled', true),
             'directionEnabled' => (bool) config('conversions.directions.'.$direction->value.'.enabled', true),
-            'blockedReason' => $this->blockedReason($userId, $direction, $currency),
+            // An unpriced fee rule is its own refusal: the lane may be open and the
+            // member in good standing, and there is still nothing honest to show them,
+            // because a conversion with no published price is not a free conversion.
+            'blockedReason' => $breakdown->isConfigured
+                ? $this->blockedReason($userId, $direction, $currency)
+                : WalletConversionRejectionReason::FeeRuleInvalid,
             'quoteTtlSeconds' => (int) config('conversions.quotes.ttl_seconds', 120),
             'showFeeBreakdown' => (bool) config('conversions.ui.show_fee_breakdown', true),
             'showLimits' => (bool) config('conversions.ui.show_limits', true),

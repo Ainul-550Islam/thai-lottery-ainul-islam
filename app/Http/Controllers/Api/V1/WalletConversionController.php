@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Contracts\Wallet\WalletConversionServiceContract;
 use App\DTOs\Wallet\ConversionAuditContextData;
 use App\DTOs\Wallet\ConversionHistoryFilterData;
-use App\Enums\Currency;
 use App\Enums\WalletConversionChannel;
 use App\Exceptions\Wallet\ConversionException;
 use App\Http\Requests\Wallet\ConversionExecuteRequest;
@@ -22,6 +21,7 @@ use App\Support\Wallet\ConversionCurrency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 /**
  * The member API for the Cash <-> Win conversion lane.
@@ -62,18 +62,23 @@ final class WalletConversionController
      */
     public function summary(Request $request): JsonResponse
     {
-        if ($request->exists('currency')) {
-            $raw = $request->input('currency');
-            $currency = is_string($raw) ? Currency::tryFrom($raw) : null;
-            if ($currency === null) {
-                throw ValidationException::withMessages([
-                    'currency' => __('wallet_conversion.validation_currency_mismatch', [
-                        'currency' => implode(', ', array_map(static fn (Currency $c): string => $c->value, Currency::cases())),
-                    ]),
-                ]);
-            }
-        } else {
-            $currency = ConversionCurrency::httpConfigured($request);
+        try {
+            // The denomination may arrive in the query string OR in the request body:
+            // a GET with a JSON body is unusual but is exactly what this API's own
+            // documentation shows, and reading only the query string would silently
+            // ignore the value the caller actually sent.
+            $bag = $request->query->has('currency') ? $request->query->all() : $request->request->all();
+            $present = array_key_exists('currency', $bag);
+
+            // A currency in the request is a request to read ONE denomination's bucket.
+            // It must be a real code, and it is never silently replaced by the lane's
+            // configured currency — a caller asking for USD and receiving THB would be
+            // misled about money. An omitted currency uses the lane's own.
+            $currency = $present
+                ? ConversionCurrency::parse($bag['currency'] ?? null)
+                : ConversionCurrency::configured();
+        } catch (ConversionException $exception) {
+            return $this->refusal($exception);
         }
 
         $summary = $this->conversions->summaryForUser((int) $request->user()->getKey(), $currency);
@@ -97,25 +102,20 @@ final class WalletConversionController
      */
     public function index(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'direction' => ['nullable', 'string'],
-            'status' => ['nullable', 'string'],
-            'statuses' => ['nullable', 'array'],
-            'statuses.*' => ['string'],
-            'from' => ['nullable', 'date'],
-            'to' => ['nullable', 'date'],
-            'per_page' => ['nullable', 'integer', 'min:1'],
-            'page' => ['nullable', 'integer', 'min:1'],
-            'search' => ['nullable', 'string', 'max:120'],
-            'user_id' => ['prohibited'],
-        ]);
-
-        $history = $this->conversions->history(
-            ConversionHistoryFilterData::fromArray(
-                $validated,
+        try {
+            $filter = ConversionHistoryFilterData::fromArray(
+                $request->query(),
                 (int) $request->user()->getKey(),
-            ),
-        );
+            );
+        } catch (InvalidArgumentException $malformed) {
+            // A filter value that cannot be interpreted is a malformed REQUEST, not a
+            // server fault and not an empty result set. Answering 200 with the member's
+            // unfiltered history would tell them the filter was applied when it was not;
+            // answering 500 would blame the platform for the caller's syntax.
+            throw ValidationException::withMessages(['statuses' => $malformed->getMessage()]);
+        }
+
+        $history = $this->conversions->history($filter);
 
         return response()->json([
             'data' => (new WalletConversionCollection($history))->resolve($request),
@@ -241,11 +241,17 @@ final class WalletConversionController
         $code = (string) $exception->errorCode();
 
         $status = match ($code) {
-            'idempotency_conflict' => 409,
+            // Authorisation refusals are 403, not 422: the request was well formed
+            // and the money is in a reversible state, so re-sending it cannot help.
+            // Telling an operator "unprocessable" for a revoked permission sends them
+            // to fix the payload instead of their access.
+            'reversal_forbidden', 'conversion_reversal_forbidden' => 403,
+            // Too many open quotes is "slow down", not "bad request": the request was
+            // well formed and would succeed once an existing quote is spent or expires.
             'rate_limited' => 429,
-            'reversal_forbidden' => 403,
-            'feature_disabled', 'direction_disabled' => 503,
-            default => $exception->httpStatus(),
+            'idempotency_conflict' => 409,
+            'feature_disabled', 'direction_disabled', 'currency_not_configured' => 503,
+            default => 422,
         };
 
         return ApiResponse::error(

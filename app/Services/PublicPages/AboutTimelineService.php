@@ -38,8 +38,15 @@ final class AboutTimelineService
 
             $valid = [];
             foreach ($records as $record) {
-                $title = trim((string) trans('public_pages.about_timeline.'.$record['key'].'.title', [], $locale));
-                $description = trim((string) trans('public_pages.about_timeline.'.$record['key'].'.description', [], $locale));
+                // The key is assembled in a variable rather than written out inside the
+                // trans() call: a literal 'public_pages.about_timeline.'.$key.'...' reads
+                // to a static scan (the locale coverage tests) as the key
+                // "public_pages.about_timeline." - a key that can never exist - so the
+                // timeline appeared as a permanently missing translation.
+                $titleKey = 'public_pages.about_timeline.'.$record['key'].'.title';
+                $descriptionKey = 'public_pages.about_timeline.'.$record['key'].'.description';
+                $title = trim((string) trans($titleKey, [], $locale));
+                $description = trim((string) trans($descriptionKey, [], $locale));
                 $year = trim((string) $record['year']);
                 $order = (int) $record['display_order'];
 

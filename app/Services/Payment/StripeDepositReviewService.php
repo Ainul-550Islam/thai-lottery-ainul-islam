@@ -146,7 +146,7 @@ final class StripeDepositReviewService
         if ($case && ((int) $case->payment_id !== (int) $payment->id || $case->settlement_receipt_uuid !== $receipt)) {
             $this->refuse();
         }
-        $stored = $case ? DB::table(self::OBSERVATIONS)->where('case_id', $case->id)->orderBy('inbox_id')->get()->all() : [];
+        $stored = $case ? DB::table(self::OBSERVATIONS)->where('case_id', $case->id)->orderBy('inbox_id')->lockForUpdate()->get()->all() : [];
         if ($case) {
             $this->validateCase($case, $stored);
         }
@@ -155,7 +155,7 @@ final class StripeDepositReviewService
         $rows = DB::table(StripeDepositFollowupInbox::TABLE)->useWritePdo()
             ->where('account_scope', app(DepositProviderAccountService::class)->stored($deposit))
             ->where('configuration_hash', app(DepositCheckoutService::class)->stripeConfigurationFingerprint())
-            ->orderBy('id')->limit(self::SCAN_LIMIT + 1)->get();
+            ->orderBy('id')->limit(self::SCAN_LIMIT + 1)->lockForUpdate()->get();
         if ($rows->count() > self::SCAN_LIMIT) {
             $this->refuse('stripe_review_scan_incomplete', 'Signed follow-up history exceeds this bounded review scan. No partial review or acknowledgement is accepted.');
         }

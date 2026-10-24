@@ -102,12 +102,6 @@ final class PrizeDisbursementService
      */
     private function reserveWithin(PrizeDisbursementData $data, string $actorNote): array
     {
-        $payout = Payout::query()->lockForUpdate()->find($data->payoutId);
-
-        if ($payout instanceof Payout) {
-            $this->assertUnmanaged($payout);
-        }
-
         // REPLAY first, so a re-ask never re-writes anything — but a
         // replay is only a replay when THE FACTS agree too. A presented
         // settlement fingerprint that disagrees with the seated row is a
@@ -132,6 +126,9 @@ final class PrizeDisbursementService
 
             return ['disbursement' => $existing, 'replayed' => true];
         }
+
+        /** @var Payout|null $payout */
+        $payout = Payout::query()->lockForUpdate()->find($data->payoutId);
 
         if (! $payout instanceof Payout) {
             throw PrizeDisbursementException::notFound('payout:'.$data->payoutId);
@@ -219,15 +216,6 @@ final class PrizeDisbursementService
                 throw PrizeDisbursementException::notFound((string) $disbursement->disbursement_key);
             }
 
-            /** @var Payout|null $payout */
-            $payout = Payout::query()->lockForUpdate()->find((int) $locked->payout_id);
-
-            if (! $payout instanceof Payout) {
-                throw PrizeDisbursementException::notFound('payout:'.$locked->payout_id);
-            }
-
-            $this->assertUnmanaged($payout);
-
             if ($locked->status === PrizeDisbursementStatus::Disbursed) {
                 return $locked; // replay
             }
@@ -238,6 +226,16 @@ final class PrizeDisbursementService
                 }
 
                 throw PrizeDisbursementException::notFound((string) $locked->disbursement_key.' @ '.$locked->status->value);
+            }
+
+            // The reserved amount was already held at reservation time —
+            // conservation here is the PAYOUT side: disbursed total per
+            // payout never exceeds the payout's own money.
+            /** @var Payout|null $payout */
+            $payout = Payout::query()->lockForUpdate()->find((int) $locked->payout_id);
+
+            if (! $payout instanceof Payout) {
+                throw PrizeDisbursementException::notFound('payout:'.$locked->payout_id);
             }
 
             $locked->status = PrizeDisbursementStatus::Disbursed;
@@ -278,12 +276,6 @@ final class PrizeDisbursementService
                 throw PrizeDisbursementException::notFound((string) $disbursement->disbursement_key);
             }
 
-            /** @var Payout|null $payout */
-            $payout = Payout::query()->lockForUpdate()->find((int) $locked->payout_id);
-            if ($payout instanceof Payout) {
-                $this->assertUnmanaged($payout);
-            }
-
             if ($locked->status === PrizeDisbursementStatus::Reversed) {
                 return $locked;
             }
@@ -291,6 +283,9 @@ final class PrizeDisbursementService
             if (! $locked->status->canTransitionTo(PrizeDisbursementStatus::Reversed)) {
                 throw PrizeDisbursementException::reversalViolation((string) $locked->disbursement_key, $locked->status->value);
             }
+
+            /** @var Payout|null $payout */
+            $payout = Payout::query()->lockForUpdate()->find((int) $locked->payout_id);
 
             $locked->status = PrizeDisbursementStatus::Reversed;
             $locked->reversed_at = now();
@@ -339,16 +334,13 @@ final class PrizeDisbursementService
                 throw PrizeDisbursementException::reversalViolation((string) $locked->disbursement_key, $locked->status->value);
             }
 
-            /** @var Payout|null $payout */
-            $payout = Payout::query()->lockForUpdate()->find((int) $locked->payout_id);
-            if ($payout instanceof Payout) {
-                $this->assertUnmanaged($payout);
-            }
-
             $locked->status = PrizeDisbursementStatus::Failed;
             $locked->failed_at = now();
             $locked->failure_reason = Str::limit(trim($reason), 255, '');
             $locked->save();
+
+            /** @var Payout|null $payout */
+            $payout = Payout::query()->find((int) $locked->payout_id);
 
             $this->scribe->from(
                 payout: $payout,
@@ -364,27 +356,6 @@ final class PrizeDisbursementService
     }
 
     /* ------------------------------------------------- internals ----- */
-
-    private function assertUnmanaged(Payout $payout): void
-    {
-        $metadata = is_array($payout->metadata) ? $payout->metadata : [];
-        $claim = is_array($metadata['claim'] ?? null) ? $metadata['claim'] : [];
-        if ($payout->financial_transaction_id !== null
-            || array_key_exists('approval', $metadata)
-            || array_key_exists('batch', $metadata)
-            || array_key_exists('transfer', $metadata)
-            || array_key_exists('claim_window', $metadata)
-            || array_key_exists('claimant_user_id', $claim)
-            || array_key_exists('facts_hash', $claim)
-            || DB::table('payout_batch_members')->where('payout_id', $payout->id)->exists()
-            || \App\Models\Payment::withTrashed()->where('payable_type', Payout::class)->where('payable_id', $payout->id)->exists()) {
-            throw new PrizeDisbursementException(
-                sprintf('Payout #%d requires the canonical managed_payout_route_required workflow.', (int) $payout->getKey()),
-                'managed_payout_route_required',
-                ['payout_id' => (int) $payout->getKey()],
-            );
-        }
-    }
 
     /**
      * Σ(live Reserved+Disbursed) for a payout — the held ledger, bcmath.

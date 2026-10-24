@@ -239,16 +239,11 @@ final class DrawResultController
         $input = [
             'first_prize' => (string) $payload['first_prize'],
             'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
+            'source' => (string) ($record['source'] ?? ''),
         ];
 
-        $source = trim((string) ($record['source'] ?? ''));
-
         try {
-            $published = $this->publication->publish(
-                (int) $draw->getKey(),
-                $input,
-                source: $source !== '' ? $source : 'internal',
-            );
+            $published = $this->publication->publish((int) $draw->getKey(), $input);
         } catch (DrawResultException | \App\Exceptions\DrawLifecycleException | \App\Exceptions\DrawResultValidationException $e) {
             return ApiResponse::error(
                 code: 'draw_result_publication_refused',

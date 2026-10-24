@@ -109,6 +109,13 @@ final class BetPurchaseErrorMapper
 
     public const CODE_MULTI_ITEM_UNSUPPORTED = 'multi_item_purchase_unsupported';
 
+    /**
+     * The wager was refused because a confirmed deposit refund is still unrecovered.
+     *
+     * Deliberately a transport-level code rather than the internal one: the caller needs
+     * to know which currency is frozen and where to go, and nothing about the recovery
+     * evidence, its custody rows or the provider payload.
+     */
     public const CODE_REFUND_RECOVERY_REQUIRED = 'refund_recovery_required';
 
     /**
@@ -138,6 +145,7 @@ final class BetPurchaseErrorMapper
             $exception instanceof BetPurchaseIdempotencyException => $this->idempotency($exception),
             $exception instanceof BetPurchaseConcurrencyException => $this->concurrency($exception),
             $exception instanceof BetPurchaseValidationException => $this->domainValidation($exception),
+            $exception instanceof BetPurchaseException && $this->isRefundExposure($exception) => $this->refundRecoveryRequired($exception),
             $exception instanceof BetPurchaseException => $this->purchase($exception),
 
             // Phase 3.1 risk exceptions, most specific first.
@@ -170,6 +178,34 @@ final class BetPurchaseErrorMapper
 
             default => $this->unexpected(),
         };
+    }
+
+    /**
+     * Whether a purchase refusal came from the refund-exposure guard.
+     */
+    private function isRefundExposure(Throwable $exception): bool
+    {
+        return in_array($exception->errorCode(), [
+            'bet_purchase_refund_exposure_pending',
+            'bet_purchase_refund_exposure_unproven',
+        ], true);
+    }
+
+    /**
+     * A frozen currency, explained without exposing the recovery evidence.
+     *
+     * @return array{code: string, status: int, message: string, details: array<string, mixed>}
+     */
+    private function refundRecoveryRequired(Throwable $exception): array
+    {
+        $currency = $exception->context()['currency'] ?? null;
+
+        return [
+            'code' => self::CODE_REFUND_RECOVERY_REQUIRED,
+            'status' => 422,
+            'message' => 'New wagers in this currency are unavailable while a confirmed deposit refund is still being recovered.',
+            'details' => is_string($currency) ? ['currency' => $currency] : [],
+        ];
     }
 
     /**
@@ -405,13 +441,6 @@ final class BetPurchaseErrorMapper
                 'status' => 422,
                 'message' => 'This market cannot be sold because its payout rate cannot be recorded exactly.',
                 'details' => $this->only($context, ['market']),
-            ],
-            'bet_purchase_refund_exposure_pending',
-            'bet_purchase_refund_exposure_unproven' => [
-                'code' => self::CODE_REFUND_RECOVERY_REQUIRED,
-                'status' => 422,
-                'message' => 'New paid wagers in this currency are unavailable while a confirmed deposit refund remains unrecovered.',
-                'details' => $this->only($context, ['currency']),
             ],
             // ledger_not_balanced, invariant_violated and outside_transaction all mean
             // the platform refused to commit something it could not prove correct.

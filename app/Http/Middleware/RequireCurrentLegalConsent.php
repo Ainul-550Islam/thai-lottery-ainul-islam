@@ -22,13 +22,6 @@ final class RequireCurrentLegalConsent
     {
         $user = $request->user();
 
-        if (app()->runningUnitTests() && $user instanceof User && (
-            $user->date_of_birth === null
-            || $user->kycDocuments()->where('status', 'verified')->exists()
-        )) {
-            return $next($request);
-        }
-
         if (! $user instanceof User || ! $this->consents->hasCurrentAcceptance($user)) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return ApiResponse::error(

@@ -6,6 +6,7 @@ use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 /**
@@ -57,6 +58,21 @@ abstract class TestCase extends BaseTestCase
      * the table genuinely disappears with the connection.
      */
     private static bool $schemaPrepared = false;
+
+    /**
+     * The transaction level a test begins at, which production code cannot read for
+     * itself.
+     *
+     * A few money services refuse to run inside a caller transaction (a checkout
+     * dispatch that could be rolled back after the provider was already called). Under
+     * RefreshDatabase every test body runs inside the trait's wrapping transaction, so
+     * the honest answer there is "1", not "0" — the service is not inside a transaction
+     * that IT opened. DatabaseTruncation classes commit normally and stay at 0.
+     *
+     * This is the test suite publishing its own state; the service reads it only when
+     * app()->environment('testing').
+     */
+    public static int $refreshDatabaseBaseDepth = 0;
 
     public function createApplication(): Application
     {
@@ -121,6 +137,10 @@ abstract class TestCase extends BaseTestCase
 
         // Test flows run with the launch gate explicitly open; gate-specific tests close it.
         config(['real_money.enabled' => true]);
+
+        self::$refreshDatabaseBaseDepth = in_array(RefreshDatabase::class, class_uses_recursive(static::class), true)
+            ? $this->app->make('db')->connection()->transactionLevel()
+            : 0;
 
         (new LedgerAccountSeeder)->run();
     }

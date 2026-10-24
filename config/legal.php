@@ -47,4 +47,24 @@ return [
     // Cache buster for legal-page HTML/data: bump to invalidate caches.
     'content_version' => (string) env('LEGAL_CONTENT_VERSION', '1'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Terms of Use revision
+    |--------------------------------------------------------------------------
+    |
+    | TERMS ARE VERSIONED SEPARATELY FROM PRIVACY.
+    | The two documents are edited, effective and re-consented on different dates,
+    | so a single 'version' cannot describe both: a Terms revision used to bump the
+    | Privacy version (and its displayed effective date) as a side effect, and the
+    | Terms page showed whatever privacy happened to be on. Each document now owns
+    | its revision, its dates and its cache buster; 'legal.version' remains the
+    | fallback for any installation that has not set the specific value.
+    */
+    'terms' => [
+        'version' => (string) env('LEGAL_TERMS_VERSION', 'v1.0.1'),
+        'effective_at' => (string) env('LEGAL_TERMS_EFFECTIVE_AT', '2026-10-14'),
+        'updated_at' => (string) env('LEGAL_TERMS_UPDATED_AT', '2026-10-14'),
+        'content_version' => (string) env('LEGAL_TERMS_CONTENT_VERSION', '1'),
+    ],
+
 ];

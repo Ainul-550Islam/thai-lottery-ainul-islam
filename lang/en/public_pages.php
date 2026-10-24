@@ -210,7 +210,11 @@ return [
     'terms_claim_text' => 'There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is {claim_window_years} years from the draw under configured GLO-compatible rules.',
 
     'terms_disclaimer_title' => '9. Legal disclaimer',
-    'terms_disclaimer_text' => 'This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only. We do not claim government ownership, operation, endorsement, or agency status. No page on this site should be read as an official GLO website.',
+    // The non-affiliation sentences are deliberately literal ("not the official GLO
+    // website", "do not claim government ownership"): they are the disclosure the
+    // public tests pin, and a paraphrase drifts away from it.
+    'terms_disclaimer_text' => 'This is an independent platform. References to the Government Lottery Office and its prize rules are for compatibility and information only. We do not claim government ownership, operation, endorsement, or agency status. This site is not the official GLO website, and no page here should be read as one.',
+    'terms_identity_note' => 'This site is an independent platform and not the official GLO website; we do not claim government ownership, official agency status, licensing, or endorsement.',
 
     'terms_prohibited_title' => '10. Prohibited conduct',
     'terms_prohibited_text' => 'Automated abuse of public endpoints, attempted circumvention of rate limits, fraudulent claim or identity information, and attempts to manipulate finalized results may result in account restriction.',
@@ -470,11 +474,61 @@ return [
     'download_integrity_eyebrow' => 'Integrity state',
     'download_build_verification' => 'Build verification',
     'download_integrity_body' => 'Checksum verification and download tracking require a verified public build manifest. They are not claimed when no manifest is configured.',
-    'download_checksum' => 'Checksum: NOT_CONFIGURED · Tracking: NOT_CONFIGURED',
+    'download_checksum' => 'To confirm your copy is untampered, compare the SHA-256 of the file you downloaded with the digest published above.',
+    'download_release_version' => 'Build version',
+    'download_release_sha256' => 'SHA-256 digest',
+    'download_release_size' => 'File size',
+    'download_release_built_at' => 'Built at',
+    'download_release_commit' => 'Source commit',
     'download_no_link_eyebrow' => 'No link available?',
     'download_support_heading' => 'Use the configured support route',
     'download_support_body' => 'Do not request an app package through an unverified channel.',
     'download_print_save' => 'Print / save',
     'download_contact_support' => 'Contact support',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Shared public footer
+    |--------------------------------------------------------------------------
+    | The footer component (resources/views/components/public-page/footer.blade.php)
+    | resolves every label through public_pages.footer_*. These keys existed only
+    | in lang/bn, so English and Thai pages printed the raw key strings
+    | ("public_pages.footer_about") in the footer of every public page.
+    */
+
+    'footer_brand_note' => 'Independent platform for lottery information, results lookup, account help and configured services.',
+    'footer_lanes_heading' => 'Lottery lanes',
+    'footer_lane_l6' => 'L6 lottery',
+    'footer_lane_weekly' => 'Weekly lottery',
+    'footer_lane_bingo' => 'Bingo lottery',
+    'footer_lane_pcso' => 'PCSO lottery',
+    'footer_lane_results' => 'Lottery results',
+    'footer_information_heading' => 'Information',
+    'footer_services' => 'Our services',
+    'footer_about' => 'About us',
+    'footer_vision' => 'Vision and mission',
+    'footer_how_to_play' => 'How to play',
+    'footer_faq' => 'FAQ',
+    'footer_ticket_verification' => 'Ticket check',
+    'footer_sales_points' => 'Sales points',
+    'footer_fees' => 'Platform fees',
+    'footer_discounts' => 'Lotto discount',
+    'footer_legal_support_heading' => 'Legal & support',
+    'footer_terms' => 'Terms of service',
+    'footer_privacy' => 'Privacy policy',
+    'footer_kyc_guide' => 'Account verification guide',
+    'footer_account_grades' => 'Account grades',
+    'footer_prize_verification' => 'Prize verification',
+    'footer_contact' => 'Contact',
+    'footer_all_rights_reserved' => 'All rights reserved.',
+    'footer_disclaimer' => 'This independent platform is not the official GLO website and is not operated by or endorsed by a government lottery authority. Verify published results and applicable rules against a reliable source.',
+    'footer_version_label' => 'Version',
+
+
+    // Shown beside the legal body when a translation of the authoritative text is
+    // not published yet: readers are told what they are reading, not left to guess.
+    'privacy_language_notice_title' => 'Language notice',
+    'privacy_language_notice' => 'The authoritative text of this Privacy Notice is currently shown in English.',
+    'terms_language_notice_title' => 'Language notice',
+    'terms_language_notice' => 'The authoritative text of these Terms of Use is currently shown in English.',
 ];

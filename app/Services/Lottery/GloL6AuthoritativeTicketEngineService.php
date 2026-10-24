@@ -7,9 +7,11 @@ namespace App\Services\Lottery;
 use App\Enums\AuditAction;
 use App\Enums\Currency;
 use App\Enums\FinancialTransactionType;
+use App\Enums\GloClaimStatus;
 use App\Enums\GloSourceState;
 use App\Enums\RiskLevel;
 use App\Exceptions\FinancialException;
+use App\Exceptions\GloClaimException;
 use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\GloL6Sale;
@@ -250,11 +252,8 @@ class GloL6AuthoritativeTicketEngineService
         $drawId = (int) $draw->getKey();
 
         return $this->db->connection()->transaction(function () use ($buyer, $draw, $drawId, $ticketNumber, $series, $clientKey): GloTicket {
-            // Canonical lock order: resolve & lock buyer THB wallet BEFORE GloTicket / GloL6Sale
-            $wallet = Wallet::query()
-                ->whereKey($this->walletService->getOrCreateWallet($buyer, Currency::THB)->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
+            // Deduct ticket price from player wallet atomically
+            $wallet = $this->walletService->getOrCreateWallet($buyer, Currency::THB);
 
             $idempotencyKey = sprintf('GLO-L6-BUY-%d-%s-%d-%s', $buyer->id, $ticketNumber, $drawId, $clientKey);
 
@@ -262,33 +261,15 @@ class GloL6AuthoritativeTicketEngineService
                 ->where('draw_id', $drawId)
                 ->where('product', 'l6')
                 ->where('ticket_number', $ticketNumber)
-                ->where('set_series', (string) $series)
+                ->where('set_series', $series)
                 ->lockForUpdate()
                 ->first();
 
             if ($existingTicket instanceof GloTicket) {
-                $existingClientKey = ((array) $existingTicket->metadata)['client_key'] ?? null;
-                if ((int) $existingTicket->owner_user_id === (int) $buyer->id && $existingClientKey === $clientKey) {
-                    return $existingTicket; // Exact idempotent replay
+                if ($existingTicket->owner_user_id === $buyer->id) {
+                    return $existingTicket; // Idempotent return
                 }
                 throw new RuntimeException("GLO L6 ticket number {$ticketNumber} series {$series} is already sold.");
-            }
-
-            $seatedSale = GloL6Sale::query()
-                ->where('draw_id', $drawId)
-                ->where('product', 'l6')
-                ->lockForUpdate()
-                ->first();
-
-            if ($seatedSale instanceof GloL6Sale) {
-                $soldInDraw = GloTicket::query()
-                    ->where('draw_id', $drawId)
-                    ->where('product', 'l6')
-                    ->count();
-
-                if ($soldInDraw >= (int) $seatedSale->units_sold) {
-                    throw new RuntimeException("GLO L6 draw #{$drawId} series allocation ({$seatedSale->units_sold}) is sold out.");
-                }
             }
 
             // Debit 80.00 THB from wallet with double-entry ledger posting
@@ -314,7 +295,7 @@ class GloL6AuthoritativeTicketEngineService
                 'owner_user_id' => $buyer->id,
                 'product' => 'l6',
                 'ticket_number' => $ticketNumber,
-                'set_series' => (string) $series,
+                'set_series' => $series,
                 'price' => self::TICKET_PRICE_THB,
                 'currency' => Currency::THB,
                 'status' => 'active',
@@ -368,22 +349,35 @@ class GloL6AuthoritativeTicketEngineService
     }
 
     /**
-     * Retired alternate direct-wallet settlement writer.
+     * RETIRED - this method used to credit a verified claim straight to a wallet.
      *
-     * Retained only to fail closed before reading or mutating any claim, wallet,
-     * financial transaction, ledger entry, or audit row.
+     * WHY IT IS REFUSED RATHER THAN FIXED HERE
+     * The old body accepted a stored row whose status said "approved", re-checked a
+     * handful of local conditions and then called WalletService::credit(). That is a
+     * separate money writer, and it is not the same contract as the reviewed claim
+     * workflow: it never established winner/result finality, payment-hold ownership,
+     * legal-conflict clearance or payment-operator permission. Its "already paid"
+     * branch also handed back a row as a replay without proving that THIS writer had
+     * reconciled the original financial event.
      *
-     * @throws FinancialException
+     * A second writer that can move real money on a weaker proof is a gap in the
+     * books however convenient it is, and widening its checks locally would only
+     * produce a second, nearly-correct payout path. So the public signature is kept
+     * for explicit refusal, with no configuration flag, fallback or silent delegation
+     * to reactivate it. The canonical reviewed path is GloPrizeClaimService::pay().
+     *
+     * The refusal happens before this method reads or changes a claim, a wallet, a
+     * financial transaction, a ledger entry or an audit row, so it holds for an
+     * Approved, Pending, Eligible, Paid or unpersisted input alike.
+     *
+     * @throws FinancialException always, with code glo_l6_direct_wallet_settlement_disabled
      */
     public function settleVerifiedClaim(GloPrizeClaim $claim, User $authorizingOperator): GloPrizeClaim
     {
         throw FinancialException::withCode(
             'glo_l6_direct_wallet_settlement_disabled',
-            'Direct wallet settlement from GLO prize claims is disabled; use the canonical reviewed prize claim workflow.',
-            [
-                'claim_id' => $claim->getKey(),
-                'operator_id' => $authorizingOperator->getKey(),
-            ],
+            'Direct wallet settlement from this legacy engine is disabled: a prize must be paid through the '
+            .'reviewed GLO claim workflow, which proves winner/result finality, holds and payment authority.',
         );
     }
 

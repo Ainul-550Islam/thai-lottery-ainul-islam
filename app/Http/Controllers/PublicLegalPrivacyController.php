@@ -118,6 +118,16 @@ final class PublicLegalPrivacyController extends Controller
         ]);
     }
 
+    /**
+     * The locale this request is being served in.
+     *
+     * Read from the container, never from the query string. App\Http\Middleware\
+     * SetLocale already negotiated ?lang=/?locale=, the session and the cookie and
+     * called app()->setLocale(); a controller that re-read ?locale= could only
+     * disagree with the language the middleware chose, and it accepted only 'en'
+     * and 'th', so a Bangla request would have been rendered as English content
+     * inside a Bangla document.
+     */
     private function locale(Request $request): string
     {
         return (string) app()->getLocale();

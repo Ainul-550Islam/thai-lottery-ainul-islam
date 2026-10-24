@@ -13,7 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Applied only to safe GET responses for /about, /vision, and /terms.
  *  - Anonymous (guest) GETs receive a short PUBLIC cache window so CDNs/browsers
- *    may reuse the HTML; Vary stays on Cookie/Accept-Language where present.
+ *    may reuse the HTML; Vary carries Cookie only, because Cookie is the only
+ *    locale signal SetLocale actually reads (see the note at the header call).
  *  - Authenticated or non-GET requests are never publicly cached (no-store),
  *    and nothing ever sets Cache-Control: private for shared caches to store
  *    under a private key incorrectly — private sessions simply must not store.
@@ -68,6 +69,15 @@ final class PublicLegalHeaders
         );
 
         // Never emit a stale dynamic effective date; pages render config dates only.
+        //
+        // VARY NAMES ONLY WHAT IS READ.
+        // SetLocale negotiates from ?lang=/?locale=, the session and a cookie, and
+        // deliberately ignores Accept-Language (a fabricated 'en' header would
+        // silently override every Thai or Bangla reader). Advertising
+        // "Vary: Accept-Language" therefore told every shared cache to fragment
+        // this HTML on a signal the application never consults: pure cache miss
+        // cost, no correctness gain. Cookie stays because the session - the lane
+        // that actually persists a reader's choice - travels in it.
         $response->headers->set('Vary', 'Cookie', false);
 
         return $response;

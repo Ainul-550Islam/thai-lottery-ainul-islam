@@ -12,10 +12,10 @@ use App\Services\Payment\Drivers\BankTransferGateway;
 use App\Services\Payment\Drivers\BkashGateway;
 use App\Services\Payment\Drivers\CryptoGateway;
 use App\Services\Payment\Drivers\NagadGateway;
-use App\Services\Payment\Drivers\SandboxDeterministicGateway;
 use App\Services\Payment\Drivers\StripeGateway;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
+use InvalidArgumentException;
 
 /**
  * Gateway factory and driver manager.
@@ -30,7 +30,8 @@ class PaymentGatewayManager
     public function __construct(
         private readonly Container $container,
         private readonly ConfigRepository $config,
-    ) {}
+    ) {
+    }
 
     /**
      * Resolve a gateway driver by string name or PaymentMethod enum.
@@ -51,7 +52,6 @@ class PaymentGatewayManager
             'nagad' => $this->container->make(NagadGateway::class),
             'crypto' => $this->container->make(CryptoGateway::class),
             'bank_transfer', 'manual' => $this->container->make(BankTransferGateway::class),
-            'sandbox' => $this->container->make(SandboxDeterministicGateway::class),
 
             // ── A CONFIGURED RAIL WITH NO DRIVER GETS ITS OWN REFUSAL. ──────
             //

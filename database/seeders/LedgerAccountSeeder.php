@@ -84,7 +84,7 @@ class LedgerAccountSeeder extends Seeder
             WalletService::ACCOUNT_WALLET_TRANSFER_CLEARING => [
                 'Wallet Transfer Clearing',
                 'asset',
-                'Clearing account for internal Cash <-> Win pocket transfers.',
+                'Neutral account for Cash<->Win pocket transfers. Both pockets belong to the same player, so the two legs must land somewhere inspectable rather than being netted against each other with no trace of the lane.',
             ],
             WalletService::ACCOUNT_PLAYER_LIABILITY => [
                 'Player Liability',

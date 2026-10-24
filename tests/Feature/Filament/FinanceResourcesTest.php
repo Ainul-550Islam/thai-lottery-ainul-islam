@@ -976,4 +976,25 @@ final class FinanceResourcesTest extends TestCase
 
         $this->assertSame(1, $queries, 'Balances were computed with more than one ledger query.');
     }
+
+    public function test_reconcile_failed_action_is_declared_for_processing_payouts(): void
+    {
+        $specs = collect(\App\Filament\Resources\WithdrawalResource\WithdrawalDecisionActions::specs())
+            ->keyBy('name');
+
+        $this->assertTrue($specs->has('reconcileFailed'));
+        $this->assertSame('evidence', array_key_first(
+            collect($specs['reconcileFailed']['form'])
+                ->mapWithKeys(static fn ($field): array => [$field->getName() => true])
+                ->all(),
+        ));
+    }
+
+    public function test_no_route_reaches_the_removed_unconsented_web_registration_controller(): void
+    {
+        $routes = collect(\Illuminate\Support\Facades\Route::getRoutes())
+            ->map(static fn ($route): string => (string) $route->getActionName());
+
+        $this->assertFalse($routes->contains(static fn (string $action): bool => str_contains($action, 'Controllers\\Web\\AuthController')));
+    }
 }
