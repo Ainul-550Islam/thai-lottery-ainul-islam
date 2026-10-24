@@ -14,6 +14,7 @@ use App\Http\Middleware\EnsureWalletConversionEnabled;
 use App\Http\Middleware\EnsureWalletIsActive;
 use App\Http\Middleware\GloEnsurePermission;
 use App\Http\Middleware\HoneypotMiddleware;
+use App\Http\Middleware\NoIndexPrivateResponses;
 use App\Http\Middleware\PublicLegalHeaders;
 use App\Http\Middleware\RequireConversionIdempotencyKey;
 use App\Http\Middleware\RequireCurrentLegalConsent;
@@ -244,6 +245,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Record only authenticated member activity, throttled to one write per minute.
         $middleware->web(append: [TrackMemberPresence::class]);
         $middleware->appendToGroup('web', SetLocale::class);
+        $middleware->appendToGroup('web', NoIndexPrivateResponses::class);
         $middleware->appendToGroup('api', SetLocale::class);
 
         $middleware->alias([
@@ -269,7 +271,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'conversion.enabled' => EnsureWalletConversionEnabled::class,
             'conversion.idempotent' => RequireConversionIdempotencyKey::class,
             'conversion.idempotency' => RequireConversionIdempotencyKey::class,
-            'fraud.gate' => \App\Http\Middleware\FraudRiskGateMiddleware::class,
         ]);
 
         // Applied globally: security headers, and a correlation id pinned on the way in and
@@ -324,7 +325,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($e instanceof \App\Exceptions\ChatException) {
-                return $e->render($request);
+                $context = $e->logContext();
+                $headers = [];
+                if (isset($context['retry_after']) && is_int($context['retry_after']) && $context['retry_after'] > 0) {
+                    $headers['Retry-After'] = (string) $context['retry_after'];
+                }
+
+                return response()->json($e->toArray(), $e->httpStatus(), $headers);
             }
 
             if (! $request->is('api/*') && ! $request->expectsJson()) {

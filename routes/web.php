@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountGradeController;
+use App\Http\Controllers\Admin\AdminTransferController;
+use App\Http\Controllers\Admin\IpAccessRuleController;
 use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
 use App\Http\Controllers\Admin\PayoutApprovalIntakeController;
 use App\Http\Controllers\Admin\PayoutEvidenceController;
@@ -24,11 +26,13 @@ use App\Http\Controllers\Legal\LegalConsentController;
 use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\LotteryHubController;
 use App\Http\Controllers\LotteryPurchasePageController;
+use App\Http\Controllers\MemberRewardsController;
 use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\NationalLotteryController;
 use App\Http\Controllers\NotificationCenterController;
 use App\Http\Controllers\PcsoLotteryController;
 use App\Http\Controllers\Player\PlayerSecuritySettingsController;
+use App\Http\Controllers\PublicBlogController;
 use App\Http\Controllers\PublicDownloadAppController;
 use App\Http\Controllers\PublicFaqController;
 use App\Http\Controllers\PublicGradeController;
@@ -165,7 +169,9 @@ Route::middleware('auth')->group(function (): void {
         ->where('reference', '[A-Za-z0-9_-]{1,80}')
         ->name('player.wallet.conversion.show');
 
-    Route::get('/wallet/transfer/panel', [BalanceTransferController::class, 'panel'])->name('player.transfer.panel');
+    Route::get('/wallet/transfer/panel', [BalanceTransferController::class, 'panel'])
+        ->middleware('throttle:60,1')
+        ->name('player.transfer.panel');
     Route::match(['get', 'post'], '/wallet/transfer/quote', [BalanceTransferController::class, 'quote'])->name('player.transfer.quote');
     Route::post('/wallet/transfer', [BalanceTransferController::class, 'store'])
         ->middleware(['active', 'adult', 'legal.current'])
@@ -244,6 +250,25 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/account/grade/refresh', [AccountGradeController::class, 'refresh'])
         ->middleware('throttle:account-grade')
         ->name('account.grade.refresh');
+
+    // Rewards and member engagement. Financial redemptions retain the
+    // active/adult/current-consent boundary and the user/IP-keyed limiter.
+    Route::get('/rewards', [MemberRewardsController::class, 'index'])->name('member.rewards');
+    Route::post('/rewards/coupons/redeem', [MemberRewardsController::class, 'redeemCoupon'])
+        ->middleware(['active', 'adult', 'legal.current', 'throttle:financial-critical'])
+        ->name('member.rewards.coupons.redeem');
+    Route::post('/rewards/loyalty/redeem', [MemberRewardsController::class, 'redeemLoyalty'])
+        ->middleware(['active', 'adult', 'legal.current', 'throttle:financial-critical'])
+        ->name('member.rewards.loyalty.redeem');
+    Route::post('/rewards/push/register', [MemberRewardsController::class, 'registerPushToken'])
+        ->middleware(['active', 'legal.current', 'throttle:30,1'])
+        ->name('member.rewards.push.register');
+    Route::post('/rewards/push/revoke', [MemberRewardsController::class, 'revokePushToken'])
+        ->middleware(['active', 'legal.current', 'throttle:30,1'])
+        ->name('member.rewards.push.revoke');
+    Route::post('/rewards/testimonials', [MemberRewardsController::class, 'submitTestimonial'])
+        ->middleware(['active', 'legal.current', 'throttle:5,1'])
+        ->name('member.rewards.testimonials.submit');
 });
 
 /*
@@ -270,7 +295,7 @@ Route::get('/withdrawal', fn () => redirect()->route('player.withdraw'))
 Route::get('/wallet/withdrawal', fn () => redirect()->route('player.withdraw'))
     ->middleware('auth')->name('wallet.withdrawal');
 Route::get('/betting', [ThaiLotteryBettingController::class, 'index'])->name('betting.index');
-Route::get('/lotto/betting', [ThaiLotteryBettingController::class, 'index'])->name('lotto.betting');
+Route::get('/lotto/betting', fn () => redirect()->route('betting.index', request()->query(), 301))->name('lotto.betting');
 // Dedicated GLO L6 home. It uses the canonical public GLO services and is
 // intentionally separate from the legacy /results page, whose historical
 // controller is not a source for live GLO data.
@@ -425,6 +450,22 @@ Route::get('/how-to-play', [PublicHowToPlayController::class, 'index'])
 Route::get('/faq', [PublicFaqController::class, 'index'])
     ->middleware('public.legal')
     ->name('faq');
+
+/*
+|--------------------------------------------------------------------------
+| Public blog: locale is a required, validated canonical path segment.
+|--------------------------------------------------------------------------
+*/
+Route::redirect('/blog', '/blog/en')->name('blog.index.redirect');
+Route::middleware('throttle:60,1')->group(function (): void {
+    Route::get('/blog/{locale}', [PublicBlogController::class, 'index'])
+        ->where('locale', 'en|th|bn')
+        ->name('blog.index');
+    Route::get('/blog/{locale}/{slug}', [PublicBlogController::class, 'show'])
+        ->where('locale', 'en|th|bn')
+        ->where('slug', '[a-z0-9][a-z0-9-]{0,190}')
+        ->name('blog.show');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -864,6 +905,33 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'can:access-ad
     Route::post('/api/reconciliation', [LottoFinExecutiveDashboardController::class, 'runReconciliation'])
         ->middleware(['throttle:admin-analytics', 'can:access-admin'])
         ->name('api.reconciliation.run');
+
+    // Network access rules use the dedicated controller/manager rather than
+    // the payout or legacy console handlers. The manager repeats authorization
+    // and self-lockout checks for every mutation.
+    Route::prefix('ip-access/rules')->name('ip-access.rules.')->middleware('throttle:admin-analytics')->group(function (): void {
+        Route::get('/', [IpAccessRuleController::class, 'index'])->name('index');
+        Route::get('/manage', [IpAccessRuleController::class, 'manage'])->name('manage');
+        Route::post('/', [IpAccessRuleController::class, 'store'])
+            ->middleware('throttle:30,1')
+            ->name('store');
+        Route::post('/{ruleId}/revoke', [IpAccessRuleController::class, 'revoke'])
+            ->where('ruleId', '[0-9]+')
+            ->middleware('throttle:30,1')
+            ->name('revoke');
+    });
+
+    // Balance-transfer operator desk is intentionally read-only. There is no
+    // admin.transfers.reverse route: the configured independent maker-checker
+    // approval workflow is not implemented, so exposing a direct reversal
+    // endpoint would bypass a financial control.
+    Route::get('/transfers', [AdminTransferController::class, 'index'])
+        ->middleware('can:transfer.view_any')
+        ->name('transfers.index');
+    Route::get('/transfers/{reference}', [AdminTransferController::class, 'show'])
+        ->where('reference', '[A-Za-z0-9_-]{1,32}')
+        ->middleware('can:transfer.view_any')
+        ->name('transfers.show');
 
     // Operational projections. Each request is permission-checked again in the
     // controller so a route alias cannot widen access to another panel.

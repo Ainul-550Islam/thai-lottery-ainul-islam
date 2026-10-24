@@ -13,9 +13,9 @@
 | :--- | :--- | :--- |
 | **Release Commit SHA** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Git Release Tag |
 | **Artifact SHA-256 Checksum** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Build Pipeline |
-| **Target PHP Version** | `PHP 8.2+` (with `bcmath`, `pdo_mysql`, `redis`, `sodium`) | `[x] CODE VERIFIED` |
-| **Laravel Framework Version** | `Laravel 11.x` | `[x] CODE VERIFIED` |
-| **Node.js & NPM Version** | `Node.js 20.x` / `NPM 10.x` | `[x] CODE VERIFIED` |
+| **Target PHP Version** | `PHP 8.4` (with `bcmath`, `pdo_mysql`, `redis`, `sodium`) | `[x] CODE VERIFIED` |
+| **Laravel Framework Version** | `Laravel 12.x` | `[x] CODE VERIFIED` |
+| **Node.js & NPM Version** | `Node.js 24.22.0` / `NPM 11.21.1` | `[x] CODE VERIFIED` |
 | **Rust / Cargo Engine** | `Cargo 1.75+` (GLO verification engine) | `[ ] NOT VERIFIED — HOST ENVIRONMENT` |
 | **Database Engine & Version** | `MySQL 8.0.16+` / `MariaDB 10.6+` (InnoDB, strict mode) | `[x] CODE VERIFIED` |
 | **Queue Backend & Driver** | `Redis` / `database` (Supervisor workers: `high`, `default`, `low`) | `[x] CODE VERIFIED` |
@@ -37,8 +37,11 @@
 - [x] **Reproducible Dependency Strategy**:
   ```bash
   composer install --no-dev --optimize-autoloader --no-interaction
+  # Use Node.js 24.22.0 from .nvmrc, then activate the packageManager pin.
+  npm install --global npm@11.21.1
   npm ci
   npm run build
+  node scripts/verify_vite_integrity.mjs --manifest public/build/manifest.json
   ```
 - [x] **Vite Manifest Production Check**: Verify `public/build/manifest.json` exists and maps compiled bundles.
 - [x] **Sensitive Secrets Isolation**: Confirm no `.env` files, debug tokens, or private credentials are included in the deployed repository artifact.

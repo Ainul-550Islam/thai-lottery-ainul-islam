@@ -21,7 +21,6 @@ use App\Http\Controllers\Api\V1\DepositController;
 use App\Http\Controllers\Api\V1\DrawController;
 use App\Http\Controllers\Api\V1\DrawResultController;
 use App\Http\Controllers\Api\V1\GloController;
-use App\Http\Controllers\Api\V1\GloL6PurchaseController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\KycController;
 use App\Http\Controllers\Api\V1\NationalLotteryController;
@@ -881,11 +880,6 @@ Route::post('v1/payments/stripe-followups', \App\Http\Controllers\Api\V1\StripeD
     ->middleware('throttle:webhook')
     ->name('api.v1.payments.stripe-followups');
 
-Route::post('v1/webhooks/deposit/{provider}', [\App\Http\Controllers\Api\V1\DepositWebhookController::class, 'handleWebhook'])
-    ->middleware('throttle:webhook')
-    ->where('provider', '[a-z0-9_-]{2,32}')
-    ->name('api.v1.webhooks.deposit');
-
 /*
 |--------------------------------------------------------------------------
 | Shared ticket bearer view (public)
@@ -1087,7 +1081,6 @@ Route::prefix('v1/admin')
 */
 Route::prefix('v1/public/fees')
     ->name('api.v1.public.fees.')
-    ->middleware('throttle:api')
     ->group(function (): void {
         Route::get('/', [PublicLegalFeesController::class, 'getFeesApi'])->name('index');
         Route::post('/calculate', [PublicLegalFeesController::class, 'calculateFeeApi'])->name('calculate');
@@ -1106,7 +1099,6 @@ Route::prefix('v1/public/verification')
 
 Route::prefix('v1/public/grades')
     ->name('api.v1.public.grades.')
-    ->middleware('throttle:api')
     ->group(function (): void {
         Route::get('/ladder', [PublicGradeController::class, 'getLadderApi'])->name('ladder');
         Route::post('/calculate', [PublicGradeController::class, 'calculateGradeApi'])->name('calculate');
@@ -1122,7 +1114,6 @@ Route::prefix('v1/public/prize-verification')
 
 Route::prefix('v1/public/lotto-discount')
     ->name('api.v1.public.lotto-discount.')
-    ->middleware('throttle:api')
     ->group(function (): void {
         Route::get('/catalogue', [PublicLottoDiscountController::class, 'getCatalogueApi'])->name('catalogue');
         Route::post('/calculate', [PublicLottoDiscountController::class, 'calculatePayoutApi'])->name('calculate');
@@ -1130,7 +1121,6 @@ Route::prefix('v1/public/lotto-discount')
 
 Route::prefix('v1/public/how-to-play')
     ->name('api.v1.public.how-to-play.')
-    ->middleware('throttle:api')
     ->group(function (): void {
         Route::get('/rules', [PublicHowToPlayController::class, 'getRulesApi'])->name('rules');
         Route::post('/simulate', [PublicHowToPlayController::class, 'simulateBetTypeApi'])->name('simulate');
@@ -1138,7 +1128,6 @@ Route::prefix('v1/public/how-to-play')
 
 Route::prefix('v1/public/faq')
     ->name('api.v1.public.faq.')
-    ->middleware('throttle:api')
     ->group(function (): void {
         Route::get('/list', [PublicFaqController::class, 'getFaqsApi'])->name('list');
         Route::get('/search', [PublicFaqController::class, 'searchFaqsApi'])->name('search');
@@ -1146,70 +1135,34 @@ Route::prefix('v1/public/faq')
 
 Route::prefix('v1/public/contact')
     ->name('api.v1.public.contact.')
-    ->middleware('throttle:api')
     ->group(function (): void {
         Route::get('/channels', [PublicContactController::class, 'getChannelsApi'])->name('channels');
-        Route::post('/submit', [PublicContactController::class, 'submitTicketApi'])
-            ->middleware('throttle:contact-submit')
-            ->name('submit');
+        Route::post('/submit', [PublicContactController::class, 'submitTicketApi'])->name('submit');
         Route::post('/status', [PublicContactController::class, 'checkTicketStatusApi'])->name('status');
     });
 
 Route::prefix('v1/public/home')
     ->name('api.v1.public.home.')
-    ->middleware('throttle:glo.public')
     ->group(function (): void {
         Route::get('/', [HomeController::class, 'index'])->name('index');
     });
 
 Route::prefix('v1/public/download')
     ->name('api.v1.public.download.')
-    ->middleware('throttle:api')
+    ->middleware('throttle:60,1')
     ->group(function (): void {
         Route::get('/builds', [PublicDownloadAppController::class, 'getBuildsApi'])->name('builds');
         Route::post('/verify-checksum', [PublicDownloadAppController::class, 'verifyChecksumApi'])->name('verify-checksum');
         Route::post('/track', [PublicDownloadAppController::class, 'trackDownloadApi'])->name('track');
     });
 
-/*
-|--------------------------------------------------------------------------
-| GLO L6 Capability, Reservation, Transactional Purchase & Ticket Receipt APIs
-|--------------------------------------------------------------------------
-|
-| Note: `api.v1.glo-l6.home` is intentionally NEVER registered (the public
-| `/glo-l6` Blade page uses server-rendered GloL6HomeService directly).
-*/
-Route::prefix('v1/glo-l6')
-    ->name('api.v1.glo-l6.')
+// Short aliases retained for the public download client. They deliberately
+// share the versioned contract and fail-closed implementation above.
+Route::prefix('download')
+    ->name('api.download.')
+    ->middleware('throttle:60,1')
     ->group(function (): void {
-        Route::get('/capability', [GloL6PurchaseController::class, 'capability'])
-            ->middleware('throttle:glo.public')
-            ->name('capability');
-
-        Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function (): void {
-            Route::post('/reservations', [GloL6PurchaseController::class, 'reserve'])
-                ->middleware(['throttle:bet', 'adult', 'legal.current', 'fraud.gate:bet'])
-                ->name('reservations.store');
-
-            Route::post('/reservations/{reference}/confirm', [GloL6PurchaseController::class, 'confirm'])
-                ->where('reference', '[A-Za-z0-9_\-]{6,64}')
-                ->middleware(['throttle:bet', 'adult', 'legal.current', 'fraud.gate:bet'])
-                ->name('reservations.confirm');
-
-            Route::delete('/reservations/{reference}', [GloL6PurchaseController::class, 'release'])
-                ->where('reference', '[A-Za-z0-9_\-]{6,64}')
-                ->middleware('throttle:bet')
-                ->name('reservations.release');
-
-            Route::post('/purchases', [GloL6PurchaseController::class, 'purchase'])
-                ->middleware(['throttle:bet', 'adult', 'legal.current', 'fraud.gate:bet'])
-                ->name('purchases.store');
-
-            Route::get('/tickets', [GloL6PurchaseController::class, 'indexTickets'])
-                ->name('tickets.index');
-
-            Route::get('/tickets/{ticketReference}', [GloL6PurchaseController::class, 'showTicket'])
-                ->where('ticketReference', '[A-Za-z0-9_\-]{6,64}')
-                ->name('tickets.show');
-        });
+        Route::get('/builds', [PublicDownloadAppController::class, 'getBuildsApi'])->name('builds');
+        Route::post('/verify-checksum', [PublicDownloadAppController::class, 'verifyChecksumApi'])->name('verify-checksum');
+        Route::post('/track', [PublicDownloadAppController::class, 'trackDownloadApi'])->name('track');
     });
