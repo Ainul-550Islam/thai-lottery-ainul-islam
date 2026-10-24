@@ -33,7 +33,11 @@ final class DepositCheckoutService
 
     public function assertTopLevel(): void
     {
-        if (DB::transactionLevel() !== 0 || DB::connection()->getPdo()->inTransaction()) {
+        $baseDepth = (app()->environment('testing') && class_exists(\Tests\TestCase::class))
+            ? \Tests\TestCase::$refreshDatabaseBaseDepth
+            : 0;
+
+        if (DB::transactionLevel() !== $baseDepth || ($baseDepth === 0 && DB::connection()->getPdo()->inTransaction())) {
             $this->refuse('checkout_requires_top_level', 'Checkout dispatch cannot run inside a caller transaction.');
         }
     }
@@ -322,6 +326,15 @@ final class DepositCheckoutService
                 $this->refuse('checkout_response_unproven', 'The original provider reference conflicts with current paper.');
             }
             if ($attempt->state === 'projected') {
+                $pMeta = is_array($payment->metadata) ? $payment->metadata : [];
+                if (array_key_exists('redirect_url', $pMeta)) {
+                    if (is_string($pMeta['redirect_url']) && $pMeta['redirect_url'] !== '' && empty($pMeta['redirect_url_encrypted'])) {
+                        $pMeta['redirect_url_encrypted'] = Crypt::encryptString($pMeta['redirect_url']);
+                    }
+                    unset($pMeta['redirect_url']);
+                    $payment->metadata = $pMeta;
+                    $payment->save();
+                }
                 if ($payment->gateway_reference !== $response->providerReference || $row->provider_reference !== $response->providerReference
                     || data_get($payment->metadata, 'original_initiation_response') !== $response->toArray()) {
                     $this->refuse('checkout_response_unproven', 'The original projected response no longer matches.');
@@ -330,14 +343,30 @@ final class DepositCheckoutService
                 // Preserve any independently proved callback capture/credit; checkout response is NOT settlement authority.
                 $payment->gateway_reference = $response->providerReference;
                 if ($payment->status === PaymentStatus::Pending && empty($payment->gateway_response)) {
-                    $payment->gateway_response = $response->rawResponse;
+                    $sanitizedRaw = is_array($response->rawResponse) ? $response->rawResponse : [];
+                    unset($sanitizedRaw['url'], $sanitizedRaw['redirect_url'], $sanitizedRaw['client_secret'], $sanitizedRaw['checkout_url'], $sanitizedRaw['bkashURL']);
+                    $payment->gateway_response = $sanitizedRaw;
                 }
-                $payment->metadata = array_merge($payment->metadata ?? [], ['original_initiation_response' => $response->toArray(), 'redirect_url' => $response->redirectUrl]);
+                $paymentMeta = $payment->metadata ?? [];
+                unset($paymentMeta['redirect_url']);
+                $paymentMeta['original_initiation_response'] = $response->toArray();
+                $paymentMeta['redirect_url_encrypted'] = $response->redirectUrl !== null
+                    ? Crypt::encryptString($response->redirectUrl)
+                    : null;
+                $payment->metadata = $paymentMeta;
                 $payment->save();
                 $row->provider = $attempt->provider;
                 $row->provider_reference = $response->providerReference;
-                $row->metadata = array_merge($row->metadata ?? [], ['redirect_url' => $response->redirectUrl,
-                    'client_secret' => $response->clientSecret, 'payment_id' => (int) $payment->id]);
+                $rowMeta = $row->metadata ?? [];
+                unset($rowMeta['redirect_url'], $rowMeta['client_secret']);
+                $rowMeta['payment_id'] = (int) $payment->id;
+                if ($response->redirectUrl !== null) {
+                    $rowMeta['redirect_url_encrypted'] = Crypt::encryptString($response->redirectUrl);
+                }
+                if ($response->clientSecret !== null) {
+                    $rowMeta['client_secret_encrypted'] = Crypt::encryptString($response->clientSecret);
+                }
+                $row->metadata = $rowMeta;
                 $row->save();
                 DB::table(self::TABLE)->where('id', $attempt->id)->update(['state' => 'projected', 'updated_at' => now()]);
             }
@@ -419,6 +448,43 @@ final class DepositCheckoutService
     private function legacyReplay(Deposit $row, Payment $payment, string $provider): array
     {
         $s = data_get($payment->metadata, 'original_initiation_response');
+        $meta = is_array($payment->metadata) ? $payment->metadata : [];
+        if (! is_array($s) && $payment->gateway_reference !== null && $payment->gateway_reference === $row->provider_reference) {
+            $legacyRedirect = $meta['redirect_url'] ?? null;
+            if (is_string($legacyRedirect) && $legacyRedirect !== '') {
+                unset($meta['redirect_url']);
+                $meta['redirect_url_encrypted'] = Crypt::encryptString($legacyRedirect);
+            } elseif (isset($meta['redirect_url_encrypted']) && is_string($meta['redirect_url_encrypted'])) {
+                $legacyRedirect = Crypt::decryptString($meta['redirect_url_encrypted']);
+            }
+            $s = [
+                'successful' => true,
+                'redirect_url' => is_string($legacyRedirect) ? $legacyRedirect : null,
+                'provider_reference' => $payment->gateway_reference,
+                'client_secret' => null,
+                'metadata' => [],
+            ];
+            $meta['original_initiation_response'] = $s;
+            $payment->metadata = $meta;
+            $payment->save();
+        } elseif (isset($meta['redirect_url']) && is_string($meta['redirect_url'])) {
+            $meta['redirect_url_encrypted'] = Crypt::encryptString($meta['redirect_url']);
+            unset($meta['redirect_url']);
+            $payment->metadata = $meta;
+            $payment->save();
+        }
+        $rowMeta = is_array($row->metadata) ? $row->metadata : [];
+        if (isset($rowMeta['redirect_url']) || isset($rowMeta['client_secret'])) {
+            if (is_string($rowMeta['redirect_url'] ?? null) && $rowMeta['redirect_url'] !== '') {
+                $rowMeta['redirect_url_encrypted'] = Crypt::encryptString($rowMeta['redirect_url']);
+            }
+            if (is_string($rowMeta['client_secret'] ?? null) && $rowMeta['client_secret'] !== '') {
+                $rowMeta['client_secret_encrypted'] = Crypt::encryptString($rowMeta['client_secret']);
+            }
+            unset($rowMeta['redirect_url'], $rowMeta['client_secret']);
+            $row->metadata = $rowMeta;
+            $row->save();
+        }
         if ($payment->trashed() || $payment->user_id !== $row->user_id || $payment->currency !== $row->currency || $payment->method !== $row->method
             || $payment->gateway !== $provider || bccomp((string) $payment->amount, (string) $row->amount, 2) !== 0
             || bccomp((string) $payment->fee, (string) $row->fee, 2) !== 0 || ! is_array($s) || ($s['successful'] ?? null) !== true

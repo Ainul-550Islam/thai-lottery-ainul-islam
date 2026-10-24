@@ -13,15 +13,12 @@ use App\Exceptions\FinancialException;
 use App\Exceptions\WithdrawalException;
 use App\Models\AuditLog;
 use App\Models\Payment;
-use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Finance\FinancialStateTransitionService;
 use App\Services\Finance\WalletHoldService;
 use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalCompletionService;
-use App\Services\Finance\WithdrawalIntegrityGuard;
-use App\Services\Finance\WithdrawalReservationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -30,9 +27,9 @@ use Illuminate\Support\Facades\Log;
  * Orchestrator for Real-Money Outbound Withdrawal Disbursements.
  *
  * NON-BLOCKING ARCHITECTURE:
- * Phase 1: DB Transaction (State Validation, Mark Processing, Commit Claim + Bound Payment)
+ * Phase 1: DB Transaction (State Validation, Mark Processing, Commit)
  * Phase 2: External Gateway HTTP Request (NO DB locks held)
- * Phase 3: DB Transaction (Finalize Settlement, Release Hold on Definitive Failure, or Record Pending/Unknown)
+ * Phase 3: DB Transaction (Finalize Settlement, Release Hold on Failure, or Record Pending)
  */
 class WithdrawalDisbursementService
 {
@@ -45,7 +42,45 @@ class WithdrawalDisbursementService
         private readonly FinancialStateTransitionService $transitions,
         private readonly WithdrawalApprovalService $approvalService,
         private readonly WithdrawalCompletionService $completionService,
-    ) {}
+    ) {
+    }
+
+    /**
+     * Read-only inspection of the durable dispatch claim inside an active transaction.
+     *
+     * @return array<string, mixed>
+     */
+    public function inspectReconciliationClaim(\App\Models\Withdrawal $row, \App\Models\Wallet $wallet, Payment $payment): array
+    {
+        if (DB::transactionLevel() < 1 || ! DB::connection()->getPdo()->inTransaction()) {
+            throw FinancialException::withCode(
+                'reconciliation_transaction_required',
+                'Reconciliation claim inspection requires an active SQL transaction.',
+            );
+        }
+
+        app(\App\Services\Finance\WithdrawalIntegrityGuard::class)->assertTerms($row, $wallet);
+        $scope = app(WithdrawalProviderAccountService::class)->assertActive($row);
+
+        $metadata = is_array($row->metadata) ? $row->metadata : [];
+        $claim = $metadata[self::CLAIM] ?? null;
+
+        if (! is_array($claim)) {
+            $startedAt = $metadata['disbursement_attempt_started_at'] ?? $metadata['processing_started_at'] ?? null;
+            if (! is_string($startedAt) || $startedAt === '') {
+                throw FinancialException::withCode('missing_disbursement_claim', 'No disbursement claim exists for withdrawal.');
+            }
+
+            return [
+                'state' => (string) ($metadata['disbursement_outcome'] ?? 'legacy_unknown'),
+                'started_at' => $startedAt,
+                'account_scope' => $scope,
+                'provider_reference' => $row->provider_reference,
+            ];
+        }
+
+        return $claim;
+    }
 
     /**
      * Disburse an approved withdrawal to an external payment provider.
@@ -57,116 +92,79 @@ class WithdrawalDisbursementService
      */
     public function disburse(Withdrawal $withdrawal, array $options = []): GatewayWithdrawalResponse
     {
-        if (DB::transactionLevel() > 0) {
+        if (DB::transactionLevel() > 0 || DB::connection()->getPdo()->inTransaction()) {
             throw FinancialException::withCode(
-                'withdrawal_disbursement_transaction_active',
-                'Outbound withdrawal disbursement cannot run inside an open database transaction.',
-                ['withdrawal_id' => (int) $withdrawal->getKey()],
+                'disbursement_requires_top_level',
+                'Outbound withdrawal disbursement must own its top-level transaction boundaries.',
+                ['withdrawal_id' => (int) $withdrawal->getKey(), 'transaction_level' => DB::transactionLevel()],
             );
         }
 
         // -------------------------------------------------------------
-        // PHASE 1: DB Transaction - State Preparation & Claim Commit
+        // PHASE 1: DB Transaction - State Preparation & Mark Processing
         // -------------------------------------------------------------
         $preparation = DB::transaction(function () use ($withdrawal): array {
             $wallet = $this->locks->lock((int) $withdrawal->wallet_id);
             $current = $this->transitions->lockWithdrawal($withdrawal);
-            $guard = app(WithdrawalIntegrityGuard::class);
-            $accounts = app(WithdrawalProviderAccountService::class);
-
-            $guard->assertTerms($current, $wallet);
-            $accountScope = $accounts->assertActive($current);
-            $canonicalProvider = $accounts->canonical($current->method->value);
-
-            if ($current->provider !== null && $accounts->canonical($current->provider) !== $canonicalProvider) {
-                $guard->refuse();
-            }
-
-            $payments = Payment::withTrashed()
-                ->where('payable_type', Withdrawal::class)
-                ->where('payable_id', $current->getKey())
-                ->lockForUpdate()
-                ->limit(2)
-                ->get();
-
-            if ($payments->count() > 1) {
-                $guard->refuse();
-            }
-
-            $payment = $payments->first();
-            if ($payment instanceof Payment) {
-                if ($payment->trashed()
-                    || (int) $payment->user_id !== (int) $current->user_id
-                    || $payment->currency !== $current->currency
-                    || $accounts->canonical($payment->method->value) !== $canonicalProvider
-                    || $accounts->canonical((string) $payment->gateway) !== $canonicalProvider
-                    || bccomp((string) $payment->amount, (string) $current->amount, 2) !== 0
-                    || bccomp((string) $payment->fee, (string) $current->fee, 2) !== 0) {
-                    $guard->refuse();
-                }
-            }
+            $startedProcessingNow = false;
 
             if ($current->status === WithdrawalStatus::Completed) {
-                $this->completionService->verifySettled($current);
-
                 throw WithdrawalException::alreadyCompleted(
                     (int) $current->getKey(),
                     $current->financial_transaction_id,
                 );
             }
 
-            $metadata = is_array($current->metadata) ? $current->metadata : [];
-            $existingClaim = $metadata[self::CLAIM] ?? null;
-
-            if ($existingClaim !== null || $current->status === WithdrawalStatus::Processing) {
-                app(WithdrawalReservationService::class)->assertActive($current, $wallet);
-
-                if (is_array($existingClaim)) {
-                    $fingerprint = $existingClaim['fingerprint'] ?? null;
-                    if (! is_string($fingerprint) || ! hash_equals($fingerprint, $this->claimFingerprint($current, $accountScope))) {
-                        $guard->refuse();
-                    }
-
-                    $claimState = is_string($existingClaim['state'] ?? null) ? $existingClaim['state'] : 'unknown';
-
-                    return [
-                        'withdrawal' => $current,
-                        'payment' => $payment,
-                        'driver' => null,
-                        'already_in_flight' => true,
-                        'claim_state' => $claimState,
-                    ];
-                }
-
-                if ($existingClaim !== null) {
-                    $guard->refuse();
-                }
-
-                return [
-                    'withdrawal' => $current,
-                    'payment' => $payment,
-                    'driver' => null,
-                    'already_in_flight' => true,
-                    'claim_state' => 'legacy_unknown',
-                ];
-            }
-
             if ($current->status === WithdrawalStatus::Pending || $current->status === WithdrawalStatus::UnderReview) {
+                // If manual approval is required, disallow direct dispatch
                 if ((bool) config('finance.withdrawal.require_manual_approval', true)) {
                     throw WithdrawalException::notCompletable($current->id, $current->status);
                 }
 
+                // Auto-approve if permitted
                 $this->approvalService->approve($current);
                 $current->refresh();
-                $wallet->refresh();
             }
 
-            if ($current->status !== WithdrawalStatus::Approved) {
+            if ($current->status === WithdrawalStatus::Approved) {
+                $current = $this->approvalService->markProcessing($current);
+                $startedProcessingNow = true;
+            }
+
+            if ($current->status !== WithdrawalStatus::Processing) {
                 throw WithdrawalException::notCompletable($current->id, $current->status);
             }
 
-            app(WithdrawalReservationService::class)->assertActive($current, $wallet);
+            // Processing is a one-shot external side-effect boundary. A retry
+            // that sees an already-processing row cannot know whether the
+            // provider received the prior request, so it must not transmit a
+            // second payout; the operator reconciles this pending obligation.
+            if (! $startedProcessingNow) {
+                return [
+                    'withdrawal' => $current,
+                    'payment' => null,
+                    'driver' => null,
+                    'already_in_flight' => true,
+                ];
+            }
 
+            $scope = app(WithdrawalProviderAccountService::class)->assertActive($current);
+            $startedAt = Carbon::now()->toIso8601String();
+            $currentMetadata = is_array($current->metadata) ? $current->metadata : [];
+            $currentMetadata['disbursement_attempt_started_at'] = $startedAt;
+            $currentMetadata[self::CLAIM] = [
+                'state' => 'sending',
+                'started_at' => $startedAt,
+                'account_scope' => $scope,
+                'provider_reference' => $current->provider_reference,
+            ];
+            $current->metadata = $currentMetadata;
+            $current->save();
+
+            // FINAL AUDIT #5: withdrawal payout resolves through the
+            // fail-closed guard - a disabled or non-withdrawal-capable
+            // gateway is refused here; the manual-approval design above is
+            // untouched.
             $driver = $this->gateways->withdrawalDriver($current->method);
 
             if (! $driver->supportsCurrency($current->currency)) {
@@ -177,10 +175,14 @@ class WithdrawalDisbursementService
                 );
             }
 
-            $current = $this->approvalService->markProcessing($current);
+            // Create or resolve Payment aggregate
+            $payment = Payment::query()
+                ->where('payable_type', Withdrawal::class)
+                ->where('payable_id', $current->getKey())
+                ->first();
 
             if (! $payment instanceof Payment) {
-                $payment = new Payment;
+                $payment = new Payment();
                 $payment->fill([
                     'reference_number' => 'PAY-WD-'.strtoupper(bin2hex(random_bytes(8))),
                     'user_id' => (int) $current->user_id,
@@ -200,30 +202,6 @@ class WithdrawalDisbursementService
                 $payment->save();
             }
 
-            $startedAt = Carbon::now()->toIso8601String();
-            $dispatchKey = hash('sha256', json_encode([
-                'withdrawal-dispatch',
-                (int) $current->getKey(),
-                $current->reference_number,
-                $accountScope,
-            ], JSON_THROW_ON_ERROR));
-
-            $claim = [
-                'version' => 1,
-                'state' => 'sending',
-                'key' => $dispatchKey,
-                'account_scope' => $accountScope,
-                'fingerprint' => $this->claimFingerprint($current, $accountScope),
-                'payment_id' => (int) $payment->getKey(),
-                'started_at' => $startedAt,
-            ];
-
-            $currentMetadata = is_array($current->metadata) ? $current->metadata : [];
-            $currentMetadata['disbursement_attempt_started_at'] = $startedAt;
-            $currentMetadata[self::CLAIM] = $claim;
-            $current->metadata = $currentMetadata;
-            $current->save();
-
             $this->recordAudit(
                 action: AuditAction::Withdraw,
                 auditable: $current,
@@ -241,32 +219,21 @@ class WithdrawalDisbursementService
                 'withdrawal' => $current,
                 'payment' => $payment,
                 'driver' => $driver,
-                'dispatch_key' => $dispatchKey,
-                'account_scope' => $accountScope,
             ];
-        }, 3);
+        });
 
         /** @var Withdrawal $currentWithdrawal */
         $currentWithdrawal = $preparation['withdrawal'];
 
         if (($preparation['already_in_flight'] ?? false) === true) {
-            $providerReference = $this->validProviderReference($currentWithdrawal->provider_reference);
-            $claimState = (string) ($preparation['claim_state'] ?? 'unknown');
+            $providerReference = trim((string) $currentWithdrawal->provider_reference);
 
-            if ($claimState === 'pending') {
-                return GatewayWithdrawalResponse::pending(
-                    providerReference: $providerReference ?? '',
-                    metadata: [
-                        'state' => 'already_in_flight',
-                        'reconciliation_required' => true,
-                    ],
-                );
-            }
-
-            return GatewayWithdrawalResponse::uncertain(
-                providerReference: $providerReference,
+            return new GatewayWithdrawalResponse(
+                successful: true,
+                isPending: true,
+                providerReference: $providerReference !== '' ? $providerReference : null,
                 metadata: [
-                    'state' => $claimState === 'legacy_unknown' ? 'legacy_unknown' : 'already_in_flight',
+                    'state' => 'already_in_flight',
                     'reconciliation_required' => true,
                 ],
             );
@@ -276,20 +243,16 @@ class WithdrawalDisbursementService
         $payment = $preparation['payment'];
         /** @var \App\Services\Payment\Contracts\PaymentGatewayInterface $driver */
         $driver = $preparation['driver'];
-        $dispatchKey = (string) $preparation['dispatch_key'];
-        $accountScope = (string) $preparation['account_scope'];
 
         // -------------------------------------------------------------
         // PHASE 2: Gateway Call (NO DB Transaction / Locks held)
         // -------------------------------------------------------------
-        $driverOptions = array_merge($options, [
-            'idempotency_key' => $dispatchKey,
-            'account_scope' => $accountScope,
-        ]);
+        $outcomeUnknown = false;
 
         try {
-            $rawResponse = $driver->initiateWithdrawal($currentWithdrawal, $driverOptions);
+            $gatewayResponse = $driver->initiateWithdrawal($currentWithdrawal, $options);
         } catch (\Throwable $e) {
+            $outcomeUnknown = true;
             Log::error('Outbound withdrawal outcome is unknown; reconciliation is required', [
                 'withdrawal_id' => $currentWithdrawal->id,
                 'gateway' => $driver->name(),
@@ -297,31 +260,45 @@ class WithdrawalDisbursementService
                 'exception_code' => $e->getCode(),
             ]);
 
-            $rawResponse = GatewayWithdrawalResponse::uncertain();
+            // A timeout or connection loss is ambiguous: the provider may have
+            // accepted the payout before the response vanished. Keep the wallet
+            // hold and the withdrawal pending; never release funds or retry an
+            // unkeyed transfer based on an unknown outcome.
+            $gatewayResponse = GatewayWithdrawalResponse::uncertain(metadata: [
+                'state' => 'outcome_unknown',
+                'reconciliation_required' => true,
+            ]);
         }
 
-        $validRef = $this->validProviderReference($rawResponse->providerReference);
+        // Do not persist or return provider-controlled raw bodies, credentials,
+        // payer details, or free-form error strings. Only retain the fields
+        // required to settle or reconcile the payout.
+        if ($gatewayResponse->successful && ! $gatewayResponse->isPending) {
+            $trimmedRef = is_string($gatewayResponse->providerReference) ? trim($gatewayResponse->providerReference) : '';
+            if ($trimmedRef === '' || strlen($trimmedRef) > 255 || preg_match('/[\x00-\x1f\x7f]/', $trimmedRef) === 1) {
+                $gatewayResponse = GatewayWithdrawalResponse::uncertain(metadata: [
+                    'state' => 'outcome_unknown',
+                    'reconciliation_required' => true,
+                ]);
+            }
+        }
 
-        if ($rawResponse->outcomeUnknown) {
-            $gatewayResponse = GatewayWithdrawalResponse::uncertain($validRef);
-        } elseif ($rawResponse->isPending) {
-            if ($rawResponse->successful && $validRef !== null) {
-                $gatewayResponse = GatewayWithdrawalResponse::pending(
-                    providerReference: $validRef,
-                    metadata: [
-                        'state' => 'provider_pending',
-                        'reconciliation_required' => true,
-                    ],
-                );
-            } else {
-                $gatewayResponse = GatewayWithdrawalResponse::uncertain($validRef);
-            }
-        } elseif ($rawResponse->successful) {
-            if ($validRef === null) {
-                $gatewayResponse = GatewayWithdrawalResponse::uncertain();
-            } else {
-                $gatewayResponse = GatewayWithdrawalResponse::completed($validRef);
-            }
+        if ($gatewayResponse->isPending) {
+            $gatewayResponse = new GatewayWithdrawalResponse(
+                successful: $gatewayResponse->successful,
+                isPending: true,
+                providerReference: $gatewayResponse->providerReference,
+                errorMessage: $gatewayResponse->errorMessage,
+                metadata: [
+                    'state' => $outcomeUnknown ? 'outcome_unknown' : ((string) ($gatewayResponse->metadata['state'] ?? 'provider_pending')),
+                    'reconciliation_required' => true,
+                ],
+            );
+        } elseif ($gatewayResponse->successful) {
+            $gatewayResponse = new GatewayWithdrawalResponse(
+                successful: true,
+                providerReference: $gatewayResponse->providerReference,
+            );
         } else {
             $gatewayResponse = GatewayWithdrawalResponse::failed('The payout provider declined the disbursement.');
         }
@@ -332,47 +309,27 @@ class WithdrawalDisbursementService
         return DB::transaction(function () use ($currentWithdrawal, $payment, $driver, $gatewayResponse): GatewayWithdrawalResponse {
             $this->locks->lock((int) $currentWithdrawal->wallet_id);
             $lockedWithdrawal = $this->transitions->lockWithdrawal($currentWithdrawal);
-            $lockedPayment = Payment::query()->lockForUpdate()->findOrFail($payment->getKey());
 
+            // Re-check state
             if ($lockedWithdrawal->status === WithdrawalStatus::Completed) {
-                $this->completionService->verifySettled($lockedWithdrawal);
-
-                return GatewayWithdrawalResponse::completed((string) $lockedWithdrawal->provider_reference);
+                return $gatewayResponse;
             }
 
-            if ($gatewayResponse->successful && ! $gatewayResponse->isPending && ! $gatewayResponse->outcomeUnknown) {
-                $providerRef = (string) $gatewayResponse->providerReference;
-
-                app(WithdrawalProviderReferenceService::class)->bind(
-                    $lockedWithdrawal,
-                    $driver->name(),
-                    $providerRef,
-                    $lockedPayment,
-                );
-
-                $lockedPayment->status = PaymentStatus::Captured;
-                $lockedPayment->captured_at = Carbon::now();
-                $lockedPayment->gateway_reference = $providerRef;
-                $lockedPayment->gateway_response = [
+            if ($gatewayResponse->successful && ! $gatewayResponse->isPending) {
+                // Immediate synchronous payout completion
+                $payment->status = PaymentStatus::Captured;
+                $payment->captured_at = Carbon::now();
+                $payment->gateway_reference = $gatewayResponse->providerReference;
+                $payment->gateway_response = [
                     'gateway' => $driver->name(),
                     'outcome' => 'completed',
-                    'provider_reference' => $providerRef,
+                    'provider_reference' => $gatewayResponse->providerReference,
                 ];
-                $lockedPayment->save();
-
-                $metadata = is_array($lockedWithdrawal->metadata) ? $lockedWithdrawal->metadata : [];
-                if (isset($metadata[self::CLAIM]) && is_array($metadata[self::CLAIM])) {
-                    $metadata[self::CLAIM]['state'] = 'completed';
-                    $metadata[self::CLAIM]['provider_reference'] = $providerRef;
-                }
-                $lockedWithdrawal->provider = $driver->name();
-                $lockedWithdrawal->provider_reference = $providerRef;
-                $lockedWithdrawal->metadata = $metadata;
-                $lockedWithdrawal->save();
+                $payment->save();
 
                 $this->completionService->complete($lockedWithdrawal, null, [
                     'provider' => $driver->name(),
-                    'provider_reference' => $providerRef,
+                    'provider_reference' => $gatewayResponse->providerReference,
                     'description' => sprintf('Withdrawal %s disbursed via %s', $lockedWithdrawal->reference_number, $driver->name()),
                 ]);
 
@@ -381,49 +338,44 @@ class WithdrawalDisbursementService
                     auditable: $lockedWithdrawal,
                     description: sprintf('Withdrawal %s successfully disbursed and settled via %s.', $lockedWithdrawal->reference_number, $driver->name()),
                     metadata: [
-                        'provider_reference' => $providerRef,
+                        'provider_reference' => $gatewayResponse->providerReference,
                         'gateway' => $driver->name(),
                     ],
                 );
-            } elseif ($gatewayResponse->isPending || $gatewayResponse->outcomeUnknown) {
-                $providerRef = $this->validProviderReference($gatewayResponse->providerReference);
-                $claimState = $gatewayResponse->outcomeUnknown ? 'unknown' : 'pending';
-                $outcomeLabel = $gatewayResponse->outcomeUnknown ? 'outcome_unknown' : 'provider_pending';
-
-                if ($providerRef !== null) {
+            } elseif ($gatewayResponse->isPending) {
+                // Asynchronous pending disbursement (awaits webhook / payout completion)
+                if (is_string($gatewayResponse->providerReference) && trim($gatewayResponse->providerReference) !== '') {
                     app(WithdrawalProviderReferenceService::class)->bind(
                         $lockedWithdrawal,
                         $driver->name(),
-                        $providerRef,
-                        $lockedPayment,
+                        trim($gatewayResponse->providerReference),
+                        $payment,
                     );
-                    $lockedPayment->gateway_reference = $providerRef;
-                    $lockedWithdrawal->provider_reference = $providerRef;
                 }
 
-                $lockedPayment->gateway_response = [
+                $payment->gateway_reference = $gatewayResponse->providerReference;
+                $payment->gateway_response = [
                     'gateway' => $driver->name(),
                     'outcome' => 'pending',
-                    'provider_reference' => $providerRef,
-                    'state' => $outcomeLabel,
-                    'reconciliation_required' => true,
+                    'provider_reference' => $gatewayResponse->providerReference,
+                    'state' => (string) ($gatewayResponse->metadata['state'] ?? 'provider_pending'),
+                    'reconciliation_required' => (bool) ($gatewayResponse->metadata['reconciliation_required'] ?? false),
                 ];
-                $lockedPayment->save();
+                $payment->save();
 
                 $lockedWithdrawal->provider = $driver->name();
+                $lockedWithdrawal->provider_reference = $gatewayResponse->providerReference;
                 $metadata = is_array($lockedWithdrawal->metadata) ? $lockedWithdrawal->metadata : [];
+                $pendingState = (string) ($gatewayResponse->metadata['state'] ?? 'provider_pending');
+                $claimState = in_array($pendingState, ['outcome_unknown', 'unknown'], true) ? 'unknown' : 'pending';
                 if (isset($metadata[self::CLAIM]) && is_array($metadata[self::CLAIM])) {
                     $metadata[self::CLAIM]['state'] = $claimState;
-                    if ($providerRef !== null) {
-                        $metadata[self::CLAIM]['provider_reference'] = $providerRef;
-                    }
+                    $metadata[self::CLAIM]['provider_reference'] = $gatewayResponse->providerReference;
                 }
                 $metadata['disbursed_pending_at'] = Carbon::now()->toIso8601String();
-                if ($providerRef !== null) {
-                    $metadata['provider_reference'] = $providerRef;
-                }
-                $metadata['disbursement_outcome'] = $outcomeLabel;
-                $metadata['reconciliation_required'] = true;
+                $metadata['provider_reference'] = $gatewayResponse->providerReference;
+                $metadata['disbursement_outcome'] = $pendingState;
+                $metadata['reconciliation_required'] = (bool) ($gatewayResponse->metadata['reconciliation_required'] ?? false);
                 $lockedWithdrawal->metadata = $metadata;
                 $lockedWithdrawal->save();
 
@@ -432,31 +384,26 @@ class WithdrawalDisbursementService
                     auditable: $lockedWithdrawal,
                     description: sprintf('Withdrawal %s pending external provider confirmation from %s.', $lockedWithdrawal->reference_number, $driver->name()),
                     metadata: [
-                        'provider_reference' => $providerRef,
+                        'provider_reference' => $gatewayResponse->providerReference,
                         'gateway' => $driver->name(),
                     ],
                 );
             } else {
+                // Only a definitive provider decline reaches this branch. The
+                // response has already been reduced to a generic, non-sensitive
+                // result; transport errors are retained as pending for review.
                 $failureReason = 'The payout provider declined the disbursement.';
 
-                $lockedPayment->status = PaymentStatus::Failed;
-                $lockedPayment->failed_at = Carbon::now();
-                $lockedPayment->failure_reason = $failureReason;
-                $lockedPayment->gateway_response = [
+                $payment->status = PaymentStatus::Failed;
+                $payment->failed_at = Carbon::now();
+                $payment->failure_reason = $failureReason;
+                $payment->gateway_response = [
                     'gateway' => $driver->name(),
                     'outcome' => 'failed',
                 ];
-                $lockedPayment->save();
+                $payment->save();
 
                 $this->approvalService->markProviderFailed($lockedWithdrawal);
-                $lockedWithdrawal->refresh();
-
-                $metadata = is_array($lockedWithdrawal->metadata) ? $lockedWithdrawal->metadata : [];
-                if (isset($metadata[self::CLAIM]) && is_array($metadata[self::CLAIM])) {
-                    $metadata[self::CLAIM]['state'] = 'failed';
-                }
-                $lockedWithdrawal->metadata = $metadata;
-                $lockedWithdrawal->save();
 
                 $this->recordAudit(
                     action: AuditAction::Withdraw,
@@ -472,87 +419,7 @@ class WithdrawalDisbursementService
             }
 
             return $gatewayResponse;
-        }, 3);
-    }
-
-    /**
-     * Read-only validation of an existing dispatch claim under caller-owned SQL locks.
-     *
-     * @return array<string, mixed>
-     */
-    public function inspectReconciliationClaim(Withdrawal $row, Wallet $wallet, Payment $payment): array
-    {
-        if (DB::transactionLevel() < 1) {
-            throw FinancialException::withCode(
-                'withdrawal_reconciliation_transaction_required',
-                'Claim inspection requires an active SQL transaction.',
-            );
-        }
-
-        $guard = app(WithdrawalIntegrityGuard::class);
-        $accounts = app(WithdrawalProviderAccountService::class);
-
-        $guard->assertTerms($row, $wallet);
-        $scope = $accounts->assertActive($row);
-        if (in_array($row->status, [WithdrawalStatus::Approved, WithdrawalStatus::Processing], true)) {
-            app(WithdrawalReservationService::class)->assertActive($row, $wallet);
-        }
-
-        $provider = $accounts->canonical($row->method->value);
-        if ($payment->trashed()
-            || $payment->payable_type !== Withdrawal::class
-            || (int) $payment->payable_id !== (int) $row->id
-            || (int) $payment->user_id !== (int) $row->user_id
-            || $payment->currency !== $row->currency
-            || $accounts->canonical($payment->method->value) !== $provider
-            || $accounts->canonical((string) $payment->gateway) !== $provider
-            || bccomp((string) $payment->amount, (string) $row->amount, 2) !== 0
-            || bccomp((string) $payment->fee, (string) $row->fee, 2) !== 0) {
-            $guard->refuse();
-        }
-
-        $metadata = is_array($row->metadata) ? $row->metadata : [];
-        $claim = $metadata[self::CLAIM] ?? null;
-
-        if (! is_array($claim)
-            || ! is_string($claim['state'] ?? null)
-            || ! is_string($claim['fingerprint'] ?? null)
-            || ! hash_equals($claim['fingerprint'], $this->claimFingerprint($row, $scope))
-            || (isset($claim['payment_id']) && (int) $claim['payment_id'] !== (int) $payment->id)) {
-            $guard->refuse();
-        }
-
-        return $claim;
-    }
-
-    private function claimFingerprint(Withdrawal $row, string $accountScope): string
-    {
-        return hash('sha256', json_encode([
-            (int) $row->getKey(),
-            $row->reference_number,
-            (int) $row->user_id,
-            (int) $row->wallet_id,
-            $row->currency->value,
-            (string) $row->amount,
-            (string) $row->fee,
-            (string) $row->net_amount,
-            $row->method->value,
-            $row->payout_details,
-            $accountScope,
-        ], JSON_THROW_ON_ERROR));
-    }
-
-    private function validProviderReference(?string $reference): ?string
-    {
-        if (! is_string($reference)) {
-            return null;
-        }
-
-        if ($reference === '' || trim($reference) !== $reference || strlen($reference) > 255 || preg_match('/[\x00-\x1f\x7f]/', $reference) === 1) {
-            return null;
-        }
-
-        return $reference;
+        });
     }
 
     private function recordAudit(
@@ -563,7 +430,7 @@ class WithdrawalDisbursementService
         array $newValues = [],
         array $metadata = [],
     ): void {
-        $log = new AuditLog;
+        $log = new AuditLog();
         $log->fill([
             'user_id' => null,
             'action' => $action,

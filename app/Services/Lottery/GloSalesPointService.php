@@ -230,14 +230,10 @@ class GloSalesPointService
             $radius = $requested;
         }
 
-        $now = now();
         $base = GloSalesPoint::query()
             ->where('status', 'active')
-            ->where(function ($q) use ($now): void {
-                $q->whereNull('valid_from')->orWhere('valid_from', '<=', $now);
-            })
-            ->where(function ($q) use ($now): void {
-                $q->whereNull('valid_to')->orWhere('valid_to', '>=', $now);
+            ->where(function ($q): void {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', now());
             });
 
         if (! empty($query['province'])) {

@@ -36,9 +36,7 @@ final class SecurityHeaders
         ]);
 
         foreach ($headers as $header => $value) {
-            if (! $response->headers->has($header)) {
-                $response->headers->set($header, (string) $value);
-            }
+            $response->headers->set($header, (string) $value);
         }
 
         if ($request->isSecure() && ! empty($config['hsts_max_age'])) {
@@ -51,7 +49,10 @@ final class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', $hsts);
         }
 
-        if ($cspEnabled) {
+        // Preserve strict attachment sandbox CSP (`sandbox; default-src 'none'...`)
+        // already applied by private download controllers instead of downgrading it.
+        $existingCsp = trim((string) $response->headers->get('Content-Security-Policy', ''));
+        if ($cspEnabled && $existingCsp === '') {
             $nonce = Vite::cspNonce();
             $policy = $this->buildContentSecurityPolicy($cspConfig, is_string($nonce) ? $nonce : null);
 
@@ -60,9 +61,7 @@ final class SecurityHeaders
                     ? 'Content-Security-Policy-Report-Only'
                     : 'Content-Security-Policy';
 
-                if (! $response->headers->has($header)) {
-                    $response->headers->set($header, $policy);
-                }
+                $response->headers->set($header, $policy);
             }
         }
 

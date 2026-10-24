@@ -13,8 +13,6 @@ use App\Models\Deposit;
 use App\Models\ResponsibleGamingLimit;
 use App\Models\User;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
-use App\Services\ResponsibleGaming\ResponsibleGamingPlayerLock;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -27,8 +25,7 @@ final class ResponsibleGamingService
     ) {}
 
     /**
-     * Set or update player deposit / wagering / single-bet limits atomically
-     * in the configured betting currency.
+     * Set or update player deposit / wagering / single-bet limits.
      */
     public function setLimits(
         User $user,
@@ -36,56 +33,68 @@ final class ResponsibleGamingService
         ?string $singleBetLimit = null,
         ?string $dailyWageringLimit = null,
     ): ResponsibleGamingLimit {
-        $currency = strtoupper((string) config('lottery.betting.currency', config('betting.currency', 'THB')));
+        $record = ResponsibleGamingLimit::firstOrNew(['user_id' => $user->id]);
 
-        return DB::transaction(function () use ($user, $dailyDepositLimit, $singleBetLimit, $dailyWageringLimit, $currency): ResponsibleGamingLimit {
-            app(ResponsibleGamingPlayerLock::class)->lock((int) $user->id);
+        if ($dailyDepositLimit !== null) {
+            $record->daily_deposit_limit = $dailyDepositLimit;
+        }
 
-            $record = ResponsibleGamingLimit::query()
-                ->where('user_id', $user->id)
-                ->lockForUpdate()
-                ->first() ?? new ResponsibleGamingLimit(['user_id' => $user->id]);
+        if ($singleBetLimit !== null) {
+            $record->single_bet_limit = $singleBetLimit;
+        }
 
-            $choices = [
-                [ResponsibleGamingLimitType::DailyDeposit, 'daily_deposit_limit', $dailyDepositLimit],
-                [ResponsibleGamingLimitType::SingleBet, 'single_bet_limit', $singleBetLimit],
-                [ResponsibleGamingLimitType::DailyWagering, 'daily_wagering_limit', $dailyWageringLimit],
-            ];
+        if ($dailyWageringLimit !== null) {
+            $record->daily_wagering_limit = $dailyWageringLimit;
+        }
 
-            foreach ($choices as [$type, $column, $amount]) {
-                if ($amount === null || $amount === '') {
-                    continue;
-                }
+        $record->save();
 
-                $this->limitVersions->choose(ResponsibleGamingLimitData::fromInput([
-                    'user_id' => (int) $user->id,
-                    'limit_type' => $type->value,
-                    'amount' => $amount,
-                    'currency' => $currency,
-                ]));
+        // SYNC TO THE VERSIONED LIMIT STORE. Enforcement (purchase, deposit)
+        // reads only the versioned store through bindingLimitFor(), so a limit
+        // written to the summary row here must also be pronounced there or it
+        // would never bind. Pronouncement is deterministic by limit key; when
+        // the versioned service refuses - e.g. a raise is still inside its
+        // cooling-off window - this summary still records the player's request
+        // but the binding ceiling stays at the versioned service's word. The
+        // sync is best-effort by design and can only ever leave enforcement
+        // stricter, never looser.
+        $pronouncements = [
+            ResponsibleGamingLimitType::DailyDeposit->value => $dailyDepositLimit,
+            ResponsibleGamingLimitType::SingleBet->value => $singleBetLimit,
+            ResponsibleGamingLimitType::DailyWagering->value => $dailyWageringLimit,
+        ];
 
-                $binding = $this->limitVersions->bindingLimitFor((int) $user->id, $type, $currency, true);
-                $record->{$column} = $binding !== null ? (string) $binding->amount : $amount;
+        foreach ($pronouncements as $type => $amount) {
+            if ($amount === null || $amount === '') {
+                continue;
             }
 
-            $record->save();
+            try {
+                $this->limitVersions->pronounce(ResponsibleGamingLimitData::fromInput([
+                    'user_id' => (int) $user->id,
+                    'limit_type' => $type,
+                    'amount' => $amount,
+                    'currency' => 'THB',
+                ]));
+            } catch (\Throwable) {
+                // Fail-closed: the versioned ceiling keeps the stricter word.
+            }
+        }
 
-            AuditLog::create([
-                'user_id' => $user->id,
-                'action' => AuditAction::Update,
-                'auditable_type' => ResponsibleGamingLimit::class,
-                'auditable_id' => $record->id,
-                'metadata' => [
-                    'action_type' => 'responsible_gaming_limits_updated',
-                    'currency' => $currency,
-                    'daily_deposit_limit' => $record->daily_deposit_limit,
-                    'single_bet_limit' => $record->single_bet_limit,
-                    'daily_wagering_limit' => $record->daily_wagering_limit,
-                ],
-            ]);
+        AuditLog::create([
+            'user_id' => $user->id,
+            'action' => AuditAction::Update,
+            'auditable_type' => ResponsibleGamingLimit::class,
+            'auditable_id' => $record->id,
+            'metadata' => [
+                'action_type' => 'responsible_gaming_limits_updated',
+                'daily_deposit_limit' => $dailyDepositLimit,
+                'single_bet_limit' => $singleBetLimit,
+                'daily_wagering_limit' => $dailyWageringLimit,
+            ],
+        ]);
 
-            return $record;
-        });
+        return $record;
     }
 
     /**
@@ -133,6 +142,7 @@ final class ResponsibleGamingService
 
         $limit = $limits->daily_deposit_limit;
 
+        // Sum completed & pending deposits in last 24 hours
         $todayDeposits = Deposit::query()
             ->where('user_id', $user->id)
             ->whereIn('status', [DepositStatus::completedCase(), DepositStatus::Pending])

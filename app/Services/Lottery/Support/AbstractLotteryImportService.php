@@ -959,14 +959,10 @@ abstract class AbstractLotteryImportService
             ? mb_substr(trim($payload['source_identifier']), 0, 191)
             : null;
 
-        $signature = null;
-        if (array_key_exists('signature_hex', $payload) && $payload['signature_hex'] !== null) {
-            if (is_string($payload['signature_hex']) && preg_match('/^[0-9a-fA-F]{128}$/', $payload['signature_hex']) === 1) {
-                $signature = strtolower($payload['signature_hex']);
-            } else {
-                $errors[] = 'INVALID_SIGNATURE_ENCODING';
-            }
-        }
+        $signature = isset($payload['signature_hex']) && is_string($payload['signature_hex'])
+            && preg_match('/^[0-9a-fA-F]{128}$/', $payload['signature_hex']) === 1
+                ? strtolower($payload['signature_hex'])
+                : null;
 
         return [
             'errors' => array_values(array_unique($errors)),

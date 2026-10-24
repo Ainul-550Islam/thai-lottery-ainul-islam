@@ -28,7 +28,6 @@ return new class extends Migration
         }
 
         Schema::table('payment_webhooks', function (Blueprint $table): void {
-            $table->dropIndex(['claimed_at']);
             $table->dropColumn(['claimed_at', 'processing_attempts', 'last_error_at']);
         });
     }

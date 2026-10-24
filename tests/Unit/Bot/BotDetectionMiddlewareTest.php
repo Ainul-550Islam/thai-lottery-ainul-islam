@@ -17,7 +17,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 
 final class BotDetectionMiddlewareTest extends TestCase
@@ -61,7 +60,7 @@ final class BotDetectionMiddlewareTest extends TestCase
         $config = $this->config();
         $config->set($key, $value);
         $container = new Container;
-        $container->bind(BotDetectionService::class, fn () => throw new RuntimeException('Must not resolve.'));
+        $container->bind(BotDetectionService::class, fn () => throw new \RuntimeException('Must not resolve.'));
         $request = Request::create('/login', $method);
         $response = new Response('ok');
         self::assertSame($response, (new BotDetectionMiddleware($config, $container, new NullLogger))->handle($request, fn () => $response));
@@ -91,9 +90,9 @@ final class BotDetectionMiddlewareTest extends TestCase
     public function test_engine_and_logger_failure_are_observation_only(): void
     {
         $container = new Container;
-        $container->bind(BotDetectionService::class, fn () => throw new RuntimeException('secret-SQL-password'));
+        $container->bind(BotDetectionService::class, fn () => throw new \RuntimeException('secret-SQL-password'));
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects(self::once())->method('warning')->with('bot.http_observation_unavailable')->willThrowException(new RuntimeException('disk full'));
+        $logger->expects(self::once())->method('warning')->with('bot.http_observation_unavailable')->willThrowException(new \RuntimeException('disk full'));
         $request = Request::create('/register', 'POST');
         $response = new Response('original', 201);
         self::assertSame($response, (new BotDetectionMiddleware($this->config(), $container, $logger))->handle($request, fn () => $response));
@@ -108,16 +107,16 @@ final class BotDetectionMiddlewareTest extends TestCase
         $signal->expects(self::once())->method('score')->willReturn(new SignalResult('a', 0));
         $container = new Container;
         $container->instance(BotDetectionService::class, new BotDetectionService($config, new BotScoreCalculator($config), new NullLogger, ['a' => $signal]));
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('original controller error');
-        (new BotDetectionMiddleware($config, $container, new NullLogger))->handle(Request::create('/login', 'POST'), fn () => throw new RuntimeException('original controller error'));
+        (new BotDetectionMiddleware($config, $container, new NullLogger))->handle(Request::create('/login', 'POST'), fn () => throw new \RuntimeException('original controller error'));
     }
 
     public function test_partial_assessment_is_not_labelled_complete(): void
     {
         $config = $this->config();
         $signal = $this->createMock(BotSignal::class);
-        $signal->method('score')->willThrowException(new RuntimeException('cache down'));
+        $signal->method('score')->willThrowException(new \RuntimeException('cache down'));
         $container = new Container;
         $container->instance(BotDetectionService::class, new BotDetectionService($config, new BotScoreCalculator($config), new NullLogger, ['a' => $signal]));
         $request = Request::create('/login', 'POST');

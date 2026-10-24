@@ -175,7 +175,7 @@ CI_OVERRIDES: dict[str, str] = {
     # refuses to touch any database but that one, and CI's own migrate must
     # never be able to reach the suite's store.
     "DB_CONNECTION": "sqlite",
-    "DB_DATABASE": "database/thailotto_ci.sqlite",
+    "DB_DATABASE": "database/thai_lottery_test",
     "DB_FOREIGN_KEYS": "true",
     "DB_BUSY_TIMEOUT": "15000",
     "CACHE_STORE": "array",

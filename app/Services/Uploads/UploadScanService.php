@@ -74,7 +74,9 @@ class UploadScanService
         ]);
 
         if ($scanResult->status->isDangerous()) {
-            Log::critical("MALWARE DETECTED IN UPLOAD: Record [{$record->id}] File: {$record->original_filename} Threat: {$scanResult->threatName}");
+            $safeName = preg_replace('/[\r\n\t\x00-\x1F\x7F]+/', ' ', (string) $record->original_filename) ?? 'unknown';
+            $safeThreat = preg_replace('/[\r\n\t\x00-\x1F\x7F]+/', ' ', (string) $scanResult->threatName) ?? 'unknown';
+            Log::critical("MALWARE DETECTED IN UPLOAD: Record [{$record->id}] File: {$safeName} Threat: {$safeThreat}");
             Storage::disk($diskUsed)->delete($record->private_storage_key);
         }
 

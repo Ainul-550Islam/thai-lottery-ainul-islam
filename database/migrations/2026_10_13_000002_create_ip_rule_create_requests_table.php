@@ -10,14 +10,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('ip_rule_create_requests', function (Blueprint $table): void {
-            $table->foreignId('actor_id')->constrained('users')->cascadeOnDelete();
-            $table->char('key_hash', 64);
-            $table->char('fingerprint', 64);
-            $table->foreignId('rule_id')->constrained('ip_access_rules')->restrictOnDelete();
-            $table->timestamp('created_at');
-            $table->primary(['actor_id', 'key_hash']);
-        });
+        if (! Schema::hasTable('ip_rule_create_requests')) {
+            Schema::create('ip_rule_create_requests', function (Blueprint $table): void {
+                $table->foreignId('actor_id')->constrained('users')->cascadeOnDelete();
+                $table->char('key_hash', 64);
+                $table->char('fingerprint', 64);
+                $table->foreignId('rule_id')->constrained('ip_access_rules')->restrictOnDelete();
+                $table->timestamp('created_at');
+                $table->primary(['actor_id', 'key_hash']);
+            });
+        }
     }
 
     public function down(): void

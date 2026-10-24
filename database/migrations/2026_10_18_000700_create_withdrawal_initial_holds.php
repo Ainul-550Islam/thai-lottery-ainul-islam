@@ -11,21 +11,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('withdrawal_initial_holds', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('withdrawal_id')->unique()->constrained()->restrictOnDelete();
-            $table->foreignId('wallet_id')->constrained()->restrictOnDelete();
-            $table->foreignId('user_id')->constrained()->restrictOnDelete();
-            $table->string('currency', 3);
-            $table->decimal('amount', 20, 2);
-            $table->char('terms_hash', 64);
-            $table->text('origin_cipher');
-            $table->enum('state', ['held', 'transferred', 'consumed', 'released']);
-            $table->timestamp('created_at');
-            $table->timestamp('transferred_at')->nullable();
-            $table->timestamp('closed_at')->nullable();
-            $table->index(['wallet_id', 'state']);
-        });
+        if (! Schema::hasTable('withdrawal_initial_holds')) {
+            Schema::create('withdrawal_initial_holds', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('withdrawal_id')->unique()->constrained()->restrictOnDelete();
+                $table->foreignId('wallet_id')->constrained()->restrictOnDelete();
+                $table->foreignId('user_id')->constrained()->restrictOnDelete();
+                $table->string('currency', 3);
+                $table->decimal('amount', 20, 2);
+                $table->char('terms_hash', 64);
+                $table->text('origin_cipher');
+                $table->enum('state', ['held', 'transferred', 'consumed', 'released']);
+                $table->timestamp('created_at');
+                $table->timestamp('transferred_at')->nullable();
+                $table->timestamp('closed_at')->nullable();
+                $table->index(['wallet_id', 'state']);
+            });
+        }
         Schema::table('withdrawal_reservations', function (Blueprint $table): void {
             $table->foreignId('initial_hold_id')->nullable()->unique()->constrained('withdrawal_initial_holds')->restrictOnDelete();
         });

@@ -311,7 +311,7 @@ class BetCancellationOwnershipTest extends FinancialMasterTestCase
     public function test_ordinary_downgrade_cannot_erase_nonempty_payment_ownership_history(): void
     {
         $this->purchaseFixture();
-        $migration = require database_path('migrations/2026_10_16_000310_create_bet_purchase_ownerships_table.php');
+        $migration = require database_path('migrations/2026_10_16_000300_create_bet_purchase_ownerships_table.php');
         try {
             $migration->down();
             $this->fail('Migration erased durable ownership history.');

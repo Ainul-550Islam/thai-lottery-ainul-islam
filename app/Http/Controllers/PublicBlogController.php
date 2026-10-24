@@ -192,7 +192,7 @@ final class PublicBlogController
 
     private function locale(Request $request, ?string $fromPath = null): string
     {
-        $candidate = $fromPath ?? App::getLocale();
+        $candidate = $fromPath ?? (string) $request->query('locale', App::getLocale());
 
         // Unsupported locales fall back to the default rather than 404: a
         // blog with no translation is not a broken blog.

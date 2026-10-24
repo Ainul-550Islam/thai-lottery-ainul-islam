@@ -11,19 +11,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('financial_provider_reference_owners', function (Blueprint $table): void {
-            $table->id();
-            $table->char('identity_key', 64)->unique();
-            $table->foreignId('deposit_id')->nullable()->unique()->constrained()->restrictOnDelete();
-            $table->foreignId('withdrawal_id')->nullable()->unique()->constrained()->restrictOnDelete();
-            $table->foreignId('payout_id')->nullable()->unique()->constrained()->restrictOnDelete();
-            $table->foreignId('payment_id')->nullable()->unique()->constrained()->restrictOnDelete();
-            $table->string('provider', 40);
-            $table->string('account_scope', 80);
-            $table->char('reference_hash', 64);
-            $table->char('facts_hash', 64);
-            $table->timestamp('created_at');
-        });
+        if (! Schema::hasTable('financial_provider_reference_owners')) {
+            Schema::create('financial_provider_reference_owners', function (Blueprint $table): void {
+                $table->id();
+                $table->char('identity_key', 64)->unique();
+                $table->foreignId('deposit_id')->nullable()->unique()->constrained()->restrictOnDelete();
+                $table->foreignId('withdrawal_id')->nullable()->unique()->constrained()->restrictOnDelete();
+                $table->foreignId('payout_id')->nullable()->unique()->constrained()->restrictOnDelete();
+                $table->foreignId('payment_id')->nullable()->unique()->constrained()->restrictOnDelete();
+                $table->string('provider', 40);
+                $table->string('account_scope', 80);
+                $table->char('reference_hash', 64);
+                $table->char('facts_hash', 64);
+                $table->timestamp('created_at');
+            });
+        }
         $check = '((NEW.deposit_id IS NOT NULL) + (NEW.withdrawal_id IS NOT NULL) + (NEW.payout_id IS NOT NULL)) <> 1';
         if (DB::getDriverName() === 'sqlite') {
             foreach (['INSERT', 'UPDATE'] as $op) {

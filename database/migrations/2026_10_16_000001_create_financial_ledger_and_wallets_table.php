@@ -86,42 +86,44 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ledger_transactions', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-
-            $table->string('transaction_number', 64)->unique();
-
-            // What this journal group is FOR: order, payout, deposit,
-            // commission, withdrawal. Indexed together with reference_id
-            // because the hot read is "the transaction for this reference".
-            $table->string('reference_type', 64)->index();
-            $table->string('reference_id', 64)->index();
-
-            // A caller-supplied idempotency key. UNIQUE, so a retried posting
-            // is refused by the database rather than by application timing.
-            $table->string('idempotency_key', 128)->nullable()->unique();
-
-            $table->string('currency', 3)->default('THB');
-
-            // Sum of the debit (and equally credit) side of this group.
-            $table->decimal('total_amount', 20, 4);
-
-            $table->string('description', 255)->nullable();
-
-            $table->string('status', 32)->default('POSTED');
-
-            // Hash chain: previous_hash → this row's hash. Both nullable-safe
-            // (the first row has no predecessor); `hash` is unique so a forged
-            // or duplicated header cannot be inserted.
-            $table->string('previous_hash', 64)->nullable();
-            $table->string('hash', 64)->unique();
-
-            $table->timestamp('posted_at')->useCurrent();
-            $table->timestamps();
-
-            $table->index(['reference_type', 'reference_id'], 'idx_ledger_tx_ref');
-            $table->index('posted_at', 'idx_ledger_tx_posted_at');
-        });
+        if (! Schema::hasTable('ledger_transactions')) {
+            Schema::create('ledger_transactions', function (Blueprint $table): void {
+                $table->uuid('id')->primary();
+    
+                $table->string('transaction_number', 64)->unique();
+    
+                // What this journal group is FOR: order, payout, deposit,
+                // commission, withdrawal. Indexed together with reference_id
+                // because the hot read is "the transaction for this reference".
+                $table->string('reference_type', 64)->index();
+                $table->string('reference_id', 64)->index();
+    
+                // A caller-supplied idempotency key. UNIQUE, so a retried posting
+                // is refused by the database rather than by application timing.
+                $table->string('idempotency_key', 128)->nullable()->unique();
+    
+                $table->string('currency', 3)->default('THB');
+    
+                // Sum of the debit (and equally credit) side of this group.
+                $table->decimal('total_amount', 20, 4);
+    
+                $table->string('description', 255)->nullable();
+    
+                $table->string('status', 32)->default('POSTED');
+    
+                // Hash chain: previous_hash → this row's hash. Both nullable-safe
+                // (the first row has no predecessor); `hash` is unique so a forged
+                // or duplicated header cannot be inserted.
+                $table->string('previous_hash', 64)->nullable();
+                $table->string('hash', 64)->unique();
+    
+                $table->timestamp('posted_at')->useCurrent();
+                $table->timestamps();
+    
+                $table->index(['reference_type', 'reference_id'], 'idx_ledger_tx_ref');
+                $table->index('posted_at', 'idx_ledger_tx_posted_at');
+            });
+        }
     }
 
     /**

@@ -121,6 +121,23 @@ return new class extends Migration
             });
         }
 
+        if (Schema::hasTable('ledger_entries')) {
+            Schema::table('ledger_entries', function (Blueprint $table): void {
+                if (! Schema::hasColumn('ledger_entries', 'ledger_transaction_id')) {
+                    $table->unsignedBigInteger('ledger_transaction_id')->nullable()->index();
+                }
+                if (! Schema::hasColumn('ledger_entries', 'account_id')) {
+                    $table->unsignedBigInteger('account_id')->nullable()->index();
+                }
+                if (! Schema::hasColumn('ledger_entries', 'direction')) {
+                    $table->string('direction', 16)->nullable();
+                }
+                if (! Schema::hasColumn('ledger_entries', 'sequence')) {
+                    $table->unsignedInteger('sequence')->nullable();
+                }
+            });
+        }
+
         if (Schema::hasTable('payouts')) {
             Schema::table('payouts', function (Blueprint $table): void {
                 if (Schema::hasColumn('payouts', 'bet_id')) {

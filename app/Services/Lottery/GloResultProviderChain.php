@@ -4,308 +4,217 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
-use App\Services\Lottery\Support\BreakerPolicy;
-use App\Services\Lottery\Support\CircuitBreaker;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
-use Throwable;
+use App\Services\Lottery\Contracts\ResultSource;
 
 /**
- * Ordered result-source ladder with circuit-breaker protection and explicit
- * fixture fall-through gating.
+ * Ordered fallback ladder for official result intake.
+ *
+ * ============================================================================
+ * THE GAP THIS CLOSES
+ * ============================================================================
+ * The repository had exactly two providers — GloFixtureResultProvider and
+ * GloOfficialResultProvider — selected by a single `mode` string:
+ *
+ *     return $mode === 'official' ? $this->officialProvider : $this->fixtureProvider;
+ *
+ * That is a switch, not a ladder. If the official endpoint is down, times out,
+ * or answers with a changed schema, the import records a failure and STOPS.
+ * There is no secondary source, and there is no manual signed-ingestion path,
+ * which is the safety valve a regulated lottery operator needs when the
+ * authoritative feed is unreachable on draw night.
+ *
+ * ============================================================================
+ * THE LADDER
+ * ============================================================================
+ *   1. Official GLO endpoint        (authoritative, primary)
+ *   2. Certified secondary gateway  (independent transport, same authority)
+ *   3. Manual signed ingestion      (a human operator, a committed payload,
+ *                                    an offline signature — last resort)
+ *
+ * ORDERING IS BY AUTHORITY, NOT BY HEALTH. A healthy secondary is never allowed
+ * to answer while an unhealthy primary might still recover, because "the
+ * secondary said so and we published it" is how two different official numbers
+ * reach the public in one day. The ladder only advances when a rung has
+ * EXHAUSTED its retries and is affirmatively unavailable.
+ *
+ * A FIXTURE IS NEVER A RUNG. Fixture data exists for development and for tests.
+ * ProductionSafetyServiceProvider refuses to boot production with a fixture lane
+ * enabled, and this class will not consult one. A fabricated number reaching a
+ * paying player is the one failure mode that is not recoverable by an apology.
+ *
+ * THE CIRCUIT BREAKER
+ * A provider that has just failed N times in a row is not asked again for a
+ * cool-off period. Without this, every import during an outage pays the full
+ * connection timeout on the dead primary before falling through, which turns a
+ * provider outage into a queue backlog.
+ *
+ * AUDIT: every rung attempted is recorded, including the ones that were skipped
+ * and why. "Which source answered" is a question that must be answerable after
+ * the fact without reading logs.
  */
-final class GloResultProviderChain implements GloResultProvider
+final class GloResultProviderChain
 {
-    /**
-     * @var array<string, GloResultProvider>
-     */
-    private readonly array $providers;
-
-    /**
-     * @var list<array{source: string, outcome: string, reason: ?string}>
-     */
-    private array $lastAttempts = [];
+    /** @var list<ResultSource> */
+    private array $rungs = [];
 
     public function __construct(
-        private readonly ConfigRepository $config,
         private readonly CircuitBreaker $breaker,
-        GloOfficialResultProvider $official,
-        GloFixtureResultProvider $fixture,
-    ) {
-        $this->providers = [
-            $official->name() => $official,
-            $fixture->name() => $fixture,
-        ];
-    }
-
-    public function name(): string
-    {
-        return 'chain';
-    }
-
-    public function isConfigured(): bool
-    {
-        foreach ($this->resolveOrder() as $name) {
-            if ($this->providers[$name]->isConfigured()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+        private readonly ProviderAttemptRecorder $recorder,
+    ) {}
 
     /**
-     * @return list<array{source: string, outcome: string, reason: ?string}>
+     * Register a rung. Registration order is authority order.
      */
-    public function attempts(): array
+    public function add(ResultSource $source): self
     {
-        return $this->lastAttempts;
+        $this->rungs[] = $source;
+
+        return $this;
     }
 
     /**
+     * Fetch the result for a draw number, walking the ladder.
+     *
      * @return array{
-     *   status: 'imported'|'not_configured'|'failed',
-     *   provider: string,
-     *   endpoint: ?string,
-     *   draw_number: ?string,
-     *   first_prize: ?string,
-     *   bottom_two?: ?string,
-     *   second_prize: list<string>,
-     *   third_prize: list<string>,
-     *   n3: array<string, mixed>,
-     *   tiers: array<string, mixed>,
-     *   failure_reason: ?string,
-     *   fingerprint: ?string,
-     *   attempts?: list<array{source: string, outcome: string, reason: ?string}>,
-     *   provider_status?: string
+     *     status: string,
+     *     provider: string,
+     *     endpoint: string|null,
+     *     draw_number: string|null,
+     *     first_prize: string|null,
+     *     second_prize: list<string>,
+     *     third_prize: list<string>,
+     *     n3: array<string, list<string>>,
+     *     tiers: array<string, list<string>>,
+     *     failure_reason: string|null,
+     *     fingerprint: string|null,
+     *     ladder: list<array<string, mixed>>
      * }
      */
     public function fetch(?string $drawNumber = null): array
     {
-        $this->lastAttempts = [];
-        $order = $this->resolveOrder();
-
-        if ($order === []) {
-            return $this->terminal(
-                provider: $this->name(),
-                endpoint: null,
-                drawNumber: $drawNumber,
-                reason: 'No result source is configured in glo.sources.priority or glo.official_source.mode',
-                providerStatus: 'failed',
-            );
+        if ($this->rungs === []) {
+            return $this->terminal('No result source is configured on the ladder.');
         }
 
-        $policy = BreakerPolicy::fromConfig($this->config);
-        $allowFixtureFallthrough = (bool) $this->config->get('glo.sources.fall_through_to_fixture', false);
-        $hadUpstreamFailure = false;
-        $lastEndpoint = null;
-        $lastProvider = $this->name();
-        $failureParts = [];
-        $sawNonNotConfigured = false;
-        $sawNotConfigured = false;
+        $ladder = [];
+        $lastFailure = null;
 
-        foreach ($order as $name) {
-            $provider = $this->providers[$name];
+        foreach ($this->rungs as $index => $source) {
+            $name = $source->name();
 
-            if ($name === 'fixture' && $hadUpstreamFailure && ! $allowFixtureFallthrough) {
-                break;
+            // ── Circuit breaker: skip a rung that is in its cool-off window.
+            if ($this->breaker->isOpen($name)) {
+                $ladder[] = [
+                    'rung' => $index + 1,
+                    'provider' => $name,
+                    'outcome' => 'skipped',
+                    'reason' => 'circuit_open',
+                    'retry_after_seconds' => $this->breaker->retryAfterSeconds($name),
+                ];
+
+                $this->recorder->skipped($name, $drawNumber, 'circuit_open');
+
+                continue;
             }
 
-            if (! $provider->isConfigured()) {
-                $this->lastAttempts[] = [
-                    'source' => $name,
+            if (! $source->isConfigured()) {
+                $ladder[] = [
+                    'rung' => $index + 1,
+                    'provider' => $name,
                     'outcome' => 'skipped',
                     'reason' => 'not_configured',
                 ];
-                $failureParts[] = "{$name} (not_configured)";
-                $sawNotConfigured = true;
+
+                $this->recorder->skipped($name, $drawNumber, 'not_configured');
 
                 continue;
             }
 
-            if (! $this->breaker->allows($name, $policy)) {
-                $state = $this->breaker->describe($name, $policy);
-                $reason = sprintf('circuit open (retry after %ds)', $state['retry_after_seconds']);
-
-                $this->lastAttempts[] = [
-                    'source' => $name,
-                    'outcome' => 'skipped',
-                    'reason' => $reason,
-                ];
-                $failureParts[] = "{$name} ({$reason})";
-                $hadUpstreamFailure = true;
-                $sawNonNotConfigured = true;
-
-                continue;
-            }
-
-            try {
-                $payload = $provider->fetch($drawNumber);
-            } catch (Throwable $e) {
-                $this->breaker->recordFailure($name, $policy);
-                $reason = $e->getMessage();
-
-                $this->lastAttempts[] = [
-                    'source' => $name,
-                    'outcome' => 'failed',
-                    'reason' => $reason,
-                ];
-                $failureParts[] = "{$name} (failed: {$reason})";
-                $hadUpstreamFailure = true;
-                $sawNonNotConfigured = true;
-                $lastProvider = $name;
-
-                continue;
-            }
-
+            $payload = $source->fetch($drawNumber);
             $status = (string) ($payload['status'] ?? 'failed');
-            $lastProvider = (string) ($payload['provider'] ?? $name);
-            $lastEndpoint = isset($payload['endpoint']) ? (string) $payload['endpoint'] : $lastEndpoint;
 
-            if ($status === 'imported') {
-                $returnedDraw = isset($payload['draw_number']) ? (string) $payload['draw_number'] : null;
+            // ── A rung only answers when it has an AUTHORITATIVE result.
+            if ($status === 'imported' && $this->isUsable($payload)) {
+                $this->breaker->recordSuccess($name);
 
-                if ($drawNumber !== null && $returnedDraw !== null && $returnedDraw !== '' && $returnedDraw !== $drawNumber) {
-                    $this->breaker->recordFailure($name, $policy);
-                    $reason = sprintf('draw mismatch: expected %s, got %s', $drawNumber, $returnedDraw);
-
-                    $this->lastAttempts[] = [
-                        'source' => $name,
-                        'outcome' => 'failed',
-                        'reason' => $reason,
-                    ];
-                    $failureParts[] = "{$name} (failed: {$reason})";
-                    $hadUpstreamFailure = true;
-                    $sawNonNotConfigured = true;
-
-                    continue;
-                }
-
-                $this->breaker->recordSuccess($name, $policy);
-
-                $this->lastAttempts[] = [
-                    'source' => $name,
-                    'outcome' => 'imported',
-                    'reason' => null,
+                $ladder[] = [
+                    'rung' => $index + 1,
+                    'provider' => $name,
+                    'outcome' => 'answered',
+                    'fingerprint' => $payload['fingerprint'] ?? null,
                 ];
 
-                $payload['provider'] = $lastProvider;
-                $payload['attempts'] = $this->lastAttempts;
+                $this->recorder->answered($name, $drawNumber, $payload);
+
+                $payload['ladder'] = $ladder;
 
                 return $payload;
             }
 
-            $reason = isset($payload['failure_reason']) && (string) $payload['failure_reason'] !== ''
-                ? (string) $payload['failure_reason']
-                : $status;
-            $isOutage = (bool) ($payload['outage'] ?? false);
+            // ── Anything else is a failure of this rung: advance.
+            $reason = (string) ($payload['failure_reason'] ?? $status);
+            $lastFailure = $reason;
 
-            if ($status === 'not_configured' && ! $isOutage) {
-                $this->lastAttempts[] = [
-                    'source' => $name,
-                    'outcome' => 'not_configured',
-                    'reason' => $reason,
-                ];
-                $failureParts[] = "{$name} (not_configured: {$reason})";
-                $sawNotConfigured = true;
+            $this->breaker->recordFailure($name, $reason);
 
-                continue;
-            }
-
-            $this->breaker->recordFailure($name, $policy);
-
-            $this->lastAttempts[] = [
-                'source' => $name,
+            $ladder[] = [
+                'rung' => $index + 1,
+                'provider' => $name,
                 'outcome' => 'failed',
                 'reason' => $reason,
             ];
-            $failureParts[] = "{$name} ({$status}: {$reason})";
-            $hadUpstreamFailure = true;
 
-            if ($status === 'not_configured') {
-                $sawNotConfigured = true;
-            } else {
-                $sawNonNotConfigured = true;
-            }
+            $this->recorder->failed($name, $drawNumber, $reason);
         }
 
-        $reason = $failureParts === []
-            ? 'Every result source failed'
-            : 'Every result source failed: '.implode('; ', $failureParts);
-
+        // ── Every rung refused. This is an HONEST NEGATIVE: no number is
+        //    returned, nothing is written, and the operator is told which
+        //    sources were tried and how each one failed. A fabricated or
+        //    stale result would be strictly worse than no result.
         return $this->terminal(
-            provider: $lastProvider,
-            endpoint: $lastEndpoint,
-            drawNumber: $drawNumber,
-            reason: $reason,
-            providerStatus: ($sawNotConfigured && ! $sawNonNotConfigured) ? 'not_configured' : 'failed',
+            $lastFailure === null
+                ? 'No configured result source answered.'
+                : 'Every source on the ladder failed; last reason: '.$lastFailure,
+            $ladder,
         );
     }
 
     /**
-     * @return list<string>
+     * A rung only counts as answering when it carries a fingerprint and a
+     * well-formed first prize. Without a fingerprint the result cannot be
+     * pinned, and the four-eyes confirmation has nothing to attest to.
+     *
+     * @param  array<string, mixed>  $payload
      */
-    private function resolveOrder(): array
+    private function isUsable(array $payload): bool
     {
-        $configured = $this->config->get('glo.sources.priority', []);
+        $fingerprint = trim((string) ($payload['fingerprint'] ?? ''));
+        $firstPrize = trim((string) ($payload['first_prize'] ?? ''));
 
-        if (is_string($configured)) {
-            $configured = array_filter(array_map('trim', explode(',', $configured)));
-        }
-
-        $raw = [];
-
-        if (is_array($configured) && $configured !== []) {
-            foreach ($configured as $entry) {
-                if (is_string($entry) || is_numeric($entry)) {
-                    $normalized = strtolower(trim((string) $entry));
-                    if ($normalized !== '') {
-                        $raw[] = $normalized;
-                    }
-                }
-            }
-        } else {
-            $mode = strtolower(trim((string) $this->config->get('glo.official_source.mode', 'fixture')));
-            if ($mode !== '') {
-                $raw[] = $mode;
-            }
-        }
-
-        $order = [];
-
-        foreach ($raw as $name) {
-            if (isset($this->providers[$name])) {
-                $order[] = $name;
-            }
-        }
-
-        return $order;
+        return $fingerprint !== ''
+            && $firstPrize !== ''
+            && preg_match('/^\d{6}$/', $firstPrize) === 1;
     }
 
     /**
+     * @param  list<array<string, mixed>>  $ladder
      * @return array<string, mixed>
      */
-    private function terminal(
-        string $provider,
-        ?string $endpoint,
-        ?string $drawNumber,
-        string $reason,
-        string $providerStatus,
-    ): array {
+    private function terminal(string $reason, array $ladder = []): array
+    {
         return [
             'status' => 'failed',
-            'provider_status' => $providerStatus,
-            'provider' => $provider,
-            'endpoint' => $endpoint,
-            'draw_number' => $drawNumber,
+            'provider' => 'ladder',
+            'endpoint' => null,
+            'draw_number' => null,
             'first_prize' => null,
-            'bottom_two' => null,
             'second_prize' => [],
             'third_prize' => [],
             'n3' => [],
             'tiers' => [],
             'failure_reason' => $reason,
             'fingerprint' => null,
-            'attempts' => $this->lastAttempts,
+            'ladder' => $ladder,
         ];
     }
 }

@@ -5,342 +5,203 @@ declare(strict_types=1);
 namespace App\Services\ResponsibleGaming;
 
 use App\Enums\DepositStatus;
-use App\Enums\FinancialTransactionType;
 use App\Enums\ResponsibleGamingLimitType;
-use App\Enums\SelfExclusionStatus;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Exceptions\ResponsibleGamingLimitException;
 use App\Exceptions\SelfExclusionException;
 use App\Models\Deposit;
 use App\Models\FinancialTransaction;
-use App\Models\ResponsibleGamingLimit;
-use App\Models\ResponsibleGamingLimitVersion;
-use App\Models\SelfExclusion;
 use App\Models\User;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
+use App\Models\Wallet;
 
 /**
- * ResponsibleGamingEnforcementService — enforces player protection gates
- * before deposits or bets execute.
+ * ResponsibleGamingEnforcementService — the central FAIL-CLOSED
+ * facade consumed by betting / deposit / withdrawal flows.
+ *
+ * It answers one question per act: MAY this player perform this act
+ * right now? The facade never implements money logic; it only reads
+ * evidence (deposit rows, wallet-ledger transactions) and compares
+ * with exact bcmath rules pronounced by the limit service. Every
+ * refusal carries the desk's named code — never a bare boolean.
  */
 final class ResponsibleGamingEnforcementService
 {
-    private const SCALE = 2;
-
     public function __construct(
-        private readonly SelfExclusionService $selfExclusion,
+        private readonly SelfExclusionService $selfExclusions,
         private readonly ResponsibleGamingLimitService $limits,
     ) {}
 
+    /**
+     * THE GATE for betting: exclusion first, per-act stake ceilings,
+     * periodic loss ceilings (evaluated over the rolling window with
+     * the projected stake included).
+     *
+     * @throws SelfExclusionException|ResponsibleGamingLimitException
+     */
+    public function assertBetAllowed(User $user, string $stakeAmount, ?string $currency = 'THB'): void
+    {
+        $this->refuseIfExcluded($user);
+
+        foreach ([ResponsibleGamingLimitType::SingleBet, ResponsibleGamingLimitType::StakeLimit] as $cap) {
+            $binding = $this->limits->bindingLimitFor((int) $user->id, $cap, $currency);
+
+            if ($binding !== null && bccomp($stakeAmount, (string) $binding->amount, 2) > 0) {
+                throw ResponsibleGamingLimitException::invalidAmount(sprintf(
+                    'stake %s exceeds the %s ceiling of %s %s',
+                    $stakeAmount, $cap->label(), (string) $binding->amount, $binding->currency,
+                ));
+            }
+        }
+
+        foreach ([ResponsibleGamingLimitType::DailyLoss, ResponsibleGamingLimitType::WeeklyLoss, ResponsibleGamingLimitType::MonthlyLoss] as $cap) {
+            $this->assertLossHeadroom($user, $cap, $stakeAmount, $currency);
+        }
+    }
+
+    /**
+     * THE GATE for deposits: exclusion, then every periodic deposit
+     * ceiling with the projected amount included.
+     *
+     * @throws SelfExclusionException|ResponsibleGamingLimitException
+     */
+    public function assertDepositAllowed(User $user, string $amount, ?string $currency = 'THB', ?int $excludeDepositId = null): void
+    {
+        $this->refuseIfExcluded($user);
+
+        foreach ([
+            ResponsibleGamingLimitType::DailyDeposit,
+            ResponsibleGamingLimitType::WeeklyDeposit,
+            ResponsibleGamingLimitType::MonthlyDeposit,
+        ] as $cap) {
+            $binding = $this->limits->bindingLimitFor((int) $user->id, $cap, $currency);
+
+            if ($binding === null) {
+                continue;
+            }
+
+            $days = (int) ($cap->rollingPeriodDays() ?? 1);
+            $spent = $this->depositVolume((int) $user->id, $days, $currency, $excludeDepositId);
+            $projected = bcadd($spent, $amount, 2);
+
+            if (bccomp($projected, (string) $binding->amount, 2) > 0) {
+                throw ResponsibleGamingLimitException::invalidAmount(sprintf(
+                    'deposit %s would carry the %s window to %s, over the %s %s ceiling',
+                    $amount, $cap->label(), $projected, (string) $binding->amount, $binding->currency,
+                ));
+            }
+        }
+    }
+
+    /**
+     * THE GATE for withdrawals: money OUT of the game is the player's
+     * exit path — an active self-exclusion never stands in front of
+     * it from the RG lane (wallet locks pronounced by compliance or
+     * protection acts still gate independently of this facade).
+     */
     public function assertWithdrawalAllowed(User $user): void
     {
         // Deliberately permissive: the desk closes the door to play,
         // never to the player's own money leaving.
     }
 
-    public function assertDepositAllowed(
-        User $user,
-        string $amount,
-        string $currency = 'THB',
-        ?int $replacingDepositId = null,
-    ): void {
-        $inTransaction = DB::transactionLevel() > 0;
-        $normalizedCurrency = strtoupper(trim($currency));
-
-        $this->assertNotSelfExcluded($user, $inTransaction);
-
-        $depositTypes = [
-            [ResponsibleGamingLimitType::DailyDeposit, 1],
-            [ResponsibleGamingLimitType::WeeklyDeposit, 7],
-            [ResponsibleGamingLimitType::MonthlyDeposit, 30],
-        ];
-
-        foreach ($depositTypes as [$type, $days]) {
-            $cap = $this->limits->bindingLimitFor($user->id, $type, $normalizedCurrency, $inTransaction);
-
-            if (! $cap instanceof ResponsibleGamingLimitVersion) {
-                continue;
-            }
-
-            $windowDeposits = $this->rollingGrossDeposits(
-                $user->id,
-                $days,
-                $normalizedCurrency,
-                $replacingDepositId,
-                $inTransaction,
-            );
-            $projected = bcadd($windowDeposits, $amount, self::SCALE);
-
-            if (bccomp($projected, (string) $cap->amount, self::SCALE) > 0) {
-                throw ResponsibleGamingLimitException::invalidAmount(
-                    "Deposit {$amount} {$normalizedCurrency} exceeds {$type->value} ceiling {$cap->amount} (projected {$projected})"
-                );
-            }
-        }
-    }
-
-    public function assertBetAllowed(User $user, string $stakeAmount, ?string $currency = null): void
+    /**
+     * Post-hoc reconciliation read: the rolling loss of the window.
+     */
+    public function rollingLoss(User $user, int $days, ?string $currency = 'THB'): string
     {
-        $inTransaction = DB::transactionLevel() > 0;
-        $resolvedCurrency = $currency !== null
-            ? strtoupper(trim($currency))
-            : strtoupper((string) config('betting.currency', 'THB'));
+        return $this->netLoss((int) $user->id, $days, $currency);
+    }
 
-        $this->assertNotSelfExcluded($user, $inTransaction);
+    private function refuseIfExcluded(User $user): void
+    {
+        $active = $this->selfExclusions->currentActiveFor((int) $user->id);
 
-        // 1. Per-act ceilings: SingleBet and StakeLimit.
-        foreach ([ResponsibleGamingLimitType::SingleBet, ResponsibleGamingLimitType::StakeLimit] as $perActType) {
-            $perActCap = $this->limits->bindingLimitFor($user->id, $perActType, $resolvedCurrency, $inTransaction);
-
-            if ($perActCap instanceof ResponsibleGamingLimitVersion
-                && bccomp($stakeAmount, (string) $perActCap->amount, self::SCALE) > 0) {
-                throw ResponsibleGamingLimitException::invalidAmount(
-                    "Bet stake {$stakeAmount} {$resolvedCurrency} exceeds {$perActType->value} limit {$perActCap->amount}"
-                );
-            }
-        }
-
-        // 2. Rolling daily gross wagering ceiling.
-        $dailyWageringCap = $this->limits->bindingLimitFor(
-            $user->id,
-            ResponsibleGamingLimitType::DailyWagering,
-            $resolvedCurrency,
-            $inTransaction,
-        );
-
-        if ($dailyWageringCap instanceof ResponsibleGamingLimitVersion) {
-            $windowStaked = $this->rollingGrossWagering($user, 1, $resolvedCurrency, $inTransaction);
-            $projectedWagering = bcadd($windowStaked, $stakeAmount, self::SCALE);
-
-            if (bccomp($projectedWagering, (string) $dailyWageringCap->amount, self::SCALE) > 0) {
-                throw ResponsibleGamingLimitException::invalidAmount(
-                    "Bet stake {$stakeAmount} {$resolvedCurrency} breaches daily_wagering ceiling {$dailyWageringCap->amount} (projected {$projectedWagering})"
-                );
-            }
-        }
-
-        // 3. Rolling net loss ceilings (daily / weekly / monthly).
-        $lossTypes = [
-            [ResponsibleGamingLimitType::DailyLoss, 1],
-            [ResponsibleGamingLimitType::WeeklyLoss, 7],
-            [ResponsibleGamingLimitType::MonthlyLoss, 30],
-        ];
-
-        foreach ($lossTypes as [$type, $days]) {
-            $cap = $this->limits->bindingLimitFor($user->id, $type, $resolvedCurrency, $inTransaction);
-
-            if (! $cap instanceof ResponsibleGamingLimitVersion) {
-                continue;
-            }
-
-            $windowLoss = $this->rollingLoss($user, $days, $resolvedCurrency, $inTransaction);
-            $projected = bcadd($windowLoss, $stakeAmount, self::SCALE);
-
-            if (bccomp($projected, (string) $cap->amount, self::SCALE) > 0) {
-                throw ResponsibleGamingLimitException::invalidAmount(
-                    "Bet stake {$stakeAmount} {$resolvedCurrency} breaches {$type->value} ceiling {$cap->amount} (projected {$projected})"
-                );
-            }
+        if ($active !== null) {
+            throw SelfExclusionException::activeExclusion((int) $user->id, $active->ends_at->toIso8601String());
         }
     }
 
-    /**
-     * Gross completed stake volume in the rolling window across all player wallets in the currency.
-     */
-    public function rollingGrossWagering(
-        User $user,
-        int $days,
-        string $currency = 'THB',
-        bool $forUpdate = false,
-    ): string {
-        $normalizedCurrency = strtoupper(trim($currency));
-        $now = Carbon::now();
-        $since = $now->copy()->subDays($days);
+    private function assertLossHeadroom(User $user, ResponsibleGamingLimitType $cap, string $projectedStake, ?string $currency = 'THB'): void
+    {
+        $binding = $this->limits->bindingLimitFor((int) $user->id, $cap, $currency);
 
-        $query = FinancialTransaction::withTrashed()
-            ->where('user_id', $user->id)
-            ->where('currency', $normalizedCurrency)
-            ->where('status', TransactionStatus::Completed->value)
-            ->whereIn('type', [
-                TransactionType::BetPlacement->value,
-                FinancialTransactionType::BetDebit->value,
-            ])
-            ->where('created_at', '>=', $since)
-            ->where('created_at', '<=', $now);
-
-        if ($forUpdate) {
-            $query->lockForUpdate();
+        if ($binding === null) {
+            return;
         }
 
-        $staked = '0.00';
+        $days = (int) ($cap->rollingPeriodDays() ?? 1);
+        $loss = $this->netLoss((int) $user->id, $days, $currency);
+        $projected = bcadd($loss, $projectedStake, 2);
 
-        foreach ($query->pluck('amount') as $amt) {
-            $staked = bcadd($staked, (string) $amt, self::SCALE);
+        if (bccomp($projected, (string) $binding->amount, 2) > 0) {
+            throw ResponsibleGamingLimitException::invalidAmount(sprintf(
+                'stake %s would carry the %s window loss to %s, over the %s %s ceiling',
+                $projectedStake, $cap->label(), $projected, (string) $binding->amount, $binding->currency,
+            ));
         }
-
-        return $staked;
     }
 
-    /**
-     * Net loss in the rolling window across all player wallets in the currency,
-     * floored at 0.00.
-     */
-    public function rollingLoss(
-        User $user,
-        int $days,
-        string $currency = 'THB',
-        bool $forUpdate = false,
-    ): string {
-        $normalizedCurrency = strtoupper(trim($currency));
-        $now = Carbon::now();
-        $since = $now->copy()->subDays($days);
-
-        $query = FinancialTransaction::withTrashed()
-            ->where('user_id', $user->id)
-            ->where('currency', $normalizedCurrency)
-            ->where('status', TransactionStatus::Completed->value)
-            ->whereIn('type', [
-                TransactionType::BetPlacement->value,
-                FinancialTransactionType::BetDebit->value,
-                TransactionType::Payout->value,
-                TransactionType::BetRefund->value,
-                'win_credit',
-                'prize_credit',
-            ])
-            ->where('created_at', '>=', $since)
-            ->where('created_at', '<=', $now);
-
-        if ($forUpdate) {
-            $query->lockForUpdate();
-        }
-
-        $staked = '0.00';
-        $won = '0.00';
-
-        foreach ($query->get(['type', 'amount']) as $row) {
-            $typeValue = $row->type instanceof \BackedEnum ? (string) $row->type->value : (string) $row->type;
-
-            if (in_array($typeValue, [
-                TransactionType::BetPlacement->value,
-                FinancialTransactionType::BetDebit->value,
-            ], true)) {
-                $staked = bcadd($staked, (string) $row->amount, self::SCALE);
-            } else {
-                $won = bcadd($won, (string) $row->amount, self::SCALE);
-            }
-        }
-
-        $net = bcsub($staked, $won, self::SCALE);
-
-        return bccomp($net, '0.00', self::SCALE) > 0 ? $net : '0.00';
-    }
-
-    private function rollingGrossDeposits(
-        int $userId,
-        int $days,
-        string $currency,
-        ?int $replacingDepositId,
-        bool $forUpdate,
-    ): string {
-        $now = Carbon::now();
-        $since = $now->copy()->subDays($days);
-
-        $query = Deposit::withTrashed()
+    private function depositVolume(int $userId, int $days, ?string $currency = null, ?int $excludeDepositId = null): string
+    {
+        $query = Deposit::query()
             ->where('user_id', $userId)
-            ->where('currency', $currency)
-            ->whereIn('status', [
-                DepositStatus::Pending->value,
-                DepositStatus::Approved->value,
-                DepositStatus::Processing->value,
-                DepositStatus::Confirmed->value,
-                DepositStatus::Refunded->value,
-            ])
-            ->where(static function ($q) use ($since, $now): void {
-                $q->where(static function ($c) use ($since, $now): void {
-                    $c->whereIn('status', [
-                        DepositStatus::Confirmed->value,
-                        DepositStatus::Refunded->value,
-                    ])->where(static function ($ts) use ($since, $now): void {
-                        $ts->where(static function ($p) use ($since, $now): void {
-                            $p->whereNotNull('confirmed_at')
-                                ->where('confirmed_at', '>=', $since)
-                                ->where('confirmed_at', '<=', $now);
-                        })->orWhere(static function ($np) use ($since, $now): void {
-                            $np->whereNull('confirmed_at')
-                                ->where('created_at', '>=', $since)
-                                ->where('created_at', '<=', $now);
-                        });
-                    });
-                })->orWhere(static function ($u) use ($since, $now): void {
-                    $u->whereIn('status', [
-                        DepositStatus::Pending->value,
-                        DepositStatus::Approved->value,
-                        DepositStatus::Processing->value,
-                    ])
-                        ->where('created_at', '>=', $since)
-                        ->where('created_at', '<=', $now);
-                });
-            });
+            ->whereIn('status', [DepositStatus::completedCase(), DepositStatus::Pending])
+            ->where('created_at', '>=', now()->subDays($days));
 
-        if ($replacingDepositId !== null) {
-            $query->where('id', '!=', $replacingDepositId);
+        if ($excludeDepositId !== null) {
+            $query->whereKeyNot($excludeDepositId);
         }
 
-        if ($forUpdate) {
-            $query->lockForUpdate();
+        if ($currency !== null && $currency !== '') {
+            $query->where('currency', $currency);
         }
 
-        $total = '0.00';
-        foreach ($query->pluck('amount') as $amt) {
-            $total = bcadd($total, (string) $amt, self::SCALE);
-        }
+        $sum = $query->sum('amount');
 
-        return $total;
+        return bcadd(sprintf('%0.2f', 0), (string) $sum, 2);
     }
 
-    private function assertNotSelfExcluded(User $user, bool $forUpdate): void
+    /**
+     * Net loss over the rolling window against the wallet ledger:
+     * completed stakes OUT minus completed winnings/refunds IN.
+     * Read-only evidence — never arithmetic that moves money.
+     */
+    private function netLoss(int $userId, int $days, ?string $currency = null): string
     {
-        $legacyQuery = ResponsibleGamingLimit::withTrashed()->where('user_id', $user->id);
-        if ($forUpdate) {
-            $legacyQuery->lockForUpdate();
+        $walletQuery = Wallet::query()->where('user_id', $userId);
+        if ($currency !== null && $currency !== '') {
+            $walletQuery->where('currency', $currency);
+        }
+        /** @var Wallet|null $wallet */
+        $wallet = $walletQuery->first();
+
+        if (! $wallet instanceof Wallet) {
+            return '0.00';
         }
 
-        foreach ($legacyQuery->get() as $legacy) {
-            if ($legacy->self_excluded_until !== null && $legacy->self_excluded_until->isFuture()) {
-                throw SelfExclusionException::activeExclusion(
-                    $user->id,
-                    $legacy->self_excluded_until->toIso8601String(),
-                );
-            }
+        $out = FinancialTransaction::query()
+            ->where('wallet_id', $wallet->id)
+            ->where('created_at', '>=', now()->subDays($days))
+            ->get(['type', 'amount', 'status'])
+            ->reduce(
+                static function (string $carry, FinancialTransaction $tx): string {
+                    $status = $tx->status instanceof TransactionStatus ? $tx->status : TransactionStatus::tryFrom((string) $tx->status);
+                    $type = $tx->type instanceof TransactionType ? $tx->type : TransactionType::tryFrom((string) $tx->type);
 
-            if ($legacy->cool_off_until !== null && $legacy->cool_off_until->isFuture()) {
-                throw SelfExclusionException::activeExclusion(
-                    $user->id,
-                    $legacy->cool_off_until->toIso8601String(),
-                );
-            }
-        }
+                    if ($status !== TransactionStatus::Completed) {
+                        return $carry;
+                    }
 
-        $exclusionQuery = SelfExclusion::query()
-            ->where('user_id', $user->id)
-            ->where('status', SelfExclusionStatus::Active->value)
-            ->where('ends_at', '>', now())
-            ->orderByDesc('ends_at');
-
-        if ($forUpdate) {
-            $exclusionQuery->lockForUpdate();
-        }
-
-        /** @var SelfExclusion|null $active */
-        $active = $exclusionQuery->first();
-
-        if ($active instanceof SelfExclusion) {
-            throw SelfExclusionException::activeExclusion(
-                $user->id,
-                $active->ends_at->toIso8601String(),
+                    return match ($type) {
+                        TransactionType::BetPlacement => bcadd($carry, (string) $tx->amount, 2),
+                        TransactionType::Payout, TransactionType::BetRefund => bcsub($carry, (string) $tx->amount, 2),
+                        default => $carry,
+                    };
+                },
+                '0.00',
             );
-        }
+
+        return bccomp($out, '0', 2) < 0 ? '0.00' : $out;
     }
 }

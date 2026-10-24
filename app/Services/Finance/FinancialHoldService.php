@@ -16,33 +16,51 @@ use App\Exceptions\FinancialHoldException;
 use App\Exceptions\InsufficientBalanceException;
 use App\Models\AuditLog;
 use App\Models\FinancialHold;
-use App\Models\FinancialTransaction;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Compliance/settlement financial holds with durable claim ownership.
+ * Compliance/settlement financial holds.
+ *
+ * THE INVARIANTS
+ *   1. TRUTH AT THE ROW — amount/currency must equal what the wallet
+ *      row and the hold row themselves say (never the caller's memory).
+ *   2. MECHANICS THROUGH THE WALLET'S LANE — holding gives back money
+ *      through WalletHoldService ONLY; conversion debits the wallet
+ *      through WalletService (its own ledger posting), never raw.
+ *   3. HORIZON — an Active hold past its horizon is routed to review
+ *      first; only a reviewed hold may EXPIRE (with evidence, releasing
+ *      its funds cleanly). Nobody's money is silently held forever,
+ *      and nobody's money silently moves.
+ *   4. EVIDENCE — release/convert/expiry stamp the act + reason on the
+ *      row (the evidence column).
  */
 final class FinancialHoldService
 {
+    /**
+     * Failed-placement horizon when none is given on the ask: reviewed
+     * within hours, always.
+     */
     public const DEFAULT_HORIZON_HOURS = 72;
 
     public function __construct(
         private readonly WalletHoldService $holds,
         private readonly WalletService $wallets,
-        private readonly WalletLockService $locks,
-        private readonly FinancialHoldOwnership $ownership,
     ) {}
+
+    /* ------------------------------------------------------ place --- */
 
     /**
      * @return array{hold: FinancialHold, replayed: bool}
      *
      * @throws FinancialHoldException
      */
-    public function place(FinancialHoldData $raw): array
+    public function place(FinancialHoldData $data): array
     {
-        $data = $raw->normalized();
+        if (DB::transactionLevel() > 0) {
+            return $this->placeWithin($data);
+        }
 
         return DB::transaction(fn (): array => $this->placeWithin($data));
     }
@@ -54,51 +72,28 @@ final class FinancialHoldService
      */
     private function placeWithin(FinancialHoldData $data): array
     {
-        $walletProbe = Wallet::withTrashed()->whereKey($data->walletId)->lockForUpdate()->first();
-        if (! $walletProbe instanceof Wallet || $walletProbe->trashed()) {
-            throw FinancialHoldException::notFound('wallet:'.$data->walletId);
-        }
-
-        $wallet = $this->locks->lock((int) $walletProbe->getKey());
-        $inputHash = $this->ownership->inputHash($data);
-
-        $existingClaim = DB::table('financial_hold_claims')
-            ->where('wallet_id', $wallet->id)
-            ->where('source_reference', $data->sourceReference)
+        $existing = FinancialHold::query()
             ->lockForUpdate()
+            ->where('hold_key', $data->holdKey())
             ->first();
 
-        $existingHold = FinancialHold::query()
-            ->where(function ($query) use ($wallet, $data): void {
-                $query->where('hold_key', $data->holdKey())
-                    ->orWhere(function ($q) use ($wallet, $data): void {
-                        $q->where('wallet_id', $wallet->id)
-                            ->where('source_reference', $data->sourceReference);
-                    });
-            })
-            ->lockForUpdate()
-            ->selectRaw('financial_holds.*, CAST(amount AS CHAR) AS exact_amount')
-            ->first();
+        if ($existing instanceof FinancialHold) {
+            $factsMatch = (int) $existing->wallet_id === $data->walletId
+                && (string) $existing->source_reference === $data->sourceReference
+                && bccomp(self::moneyOf((string) $existing->amount), self::moneyOf($data->amount), 2) === 0;
 
-        if ($existingHold !== null || $existingClaim !== null) {
-            if (! $existingHold instanceof FinancialHold || $existingClaim === null || (int) $existingClaim->financial_hold_id !== (int) $existingHold->id) {
-                $this->ownership->refuse();
-            }
-
-            $this->ownership->claim($existingHold, $wallet);
-
-            if (! hash_equals((string) $existingClaim->input_hash, $inputHash)
-                || (string) $existingHold->hold_key !== $data->holdKey()) {
+            if (! $factsMatch) {
                 throw FinancialHoldException::duplicate($data->holdKey());
             }
 
-            if ($existingClaim->state === 'consumed') {
-                $this->ownership->assertDebit($existingHold, $wallet);
-            } else {
-                $this->ownership->assertState($existingHold, $wallet, (string) $existingClaim->state);
-            }
+            return ['hold' => $existing, 'replayed' => true];
+        }
 
-            return ['hold' => $existingHold, 'replayed' => true];
+        /** @var Wallet|null $wallet */
+        $wallet = Wallet::query()->lockForUpdate()->find($data->walletId);
+
+        if (! $wallet instanceof Wallet) {
+            throw FinancialHoldException::notFound('wallet:'.$data->walletId);
         }
 
         $money = Money::of($data->amount, Currency::from($data->currency));
@@ -107,7 +102,7 @@ final class FinancialHoldService
             $this->holds->hold($wallet, $money, WalletHoldType::OtherFinancialHold);
         } catch (InsufficientBalanceException $e) {
             throw FinancialHoldException::amountMismatch($data->holdKey(), $e->availableAmount(), $data->amount);
-        } catch (FinancialException) {
+        } catch (FinancialException $e) {
             throw FinancialHoldException::amountMismatch($data->holdKey(), 'wallet-unavailable', $data->amount);
         }
 
@@ -119,47 +114,37 @@ final class FinancialHoldService
             'currency' => $data->currency,
             'reason' => $data->reason,
             'source_reference' => $data->sourceReference,
-            'expires_at' => $data->expiresAt ?? now()->addHours(self::DEFAULT_HORIZON_HOURS)->utc()->toIso8601String(),
+            'expires_at' => $data->expiresAt ?? now()->addHours(self::DEFAULT_HORIZON_HOURS)->toIso8601String(),
             'evidence' => ['placed' => now()->toIso8601String(), 'reason' => $data->reason],
             'metadata' => [],
         ]);
         $row->status = FinancialHoldStatus::Active;
         $row->save();
 
-        $lockedRow = $this->lockHoldRow((int) $row->getKey());
+        $this->recordAudit($row, sprintf('Placed hold of %s for [%s]', $data->amount, $data->sourceReference), RiskLevel::High);
 
-        DB::table('financial_hold_claims')->insert([
-            'financial_hold_id' => (int) $lockedRow->id,
-            'wallet_id' => (int) $wallet->id,
-            'user_id' => (int) $wallet->user_id,
-            'source_reference' => (string) $lockedRow->source_reference,
-            'amount' => $this->ownership->amount($lockedRow),
-            'currency' => (string) $lockedRow->currency,
-            'input_hash' => $inputHash,
-            'terms_hash' => $this->ownership->termsHash($lockedRow, $wallet),
-            'state' => 'active',
-            'closed_at' => null,
-            'financial_transaction_id' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $this->recordAudit($lockedRow, sprintf('Placed hold of %s for [%s]', $data->amount, $data->sourceReference), RiskLevel::High);
-
-        return ['hold' => $lockedRow, 'replayed' => false];
+        return ['hold' => $row, 'replayed' => false];
     }
 
+    /* ----------------------------------------------------- review --- */
+
     /**
+     * A human inspected the source evidence — pronounce.
+     *
      * @throws FinancialHoldException
      */
     public function review(FinancialHold $hold, int $operatorUserId, string $note): FinancialHold
     {
         return DB::transaction(function () use ($hold, $operatorUserId, $note): FinancialHold {
-            [$wallet, $locked] = $this->lockWalletAndHold($hold);
-            $this->ownership->assertState($locked, $wallet, 'active');
+            /** @var FinancialHold|null $locked */
+            $locked = FinancialHold::query()->lockForUpdate()->find((int) $hold->getKey());
+
+            if (! $locked instanceof FinancialHold) {
+                throw FinancialHoldException::notFound((string) $hold->hold_key);
+            }
 
             if ($locked->status === FinancialHoldStatus::Reviewed) {
-                return $locked;
+                return $locked; // replay
             }
 
             if ($locked->status === FinancialHoldStatus::Expired) {
@@ -184,28 +169,48 @@ final class FinancialHoldService
         });
     }
 
+    /* ---------------------------------------------------- release --- */
+
     /**
+     * Give the money back, innocent lane — strict, exactly-once,
+     * forever pronounced.
+     *
      * @throws FinancialHoldException
      */
     public function release(FinancialHold $hold, string $reason): FinancialHold
     {
         return DB::transaction(function () use ($hold, $reason): FinancialHold {
-            [$wallet, $locked] = $this->lockWalletAndHold($hold);
-            $claim = $this->ownership->claim($locked, $wallet);
+            /** @var FinancialHold|null $locked */
+            $locked = FinancialHold::query()->lockForUpdate()->find((int) $hold->getKey());
 
-            if ($claim->state === 'released') {
-                $this->ownership->assertState($locked, $wallet, 'released');
+            if (! $locked instanceof FinancialHold) {
+                throw FinancialHoldException::notFound((string) $hold->hold_key);
+            }
 
+            if ($locked->status === FinancialHoldStatus::Released) {
                 return $locked;
             }
 
-            $this->ownership->assertState($locked, $wallet, 'active');
+            if ($locked->status === FinancialHoldStatus::Expired) {
+                throw FinancialHoldException::invalidRelease((string) $locked->hold_key, FinancialHoldStatus::Expired->value);
+            }
 
             if (! $locked->status->canTransitionTo(FinancialHoldStatus::Released)) {
                 throw FinancialHoldException::invalidRelease((string) $locked->hold_key, $locked->status->value);
             }
 
-            $amount = $this->ownership->amount($locked);
+            /** @var Wallet|null $wallet */
+            $wallet = Wallet::query()->lockForUpdate()->find((int) $locked->wallet_id);
+
+            if (! $wallet instanceof Wallet) {
+                throw FinancialHoldException::notFound('wallet:'.$locked->wallet_id);
+            }
+
+            $this->holds->release(
+                $wallet,
+                Money::of((string) $locked->amount, Currency::from(strtoupper((string) $locked->currency))),
+            );
+
             $evidence = is_array($locked->evidence) ? $locked->evidence : [];
             $evidence['released'] = ['at' => now()->toIso8601String(), 'reason' => Str::limit(trim($reason), 255, '')];
 
@@ -214,26 +219,20 @@ final class FinancialHoldService
             $locked->evidence = $evidence;
             $locked->save();
 
-            DB::table('financial_hold_claims')
-                ->where('id', $claim->id)
-                ->update([
-                    'state' => 'released',
-                    'closed_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-            $this->holds->release(
-                $wallet,
-                Money::of($amount, $wallet->currency),
-            );
-
             $this->recordAudit($locked, sprintf('Released (%s)', $evidence['released']['reason']), RiskLevel::High);
 
             return $locked;
         });
     }
 
+    /* ---------------------------------------------------- convert --- */
+
     /**
+     * Convert the hold into the FORMAL flow: unlock the hold, debit the
+     * wallet through the wallet's own adjustment lane (its own ledger
+     * posting and evidence), stamp Converted. Reviewed holds ONLY — a
+     * conversion of an unreviewed hold is a crime of vocabulary.
+     *
      * @return array{hold: FinancialHold, conversion_reference: string}
      *
      * @throws FinancialHoldException
@@ -241,54 +240,45 @@ final class FinancialHoldService
     public function convert(FinancialHold $hold, int $operatorUserId, string $evidence): array
     {
         return DB::transaction(function () use ($hold, $operatorUserId, $evidence): array {
-            [$wallet, $locked] = $this->lockWalletAndHold($hold);
-            $claim = $this->ownership->claim($locked, $wallet);
+            /** @var FinancialHold|null $locked */
+            $locked = FinancialHold::query()->lockForUpdate()->find((int) $hold->getKey());
 
-            if ($claim->state === 'consumed') {
-                $tx = $this->ownership->assertDebit($locked, $wallet);
+            if (! $locked instanceof FinancialHold) {
+                throw FinancialHoldException::notFound((string) $hold->hold_key);
+            }
 
+            if ($locked->status === FinancialHoldStatus::Converted) {
                 return [
                     'hold' => $locked,
-                    'conversion_reference' => (string) $tx->reference_number,
+                    'conversion_reference' => (string) (data_get($locked->evidence, 'converted.reference', '(lost)')),
                 ];
             }
 
-            $this->ownership->assertState($locked, $wallet, 'active');
-
-            if ($locked->status !== FinancialHoldStatus::Reviewed || $locked->reviewed_at === null) {
+            if (! $locked->status->canTransitionTo(FinancialHoldStatus::Converted)) {
                 throw FinancialHoldException::invalidRelease((string) $locked->hold_key, $locked->status->value);
             }
 
-            $canonicalKey = $this->ownership->canonicalKey($locked);
-            if (FinancialTransaction::withTrashed()->where('idempotency_key', $canonicalKey)->lockForUpdate()->exists()) {
-                $this->ownership->refuse();
+            /** @var Wallet|null $wallet */
+            $wallet = Wallet::query()->lockForUpdate()->find((int) $locked->wallet_id);
+
+            if (! $wallet instanceof Wallet) {
+                throw FinancialHoldException::notFound('wallet:'.$locked->wallet_id);
             }
 
-            $amount = $this->ownership->amount($locked);
-            $money = Money::of($amount, $wallet->currency);
-
-            $locked->status = FinancialHoldStatus::Converted;
-            $locked->converted_at = now();
-            $locked->save();
-
-            DB::table('financial_hold_claims')
-                ->where('id', $claim->id)
-                ->update([
-                    'state' => 'consumed',
-                    'closed_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-            $this->holds->consume($wallet, $money);
+            // Unlock the hold; then the FORMAL flow: debit through the
+            // wallet service itself, so the ledger records the movement
+            // with the hold's own deterministic idempotency key.
+            $this->holds->consume(
+                $wallet,
+                Money::of((string) $locked->amount, Currency::from(strtoupper((string) $locked->currency))),
+            );
 
             $transaction = $this->wallets->debit(
                 $wallet,
-                $money,
+                Money::of((string) $locked->amount, Currency::from(strtoupper((string) $locked->currency))),
                 FinancialTransactionType::Adjustment,
-                idempotencyKey: $canonicalKey,
+                idempotencyKey: sprintf('fin-hold-conv:%s', substr((string) $locked->hold_key, 0, 44)),
                 options: [
-                    'reference_type' => FinancialHold::class,
-                    'reference_id' => (int) $locked->id,
                     'description' => sprintf('Hold converted: [%s] (by #%d)', $locked->source_reference, $operatorUserId),
                     'metadata' => ['evidence' => $evidence, 'source' => $locked->source_reference],
                 ],
@@ -302,51 +292,60 @@ final class FinancialHoldService
                 'reference' => (string) $transaction->reference_number,
             ];
 
+            $locked->status = FinancialHoldStatus::Converted;
+            $locked->converted_at = now();
             $locked->evidence = $ev;
             $locked->save();
 
-            DB::table('financial_hold_claims')
-                ->where('id', $claim->id)
-                ->update([
-                    'financial_transaction_id' => (int) $transaction->id,
-                    'updated_at' => now(),
-                ]);
+            $this->recordAudit($locked, sprintf('Converted → %s', $ev['converted']['reference']), RiskLevel::Critical);
 
-            $reloaded = $this->lockHoldRow((int) $locked->id);
-            $this->ownership->assertDebit($reloaded, $wallet);
-
-            $this->recordAudit($reloaded, sprintf('Converted owned hold → %s', $ev['converted']['reference']), RiskLevel::Critical);
-
-            return ['hold' => $reloaded, 'conversion_reference' => $ev['converted']['reference']];
+            return ['hold' => $locked, 'conversion_reference' => $ev['converted']['reference']];
         });
     }
 
+    /* ----------------------------------------------------- expire --- */
+
     /**
+     * Pronounce a hold expired — the dynamite that prevents a desk from
+     * becoming a bank of the last resort. Funds release mechanically;
+     * the status is the evidence.
+     *
      * @throws FinancialHoldException
      */
     public function expire(FinancialHold $hold): FinancialHold
     {
         return DB::transaction(function () use ($hold): FinancialHold {
-            [$wallet, $locked] = $this->lockWalletAndHold($hold);
-            $claim = $this->ownership->claim($locked, $wallet);
+            /** @var FinancialHold|null $locked */
+            $locked = FinancialHold::query()->lockForUpdate()->find((int) $hold->getKey());
 
-            if ($claim->state === 'expired') {
-                $this->ownership->assertState($locked, $wallet, 'expired');
+            if (! $locked instanceof FinancialHold) {
+                throw FinancialHoldException::notFound((string) $hold->hold_key);
+            }
 
+            if ($locked->status === FinancialHoldStatus::Expired) {
                 return $locked;
             }
 
-            $this->ownership->assertState($locked, $wallet, 'active');
-            app(WithdrawalHoldFloor::class)->assertCovered($wallet);
-
-            if ($locked->status !== FinancialHoldStatus::Reviewed
-                || $locked->reviewed_at === null
-                || $locked->expires_at === null
-                || $locked->expires_at->isFuture()) {
+            if (! $locked->status->canTransitionTo(FinancialHoldStatus::Expired)) {
                 throw FinancialHoldException::invalidRelease((string) $locked->hold_key, $locked->status->value);
             }
 
-            $amount = $this->ownership->amount($locked);
+            // Holds that actually OCCUPY money on the wallet must give
+            // it back on expiry (an Active or Reviewed hold occupies).
+            if ($locked->status->occupiesWallet()) {
+                /** @var Wallet|null $wallet */
+                $wallet = Wallet::query()->lockForUpdate()->find((int) $locked->wallet_id);
+
+                if (! $wallet instanceof Wallet) {
+                    throw FinancialHoldException::notFound('wallet:'.$locked->wallet_id);
+                }
+
+                $this->holds->release(
+                    $wallet,
+                    Money::of((string) $locked->amount, Currency::from(strtoupper((string) $locked->currency))),
+                );
+            }
+
             $ev = is_array($locked->evidence) ? $locked->evidence : [];
             $ev['expired'] = ['at' => now()->toIso8601String(), 'horizon' => $locked->expires_at?->toIso8601String()];
 
@@ -355,21 +354,13 @@ final class FinancialHoldService
             $locked->evidence = $ev;
             $locked->save();
 
-            DB::table('financial_hold_claims')
-                ->where('id', $claim->id)
-                ->update([
-                    'state' => 'expired',
-                    'closed_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-            $this->holds->release($wallet, Money::of($amount, $wallet->currency));
-
             $this->recordAudit($locked, sprintf('Horizon passed (horizon %s)', (string) $ev['expired']['horizon']), RiskLevel::High);
 
             return $locked;
         });
     }
+
+    /* ------------------------------------------------ internals ---- */
 
     public static function moneyOf(string $amount): string
     {
@@ -378,42 +369,6 @@ final class FinancialHoldService
         }
 
         return bcadd($amount, '0', 2);
-    }
-
-    /**
-     * @return array{0: Wallet, 1: FinancialHold}
-     */
-    private function lockWalletAndHold(FinancialHold $hold): array
-    {
-        $walletId = (int) (FinancialHold::query()->useWritePdo()->whereKey($hold->getKey())->value('wallet_id') ?? $hold->wallet_id);
-        if ($walletId < 1) {
-            throw FinancialHoldException::notFound((string) $hold->hold_key);
-        }
-
-        $walletProbe = Wallet::withTrashed()->whereKey($walletId)->lockForUpdate()->first();
-        if (! $walletProbe instanceof Wallet || $walletProbe->trashed()) {
-            throw FinancialHoldException::notFound('wallet:'.$walletId);
-        }
-
-        $wallet = $this->locks->lock($walletId);
-        $locked = $this->lockHoldRow((int) $hold->getKey());
-
-        return [$wallet, $locked];
-    }
-
-    private function lockHoldRow(int $id): FinancialHold
-    {
-        $locked = FinancialHold::query()
-            ->whereKey($id)
-            ->lockForUpdate()
-            ->selectRaw('financial_holds.*, CAST(amount AS CHAR) AS exact_amount')
-            ->first();
-
-        if (! $locked instanceof FinancialHold) {
-            throw FinancialHoldException::notFound('hold:'.$id);
-        }
-
-        return $locked;
     }
 
     private function recordAudit(FinancialHold $hold, string $description, RiskLevel $riskLevel): void

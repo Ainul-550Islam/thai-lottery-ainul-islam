@@ -16,20 +16,22 @@ return new class extends Migration
             $table->string('commission_snapshot_hash', 64)->nullable();
             $table->unsignedInteger('commission_snapshot_count')->nullable();
         });
-        Schema::create('bet_commission_ownerships', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('purchase_ownership_id')->constrained('bet_purchase_ownerships')->restrictOnDelete();
-            $table->foreignId('commission_id')->unique()->constrained('agent_commissions')->restrictOnDelete();
-            $table->foreignId('agent_id')->constrained('agents')->restrictOnDelete();
-            $table->string('currency', 3);
-            $table->string('amount', 32);
-            $table->string('terms_hash', 64);
-            $table->string('state', 16)->default('active');
-            $table->timestamp('cancelled_at')->nullable();
-            $table->string('cancelled_reason', 64)->nullable();
-            $table->timestamps();
-            $table->index(['agent_id', 'state'], 'bet_commission_agent_state_index');
-        });
+        if (! Schema::hasTable('bet_commission_ownerships')) {
+            Schema::create('bet_commission_ownerships', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('purchase_ownership_id')->constrained('bet_purchase_ownerships')->restrictOnDelete();
+                $table->foreignId('commission_id')->unique()->constrained('agent_commissions')->restrictOnDelete();
+                $table->foreignId('agent_id')->constrained('agents')->restrictOnDelete();
+                $table->string('currency', 3);
+                $table->string('amount', 32);
+                $table->string('terms_hash', 64);
+                $table->string('state', 16)->default('active');
+                $table->timestamp('cancelled_at')->nullable();
+                $table->string('cancelled_reason', 64)->nullable();
+                $table->timestamps();
+                $table->index(['agent_id', 'state'], 'bet_commission_agent_state_index');
+            });
+        }
     }
 
     public function down(): void

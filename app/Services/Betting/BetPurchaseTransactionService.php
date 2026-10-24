@@ -10,6 +10,7 @@ use App\Exceptions\BetPurchaseConcurrencyException;
 use App\Exceptions\BetPurchaseException;
 use App\Models\Bet;
 use App\Services\Agent\AgentCommissionAccrualService;
+use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,57 @@ use Throwable;
 
 /**
  * Owns the single database transaction in which a bet purchase becomes real.
+ *
+ * WHY ONE TRANSACTION, OWNED IN ONE PLACE
+ * Atomicity is not something each collaborator can contribute a share of. Either every
+ * mutation of a purchase is inside one transaction or the guarantee does not exist. So
+ * exactly one class opens a transaction for a purchase, and it is this one. The wallet,
+ * risk, bet, item, ticket and ledger services all ASSERT they are inside a transaction
+ * and refuse to run otherwise, which means no collaborator can be misused into mutating
+ * anything outside this boundary.
+ *
+ * THE ORDER, AND WHY EACH STEP IS WHERE IT IS
+ *   1. LOCK THE WALLET. First, always, on every path. Fixing the lock order at the
+ *      wallet is what makes a lock-order deadlock between two purchases impossible: two
+ *      purchases can never hold each other's next lock, because both want the wallet
+ *      before they want a number limit.
+ *   2. RE-CHECK IDEMPOTENCY UNDER THE LOCK. The pre-transaction check happened without
+ *      a lock, so a concurrent identical request may have committed since. Re-reading
+ *      here, holding the wallet lock, closes that window for two requests from the same
+ *      player. The insert's UNIQUE constraint closes it for every other case.
+ *   3. RE-CHECK RESPONSIBLE-GAMING LIMITS under the wallet lock. Parallel bets and
+ *      deposits for this player cannot both spend the same rolling-limit headroom.
+ *   4. CHECK THE BALANCE AGAINST THE LOCKED ROW. Before any row is created and before
+ *      any capacity is reserved, so an unaffordable bet consumes nothing at all.
+ *   5. RESERVE RISK CAPACITY. Under SELECT ... FOR UPDATE on the number_limits row,
+ *      decided by Phase 3.1 from counters it re-read under that lock.
+ *   6. CREATE THE BET. Needs to exist before the debit, because the debit's polymorphic
+ *      reference points at it.
+ *   7. CREATE THE ITEM. One line, one charge.
+ *   8. CREATE THE TICKET AND LINK IT. The Phase 1 foreign key is bets.ticket_id, so the
+ *      ticket must exist before the bet can point at it.
+ *   9. DEBIT THE WALLET. Phase 2.1 performs the debit, the double-entry posting and its
+ *      own balance assertion as one unit, in a nested transaction - a SAVEPOINT inside
+ *      this one - so an outer rollback still discards all of it.
+ *  10. VERIFY THE LEDGER. Proven present, linked to this bet and balanced, before the
+ *      commit is allowed. A purchase may not commit money that the books do not record.
+ *  11. PROMOTE THE BET AND THE TICKET. Only paid-for, balanced purchases become Active
+ *      and Confirmed.
+ *
+ * WHY THERE IS NO COMPENSATION OR CLEANUP CODE
+ * Rollback is the database's job and it does it correctly. Any failure at any step
+ * aborts the closure, Laravel rolls the transaction back, and every mutation above -
+ * the counter increment, the bet, the item, the ticket, the wallet balance, the
+ * financial transaction, the ledger entries - is discarded together. Hand-written
+ * compensation (release the reservation, credit the wallet back, delete the ticket) is
+ * how partial states are CREATED: it runs after the rollback has already undone the
+ * thing it is compensating for, and so double-undoes it. There is deliberately none.
+ *
+ * WHY QueryException IS CLASSIFIED RATHER THAN SWALLOWED
+ * A duplicate key on bets.idempotency_key means a concurrent identical request won the
+ * race, which is a REPLAY and not an error the caller should see. A deadlock or lock
+ * timeout is a transient contention failure worth retrying. Every other database error
+ * is a real failure and is re-thrown. Nothing is retried blindly.
  */
 final class BetPurchaseTransactionService
 {
@@ -34,8 +86,10 @@ final class BetPurchaseTransactionService
         private readonly BetPurchaseLedgerService $ledger,
         private readonly BetPurchaseIdempotencyService $idempotency,
         private readonly AgentCommissionAccrualService $commissionAccrual,
+        private readonly ResponsibleGamingEnforcementService $responsibleGaming,
         private readonly ConfigRepository $config,
-    ) {}
+    ) {
+    }
 
     /**
      * Execute the whole purchase atomically.
@@ -44,33 +98,20 @@ final class BetPurchaseTransactionService
      *                                         or when contention could not be resolved
      * @throws BetPurchaseException on any refusal; nothing is persisted
      */
-    public function execute(BetPurchaseContext $context, ?BetAmendmentPermit $permit = null): BetPurchaseResult
+    public function execute(BetPurchaseContext $context): BetPurchaseResult
     {
         $this->assertNotAlreadyInTransaction();
 
-        $maxAttempts = $this->attempts();
-        $delayMs = max(0, (int) $this->config->get('finance.locking.retry_delay_milliseconds', 25));
-
-        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            try {
-                return DB::transaction(
-                    fn (): BetPurchaseResult => $this->purchase($context, $permit),
-                    1,
-                );
-            } catch (QueryException $exception) {
-                if (BetPurchaseConcurrencyException::isLockFailure($exception) && $attempt < $maxAttempts) {
-                    if ($delayMs > 0) {
-                        usleep($delayMs * 1000);
-                    }
-
-                    continue;
-                }
-
-                throw $this->classify($exception, $context);
-            }
+        try {
+            return DB::transaction(
+                fn (): BetPurchaseResult => $this->purchase($context),
+                $this->attempts(),
+            );
+        } catch (QueryException $exception) {
+            // Reached when the retries are exhausted, or when the failure is not
+            // retryable. Nothing is persisted either way: the transaction is closed.
+            throw $this->classify($exception, $context);
         }
-
-        throw BetPurchaseConcurrencyException::deadlock('purchase bet');
     }
 
     /**
@@ -79,7 +120,7 @@ final class BetPurchaseTransactionService
      * @throws BetPurchaseConcurrencyException
      * @throws BetPurchaseException
      */
-    private function purchase(BetPurchaseContext $context, ?BetAmendmentPermit $permit = null): BetPurchaseResult
+    private function purchase(BetPurchaseContext $context): BetPurchaseResult
     {
         // 1. Wallet row lock. First lock on every path.
         $wallet = $this->wallets->lockForDebit($context->walletId(), $context->currency());
@@ -88,6 +129,8 @@ final class BetPurchaseTransactionService
         $existing = $this->bets->lockByIdempotencyKey($context->betIdempotencyKey);
 
         if ($existing instanceof Bet) {
+            // Abort rather than continue. Throwing unwinds cleanly and the caller
+            // replays the committed bet, so the retry never becomes a second purchase.
             throw BetPurchaseConcurrencyException::idempotentRaceLost(
                 $context->betIdempotencyKey,
                 $context->userId(),
@@ -95,9 +138,16 @@ final class BetPurchaseTransactionService
             );
         }
 
-        // 3. Re-evaluate player, wallet, and responsible-gaming admission under lock.
-        app(BetPurchaseAdmission::class)->assertAllowed($context, $wallet);
-        app(StripeRefundWagerGuard::class)->assertNoPendingExposure($context->user, $wallet->currency);
+        // 3. Responsible-gaming totals are mutable financial projections too.
+        // Re-evaluate under the player's wallet lock so two simultaneous bets
+        // cannot both pass the same daily/weekly/monthly loss ceiling using the
+        // same pre-transaction snapshot. The early check in BetPurchaseService
+        // remains a fast refusal; this is the concurrency-safe decision.
+        $this->responsibleGaming->assertBetAllowed(
+            $context->user,
+            $context->stakeMoney()->toString(),
+            $context->currency()->value,
+        );
 
         // 4. Affordability, against the locked row.
         $this->wallets->assertSufficientBalance($wallet, $context->stakeMoney());
@@ -105,20 +155,17 @@ final class BetPurchaseTransactionService
         // 5. Risk capacity, under the number_limits row lock. No bypass exists.
         $reservation = $this->risk->reserve($context);
 
-        // 6. Verify deposit refund exposure after risk lock and before any money write.
-        app(StripeRefundWagerGuard::class)->assertAllowed($context->user, $wallet->currency);
-
-        // 7. The bet.
+        // 6. The bet.
         $bet = $this->bets->create($context);
 
-        // 8. The one item line.
+        // 7. The one item line.
         $item = $this->items->create($bet, $context);
 
-        // 9. The ticket, then the link.
+        // 8. The ticket, then the link.
         $ticket = $this->tickets->create($context);
         $bet = $this->bets->attachTicket($bet, $ticket);
 
-        // 10. The money. Phase 2.1 debits, posts the ledger and asserts its own balance.
+        // 9. The money. Phase 2.1 debits, posts the ledger and asserts its own balance.
         $transaction = $this->wallets->debitForBet(
             lockedWallet: $wallet,
             stake: $context->stakeMoney(),
@@ -136,22 +183,23 @@ final class BetPurchaseTransactionService
             ],
         );
 
-        // 11. The books, proven before the commit is allowed.
+        // 10. The books, proven before the commit is allowed.
         $ledgerEntryIds = $this->ledger->assertPostedForBet($transaction, $bet);
 
-        // 12. Promotion. Only now is the purchase paid for and recorded.
+        // 11. Promotion. Only now is the purchase paid for and recorded.
         $bet = $this->bets->markPlaced($bet);
         $ticket = $this->tickets->confirm($ticket);
 
         $this->assertExactlyOneItem($bet, $context);
 
-        // 13. Agent commissions accrue on real, paid turnover.
+        // 12. Agent commissions accrue on real, paid turnover — never on an
+        // unpaid, unposted or half-promoted purchase. Accruing here, inside the
+        // same atomic unit, means a purchase that later cannot commit takes its
+        // commission rows down with it, and a committed purchase can never
+        // have existed without its commissions being written. The accrual
+        // service itself resolves the referral chain (an unattributed player
+        // yields no rows) and skips ineligible agents.
         $this->commissionAccrual->accrueForBet($bet);
-
-        // 14. Record purchase ownership, replay receipt, and optional amendment replacement link.
-        app(BetPurchaseOwnership::class)->record($bet, $wallet, $transaction, $reservation);
-        app(BetPurchaseReceipt::class)->record($bet, $wallet, $transaction, $ticket);
-        app(BetAmendmentOwnership::class)->captureReplacement($bet, $wallet, $transaction, $permit);
 
         return BetPurchaseResult::purchased(
             bet: $bet,
@@ -176,6 +224,10 @@ final class BetPurchaseTransactionService
     }
 
     /**
+     * One purchase creates one charge. Asserted from the database, inside the
+     * transaction, so a purchase that somehow produced two lines rolls back instead of
+     * committing a double charge.
+     *
      * @throws BetPurchaseException
      */
     private function assertExactlyOneItem(Bet $bet, BetPurchaseContext $context): void
@@ -200,6 +252,7 @@ final class BetPurchaseTransactionService
     private function classify(QueryException $exception, BetPurchaseContext $context): Throwable
     {
         if ($this->idempotency->isDuplicateKeyViolation($exception)) {
+            // A concurrent identical request inserted first. This is a replay signal.
             return BetPurchaseConcurrencyException::idempotentRaceLost(
                 $context->betIdempotencyKey,
                 $context->userId(),
@@ -228,6 +281,10 @@ final class BetPurchaseTransactionService
         return $exception;
     }
 
+    /**
+     * Retry budget for the whole closure, from the Phase 2.1 locking configuration so
+     * the money engine and the purchase agree on how much contention is tolerated.
+     */
     public function attempts(): int
     {
         $configured = $this->config->get('finance.locking.max_retries');
@@ -244,6 +301,10 @@ final class BetPurchaseTransactionService
     }
 
     /**
+     * A purchase must own its transaction. Running inside somebody else's would mean a
+     * failure could be caught and the surrounding transaction committed anyway, which
+     * would defeat the atomicity guarantee entirely.
+     *
      * @throws BetPurchaseException
      */
     private function assertNotAlreadyInTransaction(): void

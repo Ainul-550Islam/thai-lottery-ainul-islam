@@ -6,23 +6,9 @@
 @section('content')
 @php
     $currency = \App\Enums\Currency::from((string) config('payment.currency.default'));
-    /*
-     * The figure shown is what the player may actually spend right now: the wallet's
-     * available balance, which is balance minus the amount held by open holds. Showing
-     * the raw balance would overstate it by the held amount, and showing any other
-     * wallet's balance would show money this wallet cannot spend.
-     */
     $walletBalance = $wallet instanceof \App\Models\Wallet && $wallet->currency instanceof \App\Enums\Currency && $wallet->currency === $currency
-        ? \App\Services\Finance\Money::of($wallet->getAvailableBalance(), $currency)->format()
+        ? \App\Services\Finance\Money::of((string) $wallet->balance, $currency)->format()
         : null;
-
-    /*
-     * The slip ceiling published to the browser is the server-side cap and nothing
-     * else. BulkBetRequest caps a slip at 50 items, so a configuration that asked for
-     * more would publish a ceiling the API refuses to honour - the browser would build
-     * a slip the server then rejects. The two therefore cannot drift apart.
-     */
-    $slipCeiling = min((int) config('lottery.bulk.max_items', 50), 50);
 @endphp
 
 <div class="space-y-8">
@@ -44,33 +30,19 @@
             <p class="mt-2 text-sm leading-6 text-amber-100/70">{{ __('player.no_open_draw_lead') }}</p>
             <a class="mt-4 inline-flex rounded-xl border border-amber-500/40 px-4 py-2 text-sm font-bold text-amber-300 hover:bg-amber-500/10" href="{{ route('player.draws') }}">{{ __('player.view_all') }}</a>
         </section>
-    @endif
-
-    {{--
-        The builder and the slip render whether or not a draw is currently open, because
-        they publish the platform's configured market vocabulary and slip ceiling to the
-        browser. Only the wrapper changes: a real form when a draw is open to wager on,
-        and a plain container when there is nothing to wager on yet. The purchase controls
-        are disabled in that state, so no slip can be submitted against no draw.
-    --}}
-    @if ($openDraw)
-        <form method="POST" action="{{ route('player.bets.purchase') }}" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]" data-bet-form data-draw-reference="{{ $openDraw->draw_number }}">
     @else
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-    @endif
+        <form method="POST" action="{{ route('player.bets.purchase') }}" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]" data-bet-form data-draw-reference="{{ $openDraw->draw_number }}">
             @csrf
-            <input type="hidden" name="draw_reference" value="{{ $openDraw?->draw_number }}">
+            <input type="hidden" name="draw_reference" value="{{ $openDraw->draw_number }}">
             <input type="hidden" name="client_key" value="" data-client-key>
 
             <section class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl sm:p-8" aria-labelledby="bet-builder-heading" data-ticket-selector>
                 <div class="flex flex-col gap-3 border-b border-slate-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p class="text-xs font-black uppercase tracking-wider text-emerald-400">{{ __('player.active_draw_label') }} {{ $openDraw?->draw_number ?? __('player.no_open_draw') }}</p>
+                        <p class="text-xs font-black uppercase tracking-wider text-emerald-400">{{ __('player.active_draw_label') }} {{ $openDraw->draw_number }}</p>
                         <h2 id="bet-builder-heading" class="mt-1 text-xl font-black text-white">{{ __('player.select_market') }}</h2>
                     </div>
-                    @if ($openDraw)
-                        <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase text-emerald-300">{{ __('player.status_open') }}</span>
-                    @endif
+                    <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase text-emerald-300">{{ __('player.status_open') }}</span>
                 </div>
 
                 <div class="mt-6 grid gap-5 sm:grid-cols-2">
@@ -93,7 +65,7 @@
                         <input id="stake-amount-input" type="text" inputmode="decimal" autocomplete="off" value="" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-lg text-white focus:border-amber-400 focus:outline-none" data-stake>
                     </div>
                     <div class="flex items-end">
-                        <button type="button" class="w-full rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 px-4 py-3 text-sm font-black text-slate-950 shadow-lg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50" id="btn-add-to-slip" @disabled(empty($marketOptions) || ! $openDraw)>
+                        <button type="button" class="w-full rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 px-4 py-3 text-sm font-black text-slate-950 shadow-lg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50" id="btn-add-to-slip" @disabled(empty($marketOptions))>
                             {{ __('player.add_to_slip') }}
                         </button>
                     </div>
@@ -110,7 +82,7 @@
                 <div class="mt-5 rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-200" role="status" aria-live="polite" data-selection-status></div>
             </section>
 
-            <aside id="bet-slip-container" class="rounded-3xl border border-amber-500/25 bg-slate-900/95 p-6 shadow-2xl" aria-labelledby="slip-heading" data-max-items="{{ $slipCeiling }}" data-draw-id="{{ $openDraw?->id }}">
+            <aside id="bet-slip-container" class="rounded-3xl border border-amber-500/25 bg-slate-900/95 p-6 shadow-2xl" aria-labelledby="slip-heading" data-max-items="{{ (int) config('lottery.bulk.max_items', 50) }}" data-draw-id="{{ $openDraw->id }}">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <h2 id="slip-heading" class="text-lg font-black text-white">{{ __('player.bet_slip_basket') }}</h2>
                     <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-300" data-slip-count>0</span>
@@ -123,15 +95,12 @@
                 </div>
                 <div class="flex justify-between gap-3 text-sm text-slate-400"><span>Maximum payout preview</span><strong id="total-payout-amount" class="font-mono text-white">0.00</strong></div>
                 <div class="mt-3 text-sm text-slate-300" role="status" aria-live="polite" data-slip-status></div>
-                <button id="btn-place-bet" type="button" class="mt-5 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50" data-submit-slip @disabled(! $openDraw)>
+                <button id="btn-place-bet" type="button" class="mt-5 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50" data-submit-slip disabled>
                     {{ __('player.confirm_place_bets') }}
                 </button>
                 <p class="mt-3 text-center text-[11px] leading-5 text-slate-500">{{ __('player.purchase_fail_closed_note') }}</p>
             </aside>
-    @if ($openDraw)
         </form>
-    @else
-        </div>
     @endif
 </div>
 @endsection

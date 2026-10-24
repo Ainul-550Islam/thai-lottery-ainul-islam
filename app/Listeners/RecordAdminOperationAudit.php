@@ -41,7 +41,7 @@ final class RecordAdminOperationAudit
         $exists = AuditLog::query()
             ->where('auditable_type', AdminOperation::class)
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_HOURS))
-            ->anchoredBy($anchor)
+            ->whereJsonContains('metadata->audit_anchor', $anchor)
             ->exists();
 
         if ($exists) {
@@ -61,7 +61,7 @@ final class RecordAdminOperationAudit
                 'status' => $operation->status->value,
                 'target_lane' => $operation->target_lane,
                 'evidence_fingerprint' => $operation->evidence_fingerprint,
-                AuditLog::ANCHOR_KEY => $anchor,
+                'audit_anchor' => $anchor,
                 'note' => $note,
             ],
         ]);

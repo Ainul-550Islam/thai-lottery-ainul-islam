@@ -23,6 +23,24 @@ use Illuminate\Support\Facades\DB;
  * Turn a validated set of entry drafts into immutable ledger rows for one
  * financial transaction, and roll the affected account balances forward in the
  * same atomic step.
+ *
+ * INVARIANTS ENFORCED HERE
+ * 1. Runs only inside the caller's transaction. It never opens or commits one,
+ *    because the account row locks it takes must live until the caller commits.
+ * 2. Debits must equal credits (delegated to LedgerBalanceValidator) before any
+ *    row is written, and re-verified from the persisted rows afterwards.
+ * 3. A transaction may be posted exactly once. The application re-check runs
+ *    after account locks are acquired, and the database unique key rejects a
+ *    repeated transaction/account/side posting even from another writer.
+ * 4. Accounts are locked in ascending id order, so two concurrent postings
+ *    touching the same accounts always take them in the same sequence and cannot
+ *    deadlock against each other.
+ * 5. Posted entries are append-only. This class contains no update and no delete
+ *    path for ledger_entries; a mistake is corrected by posting a reversal.
+ *
+ * The posting identity is financial transaction plus ledger account plus side.
+ * It permits the legitimate debit and credit pair and split postings to distinct
+ * accounts while rejecting accidental repetition of the same logical line.
  */
 final class LedgerPostingService
 {
@@ -39,68 +57,16 @@ final class LedgerPostingService
      *
      * @throws FinancialException
      */
-    public function post(
-        FinancialTransaction $transaction,
-        array $entries,
-        array $balancesAfter = [],
-        bool $preserveExplicitNulls = false,
-    ): array {
+    public function post(FinancialTransaction $transaction, array $entries, array $balancesAfter = []): array
+    {
         $this->assertInsideTransaction();
-        $lease = LedgerPostingInvocationLease::acquire(DB::connection()->getPdo());
+        $this->assertTransactionPostable($transaction);
 
-        try {
-            return $this->postInContext($transaction, $entries, $balancesAfter, $preserveExplicitNulls);
-        } finally {
-            $lease->release();
-        }
-    }
+        $normalised = $this->validator->validate($entries, $transaction->currency);
 
-    /**
-     * @param  array<int, array<string, mixed>>  $entries
-     * @param  array<int, mixed>  $balancesAfter
-     * @return list<LedgerEntry>
-     *
-     * @throws FinancialException
-     */
-    private function postInContext(
-        FinancialTransaction $transaction,
-        array $entries,
-        array $balancesAfter,
-        bool $preserveExplicitNulls,
-    ): array {
-        $canonical = $this->lockPostableTransaction($transaction);
+        $accounts = $this->lockAccounts($this->accountIdsFor($normalised), $transaction);
+        $this->assertNotAlreadyPosted($transaction);
 
-        $normalised = $this->validator->validate($entries, $canonical->currency);
-        $this->assertDistinctEntryIdentities($normalised);
-
-        $accountIds = $this->accountIdsFor($normalised);
-        $accounts = $this->lockAccounts($accountIds, $canonical);
-        $this->assertNotAlreadyPosted($canonical);
-
-        $witness = LedgerPostingInputWitness::capture(
-            $canonical->getAttributes(),
-            $this->accountAttributes($accounts),
-        );
-        $projectedBalances = (new LedgerAccountBalanceProjector)->project($accounts, $normalised);
-        $moneyPlan = (new LedgerEntryMoneyPreflight)->prepare(
-            $normalised,
-            $projectedBalances,
-            $balancesAfter,
-            $preserveExplicitNulls,
-        );
-
-        $boundary = LedgerPostingWriteBoundary::capture();
-        $payloadPlan = (new LedgerEntryPayloadPreflight)->prepare(
-            $normalised,
-            $canonical->currency,
-            $canonical->description,
-            $canonical->reference_type,
-        );
-        $boundary->assertUnchanged();
-        $this->assertPlanningInputsUnchanged($witness, (int) $canonical->getKey(), $accountIds);
-        $this->assertNotAlreadyPosted($canonical, false);
-
-        $rawEntries = array_values($entries);
         $postedAt = Carbon::now();
         $created = [];
 
@@ -108,56 +74,30 @@ final class LedgerPostingService
             /** @var LedgerAccount $account */
             $account = $accounts[$entry['ledger_account_id']];
 
-            $this->persistAccountBalance($account, $projectedBalances[$index]);
+            $accountBalanceAfter = $this->applyToAccountBalance($account, $entry['type'], $entry['amount']);
 
             $created[] = $this->writeEntry(
-                $canonical,
+                $transaction,
                 $entry,
-                $moneyPlan[$index],
-                $payloadPlan[$index],
                 $postedAt,
-                $preserveExplicitNulls && array_key_exists('wallet_id', $rawEntries[$index] ?? []),
+                $balancesAfter[$index] ?? $accountBalanceAfter->toString(),
             );
         }
 
-        $this->validator->assertTransactionBalanced($canonical);
+        // Read the rows back out of the database and re-verify the invariant on
+        // what was actually stored, not on what we intended to store. If the
+        // stored rows do not balance, the exception rolls the caller back.
+        $this->validator->assertTransactionBalanced($transaction->fresh() ?? $transaction);
 
         return $created;
     }
 
     /**
-     * @param  list<array{ledger_account_id: int, type: LedgerEntryType}>  $entries
-     *
-     * @throws FinancialException
-     */
-    private function assertDistinctEntryIdentities(array $entries): void
-    {
-        $seen = [];
-
-        foreach ($entries as $index => $entry) {
-            $accountId = $entry['ledger_account_id'];
-            $side = $entry['type']->value;
-            $key = $accountId.':'.$side;
-
-            if (isset($seen[$key])) {
-                throw FinancialException::withCode(
-                    'ledger_duplicate_entry_identity',
-                    'A single financial transaction posting cannot repeat the same ledger account and side.',
-                    [
-                        'ledger_account_id' => $accountId,
-                        'type' => $side,
-                        'first_entry_index' => $seen[$key],
-                        'entry_index' => $index,
-                    ],
-                );
-            }
-
-            $seen[$key] = $index;
-        }
-    }
-
-    /**
      * Return the currency-specific chart-of-accounts code.
+     *
+     * The primary currency retains the stable base code used by existing books.
+     * Every other currency receives an ISO suffix so a posting can never resolve
+     * an account denominated in another currency.
      */
     public static function accountCodeFor(string $baseCode, Currency $currency): string
     {
@@ -177,6 +117,11 @@ final class LedgerPostingService
 
     /**
      * Look up a chart-of-accounts entry by its code.
+     *
+     * The chart of accounts is seeded outside this phase, so a missing account is
+     * reported as an explicit, actionable failure rather than being created on
+     * the fly. Auto-creating accounts would let a typo invent a real account and
+     * silently absorb money.
      *
      * @throws FinancialException
      */
@@ -212,11 +157,9 @@ final class LedgerPostingService
      */
     public function hasPosting(FinancialTransaction $transaction): bool
     {
-        $transactionId = FinancialRecordIdentifier::fromModel($transaction, 'financial_entity_not_persisted');
-
         return LedgerEntry::query()
             ->withTrashed()
-            ->where('financial_transaction_id', $transactionId)
+            ->where('financial_transaction_id', $transaction->getKey())
             ->exists();
     }
 
@@ -227,16 +170,17 @@ final class LedgerPostingService
      */
     public function postedEntriesFor(FinancialTransaction $transaction)
     {
-        $transactionId = FinancialRecordIdentifier::fromModel($transaction, 'financial_entity_not_persisted');
-
         return LedgerEntry::query()
-            ->where('financial_transaction_id', $transactionId)
+            ->where('financial_transaction_id', $transaction->getKey())
             ->orderBy('id')
             ->get();
     }
 
     /**
      * Derived status of an account, from the is_active flag and soft delete.
+     *
+     * The audited ledger_accounts table has no status column; this keeps the
+     * posting rules expressed in one vocabulary without changing the schema.
      */
     public function statusOf(LedgerAccount $account): LedgerAccountStatus
     {
@@ -328,72 +272,28 @@ final class LedgerPostingService
     }
 
     /**
-     * @param  array<int, LedgerAccount>  $accounts
-     * @return array<int, array<string, mixed>>
-     */
-    private function accountAttributes(array $accounts): array
-    {
-        $rows = [];
-
-        foreach ($accounts as $id => $account) {
-            $rows[(int) $id] = $account->getAttributes();
-        }
-
-        return $rows;
-    }
-
-    /**
-     * @param  list<int>  $accountIds
+     * Roll an account's cached balance forward and persist it.
+     *
+     * The direction depends on the account's normal balance: a debit increases an
+     * asset or expense account and decreases a liability, equity or revenue
+     * account. Arithmetic is exact (bcmath via Money).
      *
      * @throws FinancialException
      */
-    private function assertPlanningInputsUnchanged(
-        LedgerPostingInputWitness $witness,
-        int $transactionId,
-        array $accountIds,
-    ): void {
-        sort($accountIds, SORT_NUMERIC);
-
-        $currentTransaction = FinancialTransaction::withTrashed()
-            ->whereKey($transactionId)
-            ->lockForUpdate()
-            ->first();
-
-        /** @var array<int, LedgerAccount> $currentAccounts */
-        $currentAccounts = LedgerAccount::withTrashed()
-            ->whereIn('id', $accountIds)
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->get()
-            ->keyBy('id')
-            ->all();
-
-        $witness->assertUnchanged(
-            $currentTransaction?->getAttributes(),
-            $this->accountAttributes($currentAccounts),
-        );
-    }
-
-    /**
-     * Persist an already-projected account balance.
-     *
-     * @throws FinancialException
-     */
-    private function persistAccountBalance(LedgerAccount $account, Money $nextBalance): void
+    private function applyToAccountBalance(LedgerAccount $account, LedgerEntryType $side, Money $amount): Money
     {
-        $accountId = (int) $account->getKey();
-        $account->current_balance = $nextBalance->toString();
+        $current = Money::fromDatabase((string) $account->current_balance, $account->currency);
 
-        if ($account->save() !== true) {
-            throw FinancialException::withCode(
-                'ledger_account_write_refused',
-                'Refusing to continue ledger posting after an account balance write was vetoed.',
-                [
-                    'stage' => 'account_balance_write',
-                    'ledger_account_id' => $accountId,
-                ],
-            );
-        }
+        $next = $account->type->increasesWith($side)
+            ? $current->plus($amount)
+            : $current->minus($amount);
+
+        // current_balance is intentionally not mass assignable on the model, so
+        // it is set directly here: this service is the only permitted writer.
+        $account->current_balance = $next->toString();
+        $account->save();
+
+        return $next;
     }
 
     /**
@@ -409,52 +309,34 @@ final class LedgerPostingService
      *     reference_id: int|null,
      *     metadata: array<string, mixed>|null
      * }  $entry
-     * @param  array{amount: string, balance_after: string|null}  $moneyPlan
-     * @param  array{description: string|null, reference_type: string|null, metadata: string|null}  $payloadPlan
-     *
-     * @throws FinancialException
      */
     private function writeEntry(
         FinancialTransaction $transaction,
         array $entry,
-        array $moneyPlan,
-        array $payloadPlan,
         Carbon $postedAt,
-        bool $preserveNullWalletId = false,
+        ?string $balanceAfter,
     ): LedgerEntry {
         $ledgerEntry = new LedgerEntry;
 
         $ledgerEntry->fill([
             'ledger_account_id' => $entry['ledger_account_id'],
             'financial_transaction_id' => (int) $transaction->getKey(),
-            'wallet_id' => $preserveNullWalletId ? $entry['wallet_id'] : ($entry['wallet_id'] ?? $transaction->wallet_id),
+            'wallet_id' => $entry['wallet_id'] ?? $transaction->wallet_id,
             'type' => $entry['type'],
-            'amount' => $moneyPlan['amount'],
+            'amount' => $entry['amount']->toString(),
             'currency' => $transaction->currency,
-            'description' => $payloadPlan['description'],
-            'reference_type' => $payloadPlan['reference_type'],
+            'description' => $entry['description'] ?? $transaction->description,
+            'reference_type' => $entry['reference_type'] ?? $transaction->reference_type,
             'reference_id' => $entry['reference_id'] ?? $transaction->reference_id,
+            'metadata' => $entry['metadata'],
             'posted_at' => $postedAt,
         ]);
 
-        $ledgerEntry->setRawAttributes(
-            array_replace(
-                $ledgerEntry->getAttributes(),
-                ['metadata' => $payloadPlan['metadata']],
-            ),
-        );
-        $ledgerEntry->balance_after = $moneyPlan['balance_after'];
+        // balance_after is deliberately excluded from the model's $fillable so
+        // that no request payload can reach it; only this service sets it.
+        $ledgerEntry->balance_after = $balanceAfter;
 
-        if ($ledgerEntry->save() !== true) {
-            throw FinancialException::withCode(
-                'ledger_entry_write_refused',
-                'Refusing to continue ledger posting after a ledger entry write was vetoed.',
-                [
-                    'stage' => 'ledger_entry_write',
-                    'ledger_account_id' => $entry['ledger_account_id'],
-                ],
-            );
-        }
+        $ledgerEntry->save();
 
         return $ledgerEntry;
     }
@@ -471,104 +353,56 @@ final class LedgerPostingService
                 .'creation and account balance updates must commit or roll back together.',
             );
         }
-
-        app(WalletLockService::class)->assertConsistentTransactionState();
     }
 
     /**
-     * Lock and reload the canonical transaction root.
+     * The transaction must be persisted and still in flight.
      *
      * @throws FinancialException
      */
-    private function lockPostableTransaction(FinancialTransaction $transaction): FinancialTransaction
+    private function assertTransactionPostable(FinancialTransaction $transaction): void
     {
-        $transactionId = FinancialRecordIdentifier::fromModel(
-            $transaction,
-            'ledger_posting_unpersisted_transaction',
-        );
-
-        $locked = FinancialTransaction::query()
-            ->whereKey($transactionId)
-            ->lockForUpdate()
-            ->first();
-
-        if (! $locked instanceof FinancialTransaction) {
+        if (! $transaction->exists) {
             throw FinancialException::withCode(
-                'ledger_posting_transaction_missing',
-                sprintf('Financial transaction %d no longer exists or has been deleted.', $transactionId),
-                ['transaction_id' => $transactionId],
+                'ledger_posting_unpersisted_transaction',
+                'Cannot post ledger entries for a financial transaction that has not been persisted.',
             );
         }
 
         $allowed = [TransactionStatus::Pending, TransactionStatus::Processing];
 
-        if (! in_array($locked->status, $allowed, true)) {
+        if (! in_array($transaction->status, $allowed, true)) {
             throw FinancialException::withCode(
                 'ledger_posting_invalid_transaction_status',
                 sprintf(
                     'Financial transaction %d is %s; ledger entries may only be posted '
                     .'while a transaction is pending or processing.',
-                    $transactionId,
-                    $locked->status->value,
+                    (int) $transaction->getKey(),
+                    $transaction->status->value,
                 ),
                 [
-                    'transaction_id' => $transactionId,
-                    'transaction_status' => $locked->status->value,
+                    'transaction_id' => (int) $transaction->getKey(),
+                    'transaction_status' => $transaction->status->value,
                 ],
             );
         }
-
-        return $locked;
     }
 
     /**
      * @throws FinancialException
      */
-    private function assertNotAlreadyPosted(FinancialTransaction $transaction, bool $includeCommitted = true): void
+    private function assertNotAlreadyPosted(FinancialTransaction $transaction): void
     {
-        $transactionId = (int) $transaction->getKey();
-
-        if ($this->hasCurrentPosting($transactionId, $includeCommitted)) {
+        if ($this->hasPosting($transaction)) {
             throw FinancialException::withCode(
                 'ledger_duplicate_posting',
                 sprintf(
                     'Financial transaction %d already has ledger entries; posting twice '
                     .'would double the money movement.',
-                    $transactionId,
+                    (int) $transaction->getKey(),
                 ),
-                ['transaction_id' => $transactionId],
+                ['transaction_id' => (int) $transaction->getKey()],
             );
         }
-    }
-
-    /**
-     * @throws FinancialException
-     */
-    private function hasCurrentPosting(int $transactionId, bool $includeCommitted = true): bool
-    {
-        if (LedgerEntry::withTrashed()->where('financial_transaction_id', $transactionId)->exists()) {
-            return true;
-        }
-
-        if (! $includeCommitted) {
-            return false;
-        }
-
-        $writer = DB::connection();
-        $driver = $writer->getDriverName();
-
-        if ($driver === 'sqlite') {
-            return false;
-        }
-
-        if ($driver === 'mysql' || $driver === 'mariadb') {
-            return app(LedgerPostingObserver::class)->hasPosting($writer, $transactionId);
-        }
-
-        throw FinancialException::withCode(
-            'ledger_posting_current_reader_invalid',
-            sprintf('Current journal observation is not certified for database driver "%s".', $driver),
-            ['driver' => $driver],
-        );
     }
 }

@@ -7,7 +7,6 @@ namespace Database\Factories;
 use App\Enums\DrawPublicationStatus;
 use App\Enums\GloSourceState;
 use App\Models\BingoLotteryDraw;
-use Database\Factories\Support\LotteryFactoryDate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -31,8 +30,8 @@ class BingoLotteryDrawFactory extends Factory
      */
     public function definition(): array
     {
-        $timezone = (string) config('bingo_lottery.timezone', 'Asia/Bangkok');
-        $date = LotteryFactoryDate::previous(BingoLotteryDraw::class, $timezone, $this->faker->numberBetween(1, 900));
+        $timezone = config('bingo_lottery.timezone', 'Asia/Bangkok');
+        $date = now($timezone)->subDays($this->faker->numberBetween(1, 900));
         $iso = $date->toDateString();
 
         return [

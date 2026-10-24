@@ -10,9 +10,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
+        if (! Schema::hasColumn('users', 'last_seen_at')) {
+            Schema::table('users', function (Blueprint $table): void {
             $table->timestamp('last_seen_at')->nullable()->index();
         });
+        }
     }
 
     public function down(): void

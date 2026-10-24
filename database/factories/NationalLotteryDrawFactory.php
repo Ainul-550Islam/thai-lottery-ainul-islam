@@ -7,7 +7,6 @@ namespace Database\Factories;
 use App\Enums\DrawPublicationStatus;
 use App\Enums\GloSourceState;
 use App\Models\NationalLotteryDraw;
-use Database\Factories\Support\LotteryFactoryDate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -27,10 +26,7 @@ class NationalLotteryDrawFactory extends Factory
      */
     public function definition(): array
     {
-        $timezone = (string) config('national_lottery.timezone', 'Asia/Bangkok');
-        $date = LotteryFactoryDate::previous(
-            NationalLotteryDraw::class,
-            $timezone,
+        $date = now(config('national_lottery.timezone', 'Asia/Bangkok'))->subDays(
             $this->faker->numberBetween(1, 900),
         );
 

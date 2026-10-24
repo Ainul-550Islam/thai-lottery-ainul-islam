@@ -25,23 +25,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('webhook_receipts', function (Blueprint $table): void {
-            $table->id();
-            $table->string('gateway', 64);
-
-            // sha256 hex of gateway|timestamp|signature — the replay identity.
-            $table->string('nonce', 64)->unique();
-
-            $table->unsignedBigInteger('signature_timestamp');
-            $table->string('status', 16)->default('accepted');
-            $table->string('ip_address', 45)->nullable();
-            $table->string('path', 255)->nullable();
-            $table->timestamp('received_at')->useCurrent();
-
-            // Replay triage: "everything refused on this gateway, newest first".
-            $table->index(['gateway', 'status', 'received_at'], 'webhook_receipts_triage_index');
-            $table->index('received_at');
-        });
+        if (! Schema::hasTable('webhook_receipts')) {
+            Schema::create('webhook_receipts', function (Blueprint $table): void {
+                $table->id();
+                $table->string('gateway', 64);
+    
+                // sha256 hex of gateway|timestamp|signature — the replay identity.
+                $table->string('nonce', 64)->unique();
+    
+                $table->unsignedBigInteger('signature_timestamp');
+                $table->string('status', 16)->default('accepted');
+                $table->string('ip_address', 45)->nullable();
+                $table->string('path', 255)->nullable();
+                $table->timestamp('received_at')->useCurrent();
+    
+                // Replay triage: "everything refused on this gateway, newest first".
+                $table->index(['gateway', 'status', 'received_at'], 'webhook_receipts_triage_index');
+                $table->index('received_at');
+            });
+        }
     }
 
     public function down(): void

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Enums\QueueName;
 use App\Models\AmlRiskAssessment;
 use App\Models\User;
 use App\Services\Compliance\AmlRiskAssessmentService;
@@ -38,7 +37,7 @@ final class ReassessAmlRiskJob implements ShouldQueue
     public function __construct(
         public readonly int $afterUserId = 0,
     ) {
-        $this->onQueue(QueueName::Reconciliation->value);
+        $this->onQueue('finance-reconciliation');
     }
 
     public function handle(AmlRiskAssessmentService $assessments): void

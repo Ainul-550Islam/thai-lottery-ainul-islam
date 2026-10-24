@@ -44,15 +44,9 @@ final class ConversionPolicyGuard implements ConversionPolicyContract
             throw ConversionException::failure('currency_mismatch', 'Conversion never crosses currencies.');
         }
         $this->members->assertAllowed($request->userId);
-        $row = $this->config->get($request->direction->feeConfigPath());
-        $execPath = is_array($row) ? ($row['execution'] ?? null) : null;
-        $liveMissing = is_string($execPath) && $execPath !== '' && $this->config->get($execPath) === null;
         $price = $this->fees->breakdownFor($request->direction, $request->amount, $request->currency->value);
-        if ($liveMissing || bccomp($price->netAmount, '0', 2) <= 0) {
+        if (! $price->isConfigured || bccomp($price->netAmount, '0', 2) <= 0) {
             throw ConversionException::failure('fee_rule_invalid', 'No valid, effective conversion fee is configured.');
-        }
-        if (! $price->isConfigured) {
-            throw ConversionDisabledException::feature();
         }
         $this->limits->assertAllowed($request->userId, $request->amount, $request->currency);
         if ($advisory) {
@@ -69,9 +63,6 @@ final class ConversionPolicyGuard implements ConversionPolicyContract
 
             return ConversionPolicyDecisionData::allow(['policy' => true]);
         } catch (ConversionException $error) {
-            if ($error->errorCode() === 'currency_not_configured') {
-                throw $error;
-            }
             // Unknown failures remain closed; never turn an unknown refusal into allowance.
             $reason = $error->rejectionReason() ?? WalletConversionRejectionReason::FeatureDisabled;
 

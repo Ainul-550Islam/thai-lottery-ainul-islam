@@ -27,10 +27,12 @@ final class RealMoneyGateTest extends TestCase
     {
         // config/real_money.php reads env('REAL_MONEY_ENABLED', false). With no env var set, the
         // shipped default must be closed.
-        if (env('REAL_MONEY_ENABLED') === null) {
-            $shipped = require __DIR__.'/../../../config/real_money.php';
-            $this->assertFalse($shipped['enabled']);
-        }
+        // The test environment sets REAL_MONEY_ENABLED=true, so the runtime value cannot prove
+        // the shipped default. Check the source instead: the fallback must be the literal false.
+        $source = file_get_contents(__DIR__.'/../../../config/real_money.php');
+        $this->assertIsString($source);
+        $this->assertStringContainsString("env('REAL_MONEY_ENABLED', false)", $source);
+        $this->assertStringNotContainsString("env('REAL_MONEY_ENABLED', true)", $source);
     }
 
     public function test_the_gate_refuses_unless_exactly_true(): void
@@ -54,7 +56,7 @@ final class RealMoneyGateTest extends TestCase
     {
         $user = User::factory()->create();
         $wallet = app(WalletService::class)->getOrCreateWallet($user, Currency::THB);
-        app(WalletService::class)->credit($wallet, '500.00', 'seed', 'gate-seed-0000000001', 'Seed');
+        app(WalletService::class)->credit($wallet, '500.00', 'seed', 'gate-seed-0000000001', ['description' => 'Seed']);
 
         config(['real_money.enabled' => false]);
 

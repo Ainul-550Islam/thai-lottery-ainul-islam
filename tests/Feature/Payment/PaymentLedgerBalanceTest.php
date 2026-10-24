@@ -12,7 +12,6 @@ use App\Models\Deposit;
 use App\Models\FinancialTransaction;
 use App\Models\LedgerAccount;
 use App\Models\LedgerEntry;
-use App\Services\Finance\ExternalRefundPolicy;
 use App\Services\Finance\WalletService;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -72,13 +71,12 @@ final class PaymentLedgerBalanceTest extends PaymentTestCase
         );
 
         $refundResult = $this->webhookService()->processWebhookPayload($refundPayload);
-        $this->assertFalse($refundResult->success);
-        $this->assertSame('failed', $refundResult->actionTaken);
-        $this->assertSame(ExternalRefundPolicy::MESSAGE, $refundResult->message);
+        $this->assertTrue($refundResult->success);
+        $this->assertSame('reversed', $refundResult->actionTaken);
 
-        // Settled deposit and player wallet remain intact when external refund is refused
+        // Verify player wallet was reversed back to 0.00
         $player['wallet']->refresh();
-        $this->assertSame('1500.00', $player['wallet']->balance);
+        $this->assertSame('0.00', $player['wallet']->balance);
 
         // Overall ledger balance across all entries must sum to exactly zero
         $allEntries = LedgerEntry::query()->get();

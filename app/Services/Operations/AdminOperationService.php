@@ -319,7 +319,7 @@ final class AdminOperationService
                 'compliance_flag' => true,
                 'reason' => $reason,
                 'target_reference' => $operation->target_reference,
-                AuditLog::ANCHOR_KEY => 'adminop-flag:'.$operation->operation_fingerprint,
+                'audit_anchor' => 'adminop-flag:'.$operation->operation_fingerprint,
             ],
         ]);
 

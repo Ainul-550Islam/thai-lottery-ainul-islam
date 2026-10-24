@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\Security\ReviewFraudAlertRequest;
 use App\Http\Resources\Api\V1\FraudAlertResource;
 use App\Models\FraudAlert;
 use App\Services\Security\FraudAlertReviewService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -22,6 +23,8 @@ class FraudAlertController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', FraudAlert::class);
+
         $query = FraudAlert::with('cases')->orderBy('created_at', 'desc');
 
         if ($status = $request->query('status')) {
@@ -38,6 +41,7 @@ class FraudAlertController extends Controller
     public function show(string $id): JsonResponse
     {
         $alert = FraudAlert::with('cases')->findOrFail($id);
+        $this->authorize('view', $alert);
 
         return response()->json([
             'success' => true,
@@ -49,13 +53,25 @@ class FraudAlertController extends Controller
     {
         $reviewerId = (string) $request->user()?->id;
 
-        $alert = $this->reviewService->review(
-            alertId: $id,
-            reviewerId: $reviewerId,
-            action: (string) $request->input('action'),
-            decisionReason: (string) $request->input('decision_reason'),
-            metadata: (array) $request->input('metadata', []),
-        );
+        try {
+            $alert = $this->reviewService->review(
+                alertId: $id,
+                reviewerId: $reviewerId,
+                action: (string) $request->input('action'),
+                decisionReason: (string) $request->input('decision_reason'),
+                metadata: (array) $request->input('metadata', []),
+            );
+        } catch (DomainException $e) {
+            $status = str_contains($e->getMessage(), 'Maker-checker')
+                ? Response::HTTP_FORBIDDEN
+                : Response::HTTP_CONFLICT;
+
+            return response()->json([
+                'success' => false,
+                'error' => $status === Response::HTTP_FORBIDDEN ? 'MAKER_CHECKER_VIOLATION' : 'FRAUD_ALERT_ALREADY_RESOLVED',
+                'message' => $e->getMessage(),
+            ], $status);
+        }
 
         return response()->json([
             'success' => true,

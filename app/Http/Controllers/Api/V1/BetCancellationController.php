@@ -6,8 +6,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\Betting\BetCancellationData;
 use App\Exceptions\BetDomainException;
-use App\Exceptions\FinancialException;
-use App\Exceptions\RiskException;
 use App\Http\Requests\Api\V1\CancelBetRequest;
 use App\Http\Resources\BetCancellationResource;
 use App\Http\Responses\ApiResponse;
@@ -43,14 +41,8 @@ class BetCancellationController
                 $bet,
                 $request->validated(),
             ));
-        } catch (BetDomainException|RiskException $e) {
-            return ApiResponse::error($e->errorCode(), $e->getMessage(), 422);
-        } catch (FinancialException) {
-            return ApiResponse::error(
-                'bet_cancellation_financial_refusal',
-                'The cancellation could not be completed safely; preserve the current purchase for review.',
-                422,
-            );
+        } catch (BetDomainException $e) {
+            return ApiResponse::error($e->codeKey(), $e->getMessage(), 422);
         }
 
         return ApiResponse::success(

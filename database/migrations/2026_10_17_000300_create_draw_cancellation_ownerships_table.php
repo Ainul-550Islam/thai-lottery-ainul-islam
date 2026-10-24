@@ -11,20 +11,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('draw_cancellation_ownerships', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('draw_id')->unique()->constrained('draws')->restrictOnDelete();
-            $table->foreignId('actor_user_id')->constrained('users')->restrictOnDelete();
-            $table->string('previous_status', 32);
-            $table->string('reason', 500);
-            $table->json('participants');
-            $table->string('terms_hash', 64);
-            $table->json('outcomes')->nullable();
-            $table->string('outcome_hash', 64)->nullable();
-            $table->string('state', 16);
-            $table->timestamp('completed_at')->nullable();
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('draw_cancellation_ownerships')) {
+            Schema::create('draw_cancellation_ownerships', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('draw_id')->unique()->constrained('draws')->restrictOnDelete();
+                $table->foreignId('actor_user_id')->constrained('users')->restrictOnDelete();
+                $table->string('previous_status', 32);
+                $table->string('reason', 500);
+                $table->json('participants');
+                $table->string('terms_hash', 64);
+                $table->json('outcomes')->nullable();
+                $table->string('outcome_hash', 64)->nullable();
+                $table->string('state', 16);
+                $table->timestamp('completed_at')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

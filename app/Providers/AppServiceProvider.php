@@ -29,7 +29,6 @@ class AppServiceProvider extends ServiceProvider
         // service. GloDataMatrixParser is the only implementation today and
         // already reports 'not_configured' when no format is authorised.
         $this->app->bind(GloDataMatrixParserInterface::class, GloDataMatrixParser::class);
-        $this->app->bind(\App\Services\Betting\BetAmendmentReplacement::class, \App\Services\Betting\BetPurchaseService::class);
 
         // The versioned responsible-gaming limit service must be explicitly
         // bound: PlayerWebController accepts it as an optional constructor
@@ -37,6 +36,12 @@ class AppServiceProvider extends ServiceProvider
         // overrides a developer default for an unbound class. Without this
         // binding the versioned pronouncements would silently never happen.
         $this->app->bind(ResponsibleGamingLimitService::class);
+
+        // Bind application VerifyCsrfToken (strict webhook-only allowlist) to Laravel 12's ValidateCsrfToken slot.
+        $this->app->bind(
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+            \App\Http\Middleware\VerifyCsrfToken::class,
+        );
 
         // Laravel 12 removed the old named-limiter probe; keep the adapter
         // available for the existing security contract without changing the
@@ -465,22 +470,6 @@ class AppServiceProvider extends ServiceProvider
                     ->response($this->throttleResponse()),
                 Limit::perMinutes($decayMinutes, $maxAttempts * 5)
                     ->by('login:ip:'.$request->ip())
-                    ->response($this->throttleResponse()),
-            ];
-        });
-
-        $registerMaxAttempts = (int) config('security.rate_limits.register.max_attempts', 5);
-        $registerDecayMinutes = (int) config('security.rate_limits.register.decay_minutes', 60);
-
-        RateLimiter::for('register', function (Request $request) use ($registerMaxAttempts, $registerDecayMinutes): array {
-            $identifier = mb_strtolower(trim((string) $request->input('email', $request->input('mobile', ''))));
-
-            return [
-                Limit::perMinutes($registerDecayMinutes, $registerMaxAttempts)
-                    ->by('register:id:'.sha1($identifier))
-                    ->response($this->throttleResponse()),
-                Limit::perMinutes($registerDecayMinutes, $registerMaxAttempts * 5)
-                    ->by('register:ip:'.$request->ip())
                     ->response($this->throttleResponse()),
             ];
         });

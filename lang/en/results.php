@@ -2,10 +2,9 @@
 
 return [
     'meta_title' => 'Public Results Hub',
-    'meta_description' => 'Published lottery results from configured, source-labelled result records.',
+    'meta_description' => 'Published lottery results from the application public results projection.',
     'title' => 'Public Results Hub',
-    'lead' => 'Review published results and the source status shown for each record.',
-    'independent_notice' => 'Independent result hub: figures on this page come from this application and are labeled with their verification provenance.',
+    'lead' => 'Review published results supplied by the verified public results projection.',
     'published_results' => 'Published results',
     'no_public_data' => 'No public result data is available.',
     'unavailable' => 'Result data is temporarily unavailable.',
@@ -25,13 +24,4 @@ return [
     'search_link' => 'Search published results',
     'not_published' => 'Not published',
     'no_prize_data' => 'No prize data published',
-    'card_draw' => 'Draw #:number',
-    'date_pending' => 'Date pending',
-    'fixture_sample' => 'Fixture Sample',
-    'first_prize_winner' => '1st Prize Winner',
-    'six_digit_series' => '6-Digit Matching Series',
-    'bottom_two_label' => '2-Digit Bottom:',
-    'second_sample' => '2nd Prize (Sample):',
-    'version' => 'Ver',
-    'breakdown_link' => 'Full Prize Breakdown',
 ];

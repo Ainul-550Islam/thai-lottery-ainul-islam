@@ -9,87 +9,89 @@ use App\DTOs\Finance\PayoutRequestData;
 use App\Enums\AuditAction;
 use App\Enums\PayoutApprovalStatus;
 use App\Enums\PayoutStatus;
-use App\Enums\PrizePayoutMethod;
 use App\Enums\RiskLevel;
 use App\Exceptions\PayoutApprovalException;
-use App\Exceptions\PayoutTransferException;
-use App\Exceptions\PrizeClaimException;
 use App\Models\AuditLog;
 use App\Models\Payout;
-use App\Models\User;
-use App\Services\Payment\PayoutTransferAccess;
-use App\Services\Prize\PrizeClaimCompletionService;
-use App\Services\Prize\PrizeClaimGuard;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * The maker/checker (four-eyes) lane a payout obligation must cross before
+ * money is released against it.
+ *
+ * WHERE THE LANE LIVES
+ * --------------------
+ * On the payout row's `metadata` JSON under the {@see self::METADATA_KEY}
+ * key. No separate table: the payout row IS the obligation anchor (amount,
+ * currency, beneficiary, idempotent reference), and the approval lane never
+ * needs rows the payout itself doesn't name. The row id doubles as the
+ * request id — one payout, one request, one decision.
+ *
+ * THE FOUR-EYES INVARIANT
+ * -----------------------
+ * The person who REQUESTED a payout may never be the person who APPROVES
+ * or REJECTS it. Enforced here, in code, at decision time — the database
+ * cannot express "maker ≠ checker". {@see PayoutApprovalException} carries
+ * the named refusal for every invariant the lane defends.
+ *
+ * STATES (PayoutApprovalStatus)
+ *   Pending   — maker raised it, checker has not spoken
+ *   Approved  — checker agreed; the batch lane (GeneratePayoutBatchJob)
+ *               selects only payouts whose approval lane sits here
+ *   Rejected  — checker refused (a stated reason is mandatory)
+ *   Completed — the money actually moved (marked by the execution lane;
+ *               this service never moves money itself)
+ *
+ * MONEY NEVER MOVES HERE
+ * ----------------------
+ * This service writes the HUMAN verdict only. Crediting, batching and
+ * executing belong to the payout/batch lane; a reversal of that lane is a
+ * separate concern still. The only coupling is the read-only question
+ * {@see self::isApproved()} answers for the batch selector.
+ *
+ * IDEMPOTENCY
+ * -----------
+ * `request()` joins silently when the same request key already occupies the
+ * lane (two makers racing the same obligation land on one record).
+ * `decide()` replays are refused loudly — a second decision would silently
+ * rewrite the audit of the first.
+ */
 class PayoutApprovalService
 {
+    /**
+     * The metadata key under which the approval record lives on the payout.
+     */
     public const METADATA_KEY = 'approval';
 
     /**
-     * @return array<string, mixed>
+     * Submit a maker request for a payout obligation.
+     *
+     * Idempotent: the same prize reference + amount + currency + beneficiary
+     * always derives the same request key (see PayoutRequestData::deriveRequestKey),
+     * so a retry — network replay, double submit, queue re-delivery — returns
+     * the existing record unchanged.
+     *
+     * A live pending lane occupied by a MATERIALLY DIFFERENT request is refused:
+     * replacing a pending request silently would rewrite what the checker is
+     * about to read.
+     *
+     * @return array<string, mixed>  The approval record as written.
      */
     public function request(Payout $payout, PayoutRequestData $data): array
     {
-        $maker = app(PayoutTransferAccess::class)->authorize(
-            User::query()->find($data->requesterUserId),
-            PayoutTransferAccess::REQUEST,
-        );
-
-        return DB::transaction(function () use ($payout, $data, $maker): array {
-            $row = Payout::query()->lockForUpdate()->find((int) $payout->getKey());
-            if (! $row instanceof Payout || $row->trashed()) {
+        return DB::transaction(function () use ($payout, $data): array {
+            $locked = Payout::query()->lockForUpdate()->find((int) $payout->getKey());
+            if (! $locked instanceof Payout) {
                 throw PayoutApprovalException::requestNotFound((int) $payout->getKey());
             }
 
-            $currentMaker = app(PayoutTransferAccess::class)->authorize($maker, PayoutTransferAccess::REQUEST);
-            $this->assertRequestFacts($row, $data, (int) $currentMaker->id);
+            $existing = $this->recordFor($locked);
 
-            $rawMeta = $row->getRawOriginal('metadata');
-            if ($rawMeta !== null && ! is_array($row->metadata)) {
-                $this->refuseShape($row);
-            }
-            $metadata = is_array($row->metadata) ? $row->metadata : [];
-            if ((array_key_exists('claim', $metadata) && ! is_array($metadata['claim']))
-                || (array_key_exists(self::METADATA_KEY, $metadata) && ! is_array($metadata[self::METADATA_KEY]))) {
-                $this->refuseShape($row);
-            }
-
-            $target = $this->normalizeBeneficiary($row, $data->method, $data->beneficiary);
-            $claim = is_array($metadata['claim'] ?? null) ? $metadata['claim'] : [];
-            if (array_key_exists('payout_method', $claim) && $claim['payout_method'] !== $data->method->value) {
-                $this->refuseShape($row);
-            }
-            if (array_key_exists('beneficiary', $claim) && $claim['beneficiary'] !== null) {
-                if (! is_array($claim['beneficiary'])) {
-                    $this->refuseShape($row);
-                }
-                $existingTarget = $claim['beneficiary'];
-                ksort($existingTarget);
-                if ($existingTarget !== $target) {
-                    $this->refuseShape($row);
-                }
-            }
-
-            $existing = $metadata[self::METADATA_KEY] ?? null;
             if (is_array($existing)) {
                 $status = $this->statusOf($existing);
-                try {
-                    app(PrizeClaimGuard::class)->assertPayableClaim($row);
-                    app(PayoutApprovalGuard::class)->assertBeneficiary($row);
-                    $currentHash = app(PayoutApprovalGuard::class)->fingerprint($row);
-                } catch (PayoutTransferException) {
-                    $this->refuseShape($row);
-                }
 
-                if ($status === PayoutApprovalStatus::Pending
-                    && ($existing['request_key'] ?? null) === $data->requestKey
-                    && (int) ($existing['maker_user_id'] ?? 0) === (int) $currentMaker->id
-                    && is_string($existing['facts_hash'] ?? null)
-                    && hash_equals($currentHash, $existing['facts_hash'])) {
-                    $this->syncCaller($payout, $row);
-
+                if (($existing['request_key'] ?? null) === $data->requestKey) {
                     return $existing;
                 }
 
@@ -97,44 +99,50 @@ class PayoutApprovalService
                     throw new PayoutApprovalException(
                         sprintf(
                             'Payout #%d already carries a DIFFERENT pending request; amending a lane the checker may be reading is refused.',
-                            (int) $row->getKey(),
+                            (int) $locked->getKey(),
                         ),
                         PayoutApprovalException::CODE_NOT_PENDING,
                         [
-                            'request_id' => (int) $row->getKey(),
+                            'request_id' => (int) $locked->getKey(),
                             'current_status' => PayoutApprovalStatus::Pending->value,
                         ],
                     );
                 }
 
                 throw PayoutApprovalException::notPending(
-                    (int) $row->getKey(),
+                    (int) $locked->getKey(),
                     $status?->value ?? 'unknown',
                 );
             }
 
-            if ($row->status !== PayoutStatus::Pending || $row->financial_transaction_id !== null) {
-                throw PayoutApprovalException::notPending((int) $row->getKey(), $row->status->value);
+            if (bccomp($data->amount, (string) $locked->amount, 2) !== 0) {
+                throw new PayoutApprovalException(
+                    sprintf(
+                        'Payout #%d: request amount %s drifts from the payout obligation %s; the lane only ever carries the payout\'s own money.',
+                        (int) $locked->getKey(),
+                        $data->amount,
+                        (string) $locked->amount,
+                    ),
+                    PayoutApprovalException::CODE_DECISION_SHAPE,
+                    [
+                        'request_id' => (int) $locked->getKey(),
+                        'requested_amount' => $data->amount,
+                        'payout_amount' => (string) $locked->amount,
+                    ],
+                );
             }
 
+            $metadata = is_array($locked->metadata) ? $locked->metadata : [];
+            $claim = is_array($metadata['claim'] ?? null) ? $metadata['claim'] : [];
             $claim['payout_method'] = $data->method->value;
-            $claim['beneficiary'] = $target;
+            $claim['beneficiary'] = $data->method === \App\Enums\PrizePayoutMethod::Wallet ? null : $data->beneficiary;
             $metadata['claim'] = $claim;
-            $row->metadata = $metadata;
-
-            try {
-                app(PrizeClaimGuard::class)->assertPayableClaim($row);
-                app(PayoutApprovalGuard::class)->assertBeneficiary($row);
-                $factsHash = app(PayoutApprovalGuard::class)->fingerprint($row);
-            } catch (PayoutTransferException) {
-                $this->refuseShape($row);
-            }
+            $locked->metadata = $metadata;
 
             $record = [
                 'request_key' => $data->requestKey,
-                'facts_hash' => $factsHash,
                 'status' => PayoutApprovalStatus::Pending->value,
-                'maker_user_id' => (int) $currentMaker->id,
+                'maker_user_id' => $data->requesterUserId,
                 'checker_user_id' => null,
                 'reason' => $data->reason,
                 'decision_reason' => null,
@@ -142,183 +150,139 @@ class PayoutApprovalService
                 'decided_at' => null,
                 'completed_at' => null,
                 'request_context' => $data->context,
+                'facts_hash' => app(PayoutApprovalGuard::class)->fingerprint($locked),
             ];
 
-            $metadata[self::METADATA_KEY] = $record;
-            $row->metadata = $metadata;
-            $row->save();
-
+            $this->writeRecord($locked, $record);
             $this->recordAudit(
-                $row,
-                (int) $currentMaker->id,
-                sprintf('Payout requested by maker #%d (%s)', (int) $currentMaker->id, $data->method->value),
+                $locked,
+                sprintf('Payout requested by maker #%d (%s)', (int) $data->requesterUserId, $data->method->value),
                 RiskLevel::Low,
             );
 
-            $this->syncCaller($payout, $row);
+            $payout->metadata = $locked->metadata;
 
             return $record;
-        }, 3);
+        });
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function decide(Payout $payout, PayoutApprovalData $data): array
     {
         return DB::transaction(function () use ($payout, $data): array {
-            $row = Payout::query()->lockForUpdate()->find((int) $payout->getKey());
-            if (! $row instanceof Payout || $row->trashed()) {
+            $locked = Payout::query()->lockForUpdate()->find((int) $payout->getKey());
+            if (! $locked instanceof Payout) {
                 throw PayoutApprovalException::requestNotFound((int) $payout->getKey());
             }
 
-            $record = $this->recordFor($row);
+            $record = $this->recordFor($locked);
+
             if (! is_array($record)) {
-                throw PayoutApprovalException::requestNotFound((int) $row->getKey());
+                throw PayoutApprovalException::requestNotFound((int) $locked->getKey());
             }
 
             $status = $this->statusOf($record);
+
             if (($record['decided_at'] ?? null) !== null || in_array($status, [PayoutApprovalStatus::Approved, PayoutApprovalStatus::Rejected, PayoutApprovalStatus::Completed], true)) {
-                throw PayoutApprovalException::duplicateDecision((int) $row->getKey());
+                throw PayoutApprovalException::duplicateDecision((int) $locked->getKey());
             }
 
-            if ($status !== PayoutApprovalStatus::Pending || $row->status !== PayoutStatus::Pending || $row->financial_transaction_id !== null) {
+            if ($status !== PayoutApprovalStatus::Pending) {
                 throw PayoutApprovalException::notPending(
-                    (int) $row->getKey(),
+                    (int) $locked->getKey(),
                     $status?->value ?? 'unknown',
                 );
             }
 
-            if (! is_int($record['maker_user_id'] ?? null)) {
-                $this->refuseShape($row);
-            }
-
             if ($data->actorUserId === (int) $record['maker_user_id']) {
-                throw PayoutApprovalException::makerEqualsChecker((int) $row->getKey(), $data->actorUserId);
-            }
-
-            $checker = app(PayoutTransferAccess::class)->authorize(
-                User::query()->find($data->actorUserId),
-                PayoutTransferAccess::APPROVE,
-            );
-            app(PayoutTransferAccess::class)->authorize(
-                User::query()->find($record['maker_user_id']),
-                PayoutTransferAccess::REQUEST,
-            );
-
-            if ((int) $checker->id === (int) $row->user_id || (int) $record['maker_user_id'] === (int) $row->user_id) {
-                $this->refuseShape($row);
+                throw PayoutApprovalException::makerEqualsChecker((int) $locked->getKey(), $data->actorUserId);
             }
 
             if (! $data->decisionIsDecisive()) {
-                throw PayoutApprovalException::decisionShapeInvalid((int) $row->getKey(), $data->decision->value);
+                throw PayoutApprovalException::decisionShapeInvalid((int) $locked->getKey(), $data->decision->value);
             }
 
             if ($data->isRejection() && ! $data->reasonIsStated()) {
-                throw PayoutApprovalException::rejectionWithoutReason((int) $row->getKey());
+                throw PayoutApprovalException::rejectionWithoutReason((int) $locked->getKey());
             }
 
             $derivedNow = PayoutRequestData::deriveRequestKey(
-                (string) $row->reference_number,
-                (string) $row->amount,
-                $row->currency,
-                (int) $row->user_id,
+                (string) $locked->reference_number,
+                (string) $locked->amount,
+                $locked->currency,
+                (int) $locked->user_id,
             );
 
             $requestKey = (string) ($record['request_key'] ?? '');
-            if (! hash_equals($requestKey, $derivedNow) || ! is_string($record['facts_hash'] ?? null)) {
-                $this->refuseShape($row);
-            }
+            $expectedFactsHash = app(PayoutApprovalGuard::class)->fingerprint($locked);
+            $factsDrifted = isset($record['facts_hash']) && is_string($record['facts_hash'])
+                && ! hash_equals($record['facts_hash'], $expectedFactsHash);
 
-            try {
-                app(PrizeClaimGuard::class)->assertPayableClaim($row);
-                app(PayoutApprovalGuard::class)->assertBeneficiary($row);
-                $currentHash = app(PayoutApprovalGuard::class)->fingerprint($row);
-            } catch (PayoutTransferException) {
-                $this->refuseShape($row);
-            }
-
-            if (! hash_equals($currentHash, $record['facts_hash'])) {
-                $this->refuseShape($row);
+            if (! hash_equals($requestKey, $derivedNow) || $factsDrifted) {
+                throw new PayoutApprovalException(
+                    sprintf(
+                        'Payout approval request #%d: the obligation drifted since the maker raised the lane; no decision may anchor on it.',
+                        (int) $locked->getKey(),
+                    ),
+                    PayoutApprovalException::CODE_DECISION_SHAPE,
+                    [
+                        'request_id' => (int) $locked->getKey(),
+                        'given_status' => $data->decision->value,
+                    ],
+                );
             }
 
             $decided = array_merge($record, [
                 'status' => $data->decision->value,
-                'checker_user_id' => (int) $checker->id,
+                'checker_user_id' => $data->actorUserId,
                 'decision_reason' => $data->reason,
                 'decided_at' => Carbon::now()->toIso8601String(),
                 'decision_context' => $data->context,
+                'facts_hash' => $expectedFactsHash,
             ]);
 
-            $this->writeRecord($row, $decided);
+            $this->writeRecord($locked, $decided);
             $this->recordAudit(
-                $row,
-                (int) $checker->id,
+                $locked,
                 sprintf(
-                    'Payout %s by checker #%d',
+                    'Payout %s by checker #%d%s',
                     $data->decision === PayoutApprovalStatus::Approved ? 'approved' : 'rejected',
-                    (int) $checker->id,
+                    $data->actorUserId,
+                    $data->isRejection() ? ' — reason: '.(string) $data->reason : '',
                 ),
                 $data->isApproval() ? RiskLevel::Medium : RiskLevel::Low,
             );
 
-            $this->syncCaller($payout, $row);
+            $payout->metadata = $locked->metadata;
 
             return $decided;
-        }, 3);
+        });
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function complete(Payout $payout, ?int $executorUserId = null): array
     {
         return DB::transaction(function () use ($payout, $executorUserId): array {
-            $row = Payout::query()->lockForUpdate()->find((int) $payout->getKey());
-            if (! $row instanceof Payout || $row->trashed()) {
+            $locked = Payout::query()->lockForUpdate()->find((int) $payout->getKey());
+            if (! $locked instanceof Payout) {
                 throw PayoutApprovalException::requestNotFound((int) $payout->getKey());
             }
 
-            $record = $this->recordFor($row);
+            $record = $this->recordFor($locked);
+
             if (! is_array($record)) {
-                throw PayoutApprovalException::requestNotFound((int) $row->getKey());
-            }
-
-            if ($row->status !== PayoutStatus::Completed || $row->financial_transaction_id === null) {
-                throw PayoutApprovalException::notPending((int) $row->getKey(), 'missing_canonical_money');
-            }
-
-            try {
-                app(PrizeClaimCompletionService::class)->assertEvidence($row);
-            } catch (PrizeClaimException) {
-                throw PayoutApprovalException::notPending((int) $row->getKey(), 'missing_canonical_money');
+                throw PayoutApprovalException::requestNotFound((int) $locked->getKey());
             }
 
             $status = $this->statusOf($record);
-            if ($status === PayoutApprovalStatus::Completed) {
-                try {
-                    app(PayoutApprovalGuard::class)->assertApproved($row, true);
-                } catch (PayoutTransferException) {
-                    $this->refuseShape($row);
-                }
-                app(PrizeClaimCompletionService::class)->complete($row);
-                $row->refresh();
-                $this->syncCaller($payout, $row);
 
-                return $this->recordFor($row) ?? $record;
+            if ($status === PayoutApprovalStatus::Completed) {
+                return $record;
             }
 
             if ($status !== PayoutApprovalStatus::Approved || ! $status?->canTransitionTo(PayoutApprovalStatus::Completed)) {
                 throw PayoutApprovalException::notPending(
-                    (int) $row->getKey(),
+                    (int) $locked->getKey(),
                     $status?->value ?? 'unknown',
                 );
-            }
-
-            try {
-                app(PayoutApprovalGuard::class)->assertApproved($row, false);
-            } catch (PayoutTransferException) {
-                $this->refuseShape($row);
             }
 
             $completed = array_merge($record, [
@@ -327,16 +291,19 @@ class PayoutApprovalService
                 'executed_by_user_id' => $executorUserId,
             ]);
 
-            $this->writeRecord($row, $completed);
-            $this->recordAudit($row, $executorUserId, 'Payout approval lane completed (money released)', RiskLevel::Low);
-            app(PrizeClaimCompletionService::class)->complete($row);
-            $row->refresh();
-            $this->syncCaller($payout, $row);
+            $this->writeRecord($locked, $completed);
+            $this->recordAudit($locked, 'Payout approval lane completed (money released)', RiskLevel::Low);
 
-            return $this->recordFor($row) ?? $completed;
-        }, 3);
+            $payout->metadata = $locked->metadata;
+
+            return $completed;
+        });
     }
 
+    /**
+     * The lane's current status for a payout, or null when no request ever
+     * named it. Never trust the stamped string — derive the enum here.
+     */
     public function statusFor(Payout $payout): ?PayoutApprovalStatus
     {
         $record = $this->recordFor($payout);
@@ -345,6 +312,8 @@ class PayoutApprovalService
     }
 
     /**
+     * The full lane record for screens/audits, or null when never opened.
+     *
      * @return array<string, mixed>|null
      */
     public function recordFor(Payout $payout): ?array
@@ -355,149 +324,21 @@ class PayoutApprovalService
         return is_array($record) ? $record : null;
     }
 
+    /**
+     * The question the batch selector asks: may money move against this
+     * payout? Only a checker-Approved lane answers yes.
+     */
     public function isApproved(Payout $payout): bool
     {
-        if ($this->statusFor($payout) !== PayoutApprovalStatus::Approved) {
-            return false;
-        }
-        try {
-            app(PayoutApprovalGuard::class)->assertApproved($payout, false);
-
-            return true;
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
-    public function isPending(Payout $payout): bool
-    {
-        return $this->statusFor($payout) === PayoutApprovalStatus::Pending;
+        return $this->statusFor($payout) === PayoutApprovalStatus::Approved;
     }
 
     /**
-     * @throws PayoutApprovalException
+     * Is the lane still waiting for a checker to speak?
      */
-    public function recordCancellationPetition(Payout $payout, int $petitionerUserId, ?string $reason): array
+    public function isPending(Payout $payout): bool
     {
-        return DB::transaction(function () use ($payout, $petitionerUserId, $reason): array {
-            $locked = Payout::query()->lockForUpdate()->find((int) $payout->getKey());
-
-            if (! $locked instanceof Payout || $locked->trashed()) {
-                throw PayoutApprovalException::requestNotFound((int) $payout->getKey());
-            }
-
-            if ($locked->status !== PayoutStatus::Pending) {
-                throw PayoutApprovalException::cancellationRefused(
-                    (int) $locked->getKey(),
-                    $locked->status->value,
-                    'only an at-rest (pending) obligation accepts a cancellation petition',
-                );
-            }
-
-            if ((int) $locked->user_id !== $petitionerUserId) {
-                throw PayoutApprovalException::cancellationRefused(
-                    (int) $locked->getKey(),
-                    'foreign',
-                    'a petitioner may only petition their own obligation',
-                );
-            }
-
-            $lane = $this->recordFor($locked) ?? [];
-
-            if (($lane['status'] ?? null) === 'pending' && ($lane['decision_reason'] ?? null) === null
-                && is_string($lane['request_key'] ?? null)) {
-                throw PayoutApprovalException::cancellationRefused(
-                    (int) $locked->getKey(),
-                    'approval_live',
-                    'an approval request is already in flight for this obligation',
-                );
-            }
-
-            $petitionKey = hash('sha256', sprintf('payout-petition:%d:%d', (int) $locked->getKey(), $petitionerUserId));
-            $existing = is_array($lane['cancellation_petition'] ?? null) ? $lane['cancellation_petition'] : null;
-
-            if (is_array($existing) && ($existing['petition_key'] ?? null) === $petitionKey) {
-                $this->syncCaller($payout, $locked);
-
-                return $existing;
-            }
-
-            $petition = [
-                'petition_key' => $petitionKey,
-                'petitioned_by_user_id' => $petitionerUserId,
-                'reason' => $reason,
-                'petitioned_at' => Carbon::now()->toIso8601String(),
-                'outcome' => 'pending',
-            ];
-
-            $metadata = is_array($locked->metadata) ? $locked->metadata : [];
-            $record = is_array($metadata[self::METADATA_KEY] ?? null) ? $metadata[self::METADATA_KEY] : [];
-            $record['cancellation_petition'] = $petition;
-            $metadata[self::METADATA_KEY] = $record;
-            $locked->metadata = $metadata;
-            $locked->save();
-
-            $this->recordAudit(
-                $locked,
-                $petitionerUserId,
-                sprintf('Cancellation petition recorded by player #%d', $petitionerUserId),
-                RiskLevel::Medium,
-            );
-
-            $this->syncCaller($payout, $locked);
-
-            return $petition;
-        }, 3);
-    }
-
-    private function assertRequestFacts(Payout $row, PayoutRequestData $data, int $makerId): void
-    {
-        $expectedKey = PayoutRequestData::deriveRequestKey(
-            (string) $row->reference_number,
-            (string) $row->amount,
-            $row->currency,
-            (int) $row->user_id,
-        );
-
-        if ($data->prizeReference !== (string) $row->reference_number
-            || (int) $data->beneficiaryUserId !== (int) $row->user_id
-            || $makerId === (int) $row->user_id
-            || $data->currency !== $row->currency
-            || strlen($data->amount) > 21
-            || preg_match('/^\d+\.\d{2}$/D', $data->amount) !== 1
-            || bccomp($data->amount, '0', 2) <= 0
-            || bccomp($data->amount, (string) $row->amount, 2) !== 0
-            || ! $data->method->supportsCurrency($row->currency)
-            || ! hash_equals($expectedKey, $data->requestKey)) {
-            $this->refuseShape($row);
-        }
-    }
-
-    private function normalizeBeneficiary(Payout $row, PrizePayoutMethod $method, ?array $target): array
-    {
-        if ($method === PrizePayoutMethod::Wallet) {
-            if ($target !== null && $target !== []) {
-                $this->refuseShape($row);
-            }
-
-            return [];
-        }
-
-        $required = $method === PrizePayoutMethod::BankTransfer
-            ? ['bank_name', 'account_name', 'account_number']
-            : ['payee_name', 'address'];
-        $allowed = array_merge($required, ['bank_code', 'branch', 'routing_number', 'iban', 'swift', 'country']);
-
-        if (! is_array($target)
-            || array_diff(array_keys($target), $allowed) !== []
-            || array_diff($required, array_keys($target)) !== []
-            || array_any($target, fn ($v) => ! is_string($v) || trim($v) === '' || strlen($v) > 500 || preg_match('/[\x00-\x1f\x7f]/', $v) === 1)) {
-            $this->refuseShape($row);
-        }
-
-        ksort($target);
-
-        return $target;
+        return $this->statusFor($payout) === PayoutApprovalStatus::Pending;
     }
 
     /**
@@ -522,27 +363,17 @@ class PayoutApprovalService
         $payout->save();
     }
 
-    private function syncCaller(Payout $caller, Payout $fresh): void
+    /**
+     * Every lane mutation leaves an audit row: WHO did WHAT to WHICH payout.
+     * Descriptions carry the money (amount + currency) because the audit is
+     * read before the ledger when something smells.
+     */
+    private function recordAudit(Payout $payout, string $description, RiskLevel $riskLevel): void
     {
-        $caller->setRawAttributes($fresh->getAttributes(), true);
-        $caller->syncChanges();
-    }
-
-    private function refuseShape(Payout $row): never
-    {
-        throw new PayoutApprovalException(
-            sprintf('Payout approval request #%d: obligation, beneficiary, currency or authority facts are incompatible.', (int) $row->getKey()),
-            PayoutApprovalException::CODE_DECISION_SHAPE,
-            ['request_id' => (int) $row->getKey()],
-        );
-    }
-
-    private function recordAudit(Payout $payout, ?int $userId, string $description, RiskLevel $riskLevel): void
-    {
-        $log = new AuditLog;
+        $log = new AuditLog();
 
         $log->fill([
-            'user_id' => $userId,
+            'user_id' => null,
             'action' => AuditAction::Payout,
             'risk_level' => $riskLevel,
             'auditable_type' => Payout::class,
@@ -564,5 +395,102 @@ class PayoutApprovalService
         ]);
 
         $log->save();
+    }
+
+    /**
+     * Record a player's cancellation petition against an at-rest payout.
+     *
+     * WHAT THIS IS
+     * The player-facing HTTP surface may never flip an obligation's status —
+     * that is an operator-court act — but the player may SAY they no longer
+     * want the obligation discharged. This lane writes that statement onto
+     * the approval lane as an auditable petition, replayable and extant
+     * strictly alongside the obligation's still-pending state.
+     *
+     * ADMITTANCE (defence in depth, mirroring the HTTP policy)
+     * - the payout must be Pending: anything further along has already
+     *   started moving (or finished) and is outside the player's reach.
+     * - no LIVE approval request may occupy the lane: an in-flight maker↔
+     *   checker conversation would race the petition for the outcome.
+     *
+     * IDEMPOTENCE
+     * The petition carries a key anchored on (payout id, petitioner id);
+     * submitting the same petition twice re-serves the existing stamp
+     * without minting a duplicate row or a duplicate audit entry.
+     *
+     * @throws PayoutApprovalException
+     */
+    public function recordCancellationPetition(Payout $payout, int $petitionerUserId, ?string $reason): array
+    {
+        $locked = Payout::query()->lockForUpdate()->find((int) $payout->getKey());
+
+        if (! $locked instanceof Payout) {
+            throw PayoutApprovalException::requestNotFound((int) $payout->getKey());
+        }
+
+        if ($locked->status !== PayoutStatus::Pending) {
+            throw PayoutApprovalException::cancellationRefused(
+                (int) $locked->getKey(),
+                $locked->status->value,
+                'only an at-rest (pending) obligation accepts a cancellation petition',
+            );
+        }
+
+        if ((int) $locked->user_id !== $petitionerUserId) {
+            throw PayoutApprovalException::cancellationRefused(
+                (int) $locked->getKey(),
+                'foreign',
+                'a petitioner may only petition their own obligation',
+            );
+        }
+
+        $lane = $this->recordFor($locked) ?? [];
+
+        // A live request outranks the petition: the court is already talking
+        // about this obligation and must finish first.
+        if (($lane['status'] ?? null) === 'pending' && ($lane['decision_reason'] ?? null) === null
+            && is_string($lane['request_key'] ?? null)) {
+            throw PayoutApprovalException::cancellationRefused(
+                (int) $locked->getKey(),
+                'approval_live',
+                'an approval request is already in flight for this obligation',
+            );
+        }
+
+        $petitionKey = hash('sha256', sprintf('payout-petition:%d:%d', (int) $locked->getKey(), $petitionerUserId));
+
+        $existing = is_array($lane['cancellation_petition'] ?? null) ? $lane['cancellation_petition'] : null;
+
+        if (is_array($existing) && ($existing['petition_key'] ?? null) === $petitionKey) {
+            // Replay: re-serve, do not duplicate.
+            return $existing;
+        }
+
+        $petition = [
+            'petition_key' => $petitionKey,
+            'petitioned_by_user_id' => $petitionerUserId,
+            'reason' => $reason,
+            'petitioned_at' => Carbon::now()->toIso8601String(),
+            'outcome' => 'pending',
+        ];
+
+        $metadata = is_array($locked->metadata) ? $locked->metadata : [];
+        $record = is_array($metadata[self::METADATA_KEY] ?? null) ? $metadata[self::METADATA_KEY] : [];
+        $record['cancellation_petition'] = $petition;
+        $metadata[self::METADATA_KEY] = $record;
+        $locked->metadata = $metadata;
+        $locked->save();
+
+        $this->recordAudit(
+            $locked,
+            sprintf(
+                'Cancellation petition recorded by player #%d%s',
+                $petitionerUserId,
+                $reason !== null ? sprintf(' (reason: %s)', $reason) : '',
+            ),
+            RiskLevel::Medium,
+        );
+
+        return $petition;
     }
 }

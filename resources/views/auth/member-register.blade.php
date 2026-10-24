@@ -1,20 +1,5 @@
 @extends('layouts.app')
 
-@php
-    $termsDocument = is_array($legal['terms'] ?? null) ? $legal['terms'] : [];
-    $privacyDocument = is_array($legal['privacy'] ?? null) ? $legal['privacy'] : [];
-    $legalAvailable = ($termsDocument['status'] ?? null) === 'AVAILABLE'
-        && ($privacyDocument['status'] ?? null) === 'AVAILABLE'
-        && is_string($termsDocument['version'] ?? null)
-        && is_string($termsDocument['content_hash'] ?? null)
-        && is_array($termsDocument['sections'] ?? null)
-        && $termsDocument['sections'] !== []
-        && is_string($privacyDocument['version'] ?? null)
-        && is_string($privacyDocument['content_hash'] ?? null)
-        && is_array($privacyDocument['sections'] ?? null)
-        && $privacyDocument['sections'] !== [];
-@endphp
-
 @section('title', __('public_pages.register_meta_title'))
 @section('meta_description', __('public_pages.register_meta_description'))
 
@@ -42,15 +27,6 @@
 
         <form class="mt-8 space-y-10" action="{{ route('register.attempt') }}" method="POST" novalidate>
             @csrf
-            <input type="hidden" name="terms_version" value="{{ $termsDocument['version'] ?? '' }}">
-            <input type="hidden" name="terms_hash" value="{{ $termsDocument['content_hash'] ?? '' }}">
-            <input type="hidden" name="privacy_version" value="{{ $privacyDocument['version'] ?? '' }}">
-            <input type="hidden" name="privacy_hash" value="{{ $privacyDocument['content_hash'] ?? '' }}">
-            @unless ($legalAvailable)
-                <p class="rounded-xl border border-rose-700 bg-rose-950/40 p-4 text-sm text-rose-200" role="alert">
-                    {{ __('public_pages.register_legal_unavailable') }}
-                </p>
-            @endunless
 
             {{-- ================= Accounts Information ================= --}}
             <fieldset class="space-y-5">
@@ -233,57 +209,23 @@
                 </div>
             </fieldset>
 
-            {{-- ================= Age declaration ================= --}}
-            <div class="flex items-start">
-                <input id="age_attestation" name="age_attestation" type="checkbox" value="1" required
-                       aria-required="true" aria-describedby="age-attestation-hint"
-                       @checked(old('age_attestation'))
-                       @if ($errors->has('age_attestation')) aria-invalid="true" @endif
-                       class="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-700 rounded bg-slate-950">
-                <label for="age_attestation" class="ml-3 block text-sm text-slate-300">
-                    {{ __('public_pages.register_age_attestation', ['age' => max(18, (int) config('legal.minimum_age', 18))]) }}
-                </label>
-            </div>
-            <p id="age-attestation-hint" class="text-xs text-slate-500 -mt-3 ml-7">{{ __('public_pages.register_age_attestation_hint') }}</p>
-            @if ($errors->has('age_attestation'))
-                <p class="text-xs text-rose-300 -mt-3 ml-7" role="alert">{{ $errors->first('age_attestation') }}</p>
-            @endif
-
             {{-- ================= Terms ================= --}}
             <div class="flex items-start">
                 <input id="terms" name="terms" type="checkbox" value="1" required
                        aria-required="true" aria-describedby="terms-hint"
-                       @checked(old('terms'))
                        @if ($errors->has('terms')) aria-invalid="true" @endif
                        class="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-700 rounded bg-slate-950">
                 <label for="terms" class="ml-3 block text-sm text-slate-300">
                     {{ __('public_pages.register_terms') }}
-                    <a class="text-emerald-400 underline hover:text-emerald-300" href="{{ route('terms') }}" target="_blank" rel="noopener noreferrer">{{ __('public_pages.register_terms_link') }}</a>
                 </label>
             </div>
-            <p id="terms-hint" class="text-xs text-slate-500 -mt-3 ml-7">{{ __('public_pages.register_terms_hint') }} · {{ trans('public_pages.legal_document_version') }} {{ $termsDocument['version'] ?? 'NOT_CONFIGURED' }}</p>
+            <p id="terms-hint" class="text-xs text-slate-500 -mt-3 ml-7">{{ __('public_pages.register_terms_hint') }}</p>
             @if ($errors->has('terms'))
                 <p class="text-xs text-rose-300 -mt-3 ml-7" role="alert">{{ $errors->first('terms') }}</p>
             @endif
 
-            <div class="flex items-start">
-                <input id="privacy_notice" name="privacy_notice" type="checkbox" value="1" required
-                       aria-required="true" aria-describedby="privacy-notice-hint"
-                       @checked(old('privacy_notice'))
-                       @if ($errors->has('privacy_notice')) aria-invalid="true" @endif
-                       class="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-700 rounded bg-slate-950">
-                <label for="privacy_notice" class="ml-3 block text-sm text-slate-300">
-                    {{ __('public_pages.register_privacy_notice') }}
-                    <a class="text-emerald-400 underline hover:text-emerald-300" href="{{ route('privacy') }}" target="_blank" rel="noopener noreferrer">{{ __('public_pages.register_privacy_link') }}</a>
-                </label>
-            </div>
-            <p id="privacy-notice-hint" class="text-xs text-slate-500 -mt-3 ml-7">{{ __('public_pages.register_privacy_notice_hint') }} · {{ trans('public_pages.legal_document_version') }} {{ $privacyDocument['version'] ?? 'NOT_CONFIGURED' }}</p>
-            @if ($errors->has('privacy_notice'))
-                <p class="text-xs text-rose-300 -mt-3 ml-7" role="alert">{{ $errors->first('privacy_notice') }}</p>
-            @endif
-
             <div>
-                <button type="submit" @disabled(! $legalAvailable) class="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-slate-950 bg-gradient-to-r from-amber-400 via-emerald-400 to-emerald-500 hover:from-amber-500 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg transition duration-200 disabled:cursor-not-allowed disabled:opacity-50">
+                <button type="submit" class="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-slate-950 bg-gradient-to-r from-amber-400 via-emerald-400 to-emerald-500 hover:from-amber-500 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg transition duration-200">
                     {{ __('public_pages.register_submit') }}
                 </button>
             </div>

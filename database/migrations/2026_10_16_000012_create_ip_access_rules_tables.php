@@ -30,50 +30,54 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('ip_access_rules', function (Blueprint $table): void {
-            $table->id();
+        if (! Schema::hasTable('ip_access_rules')) {
+            Schema::create('ip_access_rules', function (Blueprint $table): void {
+                $table->id();
+    
+                // Normalised CIDR or single address, validated by IpRangeMatcher
+                // and re-validated by IpAccessRule::validatedRange() on save.
+                $table->string('ip_range', 64);
+    
+                // Machine-stable refusal/justification code: ^[A-Z][A-Z0-9_]{0,63}$.
+                $table->string('reason_code', 64);
+    
+                // Validity window as Unix epoch seconds (see the note above).
+                $table->unsignedBigInteger('starts_at_epoch');
+                $table->unsignedBigInteger('expires_at_epoch')->nullable();
+                $table->unsignedBigInteger('revoked_at_epoch')->nullable();
+    
+                // Who created the rule; revocation is recorded as an epoch on the
+                // row itself so a revoked rule stays visible for audit.
+                $table->unsignedBigInteger('created_by');
+    
+                // "Which rules are in force right now" is the hot read; the
+                // predicate the reader issues is exactly this composite.
+                $table->index(['starts_at_epoch', 'expires_at_epoch', 'revoked_at_epoch'], 'ip_access_rules_active_index');
+    
+                $table->timestamps();
+            });
+        }
 
-            // Normalised CIDR or single address, validated by IpRangeMatcher
-            // and re-validated by IpAccessRule::validatedRange() on save.
-            $table->string('ip_range', 64);
-
-            // Machine-stable refusal/justification code: ^[A-Z][A-Z0-9_]{0,63}$.
-            $table->string('reason_code', 64);
-
-            // Validity window as Unix epoch seconds (see the note above).
-            $table->unsignedBigInteger('starts_at_epoch');
-            $table->unsignedBigInteger('expires_at_epoch')->nullable();
-            $table->unsignedBigInteger('revoked_at_epoch')->nullable();
-
-            // Who created the rule; revocation is recorded as an epoch on the
-            // row itself so a revoked rule stays visible for audit.
-            $table->unsignedBigInteger('created_by');
-
-            // "Which rules are in force right now" is the hot read; the
-            // predicate the reader issues is exactly this composite.
-            $table->index(['starts_at_epoch', 'expires_at_epoch', 'revoked_at_epoch'], 'ip_access_rules_active_index');
-
-            $table->timestamps();
-        });
-
-        Schema::create('ip_rule_create_requests', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('actor_id');
-
-            // sha256 hex of the idempotency key; the raw key is never stored.
-            $table->string('key_hash', 64);
-
-            // sha256 hex of the normalised create input; equal fingerprint
-            // means "same request", different means "key reuse with new input".
-            $table->string('fingerprint', 64);
-
-            $table->unsignedBigInteger('rule_id');
-            $table->timestamp('created_at')->useCurrent();
-
-            // The final conflict backstop: one create per actor per key.
-            $table->unique(['actor_id', 'key_hash'], 'ip_rule_create_requests_actor_key_unique');
-            $table->index('rule_id');
-        });
+        if (! Schema::hasTable('ip_rule_create_requests')) {
+            Schema::create('ip_rule_create_requests', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('actor_id');
+    
+                // sha256 hex of the idempotency key; the raw key is never stored.
+                $table->string('key_hash', 64);
+    
+                // sha256 hex of the normalised create input; equal fingerprint
+                // means "same request", different means "key reuse with new input".
+                $table->string('fingerprint', 64);
+    
+                $table->unsignedBigInteger('rule_id');
+                $table->timestamp('created_at')->useCurrent();
+    
+                // The final conflict backstop: one create per actor per key.
+                $table->unique(['actor_id', 'key_hash'], 'ip_rule_create_requests_actor_key_unique');
+                $table->index('rule_id');
+            });
+        }
     }
 
     public function down(): void

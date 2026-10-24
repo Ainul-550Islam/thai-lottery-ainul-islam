@@ -34,34 +34,36 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('lifecycle_campaign_sends', function (Blueprint $table): void {
-            $table->id();
-
-            $table->foreignId('user_id')
-                ->constrained('users')
-                ->cascadeOnDelete();
-
-            $table->string('campaign', 32);
-
-            // Nullable and set only on success. A row with sent_at = null is a
-            // claim that the campaign was attempted and must not be retried
-            // automatically; a failure is investigated, not re-run, for the
-            // reason in the class docblock.
-            $table->timestamp('sent_at')->nullable()->index();
-
-            // Why the attempt did not send, when it did not. Kept as a short
-            // machine code so this table stays narrow — it is read on every
-            // campaign run for every candidate.
-            $table->string('skip_reason', 32)->nullable();
-
-            $table->timestamp('created_at')->useCurrent();
-
-            // THE IDEMPOTENCY GUARANTEE ITSELF.
-            $table->unique(['user_id', 'campaign'], 'lifecycle_campaign_sends_user_campaign_unique');
-
-            // Supports "how did yesterday's run do?" without a table scan.
-            $table->index(['campaign', 'created_at'], 'lifecycle_campaign_sends_campaign_created_index');
-        });
+        if (! Schema::hasTable('lifecycle_campaign_sends')) {
+            Schema::create('lifecycle_campaign_sends', function (Blueprint $table): void {
+                $table->id();
+    
+                $table->foreignId('user_id')
+                    ->constrained('users')
+                    ->cascadeOnDelete();
+    
+                $table->string('campaign', 32);
+    
+                // Nullable and set only on success. A row with sent_at = null is a
+                // claim that the campaign was attempted and must not be retried
+                // automatically; a failure is investigated, not re-run, for the
+                // reason in the class docblock.
+                $table->timestamp('sent_at')->nullable()->index();
+    
+                // Why the attempt did not send, when it did not. Kept as a short
+                // machine code so this table stays narrow — it is read on every
+                // campaign run for every candidate.
+                $table->string('skip_reason', 32)->nullable();
+    
+                $table->timestamp('created_at')->useCurrent();
+    
+                // THE IDEMPOTENCY GUARANTEE ITSELF.
+                $table->unique(['user_id', 'campaign'], 'lifecycle_campaign_sends_user_campaign_unique');
+    
+                // Supports "how did yesterday's run do?" without a table scan.
+                $table->index(['campaign', 'created_at'], 'lifecycle_campaign_sends_campaign_created_index');
+            });
+        }
     }
 
     public function down(): void

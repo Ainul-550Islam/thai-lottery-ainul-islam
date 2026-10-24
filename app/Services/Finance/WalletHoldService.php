@@ -89,10 +89,9 @@ final class WalletHoldService
         array $context = [],
     ): Wallet {
         $amount->assertPositive('amount to hold');
-        $walletId = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
 
-        return $this->withinTransaction(function () use ($walletId, $amount, $type): Wallet {
-            $locked = $this->locks->lockForDebit($walletId, $amount->currency());
+        return $this->withinTransaction(function () use ($wallet, $amount, $type): Wallet {
+            $locked = $this->locks->lockForDebit((int) $wallet->getKey(), $amount->currency());
 
             $this->assertCurrency($locked, $amount->currency());
 
@@ -148,10 +147,9 @@ final class WalletHoldService
     public function release(Wallet $wallet, Money $amount): Wallet
     {
         $amount->assertPositive('amount to release');
-        $walletId = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
 
-        return $this->withinTransaction(function () use ($walletId, $amount): Wallet {
-            $locked = $this->locks->lock($walletId);
+        return $this->withinTransaction(function () use ($wallet, $amount): Wallet {
+            $locked = $this->locks->lock((int) $wallet->getKey());
 
             $this->assertCurrency($locked, $amount->currency());
 
@@ -185,10 +183,9 @@ final class WalletHoldService
     public function releaseIfHeld(Wallet $wallet, Money $amount): array
     {
         $amount->assertPositive('amount to release');
-        $walletId = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
 
-        return $this->withinTransaction(function () use ($walletId, $amount): array {
-            $locked = $this->locks->lock($walletId);
+        return $this->withinTransaction(function () use ($wallet, $amount): array {
+            $locked = $this->locks->lock((int) $wallet->getKey());
 
             $this->assertCurrency($locked, $amount->currency());
 
@@ -241,11 +238,10 @@ final class WalletHoldService
     public function consume(Wallet $wallet, Money $amount): Wallet
     {
         $amount->assertPositive('amount to consume');
-        $walletId = FinancialRecordIdentifier::fromModel($wallet, 'wallet_not_persisted');
 
         $this->assertInsideTransaction('hold consumption');
 
-        $locked = $this->locks->lock($walletId);
+        $locked = $this->locks->lock((int) $wallet->getKey());
 
         $this->assertCurrency($locked, $amount->currency());
 
@@ -469,7 +465,7 @@ final class WalletHoldService
      */
     private function assertInsideTransaction(string $operation): void
     {
-        if ($this->locks->insideTransaction()) {
+        if (DB::transactionLevel() > 0) {
             return;
         }
 
@@ -485,6 +481,10 @@ final class WalletHoldService
      */
     private function withinTransaction(\Closure $callback): mixed
     {
-        return $this->locks->withinTransaction($callback, false);
+        if (DB::transactionLevel() > 0) {
+            return $callback();
+        }
+
+        return DB::transaction($callback);
     }
 }

@@ -115,12 +115,9 @@ final class KycVerificationService
         }
         $document->save();
 
-        if (Schema::hasColumn('users', 'kyc_status')) {
-            $owner = $document->relationLoaded('user') ? $document->user : User::query()->find($document->user_id);
-            if ($owner instanceof User) {
-                $owner->kyc_status = $newStatus;
-                $owner->save();
-            }
+        if ($document->user && Schema::hasColumn('users', 'kyc_status')) {
+            $document->user->kyc_status = $newStatus;
+            $document->user->save();
         }
 
         AuditLog::create([

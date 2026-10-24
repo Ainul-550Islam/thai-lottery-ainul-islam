@@ -68,7 +68,7 @@ final class PublicLegalHeaders
         );
 
         // Never emit a stale dynamic effective date; pages render config dates only.
-        $response->headers->set('Vary', 'Cookie', false);
+        $response->headers->set('Vary', 'Accept-Language, Cookie', false);
 
         return $response;
     }

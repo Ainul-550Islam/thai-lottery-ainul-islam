@@ -27,6 +27,7 @@ use DateTimeImmutable;
 final readonly class ConversionHistoryFilterData
 {
     public const DEFAULT_PER_PAGE = 20;
+
     public const MAX_PER_PAGE = 100;
 
     /**
@@ -41,8 +42,7 @@ final readonly class ConversionHistoryFilterData
         public int $perPage = self::DEFAULT_PER_PAGE,
         public int $page = 1,
         public ?string $search = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Build a clamped filter from raw query input.

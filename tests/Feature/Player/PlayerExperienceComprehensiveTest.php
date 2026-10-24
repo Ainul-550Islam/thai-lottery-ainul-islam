@@ -768,7 +768,7 @@ final class PlayerExperienceComprehensiveTest extends TestCase
                 'data' => [
                     'wallet' => [
                         'balance' => '5000.00',
-                        'reserved_balance' => '500.00',
+                        'locked_balance' => '500.00',
                         'available_balance' => '4500.00',
                         'currency' => 'THB',
                     ],
@@ -865,7 +865,6 @@ final class PlayerExperienceComprehensiveTest extends TestCase
                 'amount' => '500.00',
                 'method' => 'stripe',
                 'currency' => 'THB',
-                'idempotency_key' => 'player-exp-deposit-30',
             ]);
 
         $response->assertStatus(201)

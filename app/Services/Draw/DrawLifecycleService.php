@@ -6,9 +6,7 @@ namespace App\Services\Draw;
 
 use App\Enums\DrawLifecycleState;
 use App\Exceptions\DrawLifecycleException;
-use App\Models\Bet;
 use App\Models\Draw;
-use App\Models\NumberLimit;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\DB;
 
@@ -160,23 +158,11 @@ class DrawLifecycleService
      *
      * @throws DrawLifecycleException
      */
-    public function transitionTo(
-        Draw $draw,
-        DrawLifecycleState $target,
-        array $context = [],
-        ?DrawCancellationService $coordinator = null,
-    ): Draw {
+    public function transitionTo(Draw $draw, DrawLifecycleState $target, array $context = []): Draw
+    {
         $drawId = (int) $draw->getKey();
 
-        return $this->withLockedDraw($drawId, function (Draw $locked) use ($target, $context, $drawId, $coordinator): Draw {
-            if ($target === DrawLifecycleState::Cancelled) {
-                if ($coordinator !== null) {
-                    $coordinator->assertLifecyclePermit($locked);
-                } else {
-                    $this->assertDirectCancelAllowed($locked);
-                }
-            }
-
+        return $this->withLockedDraw($drawId, function (Draw $locked) use ($target, $context, $drawId): Draw {
             $current = $this->currentState($locked);
 
             $this->assertTransitionAllowed($drawId, $current, $target, $context);
@@ -512,34 +498,6 @@ class DrawLifecycleService
 
         if (! $current->canTransitionTo($target)) {
             throw DrawLifecycleException::invalidTransition($drawId, $current, $target, $context);
-        }
-    }
-
-    private function assertDirectCancelAllowed(Draw $draw): void
-    {
-        $drawId = (int) $draw->getKey();
-
-        $hasWagerHistory = Bet::withTrashed()->where('draw_id', $drawId)->lockForUpdate()->exists()
-            || DB::table('bet_purchase_ownerships')->where('draw_id', $drawId)->lockForUpdate()->exists()
-            || DB::table('draw_cancellation_ownerships')->where('draw_id', $drawId)->lockForUpdate()->exists()
-            || NumberLimit::query()
-                ->where('draw_id', $drawId)
-                ->where(static function ($query): void {
-                    $query->where('current_amount', '!=', '0.00')
-                        ->orWhere('current_payout_exposure', '!=', '0.00');
-                })
-                ->lockForUpdate()
-                ->exists();
-
-        if ($hasWagerHistory) {
-            throw new DrawLifecycleException(
-                sprintf(
-                    'Draw %s has wager or exposure history and must be cancelled through DrawCancellationService.',
-                    (string) $draw->draw_number,
-                ),
-                'draw_cancellation_coordinator_required',
-                ['draw_id' => $drawId],
-            );
         }
     }
 

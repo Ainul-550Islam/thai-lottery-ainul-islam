@@ -43,7 +43,9 @@ final class DatabaseJson
                 implode(',', $segments)
             ),
             'mysql', 'mariadb' => sprintf(
-                "JSON_UNQUOTE(JSON_EXTRACT(%s, '$.%s'))",
+                "CASE WHEN JSON_TYPE(JSON_EXTRACT(%s, '$.%s')) = 'NULL' THEN NULL ELSE JSON_UNQUOTE(JSON_EXTRACT(%s, '$.%s')) END",
+                $column,
+                implode('.', $segments),
                 $column,
                 implode('.', $segments)
             ),

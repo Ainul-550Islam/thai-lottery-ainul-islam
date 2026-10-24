@@ -41,7 +41,6 @@ class GloFixtureResultProvider implements GloResultProvider
             'endpoint' => $endpoint,
             'draw_number' => $drawNumber,
             'first_prize' => null,
-            'bottom_two' => null,
             'second_prize' => [],
             'third_prize' => [],
             'n3' => [],
@@ -130,7 +129,6 @@ class GloFixtureResultProvider implements GloResultProvider
             'endpoint' => $endpoint,
             'draw_number' => $drawNumber ?? (string) ($body['draw'] ?? $body['draw_number'] ?? ''),
             'first_prize' => null,
-            'bottom_two' => null,
             'second_prize' => [],
             'third_prize' => [],
             'n3' => [],
@@ -145,8 +143,6 @@ class GloFixtureResultProvider implements GloResultProvider
 
         $seconds = $this->digitList($body['second'] ?? [], 6);
         $thirds = $this->digitList($body['third'] ?? [], 6);
-        $lastTwo = $this->digitList($body['last_two'] ?? [], 2);
-        $bottomTwo = count($lastTwo) === 1 ? $lastTwo[0] : null;
         $draw = (string) ($body['draw'] ?? $body['draw_number'] ?? $drawNumber ?? '');
 
         $n3 = [];
@@ -176,7 +172,6 @@ class GloFixtureResultProvider implements GloResultProvider
             'endpoint' => $endpoint,
             'draw_number' => $draw,
             'first_prize' => $first,
-            'bottom_two' => $bottomTwo,
             'second_prize' => $seconds,
             'third_prize' => $thirds,
             'n3' => $n3,
@@ -185,7 +180,7 @@ class GloFixtureResultProvider implements GloResultProvider
                 'fifth' => $this->digitList($body['fifth'] ?? [], 6),
                 'front_three' => $this->digitList($body['front_three'] ?? [], 3),
                 'last_three' => $this->digitList($body['last_three'] ?? [], 3),
-                'last_two' => $lastTwo,
+                'last_two' => $this->digitList($body['last_two'] ?? [], 2),
             ],
             'failure_reason' => null,
             'fingerprint' => $fingerprint,

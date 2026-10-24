@@ -65,6 +65,10 @@ final class PublicDownloadAppController
 
     private function locale(Request $request): string
     {
-        return (string) app()->getLocale();
+        $candidate = (string) $request->query('locale', app()->getLocale());
+
+        return in_array($candidate, ['en', 'th'], true)
+            ? $candidate
+            : (string) app()->getLocale();
     }
 }

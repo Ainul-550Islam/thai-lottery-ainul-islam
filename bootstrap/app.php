@@ -20,6 +20,8 @@ use App\Http\Middleware\RequireCurrentLegalConsent;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackMemberPresence;
+use App\Http\Middleware\TrustProxies;
+use App\Http\Middleware\VerifyCsrfToken;
 use App\Http\Middleware\VerifyWebhookSignature;
 use App\Http\Responses\ApiResponse;
 use App\Http\Support\BetPurchaseErrorMapper;
@@ -232,6 +234,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
     })
     ->withMiddleware(function (Middleware $middleware): void {
+        // Replace framework defaults with hardened application middleware:
+        // 1) TrustProxies validates CIDR entries in config('network.trusted_proxies'),
+        //    strips X-Forwarded-Host, and fails closed (503) on malformed/wildcard config.
+        // 2) VerifyCsrfToken enforces narrow signed-webhook CSRF exemptions only (never api/*).
+        $middleware->replace(\Illuminate\Http\Middleware\TrustProxies::class, TrustProxies::class);
+        $middleware->validateCsrfTokens(except: VerifyCsrfToken::WEBHOOK_EXCEPTIONS);
+
         // Record only authenticated member activity, throttled to one write per minute.
         $middleware->web(append: [TrackMemberPresence::class]);
         $middleware->appendToGroup('web', SetLocale::class);
@@ -314,7 +323,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($e instanceof \App\Exceptions\ChatException) {
-                return $e->render($request);
+                $context = $e->logContext();
+                $headers = [];
+                if (isset($context['retry_after']) && is_int($context['retry_after']) && $context['retry_after'] > 0) {
+                    $headers['Retry-After'] = (string) $context['retry_after'];
+                }
+
+                return response()->json($e->toArray(), $e->httpStatus(), $headers);
             }
 
             if (! $request->is('api/*') && ! $request->expectsJson()) {

@@ -69,69 +69,71 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('webhook_replay_guards', function (Blueprint $table): void {
-            $table->id();
-
-            // The gateway segment of the URL. Scoped per gateway because two
-            // providers can legitimately produce the same bytes; separate nonce
-            // spaces mean one provider's signature cannot shadow another's.
-            $table->string('gateway', 32);
-
-            // sha256(gateway|signature-header-value) — 64 hex chars.
-            $table->string('nonce', 64);
-
-            // The raw header value, truncated. Kept so an operator
-            // investigating a replay storm can see WHAT was replayed without
-            // having to reconstruct it. Never a secret: it is the signature the
-            // provider sent us, not the key that produced it.
-            $table->string('signature', 255)->nullable();
-
-            /*
-             * sha256 of the raw request body, indexed but NOT unique.
-             *
-             * Why not unique: excluding byte-identical bodies would refuse a
-             * legitimate second delivery whose signature changed. Stripe retries
-             * with a FRESH timestamp, which produces a fresh signature over the
-             * SAME body - a different nonce, so the unique index does not catch
-             * it. Making the body unique instead would refuse that retry too,
-             * which is harmless for Stripe (the first delivery did the work) but
-             * NOT harmless for a provider whose protocol legitimately allows two
-             * identical bodies, e.g. a bank-transfer notification with no
-             * per-event identifier of its own.
-             *
-             * So this column does not refuse anything on its own. It is how the
-             * middleware DETECTS signature rotation - a known body arriving under
-             * a new nonce - and logs it for an operator. Refusal stays where it
-             * can be justified per delivery, which is the unique index above.
-             */
-            $table->string('payload_hash', 64)->nullable();
-
-            // How many times this exact signed payload has been delivered.
-            // >1 is normal (provider retries) and is not by itself an incident;
-            // a large number in a short window is.
-            $table->unsignedInteger('deliveries')->default(1);
-
-            $table->timestamp('first_seen_at');
-            $table->timestamp('last_seen_at');
-            $table->timestamp('expires_at')->nullable();
-
-            $table->string('first_ip', 45)->nullable();
-            $table->string('last_ip', 45)->nullable();
-
-            // THE CONTROL.
-            $table->unique(['gateway', 'nonce'], 'webhook_replay_guards_identity_unique');
-
-            // Operator triage: "what is being replayed at me right now".
-            $table->index(['gateway', 'last_seen_at'], 'webhook_replay_guards_triage_index');
-
-            // Signature-rotation detection: "has this exact body arrived before,
-            // under a different signature". Indexed rather than unique - see the
-            // column comment.
-            $table->index(['gateway', 'payload_hash'], 'webhook_replay_guards_payload_index');
-
-            // Pruning.
-            $table->index('expires_at');
-        });
+        if (! Schema::hasTable('webhook_replay_guards')) {
+            Schema::create('webhook_replay_guards', function (Blueprint $table): void {
+                $table->id();
+    
+                // The gateway segment of the URL. Scoped per gateway because two
+                // providers can legitimately produce the same bytes; separate nonce
+                // spaces mean one provider's signature cannot shadow another's.
+                $table->string('gateway', 32);
+    
+                // sha256(gateway|signature-header-value) — 64 hex chars.
+                $table->string('nonce', 64);
+    
+                // The raw header value, truncated. Kept so an operator
+                // investigating a replay storm can see WHAT was replayed without
+                // having to reconstruct it. Never a secret: it is the signature the
+                // provider sent us, not the key that produced it.
+                $table->string('signature', 255)->nullable();
+    
+                /*
+                 * sha256 of the raw request body, indexed but NOT unique.
+                 *
+                 * Why not unique: excluding byte-identical bodies would refuse a
+                 * legitimate second delivery whose signature changed. Stripe retries
+                 * with a FRESH timestamp, which produces a fresh signature over the
+                 * SAME body - a different nonce, so the unique index does not catch
+                 * it. Making the body unique instead would refuse that retry too,
+                 * which is harmless for Stripe (the first delivery did the work) but
+                 * NOT harmless for a provider whose protocol legitimately allows two
+                 * identical bodies, e.g. a bank-transfer notification with no
+                 * per-event identifier of its own.
+                 *
+                 * So this column does not refuse anything on its own. It is how the
+                 * middleware DETECTS signature rotation - a known body arriving under
+                 * a new nonce - and logs it for an operator. Refusal stays where it
+                 * can be justified per delivery, which is the unique index above.
+                 */
+                $table->string('payload_hash', 64)->nullable();
+    
+                // How many times this exact signed payload has been delivered.
+                // >1 is normal (provider retries) and is not by itself an incident;
+                // a large number in a short window is.
+                $table->unsignedInteger('deliveries')->default(1);
+    
+                $table->timestamp('first_seen_at');
+                $table->timestamp('last_seen_at');
+                $table->timestamp('expires_at')->nullable();
+    
+                $table->string('first_ip', 45)->nullable();
+                $table->string('last_ip', 45)->nullable();
+    
+                // THE CONTROL.
+                $table->unique(['gateway', 'nonce'], 'webhook_replay_guards_identity_unique');
+    
+                // Operator triage: "what is being replayed at me right now".
+                $table->index(['gateway', 'last_seen_at'], 'webhook_replay_guards_triage_index');
+    
+                // Signature-rotation detection: "has this exact body arrived before,
+                // under a different signature". Indexed rather than unique - see the
+                // column comment.
+                $table->index(['gateway', 'payload_hash'], 'webhook_replay_guards_payload_index');
+    
+                // Pruning.
+                $table->index('expires_at');
+            });
+        }
     }
 
     public function down(): void

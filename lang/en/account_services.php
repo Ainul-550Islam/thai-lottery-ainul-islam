@@ -24,7 +24,7 @@ return [
     'payment_callback_state_failed' => 'Failed',
     'payment_callback_state_cancelled' => 'Cancelled',
     'payment_callback_state_updated' => 'Updated',
-    'payment_callback_success_lead' => 'The payment is marked confirmed in this record and your wallet has been credited.',
+    'payment_callback_success_lead' => 'This payment is confirmed and your wallet has been credited.',
     'payment_callback_pending_lead' => 'The payment provider has not confirmed this payment in the record shown. A wallet credit is posted only after a verified confirmation is processed. Refresh to check for an updated state before starting another deposit.',
     'payment_callback_failure_lead' => 'The payment record is marked failed. Check your provider account for any charge before trying again; this page shows no confirmed wallet credit.',
     'payment_callback_cancel_lead' => 'The checkout is marked cancelled. If you see a charge at the provider, contact support before trying again.',

@@ -14,116 +14,71 @@ use App\Enums\FinancialReferenceType;
 use App\Enums\FinancialTransactionType;
 use App\Enums\RiskLevel;
 use App\Enums\TicketStatus;
+use App\Enums\WalletType;
 use App\Exceptions\BetAlreadySettledException;
 use App\Exceptions\BetCancellationException;
 use App\Exceptions\BetCancellationWindowExpiredException;
 use App\Models\AuditLog;
 use App\Models\Bet;
+use App\Models\BetItem;
 use App\Models\Draw;
 use App\Models\FinancialTransaction;
-use App\Models\NumberLimit;
 use App\Models\Ticket;
 use App\Models\Wallet;
-use App\Services\Agent\BetCommissionCancellation;
-use App\Services\Draw\DrawCancellationService;
-use App\Services\Finance\IdempotencyService;
 use App\Services\Finance\Money;
-use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WalletService;
-use App\Services\Risk\BetRiskOwnershipFloor;
 use App\Services\Risk\RiskAssessmentService;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Player-facing bet cancellation with a full, immediate refund.
+ *
+ * PLACE IN THE SYSTEM
+ * DrawLifecycleService cancels DRAWS (operator flow). The real GLO distinction
+ * between "the whole draw is off" and "I bought the wrong number, give me my
+ * stake back before the draw" is served by THIS service: one bet, owner
+ * initiated, inside a short window, refunded in full right away.
+ *
+ * THE MONEY LEG REUSES THE SAME PRIMITIVE AS DEPOSITS
+ * FinancialTransactionService::execute (through WalletService::credit) is the
+ * only audited wallet+ledger movement on this codebase. The refund is therefore
+ * one atomic step: FinancialTransaction row, wallet credit and double-entry
+ * posting commit together or not at all. The cancellation adds its own single
+ * transaction around the marking of the bet, the risk release and that credit,
+ * so a refunded-but-still-active bet is unrepresentable.
+ *
+ * REPLAYS
+ * Cancelling an already-cancelled bet returns the recorded outcome with
+ * replayed=true and never credits twice, regardless of client_key. The refund
+ * itself carries a deterministic idempotency key (bet-refund-<padded id>), so
+ * even a crash mid-retry cannot double-credit: the idempotency machinery
+ * returns the existing FinancialTransaction.
+ *
+ * RISK RELEASE
+ * A purchased bet reserved capacity on the draw's number limits at bet time;
+ * cancelling hands that capacity back through RiskAssessmentService::releaseBet
+ * with the same selections (numbers, stakes, multipliers) it reserved, inside
+ * the same transaction. Another player can buy the number immediately.
+ *
+ * TICKET SYNC
+ * When every bet on the ticket is cancelled the ticket moves to Cancelled with
+ * its cancelled_at stamp; a partially cancelled ticket stays in its current
+ * state.
  */
 class BetCancellationService
 {
+    /**
+     * Deterministic refund idempotency key. The finance idempotency machinery
+     * requires keys of at least 16 characters everywhere, so the bet id is
+     * zero-padded: every realistic id yields a key of length 22.
+     */
     private const REFUND_KEY_FORMAT = 'bet-refund-%012d';
 
     public function __construct(
         private readonly DatabaseManager $database,
         private readonly WalletService $wallets,
         private readonly RiskAssessmentService $risk,
-    ) {}
-
-    public function refundKeyFor(int $betId): string
-    {
-        return sprintf(self::REFUND_KEY_FORMAT, $betId);
-    }
-
-    /**
-     * @param  array<int, Wallet>  $lockedWallets
-     */
-    public function proveOwnedCancellation(int $betId, array $lockedWallets = []): BetCancellationResult
-    {
-        return $this->database->transaction(function () use ($betId, $lockedWallets): BetCancellationResult {
-            if ($lockedWallets === []) {
-                $hintIds = $this->walletIdsForBet($betId, false);
-                $lockedWallets = $hintIds === [] ? [] : app(WalletLockService::class)->lockMany($hintIds);
-            }
-
-            $bet = Bet::withTrashed()->whereKey($betId)->lockForUpdate()->first();
-
-            if (! $bet instanceof Bet || $bet->trashed()) {
-                app(BetAccountingProof::class)->refuse();
-            }
-
-            $claimRow = DB::table('bet_purchase_ownerships')->where('bet_id', $bet->getKey())->lockForUpdate()->first();
-
-            if (! $claimRow) {
-                app(BetAccountingProof::class)->refuse();
-            }
-
-            $walletId = (int) $claimRow->wallet_id;
-            $wallet = $lockedWallets[$walletId] ?? app(WalletLockService::class)->lock($walletId);
-            $lockedWallets[$walletId] = $wallet;
-
-            $purchase = app(BetPurchaseOwnership::class)->locked($bet, $wallet);
-            $reason = BetCancellationReason::tryFrom((string) $bet->cancelled_reason);
-
-            if ($bet->status !== BetStatus::Cancelled
-                || $purchase->state !== 'cancelled'
-                || $purchase->refund_transaction_id === null
-                || ! is_string($purchase->refund_hash ?? null)
-                || $purchase->refund_hash === ''
-                || ! $bet->cancelled_at
-                || ! $purchase->cancelled_at
-                || $bet->cancelled_at->toDateTimeString() !== (string) $purchase->cancelled_at
-                || ! $reason instanceof BetCancellationReason
-                || $purchase->cancelled_reason !== $reason->value) {
-                app(BetAccountingProof::class)->refuse();
-            }
-
-            [$refund, $refundHash] = app(BetAccountingProof::class)->transaction(
-                (int) $purchase->refund_transaction_id,
-                $bet,
-                $wallet,
-                true,
-            );
-
-            $expectedRefundKey = app(IdempotencyService::class)->normaliseKey($this->refundKeyFor((int) $bet->getKey()));
-
-            if (! hash_equals($purchase->refund_hash, $refundHash)
-                || $refund->idempotency_key !== $expectedRefundKey
-                || (int) ($refund->metadata['purchase_ownership_id'] ?? 0) !== (int) $purchase->id
-                || (int) ($refund->metadata['original_transaction_id'] ?? 0) !== (int) $purchase->original_transaction_id) {
-                app(BetAccountingProof::class)->refuse();
-            }
-
-            app(BetCommissionCancellation::class)->assertCancelled($bet, $purchase, $lockedWallets);
-
-            return new BetCancellationResult(
-                bet: $bet,
-                ticket: $bet->ticket()->first(),
-                refund: $refund,
-                reason: $reason,
-                refundAmount: (string) $purchase->stake_amount,
-                currency: $wallet->currency->value,
-                replayed: true,
-            );
-        }, 3);
+    ) {
     }
 
     /**
@@ -133,203 +88,94 @@ class BetCancellationService
      * @throws BetAlreadySettledException
      * @throws BetCancellationWindowExpiredException
      */
-    public function cancel(
-        BetCancellationData $data,
-        ?DrawCancellationService $drawCoordinator = null,
-        bool $amendmentDispatch = false,
-    ): BetCancellationResult {
-        if ($drawCoordinator === null) {
-            $this->assertEnabled();
+    public function cancel(BetCancellationData $data): BetCancellationResult
+    {
+        $this->assertEnabled();
 
-            if (! $data->reason->isPlayerInitiated()
-                || ($data->reason === BetCancellationReason::Amendment && ! $amendmentDispatch)) {
-                throw BetCancellationException::withCode(
-                    'bet_cancellation_reason_not_allowed',
-                    'The requested cancellation reason is not permitted on this cancellation path.',
-                );
-            }
+        $bet = $this->resolveBet($data);
+        $currency = $this->resolveCurrency($bet);
+
+        // ---- Replay: already cancelled returns the recorded outcome --------
+        if ($bet->status === BetStatus::Cancelled) {
+            return $this->replayResult($bet, $currency);
         }
 
-        $hintBet = $this->resolveBet($data, false);
-        $hintWalletIds = $this->walletIdsForBet((int) $hintBet->getKey(), false);
+        // ---- Gates ----------------------------------------------------------
+        $this->assertNotSettled($bet);
+        $this->assertCancellableStatus($bet);
+        $this->assertWithinWindow($bet);
+        $this->assertDrawAcceptsCancellation($bet);
 
-        return $this->database->transaction(function () use ($data, $drawCoordinator, $hintBet, $hintWalletIds): BetCancellationResult {
-            $lockedWallets = $hintWalletIds === [] ? [] : app(WalletLockService::class)->lockMany($hintWalletIds);
+        /** @var list<BetItem> $items */
+        $items = $bet->items()->get()->all();
 
-            $bet = $this->resolveBet($data, true);
+        $result = null;
 
-            if ((int) $bet->getKey() !== (int) $hintBet->getKey()) {
-                app(BetAccountingProof::class)->refuse();
-            }
-
-            $claimRow = DB::table('bet_purchase_ownerships')->where('bet_id', $bet->getKey())->lockForUpdate()->first();
-
-            if (! $claimRow) {
-                app(BetAccountingProof::class)->refuse();
-            }
-
-            $walletId = (int) $claimRow->wallet_id;
-            $wallet = $lockedWallets[$walletId] ?? app(WalletLockService::class)->lock($walletId);
-            $lockedWallets[$walletId] = $wallet;
-
-            $purchase = app(BetPurchaseOwnership::class)->locked($bet, $wallet);
-
-            if ($bet->status === BetStatus::Cancelled || $purchase->state === 'cancelled') {
-                return $this->proveOwnedCancellation((int) $bet->getKey(), $lockedWallets);
-            }
-
-            $this->assertNotSettled($bet);
-            $this->assertCancellableStatus($bet);
-
-            $drawCancellationId = null;
-
-            if ($drawCoordinator !== null) {
-                $drawCancellationId = $drawCoordinator->assertBetPermit($bet, $data);
-            } else {
-                $this->assertWithinWindow($bet);
-                $this->assertDrawAcceptsCancellation($bet);
-            }
-
-            [, $stake, , $item] = app(BetPurchaseOwnership::class)->terms($bet);
-            $limit = NumberLimit::query()->whereKey((int) $purchase->number_limit_id)->lockForUpdate()->first();
-
-            if (! $limit instanceof NumberLimit
-                || (int) $limit->draw_id !== (int) $bet->draw_id
-                || $limit->bet_type !== $bet->type
-                || $limit->number !== $item->number) {
-                app(BetAccountingProof::class)->refuse();
-            }
-
-            app(BetRiskOwnershipFloor::class)->assertCovered($limit);
-
-            $stamp = now();
-            $stampString = $stamp->toDateTimeString();
-
-            // 1. Cancel unpaid commissions & compensate policy-bound paid commissions under the locked wallets.
-            app(BetCommissionCancellation::class)->cancelUnpaid(
-                $bet,
-                $purchase,
-                $data->reason->value,
-                $stampString,
-                $lockedWallets,
-                $wallet,
-            );
-
-            $refundKey = $this->refundKeyFor((int) $bet->getKey());
-
-            if (app(IdempotencyService::class)->existingFor($refundKey) instanceof FinancialTransaction) {
-                app(BetAccountingProof::class)->refuse();
-            }
-
-            // 2. Refund the stake to the original purchase wallet.
-            $refund = $this->wallets->credit(
-                $wallet,
-                Money::fromDatabase($stake, $wallet->currency),
-                FinancialTransactionType::BetRefund,
-                $refundKey,
-                [
-                    'description' => sprintf('Refund for cancelled bet %s', (string) $bet->bet_number),
-                    'reference_type' => Bet::class,
-                    'reference_id' => (int) $bet->getKey(),
-                    'metadata' => array_filter([
-                        'purchase_ownership_id' => (int) $purchase->id,
-                        'original_transaction_id' => (int) $purchase->original_transaction_id,
-                        'draw_cancellation_id' => $drawCancellationId,
-                    ], static fn (mixed $v): bool => $v !== null),
-                ],
-            );
-
-            [, $refundHash] = app(BetAccountingProof::class)->transaction((int) $refund->getKey(), $bet, $wallet, true);
-
-            // 3. Mark bet and purchase ownership cancelled before releasing risk capacity.
+        $this->database->transaction(function () use (&$result, $bet, $items, $data, $currency): void {
+            // 1. Mark the bet cancelled. Status columns are not fillable by
+            //    design, so forceFill is required and intentional here.
             $bet->forceFill([
                 'status' => BetStatus::Cancelled,
-                'cancelled_at' => $stamp,
+                'cancelled_at' => now(),
                 'cancelled_reason' => $data->reason->value,
             ]);
             $bet->save();
 
-            DB::table('bet_purchase_ownerships')->where('id', $purchase->id)->update([
-                'state' => 'cancelled',
-                'refund_transaction_id' => (int) $refund->getKey(),
-                'refund_hash' => $refundHash,
-                'cancelled_at' => $stampString,
-                'cancelled_reason' => $data->reason->value,
-                'updated_at' => $stamp,
-            ]);
-
-            // 4. Release risk capacity and verify remaining active owners stay covered.
+            // 2. Hand the reserved capacity back so the numbers can sell again.
             $this->risk->releaseBet(
                 (int) $bet->draw_id,
                 $bet->type,
-                [
-                    [
+                array_map(
+                    static fn (BetItem $item): array => [
                         'number' => (string) $item->number,
-                        'stake' => $stake,
+                        'stake' => bcadd((string) $item->amount, '0', 2),
                         'multiplier' => (string) $item->payout_multiplier,
                     ],
+                    $items,
+                ),
+            );
+
+            // 3. Refund the stake through the audited wallet+ledger primitive.
+            $wallet = $this->walletFor((int) $bet->user_id, $currency);
+            $refund = $this->wallets->credit(
+                $wallet,
+                Money::of(bcadd((string) $bet->stake_amount, '0', 2), $currency),
+                FinancialTransactionType::BetRefund,
+                $this->refundKeyFor((int) $bet->getKey()),
+                [
+                    'description' => sprintf('Refund for cancelled bet %s', (string) $bet->bet_number),
+                    'reference_type' => FinancialReferenceType::Bet->value,
+                    'reference_id' => (int) $bet->getKey(),
                 ],
             );
 
-            // 5. Sync ticket status and record audit.
-            $actorUserId = $drawCancellationId !== null
-                ? ((int) DB::table('draw_cancellation_ownerships')->where('id', $drawCancellationId)->value('actor_user_id') ?: (int) $bet->user_id)
-                : (int) $bet->user_id;
-            $ticket = $this->syncTicket($bet, $stamp);
-            $this->recordAudit($bet, $data->reason, $refund, $actorUserId);
+            // 4. Keep the ticket coherent: cancelled only when nothing on it
+            //    remains standing.
+            $ticket = $this->syncTicket($bet);
 
-            return new BetCancellationResult(
+            // 5. Audit trail, same shape as the other finance-facing flows.
+            $this->recordAudit($bet, $data->reason, $refund);
+
+            $result = new BetCancellationResult(
                 bet: $bet->refresh(),
                 ticket: $ticket,
                 refund: $refund,
                 reason: $data->reason,
                 refundAmount: bcadd((string) $refund->amount, '0', 2),
-                currency: $wallet->currency->value,
+                currency: $currency->value,
                 replayed: false,
             );
         }, 3);
+
+        /** @var BetCancellationResult $result */
+        return $result;
     }
 
-    /**
-     * @return list<int>
-     */
-    private function walletIdsForBet(int $betId, bool $lock): array
-    {
-        $claimQuery = DB::table('bet_purchase_ownerships')->where('bet_id', $betId)->select(['id', 'wallet_id']);
+    // ----------------------------------------------------------------------
+    // Gates
+    // ----------------------------------------------------------------------
 
-        if ($lock) {
-            $claimQuery->lockForUpdate();
-        }
-
-        $claim = $claimQuery->first();
-
-        if (! $claim) {
-            return [];
-        }
-
-        $ids = [(int) $claim->wallet_id];
-
-        $payoutQuery = DB::table('agent_commission_payouts as p')
-            ->join('bet_commission_ownerships as c', 'c.id', '=', 'p.source_ownership_id')
-            ->where('c.purchase_ownership_id', $claim->id)
-            ->orderBy('p.id')
-            ->select('p.wallet_id');
-
-        if ($lock) {
-            $payoutQuery->lockForUpdate();
-        }
-
-        foreach ($payoutQuery->get() as $row) {
-            $ids[] = (int) $row->wallet_id;
-        }
-
-        $ids = array_values(array_unique(array_filter($ids)));
-        sort($ids, SORT_NUMERIC);
-
-        return $ids;
-    }
-
-    private function resolveBet(BetCancellationData $data, bool $lock): Bet
+    private function resolveBet(BetCancellationData $data): Bet
     {
         $query = Bet::query()->where('user_id', $data->userId);
 
@@ -342,13 +188,11 @@ class BetCancellationService
             }
         });
 
-        if ($lock) {
-            $query->lockForUpdate();
-        }
-
         /** @var Bet|null $bet */
         $bet = $query->first();
 
+        // Enumeration-safe: wrong owner, unknown number and unknown id are the
+        // same refusal, so the endpoint never confirms a bet exists.
         if ($bet === null) {
             throw BetCancellationException::betUnavailable($identifier);
         }
@@ -381,7 +225,7 @@ class BetCancellationService
     {
         $window = (int) config('lottery.cancellation.window_minutes', 15);
         if ($window <= 0) {
-            return;
+            return; // Window disabled by configuration.
         }
 
         $placedAt = $bet->placed_at ?? $bet->created_at;
@@ -397,22 +241,53 @@ class BetCancellationService
     private function assertDrawAcceptsCancellation(Bet $bet): void
     {
         /** @var Draw $draw */
-        $draw = $bet->draw()->lockForUpdate()->firstOrFail();
+        $draw = $bet->draw()->firstOrFail();
 
         if (! $draw->canAcceptBets()) {
             throw BetCancellationException::drawUnavailable((int) $draw->getKey(), 'the draw no longer accepts changes');
         }
-
-        $closeAt = $draw->betting_close_at ?? $draw->close_at;
-        if ($closeAt !== null && now()->greaterThanOrEqualTo($closeAt)) {
-            throw BetCancellationException::drawUnavailable((int) $draw->getKey(), 'the betting window for this draw has closed');
-        }
     }
 
-    private function syncTicket(Bet $bet, \Illuminate\Support\Carbon $stamp): ?Ticket
+    // ----------------------------------------------------------------------
+    // Internals
+    // ----------------------------------------------------------------------
+
+    private function replayResult(Bet $bet, Currency $currency): BetCancellationResult
+    {
+        $refund = FinancialTransaction::query()
+            ->where('type', FinancialTransactionType::BetRefund->value)
+            ->where('reference_type', FinancialReferenceType::Bet->value)
+            ->where('reference_id', (int) $bet->getKey())
+            ->orderByDesc('id')
+            ->first();
+
+        if ($refund === null) {
+            // A cancelled bet without its refund row is an operator-level
+            // anomaly; it is surfaced, never silently re-credited.
+            throw BetCancellationException::alreadyCancelled((int) $bet->getKey(), [
+                'anomaly' => 'cancelled_without_refund',
+            ]);
+        }
+
+        return new BetCancellationResult(
+            bet: $bet,
+            ticket: $bet->ticket()->first(),
+            refund: $refund,
+            reason: BetCancellationReason::tryFrom((string) $bet->cancelled_reason) ?? BetCancellationReason::PlayerRequest,
+            refundAmount: bcadd((string) $refund->amount, '0', 2),
+            currency: $currency->value,
+            replayed: true,
+        );
+    }
+
+    /**
+     * Cancel the owning ticket only when every bet on it is now cancelled.
+     * Partial tickets stay in their current status.
+     */
+    private function syncTicket(Bet $bet): ?Ticket
     {
         /** @var Ticket|null $ticket */
-        $ticket = $bet->ticket()->lockForUpdate()->first();
+        $ticket = $bet->ticket()->first();
         if ($ticket === null || $ticket->status === TicketStatus::Cancelled) {
             return $ticket;
         }
@@ -424,7 +299,7 @@ class BetCancellationService
         if (! $hasStandingBets) {
             $ticket->forceFill([
                 'status' => TicketStatus::Cancelled,
-                'cancelled_at' => $stamp,
+                'cancelled_at' => now(),
             ]);
             $ticket->save();
         }
@@ -432,11 +307,34 @@ class BetCancellationService
         return $ticket;
     }
 
-    private function recordAudit(Bet $bet, BetCancellationReason $reason, FinancialTransaction $refund, ?int $actorUserId = null): void
+    private function walletFor(int $userId, Currency $currency): Wallet
     {
-        $log = new AuditLog;
+        /** @var Wallet|null $wallet */
+        $wallet = Wallet::query()
+            ->where('user_id', $userId)
+            ->where('type', WalletType::Primary->value)
+            ->where('currency', $currency->value)
+            ->first();
+
+        if ($wallet === null) {
+            throw BetCancellationException::betUnavailable((string) $userId, ['anomaly' => 'primary_wallet_missing']);
+        }
+
+        return $wallet;
+    }
+
+    private function resolveCurrency(Bet $bet): Currency
+    {
+        return $bet->currency instanceof Currency
+            ? $bet->currency
+            : (Currency::tryFrom((string) $bet->currency) ?? Currency::THB);
+    }
+
+    private function recordAudit(Bet $bet, BetCancellationReason $reason, FinancialTransaction $refund): void
+    {
+        $log = new AuditLog();
         $log->fill([
-            'user_id' => $actorUserId ?? (int) $bet->user_id,
+            'user_id' => (int) $bet->user_id,
             'action' => AuditAction::CancelBet,
             'risk_level' => RiskLevel::Low,
             'auditable_type' => Bet::class,
@@ -455,9 +353,13 @@ class BetCancellationService
                 'draw_id' => (int) $bet->draw_id,
                 'reason' => $reason->value,
                 'refund_transaction_id' => (int) $refund->getKey(),
-                'actor_user_id' => $actorUserId ?? (int) $bet->user_id,
             ],
         ]);
         $log->save();
+    }
+
+    private function refundKeyFor(int $betId): string
+    {
+        return sprintf(self::REFUND_KEY_FORMAT, $betId);
     }
 }

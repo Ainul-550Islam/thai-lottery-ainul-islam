@@ -48,7 +48,7 @@ final class RecordPaymentWebhookAudit
             ->where('auditable_type', PaymentWebhook::class)
             ->where('auditable_id', (int) $webhook->getKey())
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_ANCHOR_HOURS))
-            ->anchoredBy($anchor)
+            ->whereJsonContains('metadata->audit_anchor', $anchor)
             ->exists();
 
         if ($already) {
@@ -71,7 +71,7 @@ final class RecordPaymentWebhookAudit
                 $note,
             ),
             'metadata' => [
-                AuditLog::ANCHOR_KEY => $anchor,
+                'audit_anchor' => $anchor,
                 'webhook_key' => (string) $webhook->webhook_key,
                 'provider' => (string) $webhook->provider,
                 'event_id' => (string) $webhook->event_id,

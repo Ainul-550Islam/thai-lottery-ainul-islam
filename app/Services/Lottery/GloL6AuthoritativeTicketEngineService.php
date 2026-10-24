@@ -10,7 +10,6 @@ use App\Enums\FinancialTransactionType;
 use App\Enums\GloClaimStatus;
 use App\Enums\GloSourceState;
 use App\Enums\RiskLevel;
-use App\Exceptions\FinancialException;
 use App\Exceptions\GloClaimException;
 use App\Models\AuditLog;
 use App\Models\Draw;
@@ -349,23 +348,105 @@ class GloL6AuthoritativeTicketEngineService
     }
 
     /**
-     * Retired alternate direct-wallet settlement writer.
-     *
-     * Retained only to fail closed before reading or mutating any claim, wallet,
-     * financial transaction, ledger entry, or audit row.
-     *
-     * @throws FinancialException
+     * Execute full authoritative claim lifecycle and credit verified winnings to player wallet.
      */
     public function settleVerifiedClaim(GloPrizeClaim $claim, User $authorizingOperator): GloPrizeClaim
     {
-        throw FinancialException::withCode(
-            'glo_l6_direct_wallet_settlement_disabled',
-            'Direct wallet settlement from GLO prize claims is disabled; use the canonical reviewed prize claim workflow.',
-            [
-                'claim_id' => $claim->getKey(),
-                'operator_id' => $authorizingOperator->getKey(),
-            ],
-        );
+        return $this->db->connection()->transaction(function () use ($claim, $authorizingOperator): GloPrizeClaim {
+            /** @var GloPrizeClaim $lockedClaim */
+            $lockedClaim = GloPrizeClaim::query()->whereKey($claim->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($lockedClaim->status === GloClaimStatus::Paid) {
+                return $lockedClaim; // Idempotent return
+            }
+
+            if ($lockedClaim->status !== GloClaimStatus::Approved) {
+                throw new GloClaimException('Only Approved claims can be settled for payment.');
+            }
+
+            $draw = Draw::query()->findOrFail((int) $lockedClaim->draw_id);
+            $ticket = GloTicket::query()->findOrFail((int) $lockedClaim->ticket_id);
+            $claimant = User::query()->findOrFail((int) $lockedClaim->claimant_user_id);
+
+            // 1. Verify Claimant Age >= 20
+            $age = $claimant->ageAt(Carbon::now());
+            if ($age === null || $age < self::MINIMUM_CLAIMANT_AGE) {
+                throw new GloClaimException(sprintf('Claimant age (%s) does not meet legal minimum of %d years.', $age ?? 'unknown', self::MINIMUM_CLAIMANT_AGE));
+            }
+
+            // 2. Verify KYC Standing
+            if (! $claimant->kycStatus()->isVerified()) {
+                throw new GloClaimException('Claimant identity must be fully KYC verified prior to prize disbursement.');
+            }
+
+            // 3. Verify Claim Window (2 Years from Draw Date)
+            $deadline = $draw->scheduled_at->copy()->addYears(self::CLAIM_WINDOW_YEARS)->endOfDay();
+            if (Carbon::now()->greaterThan($deadline)) {
+                throw new GloClaimException('GLO prize claim window has expired for this draw.');
+            }
+
+            // 4. Verify Active Freezes or Holds
+            if ($this->freezeService->hasActiveEffectiveFreeze((int) $ticket->getKey())) {
+                throw new GloClaimException('Ticket is currently frozen under compliance investigation.');
+            }
+
+            // 5. Compute authoritative proportional payout and stamp duty
+            $prizeMath = $this->computeProportionalPrize($draw, (string) $lockedClaim->prize_category);
+            $netPrize = $prizeMath['net_prize'];
+            $stampDuty = $prizeMath['stamp_duty'];
+            $grossPrize = $prizeMath['gross_prize'];
+
+            // 6. Direct Double-Entry Credit into Claimant Wallet
+            $wallet = $this->walletService->getOrCreateWallet($claimant, Currency::THB);
+
+            $payoutRef = sprintf('GLO-PAY-%s-%d', $lockedClaim->claim_reference, $lockedClaim->id);
+
+            $this->walletService->credit(
+                wallet: $wallet,
+                amount: Money::of($netPrize, Currency::THB),
+                type: FinancialTransactionType::Payout,
+                idempotencyKey: $payoutRef,
+                options: [
+                    'reference_type' => 'glo_l6_prize_payout',
+                    'reference_id' => $payoutRef,
+                    'description' => sprintf('Official GLO L6 Prize Settlement: %s (Ticket #%s)', $lockedClaim->prize_category, $ticket->ticket_number),
+                    'gross_prize' => $grossPrize,
+                    'stamp_duty' => $stampDuty,
+                    'claim_reference' => $lockedClaim->claim_reference,
+                    'draw_id' => $draw->id,
+                ],
+            );
+
+            // 7. Update Claim State to Paid
+            $lockedClaim->status = GloClaimStatus::Paid;
+            $lockedClaim->payment_status = 'settled';
+            $lockedClaim->gross_prize = $grossPrize;
+            $lockedClaim->stamp_duty = $stampDuty;
+            $lockedClaim->net_prize = $netPrize;
+            $lockedClaim->payment_transaction_reference = $payoutRef;
+            $lockedClaim->paid_at = Carbon::now();
+            $lockedClaim->paid_by = $authorizingOperator->id;
+            $lockedClaim->save();
+
+            // 8. Immutable Audit Trail
+            AuditLog::create([
+                'user_id' => $authorizingOperator->id,
+                'action' => AuditAction::Update,
+                'risk_level' => RiskLevel::Critical,
+                'auditable_type' => GloPrizeClaim::class,
+                'auditable_id' => $lockedClaim->id,
+                'description' => 'Authoritative GLO L6 prize settlement executed and disbursed to player wallet.',
+                'metadata' => [
+                    'claim_ref' => $lockedClaim->claim_reference,
+                    'ticket_number' => $ticket->ticket_number,
+                    'net_amount' => $netPrize,
+                    'stamp_duty' => $stampDuty,
+                    'claimant_user_id' => $claimant->id,
+                ],
+            ]);
+
+            return $lockedClaim;
+        });
     }
 
     /**

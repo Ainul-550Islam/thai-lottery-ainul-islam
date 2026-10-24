@@ -4,75 +4,34 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\DTOs\Security\BotDecisionData as SecurityBotDecisionData;
-use App\Enums\BotDecision as SecurityBotDecision;
-use App\Events\BotBlocked;
-use App\Events\BotSuspected;
 use App\Services\Bot\BotDetectionService;
 use App\Services\Bot\BotSecurityEventRecorder;
 use App\Services\Bot\DTOs\BotDecisionData;
-use App\Services\Bot\Enums\BotDecision;
-use App\Services\Network\TrustedClientIpResolver;
 use Closure;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
- * Opt-in HTTP observation & direct policy evaluation middleware.
+ * Opt-in HTTP observation adapter. This revision does NOT implement CAPTCHA,
+ * security blocking or timing-token render integration. Part 5 records eligible
+ * observations in the existing SecurityEvent ledger, independently of detection.
+ * Explicitly rejects unsupported enforcement rather than silently allowing it.
  */
 final class BotDetectionMiddleware
 {
-    private readonly Repository $config;
-
-    private readonly Container $container;
-
-    private readonly LoggerInterface $logger;
-
-    private readonly ?BotDetectionService $directService;
-
-    private readonly ?TrustedClientIpResolver $ipResolver;
-
     public function __construct(
-        mixed $config = null,
-        mixed $container = null,
-        ?LoggerInterface $logger = null,
-    ) {
-        if ($config instanceof BotDetectionService) {
-            if (! $container instanceof TrustedClientIpResolver) {
-                throw new InvalidArgumentException('TrustedClientIpResolver is required when passing BotDetectionService.');
-            }
-            $this->directService = $config;
-            $this->ipResolver = $container;
-            $this->config = app('config');
-            $this->container = app();
-            $this->logger = $logger ?? app('log');
-        } else {
-            $resolvedConfig = $config ?? app('config');
-            $resolvedContainer = $container ?? app();
-            $resolvedLogger = $logger ?? app(LoggerInterface::class);
-            if (! $resolvedConfig instanceof Repository || ! $resolvedContainer instanceof Container) {
-                throw new InvalidArgumentException('Repository and Container are required.');
-            }
-            $this->config = $resolvedConfig;
-            $this->container = $resolvedContainer;
-            $this->logger = $resolvedLogger;
-            $this->directService = null;
-            $this->ipResolver = null;
-        }
-    }
+        private readonly Repository $config,
+        private readonly Container $container,
+        private readonly LoggerInterface $logger,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        if ($this->directService !== null && $this->ipResolver !== null) {
-            return $this->handleDirectPolicy($request, $next);
-        }
-
         $enabled = $this->config->get('bot.http_observation.enabled', false);
         $detectorEnabled = $this->config->get('bot.enabled', true);
         if (! is_bool($enabled) || ! is_bool($detectorEnabled)) {
@@ -114,42 +73,6 @@ final class BotDetectionMiddleware
         }
 
         // Never wrap the downstream authentication/controller in our catch block.
-        return $next($request);
-    }
-
-    private function handleDirectPolicy(Request $request, Closure $next): Response
-    {
-        $ip = $this->ipResolver->resolve($request);
-        $userId = $request->user()?->getAuthIdentifier() !== null ? (string) $request->user()->getAuthIdentifier() : null;
-        $decision = $this->directService->detect($request);
-
-        $secDecision = match ($decision->decision) {
-            BotDecision::Block => SecurityBotDecision::BLOCK,
-            BotDecision::Challenge => SecurityBotDecision::CHALLENGE,
-            default => SecurityBotDecision::ALLOW,
-        };
-        $dto = new SecurityBotDecisionData(
-            score: $decision->score,
-            decision: $secDecision,
-            reasonCodes: $decision->reasons,
-            policyVersion: 'v1',
-            correlationId: (string) ($request->headers->get('X-Correlation-ID') ?? ''),
-        );
-
-        if ($decision->mode === 'enforce' && $decision->decision === BotDecision::Block) {
-            event(new BotBlocked($ip, $userId, $request->getPathInfo(), $dto));
-
-            return new JsonResponse([
-                'success' => false,
-                'error_code' => 'AUTOMATED_REQUEST_BLOCKED',
-                'message' => 'Automated request blocked.',
-            ], Response::HTTP_FORBIDDEN);
-        }
-
-        if ($decision->score > 0) {
-            event(new BotSuspected($ip, $userId, $request->getPathInfo(), $dto));
-        }
-
         return $next($request);
     }
 

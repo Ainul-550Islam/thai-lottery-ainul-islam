@@ -291,9 +291,6 @@ return [
     'security_limits_action' => 'จัดการขีดจำกัดการเล่นอย่างรับผิดชอบ',
     'status_active' => 'กำลังทำงาน',
     'status_inactive' => 'ไม่ทำงาน',
-    'status_suspended' => 'ถูกระงับ',
-    'status_banned' => 'ถูกแบน',
-    'status_pending_verification' => 'รอการตรวจสอบ',
     'no_security_sessions' => 'ไม่พบเซสชันความปลอดภัยของบัญชีนี้',
     'session_reference' => 'อ้างอิงเซสชัน',
     'session_ip' => 'ที่อยู่ IP',
@@ -311,7 +308,4 @@ return [
     'self_exclusion_365' => '365 วัน',
     'self_exclusion_confirm' => 'เปิดใช้การแยกตนเองหรือไม่ การดำเนินการนี้ยกเลิกก่อนสิ้นสุดไม่ได้',
     'self_exclusion_submit' => 'เปิดใช้การแยกตนเอง',
-    'nav_services' => 'บริการของเรา',
-    'nav_about' => 'เกี่ยวกับเรา',
-    'nav_lotto_discount' => 'ส่วนลดหวย',
 ];

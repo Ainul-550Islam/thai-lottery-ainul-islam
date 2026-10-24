@@ -113,6 +113,22 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
+     * @return HasMany<UserConsent>
+     */
+    public function consents(): HasMany
+    {
+        return $this->hasMany(UserConsent::class);
+    }
+
+    /**
+     * @return HasOne<AgeVerification>
+     */
+    public function ageVerification(): HasOne
+    {
+        return $this->hasOne(AgeVerification::class);
+    }
+
+    /**
      * The primary spendable wallet of the user.
      *
      * @return HasOne<Wallet>
@@ -231,44 +247,6 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     public function responsibleGamingLimit(): HasOne
     {
         return $this->hasOne(ResponsibleGamingLimit::class);
-    }
-
-    /**
-     * @return HasOne<AgeVerification, self>
-     */
-    public function ageVerification(): HasOne
-    {
-        return $this->hasOne(AgeVerification::class);
-    }
-
-    /**
-     * @return HasMany<UserConsent, self>
-     */
-    public function consents(): HasMany
-    {
-        return $this->hasMany(UserConsent::class);
-    }
-
-    /**
-     * Whether the player has an eligible 18+ age attestation and a matching
-     * adult date of birth. Note: self-declaration is an attestation, not ID/KYC
-     * document verification.
-     */
-    public function hasEligibleAgeVerification(): bool
-    {
-        $minimumAge = max(18, (int) config('legal.minimum_age', 18));
-        $age = $this->ageAt(now());
-
-        if ($age === null || $age < $minimumAge) {
-            return false;
-        }
-
-        $verification = $this->ageVerification;
-
-        return $verification instanceof AgeVerification
-            && $verification->status === 'eligible'
-            && $verification->attested_at !== null
-            && (int) $verification->minimum_age <= $age;
     }
 
     /**

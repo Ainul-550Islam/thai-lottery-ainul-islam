@@ -58,63 +58,16 @@ class Payout extends Model
      */
     protected $fillable = [
         'reference_number',
-        'payout_number',
         'draw_id',
         'bet_id',
-        'lottery_entry_id',
         'user_id',
         'wallet_id',
         'ticket_id',
         'currency',
         'amount',
-        'gross_payout_amount',
-        'gross_amount',
-        'tax_withheld',
-        'wht_tax_amount',
-        'net_payout_amount',
-        'net_amount',
-        'winning_tier',
-        'prize_tier',
-        'status',
-        'payout_status',
-        'payout_idempotency_key',
-        'settled_at',
-        'paid_at',
         'multiplier',
         'metadata',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $payout): void {
-            if ($payout->getAttribute('reference_number') === null) {
-                $payout->setAttribute(
-                    'reference_number',
-                    $payout->getAttribute('payout_number') !== null
-                        ? (string) $payout->getAttribute('payout_number')
-                        : 'PO-'.strtoupper(\Illuminate\Support\Str::random(12))
-                );
-            }
-            if ($payout->getAttribute('amount') === null) {
-                $fallback = $payout->getAttribute('net_amount')
-                    ?? $payout->getAttribute('net_payout_amount')
-                    ?? $payout->getAttribute('gross_amount')
-                    ?? $payout->getAttribute('gross_payout_amount');
-                if ($fallback !== null) {
-                    $payout->setAttribute('amount', bcadd((string) $fallback, '0', 2));
-                }
-            }
-        });
-    }
-
-    public function setAttribute($key, $value)
-    {
-        if ($key === 'status' && is_string($value)) {
-            $value = strtolower(trim($value));
-        }
-
-        return parent::setAttribute($key, $value);
-    }
 
     /**
      * @return array<string, string>
@@ -128,8 +81,6 @@ class Payout extends Model
             'multiplier' => 'decimal:4',
             'processed_at' => 'datetime',
             'failed_at' => 'datetime',
-            'paid_at' => 'datetime',
-            'settled_at' => 'datetime',
             'metadata' => 'array',
         ];
     }

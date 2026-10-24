@@ -30,9 +30,9 @@ return [
 
     // -- Page meta ---------------------------------------------------------
     'verify_meta_title' => 'Prize verification — check a lottery ticket',
-    'verify_meta_description' => 'Check a six-digit number, a ticket reference, or a scanned barcode against published draw results. Independent platform lookup; not an official Government Lottery Office service.',
+    'verify_meta_description' => 'Check a six-digit number, a ticket reference, or a scanned barcode against published draw results. GLO-compatible verification; not an official Government Lottery Office service.',
     'discount_meta_title' => 'Lotto discounts and payout rates',
-    'discount_meta_description' => 'Published discount rules and direct/reverse payout rates for configured platform products and markets. Values and eligibility depend on the active configuration.',
+    'discount_meta_description' => 'Published discount rules and direct/reverse payout rates for operator markets. Government Lottery Office ticket prices are fixed by law and never discounted.',
 
     // -- Verification page: form -------------------------------------------
     'verify_heading' => 'Prize verification',
@@ -118,7 +118,7 @@ return [
     'physical_note_barcode' => 'If the ticket carries a machine-readable code, a successful scan tells you the code could be decoded — it does not by itself prove the paper is genuine.',
     'physical_note_limits' => 'Only the issuing authority can rule on a disputed physical ticket. Keep the ticket undamaged and present it through the official claim process.',
 
-    'not_official_notice' => 'Independent platform notice: this platform is not the Government Lottery Office or a government service, and nothing here is an authorized statement by that office.',
+    'not_official_notice' => 'GLO-compatible checking. This platform is not the Government Lottery Office, this page is not a government service, and nothing here is an authorised statement by that office.',
     'privacy_notice' => 'No ticket holder name, contact detail, payment detail, or account information is ever shown on this page.',
 
     // -- Discount page -----------------------------------------------------
@@ -153,7 +153,7 @@ return [
     'discount_no_limit' => 'No limit',
 
     'immutable_heading' => 'Fixed-price products',
-    'immutable_notice' => 'Certain reference-product prices may be protected from platform discounts by configuration. Displayed values come from configured sources and do not imply a government rule or endorsement.',
+    'immutable_notice' => 'Government Lottery Office ticket prices are fixed by law. No discount rule, account grade, promotion, or affiliate arrangement can change them.',
     'immutable_badge' => 'Fixed price',
     'immutable_price' => 'Price',
 
@@ -196,7 +196,6 @@ return [
     'affiliate_rate' => 'Commission',
     'affiliate_eligibility' => 'Eligibility',
     'affiliate_not_published' => 'Affiliate commission bands are not published at the moment.',
-    'affiliate_contact' => 'Contact us about affiliate eligibility',
     'affiliate_band_standard' => 'Standard',
     'affiliate_band_partner' => 'Partner',
     'affiliate_band_internal' => 'Internal pilot',

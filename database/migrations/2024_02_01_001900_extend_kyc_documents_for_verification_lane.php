@@ -30,10 +30,6 @@ return new class extends Migration
     {
         Schema::table('kyc_documents', function (Blueprint $table): void {
             $table->dropUnique('kyc_doc_user_fingerprint_unique');
-            $table->dropIndex(['verification_status']);
-            $table->dropIndex(['document_fingerprint']);
-            $table->dropIndex(['verification_reference']);
-            $table->dropIndex(['expires_at']);
             $table->dropColumn([
                 'verification_status',
                 'issuer_country',

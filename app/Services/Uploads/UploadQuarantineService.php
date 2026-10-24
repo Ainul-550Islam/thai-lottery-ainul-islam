@@ -37,7 +37,9 @@ class UploadQuarantineService
         string $owningUserId,
         string $purpose = 'GENERAL',
     ): UploadScanRecord {
-        $extension = strtolower((string) $file->getClientOriginalExtension()) ?: 'bin';
+        $rawExtension = strtolower((string) $file->getClientOriginalExtension());
+        $cleanExtension = preg_replace('/[^a-z0-9]/', '', $rawExtension) ?? '';
+        $extension = in_array($cleanExtension, self::ALLOWED_EXTENSIONS, true) ? $cleanExtension : 'bin';
         $fileSize = $file->getSize() ?: 0;
         if ($fileSize > self::MAX_FILE_SIZE_BYTES) {
             throw new InvalidArgumentException('File size exceeds 10MB limit.');

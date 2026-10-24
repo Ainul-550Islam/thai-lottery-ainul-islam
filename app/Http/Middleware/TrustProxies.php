@@ -4,109 +4,71 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Responses\ApiResponse;
 use Closure;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Middleware\TrustProxies as Middleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-final class TrustProxies
+/** Explicit peer trust only; no platform/Host-derived or static wildcard fallback. */
+class TrustProxies extends Middleware
 {
-    private const MAX_ENTRIES = 64;
-
-    private const ALLOWED_HEADERS = Request::HEADER_X_FORWARDED_FOR
+    private const TRUSTED_HEADERS = Request::HEADER_X_FORWARDED_FOR
         | Request::HEADER_X_FORWARDED_PROTO
         | Request::HEADER_X_FORWARDED_PORT;
 
-    public function __construct(
-        private readonly ?Repository $config = null,
-    ) {}
+    public function __construct(private readonly Repository $config) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        Request::setTrustedProxies([], self::ALLOWED_HEADERS);
-
-        $config = $this->config ?? config();
-        $network = $config->get('network');
-
-        if (! is_array($network) || ! array_key_exists('trusted_proxies', $network)) {
-            return $next($request);
+        // Symfony holds proxy trust statically: replace it on EVERY request,
+        // including invalid configuration, to avoid long-lived worker leakage.
+        $request::setTrustedProxies([], self::TRUSTED_HEADERS);
+        $proxies = $this->config->get('network.trusted_proxies', []);
+        if (! is_array($proxies) || ! array_is_list($proxies) || count($proxies) > 64) {
+            $this->invalidConfiguration();
         }
-
-        $proxies = $network['trusted_proxies'];
-
-        if (! $this->isValidProxyList($proxies)) {
-            Request::setTrustedProxies([], self::ALLOWED_HEADERS);
-
-            throw new HttpResponseException(new JsonResponse([
-                'error' => [
-                    'code' => 'service_unavailable',
-                    'message' => 'Trusted proxy configuration is invalid.',
-                ],
-            ], 503));
+        foreach ($proxies as $proxy) {
+            if (! $this->validProxy($proxy)) {
+                // Reject the entire configuration, never partially trust a bad list.
+                $this->invalidConfiguration();
+            }
         }
+        $request::setTrustedProxies(array_values(array_unique($proxies)), self::TRUSTED_HEADERS);
 
-        if ($proxies !== []) {
-            Request::setTrustedProxies($proxies, self::ALLOWED_HEADERS);
-        }
-
+        // Deliberately do not call parent::handle(): it can trust the calling IP
+        // based on hosting/Host hints or other global configuration. Symfony still
+        // resolves trusted multi-hop chains and verifies the immediate peer.
+        // X-Forwarded-Host, X-Forwarded-Prefix and RFC Forwarded are NOT trusted.
         return $next($request);
     }
 
-    /**
-     * @phpstan-assert-if-true list<string> $proxies
-     */
-    private function isValidProxyList(mixed $proxies): bool
+    private function invalidConfiguration(): never
     {
-        if (! is_array($proxies) || ! array_is_list($proxies) || count($proxies) > self::MAX_ENTRIES) {
-            return false;
-        }
-
-        foreach ($proxies as $entry) {
-            if (! is_string($entry) || ! $this->isValidProxyEntry($entry)) {
-                return false;
-            }
-        }
-
-        return true;
+        // Preserve 503 through the existing exception mapper without changing it.
+        // Do not echo the proxy list or exception internals to public clients.
+        throw new HttpResponseException(ApiResponse::error(
+            'service_unavailable', 'Service unavailable.', 503,
+        ));
     }
 
-    private function isValidProxyEntry(string $entry): bool
+    private function validProxy(mixed $proxy): bool
     {
-        if ($entry === '' || trim($entry) !== $entry || str_contains($entry, '%')) {
+        if (! is_string($proxy) || $proxy === '' || strlen($proxy) > 64 || trim($proxy) !== $proxy) {
             return false;
         }
-
-        $parts = explode('/', $entry);
-        if (count($parts) > 2) {
+        $parts = explode('/', $proxy);
+        if (count($parts) > 2 || filter_var($parts[0], FILTER_VALIDATE_IP) === false) {
             return false;
         }
-
-        $ip = $parts[0];
-        $isIpv4 = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
-        $isIpv6 = ! $isIpv4 && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
-
-        if (! $isIpv4 && ! $isIpv6) {
-            return false;
-        }
-
         if (count($parts) === 1) {
             return true;
         }
+        $maximum = str_contains($parts[0], ':') ? 128 : 32;
 
-        $prefix = $parts[1];
-        if ($prefix === '' || ! ctype_digit($prefix)) {
-            return false;
-        }
-
-        if (strlen($prefix) > 1 && str_starts_with($prefix, '0')) {
-            return false;
-        }
-
-        $bits = (int) $prefix;
-        $maxBits = $isIpv4 ? 32 : 128;
-
-        return $bits >= 1 && $bits <= $maxBits;
+        return preg_match('/^[1-9][0-9]{0,2}$/D', $parts[1]) === 1
+            && (int) $parts[1] <= $maximum;
     }
 }

@@ -109,19 +109,16 @@ final class ProfileController
             'password' => ['required', 'string', new StrongPasswordRule(), 'confirmed'],
         ]);
 
-        try {
-            app(\App\Services\Auth\PasswordChangeService::class)->change(
-                $user,
-                (string) $validated['current_password'],
-                (string) $validated['password'],
-            );
-        } catch (\Illuminate\Validation\ValidationException) {
+        if (! Hash::check($validated['current_password'], (string) $user->password)) {
             return ApiResponse::error(
                 code: 'invalid_current_password',
                 message: (string) trans('player.current_password_invalid'),
                 status: 422,
             );
         }
+
+        $user->password = Hash::make($validated['password']);
+        $user->save();
 
         return ApiResponse::success(
             data: [],

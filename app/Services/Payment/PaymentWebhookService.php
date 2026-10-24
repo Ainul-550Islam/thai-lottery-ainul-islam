@@ -17,8 +17,6 @@ use App\Enums\WithdrawalStatus;
 use App\Exceptions\FinancialException;
 use App\Exceptions\PaymentReconciliationException;
 use App\Exceptions\PaymentWebhookException;
-use App\Exceptions\ResponsibleGamingLimitException;
-use App\Exceptions\SelfExclusionException;
 use App\Listeners\RecordPaymentWebhookAudit;
 use App\Models\AuditLog;
 use App\Models\Deposit;
@@ -28,7 +26,6 @@ use App\Models\PaymentWebhook;
 use App\Models\Withdrawal;
 use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
-use App\Services\Finance\ExternalRefundPolicy;
 use App\Services\Finance\FinancialReversalService;
 use App\Services\Finance\FinancialStateTransitionService;
 use App\Services\Finance\WithdrawalApprovalService;
@@ -153,7 +150,7 @@ class PaymentWebhookService
                     gateway: $gateway,
                     reason: 'Ignored unsupported webhook event: '.$payload->eventType->value,
                 );
-            }, 3);
+            });
 
             if (! $result->success) {
                 $this->cache->forget($cacheKey);
@@ -173,10 +170,10 @@ class PaymentWebhookService
     private function processDepositWebhook(WebhookPayload $payload): PaymentProcessingResult
     {
         $gateway = $payload->gateway;
-        $deposit = app(PaymentWebhookBindingService::class)->resolve(Deposit::class, $payload);
+        $deposit = $this->resolveDeposit($payload);
 
         if (! $deposit instanceof Deposit) {
-            Log::warning('Payment webhook received for non-existent or unbound deposit', [
+            Log::warning('Payment webhook received for non-existent deposit', [
                 'gateway' => $gateway,
                 'internal_reference' => $payload->internalReference,
                 'provider_reference' => $payload->providerReference,
@@ -189,6 +186,72 @@ class PaymentWebhookService
 
         // Case A: Deposit Succeeded
         if ($payload->isSuccess) {
+            // Validate currency match if explicitly present in payload
+            $hasExplicitCurrency = isset($payload->rawData['currency']);
+            if ($hasExplicitCurrency && $payload->currency !== null && $payload->currency !== $deposit->currency) {
+                Log::warning('Payment webhook currency mismatch', [
+                    'gateway' => $gateway,
+                    'deposit_id' => $deposit->id,
+                    'expected_currency' => $deposit->currency->value,
+                    'received_currency' => $payload->currency->value,
+                ]);
+
+                $this->recordAudit(
+                    action: AuditAction::Deposit,
+                    auditable: $deposit,
+                    description: sprintf(
+                        'Payment webhook currency mismatch for Deposit %s: expected %s, received %s.',
+                        $deposit->reference_number,
+                        $deposit->currency->value,
+                        $payload->currency->value,
+                    ),
+                    metadata: [
+                        'deposit_id' => $deposit->id,
+                        'expected_currency' => $deposit->currency->value,
+                        'received_currency' => $payload->currency->value,
+                        'gateway' => $gateway,
+                    ],
+                );
+
+                return PaymentProcessingResult::failed($gateway, 'Payment webhook currency mismatch.');
+            }
+
+            // Validate amount match if present in payload
+            if ($payload->amount !== null) {
+                $expectedAmount = (string) $deposit->amount;
+                $receivedAmount = (string) $payload->amount;
+
+                if (bccomp($expectedAmount, $receivedAmount, 2) !== 0) {
+                    Log::warning('Payment webhook amount mismatch', [
+                        'gateway' => $gateway,
+                        'deposit_id' => $deposit->id,
+                        'expected_amount' => $expectedAmount,
+                        'received_amount' => $receivedAmount,
+                    ]);
+
+                    $this->recordAudit(
+                        action: AuditAction::Deposit,
+                        auditable: $deposit,
+                        description: sprintf(
+                            'Payment webhook amount mismatch for Deposit %s: expected %s %s, received %s %s.',
+                            $deposit->reference_number,
+                            $expectedAmount,
+                            $deposit->currency->value,
+                            $receivedAmount,
+                            $deposit->currency->value,
+                        ),
+                        metadata: [
+                            'deposit_id' => $deposit->id,
+                            'expected_amount' => $expectedAmount,
+                            'received_amount' => $receivedAmount,
+                            'gateway' => $gateway,
+                        ],
+                    );
+
+                    return PaymentProcessingResult::failed($gateway, 'Payment webhook amount mismatch.');
+                }
+            }
+
             return $this->finalizeSuccessfulDeposit($deposit, $payment, $payload);
         }
 
@@ -202,18 +265,9 @@ class PaymentWebhookService
     private function finalizeSuccessfulDeposit(Deposit $deposit, Payment $payment, WebhookPayload $payload): PaymentProcessingResult
     {
         $gateway = $payload->gateway;
-        $canonicalGateway = $gateway === 'manual' ? 'bank_transfer' : $gateway;
 
         // Replay check: already confirmed deposit
         if ($deposit->status === DepositStatus::Confirmed && $deposit->financial_transaction_id !== null) {
-            try {
-                $this->depositCompletion->verifySettled($deposit);
-                $scope = app(DepositProviderAccountService::class)->assertActive($deposit);
-                app(FinancialProviderReferenceService::class)->assertBound($deposit, $canonicalGateway, $scope, (string) $payload->providerReference, $payment);
-            } catch (FinancialException) {
-                return PaymentProcessingResult::failed($gateway, 'Deposit settlement verification failed.');
-            }
-
             $existingTx = FinancialTransaction::query()->find($deposit->financial_transaction_id);
 
             return PaymentProcessingResult::completed(
@@ -224,13 +278,6 @@ class PaymentWebhookService
                 replayed: true,
                 metadata: ['already_settled' => true],
             );
-        }
-
-        try {
-            $scope = app(DepositProviderAccountService::class)->assertActive($deposit);
-            app(FinancialProviderReferenceService::class)->bind($deposit, $canonicalGateway, $scope, (string) $payload->providerReference, $payment);
-        } catch (FinancialException) {
-            return PaymentProcessingResult::failed($gateway, 'Deposit reference binding failed.');
         }
 
         // Update Payment status to Captured
@@ -345,10 +392,10 @@ class PaymentWebhookService
     private function processWithdrawalWebhook(WebhookPayload $payload): PaymentProcessingResult
     {
         $gateway = $payload->gateway;
-        $withdrawal = app(PaymentWebhookBindingService::class)->resolve(Withdrawal::class, $payload);
+        $withdrawal = $this->resolveWithdrawal($payload);
 
         if (! $withdrawal instanceof Withdrawal) {
-            Log::warning('Withdrawal webhook received for non-existent or unbound withdrawal', [
+            Log::warning('Withdrawal webhook received for non-existent withdrawal', [
                 'gateway' => $gateway,
                 'internal_reference' => $payload->internalReference,
                 'provider_reference' => $payload->providerReference,
@@ -357,32 +404,51 @@ class PaymentWebhookService
             return PaymentProcessingResult::failed($gateway, 'Matching withdrawal not found.');
         }
 
-        // Case A: Successful Payout Webhook
+        // 1. Validate currency match
+        if ($payload->currency !== null && $payload->currency !== $withdrawal->currency) {
+            Log::warning('Withdrawal webhook currency mismatch', [
+                'gateway' => $gateway,
+                'withdrawal_id' => $withdrawal->id,
+                'expected_currency' => $withdrawal->currency->value,
+                'received_currency' => $payload->currency->value,
+            ]);
+
+            return PaymentProcessingResult::failed($gateway, 'Withdrawal webhook currency mismatch.');
+        }
+
+        // 2. Validate amount match (compare exact decimal string against gross or net amount)
+        if ($payload->amount !== null) {
+            $amountMatchesGross = bccomp((string) $withdrawal->amount, (string) $payload->amount, 2) === 0;
+            $amountMatchesNet = bccomp((string) $withdrawal->net_amount, (string) $payload->amount, 2) === 0;
+
+            if (! $amountMatchesGross && ! $amountMatchesNet) {
+                Log::warning('Withdrawal webhook amount mismatch', [
+                    'gateway' => $gateway,
+                    'withdrawal_id' => $withdrawal->id,
+                    'expected_amount' => (string) $withdrawal->amount,
+                    'expected_net_amount' => (string) $withdrawal->net_amount,
+                    'received_amount' => (string) $payload->amount,
+                ]);
+
+                return PaymentProcessingResult::failed($gateway, 'Withdrawal webhook amount mismatch.');
+            }
+        }
+
+        // 3. Case A: Successful Payout Webhook
         if ($payload->isSuccess) {
             if ($withdrawal->status === WithdrawalStatus::Completed) {
-                try {
-                    $this->withdrawalCompletion->verifySettled($withdrawal);
-                } catch (FinancialException) {
-                    return PaymentProcessingResult::failed($gateway, 'Withdrawal settlement verification failed.');
-                }
+                $this->withdrawalCompletion->verifySettled($withdrawal);
 
                 return PaymentProcessingResult::ignored($gateway, 'Withdrawal already completed.', true);
             }
 
-            if ($withdrawal->status === WithdrawalStatus::Approved || $withdrawal->status === WithdrawalStatus::Processing) {
-                $payment = Payment::query()
-                    ->where('payable_type', Withdrawal::class)
-                    ->where('payable_id', $withdrawal->id)
-                    ->lockForUpdate()
-                    ->first();
-
-                try {
-                    app(WithdrawalProviderReferenceService::class)->bind(
-                        $withdrawal,
-                        $gateway,
-                        (string) $payload->providerReference,
-                        $payment,
-                    );
+            if (in_array($withdrawal->status, [WithdrawalStatus::Approved, WithdrawalStatus::Processing], true)) {
+                $completion = DB::transaction(function () use ($withdrawal, $gateway, $payload): array {
+                    $payment = Payment::query()
+                        ->where('payable_type', Withdrawal::class)
+                        ->where('payable_id', $withdrawal->id)
+                        ->lockForUpdate()
+                        ->first();
 
                     if ($payment instanceof Payment) {
                         $payment->status = PaymentStatus::Captured;
@@ -397,16 +463,14 @@ class PaymentWebhookService
                         $payment->save();
                     }
 
-                    $completion = $this->withdrawalCompletion->complete(
+                    return $this->withdrawalCompletion->complete(
                         withdrawal: $withdrawal,
                         options: [
                             'provider' => $gateway,
                             'provider_reference' => $payload->providerReference,
                         ],
                     );
-                } catch (FinancialException) {
-                    return PaymentProcessingResult::failed($gateway, 'Withdrawal settlement could not be completed.');
-                }
+                });
 
                 /** @var FinancialTransaction $tx */
                 $tx = $completion['transaction'];
@@ -428,44 +492,34 @@ class PaymentWebhookService
                 );
             }
 
-            return PaymentProcessingResult::failed($gateway, 'Withdrawal is not in an approved or processing state.');
+            return PaymentProcessingResult::failed($gateway, 'Withdrawal requires explicit approval before provider callback settlement.');
         }
 
-        // Case B: Failed / Declined / Cancelled Payout Webhook
+        // 4. Case B: Failed / Declined / Cancelled Payout Webhook
         if ($withdrawal->status->isFinal()) {
             return PaymentProcessingResult::ignored($gateway, 'Withdrawal already in final state: '.$withdrawal->status->value, true);
         }
 
-        if ($withdrawal->status !== WithdrawalStatus::Approved && $withdrawal->status !== WithdrawalStatus::Processing) {
-            return PaymentProcessingResult::failed($gateway, 'Withdrawal is not in an approved or processing state.');
+        if (! in_array($withdrawal->status, [WithdrawalStatus::Approved, WithdrawalStatus::Processing], true)) {
+            return PaymentProcessingResult::failed($gateway, 'Withdrawal requires explicit approval before provider callback failure handling.');
         }
 
         $reason = 'The payout provider confirmed that the disbursement failed.';
 
+        // This path is reached only after a persisted webhook envelope has passed
+        // the provider driver's signature verification. Store a generic outcome;
+        // the encrypted webhook evidence remains the source of the full payload.
+        $this->withdrawalApproval->markProviderFailed($withdrawal);
+
         $payment = Payment::query()
             ->where('payable_type', Withdrawal::class)
             ->where('payable_id', $withdrawal->id)
-            ->lockForUpdate()
             ->first();
-
-        try {
-            app(WithdrawalProviderReferenceService::class)->bind(
-                $withdrawal,
-                $gateway,
-                (string) $payload->providerReference,
-                $payment,
-            );
-
-            $this->withdrawalApproval->markProviderFailed($withdrawal);
-        } catch (FinancialException) {
-            return PaymentProcessingResult::failed($gateway, 'Withdrawal failure could not be applied.');
-        }
 
         if ($payment instanceof Payment) {
             $payment->status = PaymentStatus::Failed;
             $payment->failed_at = Carbon::now();
             $payment->failure_reason = $reason;
-            $payment->gateway_reference = $payload->providerReference ?? $payment->gateway_reference;
             $payment->gateway_response = [
                 'gateway' => $gateway,
                 'outcome' => 'failed',
@@ -501,67 +555,29 @@ class PaymentWebhookService
     private function processReversalWebhook(WebhookPayload $payload): PaymentProcessingResult
     {
         return PaymentProcessingResult::failed(
-            gateway: $payload->gateway,
-            errorMessage: ExternalRefundPolicy::MESSAGE,
+            $payload->gateway,
+            \App\Services\Finance\ExternalRefundPolicy::MESSAGE,
         );
     }
 
     /**
-     * Locate the matching Deposit model.
+     * Locate and validate the matching Deposit model under obligation locks.
      */
     private function resolveDeposit(WebhookPayload $payload): ?Deposit
     {
-        if ($payload->internalReference !== null && trim($payload->internalReference) !== '') {
-            $deposit = Deposit::query()
-                ->where('reference_number', trim($payload->internalReference))
-                ->orWhere('uuid', trim($payload->internalReference))
-                ->first();
+        $resolved = app(PaymentWebhookBindingService::class)->resolve(Deposit::class, $payload);
 
-            if ($deposit instanceof Deposit) {
-                return $deposit;
-            }
-        }
-
-        if ($payload->providerReference !== null && trim($payload->providerReference) !== '') {
-            $deposit = Deposit::query()
-                ->where('provider_reference', trim($payload->providerReference))
-                ->first();
-
-            if ($deposit instanceof Deposit) {
-                return $deposit;
-            }
-        }
-
-        return null;
+        return $resolved instanceof Deposit ? $resolved : null;
     }
 
     /**
-     * Locate the matching Withdrawal model.
+     * Locate and validate the matching Withdrawal model under obligation locks.
      */
     private function resolveWithdrawal(WebhookPayload $payload): ?Withdrawal
     {
-        if ($payload->internalReference !== null && trim($payload->internalReference) !== '') {
-            $withdrawal = Withdrawal::query()
-                ->where('reference_number', trim($payload->internalReference))
-                ->orWhere('uuid', trim($payload->internalReference))
-                ->first();
+        $resolved = app(PaymentWebhookBindingService::class)->resolve(Withdrawal::class, $payload);
 
-            if ($withdrawal instanceof Withdrawal) {
-                return $withdrawal;
-            }
-        }
-
-        if ($payload->providerReference !== null && trim($payload->providerReference) !== '') {
-            $withdrawal = Withdrawal::query()
-                ->where('provider_reference', trim($payload->providerReference))
-                ->first();
-
-            if ($withdrawal instanceof Withdrawal) {
-                return $withdrawal;
-            }
-        }
-
-        return null;
+        return $resolved instanceof Withdrawal ? $resolved : null;
     }
 
     /**
@@ -775,9 +791,7 @@ class PaymentWebhookService
                         ],
                     );
 
-                    DB::transaction(function () use ($callback): void {
-                        $this->paymentCallbacks->apply($callback);
-                    });
+                    $this->paymentCallbacks->apply($callback);
 
                     $row->status = PaymentWebhookStatus::Applied;
                     $row->applied_at = now();
@@ -790,7 +804,7 @@ class PaymentWebhookService
                         'facts applied to internal paper',
                     );
                     $applied = true;
-                } catch (PaymentReconciliationException|FinancialException|ResponsibleGamingLimitException|SelfExclusionException $applicationRefusal) {
+                } catch (PaymentReconciliationException $applicationRefusal) {
                     $row->status_reason = $applicationRefusal->errorCode();
                     $row->last_error_at = now();
                     $row->save();
@@ -903,11 +917,7 @@ class PaymentWebhookService
                 return $locked;
             }, 3);
         } catch (Throwable $failure) {
-            $reason = ($failure instanceof PaymentWebhookException
-                || $failure instanceof PaymentReconciliationException
-                || $failure instanceof FinancialException
-                || $failure instanceof ResponsibleGamingLimitException
-                || $failure instanceof SelfExclusionException)
+            $reason = $failure instanceof PaymentWebhookException
                 ? $failure->errorCode()
                 : 'WEBHOOK_APPLICATION_FAILED';
 

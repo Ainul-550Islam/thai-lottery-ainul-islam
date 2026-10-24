@@ -151,13 +151,7 @@ final class BetPurchaseConcurrencyException extends BetPurchaseException
     {
         $code = self::driverCode($exception);
 
-        return in_array($code, [
-            self::SQLSTATE_DEADLOCK,
-            self::SQLSTATE_LOCK_TIMEOUT,
-            5,
-            6,
-            517,
-        ], true);
+        return $code === self::SQLSTATE_DEADLOCK || $code === self::SQLSTATE_LOCK_TIMEOUT;
     }
 
     /**

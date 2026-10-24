@@ -152,7 +152,11 @@ class GloProviderHealth extends Command
                 $configured,
             );
         } else {
-            $names = [strtolower(trim((string) config('glo.official_source.mode', 'fixture')))];
+            $names = [(string) config('glo.official_source.mode', 'fixture')];
+
+            if ((bool) config('glo.sources.fall_through_to_fixture', false)) {
+                $names[] = 'fixture';
+            }
         }
 
         $implemented = ['official', 'fixture'];

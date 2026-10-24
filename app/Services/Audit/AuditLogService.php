@@ -8,13 +8,15 @@ use App\Enums\AuditAction;
 use App\Enums\RiskLevel;
 use App\Models\AuditLog;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Universal Audit Logging & Redaction Service.
  *
  * Ensures all security, financial, and compliance events are recorded
- * with immutable timestamps and automatic sanitization of sensitive data
- * (passwords, tokens, CVVs, API secrets, private keys).
+ * with immutable timestamps, high-visibility failure telemetry, and
+ * automatic sanitization of sensitive secrets and PII.
  */
 class AuditLogService
 {
@@ -26,19 +28,32 @@ class AuditLogService
         'secret',
         'app_secret',
         'webhook_secret',
+        'webhook_signature',
         'api_key',
         'token',
         'id_token',
         'access_token',
         'refresh_token',
+        'authorization',
+        'cookie',
+        'session_id',
+        'otp',
+        'totp_secret',
+        'recovery_code',
+        'recovery_codes',
         'pin',
         'cvv',
         'card_number',
         'private_key',
+        'national_id',
+        'document_number',
+        'ssn',
+        'bank_account_number',
+        'iban',
     ];
 
     /**
-     * Record an audit event with automatic redaction.
+     * Record an audit event with automatic redaction and critical persistence failure visibility.
      */
     public function log(
         ?int $userId,
@@ -63,13 +78,28 @@ class AuditLogService
             'action' => $actionEnum,
             'risk_level' => $riskEnum,
             'auditable_type' => $auditableType,
-            'auditable_id' => $auditableId,
+            'auditable_id' => $subjectKey === null ? null : $auditableId,
             'description' => $description,
             'old_values' => $this->redact($oldValues),
             'new_values' => $this->redact($newValues),
             'metadata' => $this->redact($metadata),
         ]);
-        $log->save();
+
+        try {
+            $log->save();
+        } catch (Throwable $e) {
+            Log::critical('security.audit.persistence_failed', [
+                'user_id' => $userId,
+                'action' => $actionEnum->value,
+                'risk_level' => $riskEnum->value,
+                'auditable_type' => $auditableType,
+                'auditable_id' => $auditableId,
+                'exception' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
 
         return $log;
     }

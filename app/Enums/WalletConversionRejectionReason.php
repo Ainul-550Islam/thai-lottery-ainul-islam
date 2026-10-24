@@ -28,9 +28,6 @@ enum WalletConversionRejectionReason: string
     case QuoteNotFound = 'quote_not_found';
     case IdempotencyConflict = 'idempotency_conflict';
     case RateLimited = 'rate_limited';
-    case FeeRuleInvalid = 'fee_rule_invalid';
-    case CurrencyNotConfigured = 'currency_not_configured';
-    case CurrencyMismatch = 'currency_mismatch';
 
     public function label(): string
     {
@@ -51,9 +48,6 @@ enum WalletConversionRejectionReason: string
             self::QuoteNotFound => 'Quote not found',
             self::IdempotencyConflict => 'Idempotency key conflict',
             self::RateLimited => 'Too many attempts',
-            self::FeeRuleInvalid => 'Fee schedule not configured',
-            self::CurrencyNotConfigured => 'Currency not configured',
-            self::CurrencyMismatch => 'Currency mismatch',
         };
     }
 
@@ -67,7 +61,7 @@ enum WalletConversionRejectionReason: string
             self::IdempotencyConflict => 409,
             self::RateLimited => 429,
             self::FeatureDisabled,
-            self::DirectionDisabled => 503,
+            self::DirectionDisabled,
             self::AccountSuspended,
             self::SelfExclusionActive,
             self::WalletLocked,
@@ -96,16 +90,11 @@ enum WalletConversionRejectionReason: string
         };
     }
 
-    public function labelKey(): string
-    {
-        return 'wallet_conversion.rejection_'.$this->value;
-    }
-
     /**
      * The translation key for the member-facing explanation, when one exists.
      */
     public function messageKey(): ?string
     {
-        return $this->labelKey();
+        return 'wallet_conversion.refusal_'.$this->value;
     }
 }

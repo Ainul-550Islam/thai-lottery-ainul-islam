@@ -50,7 +50,7 @@ final class MetadataLane
      */
     public static function extract(string $lane, ?string $leaf = null): string
     {
-        return "json_extract(metadata, '".self::path($lane, $leaf)."')";
+        return DatabaseJson::extractText('metadata', $leaf === null ? $lane : $lane.'.'.$leaf);
     }
 
     public static function isNull(string $lane, string $leaf): string

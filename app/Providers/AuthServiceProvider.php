@@ -6,7 +6,6 @@ use App\Models\AccountGradeSnapshot;
 use App\Models\AccountVerification;
 use App\Models\Agent;
 use App\Models\Bet;
-use App\Models\Chat\ChatConversation;
 use App\Models\Draw;
 use App\Models\GloPrizeClaim;
 use App\Models\GloTicketFreeze;
@@ -19,7 +18,6 @@ use App\Policies\AccountGradePolicy;
 use App\Policies\AccountVerificationPolicy;
 use App\Policies\AgentPolicy;
 use App\Policies\BetPolicy;
-use App\Policies\ChatConversationPolicy;
 use App\Policies\DrawPolicy;
 use App\Policies\GloPrizeClaimPolicy;
 use App\Policies\GloTicketFreezePolicy;
@@ -49,7 +47,6 @@ class AuthServiceProvider extends ServiceProvider
         AccountVerification::class => AccountVerificationPolicy::class,
         GloTicketFreeze::class => GloTicketFreezePolicy::class,
         GloPrizeClaim::class => GloPrizeClaimPolicy::class,
-        ChatConversation::class => ChatConversationPolicy::class,
     ];
 
     public function boot(): void

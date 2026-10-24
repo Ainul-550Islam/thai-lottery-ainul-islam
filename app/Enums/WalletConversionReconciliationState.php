@@ -15,23 +15,4 @@ enum WalletConversionReconciliationState: string
     case Pending = 'pending';
     case Balanced = 'balanced';
     case Mismatched = 'mismatched';
-
-    public function isHealthy(): bool
-    {
-        return $this === self::Balanced;
-    }
-
-    public function label(): string
-    {
-        return match ($this) {
-            self::Pending => 'Pending',
-            self::Balanced => 'Balanced',
-            self::Mismatched => 'Mismatched',
-        };
-    }
-
-    public function labelKey(): string
-    {
-        return 'wallet_conversion.reconciliation_'.$this->value;
-    }
 }

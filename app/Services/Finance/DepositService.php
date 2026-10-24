@@ -11,14 +11,45 @@ use App\Enums\PaymentMethod;
 use App\Exceptions\DepositException;
 use App\Exceptions\FinancialException;
 use App\Models\Deposit;
+use App\Models\User;
 use App\Models\Wallet;
-use App\Services\Payment\DepositProviderAccountService;
+use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Creating and cancelling a deposit REQUEST.
+ *
+ * THE ONE RULE THAT MATTERS HERE
+ * ------------------------------
+ * Creating a deposit request MUST NOT credit the wallet. This class contains no
+ * call to WalletService::credit(), no call to FinancialTransactionService and no
+ * balance arithmetic at all. What it produces is an intent row in `deposits` with
+ * status `pending` and `financial_transaction_id` still null. Money appears only
+ * in DepositCompletionService, after an approval.
+ *
+ * NO PAYMENT GATEWAY. This phase integrates nothing: no Stripe, no crypto, no
+ * bKash, no Nagad, no provider SDK, no webhook and no credential. `provider` and
+ * `provider_reference` are accepted as plain non-secret strings so a later phase
+ * can reconcile against a provider statement, and nothing here calls out to a
+ * network.
+ *
+ * IDEMPOTENCY
+ * `deposits.idempotency_key` is UNIQUE in the audited schema. A retried request
+ * carrying the same key returns the row that already exists instead of creating a
+ * second one, and a key that exists with different terms is refused as a conflict
+ * rather than silently reused. Amounts are compared as exact decimal strings.
+ *
+ * LOCK ORDER
+ * WALLET -> FINANCIAL ENTITY -> LEDGER ACCOUNTS, the same order as everywhere
+ * else in the engine. Creation takes the wallet lock only to read a consistent
+ * currency and status; the deposit row does not exist yet, so there is nothing
+ * after it to lock.
+ *
+ * EXACT ARITHMETIC ONLY. Every amount is a Money value object over bcmath. No
+ * float is constructed in this file.
  */
 final class DepositService
 {
@@ -54,24 +85,18 @@ final class DepositService
 
         $fee = $this->resolveFee($amount, $options);
         $netAmount = $this->resolveNetAmount($amount, $fee);
-        $scope = app(DepositProviderAccountService::class)->current($method->value);
 
-        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $scope, $options): Deposit {
+        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options): Deposit {
             $lockedWallet = $this->locks->lock((int) $wallet->getKey());
 
             $this->assertWalletAcceptsDeposit($lockedWallet, $amount->currency());
             $this->assertAmountWithinLimits($amount);
 
-            app(DepositAdmission::class)->lockPlayer($lockedWallet);
-
             if ($normalisedKey !== null) {
-                $existing = $this->findByIdempotencyKey($normalisedKey, true);
+                $existing = $this->findByIdempotencyKey($normalisedKey);
 
                 if ($existing instanceof Deposit) {
                     app(DepositIntegrityGuard::class)->assertTerms($existing, $lockedWallet);
-                    if (app(DepositProviderAccountService::class)->stored($existing) !== $scope) {
-                        app(DepositIntegrityGuard::class)->refuse();
-                    }
                     $this->assertReplayMatches($existing, $lockedWallet, $amount, $fee, $method);
 
                     return $existing;
@@ -79,7 +104,11 @@ final class DepositService
             }
 
             app(DepositAdmission::class)->assertAllowed($lockedWallet, $amount->toString());
-            app(\App\Services\ResponsibleGaming\SelfExclusionReleaseGate::class)->assertMayPlay((int) $lockedWallet->user_id);
+
+            $options['metadata'] = array_merge(
+                [\App\Services\Payment\DepositProviderAccountService::KEY => app(\App\Services\Payment\DepositProviderAccountService::class)->current($method->value)],
+                isset($options['metadata']) && is_array($options['metadata']) ? $options['metadata'] : [],
+            );
 
             $deposit = new Deposit;
 
@@ -98,28 +127,29 @@ final class DepositService
                 'metadata' => $this->buildMetadata($options),
             ]);
 
+            // System-assigned, therefore never mass assignable.
             $deposit->uuid = (string) Str::uuid();
+
+            // Explicitly pending: a new request has not been reviewed and has
+            // certainly not been credited.
             $deposit->status = DepositStatus::Pending;
             $deposit->financial_transaction_id = null;
             $deposit->confirmed_at = null;
             $deposit->failed_at = null;
 
-            $metadata = is_array($deposit->metadata) ? $deposit->metadata : [];
-            $metadata[DepositProviderAccountService::KEY] = $scope;
-            $metadata[DepositIntegrityGuard::TERMS_KEY] = app(DepositIntegrityGuard::class)->termsFingerprint($deposit);
-            $deposit->metadata = $metadata;
+            $termsMeta = is_array($deposit->metadata) ? $deposit->metadata : [];
+            $termsMeta[DepositIntegrityGuard::TERMS_KEY] = app(DepositIntegrityGuard::class)->termsFingerprint($deposit);
+            $deposit->metadata = $termsMeta;
 
             try {
                 $deposit->save();
             } catch (QueryException $exception) {
+                // Lost a race on the unique idempotency key: return the winner.
                 if ($normalisedKey !== null && $this->idempotency->isDuplicateKeyViolation($exception)) {
-                    $winner = $this->findByIdempotencyKey($normalisedKey, true);
+                    $winner = $this->findByIdempotencyKey($normalisedKey);
 
                     if ($winner instanceof Deposit) {
                         app(DepositIntegrityGuard::class)->assertTerms($winner, $lockedWallet);
-                        if (app(DepositProviderAccountService::class)->stored($winner) !== $scope) {
-                            app(DepositIntegrityGuard::class)->refuse();
-                        }
                         $this->assertReplayMatches($winner, $lockedWallet, $amount, $fee, $method);
 
                         return $winner;
@@ -153,6 +183,11 @@ final class DepositService
     /**
      * Withdraw the request before it was ever credited.
      *
+     * Only `pending` and `approved` qualify, and neither of those has moved money,
+     * so no balance change and no ledger entry is involved. A confirmed deposit is
+     * NOT cancellable: reversing money that already arrived requires a new
+     * compensating transaction, which is FinancialReversalService's job.
+     *
      * @throws DepositException
      * @throws FinancialException
      */
@@ -184,16 +219,17 @@ final class DepositService
         });
     }
 
-    public function findByIdempotencyKey(string $key, bool $lock = false): ?Deposit
+    /**
+     * Look up a request by its idempotency key.
+     *
+     * Soft-deleted rows are included because the unique index covers them: a key
+     * belonging to a trashed row is still taken by the database.
+     */
+    public function findByIdempotencyKey(string $key): ?Deposit
     {
-        $query = Deposit::withTrashed()
-            ->where('idempotency_key', $this->idempotency->normaliseKey($key));
-
-        if ($lock) {
-            $query->lockForUpdate();
-        }
-
-        return $query->first();
+        return Deposit::withTrashed()
+            ->where('idempotency_key', $this->idempotency->normaliseKey($key))
+            ->first();
     }
 
     public function findByReferenceNumber(string $referenceNumber): ?Deposit
@@ -201,6 +237,12 @@ final class DepositService
         return Deposit::query()->byReferenceNumber($referenceNumber)->first();
     }
 
+    /**
+     * A stable idempotency key for a request, derived from its own terms.
+     *
+     * Offered so a caller with no key of its own still gets replay protection
+     * instead of no protection at all.
+     */
     public function deterministicKeyFor(Wallet $wallet, Money $amount, PaymentMethod $method, string $discriminator): string
     {
         return $this->idempotency->deterministicKey('deposit-request', implode('|', [
@@ -213,6 +255,12 @@ final class DepositService
     }
 
     /**
+     * The fee that applies, as an exact amount.
+     *
+     * An explicit fee in $options wins; otherwise the configured percentage is
+     * applied with bcmath. The result is stored, never recomputed later, so the
+     * fee that applied at request time stays auditable.
+     *
      * @param  array<string, mixed>  $options
      *
      * @throws FinancialException
@@ -242,6 +290,8 @@ final class DepositService
     }
 
     /**
+     * amount - fee, refused if it is not a usable positive amount.
+     *
      * @throws DepositException
      */
     public function resolveNetAmount(Money $amount, Money $fee): Money
@@ -262,6 +312,8 @@ final class DepositService
     }
 
     /**
+     * Guard the configured minimum and maximum.
+     *
      * @throws DepositException
      */
     public function assertAmountWithinLimits(Money $amount): void
@@ -283,6 +335,12 @@ final class DepositService
     }
 
     /**
+     * The wallet must exist, be able to receive money, and share the currency.
+     *
+     * A currency difference is a hard refusal. Converting silently would require
+     * inventing an exchange rate, and `finance.currency.conversion_enabled` is
+     * false in the audited configuration.
+     *
      * @throws DepositException
      */
     public function assertWalletAcceptsDeposit(Wallet $wallet, Currency $currency): void
@@ -296,12 +354,17 @@ final class DepositService
         }
     }
 
+    /**
+     * The polymorphic reference type used for a deposit's ledger entries.
+     */
     public function referenceType(): FinancialReferenceType
     {
         return FinancialReferenceType::Deposit;
     }
 
     /**
+     * A unique, human-quotable reference number.
+     *
      * @throws FinancialException
      */
     public function generateReferenceNumber(): string
@@ -326,6 +389,8 @@ final class DepositService
     }
 
     /**
+     * A replay must describe the same operation, or it is a conflict.
+     *
      * @throws DepositException
      */
     private function assertReplayMatches(Deposit $existing, Wallet $wallet, Money $amount, Money $fee, PaymentMethod $method): void
@@ -344,7 +409,7 @@ final class DepositService
             $mismatches['amount'] = (string) $existing->amount;
         }
 
-        if (bccomp((string) $existing->fee, $fee->amount(), $fee->scale()) !== 0) {
+        if (bccomp((string) $existing->fee, $fee->amount(), $amount->scale()) !== 0) {
             $mismatches['fee'] = (string) $existing->fee;
         }
 
@@ -390,9 +455,9 @@ final class DepositService
 
     /**
      * @param  array<string, mixed>  $options
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    private function buildMetadata(array $options): array
+    private function buildMetadata(array $options): ?array
     {
         $metadata = isset($options['metadata']) && is_array($options['metadata'])
             ? $options['metadata']
@@ -424,6 +489,10 @@ final class DepositService
             : null;
     }
 
+    /**
+     * Half-up rounding on a decimal string. bcmath truncates, so the carry is
+     * added explicitly rather than relying on a float.
+     */
     private function roundHalfUp(string $value, int $scale): string
     {
         $negative = str_starts_with($value, '-');
@@ -437,6 +506,10 @@ final class DepositService
 
     private function withinTransaction(\Closure $callback): mixed
     {
-        return $this->locks->withinTransaction($callback);
+        if (DB::transactionLevel() > 0) {
+            return $callback();
+        }
+
+        return DB::transaction($callback);
     }
 }

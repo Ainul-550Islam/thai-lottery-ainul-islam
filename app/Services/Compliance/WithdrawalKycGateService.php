@@ -59,9 +59,9 @@ class WithdrawalKycGateService
     {
         $configured = config('finance.withdrawal.kyc_gate_threshold');
 
-        return is_numeric($configured) || (is_string($configured) && is_numeric($configured))
+        return is_numeric($configured) || is_string($configured)
             ? bcadd((string) $configured, '0.00', 2)
-            : '0.00';
+            : '5000.00';
     }
 
     /**
@@ -85,8 +85,7 @@ class WithdrawalKycGateService
             return true;
         }
 
-        return app(\App\Services\Withdrawal\WithdrawalKycGateService::class)
-            ->kycStandingFor((int) $user->getKey())['state'] === 'verified';
+        return $user->kycStatus()->isVerified();
     }
 
     /**
@@ -100,10 +99,17 @@ class WithdrawalKycGateService
             return;
         }
 
-        $standing = app(\App\Services\Withdrawal\WithdrawalKycGateService::class)
-            ->kycStandingFor((int) $user->getKey());
         $status = $user->kycStatus();
-        $refusal = $this->refusalReasonFor($user, $amount, $currency);
+
+        $refusal = sprintf(
+            'Withdrawal of %s %s requires a verified identity; aggregate KYC status is %s. '
+            .'Complete identity verification to withdraw at or above %s %s.',
+            $amount,
+            $currency->value,
+            $status->value,
+            $this->threshold(),
+            $currency->value,
+        );
 
         $this->recordRefusal($user, $amount, $currency, $status, $refusal);
 
@@ -114,7 +120,7 @@ class WithdrawalKycGateService
                 'user_id' => (int) $user->getKey(),
                 'amount' => $amount,
                 'currency' => $currency->value,
-                'kyc_status' => $standing['state'],
+                'kyc_status' => $status->value,
                 'threshold' => $this->threshold(),
             ],
         );
@@ -127,19 +133,14 @@ class WithdrawalKycGateService
      */
     public function refusalReasonFor(User $user, string $amount, Currency $currency): string
     {
-        $standing = app(\App\Services\Withdrawal\WithdrawalKycGateService::class)
-            ->kycStandingFor((int) $user->getKey());
-        $docSuffix = $standing['document'] instanceof \App\Models\KycDocument
-            ? sprintf(' (document #%d)', (int) $standing['document']->getKey())
-            : '';
+        $status = $user->kycStatus();
 
         return sprintf(
-            'Withdrawal of %s %s requires a verified identity; KYC standing is %s%s. '
+            'Withdrawal of %s %s requires a verified identity; aggregate KYC status is %s. '
             .'Complete identity verification to withdraw at or above %s %s.',
             $amount,
             $currency->value,
-            $standing['state'],
-            $docSuffix,
+            $status->value,
             $this->threshold(),
             $currency->value,
         );

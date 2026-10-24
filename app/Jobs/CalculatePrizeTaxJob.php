@@ -222,8 +222,8 @@ class CalculatePrizeTaxJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Update,
             'risk_level' => RiskLevel::Medium,
-            'auditable_type' => null,
-            'auditable_id' => null,
+            'auditable_type' => 'prize_tax_sweep',
+            'auditable_id' => 0,
             'description' => sprintf(
                 'Prize-tax computation pass: %d eligible, %d computed, %d waived, %d failed.',
                 $summary['eligible'],
@@ -232,7 +232,6 @@ class CalculatePrizeTaxJob implements ShouldBeUnique, ShouldQueue
                 $summary['failed'],
             ),
             'metadata' => [
-                'lane' => 'prize_tax_sweep',
                 'eligible' => $summary['eligible'],
                 'computed' => $summary['computed'],
                 'waived' => $summary['waived'],

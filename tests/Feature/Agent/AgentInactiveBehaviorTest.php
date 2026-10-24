@@ -61,6 +61,6 @@ final class AgentInactiveBehaviorTest extends AgentTestCase
         $this->assertSame('0.00', (string) $agentWallet->balance);
 
         $commission->refresh();
-        $this->assertSame(CommissionStatus::Accrued, $commission->status);
+        $this->assertSame(CommissionStatus::Cancelled, $commission->status);
     }
 }

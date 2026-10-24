@@ -114,8 +114,8 @@ final class FrontendBuildVerificationTest extends TestCase
         $package = json_decode((string) file_get_contents(base_path('package.json')), true);
         $this->assertIsArray($package);
         $this->assertArrayHasKey('tailwindcss', $package['devDependencies'] ?? []);
-        $this->assertStringStartsWith(
-            '^4',
+        $this->assertMatchesRegularExpression(
+            '/^\^?4\./',
             (string) $package['devDependencies']['tailwindcss'],
             'the CSS sources are written for Tailwind v4',
         );

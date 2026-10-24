@@ -11,7 +11,9 @@ class ReviewFraudAlertRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('review', FraudAlert::class) ?? true;
+        $user = $this->user();
+
+        return $user !== null && $user->can('review', FraudAlert::class);
     }
 
     public function rules(): array

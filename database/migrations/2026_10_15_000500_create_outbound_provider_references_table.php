@@ -11,17 +11,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('outbound_provider_references', function (Blueprint $table): void {
-            $table->id();
-            $table->char('identity_key', 64)->unique();
-            $table->foreignId('withdrawal_id')->nullable()->unique()->constrained()->restrictOnDelete();
-            $table->foreignId('payout_id')->nullable()->unique()->constrained()->restrictOnDelete();
-            $table->foreignId('payment_id')->nullable()->unique()->constrained()->restrictOnDelete();
-            $table->string('provider', 40);
-            $table->string('account_scope', 80);
-            $table->char('reference_hash', 64);
-            $table->timestamp('created_at');
-        });
+        if (! Schema::hasTable('outbound_provider_references')) {
+            Schema::create('outbound_provider_references', function (Blueprint $table): void {
+                $table->id();
+                $table->char('identity_key', 64)->unique();
+                $table->foreignId('withdrawal_id')->nullable()->unique()->constrained()->restrictOnDelete();
+                $table->foreignId('payout_id')->nullable()->unique()->constrained()->restrictOnDelete();
+                $table->foreignId('payment_id')->nullable()->unique()->constrained()->restrictOnDelete();
+                $table->string('provider', 40);
+                $table->string('account_scope', 80);
+                $table->char('reference_hash', 64);
+                $table->timestamp('created_at');
+            });
+        }
         // SQL enforces exactly one real owner; nullable UNIQUEs permit multiple owners of the other domain.
         if (DB::getDriverName() === 'sqlite') {
             foreach (['INSERT', 'UPDATE'] as $operation) {

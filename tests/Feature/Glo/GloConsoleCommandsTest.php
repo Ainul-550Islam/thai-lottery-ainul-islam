@@ -32,10 +32,8 @@ class GloConsoleCommandsTest extends TestCase
             'draw_number' => 'GLO-2026-09-16',
             'status' => 'result_published',
             'scheduled_at' => now()->subDays(3),
-        ]);
-        $this->draw->forceFill([
             'result_published_at' => now()->subDays(2),
-        ])->save();
+        ]);
 
         config(['glo.official_source.mode' => 'fixture']);
     }
@@ -112,10 +110,10 @@ class GloConsoleCommandsTest extends TestCase
         // written over a draw that already published (or settled) it. The
         // importer now honours that guard instead of writing draw_results
         // directly, so the draw is moved to the state a real import happens in.
-        $this->draw->forceFill([
+        $this->draw->update([
             'status' => DrawStatus::Drawing,
             'result_published_at' => null,
-        ])->save();
+        ]);
 
         $this->artisan('glo:import-result', [
             '--draw' => 'GLO-2026-09-16',
@@ -149,11 +147,6 @@ class GloConsoleCommandsTest extends TestCase
 
     public function test_import_result_latest_fixture(): void
     {
-        $this->draw->forceFill([
-            'status' => DrawStatus::Drawing,
-            'result_published_at' => null,
-        ])->save();
-
         $this->artisan('glo:import-result', [
             '--latest' => true,
             '--json' => true,

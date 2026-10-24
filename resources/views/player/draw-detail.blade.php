@@ -17,7 +17,7 @@
 <div class="mx-auto max-w-4xl space-y-6">
     <div class="flex items-center justify-between gap-3">
         <a href="{{ route('player.draws') }}" class="text-xs font-bold text-emerald-400 hover:underline">&larr; {{ __('player.back_to_draws') }}</a>
-        <span class="rounded-full bg-slate-800 px-3 py-1 font-mono text-xs text-slate-300">Draw #{{ $draw->draw_number ?? $draw->id }}</span>
+        <span class="rounded-full bg-slate-800 px-3 py-1 font-mono text-xs text-slate-300">{{ $draw->draw_number ?? $draw->id }}</span>
     </div>
 
     <section id="live-results-board" class="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl sm:p-8" aria-labelledby="draw-detail-heading" aria-live="polite">

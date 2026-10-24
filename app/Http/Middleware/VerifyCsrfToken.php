@@ -9,19 +9,21 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken as BaseVerifyCsrfToken
 /**
  * CSRF Verification Middleware with Strict Exemption Allowlisting.
  *
- * Exemption is allowed ONLY for webhook endpoints protected by cryptographic
- * provider signature verification. All browser financial mutations require CSRF tokens.
+ * Exemption is allowed ONLY for server-to-server webhook endpoints protected by
+ * cryptographic provider signature verification and durable replay guards.
+ * Broad wildcard exemptions such as `api/*` are strictly forbidden so no
+ * session-authenticated state-changing route can bypass CSRF verification.
  */
-class VerifyCsrfToken extends BaseVerifyCsrfToken
+final class VerifyCsrfToken extends BaseVerifyCsrfToken
 {
     /**
-     * The URIs that should be excluded from CSRF verification.
+     * Narrow, justified URI allowlist for signed external provider webhooks only.
      *
      * @var array<int, string>
      */
     protected $except = [
-        'api/*',
         'api/v1/payments/webhook/*',
+        'api/v1/stripe/deposit-reviews/webhook',
         'api/payment/webhooks/*',
     ];
 }

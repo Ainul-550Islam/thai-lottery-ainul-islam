@@ -30,15 +30,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        $columns = array_values(array_filter(
-            ['participants_fingerprint', 'max_bet_id', 'approval_threshold'],
-            static fn (string $column): bool => Schema::hasColumn('settlement_runs', $column),
-        ));
-
-        if ($columns !== []) {
-            Schema::table('settlement_runs', function (Blueprint $table) use ($columns): void {
-                $table->dropColumn($columns);
-            });
-        }
+        Schema::table('settlement_runs', function (Blueprint $table): void {
+            $table->dropColumn(['result_fingerprint', 'participants_fingerprint', 'max_bet_id', 'approval_threshold']);
+        });
     }
 };

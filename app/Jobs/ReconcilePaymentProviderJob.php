@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Enums\QueueName;
 use App\Services\Payment\PaymentReconciliationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,7 +28,7 @@ final class ReconcilePaymentProviderJob implements ShouldQueue
     public function __construct(
         public readonly int $afterPaymentId = 0,
     ) {
-        $this->onQueue(QueueName::Reconciliation->value);
+        $this->onQueue('finance-reconciliation');
     }
 
     public function handle(PaymentReconciliationService $reconciliations): void

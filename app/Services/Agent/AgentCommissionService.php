@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Agent;
 
 use App\DTOs\Agent\CommissionSettlementResult;
+use App\Models\Agent;
 use App\Models\AgentCommission;
 use App\Models\Bet;
 
@@ -25,12 +26,10 @@ class AgentCommissionService
 
     /**
      * Calculate and accrue commission for a placed bet.
-     *
-     * @return list<AgentCommission>
      */
-    public function accrueForBet(Bet $bet): array
+    public function accrueForBet(Bet $bet): ?AgentCommission
     {
-        return $this->accrual->accrueForBet($bet);
+        return $this->accrual->accrue($bet);
     }
 
     /**
@@ -38,15 +37,13 @@ class AgentCommissionService
      */
     public function settleForDraw(int $drawId): CommissionSettlementResult
     {
-        return $this->settlement->settleForDraw($drawId);
+        return $this->settlement->settleDraw($drawId);
     }
 
     /**
      * Reverse commission associated with a cancelled/refunded bet.
-     *
-     * @return list<AgentCommission>
      */
-    public function reverseForBet(Bet $bet, string $reason = 'Bet refunded'): array
+    public function reverseForBet(Bet $bet, string $reason): ?AgentCommission
     {
         return $this->reversal->reverseForBet($bet, $reason);
     }

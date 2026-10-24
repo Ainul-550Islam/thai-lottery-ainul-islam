@@ -84,33 +84,33 @@ return [
     ],
 
     'regulatory' => [
-        'badge' => '• PLATFORM INFORMATION •',
+        'badge' => '• REGULATORY & COMPLIANCE •',
         'badges' => [
             'sec' => [
-                'name' => 'Access controls',
-                'desc' => 'Application authorization and account controls.',
+                'name' => 'SEC COMPLIANT',
+                'desc' => 'Thailand Securities and Exchange Commission',
             ],
             'iso' => [
-                'name' => 'Data handling',
-                'desc' => 'Review the platform security and privacy documentation.',
+                'name' => 'ISO/IEC 27001',
+                'desc' => 'Information Security Management',
             ],
             'fatf' => [
-                'name' => 'Financial safeguards',
-                'desc' => 'Configured account and transaction checks.',
+                'name' => 'FATF ALIGNED',
+                'desc' => 'Anti-Money Laundering Standards',
             ],
             'gdpr' => [
-                'name' => 'Privacy information',
-                'desc' => 'See the applicable privacy notice for data practices.',
+                'name' => 'GDPR READY',
+                'desc' => 'Data Protection by Design',
             ],
             'legal' => [
-                'name' => 'Legal information',
-                'desc' => 'Terms and legal availability depend on the applicable jurisdiction.',
+                'name' => 'LEGAL & REGULATORY',
+                'desc' => 'Licensed & Regulated Operating Framework',
             ],
         ],
     ],
 
     'footer_brand' => [
-        'tagline' => 'CLEAR INFORMATION. RESPONSIBLE OPERATION.',
-        'callout' => 'READ THE RULES. CHECK THE SOURCES.',
+        'tagline' => 'TRUSTED TODAY. TRANSFORMING TOMORROW.',
+        'callout' => 'BUILDING THE FUTURE OF LOTTERY, TOGETHER.',
     ],
 ];

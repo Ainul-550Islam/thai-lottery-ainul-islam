@@ -42,7 +42,7 @@ final class RecordComplianceActionAudit
             ->where('auditable_type', ComplianceAction::class)
             ->where('auditable_id', (int) $action->getKey())
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_ANCHOR_HOURS))
-            ->anchoredBy($anchor)
+            ->whereJsonContains('metadata->audit_anchor', $anchor)
             ->exists();
 
         if ($already) {
@@ -61,7 +61,7 @@ final class RecordComplianceActionAudit
             'auditable_id' => (int) $action->getKey(),
             'description' => $description,
             'metadata' => [
-                AuditLog::ANCHOR_KEY => $anchor,
+                'audit_anchor' => $anchor,
                 'action_key_prefix' => substr((string) $action->action_key, 0, 16),
                 'action_type' => $type instanceof ComplianceActionType ? $type->value : (string) $action->action_type,
                 'reason_code' => (string) $action->reason_code,
@@ -88,7 +88,7 @@ final class RecordComplianceActionAudit
             ->where('auditable_type', ComplianceCase::class)
             ->where('auditable_id', (int) $case->getKey())
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_ANCHOR_HOURS))
-            ->anchoredBy($anchor)
+            ->whereJsonContains('metadata->audit_anchor', $anchor)
             ->exists();
 
         if ($already) {
@@ -110,7 +110,7 @@ final class RecordComplianceActionAudit
                 $event->reason,
             ),
             'metadata' => [
-                AuditLog::ANCHOR_KEY => $anchor,
+                'audit_anchor' => $anchor,
                 'case_key_prefix' => substr((string) $case->case_key, 0, 16),
                 'trigger_reference' => $case->trigger_reference === null ? null : (string) $case->trigger_reference,
                 'trigger_fingerprint' => substr((string) $case->evidence_fingerprint, 0, 16),

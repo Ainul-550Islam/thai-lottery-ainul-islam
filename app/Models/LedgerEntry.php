@@ -64,11 +64,8 @@ class LedgerEntry extends Model
     protected $fillable = [
         'ledger_account_id',
         'financial_transaction_id',
-        'ledger_transaction_id',
         'wallet_id',
         'type',
-        'direction',
-        'sequence',
         'amount',
         'currency',
         'description',
@@ -77,22 +74,6 @@ class LedgerEntry extends Model
         'metadata',
         'posted_at',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $entry): void {
-            if ($entry->getAttribute('type') === null && $entry->getAttribute('direction') !== null) {
-                $entry->setAttribute('type', strtolower((string) $entry->getAttribute('direction')));
-            }
-            if ($entry->getAttribute('direction') === null && $entry->getAttribute('type') !== null) {
-                $typeVal = $entry->getAttribute('type');
-                $entry->setAttribute('direction', strtoupper($typeVal instanceof LedgerEntryType ? $typeVal->value : (string) $typeVal));
-            }
-            if ($entry->getAttribute('posted_at') === null) {
-                $entry->setAttribute('posted_at', now());
-            }
-        });
-    }
 
     /**
      * @return array<string, string>
@@ -124,14 +105,6 @@ class LedgerEntry extends Model
     public function financialTransaction(): BelongsTo
     {
         return $this->belongsTo(FinancialTransaction::class);
-    }
-
-    /**
-     * @return BelongsTo<LedgerTransaction, self>
-     */
-    public function transaction(): BelongsTo
-    {
-        return $this->belongsTo(LedgerTransaction::class, 'ledger_transaction_id', 'id');
     }
 
     /**

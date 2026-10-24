@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Services\Affiliate\AffiliateCommissionDisplayService;
 use App\Services\Lottery\DiscountParityProjectionService;
 use App\Services\Pricing\LottoDiscountService;
 use App\Services\PublicPages\PublicPageDataService;
-use App\Support\SupportedLocale;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +25,6 @@ final class PublicLottoDiscountController
         private readonly PublicPageDataService $pages,
         private readonly LottoDiscountService $discounts,
         private readonly DiscountParityProjectionService $matrix,
-        private readonly AffiliateCommissionDisplayService $affiliate,
     ) {
     }
 
@@ -47,7 +44,6 @@ final class PublicLottoDiscountController
         return view('discounts.index', [
             'discounts' => $data + $meta,
             'matrix' => $matrix,
-            'affiliate' => $this->affiliate->publicCatalogue(),
             'meta' => $meta,
         ]);
     }
@@ -59,7 +55,6 @@ final class PublicLottoDiscountController
         return response()->json([
             'success' => true,
             'data' => $this->pages->discounts($locale),
-            'affiliate' => $this->affiliate->publicCatalogue(),
             'meta' => $this->pages->meta('discounts', $locale),
         ]);
     }
@@ -85,7 +80,10 @@ final class PublicLottoDiscountController
 
     private function locale(Request $request): string
     {
-        return SupportedLocale::normalise(app()->getLocale())
-            ?? (string) app()->getLocale();
+        $candidate = (string) $request->query('locale', app()->getLocale());
+
+        return in_array($candidate, ['en', 'th'], true)
+            ? $candidate
+            : (string) app()->getLocale();
     }
 }

@@ -45,7 +45,6 @@ class GloTicket extends Model
         'price',
         'currency',
         'status',
-        'digital_seal_hash',
         'purchased_at',
     ];
 
@@ -54,19 +53,9 @@ class GloTicket extends Model
         $this->legacyMetadata['price'] = $value;
     }
 
-    public function getPriceAttribute(): ?string
-    {
-        return ((array) $this->metadata)['price'] ?? ((array) $this->metadata)['price_thb'] ?? null;
-    }
-
     public function setCurrencyAttribute(mixed $value): void
     {
         $this->legacyMetadata['currency'] = $value instanceof \BackedEnum ? $value->value : $value;
-    }
-
-    public function getCurrencyAttribute(): ?string
-    {
-        return ((array) $this->metadata)['currency'] ?? null;
     }
 
     public function setStatusAttribute(mixed $value): void
@@ -74,29 +63,9 @@ class GloTicket extends Model
         $this->legacyMetadata['status'] = $value instanceof \BackedEnum ? $value->value : $value;
     }
 
-    public function getStatusAttribute(): ?string
-    {
-        return ((array) $this->metadata)['status'] ?? null;
-    }
-
-    public function setDigitalSealHashAttribute(mixed $value): void
-    {
-        $this->legacyMetadata['digital_seal_hash'] = $value;
-    }
-
-    public function getDigitalSealHashAttribute(): ?string
-    {
-        return ((array) $this->metadata)['digital_seal_hash'] ?? null;
-    }
-
     public function setPurchasedAtAttribute(mixed $value): void
     {
         $this->created_at = $value;
-    }
-
-    public function getPurchasedAtAttribute(): mixed
-    {
-        return $this->created_at;
     }
 
     protected array $legacyMetadata = [];

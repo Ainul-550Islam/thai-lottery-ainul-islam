@@ -8,7 +8,6 @@ use App\DTOs\ResponsibleGaming\SelfExclusionData;
 use App\Enums\BetStatus;
 use App\Enums\Currency;
 use App\Enums\DrawStatus;
-use App\Enums\WalletType;
 use App\Enums\PaymentMethod;
 use App\Exceptions\FinancialException;
 use App\Exceptions\InsufficientBalanceException;
@@ -250,17 +249,12 @@ final class PlayerWebController
         /** @var User $user */
         $user = Auth::user();
 
-        $wallets = Wallet::query()
+        $wallet = Wallet::query()
             ->where('user_id', $user->id)
-            ->get();
+            ->first();
 
-        $wallet = $wallets->firstWhere('type', WalletType::Primary) ?? $wallets->first();
-
-        $now = now();
         $openDraw = Draw::query()
             ->where('status', DrawStatus::Open)
-            ->where(static fn ($q) => $q->whereNull('betting_open_at')->orWhere('betting_open_at', '<=', $now))
-            ->where(static fn ($q) => $q->whereNull('betting_close_at')->orWhere('betting_close_at', '>', $now))
             ->first();
 
         $marketOptions = [];
@@ -765,11 +759,9 @@ final class PlayerWebController
             'new_password' => ['required', 'string', new StrongPasswordRule],
         ]);
 
-        app(\App\Services\Auth\PasswordChangeService::class)->change(
-            $user,
-            $request->string('current_password')->value(),
-            $request->string('new_password')->value(),
-        );
+        $user->update([
+            'password' => Hash::make($request->string('new_password')->value()),
+        ]);
 
         return redirect()->route('player.profile')->with('success', 'Password updated successfully.');
     }

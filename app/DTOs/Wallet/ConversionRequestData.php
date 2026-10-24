@@ -9,7 +9,6 @@ use App\Enums\WalletConversionChannel;
 use App\Enums\WalletConversionDirection;
 use App\Enums\WalletType;
 use App\Exceptions\Wallet\ConversionException;
-use App\Support\Wallet\ConversionCurrency;
 use InvalidArgumentException;
 
 /**
@@ -75,9 +74,11 @@ final readonly class ConversionRequestData
             );
         }
 
-        $currency = array_key_exists('currency', $data)
-            ? ConversionCurrency::parse($data['currency'])
-            : ConversionCurrency::configured();
+        $currency = $data['currency'] ?? Currency::primary();
+
+        if (! $currency instanceof Currency) {
+            $currency = Currency::tryFrom(strtoupper((string) $currency)) ?? Currency::primary();
+        }
 
         $channel = $data['channel'] ?? WalletConversionChannel::Web;
 

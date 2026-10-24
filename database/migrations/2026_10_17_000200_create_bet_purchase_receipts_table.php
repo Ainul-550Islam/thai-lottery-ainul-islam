@@ -12,15 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         // Only the new atomic paid purchase writer may capture receipts. No backfill.
-        Schema::create('bet_purchase_receipts', function (Blueprint $t): void {
-            $t->id();
-            $t->foreignId('purchase_ownership_id')->unique('bpr_purchase_unique')->constrained('bet_purchase_ownerships', indexName: 'bpr_purchase_fk')->restrictOnDelete();
-            $t->foreignId('ticket_id')->unique('bpr_ticket_unique')->constrained('tickets', indexName: 'bpr_ticket_fk')->restrictOnDelete();
-            $t->foreignId('original_transaction_id')->unique('bpr_transaction_unique')->constrained('financial_transactions', indexName: 'bpr_transaction_fk')->restrictOnDelete();
-            $t->string('original_financial_key', 128)->unique('bpr_key_unique');
-            $t->string('receipt_hash', 64);
-            $t->timestamps();
-        });
+        if (! Schema::hasTable('bet_purchase_receipts')) {
+            Schema::create('bet_purchase_receipts', function (Blueprint $t): void {
+                $t->id();
+                $t->foreignId('purchase_ownership_id')->unique('bpr_purchase_unique')->constrained('bet_purchase_ownerships', indexName: 'bpr_purchase_fk')->restrictOnDelete();
+                $t->foreignId('ticket_id')->unique('bpr_ticket_unique')->constrained('tickets', indexName: 'bpr_ticket_fk')->restrictOnDelete();
+                $t->foreignId('original_transaction_id')->unique('bpr_transaction_unique')->constrained('financial_transactions', indexName: 'bpr_transaction_fk')->restrictOnDelete();
+                $t->string('original_financial_key', 128)->unique('bpr_key_unique');
+                $t->string('receipt_hash', 64);
+                $t->timestamps();
+            });
+        }
     }
 
     public function down(): void
