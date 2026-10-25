@@ -4,9 +4,10 @@ metadata:
   name: fintech-app-deployment
   namespace: fintech-production
   labels:
-    app: fintech-api
+    app.kubernetes.io/name: thai-lottery-app
+    app.kubernetes.io/component: web
 spec:
-  replicas: 10
+  replicas: 3
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -14,41 +15,108 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: fintech-api
+      app.kubernetes.io/name: thai-lottery-app
+      app.kubernetes.io/component: web
   template:
     metadata:
       labels:
-        app: fintech-api
+        app.kubernetes.io/name: thai-lottery-app
+        app.kubernetes.io/component: web
     spec:
+      serviceAccountName: thai-lottery-app
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
-      containers:
-        - name: php-fpm
-          image: ghcr.io/ainul-550islam/thai-lottery-app:latest
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: thai-lottery-app
+              app.kubernetes.io/component: web
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: prepare-storage
+          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
           imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c", "mkdir -p /shared/app/private /shared/app/public /shared/framework/cache/data /shared/framework/sessions /shared/framework/views /shared/logs"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           resources:
             requests:
-              cpu: "1000m"
-              memory: "1Gi"
+              cpu: 25m
+              memory: 32Mi
             limits:
-              cpu: "2000m"
-              memory: "2Gi"
-          readinessProbe:
-            httpGet:
-              path: /api/v1/health
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /api/v1/health
-              port: 80
-            initialDelaySeconds: 15
-            periodSeconds: 20
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: app-storage
+              mountPath: /shared
+      containers:
+        - name: php-fpm
+          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: fpm
+              containerPort: 9000
+              protocol: TCP
           envFrom:
             - configMapRef:
                 name: fintech-config
             - secretRef:
                 name: fintech-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 500m
+              memory: 768Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          startupProbe:
+            tcpSocket:
+              port: fpm
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: fpm
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: fpm
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: php-temp
+              mountPath: /tmp
+            - name: app-storage
+              mountPath: /var/www/html/storage
+      volumes:
+        - name: php-temp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        - name: app-storage
+          persistentVolumeClaim:
+            claimName: fintech-app-storage
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -60,18 +128,18 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: fintech-app-deployment
-  minReplicas: 10
-  maxReplicas: 100
+  minReplicas: 3
+  maxReplicas: 12
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 65
+          averageUtilization: 70
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 75
+          averageUtilization: 80

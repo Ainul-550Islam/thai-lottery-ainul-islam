@@ -4,37 +4,104 @@ metadata:
   name: fintech-reverb-deployment
   namespace: fintech-production
   labels:
-    app: fintech-reverb
+    app.kubernetes.io/name: thai-lottery-reverb
 spec:
-  replicas: 8
+  replicas: 2
   selector:
     matchLabels:
-      app: fintech-reverb
+      app.kubernetes.io/name: thai-lottery-reverb
   template:
     metadata:
       labels:
-        app: fintech-reverb
+        app.kubernetes.io/name: thai-lottery-reverb
     spec:
+      serviceAccountName: thai-lottery-reverb
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: prepare-storage
+          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c", "mkdir -p /shared/app/private /shared/app/public /shared/framework/cache/data /shared/framework/sessions /shared/framework/views /shared/logs"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: app-storage
+              mountPath: /shared
       containers:
         - name: reverb-server
-          image: ghcr.io/ainul-550islam/thai-lottery-app:latest
+          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
+          imagePullPolicy: IfNotPresent
           command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
           ports:
             - containerPort: 8080
               name: ws
-          resources:
-            requests:
-              cpu: "500m"
-              memory: "1Gi"
-            limits:
-              cpu: "2000m"
-              memory: "2Gi"
+              protocol: TCP
           envFrom:
             - configMapRef:
                 name: fintech-config
             - secretRef:
                 name: fintech-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          startupProbe:
+            tcpSocket:
+              port: ws
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            tcpSocket:
+              port: ws
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: ws
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: php-temp
+              mountPath: /tmp
+            - name: app-storage
+              mountPath: /var/www/html/storage
+      volumes:
+        - name: php-temp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: app-storage
+          persistentVolumeClaim:
+            claimName: fintech-app-storage
 ---
 apiVersion: v1
 kind: Service
@@ -44,8 +111,8 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: fintech-reverb
+    app.kubernetes.io/name: thai-lottery-reverb
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: ws
       name: ws

@@ -1,0 +1,221 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fintech-config
+  namespace: fintech-production
+data:
+  APP_ENV: 'production'
+  APP_DEBUG: 'false'
+  LOG_CHANNEL: 'stderr'
+  APP_URL: 'URL_FROM_KUSTOMIZE'
+  APP_TIMEZONE: 'Asia/Bangkok'
+  APP_LOCALE: 'en'
+  APP_FALLBACK_LOCALE: 'en'
+  DB_CONNECTION: 'mysql'
+  DB_PORT: '3306'
+  DB_DATABASE: 'lottery_ledger'
+  CACHE_STORE: 'redis'
+  SESSION_DRIVER: 'redis'
+  SESSION_SECURE_COOKIE: 'true'
+  SESSION_ENCRYPT: 'true'
+  QUEUE_CONNECTION: 'redis'
+  BROADCAST_CONNECTION: 'reverb'
+  REVERB_SERVER_HOST: '0.0.0.0'
+  REVERB_SERVER_PORT: '8080'
+  PAYMENT_DEFAULT_GATEWAY: ""
+  BANK_TRANSFER_ENABLED: 'false'
+  BKASH_ENABLED: 'false'
+  NAGAD_ENABLED: 'false'
+  CRYPTO_ENABLED: 'false'
+  STRIPE_ENABLED: 'false'
+  PROMPTPAY_ENABLED: 'false'
+  FINANCE_DEPOSIT_AUTO_CONFIRM: 'false'
+  TRUEMONEY_ENABLED: 'false'
+  SLIP_VERIFICATION_ENABLED: 'false'
+  SLIP_VERIFICATION_AUTO_CREDIT: 'false'
+  THAI_PAYOUT_ENABLED: 'false'
+  THAI_PAYOUT_SCB_ENABLED: 'false'
+  THAI_PAYOUT_KBANK_ENABLED: 'false'
+  REALTIME_ENABLED: 'false'
+  LEGAL_PDF_ENABLED: 'false'
+  PAYOUT_ILLUSTRATION_ENABLED: 'false'
+  PRIVACY_REQUESTS_ENABLED: 'false'
+  SUPPORT_TICKET_STATUS_ENABLED: 'false'
+  TRUSTED_PROXIES: ""
+---
+# External Secrets Operator template. Remote values are never stored in this manifest.
+# A ClusterSecretStore named fintech-production must be provisioned with least-privilege access.
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: fintech-secrets
+  namespace: fintech-production
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: fintech-production
+    kind: ClusterSecretStore
+  target:
+    name: fintech-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: APP_KEY
+      remoteRef:
+        key: APP_KEY
+    - secretKey: FIELD_ENCRYPTION_KEY
+      remoteRef:
+        key: FIELD_ENCRYPTION_KEY
+    - secretKey: DB_HOST
+      remoteRef:
+        key: DB_HOST
+    - secretKey: DB_USERNAME
+      remoteRef:
+        key: DB_USERNAME
+    - secretKey: DB_PASSWORD
+      remoteRef:
+        key: DB_PASSWORD
+    - secretKey: REDIS_HOST
+      remoteRef:
+        key: REDIS_HOST
+    - secretKey: REDIS_PASSWORD
+      remoteRef:
+        key: REDIS_PASSWORD
+    - secretKey: REVERB_APP_ID
+      remoteRef:
+        key: REVERB_APP_ID
+    - secretKey: REVERB_APP_KEY
+      remoteRef:
+        key: REVERB_APP_KEY
+    - secretKey: REVERB_APP_SECRET
+      remoteRef:
+        key: REVERB_APP_SECRET
+    - secretKey: BKASH_APP_KEY
+      remoteRef:
+        key: BKASH_APP_KEY
+        optional: true
+    - secretKey: BKASH_APP_SECRET
+      remoteRef:
+        key: BKASH_APP_SECRET
+        optional: true
+    - secretKey: BKASH_PASSWORD
+      remoteRef:
+        key: BKASH_PASSWORD
+        optional: true
+    - secretKey: BKASH_USERNAME
+      remoteRef:
+        key: BKASH_USERNAME
+        optional: true
+    - secretKey: NAGAD_APP_KEY
+      remoteRef:
+        key: NAGAD_APP_KEY
+        optional: true
+    - secretKey: NAGAD_APP_SECRET
+      remoteRef:
+        key: NAGAD_APP_SECRET
+        optional: true
+    - secretKey: NAGAD_MERCHANT_ID
+      remoteRef:
+        key: NAGAD_MERCHANT_ID
+        optional: true
+    - secretKey: NAGAD_MERCHANT_NUMBER
+      remoteRef:
+        key: NAGAD_MERCHANT_NUMBER
+        optional: true
+    - secretKey: NAGAD_PRIVATE_KEY
+      remoteRef:
+        key: NAGAD_PRIVATE_KEY
+        optional: true
+    - secretKey: NAGAD_PUBLIC_KEY
+      remoteRef:
+        key: NAGAD_PUBLIC_KEY
+        optional: true
+    - secretKey: CRYPTO_GATEWAY_API_KEY
+      remoteRef:
+        key: CRYPTO_GATEWAY_API_KEY
+        optional: true
+    - secretKey: CRYPTO_GATEWAY_API_SECRET
+      remoteRef:
+        key: CRYPTO_GATEWAY_API_SECRET
+        optional: true
+    - secretKey: CRYPTO_GATEWAY_WEBHOOK_SECRET
+      remoteRef:
+        key: CRYPTO_GATEWAY_WEBHOOK_SECRET
+        optional: true
+    - secretKey: SCB_WEBHOOK_SECRET
+      remoteRef:
+        key: SCB_WEBHOOK_SECRET
+        optional: true
+    - secretKey: KBANK_WEBHOOK_SECRET
+      remoteRef:
+        key: KBANK_WEBHOOK_SECRET
+        optional: true
+    - secretKey: STRIPE_KEY
+      remoteRef:
+        key: STRIPE_KEY
+        optional: true
+    - secretKey: STRIPE_SECRET
+      remoteRef:
+        key: STRIPE_SECRET
+        optional: true
+    - secretKey: STRIPE_WEBHOOK_SECRET
+      remoteRef:
+        key: STRIPE_WEBHOOK_SECRET
+        optional: true
+    - secretKey: STRIPE_DEPOSIT_FOLLOWUP_WEBHOOK_SECRET
+      remoteRef:
+        key: STRIPE_DEPOSIT_FOLLOWUP_WEBHOOK_SECRET
+        optional: true
+    - secretKey: THAI_PAYOUT_SCB_CLIENT_ID
+      remoteRef:
+        key: THAI_PAYOUT_SCB_CLIENT_ID
+        optional: true
+    - secretKey: THAI_PAYOUT_SCB_CLIENT_SECRET
+      remoteRef:
+        key: THAI_PAYOUT_SCB_CLIENT_SECRET
+        optional: true
+    - secretKey: THAI_PAYOUT_SCB_WEBHOOK_SECRET
+      remoteRef:
+        key: THAI_PAYOUT_SCB_WEBHOOK_SECRET
+        optional: true
+    - secretKey: THAI_PAYOUT_SCB_SOURCE_ACCOUNT
+      remoteRef:
+        key: THAI_PAYOUT_SCB_SOURCE_ACCOUNT
+        optional: true
+    - secretKey: THAI_PAYOUT_KBANK_CLIENT_ID
+      remoteRef:
+        key: THAI_PAYOUT_KBANK_CLIENT_ID
+        optional: true
+    - secretKey: THAI_PAYOUT_KBANK_CLIENT_SECRET
+      remoteRef:
+        key: THAI_PAYOUT_KBANK_CLIENT_SECRET
+        optional: true
+    - secretKey: THAI_PAYOUT_KBANK_WEBHOOK_SECRET
+      remoteRef:
+        key: THAI_PAYOUT_KBANK_WEBHOOK_SECRET
+        optional: true
+    - secretKey: THAI_PAYOUT_KBANK_SOURCE_ACCOUNT
+      remoteRef:
+        key: THAI_PAYOUT_KBANK_SOURCE_ACCOUNT
+        optional: true
+    - secretKey: EASYSLIP_TOKEN
+      remoteRef:
+        key: EASYSLIP_TOKEN
+        optional: true
+    - secretKey: SLIPOK_API_KEY
+      remoteRef:
+        key: SLIPOK_API_KEY
+        optional: true
+    - secretKey: SLIP_VERIFICATION_RECEIVING_ACCOUNTS
+      remoteRef:
+        key: SLIP_VERIFICATION_RECEIVING_ACCOUNTS
+        optional: true
+    - secretKey: TRUEMONEY_MERCHANT_MOBILE
+      remoteRef:
+        key: TRUEMONEY_MERCHANT_MOBILE
+        optional: true
+    - secretKey: DATABASE_URL
+      remoteRef:
+        key: DATABASE_URL
+    - secretKey: SETTLEMENT_WORKER_HMAC_SECRET
+      remoteRef:
+        key: SETTLEMENT_WORKER_HMAC_SECRET

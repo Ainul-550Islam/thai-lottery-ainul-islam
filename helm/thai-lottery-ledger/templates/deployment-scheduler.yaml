@@ -1,0 +1,86 @@
+{{- if .Values.scheduler.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-scheduler
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}-scheduler
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Release.Name }}-scheduler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Release.Name }}-scheduler
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.securityContext.pod | nindent 8 }}
+      initContainers:
+        - name: prepare-storage
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "-c", "mkdir -p /shared/app/private /shared/app/public /shared/framework/cache/data /shared/framework/sessions /shared/framework/views /shared/logs"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: app-storage
+              mountPath: /shared
+      containers:
+        - name: scheduler
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["php", "artisan", "schedule:work"]
+          securityContext:
+            {{- toYaml .Values.securityContext.container | nindent 12 }}
+          startupProbe:
+            exec:
+              command: ["php", "artisan", "schedule:list"]
+            periodSeconds: 10
+            failureThreshold: 12
+          readinessProbe:
+            exec:
+              command: ["php", "artisan", "schedule:list"]
+            periodSeconds: 30
+          livenessProbe:
+            exec:
+              command: ["php", "artisan", "schedule:list"]
+            periodSeconds: 60
+          resources:
+            {{- toYaml .Values.scheduler.resources | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-config
+            - secretRef:
+                name: {{ .Release.Name }}-secrets
+          volumeMounts:
+            - name: php-temp
+              mountPath: /tmp
+            - name: app-storage
+              mountPath: /var/www/html/storage
+      volumes:
+        - name: php-temp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: app-storage
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-app-storage
+{{- end }}

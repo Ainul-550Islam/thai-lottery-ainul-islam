@@ -13,14 +13,14 @@ output "eks_cluster_name" {
   description = "Kubernetes Cluster Name"
 }
 
-output "aurora_postgres_writer_endpoint" {
-  value       = aws_rds_cluster.aurora_postgres.endpoint
-  description = "Primary writer endpoint for Aurora PostgreSQL"
+output "aurora_mysql_writer_endpoint" {
+  value       = aws_rds_cluster.aurora_mysql.endpoint
+  description = "Primary writer endpoint for Aurora MySQL"
 }
 
-output "aurora_postgres_reader_endpoint" {
-  value       = aws_rds_cluster.aurora_postgres.reader_endpoint
-  description = "Read-only load-balanced endpoint for Aurora PostgreSQL"
+output "aurora_mysql_reader_endpoint" {
+  value       = aws_rds_cluster.aurora_mysql.reader_endpoint
+  description = "Read-only load-balanced endpoint for Aurora MySQL"
 }
 
 output "redis_primary_endpoint" {

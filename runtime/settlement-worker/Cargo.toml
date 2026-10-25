@@ -13,16 +13,15 @@ path = "src/main.rs"
 [dependencies]
 # Async runtime. multi-thread so the HTTP surface and the settlement loop
 # share one process without blocking each other.
-tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "signal", "time", "sync"] }
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "signal", "time", "sync", "net", "io-util"] }
 
 # HTTP for the health/metrics surface and the internal trigger API.
 axum = { version = "0.7", features = ["json"] }
 
-# Postgres driver. This worker talks to the SAME database as Laravel and must
-# read the same rows with the same types — sqlx is used rather than a hand-rolled
-# client precisely because its compile-time query checks catch schema drift at
-# build time instead of at draw time.
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "rust_decimal", "macros"] }
+# MySQL/MariaDB driver, matching Laravel's production database connection.
+# Queries are runtime-checked because the deployment schema is provisioned by
+# Laravel migrations rather than a compile-time SQLx metadata database.
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "mysql", "chrono", "uuid", "rust_decimal", "macros"] }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -53,3 +52,6 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# Keep this deployable binary independent of the repository's unrelated Cargo workspace.
+[workspace]

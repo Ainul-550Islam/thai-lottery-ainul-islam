@@ -8,7 +8,6 @@ use App\DTOs\Payment\WithdrawalReconciliationFacts;
 use App\Enums\AuditAction;
 use App\Enums\PaymentStatus;
 use App\Enums\RiskLevel;
-use App\Enums\ThaiBankPayoutState;
 use App\Enums\WithdrawalStatus;
 use App\Exceptions\FinancialException;
 use App\Exceptions\WithdrawalReconciliationException;
@@ -17,7 +16,6 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
-use App\Models\ThaiBankPayoutAttempt;
 use App\Models\WithdrawalReconciliation;
 use App\Services\Finance\Money;
 use App\Services\Finance\WalletHoldService;
@@ -184,14 +182,10 @@ final class WithdrawalReconciliationService
     {
         $claim = $this->dispatch->inspectReconciliationClaim($row, $wallet, $payment);
         $this->destinationDetails($row);
-
-        if ($this->gatewayKey($row) === 'thai_bank') {
-            $this->assertThaiBankAttemptAgrees($row, $facts);
-        }
         $v = $facts->values;
         if ($row->status !== WithdrawalStatus::Processing || $row->financial_transaction_id !== null || $payment->status !== PaymentStatus::Pending
             || ! in_array($claim['state'], ['sending', 'unknown', 'pending', 'legacy_unknown', 'reconciliation_required'], true)
-            || $v['internal_reference'] !== $row->reference_number || $v['provider'] !== $this->gatewayKey($row)
+            || $v['internal_reference'] !== $row->reference_number || $v['provider'] !== $this->gateway($row->method->value)
             || $v['currency'] !== $row->currency->value || $v['gross_amount'] !== (string) $row->amount
             || $v['net_amount'] !== (string) $row->net_amount
             || ($row->provider_reference && $row->provider_reference !== $v['provider_reference'])
@@ -214,7 +208,7 @@ final class WithdrawalReconciliationService
             'beneficiary_name', 'beneficiary_address', 'bank_address', 'iban', 'swift', 'bic', 'routing_number',
             'phone', 'mobile', 'wallet_number', 'address', 'crypto_address', 'network', 'country', 'currency',
             'stripe_account_id', 'recipient_id', 'sort_code', 'account_type', 'method'];
-        $identifiers = match ($this->gatewayKey($row)) {
+        $identifiers = match ($this->gateway($row->method->value)) {
             'bank_transfer' => ['account_number', 'iban'],
             'bkash', 'nagad' => ['phone', 'mobile', 'wallet_number', 'account_number'],
             'crypto' => ['address', 'crypto_address', 'account_number'],
@@ -225,7 +219,7 @@ final class WithdrawalReconciliationService
         if (! is_array($details) || $details === [] || array_diff(array_keys($details), $allowed)
             || array_any($details, fn ($value) => ! is_string($value) || trim($value) === '' || strlen($value) > 500)
             || ! array_any($identifiers, fn ($key) => isset($details[$key]))
-            || (isset($details['method']) && $this->gateway($details['method']) !== $this->gatewayKey($row))) {
+            || (isset($details['method']) && $this->gateway($details['method']) !== $this->gateway($row->method->value))) {
             throw new WithdrawalReconciliationException('payout_schema_requires_private_adapter_review');
         }
 
@@ -271,76 +265,6 @@ final class WithdrawalReconciliationService
     private function gateway(string $name): string
     {
         return $name === 'manual' ? 'bank_transfer' : $name;
-    }
-
-    /**
-     * The gateway this withdrawal was ACTUALLY routed through.
-     *
-     * The disbursement persists the resolved key in the withdrawal's metadata
-     * before its single external call, so reconciliation reads that key: a
-     * withdrawal routed to the automated Thai bank rail is reconciled against
-     * the Thai bank evidence, not against the operator lane the player
-     * originally chose. Rows written before the key existed fall back to the
-     * provider column and then to the method value, which is exactly the lane
-     * they were paid through.
-     *
-     * A key this build does not know is NOT silently downgraded to the method:
-     * the comparison below then fails closed, and the case stays with the desk.
-     */
-    private function gatewayKey(Withdrawal $row): string
-    {
-        $metadata = is_array($row->metadata) ? $row->metadata : [];
-        $routed = $metadata['gateway_key'] ?? null;
-
-        if (is_string($routed) && trim($routed) !== '') {
-            return $this->gateway(strtolower(trim($routed)));
-        }
-
-        $persisted = is_string($row->provider) ? trim($row->provider) : '';
-
-        return $this->gateway($persisted !== '' ? strtolower($persisted) : $row->method->value);
-    }
-
-    /**
-     * The Thai bank rail reconciles through its own durable attempt, never by
-     * asking the provider to send the money again.
-     *
-     * A thai_bank row has exactly one ThaiBankPayoutAttempt per withdrawal
-     * reference, created before the transfer was transmitted, and that attempt
-     * carries the provider's own reference. Evidence that names a different
-     * reference, or an outcome the attempt cannot carry, conflicts with the
-     * rail's own record and is refused by name: the desk reads the attempt, it
-     * does not re-dispatch.
-     */
-    private function assertThaiBankAttemptAgrees(Withdrawal $row, WithdrawalReconciliationFacts $facts): void
-    {
-        $reference = (string) $row->reference_number;
-
-        $attempt = ThaiBankPayoutAttempt::query()
-            ->where('withdrawal_reference', $reference)
-            ->first();
-
-        if (! $attempt instanceof ThaiBankPayoutAttempt) {
-            throw new WithdrawalReconciliationException('thai_bank_attempt_missing');
-        }
-
-        if ((int) $attempt->withdrawal_id !== (int) $row->getKey()) {
-            throw new WithdrawalReconciliationException('thai_bank_attempt_conflict');
-        }
-
-        $attemptReference = is_string($attempt->provider_reference) ? trim($attempt->provider_reference) : '';
-
-        if ($attemptReference !== '' && ! hash_equals($attemptReference, $facts->values['provider_reference'])) {
-            throw new WithdrawalReconciliationException('thai_bank_attempt_reference_conflict');
-        }
-
-        if ($facts->completed() && $attempt->state !== ThaiBankPayoutState::Settled) {
-            throw new WithdrawalReconciliationException('thai_bank_attempt_not_settled');
-        }
-
-        if (! $facts->completed() && $attempt->state === ThaiBankPayoutState::Settled) {
-            throw new WithdrawalReconciliationException('thai_bank_attempt_settled');
-        }
     }
 
     private function audit(WithdrawalReconciliation $case, User $actor, string $description): void

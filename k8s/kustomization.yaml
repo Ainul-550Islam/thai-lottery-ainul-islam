@@ -1,0 +1,68 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: fintech-production
+resources:
+  - deployment-app.yaml
+  - deployment-horizon.yaml
+  - deployment-reverb.yaml
+  - deployment-scheduler.yaml
+  - deployment-settlement-worker.yaml
+  - service-ingress.yaml
+  - config.yaml
+  - storage.yaml
+  - jobs.yaml
+  - policies.yaml
+images:
+  - name: ghcr.io/ainul-550islam/thai-lottery-app
+    newName: ghcr.io/ainul-550islam/thai-lottery-app
+    newTag: sha-ad253c07957e3cc0df59c28526e478affff9d7c2
+  - name: ghcr.io/ainul-550islam/thai-lottery-settlement-worker
+    newName: ghcr.io/ainul-550islam/thai-lottery-settlement-worker
+    newTag: sha-ad253c07957e3cc0df59c28526e478affff9d7c2
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: thai-lottery-ledger
+    includeSelectors: true
+    includeTemplates: true
+replacements:
+  - source:
+      kind: ConfigMap
+      name: fintech-ingress-host
+      fieldPath: data.APP_HOST
+    targets:
+      - select:
+          kind: Ingress
+          name: thai-lottery-ingress
+        fieldPaths:
+          - spec.rules.0.host
+          - spec.tls.0.hosts.0
+  - source:
+      kind: ConfigMap
+      name: fintech-ingress-host
+      fieldPath: data.APP_URL
+    targets:
+      - select:
+          kind: ConfigMap
+          name: fintech-config
+        fieldPaths:
+          - data.APP_URL
+  - source:
+      kind: ConfigMap
+      name: fintech-storage-settings
+      fieldPath: data.APP_STORAGE_CLASS
+    targets:
+      - select:
+          kind: PersistentVolumeClaim
+          name: fintech-app-storage
+        fieldPaths:
+          - spec.storageClassName
+  - source:
+      kind: ConfigMap
+      name: fintech-storage-settings
+      fieldPath: data.APP_STORAGE_SIZE
+    targets:
+      - select:
+          kind: PersistentVolumeClaim
+          name: fintech-app-storage
+        fieldPaths:
+          - spec.resources.requests.storage

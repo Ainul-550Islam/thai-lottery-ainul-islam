@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thai-lottery-settlement-worker
+  namespace: fintech-production
+  labels:
+    app.kubernetes.io/name: thai-lottery-settlement-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: thai-lottery-settlement-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: thai-lottery-settlement-worker
+    spec:
+      serviceAccountName: thai-lottery-settlement-worker
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: settlement-worker
+          image: ghcr.io/ainul-550islam/thai-lottery-settlement-worker:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: health
+              containerPort: 9101
+              protocol: TCP
+          env:
+            - name: WORKER_BIND
+              value: "0.0.0.0:9101"
+            - name: RUST_LOG
+              value: info
+            - name: PRIZE_PAYOUT_SAFETY_MODE
+              value: "DISABLED"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fintech-secrets
+                  key: DATABASE_URL
+            - name: SETTLEMENT_WORKER_HMAC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fintech-secrets
+                  key: SETTLEMENT_WORKER_HMAC_SECRET
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 128Mi
+            limits:
+              cpu: "2"
+              memory: 512Mi
+          startupProbe:
+            tcpSocket:
+              port: health
+            periodSeconds: 5
+            failureThreshold: 18
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: health
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: health
+            periodSeconds: 20
+            failureThreshold: 3

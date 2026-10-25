@@ -1,0 +1,15 @@
+{{- $storageClass := required "storage.className must identify an encrypted ReadWriteMany storage class" .Values.storage.className }}
+{{- $storageSize := required "storage.size must specify the approved persistent application-storage capacity" .Values.storage.size }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-app-storage
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+    {{- toYaml .Values.storage.accessModes | nindent 4 }}
+  storageClassName: {{ $storageClass | quote }}
+  resources:
+    requests:
+      storage: {{ $storageSize | quote }}

@@ -14,12 +14,28 @@
 # =============================================================================
 
 ARG PHP_VERSION=8.4
+ARG BASE_DIGEST
+ARG NODE_VERSION=24.22.0
+ARG NPM_VERSION=11.21.1
+
+FROM node:${NODE_VERSION}-alpine AS frontend
+ARG NPM_VERSION
+WORKDIR /var/www/html
+RUN npm install --global npm@${NPM_VERSION}
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY resources ./resources
+COPY public ./public
+COPY vite.config.js tailwind.config.js postcss.config.js ./
+RUN npm run build
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STAGE 1 — build
 # ─────────────────────────────────────────────────────────────────────────────
-FROM php:${PHP_VERSION}-fpm-alpine AS build
+FROM php:${PHP_VERSION}-fpm-alpine@${BASE_DIGEST} AS build
 
+# PHPIZE_DEPS intentionally expands as a package list for apk.
+# hadolint ignore=SC2086
 RUN apk add --no-cache \
         $PHPIZE_DEPS \
         git \
@@ -29,20 +45,17 @@ RUN apk add --no-cache \
         freetype-dev \
         libzip-dev \
         oniguruma-dev \
-        icu-dev \
-        postgresql-dev \
-        nodejs \
-        npm
+        icu-dev
 
 RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
         gd \
         intl \
+        mbstring \
         opcache \
         pcntl \
         pdo_mysql \
-        pdo_pgsql \
         zip
 
 # Redis for cache/queue/locks. phpredis rather than predis: it is a C
@@ -66,21 +79,16 @@ RUN composer install \
         --classmap-authoritative \
         --no-scripts
 
-COPY package.json package-lock.json vite.config.js tailwind.config.js postcss.config.js ./
-RUN npm ci --no-audit --no-fund
-
-COPY resources ./resources
-COPY public ./public
-RUN npm run build
 
 COPY . .
+COPY --from=frontend /var/www/html/public/build ./public/build
 
 RUN composer dump-autoload --optimize --classmap-authoritative --no-dev
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STAGE 2 — runtime
 # ─────────────────────────────────────────────────────────────────────────────
-FROM php:${PHP_VERSION}-fpm-alpine AS runtime
+FROM php:${PHP_VERSION}-fpm-alpine@${BASE_DIGEST} AS runtime
 
 RUN apk add --no-cache \
         fcgi \
@@ -90,7 +98,6 @@ RUN apk add --no-cache \
         libpng \
         libzip \
         oniguruma \
-        postgresql-libs \
         tini \
     # No gcc, no $PHPIZE_DEPS, no make, no git. If a future step needs to
     # compile, it belongs in the build stage.
@@ -114,6 +121,7 @@ RUN printf '#!/bin/sh\nset -eu\nSCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping 
 WORKDIR /var/www/html
 
 COPY --from=build --chown=app:app /var/www/html /var/www/html
+COPY --chown=app:app resources/fonts /var/www/html/resources/fonts
 
 RUN mkdir -p \
         storage/app/private \
@@ -125,6 +133,9 @@ RUN mkdir -p \
         bootstrap/cache \
     && chown -R app:app storage bootstrap/cache \
     && chmod -R ug+rwX storage bootstrap/cache
+
+RUN mkdir -p /tmp /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chown -R app:app /tmp /var/www/html/storage /var/www/html/bootstrap/cache
 
 USER app
 

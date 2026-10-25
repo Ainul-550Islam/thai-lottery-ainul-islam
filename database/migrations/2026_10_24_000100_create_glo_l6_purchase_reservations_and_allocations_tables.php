@@ -50,7 +50,7 @@ return new class extends Migration
 
                 $table->foreignId('glo_ticket_id')->nullable()->constrained('glo_tickets')->restrictOnDelete();
                 $table->foreignId('financial_transaction_id')->nullable()->constrained('financial_transactions')->restrictOnDelete();
-                $table->foreignId('refund_financial_transaction_id')->nullable()->constrained('financial_transactions')->restrictOnDelete();
+                $table->foreignId('refund_financial_transaction_id')->nullable()->constrained('financial_transactions', indexName: 'glo_l6_resv_refund_fin_tx_fk')->restrictOnDelete();
 
                 $table->string('failure_reason', 255)->nullable();
                 $table->json('metadata')->nullable();

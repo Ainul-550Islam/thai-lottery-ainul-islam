@@ -37,31 +37,10 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Thai bank payout driver — the automated payout rail, resolved BY KEY.
- *
- * ROUTING, NOT SELECTION
- * This driver is never chosen by a client. App\Enums\PaymentMethod
- * deliberately has NO `thai_bank` case: DepositRequest and
- * CreateWithdrawalRequest build their accepted values from
- * PaymentMethod::cases(), so a new case would let any caller name the bank
- * payout rail directly. Players keep choosing `bank_transfer` / `promptpay`;
- * WithdrawalDisbursementService::resolveGatewayKey() decides, from
- * server-side configuration and the stored destination, whether this rail can
- * pay that withdrawal, and persists the key `'thai_bank'` in the withdrawal's
- * metadata BEFORE the external call. Reconciliation, polling and the webhook
- * lane resolve the driver from that persisted key, so the same rail that was
- * paid is the rail that is reconciled.
- *
- * The manager arm (`PaymentGatewayManager::driver('thai_bank')`) and the
- * `gateways.thai_bank` block in config/payment.php exist for exactly that
- * internal resolution; neither is reachable from request input.
- *
- * ONE EXTERNAL CALL PER WITHDRAWAL
- * Every dispatch is guarded by a durable ThaiBankPayoutAttempt row whose
- * unique withdrawal_reference is committed BEFORE the transfer is transmitted.
- * A retry, a replay or a second worker finds that row and returns its stored
- * outcome; it never transmits twice. An ambiguous outcome leaves the hold and
- * the reservation in place for the reconciliation lane.
+ * Thai bank payout driver. Batch 03 performs these later wiring edits:
+ * (1) add `case ThaiBank = 'thai_bank';` to PaymentMethod;
+ * (2) add `'thai_bank' => $this->container->make(ThaiBankPayoutGateway::class)` to PaymentGatewayManager::driver() and hasDriver();
+ * (3) add a `gateways.thai_bank` block to config/payment.php.
  */
 final class ThaiBankPayoutGateway extends AbstractPaymentGateway
 {

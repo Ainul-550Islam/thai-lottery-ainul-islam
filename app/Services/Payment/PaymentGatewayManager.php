@@ -14,20 +14,12 @@ use App\Services\Payment\Drivers\CryptoGateway;
 use App\Services\Payment\Drivers\NagadGateway;
 use App\Services\Payment\Drivers\PromptPayGateway;
 use App\Services\Payment\Drivers\StripeGateway;
-use App\Services\Payment\Drivers\ThaiBankPayoutGateway;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 
 /**
  * Gateway factory and driver manager.
- *
- * The keys resolved here are the payment rails this deployment operates. Most
- * of them are named by an App\Enums\PaymentMethod case and are therefore
- * client-selectable; 'thai_bank' is the one exception — it is an INTERNAL
- * payout key resolved only by the withdrawal routing, reconciliation, polling
- * and webhook paths after the disbursement has persisted it on the withdrawal.
- * No request body can name it, because no PaymentMethod case carries it.
  */
 class PaymentGatewayManager
 {
@@ -64,14 +56,6 @@ class PaymentGatewayManager
 
             'promptpay' => $this->container->make(PromptPayGateway::class),
 
-            // The Thai bank payout rail is resolved BY KEY, never by a client's
-            // method choice: App\Enums\PaymentMethod deliberately has no
-            // 'thai_bank' case, so no request can name this driver directly.
-            // WithdrawalDisbursementService routes eligible withdrawals here
-            // and persists the key on the withdrawal so reconciliation,
-            // polling and webhooks resolve the same driver later.
-            'thai_bank' => $this->container->make(ThaiBankPayoutGateway::class),
-
             default => throw FinancialException::withCode(
                 'unsupported_payment_gateway',
                 sprintf('Payment gateway driver [%s] is not supported.', $key),
@@ -94,17 +78,12 @@ class PaymentGatewayManager
 
     /**
      * Check if a gateway driver exists.
-     *
-     * 'thai_bank' is an internal payout key: it exists here so the routing,
-     * reconciliation, polling and webhook paths can resolve the same driver the
-     * disbursement persisted, and it is deliberately NOT reachable from a
-     * PaymentMethod value.
      */
     public function hasDriver(string $name): bool
     {
         $key = strtolower(trim($name));
 
-        return in_array($key, ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'manual', 'thai_bank'], true);
+        return in_array($key, ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'manual'], true);
     }
 
     /**
@@ -154,59 +133,6 @@ class PaymentGatewayManager
         }
 
         return $driver->supportsWithdrawal() && $this->isEnabled($name);
-    }
-
-    /**
-     * Resolve a payout driver by its INTERNAL gateway key.
-     *
-     * WithdrawalDisbursementService persists the key it routed a withdrawal
-     * through ('thai_bank' for the automated Thai bank rail, the method value
-     * for the operator lane), and reconciliation, polling and webhooks must
-     * resolve the very same driver afterwards. The key is a string, not a
-     * PaymentMethod: the enum deliberately has no thai_bank case, so no client
-     * input can ever name this rail.
-     *
-     * @throws FinancialException with a stable code per refusal reason
-     */
-    public function withdrawalDriverByKey(string $key): PaymentGatewayInterface
-    {
-        $key = strtolower(trim($key));
-
-        if ($key === '') {
-            throw FinancialException::withCode(
-                'unsupported_payment_gateway',
-                'No payout gateway key was persisted for this withdrawal.',
-                ['gateway' => $key],
-            );
-        }
-
-        return $this->withdrawalDriverByResolvedKey($key);
-    }
-
-    /**
-     * @throws FinancialException
-     */
-    private function withdrawalDriverByResolvedKey(string $key): PaymentGatewayInterface
-    {
-        $driver = $this->driver($key);
-
-        if (! $driver->isEnabled()) {
-            throw FinancialException::withCode(
-                'payment_gateway_disabled',
-                sprintf('Payment gateway [%s] is not enabled.', $driver->name()),
-                ['gateway' => $driver->name()],
-            );
-        }
-
-        if (! $driver->supportsWithdrawal()) {
-            throw FinancialException::withCode(
-                'payment_gateway_not_withdrawal_capable',
-                sprintf('Payment gateway [%s] does not support withdrawals.', $driver->name()),
-                ['gateway' => $driver->name()],
-            );
-        }
-
-        return $driver;
     }
 
     /**

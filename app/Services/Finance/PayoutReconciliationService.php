@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Finance;
 
+use App\Services\Concerns\GuardsGroupConcat;
 use App\Enums\Currency;
 use App\Enums\PayoutStatus;
 use App\Models\Payout;
@@ -48,6 +49,8 @@ use Illuminate\Support\Facades\DB;
  */
 class PayoutReconciliationService
 {
+    use GuardsGroupConcat;
+
     /**
      * Default age in minutes after which a 'processing' payout is reported as
      * stuck. The batch job's own retry window is the source of truth; a row
@@ -73,6 +76,7 @@ class PayoutReconciliationService
     public function reconcilePayouts(?Currency $currency = null): array
     {
         $currency ??= Currency::THB;
+        $this->raiseGroupConcatLimit();
         $findings = [];
 
         $this->checkCompletedPayouts($currency, $findings);
@@ -122,7 +126,7 @@ class PayoutReconciliationService
         $rows = DB::table('payouts')
             ->where('currency', $currency->value)
             ->whereNull('deleted_at')
-            ->selectRaw('status, COUNT(*) as n, GROUP_CONCAT(amount) as amounts')
+            ->selectRaw('status, COUNT(*) as n, '.$this->groupConcatSql('amount').' as amounts')
             ->groupBy('status')
             ->get();
 

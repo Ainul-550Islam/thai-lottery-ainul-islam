@@ -1,0 +1,229 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fintech-app-service
+  namespace: fintech-production
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: thai-lottery-app
+    app.kubernetes.io/component: web
+  ports:
+    - name: fpm
+      port: 9000
+      targetPort: fpm
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fintech-nginx-edge
+  namespace: fintech-production
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: thai-lottery-nginx-edge
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: thai-lottery-ingress
+  namespace: fintech-production
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ~ ^/api/v1/deposit/slip-verification/?$ {
+        client_max_body_size 12m;
+      }
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - HOST_FROM_KUSTOMIZE
+      secretName: thai-lottery-tls
+  rules:
+    - host: HOST_FROM_KUSTOMIZE
+      http:
+        paths:
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: fintech-reverb-service
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fintech-nginx-edge
+                port:
+                  number: 80
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fintech-nginx-config
+  namespace: fintech-production
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+      root /var/www/html/public;
+      index index.php;
+      client_max_body_size 2m;
+      location ~ ^/api/v1/deposit/slip-verification/?$ {
+        client_max_body_size 12m;
+        try_files $uri /index.php?$query_string;
+      }
+      location ^~ /app {
+        proxy_pass http://fintech-reverb-service:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 3600s;
+      }
+      location ^~ /apps {
+        proxy_pass http://fintech-reverb-service:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 3600s;
+      }
+      location ~ /\\.(?!well-known).* { deny all; }
+      location / { try_files $uri $uri/ /index.php?$query_string; }
+      location ~ \\.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT /var/www/html/public;
+        fastcgi_pass fintech-app-service:9000;
+        fastcgi_read_timeout 120s;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fintech-nginx-edge
+  namespace: fintech-production
+  labels:
+    app.kubernetes.io/name: thai-lottery-nginx-edge
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: thai-lottery-nginx-edge
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: thai-lottery-nginx-edge
+    spec:
+      serviceAccountName: thai-lottery-nginx-edge
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: populate-public-assets
+          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
+          command: ["sh", "-c", "cp -a /var/www/html/public/. /shared/"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: web-root
+              mountPath: /shared
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /up
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /up
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /up
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+            - name: web-root
+              mountPath: /var/www/html/public
+              readOnly: true
+            - name: nginx-tmp
+              mountPath: /tmp
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: fintech-nginx-config
+        - name: web-root
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: nginx-tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: nginx-cache
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: nginx-run
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Mi

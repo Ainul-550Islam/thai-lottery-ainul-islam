@@ -11,6 +11,7 @@ use App\Enums\AuditAction;
 use App\Enums\BetStatus;
 use App\Enums\Currency;
 use App\Enums\DrawLifecycleState;
+use App\Enums\DrawPublicationStatus;
 use App\Enums\FinancialTransactionType;
 use App\Enums\MarketResultType;
 use App\Enums\PayoutStatus;
@@ -21,6 +22,7 @@ use App\Models\AuditLog;
 use App\Models\Bet;
 use App\Models\BetItem;
 use App\Models\Draw;
+use App\Models\DrawPublication;
 use App\Models\DrawResult;
 use App\Models\Payout;
 use App\Models\SettlementRun;
@@ -87,6 +89,7 @@ class RealPrizeSettlementService
         private readonly SelectionSettlementResolver $selections,
         private readonly BetPurchaseWalletService $wallets,
         private readonly WalletService $walletService,
+        private readonly SettlementWorkerClient $settlementWorker,
     ) {}
 
     /**
@@ -387,6 +390,16 @@ class RealPrizeSettlementService
 
         $chunk = function () use ($drawId, $result, $afterBetId, $limit, $safetyMode, $currencySoFar, $approvalThreshold): array {
             $bets = $this->lockedBetsAfter($drawId, $afterBetId, $limit);
+            $workerPlan = null;
+            if ($this->settlementWorker->enabled() && $bets->isNotEmpty()) {
+                $workerPlan = $this->settlementWorker->planForBetRange(
+                    $drawId,
+                    (int) $bets->first()->getKey(),
+                    (int) $bets->last()->getKey(),
+                    $result,
+                    $this->livePublicationFingerprint($drawId),
+                );
+            }
 
             $stats = [
                 'bets_seen' => $bets->count(),
@@ -419,6 +432,7 @@ class RealPrizeSettlementService
 
                 foreach ($this->lockedItems((int) $bet->getKey()) as $item) {
                     $record = $this->selections->resolve($item, $bet, $result);
+                    $this->settlementWorker->assertDecisionMatches($workerPlan, $record);
 
                     $this->writeSelection($item, $record);
 
@@ -464,6 +478,8 @@ class RealPrizeSettlementService
 
                 $stats['last_bet_id'] = (int) $bet->getKey();
             }
+
+            $this->settlementWorker->assertPlanConsumed($workerPlan);
 
             return $stats;
         };
@@ -620,6 +636,7 @@ class RealPrizeSettlementService
         $drawId = (int) $draw->getKey();
         $result = $this->publishedResultFor($draw);
         $safetyMode = $this->safetyMode();
+        $workerPlan = $this->workerPlanForDraw($drawId, $result);
 
         $records = [];
         $selectionsWritten = 0;
@@ -639,6 +656,7 @@ class RealPrizeSettlementService
 
             foreach ($this->lockedItems((int) $bet->getKey()) as $item) {
                 $record = $this->selections->resolve($item, $bet, $result);
+                $this->settlementWorker->assertDecisionMatches($workerPlan, $record);
 
                 $this->writeSelection($item, $record);
 
@@ -671,6 +689,8 @@ class RealPrizeSettlementService
                 $this->writeBet($bet, $betHasWinner, $betHasWinner ? $betPrize : '0.00', null);
             }
         }
+
+        $this->settlementWorker->assertPlanConsumed($workerPlan);
 
         $draw = $this->lifecycle->markSettled($draw, [
             'stage' => 'settlement',
@@ -1164,6 +1184,55 @@ class RealPrizeSettlementService
      *
      * @return \Illuminate\Database\Eloquent\Collection<int, Bet>
      */
+    /**
+     * Ask the optional Rust worker for a read-only parity plan before monetary writes.
+     * PHP remains authoritative; a worker failure or mismatch can only refuse a run.
+     *
+     * @return array{decisions: array<int, array{won: bool, prize: string, tier: string}>, total_selections: int}|null
+     */
+    private function livePublicationFingerprint(int $drawId): string
+    {
+        $fingerprint = DrawPublication::query()
+            ->where('draw_id', $drawId)
+            ->whereIn('status', [
+                DrawPublicationStatus::Published->value,
+                DrawPublicationStatus::RePublished->value,
+            ])
+            ->orderByDesc('version')
+            ->value('result_fingerprint');
+
+        if (! is_string($fingerprint) || preg_match('/^[a-f0-9]{64}$/', $fingerprint) !== 1) {
+            throw new \RuntimeException(sprintf('Draw %d has no valid live publication fingerprint.', $drawId));
+        }
+
+        return $fingerprint;
+    }
+
+    private function workerPlanForDraw(int $drawId, DrawResultData $result): ?array
+    {
+        if (! $this->settlementWorker->enabled()) {
+            return null;
+        }
+
+        $bounds = Bet::query()
+            ->where('draw_id', $drawId)
+            ->whereNull('deleted_at')
+            ->selectRaw('MIN(id) AS min_id, MAX(id) AS max_id')
+            ->first();
+
+        if ($bounds === null || $bounds->min_id === null || $bounds->max_id === null) {
+            return null;
+        }
+
+        return $this->settlementWorker->planForBetRange(
+            $drawId,
+            (int) $bounds->min_id,
+            (int) $bounds->max_id,
+            $result,
+            $this->livePublicationFingerprint($drawId),
+        );
+    }
+
     private function lockedBets(int $drawId)
     {
         return Bet::query()

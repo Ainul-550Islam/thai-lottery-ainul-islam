@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Finance;
 
+use App\Services\Concerns\GuardsGroupConcat;
 use App\DTOs\Finance\FinancialReconciliationReport;
 use App\DTOs\Finance\ReconciliationDiscrepancy;
 use App\Enums\AuditAction;
@@ -63,6 +64,8 @@ use Illuminate\Support\Facades\DB;
  */
 class FinancialReconciliationService
 {
+    use GuardsGroupConcat;
+
     public function __construct(
         private readonly WalletService $wallets,
     ) {
@@ -94,6 +97,7 @@ class FinancialReconciliationService
         ?string $initiatedBy = null,
     ): FinancialReconciliationReport {
         $startedAt = microtime(true);
+        $this->raiseGroupConcatLimit();
 
         $currency ??= Currency::tryFrom((string) config('finance.currency.default', 'THB')) ?? Currency::THB;
 
@@ -209,12 +213,12 @@ class FinancialReconciliationService
             ->whereNull('ft.deleted_at')
             ->when($from !== null, fn ($q) => $q->where('le.created_at', '>=', $from))
             ->when($to !== null, fn ($q) => $q->where('le.created_at', '<=', $to))
-            ->selectRaw("
-                le.financial_transaction_id as tx_id,
-                GROUP_CONCAT(CASE WHEN le.type = 'debit' THEN le.amount END) as debit_amounts,
-                GROUP_CONCAT(CASE WHEN le.type = 'credit' THEN le.amount END) as credit_amounts,
-                COUNT(*) as entry_count
-            ")
+            ->selectRaw(
+                "le.financial_transaction_id as tx_id, "
+                .$this->groupConcatSql("CASE WHEN le.type = 'debit' THEN le.amount END")." as debit_amounts, "
+                .$this->groupConcatSql("CASE WHEN le.type = 'credit' THEN le.amount END")." as credit_amounts, "
+                .'COUNT(*) as entry_count'
+            )
             ->groupBy('le.financial_transaction_id')
             ->get();
 
@@ -293,7 +297,7 @@ class FinancialReconciliationService
                 ->where('ledger_account_id', (int) $liabilityAccountId)
                 ->where('currency', $currency->value)
                 ->whereNull('deleted_at')
-                ->selectRaw("type, GROUP_CONCAT(amount) as amounts")
+                ->selectRaw('type, '.$this->groupConcatSql('amount').' as amounts')
                 ->groupBy('type')
                 ->pluck('amounts', 'type');
 
@@ -385,7 +389,7 @@ class FinancialReconciliationService
             ->whereNotNull('provider_reference')
             ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
             ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
-            ->selectRaw('provider_reference, COUNT(*) as hits, GROUP_CONCAT(id) as ids')
+            ->selectRaw('provider_reference, COUNT(*) as hits, '.$this->groupConcatSql('id').' as ids')
             ->groupBy('provider_reference')
             ->havingRaw('COUNT(*) > 1')
             ->get();
@@ -605,7 +609,7 @@ class FinancialReconciliationService
             ->where('status', PayoutStatus::Completed->value)
             ->where('currency', $currency->value)
             ->whereNull('deleted_at')
-            ->selectRaw('bet_id, COUNT(*) as hits, GROUP_CONCAT(id) as ids, GROUP_CONCAT(reference_number) as refs')
+            ->selectRaw('bet_id, COUNT(*) as hits, '.$this->groupConcatSql('id').' as ids, '.$this->groupConcatSql('reference_number').' as refs')
             ->groupBy('bet_id')
             ->havingRaw('COUNT(*) > 1')
             ->get();
@@ -1020,7 +1024,7 @@ class FinancialReconciliationService
             ->whereNull('deleted_at')
             ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
             ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
-            ->selectRaw("type, GROUP_CONCAT(amount) as amounts")
+            ->selectRaw('type, '.$this->groupConcatSql('amount').' as amounts')
             ->groupBy('type')
             ->get()
             ->keyBy('type');

@@ -139,7 +139,6 @@ return [
             PaymentMethod::Stripe->value,
             PaymentMethod::Bkash->value,
             PaymentMethod::Nagad->value,
-            PaymentMethod::BankTransfer->value,
             PaymentMethod::Crypto->value,
             PaymentMethod::PromptPay->value,
         ],
@@ -165,31 +164,6 @@ return [
             PaymentMethod::BankTransfer->value,
             PaymentMethod::Crypto->value,
         ],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Withdrawal routing
-    |--------------------------------------------------------------------------
-    |
-    | How the SYSTEM chooses the rail that actually pays a withdrawal. This is
-    | not a player preference: the player chooses `bank_transfer` or
-    | `promptpay`, and WithdrawalDisbursementService decides from server-side
-    | configuration plus the stored destination whether the automated Thai
-    | bank rail can pay it, persisting the chosen key on the withdrawal before
-    | the external call.
-    |
-    | `prefer_automated_payout` is the deployment-wide preference. The amount
-    | bounds are optional: an unset bound is ABSENT, not zero, so a deployment
-    | that sets neither lets every amount through to the destination check
-    | rather than refusing all automation.
-    |
-    */
-
-    'withdrawal_routing' => [
-        'prefer_automated_payout' => (bool) env('PAYMENT_WITHDRAWAL_ROUTING_PREFER_AUTOMATED', true),
-        'min_amount' => env('PAYMENT_WITHDRAWAL_ROUTING_MIN_AMOUNT'),
-        'max_amount' => env('PAYMENT_WITHDRAWAL_ROUTING_MAX_AMOUNT'),
     ],
 
     /*
@@ -391,37 +365,6 @@ return [
                 'account_name' => env('BANK_TRANSFER_ACCOUNT_NAME'),
                 'instructions' => env('BANK_TRANSFER_INSTRUCTIONS'),
             ],
-        ],
-
-        /*
-         * The automated Thai bank payout rail.
-         *
-         * NOT A PAYMENT METHOD. App\Enums\PaymentMethod has no `thai_bank`
-         * case on purpose: this rail is never chosen by a client, it is chosen
-         * by WithdrawalDisbursementService from `thai_payout.enabled`, the
-         * deployment's routing preference, the amount bounds and the stored
-         * destination, and the chosen key is persisted on the withdrawal
-         * before the external call so every later reader resolves the same
-         * driver. A player still asks for `bank_transfer`.
-         *
-         * This block exists so the manager arm
-         * (PaymentGatewayManager::driver('thai_bank')) and the reconciliation,
-         * polling and webhook lanes have a configured identity to resolve,
-         * and so an operator can see the rail in the same place as every
-         * other gateway. The operational switch is `thai_payout.enabled` and
-         * the per-bank switch `thai_payout.banks.<bank>.enabled`; this arm
-         * declares identity and direction only — deposits never arrive here.
-         */
-        'thai_bank' => [
-            'enabled' => (bool) env('THAI_PAYOUT_ENABLED', false),
-            'driver' => 'thai_bank',
-            'currency' => 'THB',
-            'supported_currencies' => ['THB'],
-            'supports_deposit' => false,
-            'supports_withdrawal' => true,
-            'supports_webhook' => true,
-            'webhook_secret' => env('THAI_PAYOUT_WEBHOOK_SECRET'),
-            'signature_header' => env('THAI_PAYOUT_SIGNATURE_HEADER', 'X-ThaiBank-Signature'),
         ],
 
     ],

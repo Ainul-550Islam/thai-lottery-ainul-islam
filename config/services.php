@@ -67,6 +67,13 @@ return [
         'notify_token' => env('LINE_NOTIFY_TOKEN'),
     ],
 
+    'settlement_worker' => [
+        'enabled' => (bool) env('SETTLEMENT_WORKER_ENABLED', false),
+        'url' => env('SETTLEMENT_WORKER_URL'),
+        'hmac_secret' => env('SETTLEMENT_WORKER_HMAC_SECRET'),
+        'timeout' => (int) env('SETTLEMENT_WORKER_TIMEOUT', 8),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | External CAPTCHA providers (server-side Siteverify)
