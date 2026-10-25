@@ -12,6 +12,8 @@ return [
     | Empty/null prevents trusting spoofed X-Forwarded-For headers.
     */
     'trusted_proxies' => array_filter(explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16'))),
+    'trusted_proxies_setting' => env('TRUSTED_PROXIES'),
+    'allow_wildcard_trusted_proxies' => (bool) env('ALLOW_WILDCARD_TRUSTED_PROXIES', false),
 
     /*
     |--------------------------------------------------------------------------

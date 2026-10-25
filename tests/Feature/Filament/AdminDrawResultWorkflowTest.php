@@ -11,14 +11,24 @@ use App\Models\Draw;
 use App\Models\User;
 use App\Services\Draw\AdminDrawResultWorkflow;
 use App\Services\Draw\DrawResultIngestionService;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 final class AdminDrawResultWorkflowTest extends TestCase
 {
     use DatabaseTruncation;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->seed(RolePermissionSeeder::class);
+    }
 
     private const NUMBERS = ['first_prize' => '003456', 'bottom_two' => '45'];
 

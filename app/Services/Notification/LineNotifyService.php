@@ -15,7 +15,7 @@ class LineNotifyService
 
     public function __construct(?string $token = null)
     {
-        $this->accessToken = $token ?? (string) config('services.line.notify_token', env('LINE_NOTIFY_TOKEN', 'test-line-token'));
+        $this->accessToken = $token ?? (string) config('services.line.notify_token');
     }
 
     /**

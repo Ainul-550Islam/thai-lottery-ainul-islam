@@ -10,6 +10,7 @@ enum PaymentMethod: string
     case Crypto = 'crypto';
     case BankTransfer = 'bank_transfer';
     case Manual = 'manual';
+    case PromptPay = 'promptpay';
 
     public function label(): string
     {
@@ -20,17 +21,18 @@ enum PaymentMethod: string
             self::Crypto => 'Cryptocurrency',
             self::BankTransfer => 'Bank Transfer',
             self::Manual => 'Manual',
+            self::PromptPay => 'PromptPay',
         };
     }
 
     public function isAutomatic(): bool
     {
-        return in_array($this, [self::Stripe, self::Bkash, self::Nagad, self::Crypto]);
+        return in_array($this, [self::Stripe, self::Bkash, self::Nagad, self::Crypto, self::PromptPay]);
     }
 
     public function supportsWebhook(): bool
     {
-        return in_array($this, [self::Stripe, self::Bkash, self::Nagad, self::Crypto]);
+        return in_array($this, [self::Stripe, self::Bkash, self::Nagad, self::Crypto, self::PromptPay]);
     }
 
     public function supportedCurrencies(): array
@@ -41,6 +43,7 @@ enum PaymentMethod: string
             self::Nagad => [Currency::BDT],
             self::Crypto => [Currency::USD],
             self::BankTransfer, self::Manual => [Currency::THB, Currency::USD, Currency::BDT],
+            self::PromptPay => [Currency::THB],
         };
     }
 
@@ -53,6 +56,7 @@ enum PaymentMethod: string
             self::Crypto => 'bitcoin',
             self::BankTransfer => 'building-2',
             self::Manual => 'hand',
+            self::PromptPay => 'qr-code',
         };
     }
 }

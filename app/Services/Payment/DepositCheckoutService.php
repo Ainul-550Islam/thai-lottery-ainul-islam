@@ -360,6 +360,9 @@ final class DepositCheckoutService
                 $rowMeta = $row->metadata ?? [];
                 unset($rowMeta['redirect_url'], $rowMeta['client_secret']);
                 $rowMeta['payment_id'] = (int) $payment->id;
+                if ($row->method === PaymentMethod::PromptPay && is_string($response->metadata['expires_at'] ?? null)) {
+                    $rowMeta['promptpay_expires_at'] = $response->metadata['expires_at'];
+                }
                 if ($response->redirectUrl !== null) {
                     $rowMeta['redirect_url_encrypted'] = Crypt::encryptString($response->redirectUrl);
                 }

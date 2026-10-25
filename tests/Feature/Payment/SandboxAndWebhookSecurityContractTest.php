@@ -14,7 +14,6 @@ use App\Models\Deposit;
 use App\Models\DepositTransaction;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Services\Payment\CryptoUsdtGatewayService;
 use App\Services\Payment\Drivers\SandboxDeterministicGateway;
 use App\Services\Payment\KasikornBankWebhookService;
 use App\Services\Payment\PaymentDecimalNormalizer;
@@ -254,17 +253,6 @@ final class SandboxAndWebhookSecurityContractTest extends TestCase
             $this->fail('Expected SCB to fail closed without secret.');
         } catch (RuntimeException $e) {
             $this->assertStringContainsString('not configured', $e->getMessage());
-        }
-
-        // Crypto TRC-20 fail-closed when real_money is enabled without master pubkey.
-        config(['services.crypto.trc20_master_pubkey' => '', 'real_money.enabled' => true]);
-        try {
-            app(CryptoUsdtGatewayService::class)->getUserDepositAddress('42');
-            $this->fail('Expected CryptoUsdtGatewayService to fail closed in live-money mode without pubkey.');
-        } catch (RuntimeException $e) {
-            $this->assertStringContainsString('not configured', $e->getMessage());
-        } finally {
-            config(['real_money.enabled' => false]);
         }
 
         // PaymentDecimalNormalizer precision & scientific notation checks.

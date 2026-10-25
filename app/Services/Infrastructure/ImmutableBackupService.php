@@ -21,8 +21,7 @@ class ImmutableBackupService
      */
     public function encryptDumpData(string $rawDumpSql): array
     {
-        $key = $this->backupKey ?? (string) config('app.backup_encryption_key', env('BACKUP_ENCRYPTION_KEY', 'HardenedBackupKey2026MasterSecret!'));
-        $derivedKey = hash('sha256', $key, true);
+        $derivedKey = hash('sha256', $this->key(), true);
 
         $iv = random_bytes(16);
 
@@ -61,8 +60,7 @@ class ImmutableBackupService
         $iv = substr($raw, 0, 16);
         $cipherText = substr($raw, 16);
 
-        $key = $this->backupKey ?? (string) config('app.backup_encryption_key', env('BACKUP_ENCRYPTION_KEY', 'HardenedBackupKey2026MasterSecret!'));
-        $derivedKey = hash('sha256', $key, true);
+        $derivedKey = hash('sha256', $this->key(), true);
 
         $decrypted = openssl_decrypt(
             $cipherText,
@@ -77,5 +75,15 @@ class ImmutableBackupService
         }
 
         return $decrypted;
+    }
+
+    private function key(): string
+    {
+        $key = $this->backupKey ?? config('app.backup_encryption_key');
+        if (! is_string($key) || trim($key) === '') {
+            throw new RuntimeException('Backup encryption is not configured: set BACKUP_ENCRYPTION_KEY.');
+        }
+
+        return $key;
     }
 }

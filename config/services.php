@@ -45,6 +45,28 @@ return [
         'webhook_secret' => env('CRYPTO_GATEWAY_WEBHOOK_SECRET'),
     ],
 
+    'truemoney' => [
+        'mobile' => env('TRUEMONEY_MERCHANT_MOBILE'),
+    ],
+
+    'kbank' => [
+        'webhook_secret' => env('KBANK_WEBHOOK_SECRET'),
+    ],
+
+    'scb' => [
+        'webhook_secret' => env('SCB_WEBHOOK_SECRET'),
+    ],
+
+    'sms' => [
+        'api_key' => env('THAI_SMS_API_KEY'),
+        'api_secret' => env('THAI_SMS_API_SECRET'),
+        'sender_name' => env('THAI_SMS_SENDER'),
+    ],
+
+    'line' => [
+        'notify_token' => env('LINE_NOTIFY_TOKEN'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | External CAPTCHA providers (server-side Siteverify)

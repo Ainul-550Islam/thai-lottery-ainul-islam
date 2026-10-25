@@ -4,116 +4,173 @@ declare(strict_types=1);
 
 namespace App\Services\Payment;
 
-use App\Services\Deposit\DepositProcessingService;
-use App\Services\Fraud\FraudDetectionService;
-use App\Services\Lock\DistributedLockService;
+use App\Enums\AuditAction;
+use App\Enums\PromptPayDepositMatchResult;
+use App\Enums\RiskLevel;
+use App\Models\AuditLog;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 
 class KasikornBankWebhookService
 {
-    public function __construct(
-        private readonly DepositProcessingService $depositService,
-        private readonly FraudDetectionService $fraudDetectionService,
-        private readonly DistributedLockService $lockService
-    ) {}
+    public function __construct(private readonly PromptPayDepositMatcher $matcher) {}
 
-    /**
-     * Process Kasikornbank (KBank) Payment Notification webhook.
-     *
-     * @param  array<string, mixed>  $payload
-     * @return array{success: bool, status: string, transaction_id: string, trans_ref: string}
-     */
-    public function processWebhook(array $payload, string $signature, string $clientIp): array
+    /** @param array<string, mixed> $payload */
+    public function processWebhook(array $payload, string $signature, string $clientIp, ?string $timestamp = null): array
     {
-        // B1 FIX — FAIL CLOSED ON A MISSING SECRET.
-        //
-        // This line previously read:
-        //
-        //   config('services.kbank.webhook_secret', env('KBANK_WEBHOOK_SECRET', 'test-kbank-secret'))
-        //
-        // There was no `kbank` key in config/services.php, so the first
-        // argument was always null and the fallback always fired. On any
-        // deployment that did not export KBANK_WEBHOOK_SECRET — and the key was
-        // missing from .env.example, so that was every deployment by default —
-        // the HMAC key was the literal string 'test-kbank-secret', published in
-        // this repository.
-        //
-        // Anyone who has read this source can then compute a valid HMAC-SHA256
-        // over an arbitrary payload and post it here, crediting their own
-        // account through the real DepositProcessingService. That is
-        // unauthenticated money creation.
-        //
-        // A missing secret must therefore be a hard refusal, not a default.
-        $secret = (string) config('services.kbank.webhook_secret', '');
+        $this->verify($payload, $signature, $timestamp, $clientIp);
 
-        if ($secret === '') {
-            Log::critical('KBank webhook refused: services.kbank.webhook_secret is not configured. '
-                .'No notification can be verified, so none is trusted. Set KBANK_WEBHOOK_SECRET.', [
-                    'client_ip' => $clientIp,
-                ]);
-
-            throw new RuntimeException('KBank webhook lane is not configured; notification refused.');
+        $eventType = strtolower(trim($this->scalar($payload['event_type'] ?? $payload['eventType'] ?? $payload['type'] ?? '')));
+        if (! in_array($eventType, ['credit', 'payment.credit', 'payment.completed', 'deposit.completed', 'payment_success', 'promptpay.credit'], true)) {
+            return $this->result(PromptPayDepositMatchResult::Unmatched, '', 'ignored');
         }
 
-        $rawContent = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
-        $expectedSignature = hash_hmac('sha256', $rawContent, $secret);
+        $bankTransactionId = $this->firstScalar($payload, ['bank_txn_id', 'tx_id', 'transaction_no', 'transactionId']);
+        $reference = $this->firstScalar($payload, ['bill_reference', 'reference', 'reference_1', 'ref1', 'billPaymentRef1']);
+        $amount = $this->firstMoney($payload, ['amount', 'net_amount', 'paid_amount']);
+        $currency = $this->firstScalar($payload, ['currency', 'currency_code']);
+        $matched = $this->matcher->match('kbank', $reference, $amount, $currency, $bankTransactionId);
 
-        if (! hash_equals($expectedSignature, $signature)) {
-            Log::warning("KBank Webhook signature mismatch from IP [{$clientIp}].");
-            throw new InvalidArgumentException('Invalid KBank signature.');
-        }
+        return $this->result($matched, $bankTransactionId);
+    }
 
-        $transRef = (string) ($payload['tx_id'] ?? $payload['transaction_no'] ?? '');
-        $amount = number_format((float) ($payload['amount'] ?? 0), 4, '.', '');
-        $userId = (string) ($payload['customer_id'] ?? $payload['reference_1'] ?? '');
-
-        if (empty($transRef) || empty($userId) || bccomp($amount, '0.0000', 4) <= 0) {
-            throw new InvalidArgumentException('Invalid KBank payment payload parameters.');
-        }
-
-        $lockKey = "lock:payment:kbank:{$transRef}";
-        $lock = $this->lockService->acquireLock($lockKey, 30);
-
-        if (! $lock) {
-            throw new RuntimeException("Concurrent KBank webhook processing for transRef [{$transRef}].");
+    public function verifyRequest(Request $request): bool
+    {
+        $payload = $request->json()->all();
+        if (! is_array($payload)) {
+            return false;
         }
 
         try {
-            // Pre-flight Fraud Assessment
-            $fraudData = [
-                'event_id' => (string) Str::uuid(),
-                'event_type' => 'DEPOSIT',
-                'user_id' => $userId,
-                'amount' => $amount,
-                'currency' => 'THB',
-                'client_ip' => $clientIp,
-                'reference_id' => $transRef,
-            ];
-
-            $this->fraudDetectionService->evaluateTransactionRisk($fraudData);
-
-            // Process Deposit via Core Double-Entry Deposit Engine
-            $deposit = $this->depositService->processConfirmedDeposit(
-                userId: $userId,
-                amount: $amount,
-                gatewayProvider: 'KBANK_PROMPTPAY',
-                gatewayReferenceId: $transRef,
-                currency: 'THB',
-                feeAmount: '0.0000',
-                rawPayload: $payload
+            $this->verify(
+                $payload,
+                (string) $request->header('X-KBANK-Signature', ''),
+                $request->header('X-KBANK-Timestamp') ?? $request->header('X-Timestamp'),
+                (string) $request->ip(),
             );
 
-            return [
-                'success' => true,
-                'status' => 'COMPLETED',
-                'transaction_id' => $deposit->id,
-                'trans_ref' => $transRef,
-            ];
-        } finally {
-            $this->lockService->releaseLock($lock);
+            return true;
+        } catch (Throwable) {
+            return false;
         }
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function verify(array $payload, string $signature, ?string $timestamp, string $clientIp): void
+    {
+        $secret = trim((string) config('services.kbank.webhook_secret', ''));
+        if ($secret === '') {
+            Log::critical('KBank webhook refused: webhook secret is not configured.', ['client_ip' => $clientIp]);
+            $this->auditRejected($payload, 'missing_webhook_secret', $clientIp);
+            throw new RuntimeException('KBank webhook lane is not configured; notification refused.');
+        }
+
+        $rawContent = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $payloadTimestamp = $this->firstScalar($payload, ['timestamp', 'created', 'created_at']);
+        $headerTimestamp = trim((string) $timestamp);
+        $signedTimestamp = $payloadTimestamp !== '' ? $payloadTimestamp : $headerTimestamp;
+        // A body timestamp is already covered by the body HMAC and takes
+        // precedence over a conflicting header. For header-only providers the
+        // signed content is "timestamp.raw-body"; an unsigned freshness header
+        // can never make an old body acceptable.
+        $signedContent = $payloadTimestamp === '' && $headerTimestamp !== ''
+            ? $headerTimestamp.'.'.$rawContent
+            : $rawContent;
+        $provided = str_starts_with($signature, 'sha256=') ? substr($signature, 7) : $signature;
+        $expected = hash_hmac('sha256', $signedContent, $secret);
+        if ($provided === '' || ! hash_equals($expected, $provided)) {
+            $this->auditRejected($payload, 'invalid_signature', $clientIp);
+            throw new InvalidArgumentException('Invalid KBank signature.');
+        }
+
+        $eventTime = $this->timestamp($signedTimestamp);
+        $tolerance = max(1, (int) config('payment.webhook.max_age_seconds', 300));
+        if ($eventTime === null || abs(time() - $eventTime) > $tolerance) {
+            $this->auditRejected($payload, 'invalid_or_expired_timestamp', $clientIp);
+            throw new InvalidArgumentException('Invalid or expired KBank webhook timestamp.');
+        }
+    }
+
+    /** @param array<string, mixed> $payload @param list<string> $keys */
+    private function firstScalar(array $payload, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $payload)) {
+                return $this->scalar($payload[$key]);
+            }
+        }
+
+        return '';
+    }
+
+    /** @param array<string, mixed> $payload @param list<string> $keys */
+    private function firstMoney(array $payload, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $payload)) {
+                $value = $payload[$key];
+
+                return is_string($value) || is_int($value) ? (string) $value : '';
+            }
+        }
+
+        return '';
+    }
+
+    private function scalar(mixed $value): string
+    {
+        return is_string($value) || is_int($value) ? trim((string) $value) : '';
+    }
+
+    private function timestamp(?string $value): ?int
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+        if (ctype_digit($value)) {
+            return (int) $value;
+        }
+
+        $parsed = strtotime($value);
+
+        return $parsed === false ? null : $parsed;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function auditRejected(array $payload, string $reason, string $clientIp): void
+    {
+        $audit = new AuditLog;
+        $audit->fill([
+            'user_id' => null,
+            'action' => AuditAction::SecurityAlert,
+            'risk_level' => RiskLevel::High,
+            'auditable_type' => null,
+            'auditable_id' => null,
+            'description' => 'A bank deposit notification was rejected before deposit matching.',
+            'ip_address' => $clientIp,
+            'metadata' => [
+                'bank' => 'kbank',
+                'reason' => $reason,
+                'payload_sha256' => hash('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+            ],
+        ]);
+        $audit->save();
+    }
+
+    private function result(PromptPayDepositMatchResult $result, string $transactionId, ?string $status = null): array
+    {
+        $value = $status ?? $result->value;
+
+        return [
+            'success' => true,
+            'status' => strtoupper($value),
+            'result' => $value,
+            'transaction_id' => $transactionId,
+            'trans_ref' => $transactionId,
+            'credited' => $result === PromptPayDepositMatchResult::Credited,
+        ];
     }
 }

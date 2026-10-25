@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Ops;
 
 use App\Providers\ProductionSafetyServiceProvider;
+use App\Services\Payment\PromptPayQrGeneratorService;
 use App\Support\Backup\BackupCipher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -63,6 +64,12 @@ final class ProductionPreflight
 
         $this->checkAppEnvironment();
         $this->checkApplicationKey();
+        $this->checkFieldEncryptionKey();
+        $this->checkPlaceholderHosts();
+        $this->checkTrustedProxies();
+        $this->checkBroadcastDriver();
+        $this->checkMailHost();
+        $this->checkPromptPayMerchant();
         $this->checkSessionAndCookies();
         $this->checkSafetyProviderContract();
         $this->checkBackupLane();
@@ -162,6 +169,133 @@ final class ProductionPreflight
         }
 
         $this->record('app.key', 'PASS', 'APP_KEY is a 32-byte key.');
+    }
+
+    private function checkFieldEncryptionKey(): void
+    {
+        $fieldKey = $this->encryptionKeyMaterial(config('app.field_encryption_key'));
+        $appKey = $this->encryptionKeyMaterial(config('app.key'));
+        $missing = $fieldKey === null;
+        $sameAsAppKey = $fieldKey !== null && $appKey !== null && hash_equals($fieldKey, $appKey);
+
+        if ($this->production && ($missing || $sameAsAppKey)) {
+            $this->record('field_encryption.key', 'FAIL', 'FIELD_ENCRYPTION_KEY must be non-empty and distinct from APP_KEY in production.');
+        } elseif ($missing || $sameAsAppKey) {
+            $this->recordAdvisory('field_encryption.key', 'WARN', 'A distinct FIELD_ENCRYPTION_KEY is required before production deployment.');
+        } else {
+            $this->recordAdvisory('field_encryption.key', 'PASS', 'A distinct field-encryption key is configured.');
+        }
+    }
+
+    private function encryptionKeyMaterial(mixed $key): ?string
+    {
+        if (! is_string($key) || trim($key) === '') {
+            return null;
+        }
+        if (! str_starts_with($key, 'base64:')) {
+            return $key;
+        }
+
+        $decoded = base64_decode(substr($key, 7), true);
+
+        return is_string($decoded) && $decoded !== '' ? $decoded : null;
+    }
+
+    private function checkPlaceholderHosts(): void
+    {
+        if (! $this->production) {
+            $this->recordAdvisory('host.placeholder', 'SKIP', 'Placeholder-host enforcement applies to production only.');
+
+            return;
+        }
+
+        $values = [
+            'APP_URL' => config('app.url'),
+            'SESSION_DOMAIN' => config('session.domain'),
+            'MAIL_HOST' => config('mail.mailers.smtp.host'),
+            'REVERB_HOST' => config('broadcasting.connections.reverb.options.host', config('reverb.apps.apps.0.options.host')),
+        ];
+        $placeholders = [];
+
+        foreach ($values as $name => $value) {
+            if (! is_string($value) || $value === '') {
+                continue;
+            }
+            $host = strtolower((string) (parse_url($value, PHP_URL_HOST) ?: $value));
+            $host = trim(preg_replace('/^\\[|\\]$/', '', $host) ?? $host);
+            if (str_contains($host, '.example') || str_contains($host, 'example.com')
+                || str_contains($host, 'localhost') || str_contains($host, '127.0.0.1')) {
+                $placeholders[] = $name;
+            }
+        }
+
+        $placeholders === []
+            ? $this->recordAdvisory('host.placeholder', 'PASS', 'No placeholder application, session, mail or realtime hosts are configured.')
+            : $this->record('host.placeholder', 'FAIL', 'Placeholder hosts remain configured: '.implode(', ', $placeholders).'.');
+    }
+
+    private function checkTrustedProxies(): void
+    {
+        $setting = config('network.trusted_proxies_setting');
+        $raw = is_string($setting) ? trim($setting) : '';
+        $entries = array_values(array_filter(
+            array_map('trim', explode(',', $raw)),
+            static fn (string $entry): bool => $entry !== '',
+        ));
+        $wildcardOverride = (bool) config('network.allow_wildcard_trusted_proxies', false);
+        $wildcard = array_intersect($entries, ['*', '**']) !== [];
+
+        if ($this->production && $entries === []) {
+            $this->record('proxy.trusted', 'FAIL', 'TRUSTED_PROXIES must contain an explicit proxy CIDR list in production.');
+        } elseif ($this->production && $wildcard && ! $wildcardOverride) {
+            $this->record('proxy.trusted', 'FAIL', 'Wildcard trusted proxies require ALLOW_WILDCARD_TRUSTED_PROXIES=true.');
+        } elseif ($entries === []) {
+            $this->recordAdvisory('proxy.trusted', 'WARN', 'No explicit TRUSTED_PROXIES value is configured.');
+        } else {
+            $this->recordAdvisory('proxy.trusted', 'PASS', $wildcard ? 'Wildcard proxy trust has an explicit override.' : 'Explicit trusted proxy addresses are configured.');
+        }
+    }
+
+    private function checkBroadcastDriver(): void
+    {
+        $driver = (string) config('broadcasting.default', 'log');
+        $realtimeEnabled = (bool) config('chat.enabled', true)
+            && (string) config('chat.transport', 'poll') === 'broadcast';
+
+        if ($driver === 'log' && $realtimeEnabled) {
+            $this->recordAdvisory('broadcast.driver', 'WARN', 'Realtime features are enabled but BROADCAST_CONNECTION=log only writes events to the log.');
+        } else {
+            $this->recordAdvisory('broadcast.driver', 'PASS', 'The broadcast driver is consistent with the configured realtime features.');
+        }
+    }
+
+    private function checkMailHost(): void
+    {
+        $mailer = (string) config('mail.default');
+        $host = config('mail.mailers.smtp.host');
+
+        if ($mailer === 'smtp' && (! is_string($host) || trim($host) === '')) {
+            $this->record('mail.host', 'FAIL', 'MAIL_HOST is required when MAIL_MAILER=smtp.');
+        } else {
+            $this->recordAdvisory('mail.host', 'PASS', $mailer === 'smtp' ? 'An SMTP host is configured.' : 'SMTP host validation is not required for the selected mailer.');
+        }
+    }
+
+    private function checkPromptPayMerchant(): void
+    {
+        if (! (bool) config('payment.gateways.promptpay.enabled', false)) {
+            $this->recordAdvisory('promptpay.merchant', 'PASS', 'PromptPay is disabled.');
+
+            return;
+        }
+
+        $merchant = config('payment.gateways.promptpay.merchant_id');
+        $valid = is_string($merchant) && app(PromptPayQrGeneratorService::class)->isValidRecipientId($merchant);
+        $this->record(
+            'promptpay.merchant',
+            $valid ? 'PASS' : 'FAIL',
+            $valid ? 'The configured PromptPay merchant identifier has a valid format.' : 'PROMPTPAY_MERCHANT_ID is not a supported PromptPay identifier.',
+        );
     }
 
     private function checkSessionAndCookies(): void

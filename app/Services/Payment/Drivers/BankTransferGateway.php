@@ -99,9 +99,13 @@ class BankTransferGateway extends AbstractPaymentGateway
     public function initiateWithdrawal(Withdrawal $withdrawal, array $options = []): GatewayWithdrawalResponse
     {
         return GatewayWithdrawalResponse::pending(
-            providerReference: 'BANK-WD-'.$withdrawal->reference_number,
+            providerReference: null,
             rawResponse: [],
-            metadata: ['manual_bank_wire' => true],
+            metadata: [
+                'manual_bank_wire' => true,
+                'manual_disbursement_required' => true,
+                'reconciliation_required' => true,
+            ],
         );
     }
 

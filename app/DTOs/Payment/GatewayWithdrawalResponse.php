@@ -43,7 +43,7 @@ final class GatewayWithdrawalResponse
     }
 
     public static function pending(
-        string $providerReference,
+        ?string $providerReference = null,
         array $rawResponse = [],
         array $metadata = [],
     ): self {

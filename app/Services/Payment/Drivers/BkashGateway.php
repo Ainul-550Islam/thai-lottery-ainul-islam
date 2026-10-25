@@ -132,9 +132,13 @@ class BkashGateway extends AbstractPaymentGateway
     public function initiateWithdrawal(Withdrawal $withdrawal, array $options = []): GatewayWithdrawalResponse
     {
         return GatewayWithdrawalResponse::pending(
-            providerReference: 'BKASH-B2C-'.$withdrawal->reference_number,
+            providerReference: null,
             rawResponse: [],
-            metadata: ['requires_b2c_disbursement' => true],
+            metadata: [
+                'manual_disbursement_required' => true,
+                'requires_b2c_disbursement' => true,
+                'reconciliation_required' => true,
+            ],
         );
     }
 

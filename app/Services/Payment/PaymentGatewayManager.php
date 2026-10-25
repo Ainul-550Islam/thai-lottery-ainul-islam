@@ -12,6 +12,7 @@ use App\Services\Payment\Drivers\BankTransferGateway;
 use App\Services\Payment\Drivers\BkashGateway;
 use App\Services\Payment\Drivers\CryptoGateway;
 use App\Services\Payment\Drivers\NagadGateway;
+use App\Services\Payment\Drivers\PromptPayGateway;
 use App\Services\Payment\Drivers\StripeGateway;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
@@ -53,24 +54,7 @@ class PaymentGatewayManager
             'crypto' => $this->container->make(CryptoGateway::class),
             'bank_transfer', 'manual' => $this->container->make(BankTransferGateway::class),
 
-            // ── A CONFIGURED RAIL WITH NO DRIVER GETS ITS OWN REFUSAL. ──────
-            //
-            // 'promptpay' appears in config/payment.php with an enabled flag, a
-            // target, a webhook secret and a signature header — so it LOOKS
-            // integrated. It has no driver, no PaymentMethod case and no callback
-            // route. Falling through to the generic arm below would report
-            // `unsupported_payment_gateway` for it, which reads as "somebody
-            // mistyped a name" and sends an operator to check their spelling
-            // instead of to the status block that explains the lane is unfinished.
-            //
-            // It still THROWS. Nothing here makes the rail work; the difference is
-            // only that the refusal says which of the two problems it is.
-            'promptpay' => throw FinancialException::withCode(
-                'payment_gateway_not_implemented',
-                'The [promptpay] rail is configured but has no driver: the Thai QR inbound lane is not built. '
-                .'See the status block in config/payment.php for what wiring it requires.',
-                ['gateway' => $key, 'reason' => 'configured_but_unimplemented'],
-            ),
+            'promptpay' => $this->container->make(PromptPayGateway::class),
 
             default => throw FinancialException::withCode(
                 'unsupported_payment_gateway',
@@ -99,7 +83,7 @@ class PaymentGatewayManager
     {
         $key = strtolower(trim($name));
 
-        return in_array($key, ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'manual'], true);
+        return in_array($key, ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'manual'], true);
     }
 
     /**

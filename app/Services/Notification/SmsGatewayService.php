@@ -19,9 +19,9 @@ class SmsGatewayService
         ?string $apiSecret = null,
         ?string $senderName = null
     ) {
-        $this->apiKey = $apiKey ?? (string) config('services.sms.api_key', env('THAI_SMS_API_KEY', 'test-sms-key'));
-        $this->apiSecret = $apiSecret ?? (string) config('services.sms.api_secret', env('THAI_SMS_API_SECRET', 'test-sms-secret'));
-        $this->senderName = $senderName ?? (string) config('services.sms.sender_name', env('THAI_SMS_SENDER', 'THAILOTTO'));
+        $this->apiKey = $apiKey ?? (string) config('services.sms.api_key');
+        $this->apiSecret = $apiSecret ?? (string) config('services.sms.api_secret');
+        $this->senderName = $senderName ?? (string) config('services.sms.sender_name');
     }
 
     /**

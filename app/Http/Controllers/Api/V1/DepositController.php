@@ -127,7 +127,7 @@ final class DepositController
             return ApiResponse::error(
                 code: $code,
                 message: 'The deposit could not be initiated with the requested details.',
-                status: $code === 'payment_gateway_unavailable' ? 503 : 422,
+                status: in_array($code, ['payment_gateway_disabled', 'payment_gateway_unavailable'], true) ? 503 : 422,
             );
         }
 
@@ -162,6 +162,9 @@ final class DepositController
                 'checkout' => [
                     'redirect_url' => $gatewayResponse->redirectUrl,
                     'instructions' => $instructions,
+                    'qr_payload' => $gatewayResponse->metadata['qr_payload'] ?? null,
+                    'bill_reference' => $gatewayResponse->metadata['bill_reference'] ?? null,
+                    'expires_at' => $gatewayResponse->metadata['expires_at'] ?? null,
                 ],
             ],
             message: 'Deposit initiated successfully.',

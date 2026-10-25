@@ -270,6 +270,17 @@ class WithdrawalDisbursementService
             ]);
         }
 
+        $manualMetadata = [];
+        foreach (['manual_disbursement_required', 'requires_manual_disbursement', 'requires_b2c_disbursement', 'manual_bank_wire'] as $flag) {
+            if (($gatewayResponse->metadata[$flag] ?? false) === true) {
+                $manualMetadata[$flag] = true;
+            }
+        }
+        $manualDisbursement = $gatewayResponse->successful && $gatewayResponse->isPending && $manualMetadata !== [];
+        if ($manualDisbursement) {
+            $manualMetadata['manual_disbursement_required'] = true;
+        }
+
         // Do not persist or return provider-controlled raw bodies, credentials,
         // payer details, or free-form error strings. Only retain the fields
         // required to settle or reconcile the payout.
@@ -290,10 +301,10 @@ class WithdrawalDisbursementService
                 providerReference: $gatewayResponse->providerReference,
                 errorMessage: $gatewayResponse->errorMessage,
                 outcomeUnknown: $outcomeUnknown || $gatewayResponse->outcomeUnknown,
-                metadata: [
-                    'state' => $outcomeUnknown ? 'outcome_unknown' : ((string) ($gatewayResponse->metadata['state'] ?? 'provider_pending')),
+                metadata: array_merge($manualMetadata, [
+                    'state' => $outcomeUnknown ? 'outcome_unknown' : ($manualDisbursement ? 'reconciliation_required' : ((string) ($gatewayResponse->metadata['state'] ?? 'provider_pending'))),
                     'reconciliation_required' => true,
-                ],
+                ]),
             );
         } elseif ($gatewayResponse->successful) {
             $gatewayResponse = new GatewayWithdrawalResponse(
@@ -355,20 +366,26 @@ class WithdrawalDisbursementService
                 }
 
                 $payment->gateway_reference = $gatewayResponse->providerReference;
-                $payment->gateway_response = [
+                $payment->gateway_response = array_merge([
                     'gateway' => $driver->name(),
                     'outcome' => 'pending',
                     'provider_reference' => $gatewayResponse->providerReference,
                     'state' => (string) ($gatewayResponse->metadata['state'] ?? 'provider_pending'),
                     'reconciliation_required' => (bool) ($gatewayResponse->metadata['reconciliation_required'] ?? false),
-                ];
+                ], array_intersect_key($gatewayResponse->metadata, array_flip([
+                    'manual_disbursement_required', 'requires_manual_disbursement', 'requires_b2c_disbursement', 'manual_bank_wire',
+                ])));
                 $payment->save();
 
                 $lockedWithdrawal->provider = $driver->name();
                 $lockedWithdrawal->provider_reference = $gatewayResponse->providerReference;
                 $metadata = is_array($lockedWithdrawal->metadata) ? $lockedWithdrawal->metadata : [];
                 $pendingState = (string) ($gatewayResponse->metadata['state'] ?? 'provider_pending');
-                $claimState = in_array($pendingState, ['outcome_unknown', 'unknown'], true) ? 'unknown' : 'pending';
+                $manualPending = ($gatewayResponse->metadata['manual_disbursement_required'] ?? false) === true
+                    || ($gatewayResponse->metadata['requires_manual_disbursement'] ?? false) === true
+                    || ($gatewayResponse->metadata['requires_b2c_disbursement'] ?? false) === true
+                    || ($gatewayResponse->metadata['manual_bank_wire'] ?? false) === true;
+                $claimState = in_array($pendingState, ['outcome_unknown', 'unknown'], true) ? 'unknown' : ($manualPending ? 'reconciliation_required' : 'pending');
                 if (isset($metadata[self::CLAIM]) && is_array($metadata[self::CLAIM])) {
                     $metadata[self::CLAIM]['state'] = $claimState;
                     $metadata[self::CLAIM]['provider_reference'] = $gatewayResponse->providerReference;
@@ -377,17 +394,30 @@ class WithdrawalDisbursementService
                 $metadata['provider_reference'] = $gatewayResponse->providerReference;
                 $metadata['disbursement_outcome'] = $pendingState;
                 $metadata['reconciliation_required'] = (bool) ($gatewayResponse->metadata['reconciliation_required'] ?? false);
+                foreach (['manual_disbursement_required', 'requires_manual_disbursement', 'requires_b2c_disbursement', 'manual_bank_wire'] as $flag) {
+                    if (($gatewayResponse->metadata[$flag] ?? false) === true) {
+                        $metadata[$flag] = true;
+                    }
+                }
+                if ($manualPending) {
+                    $metadata['manual_disbursement_required'] = true;
+                    $metadata['operator_payout_queue'] = 'withdrawal_reconciliation';
+                }
                 $lockedWithdrawal->metadata = $metadata;
                 $lockedWithdrawal->save();
 
                 $this->recordAudit(
                     action: AuditAction::Withdraw,
                     auditable: $lockedWithdrawal,
-                    description: sprintf('Withdrawal %s pending external provider confirmation from %s.', $lockedWithdrawal->reference_number, $driver->name()),
-                    metadata: [
+                    description: $manualPending
+                        ? sprintf('Withdrawal %s queued for evidence-gated manual disbursement via %s.', $lockedWithdrawal->reference_number, $driver->name())
+                        : sprintf('Withdrawal %s pending external provider confirmation from %s.', $lockedWithdrawal->reference_number, $driver->name()),
+                    metadata: array_merge([
                         'provider_reference' => $gatewayResponse->providerReference,
                         'gateway' => $driver->name(),
-                    ],
+                    ], array_intersect_key($gatewayResponse->metadata, array_flip([
+                        'manual_disbursement_required', 'requires_manual_disbursement', 'requires_b2c_disbursement', 'manual_bank_wire',
+                    ]))),
                 );
             } else {
                 // Only a definitive provider decline reaches this branch. The

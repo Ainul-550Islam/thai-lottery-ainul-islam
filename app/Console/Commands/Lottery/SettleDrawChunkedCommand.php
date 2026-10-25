@@ -520,7 +520,7 @@ final class SettleDrawChunkedCommand extends Command
      */
     private function actorId(): ?int
     {
-        $id = config('lottery.settlement.actor_user_id', env('LOTTERY_SETTLEMENT_ACTOR_ID'));
+        $id = config('lottery.settlement.actor_user_id');
 
         return is_numeric($id) ? (int) $id : null;
     }

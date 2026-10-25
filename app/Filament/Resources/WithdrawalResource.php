@@ -260,6 +260,16 @@ class WithdrawalResource extends Resource
                         ->formatStateUsing(fn (PaymentMethod $state): string => $state->label()),
                     Infolists\Components\TextEntry::make('provider')->placeholder('—'),
                     Infolists\Components\TextEntry::make('provider_reference')->label('Provider reference')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('manual_disbursement')
+                        ->label('Manual payment')
+                        ->badge()
+                        ->state(fn (Withdrawal $record): string => ($record->metadata['manual_disbursement_required'] ?? false) === true
+                            ? 'Evidence reconciliation required'
+                            : 'Not flagged')
+                        ->color(fn (Withdrawal $record): string => ($record->metadata['manual_disbursement_required'] ?? false) === true ? 'warning' : 'gray'),
+                    Infolists\Components\TextEntry::make('operator_payout_queue')
+                        ->label('Operator queue')
+                        ->state(fn (Withdrawal $record): string => (string) ($record->metadata['operator_payout_queue'] ?? '—')),
                 ])
                 ->columns(3),
 

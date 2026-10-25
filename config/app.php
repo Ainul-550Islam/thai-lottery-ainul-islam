@@ -20,6 +20,12 @@ return [
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
     'cipher' => 'AES-256-CBC',
     'key' => env('APP_KEY'),
+    'field_encryption_key' => env('FIELD_ENCRYPTION_KEY'),
+    'field_encryption_previous_keys' => array_values(array_filter(
+        array_map('trim', explode(',', (string) env('FIELD_ENCRYPTION_PREVIOUS_KEYS', ''))),
+        static fn (string $key): bool => $key !== '',
+    )),
+    'backup_encryption_key' => env('BACKUP_ENCRYPTION_KEY'),
     'previous_keys' => array_filter(
         array_map('trim', explode(',', env('APP_PREVIOUS_KEYS', '')))
     ),

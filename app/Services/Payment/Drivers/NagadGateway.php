@@ -116,9 +116,13 @@ class NagadGateway extends AbstractPaymentGateway
     public function initiateWithdrawal(Withdrawal $withdrawal, array $options = []): GatewayWithdrawalResponse
     {
         return GatewayWithdrawalResponse::pending(
-            providerReference: 'NAGAD-DISBURSE-'.$withdrawal->reference_number,
+            providerReference: null,
             rawResponse: [],
-            metadata: ['requires_manual_disbursement' => true],
+            metadata: [
+                'manual_disbursement_required' => true,
+                'requires_b2c_disbursement' => true,
+                'reconciliation_required' => true,
+            ],
         );
     }
 

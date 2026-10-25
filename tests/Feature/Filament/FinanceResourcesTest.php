@@ -397,6 +397,24 @@ final class FinanceResourcesTest extends TestCase
             ->assertSee($withdrawal->reference_number);
     }
 
+    public function test_manual_disbursement_flag_and_operator_queue_are_visible_on_withdrawal_view(): void
+    {
+        $withdrawal = $this->approvedWithdrawal();
+        $withdrawal->forceFill([
+            'status' => WithdrawalStatus::Processing,
+            'metadata' => [
+                'manual_disbursement_required' => true,
+                'operator_payout_queue' => 'withdrawal_reconciliation',
+            ],
+        ])->save();
+
+        $this->actingAs($this->operator())
+            ->get(WithdrawalResource::getUrl('view', ['record' => $withdrawal]))
+            ->assertSuccessful()
+            ->assertSee('Evidence reconciliation required')
+            ->assertSee('withdrawal_reconciliation');
+    }
+
     /**
      * PendingApprovalsWidget links straight into this resource by class name and route, so
      * the registration is load-bearing for the dashboard, not just for this screen.

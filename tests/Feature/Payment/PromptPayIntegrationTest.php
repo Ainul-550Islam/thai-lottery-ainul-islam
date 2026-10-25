@@ -1,66 +1,67 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Payment;
 
 use App\Enums\PaymentMethod;
 use App\Exceptions\FinancialException;
+use App\Models\AgeVerification;
+use App\Models\Deposit;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Legal\ConsentService;
+use App\Services\Payment\Drivers\PromptPayGateway;
 use App\Services\Payment\PaymentGatewayManager;
+use App\Services\Payment\ProductionPaymentExecutionHubService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-/**
- * PROMPTPAY ORPHANED CONFIG — EXPLICIT FUTURE-ONLY STATE (FINAL AUDIT #12).
- *
- * config/payment.php carries a promptpay block with no bound driver and no
- * PaymentMethod case. The explicit, tested contract: it can NEVER be
- * selected by a player, advertised as available, or resolved by any
- * payment path, while the operator contract stays on file for the day a
- * real driver is implemented.
- */
-class PromptPayIntegrationTest extends TestCase
+/** PromptPay is a THB-only inbound rail, never an alias for bank transfer. */
+final class PromptPayIntegrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_promptpay_is_not_a_selectable_payment_method(): void
+    public function test_promptpay_is_a_selectable_thb_inbound_payment_method(): void
     {
-        $this->assertNull(PaymentMethod::tryFrom('promptpay'));
+        $method = PaymentMethod::tryFrom('promptpay');
+
+        $this->assertSame(PaymentMethod::PromptPay, $method);
+        $this->assertSame('PromptPay', $method->label());
+        $this->assertTrue($method->isAutomatic());
+        $this->assertTrue($method->supportsWebhook());
+        $this->assertSame('qr-code', $method->icon());
+        $this->assertSame(['THB'], array_map(fn ($currency) => $currency->value, $method->supportedCurrencies()));
     }
 
-    public function test_promptpay_has_no_bound_driver(): void
+    public function test_promptpay_has_a_bound_driver(): void
     {
+        config([
+            'payment.gateways.promptpay.enabled' => true,
+            'payment.gateways.promptpay.merchant_id' => '0812345678',
+        ]);
         $manager = $this->app->make(PaymentGatewayManager::class);
 
-        $this->assertFalse($manager->hasDriver('promptpay'));
-
-        $this->expectException(FinancialException::class);
-        $manager->driver('promptpay');
+        $this->assertTrue($manager->hasDriver('promptpay'));
+        $this->assertInstanceOf(PromptPayGateway::class, $manager->driver('promptpay'));
+        $this->assertTrue($manager->isDepositCapable('promptpay'));
+        $this->assertFalse($manager->isWithdrawalCapable('promptpay'));
     }
 
-    public function test_promptpay_never_appears_in_the_deposit_or_withdrawal_allowed_lists(): void
+    public function test_promptpay_is_deposit_only_in_the_allowed_lists(): void
     {
-        $depositMethods = (array) config('payment.deposit.allowed_methods');
-        $withdrawalMethods = (array) config('payment.withdrawal.allowed_methods');
-
-        $this->assertNotContains('promptpay', $depositMethods);
-        $this->assertNotContains('promptpay', $withdrawalMethods);
-
-        // And the closed enum vocabulary cannot produce it either.
-        foreach (PaymentMethod::cases() as $method) {
-            $this->assertNotSame('promptpay', $method->value);
-        }
+        $this->assertContains('promptpay', (array) config('payment.deposit.allowed_methods'));
+        $this->assertNotContains('promptpay', (array) config('payment.withdrawal.allowed_methods'));
     }
 
-    public function test_the_web_deposit_form_rejects_promptpay(): void
+    public function test_the_web_deposit_form_rejects_promptpay_while_it_is_disabled(): void
     {
+        config(['payment.gateways.promptpay.enabled' => false]);
         $user = User::factory()->create();
-
-        Wallet::factory()
-            ->for($user)
-            ->withBalance('1000.00')
-            ->create(['currency' => 'THB']);
+        $this->onboard($user);
+        Wallet::factory()->for($user)->withBalance('1000.00')->create(['currency' => 'THB']);
 
         $this->actingAs($user)
             ->post(route('player.deposit.store'), [
@@ -73,11 +74,8 @@ class PromptPayIntegrationTest extends TestCase
         $this->assertDatabaseCount('deposits', 0);
     }
 
-    public function test_the_orphaned_operator_contract_is_documented_in_config(): void
+    public function test_the_deposit_only_operator_contract_is_documented_in_config(): void
     {
-        // The block exists (explicit state), is disabled by default, and
-        // declares itself deposit-only — so the day a driver is bound, the
-        // config already says what it may and may not do.
         $block = config('payment.gateways.promptpay');
 
         $this->assertIsArray($block);
@@ -85,92 +83,66 @@ class PromptPayIntegrationTest extends TestCase
         $this->assertFalse((bool) $block['enabled']);
         $this->assertTrue((bool) $block['supports_deposit']);
         $this->assertFalse((bool) $block['supports_withdrawal']);
+        $this->assertSame(['THB'], $block['supported_currencies']);
     }
 
-    /**
-     * ─────────────────────────────────────────────────────────────────────────
-     * AND THE ONE PATH THAT DID NOT REFUSE, WHICH IS WHY THIS TEST EXISTS.
-     * ─────────────────────────────────────────────────────────────────────────
-     *
-     * Every assertion in this file held while the lane was still reachable from
-     * one direction. `ProductionPaymentExecutionHubService::methodForChannel()`
-     * read:
-     *
-     *     'bank_transfer', 'promptpay' => PaymentMethod::BankTransfer,
-     *
-     * so a caller who passed `channel => 'promptpay'` got a BANK TRANSFER. Not a
-     * refusal, not an error — a different rail, executed under the name the
-     * customer chose. Different settlement, different fees, different
-     * reconciliation, and a deposit row naming the wrong method.
-     *
-     * Nothing above caught it, because every assertion here asks "is promptpay
-     * SELECTABLE?" and the answer was correctly no. The alias did not make it
-     * selectable; it made it silently SUBSTITUTED, which is a different failure
-     * with a worse recovery story: a refusal is a support ticket, a substitution
-     * is a discrepancy discovered at reconciliation.
-     *
-     * The hub is not currently routed, so this was latent rather than live. That
-     * is exactly why it is asserted now — the moment somebody wires the hub to a
-     * controller, this arm silently becomes a production behaviour.
-     */
-    public function test_the_execution_hub_refuses_the_promptpay_channel_instead_of_aliasing_it(): void
+    public function test_the_execution_hub_executes_promptpay_on_its_own_rail(): void
     {
+        config([
+            'payment.gateways.promptpay.enabled' => true,
+            'payment.gateways.promptpay.merchant_id' => '0812345678',
+        ]);
         $user = User::factory()->create();
+        Wallet::factory()->for($user)->withBalance('1000.00')->create(['currency' => 'THB']);
 
-        Wallet::factory()
-            ->for($user)
-            ->withBalance('1000.00')
-            ->create(['currency' => 'THB']);
+        $result = $this->app->make(ProductionPaymentExecutionHubService::class)->initiateDeposit($user, [
+            'amount' => '500.00',
+            'channel' => 'promptpay',
+            'currency' => 'THB',
+        ], 'IDEM-PROMPTPAY-REAL-RAIL');
 
-        $hub = $this->app->make(\App\Services\Payment\ProductionPaymentExecutionHubService::class);
-
-        try {
-            $hub->initiateDeposit($user, [
-                'amount' => '500.00',
-                'channel' => 'promptpay',
-                'currency' => 'THB',
-            ], 'IDEM-PROMPTPAY-ALIAS-'.Str::random(8));
-
-            $this->fail('The hub accepted the promptpay channel: it was aliased onto another rail.');
-        } catch (\InvalidArgumentException $e) {
-            $this->assertStringContainsString('not executable', $e->getMessage());
-            $this->assertStringContainsString('no payment driver', $e->getMessage());
-        }
-
-        // And nothing was created. A rail that cannot be executed must not leave
-        // a pending deposit behind: an unpayable deposit is indistinguishable
-        // from an abandoned one, and somebody would eventually try to settle it.
-        $this->assertDatabaseCount('deposits', 0);
+        $deposit = Deposit::query()->where('reference_number', $result['reference_id'])->sole();
+        $this->assertSame(PaymentMethod::PromptPay, $deposit->method);
+        $this->assertSame('promptpay', $deposit->provider);
+        $this->assertSame($deposit->reference_number, $deposit->provider_reference);
+        $this->assertSame('500.00', (string) $deposit->amount);
     }
 
-    /**
-     * The refusal is BY NAME, so an operator reading a log can tell the two
-     * problems apart: a rail that is configured-but-unbuilt, versus a name that
-     * was mistyped.
-     */
-    public function test_the_manager_names_the_unbuilt_rail_rather_than_calling_it_unsupported(): void
+    public function test_unknown_gateway_names_remain_distinct_from_the_bound_promptpay_driver(): void
     {
         $manager = $this->app->make(PaymentGatewayManager::class);
+        $this->assertInstanceOf(PromptPayGateway::class, $manager->driver('promptpay'));
+        $this->assertTrue($manager->hasDriver('promptpay'));
 
-        try {
-            $manager->driver('promptpay');
-
-            $this->fail('driver(promptpay) resolved something.');
-        } catch (FinancialException $e) {
-            $this->assertSame('payment_gateway_not_implemented', $e->errorCode());
-        }
-
-        // Whereas an unknown name is still the generic refusal — these must not
-        // be collapsed into one code, because they send you to different places.
         try {
             $manager->driver('definitely-not-a-gateway');
-
             $this->fail('driver(unknown) resolved something.');
-        } catch (FinancialException $e) {
-            $this->assertSame('unsupported_payment_gateway', $e->errorCode());
+        } catch (FinancialException $exception) {
+            $this->assertSame('unsupported_payment_gateway', $exception->errorCode());
         }
+    }
 
-        // Still not a driver, either way.
-        $this->assertFalse($manager->hasDriver('promptpay'));
+    private function onboard(User $user): void
+    {
+        $user->forceFill(['date_of_birth' => now()->subYears(30)->toDateString()])->save();
+        AgeVerification::query()->create([
+            'user_id' => $user->id,
+            'status' => 'eligible',
+            'minimum_age' => (int) config('legal.minimum_age', 18),
+            'method' => 'self_declaration',
+            'attested_at' => now(),
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'phpunit',
+            'source' => 'test',
+        ]);
+        $documents = collect(app(ConsentService::class)->currentDocuments())->keyBy('document_type');
+        app(ConsentService::class)->acceptCurrentDocuments($user, Request::create('/test', 'POST', [
+            'terms' => true,
+            'privacy_notice' => true,
+            'terms_version' => (string) ($documents->get('terms')['version'] ?? ''),
+            'terms_hash' => (string) ($documents->get('terms')['content_hash'] ?? ''),
+            'privacy_version' => (string) ($documents->get('privacy')['version'] ?? ''),
+            'privacy_hash' => (string) ($documents->get('privacy')['content_hash'] ?? ''),
+        ], server: ['REMOTE_ADDR' => '127.0.0.1']), 'api');
     }
 }

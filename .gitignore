@@ -44,3 +44,6 @@
 /public/build
 vendor.tar.gz
 runtime/settlement-worker/target/
+/.profile
+/.sudo_as_admin_successful
+/.env.ci.local

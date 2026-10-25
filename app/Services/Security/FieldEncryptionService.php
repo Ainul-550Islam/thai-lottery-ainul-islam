@@ -35,14 +35,10 @@ class FieldEncryptionService
         // application key (which Laravel already treats as secret and rotates), and
         // nothing else. APP_KEY is a legitimate last resort because it is per
         // installation and never committed; the removed hard-coded literal was not.
-        $rawKey = $key
-            ?? config('app.field_encryption_key')
-            ?? (function (): ?string {
-                $value = env('FIELD_ENCRYPTION_KEY');
-
-                return is_string($value) && $value !== '' ? $value : null;
-            })()
-            ?? config('app.key');
+        $rawKey = $key ?? config('app.field_encryption_key');
+        if ($key === null && (! is_string($rawKey) || trim($rawKey) === '')) {
+            $rawKey = config('app.key');
+        }
 
         if (! is_string($rawKey) || trim($rawKey) === '') {
             throw new RuntimeException(
@@ -92,6 +88,18 @@ class FieldEncryptionService
 
         // Pack: IV (12B) + TAG (16B) + CIPHERTEXT
         return base64_encode($iv.$tag.$cipherText);
+    }
+
+    /** First eight hexadecimal characters of the derived encryption-key digest. */
+    public function keyFingerprint(): string
+    {
+        return substr(hash('sha256', $this->encryptionKey), 0, 8);
+    }
+
+    /** Decrypt a payload with an explicitly supplied legacy key during rotation. */
+    public function decryptWithKey(string $payload, string $legacyKey): string
+    {
+        return (new self($legacyKey))->decrypt($payload);
     }
 
     /**

@@ -41,7 +41,7 @@ final class WebhookReplayGuardService
             return false;
         }
 
-        $nonce = $this->nonce($gateway, $signature);
+        $nonce = $this->nonce($request, $gateway, $signature);
         $payloadHash = hash('sha256', $body);
 
         $guard = WebhookReplayGuard::query()
@@ -49,6 +49,10 @@ final class WebhookReplayGuardService
             ->where('gateway', $gateway)
             ->where('nonce', $nonce)
             ->where('payload_hash', $payloadHash)
+            ->when(
+                $this->bankTransactionId($request, $gateway) !== '',
+                fn ($query) => $query->where('signature', hash('sha256', $signature)),
+            )
             ->first();
 
         if (! $guard instanceof WebhookReplayGuard) {
@@ -102,7 +106,7 @@ final class WebhookReplayGuardService
             return;
         }
 
-        $nonce = $this->nonce($gateway, $signature);
+        $nonce = $this->nonce($request, $gateway, $signature);
         $payloadHash = hash('sha256', $body);
         $now = now();
         $expiresAt = $now->copy()->addDays($this->retentionDays());
@@ -174,6 +178,14 @@ final class WebhookReplayGuardService
                 'path' => $request->path(),
             ]);
 
+            if ($this->bankTransactionId($request, $gateway) !== '') {
+                // The bank matcher has already applied its own bank_txn_id
+                // receipt and returned a verified review/idempotent result.
+                // Preserve the original replay evidence without overwriting it
+                // or converting that money-safe response into a server error.
+                return;
+            }
+
             throw new LogicException('A webhook signature nonce is already bound to a different payload.');
         }
     }
@@ -202,6 +214,8 @@ final class WebhookReplayGuardService
             'bkash' => ['X-Bkash-Signature', 'X-Signature'],
             'nagad' => ['X-KM-Signature', 'X-Nagad-Signature', 'X-Signature'],
             'crypto' => ['X-Crypto-Signature', 'X-Signature'],
+            'kbank' => ['X-KBANK-Signature'],
+            'scb' => ['X-SCB-Signature'],
             default => array_values(array_filter([
                 config("payment.gateways.{$gateway}.signature_header"),
                 'X-Signature',
@@ -220,9 +234,31 @@ final class WebhookReplayGuardService
         return '';
     }
 
-    private function nonce(string $gateway, string $signature): string
+    private function nonce(Request $request, string $gateway, string $signature): string
     {
-        return hash('sha256', strtolower($gateway).'|'.$signature);
+        $normalizedGateway = strtolower($gateway);
+        $bankTransactionId = $this->bankTransactionId($request, $normalizedGateway);
+
+        return $bankTransactionId !== ''
+            ? hash('sha256', $normalizedGateway.'|bank_txn_id|'.$bankTransactionId)
+            : hash('sha256', $normalizedGateway.'|'.$signature);
+    }
+
+    private function bankTransactionId(Request $request, string $gateway): string
+    {
+        if (! in_array(strtolower($gateway), ['kbank', 'scb'], true)) {
+            return '';
+        }
+
+        $payload = $request->json()->all();
+        foreach (['bank_txn_id', 'tx_id', 'transaction_no', 'transactionId', 'transaction_id'] as $key) {
+            $value = $payload[$key] ?? null;
+            if ((is_string($value) || is_int($value)) && trim((string) $value) !== '') {
+                return trim((string) $value);
+            }
+        }
+
+        return '';
     }
 
     private function enabled(): bool

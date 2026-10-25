@@ -878,6 +878,15 @@ Route::prefix('v1/payments/webhook')
         Route::post('/v2/{gateway}', [PaymentWebhookController::class, 'receive'])->name('receive');
     });
 
+Route::prefix('v1/payments/bank-webhook')
+    ->name('api.v1.payments.bank-webhook.')
+    ->group(function (): void {
+        Route::post('/kbank', [\App\Http\Controllers\Api\V1\Payment\KBankWebhookController::class, 'handle'])
+            ->middleware(['throttle:webhook', 'webhook.signature:kbank'])->name('kbank');
+        Route::post('/scb', [\App\Http\Controllers\Api\V1\Payment\ScbWebhookController::class, 'handle'])
+            ->middleware(['throttle:webhook', 'webhook.signature:scb'])->name('scb');
+    });
+
 Route::post('v1/payments/stripe-followups', \App\Http\Controllers\Api\V1\StripeDepositFollowupController::class)
     ->middleware('throttle:webhook')
     ->name('api.v1.payments.stripe-followups');

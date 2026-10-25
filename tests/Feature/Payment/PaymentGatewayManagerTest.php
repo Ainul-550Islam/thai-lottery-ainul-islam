@@ -5,6 +5,7 @@ namespace Tests\Feature\Payment;
 use App\Enums\PaymentMethod;
 use App\Exceptions\FinancialException;
 use App\Services\Payment\Drivers\BankTransferGateway;
+use App\Services\Payment\Drivers\PromptPayGateway;
 use App\Services\Payment\Drivers\StripeGateway;
 use App\Services\Payment\PaymentGatewayManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,7 +32,8 @@ class PaymentGatewayManagerTest extends TestCase
         $this->assertTrue($manager->hasDriver('bank_transfer'));
         $this->assertTrue($manager->hasDriver('manual'));
 
-        $this->assertFalse($manager->hasDriver('promptpay'));
+        $this->assertTrue($manager->hasDriver('promptpay'));
+        $this->assertInstanceOf(PromptPayGateway::class, $manager->driver(PaymentMethod::PromptPay));
         $this->assertFalse($manager->hasDriver('skrill'));
 
         $this->expectException(FinancialException::class);
