@@ -524,4 +524,19 @@ return [
     'privacy_language_notice' => 'เนื้อหาหลักของประกาศความเป็นส่วนตัวแสดงเป็นภาษาอังกฤษในขณะนี้',
     'terms_language_notice_title' => 'ประกาศเกี่ยวกับภาษา',
     'terms_language_notice' => 'เนื้อหาหลักของข้อกำหนดการใช้งานแสดงเป็นภาษาอังกฤษในขณะนี้',
+
+    // Legal PDF export (Terms / Privacy / Fees downloads).
+    'pdf_locale_label' => 'ภาษา',
+    'pdf_version_label' => 'เวอร์ชัน',
+    'pdf_effective_label' => 'วันที่มีผล',
+    'pdf_generated_label' => 'สร้างเมื่อ',
+    'pdf_fees_category_label' => 'ค่าธรรมเนียม',
+    'pdf_fees_provider_label' => 'ช่องทาง',
+    'pdf_fees_amount_label' => 'จำนวน',
+    'pdf_fees_notes_label' => 'หมายเหตุ',
+    'pdf_fees_not_configured_label' => 'ยังไม่ได้ตั้งค่า',
+    'pdf_footer_version' => 'เวอร์ชัน',
+    'pdf_footer_hash' => 'SHA-256',
+    'pdf_footer_generated' => 'สร้างเมื่อ',
+    'pdf_footer_page' => 'หน้า',
 ];

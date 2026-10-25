@@ -313,4 +313,20 @@ return [
     'self_exclusion_365' => '365 days',
     'self_exclusion_confirm' => 'Activate self-exclusion? This action cannot be undone before it ends.',
     'self_exclusion_submit' => 'Activate self-exclusion',
+
+    /*
+    |----------------------------------------------------------------------
+    | Notification preference matrix (POST /api/v1/player/settings/notifications)
+    |----------------------------------------------------------------------
+    | Validation copy for the closed event × channel matrix. Mandatory notices
+    | cannot be silenced, and the response says so instead of quietly ignoring
+    | the request.
+    */
+    'notification_preferences_updated' => 'Notification preferences saved.',
+    'notification_preferences_required' => 'Provide at least one notification preference.',
+    'notification_preferences_event_invalid' => 'That notification type is not published.',
+    'notification_preferences_channel_invalid' => 'That notification channel is not available.',
+    'notification_preferences_enabled_invalid' => 'Choose whether the notification is on or off.',
+    'notification_preferences_quiet_hours_invalid' => 'Quiet hours must use HH:MM start and end times.',
+    'notification_preferences_mandatory' => 'Security, compliance and withdrawal-result notifications cannot be switched off.',
 ];

@@ -309,4 +309,12 @@ return array_replace($english, [
     'nav_services' => 'আমাদের সেবাসমূহ',
     'nav_about' => 'আমাদের সম্পর্কে',
     'nav_lotto_discount' => 'লটারির ছাড়',
+    // Notification preference matrix.
+    'notification_preferences_updated' => 'নোটিফিকেশন পছন্দ সংরক্ষণ করা হয়েছে।',
+    'notification_preferences_required' => 'অন্তত একটি নোটিফিকেশন পছন্দ দিন।',
+    'notification_preferences_event_invalid' => 'এই ধরনের নোটিফিকেশন প্রকাশিত নয়।',
+    'notification_preferences_channel_invalid' => 'এই নোটিফিকেশন মাধ্যমটি উপলভ্য নয়।',
+    'notification_preferences_enabled_invalid' => 'নোটিফিকেশন চালু না বন্ধ তা নির্বাচন করুন।',
+    'notification_preferences_quiet_hours_invalid' => 'নীরব সময় HH:MM আকারে শুরু ও শেষ লিখুন।',
+    'notification_preferences_mandatory' => 'নিরাপত্তা, কমপ্লায়েন্স ও উত্তোলনের ফলাফল সংক্রান্ত নোটিফিকেশন বন্ধ করা যাবে না।',
 ]);

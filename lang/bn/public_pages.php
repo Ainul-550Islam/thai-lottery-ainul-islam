@@ -397,4 +397,19 @@ return array_replace($english, [
     'privacy_language_notice' => 'গোপনীয়তা নীতির মূল পাঠ বর্তমানে ইংরেজিতে দেখানো হচ্ছে',
     'terms_language_notice_title' => 'ভাষা সংক্রান্ত নোটিশ',
     'terms_language_notice' => 'শর্তাবলির মূল পাঠ বর্তমানে ইংরেজিতে দেখানো হচ্ছে',
+
+    // Legal PDF export (Terms / Privacy / Fees downloads).
+    'pdf_locale_label' => 'ভাষা',
+    'pdf_version_label' => 'সংস্করণ',
+    'pdf_effective_label' => 'কার্যকর তারিখ',
+    'pdf_generated_label' => 'তৈরি হয়েছে',
+    'pdf_fees_category_label' => 'ফি',
+    'pdf_fees_provider_label' => 'মাধ্যম',
+    'pdf_fees_amount_label' => 'পরিমাণ',
+    'pdf_fees_notes_label' => 'মন্তব্য',
+    'pdf_fees_not_configured_label' => 'কনফিগার করা হয়নি',
+    'pdf_footer_version' => 'সংস্করণ',
+    'pdf_footer_hash' => 'SHA-256',
+    'pdf_footer_generated' => 'তৈরি হয়েছে',
+    'pdf_footer_page' => 'পৃষ্ঠা',
 ]);

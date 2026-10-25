@@ -531,4 +531,27 @@ return [
     'privacy_language_notice' => 'The authoritative text of this Privacy Notice is currently shown in English.',
     'terms_language_notice_title' => 'Language notice',
     'terms_language_notice' => 'The authoritative text of these Terms of Use is currently shown in English.',
+
+    /*
+    |----------------------------------------------------------------------
+    | Legal PDF export (Terms / Privacy / Fees downloads)
+    |----------------------------------------------------------------------
+    | Labels printed inside the exported document and its running footer. The
+    | version, the hash fragment, the generation time and the page number are
+    | interpolated by App\Services\PublicPages\LegalPdfExportService — never
+    | baked into a sentence here.
+    */
+    'pdf_locale_label' => 'Language',
+    'pdf_version_label' => 'Version',
+    'pdf_effective_label' => 'Effective date',
+    'pdf_generated_label' => 'Generated',
+    'pdf_fees_category_label' => 'Fee',
+    'pdf_fees_provider_label' => 'Provider',
+    'pdf_fees_amount_label' => 'Amount',
+    'pdf_fees_notes_label' => 'Notes',
+    'pdf_fees_not_configured_label' => 'NOT_CONFIGURED',
+    'pdf_footer_version' => 'Version',
+    'pdf_footer_hash' => 'SHA-256',
+    'pdf_footer_generated' => 'Generated',
+    'pdf_footer_page' => 'Page',
 ];

@@ -311,4 +311,13 @@ return [
     'self_exclusion_365' => '365 วัน',
     'self_exclusion_confirm' => 'เปิดใช้การแยกตนเองหรือไม่ การดำเนินการนี้ยกเลิกก่อนสิ้นสุดไม่ได้',
     'self_exclusion_submit' => 'เปิดใช้การแยกตนเอง',
+
+    // Notification preference matrix.
+    'notification_preferences_updated' => 'บันทึกการตั้งค่าการแจ้งเตือนแล้ว',
+    'notification_preferences_required' => 'โปรดระบุการตั้งค่าการแจ้งเตือนอย่างน้อยหนึ่งรายการ',
+    'notification_preferences_event_invalid' => 'ไม่มีการเผยแพร่ประเภทการแจ้งเตือนนี้',
+    'notification_preferences_channel_invalid' => 'ช่องทางการแจ้งเตือนนี้ไม่พร้อมใช้งาน',
+    'notification_preferences_enabled_invalid' => 'โปรดเลือกว่าเปิดหรือปิดการแจ้งเตือน',
+    'notification_preferences_quiet_hours_invalid' => 'ช่วงเวลาเงียบต้องระบุเป็นรูปแบบ ชม:นาที (HH:MM)',
+    'notification_preferences_mandatory' => 'การแจ้งเตือนด้านความปลอดภัย การกำกับดูแล และผลการถอนเงินไม่สามารถปิดได้',
 ];
