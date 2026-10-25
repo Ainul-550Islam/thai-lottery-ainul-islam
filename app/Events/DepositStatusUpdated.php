@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace App\Events;
 
+use App\Events\Concerns\BroadcastsOnNotificationsLane;
 use App\Models\Deposit;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
  * Broadcast when a deposit's status changes.
+ *
+ * Private, owner-scoped, after commit. The payload is the status fact and the reference the
+ * player already holds - never the provider payload, the evidence or the failure detail.
  */
-final class DepositStatusUpdated implements ShouldBroadcast
+final class DepositStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
+    use BroadcastsOnNotificationsLane;
     use Dispatchable;
     use InteractsWithSockets;
     use SerializesModels;
@@ -30,8 +36,8 @@ final class DepositStatusUpdated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('App.Models.User.'.$this->deposit->user_id),
-            new PrivateChannel('user.'.$this->deposit->user_id),
+            new PrivateChannel('App.Models.User.'.(int) $this->deposit->user_id),
+            new PrivateChannel('user.'.(int) $this->deposit->user_id),
         ];
     }
 
@@ -46,16 +52,10 @@ final class DepositStatusUpdated implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'deposit_id' => (int) $this->deposit->id,
             'reference_number' => (string) $this->deposit->reference_number,
             'status' => $this->deposit->status?->value,
             'amount' => (string) $this->deposit->amount,
-            'fee' => (string) $this->deposit->fee,
-            'net_amount' => (string) $this->deposit->net_amount,
             'currency' => $this->deposit->currency?->value,
-            'method' => $this->deposit->method?->value,
-            'confirmed_at' => $this->deposit->confirmed_at?->toIso8601String(),
-            'failed_at' => $this->deposit->failed_at?->toIso8601String(),
             'updated_at' => now()->toIso8601String(),
         ];
     }

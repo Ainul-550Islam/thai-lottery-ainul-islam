@@ -34,9 +34,16 @@ final class TrackWithdrawalConversion implements ShouldQueue
         private readonly ConversionTracker $tracker,
     ) {}
 
+    /**
+     * The notifications lane is the lowest-priority queue QueueName declares and every
+     * worker consumes. This listener referenced a `QueueName::Analytics` case that does
+     * not exist; while BetPlaced / DepositStatusUpdated / WithdrawalStatusUpdated were
+     * never dispatched that was invisible, and the moment the money chain started
+     * publishing it became a fatal error inside the save that moved the money.
+     */
     public function viaQueue(): string
     {
-        return QueueName::Analytics->value;
+        return QueueName::Notifications->value;
     }
 
     public function handle(WithdrawalStatusUpdated $event): void

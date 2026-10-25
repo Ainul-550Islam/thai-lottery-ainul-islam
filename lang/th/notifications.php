@@ -11,13 +11,13 @@ declare(strict_types=1);
 | inside a <html lang="th"> document. Every key the centre prints is now
 | translated, including the event and lifecycle labels shown per row.
 |
-| array_replace over the English source keeps the key set in step automatically:
+| array_replace_recursive over the English source keeps the key set in step automatically:
 | a key added to English can never be missing here, it can only be untranslated.
 */
 
 $english = require __DIR__.'/../en/notifications.php';
 
-return array_replace($english, [
+return array_replace_recursive($english, [
     'title' => 'ศูนย์การแจ้งเตือน',
     'meta_description' => 'รายการแจ้งเตือนเฉพาะของบัญชีที่เข้าสู่ระบบแล้ว',
     'home_aria' => 'หน้าหลักศูนย์การแจ้งเตือน',
@@ -66,4 +66,114 @@ return array_replace($english, [
     'event_manual' => 'ประกาศถึงบัญชี',
     'event_glo_result_available' => 'มีผลสลาก GLO แล้ว',
     'event_dealer_request_update' => 'อัปเดตคำขอตัวแทนขาย',
+
+    'mail' => [
+        'greeting' => 'สวัสดี',
+        'payment' => [
+            'subject_captured' => 'ยืนยันการชำระเงินแล้ว: :amount :currency',
+            'subject_failed' => 'การชำระเงินล้มเหลว: :amount :currency',
+            'subject_cancelled' => 'ยกเลิกการชำระเงิน',
+            'subject_default' => 'อัปเดตการชำระเงิน: :amount :currency',
+            'line_captured' => 'การชำระเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกบันทึกเป็นรับชำระแล้ว เข้าสู่ระบบเพื่อตรวจสอบสถานะกระเป๋าเงินที่เกี่ยวข้อง',
+            'line_failed' => 'การชำระเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกบันทึกเป็นล้มเหลว โปรดตรวจสอบรายการและสถานะกระเป๋าเงินในบัญชีของคุณก่อนลองใหม่',
+            'line_cancelled' => 'การชำระเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกยกเลิกแล้ว',
+            'line_pending' => 'การชำระเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกบันทึกเป็นรอตรวจสอบ โปรดตรวจสอบสถานะปัจจุบันในบัญชีของคุณ',
+            'line_refunded' => 'การชำระเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกบันทึกเป็นคืนเงินแล้ว เข้าสู่ระบบเพื่อตรวจสอบสถานะกระเป๋าเงินที่เกี่ยวข้อง',
+            'line_default' => 'การชำระเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) อยู่ในสถานะ: :status',
+            'action' => 'ดูกระเป๋าเงิน',
+            'footer' => 'ขอบคุณที่ใช้บริการแพลตฟอร์มของเรา',
+        ],
+        'withdrawal' => [
+            'subject_completed' => 'การถอนเงินเสร็จสิ้น: :amount :currency',
+            'subject_processing' => 'กำลังดำเนินการถอนเงิน: :amount :currency',
+            'subject_under_review' => 'การถอนเงินอยู่ระหว่างตรวจสอบ: :amount :currency',
+            'subject_approved' => 'อนุมัติการถอนเงินแล้ว: :amount :currency',
+            'subject_failed' => 'การถอนเงินล้มเหลว: :amount :currency',
+            'subject_rejected' => 'ปฏิเสธการถอนเงิน',
+            'subject_default' => 'อัปเดตการถอนเงิน: :amount :currency',
+            'line_completed' => 'การถอนเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกบันทึกเป็นเสร็จสิ้นแล้ว โปรดตรวจสอบบัญชีปลายทางหรือรายการเดินบัญชีของผู้ให้บริการเพื่อยืนยันการรับเงิน',
+            'line_processing' => 'การถอนเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกบันทึกเป็นกำลังดำเนินการ ไม่มีการรับประกันเวลาแล้วเสร็จ',
+            'line_under_review' => 'การถอนเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) อยู่ระหว่างการตรวจสอบ โปรดตรวจสอบสถานะและคำแนะนำในบัญชีของคุณ',
+            'line_approved' => 'การถอนเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกบันทึกเป็นอนุมัติแล้วและจะถูกส่งต่อไปยังขั้นตอนการจ่ายเงิน ไม่มีการรับประกันเวลาแล้วเสร็จ',
+            'line_failed' => 'การถอนเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกบันทึกเป็นล้มเหลว โปรดตรวจสอบสถานะกระเป๋าเงินในบัญชีของคุณก่อนลองใหม่',
+            'line_rejected' => 'การถอนเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) ถูกปฏิเสธ',
+            'line_rejected_tail' => 'โปรดตรวจสอบสถานะกระเป๋าเงินและขั้นตอนถัดไปในบัญชีของคุณ',
+            'line_default' => 'คำขอถอนเงินของคุณจำนวน :amount :currency (อ้างอิง: :ref) เปลี่ยนสถานะเป็น: :status',
+            'review_note' => 'หมายเหตุการตรวจสอบ: :reason',
+            'destination' => 'ปลายทาง: :destination',
+            'action' => 'ดูประวัติการถอนเงิน',
+            'footer' => 'หากคุณไม่รู้จักรายการถอนเงินนี้ โปรดเข้าสู่ระบบและตรวจสอบความปลอดภัยของบัญชี',
+        ],
+        'prize' => [
+            'subject' => 'อัปเดตสถานะรางวัล',
+            'line_result' => 'มีการบันทึกผลรางวัลสำหรับสลากหมายเลข #:ticket ในงวด #:draw (:tier)',
+            'line_amount' => 'จำนวนเงินรางวัลที่บันทึก: :amount :currency',
+            'line_status' => 'สถานะการจ่ายรางวัลปัจจุบัน: :status',
+            'line_disclaimer' => 'การแจ้งเตือนนี้ไม่ได้ยืนยันด้วยตัวเองว่าเงินพร้อมให้ถอน โปรดเข้าสู่ระบบเพื่อตรวจสอบสถานะกระเป๋าเงินและการจ่ายเงินปัจจุบันของคุณ',
+            'action' => 'ตรวจสอบการเดิมพันของฉัน',
+            'tier_payout' => 'การจ่ายเงินรางวัล',
+        ],
+        'kyc' => [
+            'subject_approved' => 'การยืนยันบัญชีได้รับการอนุมัติ',
+            'subject_rejected' => 'การยืนยันบัญชีต้องการการดำเนินการ',
+            'subject_under_review' => 'การยืนยันบัญชีอยู่ระหว่างตรวจสอบ',
+            'subject_default' => 'อัปเดตการยืนยันบัญชี',
+            'line_approved' => 'สถานะการยืนยันตัวตนของคุณถูกบันทึกเป็นอนุมัติแล้ว เข้าสู่ระบบเพื่อตรวจสอบข้อกำหนดของบัญชีหรือการถอนเงินที่เหลืออยู่ การอนุมัติไม่ได้รับประกันว่าทุกการดำเนินการในบัญชีจะพร้อมใช้งาน',
+            'line_rejected' => 'เอกสารยืนยันตัวตนที่คุณส่งไม่ได้รับการอนุมัติ',
+            'line_rejected_tail' => 'เข้าสู่ระบบเพื่อดูคำแนะนำที่แสดงในบัญชีของคุณ',
+            'line_under_review' => 'สถานะการยืนยันตัวตนของคุณอยู่ระหว่างการตรวจสอบ โปรดตรวจสอบสถานะปัจจุบันและคำแนะนำเพิ่มเติมในบัญชีของคุณ ไม่มีการรับประกันเวลาแล้วเสร็จ',
+            'line_expired' => 'การยืนยันตัวตนของคุณหมดอายุแล้ว เข้าสู่ระบบเพื่อดูสิ่งที่ต้องทำเพื่อยืนยันบัญชีอีกครั้ง',
+            'line_default' => 'สถานะการยืนยันบัญชีของคุณในขณะนี้คือ: :status',
+            'review_note' => 'หมายเหตุการตรวจสอบ: :reason',
+            'action' => 'ดูสถานะการยืนยันบัญชี',
+            'footer' => 'ขอบคุณที่ช่วยรักษาความปลอดภัยและการปฏิบัติตามข้อกำหนดของแพลตฟอร์ม',
+        ],
+    ],
+    'inapp' => [
+        'deposit' => [
+            'confirmed_subject' => 'ยืนยันการฝากเงินแล้ว',
+            'confirmed_body' => 'การฝากเงิน :ref จำนวน :amount :currency ถูกบันทึกเป็นยืนยันแล้ว เปิดกระเป๋าเงินเพื่อตรวจสอบยอดคงเหลือปัจจุบัน',
+            'failed_subject' => 'การฝากเงินล้มเหลว',
+            'failed_body' => 'การฝากเงิน :ref จำนวน :amount :currency ถูกบันทึกเป็นล้มเหลว โปรดตรวจสอบกระเป๋าเงินก่อนลองใหม่',
+            'review_subject' => 'การฝากเงินต้องได้รับการตรวจสอบ',
+            'review_body' => 'การฝากเงิน :ref จำนวน :amount :currency อยู่ระหว่างการตรวจสอบ ไม่มีการรับประกันเวลาแล้วเสร็จ',
+            'cancelled_subject' => 'ยกเลิกการฝากเงิน',
+            'cancelled_body' => 'การฝากเงิน :ref จำนวน :amount :currency ถูกยกเลิกแล้ว',
+            'refunded_subject' => 'คืนเงินฝากแล้ว',
+            'refunded_body' => 'การฝากเงิน :ref จำนวน :amount :currency ถูกบันทึกเป็นคืนเงินแล้ว',
+        ],
+        'withdrawal' => [
+            'approved_subject' => 'อนุมัติการถอนเงินแล้ว',
+            'approved_body' => 'การถอนเงิน :ref จำนวน :amount :currency ได้รับการอนุมัติและอยู่ในคิวจ่ายเงิน',
+            'processing_subject' => 'กำลังดำเนินการถอนเงิน',
+            'processing_body' => 'การถอนเงิน :ref จำนวน :amount :currency กำลังดำเนินการ ไม่มีการรับประกันเวลาแล้วเสร็จ',
+            'completed_subject' => 'การถอนเงินเสร็จสิ้น',
+            'completed_body' => 'การถอนเงิน :ref จำนวน :amount :currency ถูกบันทึกเป็นเสร็จสิ้นแล้ว โปรดตรวจสอบบัญชีปลายทางเพื่อยืนยันการรับเงิน',
+            'rejected_subject' => 'ปฏิเสธการถอนเงิน',
+            'rejected_body' => 'การถอนเงิน :ref จำนวน :amount :currency ถูกปฏิเสธ โปรดตรวจสอบสถานะปัจจุบันในกระเป๋าเงินของคุณ',
+            'failed_subject' => 'การถอนเงินล้มเหลว',
+            'failed_body' => 'การถอนเงิน :ref จำนวน :amount :currency ถูกบันทึกเป็นล้มเหลว โปรดตรวจสอบกระเป๋าเงินก่อนลองใหม่',
+        ],
+        'payout' => [
+            'subject' => 'บันทึกการจ่ายเงินรางวัลแล้ว',
+            'body' => 'การจ่ายเงินรางวัล :ref จำนวน :amount :currency สำหรับงวด #:draw ถูกบันทึกเป็นเสร็จสิ้นแล้ว เข้าสู่ระบบเพื่อตรวจสอบกระเป๋าเงินของคุณ',
+        ],
+        'kyc' => [
+            'verified_subject' => 'ยืนยันตัวตนผ่าน',
+            'verified_body' => 'การยืนยันตัวตนของคุณถูกบันทึกเป็นอนุมัติแล้ว การดำเนินการบางอย่างในบัญชีอาจยังมีข้อกำหนดเพิ่มเติม',
+            'rejected_subject' => 'ยืนยันตัวตนไม่ผ่าน',
+            'rejected_body' => 'การยืนยันตัวตนของคุณไม่ได้รับการอนุมัติ เข้าสู่ระบบเพื่อดูคำแนะนำในบัญชีของคุณ',
+            'under_review_subject' => 'การยืนยันตัวตนอยู่ระหว่างตรวจสอบ',
+            'under_review_body' => 'การยืนยันตัวตนของคุณอยู่ระหว่างการตรวจสอบ ไม่มีการรับประกันเวลาแล้วเสร็จ',
+            'expired_subject' => 'การยืนยันตัวตนหมดอายุ',
+            'expired_body' => 'การยืนยันตัวตนของคุณหมดอายุแล้ว เข้าสู่ระบบเพื่อดูสิ่งที่ต้องทำเพื่อยืนยันอีกครั้ง',
+        ],
+    ],
+    'sms' => [
+        'withdrawal_completed' => ':app: การถอนเงิน :ref จำนวน :amount :currency ถูกบันทึกเป็นเสร็จสิ้นแล้ว',
+        'withdrawal_rejected' => ':app: การถอนเงิน :ref จำนวน :amount :currency ถูกปฏิเสธ เข้าสู่ระบบเพื่อดูรายละเอียด',
+        'withdrawal_failed' => ':app: การถอนเงิน :ref จำนวน :amount :currency ถูกบันทึกเป็นล้มเหลว เข้าสู่ระบบเพื่อดูรายละเอียด',
+        'withdrawal_default' => ':app: การถอนเงิน :ref มีสถานะเป็น :status แล้ว',
+        'prize' => ':app: การจ่ายเงินรางวัล :ref จำนวน :amount :currency ถูกบันทึกแล้ว เข้าสู่ระบบเพื่อตรวจสอบกระเป๋าเงินของคุณ',
+    ],
 ]);

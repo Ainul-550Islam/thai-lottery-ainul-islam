@@ -4,18 +4,27 @@ declare(strict_types=1);
 
 namespace App\Events;
 
+use App\Events\Concerns\BroadcastsOnNotificationsLane;
 use App\Models\Draw;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
  * Broadcast when a draw changes status (e.g. opens, closes, begins drawing, finishes).
+ *
+ * PUBLIC CHANNEL, PUBLIC FACTS ONLY. The draw calendar is the same for every player, so this
+ * rides the public `draws` / `draw.{id}` channels - and therefore carries nothing that belongs
+ * to one person and nothing about a result that has not been published (status words and
+ * scheduling timestamps only). Dispatched after commit so a lifecycle transition that rolls
+ * back never reaches a screen.
  */
-final class DrawStatusUpdated implements ShouldBroadcast
+final class DrawStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
+    use BroadcastsOnNotificationsLane;
     use Dispatchable;
     use InteractsWithSockets;
     use SerializesModels;

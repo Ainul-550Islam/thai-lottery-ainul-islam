@@ -53,4 +53,126 @@ return [
     'event_manual' => 'Account notice',
     'event_glo_result_available' => 'GLO result available',
     'event_dealer_request_update' => 'Dealer request updated',
+
+    /*
+    |----------------------------------------------------------------------
+    | Player notification copy (mail / in-app / SMS)
+    |----------------------------------------------------------------------
+    | Used by App\Notifications\* and App\Listeners\Notifications\*. No
+    | notification class carries English of its own: every sentence a player
+    | reads is a key here, so TH/BN can say the same thing.
+    |
+    | Wording is deliberately a record of the platform's own state ("is
+    | recorded as"), never a promise about an external bank, a review
+    | deadline or a wallet figure the mail cannot prove.
+    */
+    'mail' => [
+        'greeting' => 'Hello,',
+        'payment' => [
+            'subject_captured' => 'Payment Confirmed: :amount :currency',
+            'subject_failed' => 'Payment Failed: :amount :currency',
+            'subject_cancelled' => 'Payment Cancelled',
+            'subject_default' => 'Payment Update: :amount :currency',
+            'line_captured' => 'Your payment of :amount :currency (Ref: :ref) is recorded as captured. Sign in to review the corresponding wallet status.',
+            'line_failed' => 'Your payment of :amount :currency (Ref: :ref) is recorded as failed. Check the transaction and wallet status in your account before retrying.',
+            'line_cancelled' => 'Your payment of :amount :currency (Ref: :ref) was cancelled.',
+            'line_pending' => 'Your payment of :amount :currency (Ref: :ref) is recorded as pending review. Check your account for the current status.',
+            'line_refunded' => 'Your payment of :amount :currency (Ref: :ref) is recorded as refunded. Sign in to review the corresponding wallet status.',
+            'line_default' => 'Your payment of :amount :currency (Ref: :ref) is currently in status: :status.',
+            'action' => 'View Wallet',
+            'footer' => 'Thank you for using our platform.',
+        ],
+        'withdrawal' => [
+            'subject_completed' => 'Withdrawal Completed: :amount :currency',
+            'subject_processing' => 'Withdrawal Processing: :amount :currency',
+            'subject_under_review' => 'Withdrawal Under Review: :amount :currency',
+            'subject_approved' => 'Withdrawal Approved: :amount :currency',
+            'subject_failed' => 'Withdrawal Failed: :amount :currency',
+            'subject_rejected' => 'Withdrawal Rejected',
+            'subject_default' => 'Withdrawal Update: :amount :currency',
+            'line_completed' => 'Your withdrawal of :amount :currency (Ref: :ref) is recorded as completed. Check your destination account or provider statement for receipt details.',
+            'line_processing' => 'Your withdrawal of :amount :currency (Ref: :ref) is recorded as processing. No completion time is promised.',
+            'line_under_review' => 'Your withdrawal of :amount :currency (Ref: :ref) is under review. Check your account for the current status and any instructions.',
+            'line_approved' => 'Your withdrawal of :amount :currency (Ref: :ref) is recorded as approved and will be handed to the payout lane. No completion time is promised.',
+            'line_failed' => 'Your withdrawal of :amount :currency (Ref: :ref) is recorded as failed. Check your account for the current wallet status before retrying.',
+            'line_rejected' => 'Your withdrawal of :amount :currency (Ref: :ref) was rejected.',
+            'line_rejected_tail' => 'Check your account for current wallet status and next steps.',
+            'line_default' => 'Your withdrawal request of :amount :currency (Ref: :ref) status has changed to: :status.',
+            'review_note' => 'Review note: :reason',
+            'destination' => 'Destination: :destination',
+            'action' => 'View Withdrawal History',
+            'footer' => 'If you do not recognize this withdrawal, sign in and review your account security.',
+        ],
+        'prize' => [
+            'subject' => 'Prize status update',
+            'line_result' => 'A prize result was recorded for ticket #:ticket in Draw #:draw (:tier).',
+            'line_amount' => 'Recorded prize amount: :amount :currency',
+            'line_status' => 'Current disbursement status: :status.',
+            'line_disclaimer' => 'This notification does not by itself confirm that funds are available for withdrawal. Sign in to review your current wallet and payout status.',
+            'action' => 'Review My Bets',
+            'tier_payout' => 'Prize payout',
+        ],
+        'kyc' => [
+            'subject_approved' => 'Account Verification Approved',
+            'subject_rejected' => 'Account Verification Requires Attention',
+            'subject_under_review' => 'Account Verification Under Review',
+            'subject_default' => 'Account Verification Update',
+            'line_approved' => 'Your verification status was marked approved. Sign in to review any remaining account or withdrawal requirements; approval does not guarantee that every account action is available.',
+            'line_rejected' => 'Your submitted verification document was not approved.',
+            'line_rejected_tail' => 'Sign in to review the instructions shown in your account.',
+            'line_under_review' => 'Your verification status is under review. Check your account for the current status and any follow-up instructions; no fixed completion time is promised.',
+            'line_expired' => 'Your verification has expired. Sign in to review what is needed to verify your account again.',
+            'line_default' => 'Your account verification status is currently: :status.',
+            'review_note' => 'Review note: :reason',
+            'action' => 'View Account Verification Status',
+            'footer' => 'Thank you for ensuring platform safety and compliance.',
+        ],
+    ],
+    'inapp' => [
+        'deposit' => [
+            'confirmed_subject' => 'Deposit confirmed',
+            'confirmed_body' => 'Your deposit :ref of :amount :currency is recorded as confirmed. Open your wallet to review the current balance.',
+            'failed_subject' => 'Deposit failed',
+            'failed_body' => 'Your deposit :ref of :amount :currency is recorded as failed. Check your wallet before retrying.',
+            'review_subject' => 'Deposit needs review',
+            'review_body' => 'Your deposit :ref of :amount :currency is being reviewed. No completion time is promised.',
+            'cancelled_subject' => 'Deposit cancelled',
+            'cancelled_body' => 'Your deposit :ref of :amount :currency was cancelled.',
+            'refunded_subject' => 'Deposit refunded',
+            'refunded_body' => 'Your deposit :ref of :amount :currency is recorded as refunded.',
+        ],
+        'withdrawal' => [
+            'approved_subject' => 'Withdrawal approved',
+            'approved_body' => 'Your withdrawal :ref of :amount :currency is approved and queued for payout.',
+            'processing_subject' => 'Withdrawal processing',
+            'processing_body' => 'Your withdrawal :ref of :amount :currency is being processed. No completion time is promised.',
+            'completed_subject' => 'Withdrawal completed',
+            'completed_body' => 'Your withdrawal :ref of :amount :currency is recorded as completed. Check your destination account for receipt.',
+            'rejected_subject' => 'Withdrawal rejected',
+            'rejected_body' => 'Your withdrawal :ref of :amount :currency was rejected. Review your wallet for the current status.',
+            'failed_subject' => 'Withdrawal failed',
+            'failed_body' => 'Your withdrawal :ref of :amount :currency is recorded as failed. Review your wallet before retrying.',
+        ],
+        'payout' => [
+            'subject' => 'Prize payout recorded',
+            'body' => 'A prize payout :ref of :amount :currency for draw #:draw is recorded as completed. Sign in to review your wallet.',
+        ],
+        'kyc' => [
+            'verified_subject' => 'Identity verification approved',
+            'verified_body' => 'Your identity verification is recorded as approved. Some account actions may still carry their own requirements.',
+            'rejected_subject' => 'Identity verification rejected',
+            'rejected_body' => 'Your identity verification was not approved. Sign in to review the instructions in your account.',
+            'under_review_subject' => 'Identity verification under review',
+            'under_review_body' => 'Your identity verification is under review. No completion time is promised.',
+            'expired_subject' => 'Identity verification expired',
+            'expired_body' => 'Your identity verification has expired. Sign in to review what is needed to verify again.',
+        ],
+    ],
+    'sms' => [
+        'withdrawal_completed' => ':app: withdrawal :ref of :amount :currency recorded as completed.',
+        'withdrawal_rejected' => ':app: withdrawal :ref of :amount :currency was rejected. Sign in for details.',
+        'withdrawal_failed' => ':app: withdrawal :ref of :amount :currency recorded as failed. Sign in for details.',
+        'withdrawal_default' => ':app: withdrawal :ref status is now :status.',
+        'prize' => ':app: a prize payout :ref of :amount :currency is recorded. Sign in to review your wallet.',
+    ],
 ];

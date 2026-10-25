@@ -4,6 +4,31 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{--
+        Real-time bridge identity + client block (resources/js/echo.js).
+
+        The viewer id is emitted ONLY for an authenticated viewer. This layout also
+        renders public pages that the public.legal middleware stores in a shared
+        cache; an identity tag on one of those would hand one visitor's id to the
+        next. Guests therefore get no tag at all, and authenticated responses are
+        never publicly cacheable (the middleware answers no-store for them).
+
+        The client block carries public facts only - the Reverb APP KEY is a public
+        identifier, the secret lives in config/broadcasting.php and is never here.
+    --}}
+    @auth
+        <meta name="user-id" content="{{ auth()->id() }}">
+    @endauth
+    <meta name="realtime-enabled" content="{{ config('realtime.enabled') ? '1' : '0' }}">
+    @if (config('realtime.enabled'))
+        <meta name="realtime-key" content="{{ config('realtime.client.key') }}">
+        <meta name="realtime-host" content="{{ config('realtime.client.host') }}">
+        <meta name="realtime-port" content="{{ config('realtime.client.port') }}">
+        <meta name="realtime-scheme" content="{{ config('realtime.client.scheme') }}">
+        <meta name="realtime-auth-endpoint" content="{{ config('realtime.client.auth_endpoint') }}">
+        <meta name="realtime-reconnect-min" content="{{ config('realtime.client.reconnect_min_ms') }}">
+        <meta name="realtime-reconnect-max" content="{{ config('realtime.client.reconnect_max_ms') }}">
+    @endif
     {{-- Read by script bundles that render the brand, so the name lives
          in configuration rather than in compiled JavaScript. --}}
     <meta name="app-name" content="{{ config('app.name') }}">

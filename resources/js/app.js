@@ -1,4 +1,5 @@
 import './bootstrap';
+import './echo';
 import './accessibility';
 import './auth-portal';
 import './svgbet-slip';

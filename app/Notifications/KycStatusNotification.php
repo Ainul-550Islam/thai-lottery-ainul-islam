@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Enums\KycStatus;
+use App\Enums\QueueName;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -13,49 +14,90 @@ use Illuminate\Notifications\Notification;
 /**
  * KYC Verification Status Notification.
  *
- * Dispatched on KYC document or account verification decisions.
- * Never includes sensitive document content, national IDs, or raw file paths.
+ * Dispatched on KYC document or account verification decisions by
+ * App\Listeners\Notifications\SendKycStatusNotification. Never includes
+ * sensitive document content, national IDs, or raw file paths; the only free
+ * text is the review note an operator wrote for the player.
+ *
+ * CHANNELS. Mail. The in-app row is written by the listener through
+ * NotificationDispatchService (this application's own `notifications` table,
+ * not the framework's `database` channel schema). Copy is localized (en/th/bn).
  */
 class KycStatusNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
     public function __construct(
         public readonly string $status,
         public readonly ?string $reason = null,
-    ) {}
+    ) {
+        $this->afterCommit();
+        $this->onQueue(QueueName::Notifications->value);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function backoff(): array
+    {
+        return [10, 60, 300];
+    }
 
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return ['mail'];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function viaQueues(): array
+    {
+        return ['mail' => QueueName::Notifications->value];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
+        $params = ['status' => str_replace('_', ' ', $this->status)];
+
         $subject = match ($this->status) {
-            KycStatus::Verified->value, 'approved' => 'Account Verification Approved',
-            KycStatus::Rejected->value, 'rejected' => 'Account Verification Requires Attention',
-            KycStatus::UnderReview->value, 'under_review' => 'Account Verification Under Review',
-            default => 'Account Verification Update',
+            KycStatus::Verified->value, 'approved' => __('notifications.mail.kyc.subject_approved', $params),
+            KycStatus::Rejected->value, 'rejected' => __('notifications.mail.kyc.subject_rejected', $params),
+            KycStatus::UnderReview->value, 'under_review' => __('notifications.mail.kyc.subject_under_review', $params),
+            default => __('notifications.mail.kyc.subject_default', $params),
         };
 
         $line = match ($this->status) {
-            KycStatus::Verified->value, 'approved' => 'Your verification status was marked approved. Sign in to review any remaining account or withdrawal requirements; approval does not guarantee that every account action is available.',
-            KycStatus::Rejected->value, 'rejected' => 'Your submitted verification document was not approved.'.($this->reason !== null && $this->reason !== '' ? ' Review note: '.$this->reason : '').' Sign in to review the instructions shown in your account.',
-            KycStatus::UnderReview->value, 'under_review' => 'Your verification status is under review. Check your account for the current status and any follow-up instructions; no fixed completion time is promised.',
-            default => "Your account verification status is currently: {$this->status}.",
+            KycStatus::Verified->value, 'approved' => (string) __('notifications.mail.kyc.line_approved', $params),
+            KycStatus::Rejected->value, 'rejected' => $this->rejectedLine(),
+            KycStatus::UnderReview->value, 'under_review' => (string) __('notifications.mail.kyc.line_under_review', $params),
+            KycStatus::Expired->value => (string) __('notifications.mail.kyc.line_expired', $params),
+            default => (string) __('notifications.mail.kyc.line_default', $params),
         };
 
-        $mail = (new MailMessage)
-            ->subject($subject)
-            ->line($line);
+        return (new MailMessage)
+            ->subject((string) $subject)
+            ->line($line)
+            ->action((string) __('notifications.mail.kyc.action'), url('/account/verification'))
+            ->line((string) __('notifications.mail.kyc.footer'));
+    }
 
-        $mail->action('View Account Verification Status', url('/account/verification'));
+    private function rejectedLine(): string
+    {
+        $parts = [(string) __('notifications.mail.kyc.line_rejected')];
 
-        return $mail->line('Thank you for ensuring platform safety and compliance.');
+        if ($this->reason !== null && trim($this->reason) !== '') {
+            $parts[] = (string) __('notifications.mail.kyc.review_note', ['reason' => trim($this->reason)]);
+        }
+
+        $parts[] = (string) __('notifications.mail.kyc.line_rejected_tail');
+
+        return implode(' ', $parts);
     }
 
     /**

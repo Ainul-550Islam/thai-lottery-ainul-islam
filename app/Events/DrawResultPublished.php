@@ -4,19 +4,28 @@ declare(strict_types=1);
 
 namespace App\Events;
 
+use App\Events\Concerns\BroadcastsOnNotificationsLane;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
  * Broadcast when official draw results are published.
+ *
+ * Published by MoneyChainRealtimeObserver on the one row fact that means publication: the
+ * result's `published_at` moving from null to a timestamp (the operator command that sets it
+ * runs after certification). Public channel, public facts: the numbers everyone may now see and
+ * the aggregate winner/payout totals - never a ticket, a wallet or a player. Dispatched after
+ * commit so a publication that rolls back never reaches the country's screens.
  */
-final class DrawResultPublished implements ShouldBroadcast
+final class DrawResultPublished implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
+    use BroadcastsOnNotificationsLane;
     use Dispatchable;
     use InteractsWithSockets;
     use SerializesModels;

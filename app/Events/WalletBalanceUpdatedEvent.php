@@ -6,16 +6,27 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
  * Class WalletBalanceUpdatedEvent
  *
- * Broadcasts instantaneous balance mutations directly through Laravel Reverb / Soketi WebSockets.
+ * The scalar wallet-mutation event raised by App\Services\Broadcast\RealtimeSyncService after a
+ * ledger-backed balance move. It is an in-process domain event for listeners that want the
+ * mutation facts (type, version, reason) without loading the row.
+ *
+ * IT DOES NOT BROADCAST. The same write already reaches the player's browser through
+ * App\Events\WalletBalanceUpdated, which MoneyChainRealtimeObserver publishes from the wallet
+ * row under the very same `wallet.balance.updated` name. When this class also implemented
+ * ShouldBroadcastNow the player received two identical messages per write (and the second one
+ * left before the transaction committed). Delegating the wire to the row observer keeps the
+ * public contract - one event name, one private channel per owner - while this class keeps its
+ * constructor and its dispatch sites unchanged.
+ *
+ * The channel/payload accessors are kept for in-process consumers that already read them.
  */
-class WalletBalanceUpdatedEvent implements ShouldBroadcastNow
+class WalletBalanceUpdatedEvent
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -29,10 +40,15 @@ class WalletBalanceUpdatedEvent implements ShouldBroadcastNow
         public readonly string $reason
     ) {}
 
+    /**
+     * The owner-scoped channel this mutation belongs to (informational; see class docblock).
+     *
+     * @return array<int, PrivateChannel>
+     */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel("user.{$this->userId}.wallet"),
+            new PrivateChannel('user.'.$this->userId.'.wallet'),
         ];
     }
 
@@ -41,10 +57,12 @@ class WalletBalanceUpdatedEvent implements ShouldBroadcastNow
         return 'wallet.balance.updated';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function broadcastWith(): array
     {
         return [
-            'user_id' => $this->userId,
             'wallet_type' => $this->walletType,
             'currency' => $this->currency,
             'balance' => $this->balance,

@@ -1,11 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
+use App\Enums\KycStatus;
 use App\Events\AdminOperationCompleted;
 use App\Events\ComplianceCaseEscalated;
+use App\Events\DepositStatusUpdated;
 use App\Events\DrawResultCertified;
 use App\Events\FinancialLedgerReconciled;
+use App\Events\KycStatusChanged;
 use App\Events\MfaChallengeVerified;
 use App\Events\NotificationDelivered;
 use App\Events\NotificationDeliveryFailed;
@@ -14,11 +19,17 @@ use App\Events\PayoutBatchCompleted;
 use App\Events\PlayerProtectionActionApplied;
 use App\Events\PrizeClaimApproved;
 use App\Events\PrizeMatched;
+use App\Events\PrizePayoutCompleted;
 use App\Events\ProviderOperationalStateChanged;
 use App\Events\RetailTicketAllocated;
 use App\Events\SelfExclusionActivated;
 use App\Events\SuspiciousAuthenticationDetected;
 use App\Events\WithdrawalKycApproved;
+use App\Events\WithdrawalStatusUpdated;
+use App\Listeners\Notifications\SendDepositStatusNotification;
+use App\Listeners\Notifications\SendKycStatusNotification;
+use App\Listeners\Notifications\SendPrizePayoutNotification;
+use App\Listeners\Notifications\SendWithdrawalStatusNotification;
 use App\Listeners\RecordAdminOperationAudit;
 use App\Listeners\RecordComplianceActionAudit;
 use App\Listeners\RecordDrawCertificationAudit;
@@ -35,6 +46,18 @@ use App\Listeners\RecordRetailTicketAllocationAudit;
 use App\Listeners\RecordSecurityEventAudit;
 use App\Listeners\RecordSelfExclusionAudit;
 use App\Listeners\RecordWithdrawalKycAudit;
+use App\Models\AccountVerification;
+use App\Models\Bet;
+use App\Models\Deposit;
+use App\Models\Draw;
+use App\Models\DrawResult;
+use App\Models\KycDocument;
+use App\Models\KycVerification;
+use App\Models\User;
+use App\Models\Wallet;
+use App\Models\Withdrawal;
+use App\Observers\MoneyChainRealtimeObserver;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -136,10 +159,118 @@ class EventServiceProvider extends ServiceProvider
         ProviderOperationalStateChanged::class => [
             RecordProviderOperationAudit::class,
         ],
+        // Player notification lane (batch 3): the four user-facing
+        // notifications finally have dispatch sites. Each listener is
+        // queued on the notifications lane, handled only after the
+        // writing transaction committed, idempotent per (row, status),
+        // preference- and suppression-aware through the dispatch service.
+        DepositStatusUpdated::class => [
+            SendDepositStatusNotification::class,
+        ],
+        WithdrawalStatusUpdated::class => [
+            SendWithdrawalStatusNotification::class,
+        ],
+        PrizePayoutCompleted::class => [
+            SendPrizePayoutNotification::class,
+        ],
+        KycStatusChanged::class => [
+            SendKycStatusNotification::class,
+        ],
     ];
+
+    /**
+     * Model observers. Registered here, explicitly, for the same reason
+     * discovery is disabled below: the publish side of the real-time lane
+     * must be readable in one place. MoneyChainRealtimeObserver existed and
+     * nothing attached it to a model, so every event it publishes was dead.
+     *
+     * @var array<class-string<Model>, array<int, class-string>>
+     */
+    protected $observers = [
+        Wallet::class => [MoneyChainRealtimeObserver::class],
+        Bet::class => [MoneyChainRealtimeObserver::class],
+        Deposit::class => [MoneyChainRealtimeObserver::class],
+        Withdrawal::class => [MoneyChainRealtimeObserver::class],
+        Draw::class => [MoneyChainRealtimeObserver::class],
+        DrawResult::class => [MoneyChainRealtimeObserver::class],
+    ];
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->bridgeKycRowFactsToEvent();
+    }
 
     public function shouldDiscoverEvents(): bool
     {
         return false;
+    }
+
+    /**
+     * The KYC lane writes its verdicts in four tables through services this
+     * provider does not edit, and raised no event a notification could hang
+     * on. These model-event bridges turn each row fact into one
+     * KycStatusChanged envelope (after commit); the listener dedupes per
+     * (user, status), so a review that writes two of these rows still tells
+     * the player once.
+     */
+    private function bridgeKycRowFactsToEvent(): void
+    {
+        User::updated(static function (User $user): void {
+            if (! $user->wasChanged('kyc_status')) {
+                return;
+            }
+
+            $current = KycStatusChanged::normalise($user->kyc_status);
+
+            if ($current === null) {
+                return;
+            }
+
+            event(new KycStatusChanged(
+                user: $user,
+                previousStatus: KycStatusChanged::normalise($user->getOriginal('kyc_status')),
+                currentStatus: $current,
+                reason: null,
+                sourceType: 'users',
+                sourceId: (int) $user->getKey(),
+            ));
+        });
+
+        $fromRow = static function (Model $row, string $table, string $reasonColumn, bool $created): void {
+            if (! $created && ! $row->wasChanged('status')) {
+                return;
+            }
+
+            $current = KycStatusChanged::normalise($row->getAttribute('status'));
+            $userId = (int) $row->getAttribute('user_id');
+
+            if ($current === null || $userId <= 0) {
+                return;
+            }
+
+            $user = User::query()->find($userId);
+
+            if (! $user instanceof User) {
+                return;
+            }
+
+            $reason = $row->getAttribute($reasonColumn);
+
+            event(new KycStatusChanged(
+                user: $user,
+                previousStatus: $created ? null : KycStatusChanged::normalise($row->getOriginal('status')),
+                currentStatus: $current,
+                reason: $current === KycStatus::Rejected->value && is_string($reason) && trim($reason) !== '' ? trim($reason) : null,
+                sourceType: $table,
+                sourceId: (int) $row->getKey(),
+            ));
+        };
+
+        KycVerification::created(static fn (KycVerification $row) => $fromRow($row, 'kyc_verifications', 'rejection_reason', true));
+        KycVerification::updated(static fn (KycVerification $row) => $fromRow($row, 'kyc_verifications', 'rejection_reason', false));
+        AccountVerification::updated(static fn (AccountVerification $row) => $fromRow($row, 'account_verifications', 'review_reason', false));
+        KycDocument::updated(static fn (KycDocument $row) => $fromRow($row, 'kyc_documents', 'rejection_reason', false));
     }
 }
