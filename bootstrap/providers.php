@@ -7,6 +7,7 @@ use App\Providers\EventServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\ProductionSafetyServiceProvider;
 use App\Providers\QueueServiceProvider;
+use App\Providers\ThaiRailsServiceProvider;
 use App\Providers\WalletConversionServiceProvider;
 
 return [
@@ -18,6 +19,7 @@ return [
     BotServiceProvider::class,
     EventServiceProvider::class,
     QueueServiceProvider::class,
+    ThaiRailsServiceProvider::class,
     WalletConversionServiceProvider::class,
     AdminPanelProvider::class,
 ];
