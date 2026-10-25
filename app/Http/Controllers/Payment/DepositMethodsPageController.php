@@ -295,8 +295,12 @@ final class DepositMethodsPageController extends Controller
             'enabled' => $enabled,
             'state' => $enabled ? 'AVAILABLE' : 'NOT_CONFIGURED',
             'reason' => $reason ?? ($enabled ? null : 'This deposit rail is disabled or not configured on this deployment.'),
-            'min_amount' => (string) config('deposit.'.$method->value.'.min_amount', (string) config('deposit.min', '50.00')),
-            'max_amount' => (string) config('deposit.'.$method->value.'.max_amount', (string) config('deposit.max', '500000.00')),
+            // The bounds are GLOBAL and live in config/payment.php's deposit
+            // arm. There is no per-method knob, and reading a key that does not
+            // exist returns null: a controller that invented its own fallback
+            // would quote a minimum the deposit lane does not enforce.
+            'min_amount' => (string) config('payment.deposit.min', '50.00'),
+            'max_amount' => (string) config('payment.deposit.max', '500000.00'),
             'currency' => Currency::THB->value,
             'initiate_route' => route($initiateRoute),
         ];

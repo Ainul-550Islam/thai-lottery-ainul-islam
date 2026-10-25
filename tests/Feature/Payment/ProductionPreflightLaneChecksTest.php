@@ -34,19 +34,19 @@ final class ProductionPreflightLaneChecksTest extends PaymentTestCase
      *
      * @return array{status: string, environment: string, checks: list<array{id: string, status: string, detail: string, severity: string}>, summary: array{pass: int, warn: int, fail: int, skip: int}}
      */
-    private function report(): array
+    private function report(bool $production = false): array
     {
-        return (new ProductionPreflight(false, false))->run();
+        return (new ProductionPreflight($production, false))->run();
     }
 
     /**
      * @return array<string, array{id: string, status: string, detail: string, severity: string}>
      */
-    private function checks(): array
+    private function checks(bool $production = false): array
     {
         $indexed = [];
 
-        foreach ($this->report()['checks'] as $check) {
+        foreach ($this->report($production)['checks'] as $check) {
             $indexed[$check['id']] = $check;
         }
 
@@ -180,6 +180,73 @@ final class ProductionPreflightLaneChecksTest extends PaymentTestCase
             $this->assertNotSame('', $check['detail'], $check['id'].' must explain its verdict.');
             $this->assertContains($check['severity'], ['blocking', 'advisory']);
         }
+    }
+
+    /**
+     * @return array<string, array{id: string, status: string, detail: string, severity: string}>
+     */
+    private function indexed(bool $production): array
+    {
+        return $this->checks($production);
+    }
+
+    public function test_log_redaction_is_confirmed_from_the_channels_the_app_writes_to(): void
+    {
+        // The shipped stack replaces placeholders, so the gate may say so.
+        Config::set('logging.default', 'stack');
+        Config::set('logging.channels.stack.channels', ['single']);
+        Config::set('logging.channels.single.replace_placeholders', true);
+
+        $check = $this->checks()['log.redaction'] ?? null;
+
+        $this->assertNotNull($check, 'The preflight must report the log redaction state.');
+        $this->assertSame('PASS', $check['status']);
+        $this->assertStringContainsString('single', $check['detail']);
+        $this->assertSame('advisory', $check['severity']);
+    }
+
+    public function test_a_channel_that_cannot_redact_blocks_the_release(): void
+    {
+        Config::set('logging.default', 'single');
+        Config::set('logging.channels.single.replace_placeholders', false);
+
+        $check = $this->indexed(true)['log.redaction'] ?? null;
+
+        $this->assertNotNull($check, 'The preflight must report the log redaction state.');
+        $this->assertSame('FAIL', $check['status']);
+        $this->assertSame('blocking', $check['severity']);
+        $this->assertStringContainsString('replace_placeholders disabled', $check['detail']);
+    }
+
+    public function test_an_undeclared_redaction_setting_is_never_reported_as_enabled(): void
+    {
+        // A channel that says nothing either way cannot be vouched for: the
+        // honest answer is "unconfirmed", not the old unconditional PASS.
+        Config::set('logging.default', 'stderr');
+        Config::set('logging.channels.stderr', ['driver' => 'monolog', 'level' => 'info']);
+
+        $check = $this->indexed(true)['log.redaction'] ?? null;
+
+        $this->assertNotNull($check, 'The preflight must report the log redaction state.');
+        $this->assertSame('WARN', $check['status']);
+        $this->assertSame('blocking', $check['severity']);
+        $this->assertStringContainsString('cannot be confirmed', $check['detail']);
+    }
+
+    public function test_a_redis_backed_session_is_no_longer_invisible_to_the_password_check(): void
+    {
+        // config/session.php names the key 'default'. While the preflight read
+        // 'session.driver' it saw null and skipped the Redis password check on a
+        // deployment whose sessions really do live in Redis.
+        Config::set('queue.default', 'sync');
+        Config::set('cache.default', 'file');
+        Config::set('session.default', 'redis');
+        Config::set('database.redis.default.password', '');
+
+        $check = $this->indexed(true)['redis.password'] ?? null;
+
+        $this->assertNotNull($check, 'The preflight must report the Redis password state.');
+        $this->assertSame('FAIL', $check['status'], 'A redis-backed session with no password must block the release.');
     }
 
     public function test_no_check_prints_a_secret(): void

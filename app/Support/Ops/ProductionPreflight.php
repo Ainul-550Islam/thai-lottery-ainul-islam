@@ -734,9 +734,12 @@ final class ProductionPreflight
     private function checkRedisPassword(): void
     {
         $connection = (string) config('queue.default');
+        // config/session.php names its driver key 'default', not 'driver'. Reading
+        // the wrong one returns null, so a redis-backed session deployment used to
+        // report "Redis is not used" and skip the password check entirely.
         $usesRedis = $connection === 'redis'
             || (string) config('cache.default') === 'redis'
-            || (string) config('session.driver') === 'redis';
+            || (string) config('session.default') === 'redis';
 
         if (! $usesRedis) {
             $this->recordAdvisory('redis.password', 'SKIP', 'Redis is not used for queue, cache or sessions.');
@@ -763,7 +766,8 @@ final class ProductionPreflight
     private function checkLogPrivacy(): void
     {
         $channel = (string) config('logging.default');
-        $redaction = (bool) config('logging.redaction.enabled', true);
+        $redaction = $this->logRedactionState($channel);
+        $leaves = $this->stackedChannels($channel);
 
         if ($this->production && in_array($channel, ['single', 'daily'], true)) {
             $this->recordAdvisory('log.privacy', 'WARN', sprintf(
@@ -774,9 +778,89 @@ final class ProductionPreflight
             $this->recordAdvisory('log.privacy', 'PASS', sprintf('LOG_CHANNEL is "%s".', $channel));
         }
 
-        $redaction
-            ? $this->recordAdvisory('log.redaction', 'PASS', 'Secret redaction is enabled for every log channel.')
-            : $this->record('log.redaction', $this->production ? 'FAIL' : 'WARN', 'LOG_REDACT_SENSITIVE is false; secrets could reach the log sink.');
+        // This used to read a "logging.redaction.enabled" setting that no config
+        // file defines, so the check could only ever print "enabled". A release
+        // gate that always says yes is worse than no gate at all, so the answer is
+        // now derived from the channels the application actually writes to and
+        // their replace_placeholders flag.
+        match ($redaction) {
+            'enabled' => $this->recordAdvisory('log.redaction', 'PASS', sprintf(
+                'Secret redaction is enabled for %s.',
+                $leaves === [] ? $channel : implode(', ', $leaves),
+            )),
+            'disabled' => $this->record('log.redaction', $this->production ? 'FAIL' : 'WARN', sprintf(
+                '%s has replace_placeholders disabled; secrets could reach the log sink.',
+                $leaves === [] ? $channel : implode(', ', $leaves),
+            )),
+            default => $this->record('log.redaction', $this->production ? 'WARN' : 'PASS', sprintf(
+                '%s does not declare replace_placeholders; secret redaction cannot be confirmed for this channel.',
+                $leaves === [] ? $channel : implode(', ', $leaves),
+            )),
+        };
+    }
+
+    /**
+     * Whether secret redaction can be confirmed for the channels the application
+     * writes to: 'enabled', 'disabled', or 'undeclared'.
+     */
+    private function logRedactionState(string $channel): string
+    {
+        $leaves = $this->stackedChannels($channel);
+
+        if ($leaves === []) {
+            return 'undeclared';
+        }
+
+        $declared = 0;
+
+        foreach ($leaves as $name) {
+            $definition = config('logging.channels.'.$name);
+
+            if (! is_array($definition) || ! array_key_exists('replace_placeholders', $definition)) {
+                continue;
+            }
+
+            if ($definition['replace_placeholders'] !== true) {
+                return 'disabled';
+            }
+
+            $declared++;
+        }
+
+        return $declared === count($leaves) ? 'enabled' : 'undeclared';
+    }
+
+    /**
+     * Every leaf channel the named channel writes to, following a stack.
+     *
+     * @return list<string>
+     */
+    private function stackedChannels(string $channel, int $depth = 0): array
+    {
+        // A stack that contains itself would otherwise walk forever.
+        if ($depth > 5) {
+            return [];
+        }
+
+        $definition = config('logging.channels.'.$channel);
+
+        if (! is_array($definition)) {
+            return [];
+        }
+
+        if (($definition['driver'] ?? null) !== 'stack') {
+            return [$channel];
+        }
+
+        $leaves = [];
+
+        foreach ((array) ($definition['channels'] ?? []) as $nested) {
+            if (is_string($nested) && $nested !== '') {
+                $leaves = array_merge($leaves, $this->stackedChannels($nested, $depth + 1));
+            }
+        }
+
+        return array_values(array_unique($leaves));
     }
 
     private function checkDatabaseConnectivity(): void
