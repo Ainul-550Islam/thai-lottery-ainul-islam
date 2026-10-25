@@ -539,4 +539,8 @@ return [
     'pdf_footer_hash' => 'SHA-256',
     'pdf_footer_generated' => 'สร้างเมื่อ',
     'pdf_footer_page' => 'หน้า',
+
+    // หน้าแสดงผลการยืนยันคำขอความเป็นส่วนตัว (เฉพาะกรอบหน้า ข้อความผลลัพธ์อยู่ใน privacy_requests.php)
+    'privacy_request_result_title' => 'การยืนยันคำขอความเป็นส่วนตัว',
+    'privacy_request_result_back' => 'กลับไปที่ประกาศความเป็นส่วนตัว',
 ];

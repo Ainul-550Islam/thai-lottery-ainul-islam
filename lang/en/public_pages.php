@@ -554,4 +554,16 @@ return [
     'pdf_footer_hash' => 'SHA-256',
     'pdf_footer_generated' => 'Generated',
     'pdf_footer_page' => 'Page',
+
+    /*
+    |----------------------------------------------------------------------
+    | Privacy-request verification result page
+    |----------------------------------------------------------------------
+    | Chrome for the page a verification link lands on. The outcome wording
+    | lives in lang/{locale}/privacy_requests.php ('verify') so it stays next
+    | to the intake and the mails that produce it; these keys are only the
+    | shell (browser title, robots directive, a way back).
+    */
+    'privacy_request_result_title' => 'Privacy request verification',
+    'privacy_request_result_back' => 'Back to the Privacy Notice',
 ];

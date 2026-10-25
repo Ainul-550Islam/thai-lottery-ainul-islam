@@ -412,4 +412,8 @@ return array_replace($english, [
     'pdf_footer_hash' => 'SHA-256',
     'pdf_footer_generated' => 'তৈরি হয়েছে',
     'pdf_footer_page' => 'পৃষ্ঠা',
+
+    // গোপনীয়তা-অনুরোধ যাচাইয়ের ফলাফল পাতার খোলস (ফলাফলের লেখা privacy_requests.php-এ)
+    'privacy_request_result_title' => 'গোপনীয়তা-অনুরোধ যাচাই',
+    'privacy_request_result_back' => 'গোপনীয়তা বিজ্ঞপ্তিতে ফিরে যান',
 ]);

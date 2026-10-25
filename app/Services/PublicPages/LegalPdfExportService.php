@@ -367,6 +367,16 @@ final class LegalPdfExportService
                 (string) $document['version'],
             ));
 
+            $watermark = trim((string) config('legal_pdf.watermark', ''));
+
+            if ($watermark !== '') {
+                // Off by default and configurable per deployment: an environment
+                // that serves preview copies wants them visually marked, and the
+                // mark must be the deployment's word, not this code's.
+                $mpdf->SetWatermarkText($watermark, 0.08);
+                $mpdf->showWatermarkText = true;
+            }
+
             $mpdf->SetHTMLFooter($footer);
             $mpdf->WriteHTML($html);
 

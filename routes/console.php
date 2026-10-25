@@ -289,3 +289,23 @@ Schedule::job(new ExpireReportExportsJob)
     ->name('reporting-export-retention')
     ->withoutOverlapping()
     ->onOneServer();
+
+// ── Privacy requests (BATCH 4) ───────────────────────────────────────────
+// The retention clock has to actually tick: an expired personal-data archive
+// that nobody deletes is a copy of somebody's records living past the day it
+// was promised to disappear. The command refuses to run any sweep at all while
+// the lane is off, so scheduling it here costs nothing on a deployment that has
+// not turned the lane on.
+Schedule::command('privacy:purge-expired')
+    ->dailyAt('03:10')
+    ->name('privacy-retention-purge')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// The daily compliance digest. The job itself decides whether anything is due
+// and is unique per day, so a re-run of the scheduler cannot send twice.
+Schedule::command('privacy:sla-check')
+    ->dailyAt('08:00')
+    ->name('privacy-sla-check')
+    ->withoutOverlapping()
+    ->onOneServer();

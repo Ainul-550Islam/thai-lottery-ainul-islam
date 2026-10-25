@@ -76,6 +76,12 @@ return [
     | OpenType layout bitmask mPDF applies to the family (0 disables shaping).
     |
     */
+    // Bengali is rendered by Hind Siliguri rather than Noto Sans Bengali: it is
+    // the Bengali face this repository already ships (SIL OFL, two weights) and
+    // mPDF shapes it correctly at use_otl 255. Shipping a second, unused Bengali
+    // family would add megabyte-scale font payloads to every image and gain
+    // nothing a reader could see. Swap the folder/files below if a deployment
+    // prefers Noto; the renderer reads this map and nothing else.
     'fonts' => [
         'sarabun' => [
             'folder' => 'Sarabun',
@@ -140,6 +146,18 @@ return [
     | one.
     |
     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Watermark
+    |--------------------------------------------------------------------------
+    |
+    | Empty by default: a legal document a person is entitled to read is not a
+    | draft, and stamping it DRAFT/CONFIDENTIAL would say something untrue about
+    | it. The key exists because the renderer reads it, not as a maybe.
+    |
+    */
+    'watermark' => env('LEGAL_PDF_WATERMARK'),
 
     'metadata' => [
         'creator' => (string) env('LEGAL_PDF_CREATOR', 'Thai Lottery public legal documents'),

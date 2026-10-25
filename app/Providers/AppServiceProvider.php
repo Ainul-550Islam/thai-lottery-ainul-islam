@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
         // once App\Services\Payment\Gateway\* classes are implemented. It is
         // intentionally not registered yet so the container stays resolvable.
 
+        $this->app->register(\App\Providers\PublicServicesServiceProvider::class);
+
         // PROMPT 4: the Data Matrix reader is consumed through its interface by
         // App\Services\Lottery\TicketBarcodeService, so the public verification
         // page can be pointed at a real reader later without touching the
