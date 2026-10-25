@@ -14,6 +14,8 @@ use App\Services\Payout\ThaiBank\ThaiBankPayoutAdapterInterface;
 use App\Services\Payment\Slip\EasySlipProvider;
 use App\Services\Payment\Slip\SlipOkProvider;
 use App\Services\Payment\Slip\SlipVerificationProviderInterface;
+use App\Support\Ops\ThaiBankPayoutPollDispatcher;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -89,12 +91,63 @@ final class ThaiRailsServiceProvider extends ServiceProvider
         Gate::policy(DepositSlipVerification::class, DepositSlipVerificationPolicy::class);
         Route::middleware('api')->prefix('api')->group(base_path('routes/thai_rails.php'));
 
+        $this->bootSchedule();
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \App\Console\Commands\Payment\ReconcileTruemoneyRedemptionsCommand::class,
                 \App\Console\Commands\Ops\ThaiRailsPreflightCommand::class,
             ]);
         }
+    }
+
+    /**
+     * Register the Thai rails' recurring work.
+     *
+     * WHY callAfterResolving AND NOT routes/console.php
+     * -----------------------------------------------
+     * The schedule is only touched when the console kernel actually resolves
+     * it; building it eagerly in boot() would construct the schedule on every
+     * HTTP request for no reason. This mirrors WalletConversionServiceProvider,
+     * which uses the same pattern for the conversion lane.
+     *
+     * WHY GUARDED ON THE LANE FLAG
+     * ----------------------------
+     * A deployment with THAI_PAYOUT_ENABLED=false must not schedule a poller
+     * whose only effect is to write to a log, and one with
+     * TRUEMONEY_ENABLED=false must not schedule a reconciler for a lane it does
+     * not operate. The guard removes the TIMER, not the tool: both commands and
+     * the job remain available to an operator by hand.
+     *
+     * The poller is a JOB and the reconciler is a COMMAND, which is exactly how
+     * each lane already exposes its work; nothing new is invented here.
+     */
+    private function bootSchedule(): void
+    {
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            if ((bool) config('thai_payout.enabled', false)) {
+                // A payout whose outcome is unknown must be resolved by a status
+                // query, never by a second transfer. The sweep dispatches the
+                // per-attempt reconciler (which is unique per attempt and
+                // re-checks the poll interval itself), so a lost delayed job can
+                // never leave a hold stranded in an unknown state.
+                $schedule->call(function (ThaiBankPayoutPollDispatcher $dispatcher): int {
+                    return $dispatcher->dispatchDue();
+                })
+                    ->everyFiveMinutes()
+                    ->withoutOverlapping(10)
+                    ->onOneServer()
+                    ->description('Dispatch Thai bank payout status polls for attempts awaiting a provider outcome');
+            }
+
+            if ((bool) config('truemoney.enabled', false)) {
+                $schedule->command('truemoney:reconcile')
+                    ->hourly()
+                    ->withoutOverlapping(30)
+                    ->onOneServer()
+                    ->description('Reconcile TrueMoney voucher redemptions against the ledger');
+            }
+        });
     }
 
     private function isSecureEndpoint(string $url, string $expectedHost): bool

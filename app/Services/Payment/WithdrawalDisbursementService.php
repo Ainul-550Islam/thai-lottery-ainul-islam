@@ -6,6 +6,7 @@ namespace App\Services\Payment;
 
 use App\DTOs\Payment\GatewayWithdrawalResponse;
 use App\Enums\AuditAction;
+use App\Enums\Currency;
 use App\Enums\PaymentStatus;
 use App\Enums\RiskLevel;
 use App\Enums\WithdrawalStatus;
@@ -15,6 +16,7 @@ use App\Models\AuditLog;
 use App\Models\Payment;
 use App\Models\Withdrawal;
 use App\Services\Finance\FinancialStateTransitionService;
+use App\Services\Finance\Money;
 use App\Services\Finance\WalletHoldService;
 use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WithdrawalApprovalService;
@@ -149,6 +151,15 @@ class WithdrawalDisbursementService
             }
 
             $scope = app(WithdrawalProviderAccountService::class)->assertActive($current);
+
+            // Route the payout BEFORE the external call, inside the same locked
+            // transaction: the chosen gateway key is persisted on the withdrawal
+            // so a reconciliation, a poll or a webhook arriving later resolves
+            // the very same driver, even if the operator changes the routing
+            // configuration in between.
+            $gatewayKey = $this->resolveGatewayKey($current);
+            $this->persistGatewayKey($current, $gatewayKey);
+
             $startedAt = Carbon::now()->toIso8601String();
             $currentMetadata = is_array($current->metadata) ? $current->metadata : [];
             $currentMetadata['disbursement_attempt_started_at'] = $startedAt;
@@ -165,7 +176,9 @@ class WithdrawalDisbursementService
             // fail-closed guard - a disabled or non-withdrawal-capable
             // gateway is refused here; the manual-approval design above is
             // untouched.
-            $driver = $this->gateways->withdrawalDriver($current->method);
+            $driver = $gatewayKey === $current->method->value
+                ? $this->gateways->withdrawalDriver($current->method)
+                : $this->gateways->withdrawalDriverByKey($gatewayKey);
 
             if (! $driver->supportsCurrency($current->currency)) {
                 throw FinancialException::withCode(
@@ -193,10 +206,11 @@ class WithdrawalDisbursementService
                     'currency' => $current->currency,
                     'amount' => (string) $current->amount,
                     'fee' => (string) $current->fee,
-                    'gateway' => $driver->name(),
+                    'gateway' => $this->referenceProviderKey($current),
                     'metadata' => [
                         'withdrawal_reference' => $current->reference_number,
                         'net_amount' => (string) $current->net_amount,
+                        'gateway_key' => $gatewayKey,
                     ],
                 ]);
                 $payment->save();
@@ -340,7 +354,7 @@ class WithdrawalDisbursementService
                 $payment->save();
 
                 $this->completionService->complete($lockedWithdrawal, null, [
-                    'provider' => $driver->name(),
+                    'provider' => $this->referenceProviderKey($lockedWithdrawal),
                     'provider_reference' => $gatewayResponse->providerReference,
                     'description' => sprintf('Withdrawal %s disbursed via %s', $lockedWithdrawal->reference_number, $driver->name()),
                 ]);
@@ -359,7 +373,7 @@ class WithdrawalDisbursementService
                 if (is_string($gatewayResponse->providerReference) && trim($gatewayResponse->providerReference) !== '') {
                     app(WithdrawalProviderReferenceService::class)->bind(
                         $lockedWithdrawal,
-                        $driver->name(),
+                        $this->referenceProviderKey($lockedWithdrawal),
                         trim($gatewayResponse->providerReference),
                         $payment,
                     );
@@ -377,7 +391,7 @@ class WithdrawalDisbursementService
                 ])));
                 $payment->save();
 
-                $lockedWithdrawal->provider = $driver->name();
+                $lockedWithdrawal->provider = $this->referenceProviderKey($lockedWithdrawal);
                 $lockedWithdrawal->provider_reference = $gatewayResponse->providerReference;
                 $metadata = is_array($lockedWithdrawal->metadata) ? $lockedWithdrawal->metadata : [];
                 $pendingState = (string) ($gatewayResponse->metadata['state'] ?? 'provider_pending');
@@ -451,6 +465,206 @@ class WithdrawalDisbursementService
 
             return $gatewayResponse;
         });
+    }
+
+    /**
+     * Persist the routing decision on the withdrawal, in metadata.
+     *
+     * WHY METADATA AND NOT `provider`
+     * --------------------------------
+     * `withdrawals.provider` is a METHOD-SCOPED column: the provider-reference
+     * index, the withdrawal integrity guard and the completion lane all
+     * canonicalise it through WithdrawalProviderAccountService, which only
+     * accepts an App\Enums\PaymentMethod value. Writing the internal key
+     * 'thai_bank' there would make every one of those lanes refuse a payout it
+     * had already sent — including files this batch does not own.
+     *
+     * The internal key therefore lives in metadata, next to the durable
+     * dispatch claim, and is read back by resolveGatewayKey(), by the
+     * reconciliation lane and by any operator report that needs to know which
+     * rail actually paid. The method-scoped columns keep carrying the method,
+     * exactly as the Thai bank lane's own webhook path already does.
+     */
+    private function persistGatewayKey(Withdrawal $withdrawal, string $gatewayKey): void
+    {
+        $metadata = is_array($withdrawal->metadata) ? $withdrawal->metadata : [];
+
+        if (($metadata['gateway_key'] ?? null) === $gatewayKey) {
+            return;
+        }
+
+        $metadata['gateway_key'] = $gatewayKey;
+        $withdrawal->metadata = $metadata;
+        $withdrawal->save();
+    }
+
+    /**
+     * The provider key the method-scoped lanes expect: the canonical
+     * PaymentMethod value of this withdrawal. For every pre-existing rail this
+     * is byte-identical to the driver's own name; the automated Thai bank rail
+     * is the one case where the driver name ('thai_bank') is an internal key
+     * that must never reach a method-scoped column.
+     */
+    private function referenceProviderKey(Withdrawal $withdrawal): string
+    {
+        return app(WithdrawalProviderAccountService::class)->canonical($withdrawal->method->value);
+    }
+
+    /**
+     * Which gateway key pays this withdrawal out?
+     *
+     * THE KEY IS NOT THE METHOD. The player chooses `bank_transfer` or
+     * `promptpay`; the SYSTEM decides whether an automated Thai bank rail can
+     * actually pay that destination. App\Enums\PaymentMethod deliberately has
+     * no `thai_bank` case, so this decision can never be made by a client: the
+     * value is computed here, from server-side configuration and the stored
+     * destination, and is then persisted in the withdrawal's metadata before the
+     * external call so every later reader resolves the same driver.
+     *
+     * A KEY ALREADY ON THE ROW WINS. Once a withdrawal has been routed, the
+     * persisted key is returned unchanged: an operator who disables the lane
+     * after the fact must not silently re-route an in-flight payout to a
+     * different rail, and a retry must never pay through a second driver.
+     *
+     * The automated rail is chosen ONLY when all of these hold:
+     *   - the lane is enabled (thai_payout.enabled),
+     *   - the routing preference allows automation for this deployment,
+     *   - the amount is inside the configured automation bounds,
+     *   - the configured default bank adapter reports itself configured, and
+     *   - ThaiBankDestinationValidator accepts the stored destination.
+     *
+     * Anything else returns the method's own key, which is the pre-existing
+     * manual flow: an operator pays it, exactly as before. A refusal to route
+     * is never an error and never a silent upgrade.
+     */
+    public function resolveGatewayKey(Withdrawal $withdrawal): string
+    {
+        $methodKey = $withdrawal->method->value;
+        $persisted = $this->persistedGatewayKey($withdrawal);
+
+        if ($persisted !== null) {
+            return $persisted;
+        }
+
+        if (! in_array($methodKey, ['bank_transfer', 'promptpay'], true)) {
+            return $methodKey;
+        }
+
+        if (! (bool) config('thai_payout.enabled', false)) {
+            return $methodKey;
+        }
+
+        if (! (bool) config('payment.withdrawal_routing.prefer_automated_payout', true)) {
+            return $methodKey;
+        }
+
+        if (! $this->withinAutomationBounds((string) $withdrawal->amount)) {
+            return $methodKey;
+        }
+
+        try {
+            $adapter = app(\App\Services\Payout\ThaiBank\ThaiBankPayoutAdapterInterface::class);
+        } catch (\Throwable) {
+            // The provider binding refuses an enabled-but-unconfigured lane.
+            return $methodKey;
+        }
+
+        if (! $adapter->configured()) {
+            return $methodKey;
+        }
+
+        $details = is_array($withdrawal->payout_details) ? $withdrawal->payout_details : [];
+
+        try {
+            app(\App\Services\Payout\ThaiBank\ThaiBankDestinationValidator::class)->instruction(
+                reference: (string) $withdrawal->reference_number,
+                amount: (string) $withdrawal->amount,
+                currency: $withdrawal->currency->value,
+                details: $details,
+            );
+        } catch (\Throwable) {
+            // The destination is not payable through the Thai bank rail; the
+            // operator lane keeps it. No transfer was submitted either way.
+            return $methodKey;
+        }
+
+        return 'thai_bank';
+    }
+
+    /**
+     * The routing key already recorded on this withdrawal, or null when the row
+     * predates routing (or was never routed). Only a known key is honoured: a
+     * corrupted or foreign value is ignored rather than trusted.
+     */
+    private function persistedGatewayKey(Withdrawal $withdrawal): ?string
+    {
+        $metadata = is_array($withdrawal->metadata) ? $withdrawal->metadata : [];
+        $key = $metadata['gateway_key'] ?? null;
+
+        if (! is_string($key)) {
+            return null;
+        }
+
+        $key = strtolower(trim($key));
+
+        return $this->gateways->hasDriver($key) ? $key : null;
+    }
+
+    /**
+     * The configured automation bounds as decimal strings. An unset bound is
+     * absent, not zero: a missing minimum must not route everything, and a
+     * missing maximum must not route everything either.
+     *
+     * @return array{0?: string, 1?: string}
+     */
+    private function automationBounds(): array
+    {
+        $minimum = config('payment.withdrawal_routing.min_amount');
+        $maximum = config('payment.withdrawal_routing.max_amount');
+        $bounds = [];
+
+        if (is_string($minimum) && trim($minimum) !== '') {
+            $bounds[0] = trim($minimum);
+        }
+
+        if (is_string($maximum) && trim($maximum) !== '') {
+            $bounds[1] = trim($maximum);
+        }
+
+        return $bounds;
+    }
+
+    private function withinAutomationBounds(string $amount): bool
+    {
+        $bounds = $this->automationBounds();
+
+        try {
+            $candidate = Money::of($amount, Currency::THB);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        if (isset($bounds[0])) {
+            try {
+                if ($candidate->isLessThan(Money::of($bounds[0], Currency::THB))) {
+                    return false;
+                }
+            } catch (\Throwable) {
+                return false;
+            }
+        }
+
+        if (isset($bounds[1])) {
+            try {
+                if ($candidate->isGreaterThan(Money::of($bounds[1], Currency::THB))) {
+                    return false;
+                }
+            } catch (\Throwable) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function recordAudit(

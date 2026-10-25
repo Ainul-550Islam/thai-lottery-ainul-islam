@@ -5,8 +5,14 @@ declare(strict_types=1);
 namespace App\Support\Ops;
 
 use App\Providers\ProductionSafetyServiceProvider;
-use App\Services\Payment\PromptPayQrGeneratorService;
+use App\Services\Compliance\FinancialComplianceGateService;
+use App\Services\Payment\Drivers\ThaiBankPayoutGateway;
+use App\Services\Payment\PaymentGatewayManager;
 use App\Support\Backup\BackupCipher;
+use App\Support\Ops\CheckResult;
+use App\Support\Ops\LaneFlagChecks;
+use App\Support\Ops\RealtimeChecks;
+use App\Support\Ops\ThaiRailsChecks;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
@@ -24,7 +30,11 @@ use Throwable;
  * for "the application must not run like this" and this class does not
  * duplicate it — it calls `violations()` and adds the checks that need an
  * environment the boot path cannot assume: connectivity, writability, build
- * artifacts, key material shape, and backup readiness.
+ * artifacts, key material shape, backup readiness, and the payment / realtime /
+ * optional lanes. The lane checks are DELEGATED to the same classes the lane
+ * commands use (ThaiRailsChecks, RealtimeChecks, LaneFlagChecks) so a rule
+ * added there is enforced here on the next release without a second edit, and
+ * so the command, the report and the tests can never disagree about a lane.
  *
  * THE RULE: NO VALUES IN THE OUTPUT
  * ---------------------------------
@@ -80,6 +90,11 @@ final class ProductionPreflight
         $this->checkQueueTimeouts();
         $this->checkRedisPassword();
         $this->checkLogPrivacy();
+        $this->checkThaiRailsLanes();
+        $this->checkRealtimeLane();
+        $this->checkOptionalLanes();
+        $this->checkPayoutComplianceGate();
+        $this->checkPayoutGatewayRouting();
 
         if ($this->withConnectivity) {
             $this->checkDatabaseConnectivity();
@@ -281,6 +296,19 @@ final class ProductionPreflight
         }
     }
 
+    /**
+     * Delegated to ThaiRailsChecks so the command, this report and the tests
+     * all read the same verdict for the same question.
+     *
+     * THE DISABLED CASE KEEPS ITS PUBLISHED SHAPE
+     * -------------------------------------------
+     * A deployment without PromptPay has always reported
+     * `promptpay.merchant = PASS / "PromptPay is disabled."` as an ADVISORY
+     * row, and a release gate reads it. The shared check answers the same
+     * question with the same PASS verdict; this method keeps the row's
+     * severity and wording as they were, so delegating the rule changes no
+     * published contract.
+     */
     private function checkPromptPayMerchant(): void
     {
         if (! (bool) config('payment.gateways.promptpay.enabled', false)) {
@@ -289,12 +317,146 @@ final class ProductionPreflight
             return;
         }
 
-        $merchant = config('payment.gateways.promptpay.merchant_id');
-        $valid = is_string($merchant) && app(PromptPayQrGeneratorService::class)->isValidRecipientId($merchant);
+        $result = app(ThaiRailsChecks::class)->promptpay();
+
         $this->record(
             'promptpay.merchant',
-            $valid ? 'PASS' : 'FAIL',
-            $valid ? 'The configured PromptPay merchant identifier has a valid format.' : 'PROMPTPAY_MERCHANT_ID is not a supported PromptPay identifier.',
+            $result->status === CheckResult::FAIL ? 'FAIL' : 'PASS',
+            $result->status === CheckResult::FAIL
+                ? 'PROMPTPAY_MERCHANT_ID is not a supported PromptPay identifier.'
+                : 'The configured PromptPay merchant identifier has a valid format.',
+        );
+    }
+
+    /**
+     * The Thai payment rails, read from the shared check class.
+     *
+     * A disabled rail is SKIP, not PASS: the honest answer for a lane this
+     * deployment does not operate is "not applicable", and a preflight that
+     * reported PASS for a switched-off rail would teach operators to ignore it.
+     */
+    private function checkThaiRailsLanes(): void
+    {
+        foreach (app(ThaiRailsChecks::class)->run() as $result) {
+            $this->recordCheck($result, 'thai_rails.');
+        }
+    }
+
+    /**
+     * The real-time lane, only when the application has switched it on. A
+     * deployment with REALTIME_ENABLED=false gets one SKIP line and nothing
+     * else, so a dark lane is never mistaken for a broken one.
+     */
+    private function checkRealtimeLane(): void
+    {
+        if (! (bool) config('realtime.enabled', false)) {
+            $this->recordAdvisory('realtime.lane', 'SKIP', 'Realtime is disabled (REALTIME_ENABLED=false).');
+
+            return;
+        }
+
+        foreach (app(RealtimeChecks::class)->run(skipNetwork: true) as $result) {
+            $this->recordCheck($result, 'realtime.');
+        }
+    }
+
+    /**
+     * The optional lanes (legal PDF, payout illustration, privacy requests,
+     * support tickets). Each is skipped when its configuration is absent or the
+     * lane is off, and checked when it is on.
+     */
+    private function checkOptionalLanes(): void
+    {
+        foreach (app(LaneFlagChecks::class)->run() as $result) {
+            $this->recordCheck($result, 'lane.');
+        }
+    }
+
+    /**
+     * The payout compliance gate must be resolvable BEFORE a payout can be
+     * completed: PayoutTransferService resolves it from the container at the
+     * completion boundary, and a class that cannot be built turns a reviewed,
+     * approved, evidenced payout into a container error at the worst possible
+     * moment. This check fails the release instead of the payout.
+     */
+    private function checkPayoutComplianceGate(): void
+    {
+        try {
+            $gate = app(FinancialComplianceGateService::class);
+
+            $resolvable = $gate instanceof FinancialComplianceGateService
+                && method_exists($gate, 'assertPayoutAllowed')
+                && method_exists($gate, 'assertWithdrawalAllowed');
+        } catch (Throwable $error) {
+            $this->record('payout.compliance_gate', 'FAIL', 'The payout compliance gate could not be resolved: '.$error::class);
+
+            return;
+        }
+
+        $this->record(
+            'payout.compliance_gate',
+            $resolvable ? 'PASS' : 'FAIL',
+            $resolvable
+                ? 'The payout compliance gate resolves and exposes both payout and withdrawal assertions.'
+                : 'The payout compliance gate is missing one of its assertion verbs.',
+        );
+    }
+
+    /**
+     * The automated payout routing must resolve the driver it persists. When
+     * thai_payout.enabled is true the disbursement persists the key 'thai_bank'
+     * on the withdrawal, so the manager must be able to resolve that key back
+     * to a driver; when the lane is off there is nothing to resolve.
+     */
+    private function checkPayoutGatewayRouting(): void
+    {
+        if (! (bool) config('thai_payout.enabled', false)) {
+            $this->recordAdvisory('payout.gateway_routing', 'SKIP', 'The automated Thai bank payout lane is disabled.');
+
+            return;
+        }
+
+        try {
+            $manager = app(PaymentGatewayManager::class);
+            $resolvable = $manager->hasDriver('thai_bank');
+            $driver = $resolvable ? $manager->driver('thai_bank') : null;
+            $resolvable = $driver instanceof ThaiBankPayoutGateway && $driver->supportsWithdrawal();
+        } catch (Throwable $error) {
+            $this->record('payout.gateway_routing', 'FAIL', 'The thai_bank payout driver could not be resolved: '.$error::class);
+
+            return;
+        }
+
+        $this->record(
+            'payout.gateway_routing',
+            $resolvable ? 'PASS' : 'FAIL',
+            $resolvable
+                ? 'The thai_bank payout key resolves to a withdrawal-capable driver.'
+                : 'The thai_bank payout key does not resolve to a withdrawal-capable driver.',
+        );
+    }
+
+    /**
+     * One shared-check result becomes one preflight row.
+     *
+     * A FAIL is BLOCKING in every environment, exactly as the PromptPay check
+     * above always was: a lane that is switched ON and misconfigured is a live
+     * defect, not a laptop inconvenience, and the lane commands themselves exit
+     * 1 on the same verdict. A PASS or a SKIP is advisory — a skipped lane is
+     * a lane this deployment does not operate.
+     */
+    private function recordCheck(CheckResult $result, string $prefix): void
+    {
+        if ($result->status === CheckResult::FAIL) {
+            $this->record($prefix.$result->name, 'FAIL', $result->message);
+
+            return;
+        }
+
+        $this->recordAdvisory(
+            $prefix.$result->name,
+            $result->status === CheckResult::PASS ? 'PASS' : 'SKIP',
+            $result->message,
         );
     }
 

@@ -1,8 +1,55 @@
-.profile
-.sudo_as_admin_successful
-app/Http/Controllers/Api/V1/Payment/PromptPayController.php
-app/Http/Middleware/TrustProxies.php
-app/Http/Requests/Payment/GeneratePromptPayQrRequest.php
-app/Services/Payment/CryptoUsdtGatewayService.php
-tests/Unit/Http/TrustProxiesTest.php
-tests/Unit/Payment/CryptoUsdtGatewayServiceTest.php
+BATCH 05 — DELETIONS
+================================================================================
+
+One file is deleted by this batch. Deletions are listed separately from
+modifications on purpose: a deletion cannot be reviewed by diffing, so it gets
+its own file with its evidence.
+
+
+1. app/Services/Payment/WithdrawalCompletionService.php
+--------------------------------------------------------------------------------
+DELETE.
+
+EVIDENCE
+  * The file declares `namespace App\Services\Finance;` while living at
+    app/Services/Payment/. Composer's PSR-4 autoloader maps
+    `App\Services\Finance\` to app/Services/Finance/, so this file is at a path
+    the autoloader will never look in. It is unreachable: no `use` statement,
+    no `app()` call and no string reference in the application can ever load
+    it.
+  * It is byte-identical (410 lines, 17519 bytes) to
+    app/Services/Finance/WithdrawalCompletionService.php — `diff` reports no
+    difference. Every real reference in the application
+    (WithdrawalDisbursementService, PaymentWebhookService,
+    PaymentCallbackService, WithdrawalReconciliationService,
+    WithdrawalCallbackApplicationService, ThaiBankPayoutWebhookService, the
+    Filament withdrawal resources) imports App\Services\Finance\... and is
+    served by the Finance copy.
+  * A class file whose declared namespace does not match its directory is not
+    merely dead: it is a trap. The next reader who "tidies up" the namespace
+    would create TWO distinct classes called
+    App\Services\Finance\WithdrawalCompletionService, and the one the
+    container resolves would depend on which file Composer happened to index.
+
+WHY IT IS SAFE
+  Nothing loads it, so nothing can depend on it. Deleting it cannot change a
+  single behaviour; it can only remove a file that lies about where it lives.
+
+WHAT WAS CHECKED BEFORE DELETING
+  * `grep -rn "WithdrawalCompletionService" app/ tests/ config/` — every hit is
+    `use App\Services\Finance\WithdrawalCompletionService;` or a fully
+    qualified App\Services\Finance\... reference. No hit names
+    App\Services\Payment\WithdrawalCompletionService.
+  * `diff app/Services/Finance/WithdrawalCompletionService.php
+        app/Services/Payment/WithdrawalCompletionService.php` — identical.
+  * The application's own autoload map (composer dump-autoload -o) cannot
+    contain a class for this path, because the class name it declares is
+    already claimed by the Finance copy.
+
+
+FILES
+--------------------------------------------------------------------------------
+One repo-relative path per line. apply-batch-05.sh reads this section verbatim;
+nothing else in this file is machine-read.
+
+app/Services/Payment/WithdrawalCompletionService.php
