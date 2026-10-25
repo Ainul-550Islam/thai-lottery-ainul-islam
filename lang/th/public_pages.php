@@ -543,4 +543,21 @@ return [
     // หน้าแสดงผลการยืนยันคำขอความเป็นส่วนตัว (เฉพาะกรอบหน้า ข้อความผลลัพธ์อยู่ใน privacy_requests.php)
     'privacy_request_result_title' => 'การยืนยันคำขอความเป็นส่วนตัว',
     'privacy_request_result_back' => 'กลับไปที่ประกาศความเป็นส่วนตัว',
+
+    /* Batch 08 frontend wiring: public_pages keys (English / Thai / Bangla parity). */
+    'download_pdf' => 'ดาวน์โหลด PDF ที่ตรวจสอบแล้ว',
+    'download_title' => 'เอกสารที่ตรวจสอบแล้ว',
+    'download_hint' => 'PDF สร้างจากเอกสารฉบับที่เผยแพร่ ไม่ใช่ข้อความบนหน้านี้',
+    'download_not_available' => 'PDF ที่ตรวจสอบแล้วยังไม่พร้อมใช้งาน ใช้ปุ่มพิมพ์ / บันทึกบนหน้านี้แทน',
+    'download_not_configured' => 'ยังไม่ได้ตั้งค่าการส่งออก PDF ที่ตรวจสอบแล้วในสภาพแวดล้อมนี้',
+    'download_unsupported_locale' => 'ภาษาของเอกสารนี้ยังไม่เผยแพร่สำหรับดาวน์โหลด',
+    'download_failed' => 'ไม่สามารถดาวน์โหลดเอกสารได้ กรุณาลองใหม่ภายหลัง',
+    'download_starting' => 'กำลังเตรียม PDF ที่ตรวจสอบแล้ว…',
+    'download_ready' => 'PDF ที่ตรวจสอบแล้วพร้อมใช้งาน',
+    'download_version' => 'เวอร์ชันเอกสาร',
+    'download_cached' => 'คุณมีเอกสารเวอร์ชันนี้อยู่แล้ว',
+    'download_noscript' => 'หากปิด JavaScript ลิงก์ดาวน์โหลดจะเปิดคำตอบจากเซิร์ফเวอร์โดยตรง',
+    'download_terms_label' => 'ข้อกำหนดการใช้งาน',
+    'download_privacy_label' => 'ประกาศความเป็นส่วนตัว',
+    'download_fees_label' => 'ตารางค่าธรรมเนียม',
 ];

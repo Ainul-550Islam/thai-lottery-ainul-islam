@@ -71,5 +71,67 @@
             </div>
         @endif
     </section>
+
+{{-- Batch 08: closed notification-preference matrix. The vocabularies are the
+     published PHP enums; the two endpoints are named routes. --}}
+@php
+    $prefEventTypes = array_values(array_map(
+        static fn (\App\Enums\NotificationEventType $type): string => $type->value,
+        \App\Enums\NotificationEventType::cases()
+    ));
+    $prefChannels = array_values(array_map(
+        static fn (\App\Enums\NotificationChannel $channel): string => $channel->value,
+        array_filter(
+            \App\Enums\NotificationChannel::cases(),
+            static fn (\App\Enums\NotificationChannel $channel): bool => $channel->isDeliverable()
+        )
+    ));
+    $prefMandatory = array_values(array_filter(
+        $prefEventTypes,
+        static fn (string $eventType): bool => \App\Enums\NotificationEventType::from($eventType)->isMandatory()
+            || in_array($eventType, ['withdrawal_paid', 'withdrawal_rejected'], true)
+    ));
+    $settingsL10n = [
+        'title' => __('player.notification_preferences_title'),
+        'lead' => __('player.notification_preferences_lead'),
+        'eventColumn' => __('player.notification_preferences_event_column'),
+        'on' => __('player.notification_preferences_on'),
+        'off' => __('player.notification_preferences_off'),
+        'mandatory' => __('player.notification_preferences_mandatory_badge'),
+        'mandatoryHelp' => __('player.notification_preferences_mandatory_hint'),
+        'loading' => __('player.notification_preferences_loading'),
+        'saving' => __('player.notification_preferences_saving'),
+        'saved' => __('player.notification_preferences_saved'),
+        'failed' => __('player.notification_preferences_failed'),
+        'rollback' => __('player.notification_preferences_rollback'),
+        'notConfigured' => __('player.notification_preferences_not_configured'),
+        'authenticationRequired' => __('player.notification_preferences_sign_in'),
+        'networkError' => __('player.notification_preferences_network_error'),
+        'validationError' => __('player.notification_preferences_event_invalid'),
+        'channel_in_app' => __('player.notification_channel_in_app'),
+        'channel_sms' => __('player.notification_channel_sms'),
+        'channel_email' => __('player.notification_channel_email'),
+        'channel_push' => __('player.notification_channel_push'),
+    ];
+    foreach ($prefEventTypes as $prefEventType) {
+        $settingsL10n['event_'.$prefEventType] = trans()->has('player.notification_event_'.$prefEventType)
+            ? __('player.notification_event_'.$prefEventType)
+            : ucfirst(str_replace('_', ' ', $prefEventType));
+    }
+@endphp
+<section id="notification-preferences" class="mt-8" aria-labelledby="notification-preferences-title"
+    data-update-url="{{ route('api.v1.player.settings.notifications') }}"
+    data-read-url="{{ route('notifications.preferences.index') }}"
+    data-events='@json($prefEventTypes)'
+    data-channels='@json($prefChannels)'
+    data-mandatory='@json($prefMandatory)'>
+    <h2 id="notification-preferences-title" class="text-xl font-black text-white">{{ __('player.notification_preferences_title') }}</h2>
+    <p class="mt-2 text-sm leading-6 text-slate-400">{{ __('player.notification_preferences_lead') }}</p>
+    <p id="prefs-mandatory-help" class="tl-prefs-help" data-prefs-mandatory-help role="note">{{ __('player.notification_preferences_mandatory_hint') }}</p>
+    <div class="tl-prefs-grid" data-prefs-grid></div>
+    <p class="tl-status" data-prefs-status role="status" aria-live="polite"></p>
+    <noscript><p class="tl-status" role="status">{{ __('player.notification_preferences_noscript') }}</p></noscript>
+    <script type="application/json" id="player-settings-l10n">@json($settingsL10n)</script>
+</section>
 </div>
 @endsection

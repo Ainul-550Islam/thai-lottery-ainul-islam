@@ -46,6 +46,8 @@ export default defineConfig({
                 'resources/css/player-profile.css',
                 'resources/css/lottery-history.css',
                 'resources/css/player-settings.css',
+                // Batch 08: deposit lanes, preference matrix, illustration, PDF controls.
+                'resources/css/frontend-wiring.css',
                 // These four CSS entries were referenced by Blade (@vite) but never
                 // registered, so `@vite` failed to find them in the manifest and the
                 // page 500'd in production / 404'd in dev.
@@ -54,6 +56,30 @@ export default defineConfig({
                 'resources/css/pages/blog.css',
                 'resources/css/pages/rewards.css',
         'resources/js/app.js',
+        // Batch 08: the merged deposit / illustration / settings / PDF lanes.
+        // These are real build entries (some are also code-split imports in
+        // app.js); keeping them in the manifest lets any Blade view load one
+        // directly with @vite() without a 500 in production.
+        'resources/js/frontend-api.js',
+        'resources/js/truemoney-redeem.js',
+        'resources/js/slip-upload.js',
+        'resources/js/legal-downloads.js',
+        // Legacy standalone page bundles: no Blade view imports them today,
+        // but they are still shipped as independent entries so the archived
+        // preview pages and existing bookmarks keep resolving. They are plain
+        // ES modules with root-element guards, so registering them is inert.
+        'resources/js/analytics-consent.js',
+        'resources/js/confirm-actions.js',
+        'resources/js/deposit.js',
+        'resources/js/download-app-portal.js',
+        'resources/js/fees-portal.js',
+        'resources/js/home-keypad.js',
+        'resources/js/privacy-portal.js',
+        'resources/js/prize-verification-portal.js',
+        'resources/js/pwa.js',
+        'resources/js/terms-portal.js',
+        'resources/js/theme-toggle.js',
+        'resources/js/withdraw.js',
         'resources/js/layout/mobile-menu.js',
         'resources/js/public-pages.js',
         'resources/js/pages/about.js',
@@ -83,18 +109,6 @@ export default defineConfig({
         'resources/js/account-grade-portal.js',
         'resources/js/how-to-play-portal.js',
         'resources/js/faq-portal.js',
-        'resources/js/components/AuthCard.tsx',
-        'resources/js/components/LottoFinAdminDashboard.tsx',
-        'resources/js/components/GloResultsChecker.tsx',
-        'resources/js/components/PlayerSecuritySettings.tsx',
-        'resources/js/components/ThaiLotteryBetting.tsx',
-        'resources/js/components/PlayerDashboard.tsx',
-        'resources/js/components/WalletManagement.tsx',
-        'resources/js/components/DepositPortal.tsx',
-        'resources/js/components/WithdrawalPortal.tsx',
-        'resources/js/components/PlayerProfile.tsx',
-        'resources/js/components/LotteryHistory.tsx',
-        'resources/js/components/PlayerSettings.tsx',
         'resources/js/account-verification.js',
         'resources/js/account-grade.js',
                 'resources/js/prize-verification.js',

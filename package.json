@@ -10,10 +10,12 @@
         "dev": "vite",
         "build": "vite build",
         "e2e:public": "playwright test tests/browser/public-smoke.spec.mjs",
+        "e2e:all": "playwright test",
         "test:dependencies": "node --test tests/dependencies/security-gate.test.mjs",
         "security:dependencies": "node scripts/dependency_security_gate.mjs"
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.10.2",
         "@playwright/test": "^1.63.0",
         "@tailwindcss/postcss": "4.3.3",
         "autoprefixer": "^10.4.20",
@@ -28,7 +30,6 @@
     "dependencies": {
         "laravel-echo": "^2.6.1",
         "pusher-js": "^8.6.0",
-        "react": "^18.3.1",
-        "react-dom": "^18.3.1"
+        "qrcode": "^1.5.4"
     }
 }

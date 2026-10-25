@@ -416,4 +416,21 @@ return array_replace($english, [
     // গোপনীয়তা-অনুরোধ যাচাইয়ের ফলাফল পাতার খোলস (ফলাফলের লেখা privacy_requests.php-এ)
     'privacy_request_result_title' => 'গোপনীয়তা-অনুরোধ যাচাই',
     'privacy_request_result_back' => 'গোপনীয়তা বিজ্ঞপ্তিতে ফিরে যান',
+
+    /* Batch 08 frontend wiring: public_pages keys (English / Thai / Bangla parity). */
+    'download_pdf' => 'যাচাইকৃত PDF ডাউনলোড করুন',
+    'download_title' => 'যাচাইকৃত নথি',
+    'download_hint' => 'PDF তৈরি হয় প্রকাশিত নথির সংস্করণ থেকে, এই পৃষ্ঠার লেখা থেকে নয়।',
+    'download_not_available' => 'যাচাইকৃত PDF এখনো উপলভ্য নয়। এই পৃষ্ঠার প্রিন্ট / সেভ নিয়ন্ত্রণ ব্যবহার করুন।',
+    'download_not_configured' => 'এই পরিবেশে যাচাইকৃত PDF এক্সপোর্ট কনফিগার করা হয়নি।',
+    'download_unsupported_locale' => 'নথির এই ভাষাটি ডাউনলোডের জন্য প্রকাশিত নয়।',
+    'download_failed' => 'নথিটি ডাউনলোด করা যায়নি। পরে আবার চেষ্টা করুন।',
+    'download_starting' => 'যাচাইকৃত PDF প্রস্তুত করা হচ্ছে…',
+    'download_ready' => 'যাচাইকৃত PDF প্রস্তুত।',
+    'download_version' => 'নথির সংস্করণ',
+    'download_cached' => 'আপনার কাছে এই সংস্করণটি আগেই আছে।',
+    'download_noscript' => 'JavaScript ছাড়া ডাউনলোড লিংক সরাসরি সার্ভারের সৎ উত্তর খুলবে।',
+    'download_terms_label' => 'ব্যবহারের শর্তাবলি',
+    'download_privacy_label' => 'গোপনীয়তা নীতি',
+    'download_fees_label' => 'ফি তালিকা',
 ]);

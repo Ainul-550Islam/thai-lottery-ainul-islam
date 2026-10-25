@@ -76,6 +76,36 @@
         <meta property="og:url" content="@yield('meta_og_url')">
     @endif
 
+    {{-- Batch 08: localized realtime toast copy. Keys are dot-free so no raw
+         translation key can ever be printed by the notification bridge. --}}
+    @php
+        $realtimeL10n = [
+            'dismiss' => __('deposit.toast_dismiss'),
+            'walletTitle' => __('deposit.toast_wallet_title'),
+            'walletMessage' => __('deposit.toast_wallet_message'),
+            'depositTitle' => __('deposit.toast_deposit_title'),
+            'withdrawalTitle' => __('deposit.toast_withdrawal_title'),
+            'payoutTitle' => __('deposit.toast_payout_title'),
+            'betTitle' => __('deposit.toast_bet_title'),
+            'resyncedTitle' => __('deposit.toast_resynced_title'),
+            'resyncedMessage' => __('deposit.toast_resynced_message'),
+            'statusPrefix' => __('deposit.toast_status_prefix'),
+            'pending' => __('deposit.toast_status_pending'),
+            'processing' => __('deposit.toast_status_processing'),
+            'confirmed' => __('deposit.toast_status_confirmed'),
+            'approved' => __('deposit.toast_status_approved'),
+            'completed' => __('deposit.toast_status_completed'),
+            'failed' => __('deposit.toast_status_failed'),
+            'rejected' => __('deposit.toast_status_rejected'),
+            'cancelled' => __('deposit.toast_status_cancelled'),
+            'canceled' => __('deposit.toast_status_cancelled'),
+            'expired' => __('deposit.toast_status_expired'),
+            'paid' => __('deposit.toast_status_paid'),
+            'burstSuffix' => __('deposit.toast_burst_suffix'),
+        ];
+    @endphp
+    <script type="application/json" id="realtime-l10n">@json($realtimeL10n)</script>
+
     {{-- Vite-built assets --}}
     @vite([
         'resources/css/app.css',
@@ -129,7 +159,7 @@
                         <div id="live-wallet-pill" class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700/80 rounded-full px-3.5 py-1.5 text-xs sm:text-sm shadow-inner">
                             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span class="text-slate-400 font-medium">Balance:</span>
-                            <span id="player-balance-display" class="font-mono font-bold text-amber-400">
+                            <span id="player-balance-display" class="font-mono font-bold text-amber-400" data-live-balance="wallet" data-currency="THB" aria-live="polite" aria-atomic="true">
                                 {{ \App\Services\Finance\Money::of((string) (Auth::user()->wallet?->balance ?? '0'), \App\Enums\Currency::THB)->format() }}
                             </span>
                         </div>

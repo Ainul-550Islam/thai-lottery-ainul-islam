@@ -1,121 +1,186 @@
 /**
- * Lottery Platform Interactive How to Play & Bet Type Simulator Controller
+ * Public payout ILLUSTRATION controller (Batch 08).
+ *
+ * The retired simulator posted digit_input / stake_per_line and rendered
+ * invented "generated lines". The merged backend exposes exactly one honest
+ * calculation: POST /api/v1/public/how-to-play/simulate with a published bet
+ * type and a stake, answering stake × the published multiplier — or
+ * NOT_CONFIGURED for that bet type / for the whole lane. This module prints
+ * only what the server returned and always prints the server's mandatory
+ * disclaimer next to a READY figure.
+ *
+ * It never computes a multiplier, never predicts a number, never states a
+ * probability and never promises winnings. A 501 (flag off), a 503 and a
+ * per-bet-type NOT_CONFIGURED all produce a neutral localized message, and
+ * the figure area is hidden rather than left showing a stale number.
  */
 
-(function () {
-    'use strict';
+import {
+    apiRequest,
+    announce,
+    formatAmount,
+    isNotConfigured,
+    readL10n,
+    serverMessage,
+    setText,
+    text,
+} from './frontend-api.js';
 
-    function initHowToPlay() {
-        var tokenMeta = document.querySelector('meta[name="csrf-token"]');
-        var csrfToken = tokenMeta ? tokenMeta.getAttribute('content') : '';
+const FALLBACK = Object.freeze({
+    flagOff: 'The payout illustration is not enabled on this site yet. The guide above still describes the platform journey.',
+    betTypeNotConfigured: 'No single published payout rate exists for this bet type, so no illustration is shown.',
+    serviceUnavailable: 'The illustration service could not be reached. No figure is shown.',
+    networkError: 'The request could not be completed. Check your connection and try again.',
+    validationError: 'Enter the stake as an amount with at most two decimal places.',
+    submitting: 'Calculating illustration…',
+    submit: 'Illustrate return',
+    ready: 'Illustration available',
+    notReady: 'Not configured',
+    stakeLabel: 'Stake',
+    multiplierLabel: 'Published payout rate',
+    grossLabel: 'Return if matched (gross)',
+    netLabel: 'Return if matched (net)',
+    currencyLabel: 'Currency',
+    basisSourceLabel: 'Payout rate source',
+    netBasisLabel: 'Net basis',
+    disclaimerLabel: 'Important',
+    disclaimerFallback: 'Illustration only. It is not a prediction, not a probability and not a promise of winnings.',
+});
 
-        var simBetType = document.getElementById('simBetType');
-        var simDigitInput = document.getElementById('simDigitInput');
-        var simStakeInput = document.getElementById('simStakeInput');
+function init() {
+    const root = document.getElementById('payout-illustration');
+    if (!root) {
+        return;
+    }
 
-        var outDesc = document.getElementById('simOutDesc');
-        var outTotalLines = document.getElementById('simOutTotalLines');
-        var outTotalStake = document.getElementById('simOutTotalStake');
-        var outWinPerLine = document.getElementById('simOutWinPerLine');
-        var outLinesGrid = document.getElementById('simOutLinesGrid');
+    const l10n = readL10n('how-to-play-l10n', FALLBACK);
+    const form = root.querySelector('[data-illustration-form]');
+    const select = root.querySelector('[data-illustration-bet-type]');
+    const stake = root.querySelector('[data-illustration-stake]');
+    const submit = root.querySelector('[data-illustration-submit]');
+    const status = root.querySelector('[data-illustration-status]');
+    const result = root.querySelector('[data-illustration-result]');
+    const disclaimerNode = root.querySelector('[data-illustration-disclaimer]');
+    const endpoint = root.dataset.simulateUrl || '';
+    const locale = (document.documentElement.lang || 'en').split('-')[0].toLowerCase();
+    let pending = false;
 
-        function triggerSimulation() {
-            var bType = simBetType ? simBetType.value : '19_doors';
-            var digits = simDigitInput ? simDigitInput.value.trim() : '7';
-            var stake = simStakeInput ? parseFloat(simStakeInput.value) : 10;
+    function hideResult(message) {
+        if (result) {
+            result.hidden = true;
+        }
+        if (disclaimerNode) {
+            setText(disclaimerNode, message || text(l10n, 'disclaimerFallback'));
+        }
+        announce(status, message || text(l10n, 'notReady'));
+    }
 
-            if (isNaN(stake) || stake <= 0) stake = 10;
-            if (!digits) digits = '7';
-
-            fetch('/api/v1/public/how-to-play/simulate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
-                },
-                body: JSON.stringify({
-                    bet_type: bType,
-                    digit_input: digits,
-                    stake_per_line: stake
-                })
-            })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (data.success && data.simulation) {
-                    renderSimulation(data.simulation);
-                }
-            })
-            .catch(function (err) {
-                console.error('Simulation error:', err);
-            });
+    function render(data) {
+        if (!result) {
+            return;
         }
 
-        function renderSimulation(sim) {
-            if (outDesc) outDesc.textContent = sim.description;
-            if (outTotalLines) outTotalLines.textContent = sim.total_lines_count + ' Lines';
-            if (outTotalStake) outTotalStake.textContent = sim.total_stake_display;
-            if (outWinPerLine) outWinPerLine.textContent = sim.potential_win_per_line + ' (' + sim.payout_multiplier + ')';
+        setText(root.querySelector('[data-illustration-stake-value]'), formatAmount(data.stake, data.currency));
+        setText(root.querySelector('[data-illustration-multiplier]'), String(data.multiplier || ''));
+        setText(root.querySelector('[data-illustration-gross]'), formatAmount(data.gross_return_if_matched, data.currency));
+        setText(root.querySelector('[data-illustration-net]'), formatAmount(data.net_if_matched, data.currency));
+        setText(root.querySelector('[data-illustration-currency]'), String(data.currency || ''));
 
-            if (outLinesGrid) {
-                var html = '';
-                sim.generated_lines.forEach(function (line) {
-                    html += '<span class="px-2.5 py-1.5 rounded-lg bg-[#0a1424] border border-amber-500/30 text-amber-400 font-mono font-bold text-center text-xs">' + line + '</span>';
-                });
-                outLinesGrid.innerHTML = html;
-            }
+        const basis = data.basis || {};
+        setText(root.querySelector('[data-illustration-source]'), String(basis.multiplier_source || ''));
+        setText(root.querySelector('[data-illustration-net-basis]'), String(basis.net_basis || ''));
+        setText(disclaimerNode, String(data.disclaimer || text(l10n, 'disclaimerFallback')));
+
+        result.hidden = false;
+        announce(status, text(l10n, 'ready'));
+    }
+
+    async function illustrate(event) {
+        event.preventDefault();
+        if (pending) {
+            return;
         }
 
-        if (simBetType) {
-            simBetType.addEventListener('change', function () {
-                var val = this.value;
-                if (simDigitInput) {
-                    if (val === '19_doors' || val === 'running_top') {
-                        simDigitInput.placeholder = 'Enter 1 digit (e.g. 7)';
-                        if (simDigitInput.value.length > 1) simDigitInput.value = simDigitInput.value[0];
-                    } else if (val === '3d_tod' || val === '3d_top') {
-                        simDigitInput.placeholder = 'Enter 3 digits (e.g. 921)';
-                        simDigitInput.value = '921';
-                    } else if (val === '2d_top' || val === '2d_bottom') {
-                        simDigitInput.placeholder = 'Enter 2 digits (e.g. 21)';
-                        simDigitInput.value = '21';
-                    }
-                }
-                triggerSimulation();
-            });
+        const betType = select ? String(select.value || '').trim().toLowerCase() : '';
+        const amount = stake ? String(stake.value || '').trim() : '';
+
+        if (betType === '' || !/^\d{1,13}(?:\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) {
+            hideResult(text(l10n, 'validationError'));
+            return;
         }
 
-        if (simDigitInput) {
-            var debounce;
-            simDigitInput.addEventListener('input', function () {
-                clearTimeout(debounce);
-                debounce = setTimeout(triggerSimulation, 200);
-            });
+        pending = true;
+        if (submit) {
+            submit.disabled = true;
+            submit.setAttribute('aria-busy', 'true');
+            setText(submit, text(l10n, 'submitting'));
         }
+        hideResult('');
 
-        if (simStakeInput) {
-            simStakeInput.addEventListener('input', triggerSimulation);
-        }
-
-        // Quick Bet Type Selectors
-        var typePills = document.querySelectorAll('.htp-type-pill');
-        typePills.forEach(function (pill) {
-            pill.addEventListener('click', function () {
-                var t = this.getAttribute('data-type');
-                if (simBetType) {
-                    simBetType.value = t;
-                    simBetType.dispatchEvent(new Event('change'));
-                }
-            });
+        const response = await apiRequest(endpoint, {
+            method: 'POST',
+            body: { bet_type: betType, stake: amount, locale },
         });
 
-        // Initial Simulation
-        triggerSimulation();
+        pending = false;
+        if (submit) {
+            submit.disabled = false;
+            submit.removeAttribute('aria-busy');
+            setText(submit, text(l10n, 'submit'));
+        }
+
+        const data = response.data || {};
+        const flagOff = response.status === 501 || (isNotConfigured(response) && data.state === 'NOT_CONFIGURED');
+
+        if (flagOff) {
+            hideResult(text(l10n, 'flagOff'));
+            return;
+        }
+
+        if (response.status === 503 || (isNotConfigured(response) && !data.data)) {
+            hideResult(text(l10n, 'serviceUnavailable'));
+            return;
+        }
+
+        if (response.status === 422 || data.state === 'INVALID_INPUT') {
+            hideResult(serverMessage(response) || text(l10n, 'validationError'));
+            return;
+        }
+
+        if (!response.ok || data.success !== true) {
+            hideResult(text(l10n, response.status === 0 ? 'networkError' : 'serviceUnavailable'));
+            return;
+        }
+
+        const illustration = data.data || {};
+        if (data.state === 'NOT_CONFIGURED' || illustration.state === 'NOT_CONFIGURED') {
+            hideResult(String(illustration.reason || data.message || text(l10n, 'betTypeNotConfigured')));
+            return;
+        }
+
+        if (illustration.state !== 'READY' || !illustration.multiplier || !illustration.gross_return_if_matched) {
+            hideResult(text(l10n, 'betTypeNotConfigured'));
+            return;
+        }
+
+        render(illustration);
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initHowToPlay);
-    } else {
-        initHowToPlay();
+    if (form) {
+        form.addEventListener('submit', illustrate);
     }
-})();
+
+    if (select) {
+        select.addEventListener('change', () => {
+            hideResult('');
+        });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+} else {
+    init();
+}
+
+export default { init };

@@ -73,6 +73,38 @@
             @endforelse
             <section class="next-section" id="fee-methodology" data-content-section aria-labelledby="fee-methodology-title"><div class="next-section__heading"><span class="next-section__number">Σ</span><div><p class="next-eyebrow">{{ trans('fees_page.transparent') }}</p><h2 id="fee-methodology-title">{{ trans('fees_page.how_to_read') }}</h2></div></div><div class="next-section__body"><p>{{ trans('fees_page.method_body') }}</p><p class="next-muted">{{ trans('fees_page.print_note') }}</p></div></section>
         </div></div>
+
+{{-- Batch 08: verified legal PDF, progressive enhancement. --}}
+@php
+    $legalL10n = [
+        'notAvailable' => __('public_pages.download_not_available'),
+        'notConfigured' => __('public_pages.download_not_configured'),
+        'unsupportedLocale' => __('public_pages.download_unsupported_locale'),
+        'failed' => __('public_pages.download_failed'),
+        'starting' => __('public_pages.download_starting'),
+        'ready' => __('public_pages.download_ready'),
+        'version' => __('public_pages.download_version'),
+        'cached' => __('public_pages.download_cached'),
+        'download' => __('public_pages.download_pdf'),
+    ];
+@endphp
+<section id="legal-downloads" class="next-section tl-legal-downloads" aria-labelledby="legal-downloads-title">
+    <div class="next-section__heading"><span class="next-section__number">PDF</span><div>
+        <p class="next-eyebrow">{{trans('public_pages.download_fees_label')}}</p>
+        <h2 id="legal-downloads-title">{{ __('public_pages.download_title') }}</h2>
+    </div></div>
+    <div class="next-section__body">
+        <p>{{ __('public_pages.download_hint') }}</p>
+        <div class="tl-legal-actions">
+            <a class="next-button next-button--gold" href="{{ route('api.v1.public.fees.download') }}" data-legal-download data-filename="fee-schedule.pdf" data-document="fees">{{ __('public_pages.download_pdf') }}</a>
+        </div>
+        <p class="tl-legal-version" data-legal-download-version role="status" aria-live="polite" hidden></p>
+        <p class="tl-status" data-legal-download-status role="status" aria-live="polite"></p>
+        <noscript><p class="tl-help">{{ __('public_pages.download_noscript') }}</p></noscript>
+    </div>
+    <script type="application/json" id="legal-downloads-l10n">@json($legalL10n)</script>
+</section>
+
         <section class="next-bottom"><div><p class="next-eyebrow">{{ trans('fees_page.bottom_eyebrow') }}</p><h2>{{ trans('fees_page.bottom_title') }}</h2><p>{{ trans('fees_page.bottom_body') }}</p></div><div class="next-bottom__links"><button class="next-button next-button--gold" type="button" data-print-page>{{ trans('fees_page.print_save') }}</button><a class="next-button" href="{{ route('contact') }}">{{ trans('fees_page.contact_support') }}</a></div></section>
     </main>
 </div>
