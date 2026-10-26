@@ -64,7 +64,12 @@ return [
     ],
 
     'line' => [
+        // Legacy LINE Notify (shut down 31 Mar 2025 — kept for reference only)
         'notify_token' => env('LINE_NOTIFY_TOKEN'),
+
+        // LINE Messaging API (replacement)
+        'messaging_channel_access_token' => env('LINE_MESSAGING_CHANNEL_ACCESS_TOKEN', ''),
+        'messaging_user_id' => env('LINE_MESSAGING_USER_ID', ''),
     ],
 
     /*

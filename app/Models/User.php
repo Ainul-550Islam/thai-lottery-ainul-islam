@@ -78,11 +78,17 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
         'preferences',
         // PROMPT 3 registration details (columns added by migration
         // 2026_09_28_230001; all nullable, all additive).
-        'date_of_birth',
-        'gender',
-        'city',
-        'country',
-        'nationality',
+                'date_of_birth',
+                'gender',
+                'city',
+                'country',
+                'nationality',
+                // Social login (PROMPT: FB / Twitter / Google+)
+                'provider',
+                'provider_id',
+                // Wechat ID / IC No. registration fields
+                'wechat_id',
+                'ic_no',
     ];
 
     /**

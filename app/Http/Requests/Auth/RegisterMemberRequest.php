@@ -81,6 +81,24 @@ final class RegisterMemberRequest extends FormRequest
                 'before_or_equal:'.now()->subYears($minAgeYears)->toDateString(),
             ],
 
+            'wechat_id' => [
+                'nullable',
+                'string',
+                'min:3',
+                'max:64',
+                'regex:/^[A-Za-z0-9_\-]+$/',
+                Rule::unique('users', 'wechat_id'),
+            ],
+
+            'ic_no' => [
+                'nullable',
+                'string',
+                'min:3',
+                'max:64',
+                'regex:/^[A-Za-z0-9_\-]+$/',
+                Rule::unique('users', 'ic_no'),
+            ],
+
             'age_attestation' => ['required', 'accepted'],
             'terms' => ['required', 'accepted'],
             'privacy_notice' => ['required', 'accepted'],
@@ -111,6 +129,8 @@ final class RegisterMemberRequest extends FormRequest
             'email' => __('public_pages.register_email'),
             'date_of_birth' => __('public_pages.register_dob'),
             'nationality' => __('public_pages.register_nationality'),
+            'wechat_id' => __('public_pages.register_wechat_id'),
+            'ic_no' => __('public_pages.register_ic_no'),
             'age_attestation' => __('public_pages.register_age_attestation', ['age' => $minAgeYears]),
             'terms' => __('public_pages.register_terms'),
             'privacy_notice' => __('public_pages.register_privacy_notice'),

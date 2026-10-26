@@ -280,6 +280,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'conversion.enabled' => EnsureWalletConversionEnabled::class,
             'conversion.idempotent' => RequireConversionIdempotencyKey::class,
             'conversion.idempotency' => RequireConversionIdempotencyKey::class,
+            // Real-money licence gate — fail-closed on deposit/withdrawal/bet routes.
+            'real_money.license' => \App\Http\Middleware\EnforceRealMoneyLicense::class,
         ]);
 
         // Applied globally: security headers, and a correlation id pinned on the way in and

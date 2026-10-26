@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ReleaseOperationsController;
 use App\Http\Controllers\Admin\WithdrawalReconciliationController;
 use App\Http\Controllers\Agent\AgentPortalController;
 use App\Http\Controllers\Auth\MemberAuthController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Betting\ThaiLotteryBettingController;
 use App\Http\Controllers\BingoLotteryController;
 use App\Http\Controllers\ContactController;
@@ -116,6 +117,14 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/reset-password', [MemberAuthController::class, 'resetPassword'])
         ->middleware('throttle:password-reset')
         ->name('password.reset.attempt');
+
+    // Social login (Facebook, Twitter/X, Google+) — OAuth2 authorize + callback.
+    Route::get('/social/{provider}/redirect', [SocialAuthController::class, 'redirectToProvider'])
+        ->where('provider', 'facebook|twitter|google')
+        ->name('social.redirect');
+    Route::get('/social/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])
+        ->where('provider', 'facebook|twitter|google')
+        ->name('social.callback');
 });
 
 Route::middleware('auth')->group(function (): void {

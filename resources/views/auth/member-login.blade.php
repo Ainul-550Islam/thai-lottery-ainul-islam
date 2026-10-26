@@ -113,6 +113,39 @@
             </div>
         </form>
 
+        {{-- Social login --}}
+        <div class="mt-8 space-y-4">
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                    <span class="w-full border-t border-slate-700"></span>
+                </div>
+                <div class="relative flex justify-center text-xs uppercase">
+                    <span class="px-2 text-slate-400 bg-slate-900/90">
+                        {{ __('public_pages.social_or_continue_with') }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <a href="{{ route('social.redirect', 'facebook') }}"
+                   class="flex items-center justify-center px-4 py-3 border border-slate-700 rounded-xl bg-slate-800 text-slate-100 hover:bg-slate-700 hover:border-emerald-400 transition text-sm font-medium">
+                    <span class="mr-2">f</span> {{ __('public_pages.social_facebook') }}
+                </a>
+                <a href="{{ route('social.redirect', 'twitter') }}"
+                   class="flex items-center justify-center px-4 py-3 border border-slate-700 rounded-xl bg-slate-800 text-slate-100 hover:bg-slate-700 hover:border-emerald-400 transition text-sm font-medium">
+                    <span class="mr-2">X</span> {{ __('public_pages.social_twitter') }}
+                </a>
+                <a href="{{ route('social.redirect', 'google') }}"
+                   class="flex items-center justify-center px-4 py-3 border border-slate-700 rounded-xl bg-slate-800 text-slate-100 hover:bg-slate-700 hover:border-emerald-400 transition text-sm font-medium">
+                    <span class="mr-2">g</span> {{ __('public_pages.social_google') }}
+                </a>
+            </div>
+
+            <p class="text-xs text-slate-500 text-center">
+                {{ __('public_pages.social_account_link_note') }}
+            </p>
+        </div>
+
         <div class="flex items-center justify-between text-sm">
             <a href="{{ route('register') }}" class="font-medium text-emerald-400 hover:text-emerald-300">
                 {{ __('public_pages.login_register_link') }}

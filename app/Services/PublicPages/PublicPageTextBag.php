@@ -49,13 +49,26 @@ final class PublicPageTextBag
         return $line;
     }
 
+    /** Return a translated scalar or structured value, falling back to English. */
+    public function value(string $key, string $locale): mixed
+    {
+        $localized = $this->all($locale);
+        if (array_key_exists($key, $localized) && $localized[$key] !== '') {
+            return $localized[$key];
+        }
+
+        $english = $this->all('en');
+
+        return $english[$key] ?? null;
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function all(string $locale): array
     {
         $loaded = [];
-        foreach (['en', 'th'] as $candidate) {
+        foreach (['en', 'th', 'bn'] as $candidate) {
             $path = lang_path($candidate.'/public_pages.php');
             if (is_file($path)) {
                 /** @var array<string, mixed> $rows */

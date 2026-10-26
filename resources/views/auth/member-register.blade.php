@@ -207,6 +207,32 @@
                             <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('nationality') }}</p>
                         @endif
                     </div>
+
+                    <div>
+                        <label for="wechat_id" class="block text-sm font-medium text-slate-300 mb-1">
+                            {{ __('public_pages.register_wechat_id') }}
+                        </label>
+                        <input id="wechat_id" name="wechat_id" type="text" value="{{ old('wechat_id') }}"
+                               @if ($errors->has('wechat_id')) aria-invalid="true" @endif
+                               class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('wechat_id') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"
+                               placeholder="your_wechat_id">
+                        @if ($errors->has('wechat_id'))
+                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('wechat_id') }}</p>
+                        @endif
+                    </div>
+
+                    <div>
+                        <label for="ic_no" class="block text-sm font-medium text-slate-300 mb-1">
+                            {{ __('public_pages.register_ic_no') }}
+                        </label>
+                        <input id="ic_no" name="ic_no" type="text" value="{{ old('ic_no') }}"
+                               @if ($errors->has('ic_no')) aria-invalid="true" @endif
+                               class="block w-full px-4 py-3 border rounded-xl sm:text-sm {{ $errors->has('ic_no') ? 'border-rose-600 bg-rose-950/30' : 'border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500' }}"
+                               placeholder="IC/Passport number">
+                        @if ($errors->has('ic_no'))
+                            <p class="mt-1 text-xs text-rose-300" role="alert">{{ $errors->first('ic_no') }}</p>
+                        @endif
+                    </div>
                 </div>
             </fieldset>
 

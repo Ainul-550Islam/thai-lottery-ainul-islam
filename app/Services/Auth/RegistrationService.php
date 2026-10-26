@@ -101,6 +101,8 @@ final class RegistrationService
                 'city' => $validated['city'] ?? null,
                 'country' => $validated['country'] ?? null,
                 'nationality' => $validated['nationality'] ?? null,
+                'wechat_id' => $validated['wechat_id'] ?? null,
+                'ic_no' => $validated['ic_no'] ?? null,
                 'preferences' => [
                     'terms_accepted_at' => now()->toIso8601String(),
                     'terms_version' => (string) config('auth_security.rule_version', '1'),
