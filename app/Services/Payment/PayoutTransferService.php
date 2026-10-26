@@ -173,7 +173,9 @@ class PayoutTransferService
     ): array {
         $current = app(PayoutTransferAccess::class)->authorize($actor, PayoutTransferAccess::REVIEW);
 
-        return DB::transaction(function () use ($data, $gatewayReference, $current, $evidenceVerified, $note, $evidenceId): array {
+        $refusal = null;
+        try {
+            return DB::transaction(function () use ($data, $gatewayReference, $current, $evidenceVerified, $note, $evidenceId, &$refusal): array {
             $current = app(PayoutTransferAccess::class)->authorize($current, PayoutTransferAccess::REVIEW);
 
             $payout = Payout::query()->lockForUpdate()
@@ -185,9 +187,9 @@ class PayoutTransferService
             }
 
             $guard = app(PayoutTransferGuard::class);
-            $guard->identity($payout, $data);
+            $guard->identity($payout, $data, false);
 
-            $makerId = (int) ($payout->metadata['approval']['requested_by'] ?? 0);
+            $makerId = (int) ($payout->metadata['approval']['maker_user_id'] ?? 0);
             if (! $evidenceVerified
                 || (int) $current->id === $makerId
                 || (int) $current->id === (int) $payout->user_id
@@ -212,6 +214,9 @@ class PayoutTransferService
             }
 
             if (($record['lane_status'] ?? null) === 'completed') {
+                if ($evidenceId !== null && $evidenceId !== ($record['evidence_id'] ?? null)) {
+                    throw PayoutTransferException::duplicateTransfer($data->idempotencyKey);
+                }
                 if (($record['gateway_reference'] ?? null) !== $gatewayReference) {
                     $guard->refuse($payout);
                 }
@@ -248,8 +253,10 @@ class PayoutTransferService
                     'prize_payout',
                     ['payout_id' => (int) $payout->id],
                 );
-            } catch (FinancialException) {
-                $guard->refuse($payout);
+            } catch (FinancialException $failure) {
+                $refusal = [$beneficiary, $failure, (int) $payout->id];
+                throw PayoutTransferException::gatewayRefused($payout->reference_number,
+                    $failure->errorCode() ?? 'payout_compliance_unavailable');
             }
             if (! $beneficiary->kycDocuments()->where('status', 'approved')->exists()
                 && ! $beneficiary->kycDocuments()->where('status', 'verified')->exists()) {
@@ -297,7 +304,15 @@ class PayoutTransferService
             ]);
 
             return $record;
-        });
+            }, 3);
+        } catch (PayoutTransferException $failure) {
+            if ($refusal !== null) {
+                // The money transaction rolled back, including its attempted audit.
+                // Re-emit only the gate's redacted refusal, never money writes or a recheck.
+                app(FinancialComplianceGateService::class)->auditPayoutRefusalAfterRollback(...$refusal);
+            }
+            throw $failure;
+        }
     }
 
     /**
@@ -328,7 +343,7 @@ class PayoutTransferService
             $guard = app(PayoutTransferGuard::class);
             $guard->identity($payout, $data);
 
-            $makerId = (int) ($payout->metadata['approval']['requested_by'] ?? 0);
+            $makerId = (int) ($payout->metadata['approval']['maker_user_id'] ?? 0);
             if (! $evidenceVerified
                 || (int) $current->id === $makerId
                 || (int) $current->id === (int) $payout->user_id
@@ -434,6 +449,9 @@ class PayoutTransferService
     {
         $metadata = is_array($payout->metadata) ? $payout->metadata : [];
         $record = $metadata[self::METADATA_KEY] ?? null;
+        if (array_key_exists(self::METADATA_KEY, $metadata) && ! is_array($record)) {
+            app(PayoutTransferGuard::class)->refuse($payout);
+        }
 
         return is_array($record) ? $record : null;
     }

@@ -71,6 +71,9 @@ class PayoutBatchService
      */
     public function create(PayoutBatchData $data): array
     {
+        if (count($data->payoutReferences) !== count(array_unique($data->payoutReferences))) {
+            app(PayoutBatchMembershipService::class)->refuse();
+        }
         if (! $data->hasMembers()) {
             throw PayoutBatchException::emptyMemberList($data->batchKey());
         }
@@ -90,6 +93,15 @@ class PayoutBatchService
                 ->first();
 
             if ($existing instanceof PayoutBatch) {
+                $membership = app(PayoutBatchMembershipService::class);
+                $members = $membership->members($existing, true);
+                $membership->verify($existing, $members);
+                $references = $members->pluck('reference_number')->sort()->values()->all();
+                if ($existing->currency !== $data->currency || $references !== $data->canonicalReferences()
+                    || bccomp((string) $existing->aggregate_amount, $data->canonicalAggregate(), 2) !== 0) {
+                    $membership->refuse();
+                }
+
                 return ['batch' => $existing, 'created' => false];
             }
 
@@ -115,6 +127,10 @@ class PayoutBatchService
             $laneMethod = null;
 
             foreach ($members as $member) {
+                if ($member->currency !== $data->currency
+                    || DB::table('payout_batch_members')->where('payout_id', $member->id)->lockForUpdate()->exists()) {
+                    app(PayoutBatchMembershipService::class)->refuse();
+                }
                 if ($member->status !== PayoutStatus::Pending) {
                     throw new PayoutBatchException(
                         sprintf(
@@ -285,39 +301,25 @@ class PayoutBatchService
      */
     public function recordMemberOutcome(PayoutBatch $batch, string $payoutReference, string $outcome, string $amount): PayoutBatch
     {
+        return $this->recordOutcome($batch, $payoutReference, $outcome, $amount);
+    }
+
+    /** Caller outcomes are assertions only. Counts are always derived from canonical evidence. */
+    public function recordOutcome(PayoutBatch $batch, string $payoutReference, string $outcome, string $amount): PayoutBatch
+    {
         return DB::transaction(function () use ($batch, $payoutReference, $outcome, $amount): PayoutBatch {
-            /** @var PayoutBatch $locked */
-            $locked = PayoutBatch::query()->lockForUpdate()->findOrFail((int) $batch->getKey());
-
-            $locked->processed_count = (int) $locked->processed_count + 1;
-
-            match ($outcome) {
-                'paid' => $locked->paid_count = (int) $locked->paid_count + 1,
-                'failed' => $locked->failed_count = (int) $locked->failed_count + 1,
-                'replayed' => $locked->replayed_count = (int) $locked->replayed_count + 1,
-                default => throw new \InvalidArgumentException(sprintf('Unknown member outcome [%s].', $outcome)),
-            };
-
-            if ($outcome === 'paid') {
-                $locked->paid_amount = bcadd((string) $locked->paid_amount, $amount, 2);
+            $locked = PayoutBatch::query()->lockForUpdate()->findOrFail($batch->id);
+            $membership = app(PayoutBatchMembershipService::class);
+            $members = $membership->members($locked, true);
+            $membership->verify($locked, $members);
+            $row = $members->firstWhere('reference_number', $payoutReference);
+            if (! $row || ! in_array($outcome, ['paid', 'failed', 'replayed'], true)
+                || preg_match('/^\d+(?:\.\d{1,2})?$/D', $amount) !== 1
+                || bccomp($amount, (string) $row->amount, 2) !== 0
+                || ($outcome === 'failed' ? $row->status !== PayoutStatus::Failed : $row->status !== PayoutStatus::Completed)) {
+                $membership->refuse();
             }
-
-            $locked->save();
-
-            // Project the outcome onto the member.
-            $member = Payout::query()
-                ->where('reference_number', $payoutReference)
-                ->first();
-
-            if ($member instanceof Payout) {
-                $metadata = is_array($member->metadata) ? $member->metadata : [];
-                $stamp = is_array($metadata[self::MEMBER_METADATA_KEY] ?? null) ? $metadata[self::MEMBER_METADATA_KEY] : [];
-                $stamp['outcome'] = $outcome;
-                $stamp['outcome_at'] = Carbon::now()->toIso8601String();
-                $metadata[self::MEMBER_METADATA_KEY] = $stamp;
-                $member->metadata = $metadata;
-                $member->save();
-            }
+            $locked->forceFill($membership->rollup($locked, $members))->save();
 
             return $locked;
         });
@@ -343,6 +345,9 @@ class PayoutBatchService
                 throw PayoutBatchException::notFound($batch->batch_key);
             }
 
+            $membership = app(PayoutBatchMembershipService::class);
+            $members = $membership->members($locked, true);
+            $locked->forceFill($membership->rollup($locked, $members));
             $status = $locked->status;
 
             if ($status === PayoutBatchStatus::Completed) {
@@ -451,7 +456,8 @@ class PayoutBatchService
             // Release the members' batch stamps.
             foreach ($locked->memberPayouts() as $member) {
                 $metadata = is_array($member->metadata) ? $member->metadata : [];
-                unset($metadata[self::MEMBER_METADATA_KEY]);
+                $metadata[self::MEMBER_METADATA_KEY]['outcome'] = 'cancelled';
+                $metadata[self::MEMBER_METADATA_KEY]['cancelled_at'] = Carbon::now()->toIso8601String();
                 $member->metadata = $metadata;
                 $member->save();
             }

@@ -11,6 +11,10 @@ use App\Enums\QueueName;
 use App\Enums\RiskLevel;
 use App\Models\AuditLog;
 use App\Models\Payout;
+use App\DTOs\Finance\PayoutBatchData;
+use App\Services\Finance\PayoutBatchService;
+use App\Services\Finance\PayoutBatchRoutingService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -127,18 +131,23 @@ class GeneratePayoutBatchJob implements ShouldBeUnique, ShouldQueue
 
         $dispatched = 0;
 
-        foreach (array_chunk($ids, $chunkSize) as $chunkIndex => $idChunk) {
-            // ProcessPayoutBatchJob's tag is an integer (it keys its own
-            // uniqueness lock). The tag names the run minute plus the chunk
-            // ordinal, so every chunk of this run is distinctly unique.
-            $batchTag = (int) sprintf('%s%02d', now()->format('YmdHi'), $chunkIndex + 1);
+        $lanes = $payouts->groupBy(fn (Payout $row): string =>
+            $row->currency->value.':'.($row->metadata['claim']['payout_method'] ?? 'invalid'));
+        foreach ($lanes as $lane) {
+            foreach ($lane->chunk($chunkSize) as $chunk) {
+                $queued = DB::transaction(function () use ($chunk): bool {
+                    $sum = '0.00';
+                    foreach ($chunk as $row) {
+                        $sum = bcadd($sum, (string) $row->amount, 2);
+                    }
+                    $data = new PayoutBatchData($chunk->pluck('reference_number')->all(), $sum,
+                        $chunk->first()->currency, 'Scheduled immutable approved payout plan.', ['source' => 'payout-generator']);
+                    $batch = app(PayoutBatchService::class)->create($data)['batch'];
 
-            ProcessPayoutBatchJob::dispatch(
-                batchTag: $batchTag,
-                payoutIds: $idChunk,
-            );
-
-            $dispatched++;
+                    return app(PayoutBatchRoutingService::class)->dispatchApproved($batch)['enqueued'];
+                }, 3);
+                $dispatched += $queued ? 1 : 0;
+            }
         }
 
         $summary = [
@@ -188,6 +197,7 @@ class GeneratePayoutBatchJob implements ShouldBeUnique, ShouldQueue
         return Payout::query()
             ->whereNull('deleted_at')
             ->where('status', PayoutStatus::Pending->value)
+            ->whereNotIn('id', DB::table('payout_batch_members')->select('payout_id'))
             ->whereRaw("json_extract(metadata, '$.approval.status') = ?", [PayoutApprovalStatus::Approved->value])
             ->orderBy('id')
             ->limit($limit)

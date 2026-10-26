@@ -47,7 +47,7 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
     #[Test]
     public function bkash_webhook_signature_is_verified_correctly(): void
     {
-        $player = $this->createPlayer('0.00', Currency::THB);
+        $player = $this->createPlayer('0.00', Currency::BDT);
         $deposit = $this->createPendingDeposit($player['wallet'], '500.00', PaymentMethod::Bkash);
 
         $payload = [
@@ -55,6 +55,7 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
             'trxID' => 'TRX_BKASH_123',
             'merchantInvoiceNumber' => $deposit->reference_number,
             'amount' => '500.00',
+            'currency' => 'BDT',
             'transactionStatus' => 'Completed',
         ];
 
@@ -71,7 +72,7 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
     }
 
     #[Test]
-    public function crypto_webhook_signature_is_verified_correctly(): void
+    public function crypto_webhook_without_a_provider_contract_refuses_even_a_locally_computed_hmac(): void
     {
         $player = $this->createPlayer('100.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '250.00', PaymentMethod::Crypto);
@@ -91,8 +92,13 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
             'X-Crypto-Signature' => $signature,
         ])->postJson('/api/v1/payments/webhook/crypto', $payload);
 
-        $response->assertStatus(200);
-        $response->assertJsonPath('success', true);
-        $response->assertJsonPath('data.action_taken', 'credited');
+        // A locally invented HMAC is not a contracted provider signature.
+        // Explicitly authorized contract correction: unsupported must not credit.
+        $response->assertStatus(403);
+        $response->assertJsonPath('success', false);
+        $this->assertSame(\App\Enums\DepositStatus::Pending, $deposit->fresh()->status);
+        $this->assertSame('100.00', $player['wallet']->fresh()->balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
+        $this->assertDatabaseCount('ledger_entries', 0);
     }
 }

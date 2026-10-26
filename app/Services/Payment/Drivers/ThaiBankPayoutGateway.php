@@ -37,10 +37,11 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Thai bank payout driver. Batch 03 performs these later wiring edits:
- * (1) add `case ThaiBank = 'thai_bank';` to PaymentMethod;
- * (2) add `'thai_bank' => $this->container->make(ThaiBankPayoutGateway::class)` to PaymentGatewayManager::driver() and hasDriver();
- * (3) add a `gateways.thai_bank` block to config/payment.php.
+ * Internal, payout-only Thai bank rail, resolved by the `thai_bank` gateway key.
+ * PaymentMethod deliberately has no such case: players choose bank_transfer or
+ * promptpay, and WithdrawalDisbursementService persists metadata.gateway_key
+ * before dispatch. Provider/reference ownership remains scoped to the method;
+ * reconciliation and polling use the durable payout attempt and never resend.
  */
 final class ThaiBankPayoutGateway extends AbstractPaymentGateway
 {
@@ -66,7 +67,7 @@ final class ThaiBankPayoutGateway extends AbstractPaymentGateway
 
     public function status(): GatewayIntegrationStatus
     {
-        return $this->adapterConfigured() ? GatewayIntegrationStatus::FullyImplemented : GatewayIntegrationStatus::ConfiguredOnly;
+        return $this->isEnabled() ? GatewayIntegrationStatus::FullyImplemented : GatewayIntegrationStatus::ConfiguredOnly;
     }
 
     public function isEnabled(): bool
@@ -227,6 +228,7 @@ final class ThaiBankPayoutGateway extends AbstractPaymentGateway
     public function verifyWebhookSignature(Request $request): bool
     {
         $bank = strtolower((string) ($request->route('bank') ?? $this->adapter->bank()));
+
         return app(ThaiBankPayoutWebhookService::class)->verifyCallbackSignature(
             $bank,
             $request->getContent(),
@@ -266,7 +268,7 @@ final class ThaiBankPayoutGateway extends AbstractPaymentGateway
         );
     }
 
-    private function initiateOnce(Withdrawal $withdrawal, \App\DTOs\Payment\PayoutInstruction $instruction, string $bank): GatewayWithdrawalResponse
+    private function initiateOnce(Withdrawal $withdrawal, PayoutInstruction $instruction, string $bank): GatewayWithdrawalResponse
     {
         $fingerprint = self::instructionFingerprint($instruction, $bank);
         try {
@@ -309,6 +311,7 @@ final class ThaiBankPayoutGateway extends AbstractPaymentGateway
 
                 return $this->returnStoredAttemptWithoutDispatch($existing);
             }
+
             return GatewayWithdrawalResponse::uncertain(
                 providerReference: null,
                 rawResponse: [],
@@ -660,7 +663,7 @@ final class ThaiBankPayoutGateway extends AbstractPaymentGateway
         };
     }
 
-    public static function instructionFingerprint(\App\DTOs\Payment\PayoutInstruction $instruction, string $bank): string
+    public static function instructionFingerprint(PayoutInstruction $instruction, string $bank): string
     {
         return hash('sha256', json_encode([
             $bank,

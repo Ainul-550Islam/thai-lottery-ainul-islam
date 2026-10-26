@@ -141,6 +141,8 @@ class PaymentVerificationService
 
         // Consumed already? Replay the recorded outcome instead of crediting twice.
         if ($deposit->status === DepositStatus::Confirmed) {
+            $this->completions->verifySettled($deposit);
+
             return $this->resultRow($deposit, alreadyConsumed: true);
         }
 
@@ -207,25 +209,18 @@ class PaymentVerificationService
      */
     private function findDeposit(?string $providerReference, ?string $depositReference): ?Deposit
     {
-        if ($providerReference !== null) {
-            $deposit = Deposit::query()
-                ->where('provider_reference', $providerReference)
-                ->orderBy('id')
-                ->first();
-
-            if ($deposit instanceof Deposit) {
-                return $deposit;
-            }
-        }
-
+        $query = Deposit::withTrashed();
         if ($depositReference !== null) {
-            return Deposit::query()
-                ->where('reference_number', $depositReference)
-                ->orderBy('id')
-                ->first();
+            $query->where('reference_number', $depositReference);
+        } else {
+            $query->where('provider_reference', $providerReference);
+        }
+        $matches = $query->limit(2)->get();
+        if ($matches->count() !== 1 || $matches->first()->trashed()) {
+            return null;
         }
 
-        return null;
+        return $matches->first();
     }
 
     /**

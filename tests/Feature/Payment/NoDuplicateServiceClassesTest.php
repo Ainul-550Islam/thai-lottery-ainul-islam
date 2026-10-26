@@ -151,7 +151,7 @@ final class NoDuplicateServiceClassesTest extends TestCase
     {
         $contents = (string) file_get_contents($path);
 
-        return preg_match('/^namespace\s+([^;]+);/m', $contents, $matches) === 1
+        return preg_match('/^namespace\s+([^;{]+)[;{]/m', $contents, $matches) === 1
             ? trim($matches[1])
             : null;
     }

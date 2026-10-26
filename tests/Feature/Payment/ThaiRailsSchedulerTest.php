@@ -7,6 +7,8 @@ namespace Tests\Feature\Payment;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Bootstrap\LoadConfiguration;
 use Tests\TestCase;
 
 /**
@@ -27,13 +29,38 @@ use Tests\TestCase;
  */
 final class ThaiRailsSchedulerTest extends TestCase
 {
+    /** @var array<string, bool>|null */
+    private ?array $laneFlags = null;
+
+    public function createApplication(): Application
+    {
+        if ($this->laneFlags === null) {
+            return parent::createApplication();
+        }
+
+        // Console bootstrap resolves Schedule before a test body runs. Apply
+        // the scenario after config loads, but BEFORE providers register timers.
+        $app = require dirname(__DIR__, 3).'/bootstrap/app.php';
+        $app->afterBootstrapping(LoadConfiguration::class, function (Application $app): void {
+            $app->make('config')->set($this->laneFlags);
+        });
+        $app->make(Kernel::class)->bootstrap();
+
+        return $app;
+    }
+
     /**
      * @return list<Event>
      */
     private function events(): array
     {
-        // callAfterResolving() only fires once the console kernel actually
-        // resolves the Schedule, so the command list has to be built first.
+        if ($this->laneFlags === null) {
+            $this->laneFlags = [
+                'thai_payout.enabled' => (bool) config('thai_payout.enabled'),
+                'truemoney.enabled' => (bool) config('truemoney.enabled'),
+            ];
+            $this->refreshApplication();
+        }
         app(Kernel::class)->all();
 
         return app(Schedule::class)->events();
@@ -69,7 +96,7 @@ final class ThaiRailsSchedulerTest extends TestCase
 
         $this->assertSame('*/5 * * * *', $event->expression);
         $this->assertTrue($event->withoutOverlapping, 'A slow poll must never be re-entered.');
-        $this->assertSame(600, $event->expires, 'The overlap window matches the cadence, not a guess.');
+        $this->assertSame(600, $event->expiresAt, 'The overlap window matches the cadence, not a guess.');
         $this->assertTrue($event->onOneServer, 'On a horizontally scaled deployment only one host may poll.');
     }
 

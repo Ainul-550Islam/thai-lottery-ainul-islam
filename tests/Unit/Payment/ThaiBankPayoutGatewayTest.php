@@ -7,18 +7,22 @@ namespace Tests\Unit\Payment;
 use App\Enums\Currency;
 use App\Enums\PaymentMethod;
 use App\Enums\ThaiBankPayoutState;
+use App\Events\WalletBalanceUpdated;
+use App\Events\WithdrawalStatusUpdated;
 use App\Exceptions\FinancialException;
 use App\Jobs\PollThaiBankPayoutStatusJob;
+use App\Models\AuditLog;
 use App\Models\ThaiBankPayoutAttempt;
+use App\Models\Withdrawal;
 use App\Services\Finance\Money;
 use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalService;
-use App\Services\Lock\DistributedLockService;
 use App\Services\Payment\Drivers\ThaiBankPayoutGateway;
 use App\Services\Payout\ThaiBank\ScbPayoutAdapter;
 use App\Services\Payout\ThaiBank\ThaiBankDestinationValidator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -29,6 +33,8 @@ final class ThaiBankPayoutGatewayTest extends PaymentTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Isolate payout scheduling from unrelated realtime and analytics subscribers.
+        Event::fake([WalletBalanceUpdated::class, WithdrawalStatusUpdated::class]);
         Queue::fake();
         config(['queue.default' => 'database']);
         Cache::flush();
@@ -98,7 +104,7 @@ final class ThaiBankPayoutGatewayTest extends PaymentTestCase
         self::assertSame($first->outcomeUnknown, $second->outcomeUnknown);
         $attempt = ThaiBankPayoutAttempt::query()->sole();
         self::assertSame($attemptState, $attempt->state->value);
-        self::assertSame(1, Http::recorded()->filter(fn ($request): bool => str_ends_with($request->url(), '/v1/transfer'))->count());
+        self::assertSame(1, Http::recorded(fn ($request): bool => str_ends_with($request->url(), '/v1/transfer'))->count());
         Http::assertSentCount(1);
         if (in_array($attemptState, [ThaiBankPayoutState::Accepted->value, ThaiBankPayoutState::Uncertain->value, ThaiBankPayoutState::Rejected->value], true)) {
             Queue::assertPushed(PollThaiBankPayoutStatusJob::class, fn (PollThaiBankPayoutStatusJob $job): bool => $job->attemptId === (int) $attempt->getKey());
@@ -173,7 +179,7 @@ final class ThaiBankPayoutGatewayTest extends PaymentTestCase
         self::assertTrue($second->outcomeUnknown);
         self::assertSame('thai_payout_reference_conflict', $second->metadata['reason']);
         self::assertSame(ThaiBankPayoutState::Uncertain, ThaiBankPayoutAttempt::query()->sole()->state);
-        self::assertTrue(\App\Models\AuditLog::query()->where('description', 'like', '%conflicting Thai bank instruction%')->exists());
+        self::assertTrue(AuditLog::query()->where('description', 'like', '%conflicting Thai bank instruction%')->exists());
         Http::assertSentCount(1);
     }
 
@@ -209,10 +215,11 @@ final class ThaiBankPayoutGatewayTest extends PaymentTestCase
 
     private function gateway(): ThaiBankPayoutGateway
     {
-        return app(ThaiBankPayoutGateway::class);
+        // Exercise the driver itself; the provider separately refuses incomplete enabled bindings.
+        return app()->makeWith(ThaiBankPayoutGateway::class, ['adapter' => new ScbPayoutAdapter]);
     }
 
-    private function approvedWithdrawal(?array $details = null): \App\Models\Withdrawal
+    private function approvedWithdrawal(?array $details = null): Withdrawal
     {
         $player = $this->createPlayer('500.00', Currency::THB);
         $withdrawal = app(WithdrawalService::class)->request(

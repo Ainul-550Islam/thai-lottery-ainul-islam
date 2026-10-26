@@ -25,6 +25,7 @@ final class PayoutApprovalIntakeService
 
         return DB::transaction(function () use ($actor, $id, $method, $beneficiary, $note): Payout {
             $row = Payout::query()->lockForUpdate()->findOrFail($id);
+            app(\App\Services\Prize\PrizeClaimGuard::class)->assertPayableClaim($row);
             $lane = PrizePayoutMethod::tryFrom($method);
             if (PrizeDisbursement::query()->where('payout_id', $row->id)->exists() || ! $lane || mb_strlen(trim($note)) < 15 || mb_strlen($note) > 1000) {
                 app(PayoutBatchMembershipService::class)->refuse();

@@ -54,6 +54,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
      */
     private function signedStripeDelivery(string $reference, string $eventId): array
     {
+        $deposit = \App\Models\Deposit::query()->where('reference_number', $reference)->sole();
         $timestamp = time();
 
         $payload = [
@@ -63,7 +64,7 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 'object' => [
                     'id' => 'cs_test_'.$eventId,
                     'client_reference_id' => $reference,
-                    'amount_total' => 100000,
+                    'amount_total' => bcmul((string) $deposit->amount, '100', 0),
                     'currency' => 'thb',
                 ],
             ],
@@ -458,11 +459,11 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
                 "VerifyWebhookSignature must be on {$name}: a guard that is not attached to a route protects nothing",
             );
 
-            $this->assertContains(
-                ThrottleRequests::class,
-                $middleware,
-                "the flood limiter must still be on {$name}",
-            );
+            $limiters = array_filter($middleware, static function (string $entry): bool {
+                $class = explode(':', $entry, 2)[0];
+                return is_a($class, ThrottleRequests::class, true);
+            });
+            $this->assertNotEmpty($limiters, "the flood limiter must still be on {$name}");
         }
     }
 

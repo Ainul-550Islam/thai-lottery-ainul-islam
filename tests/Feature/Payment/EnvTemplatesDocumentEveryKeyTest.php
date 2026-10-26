@@ -96,7 +96,7 @@ final class EnvTemplatesDocumentEveryKeyTest extends TestCase
         foreach (self::TEMPLATES as $template) {
             $documented = $this->templateKeys(base_path($template));
 
-            foreach ($keys as $key) {
+            foreach ($keys as $key => $_documented) {
                 $this->assertArrayHasKey(
                     $key,
                     $documented,

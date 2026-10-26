@@ -164,9 +164,11 @@ final class PollThaiBankPayoutStatusJobTest extends PaymentTestCase
             'request_fingerprint' => hash('sha256', $withdrawal->reference_number),
             'outcome_unknown' => $state === ThaiBankPayoutState::Uncertain,
             'raw_response' => [],
+        ]);
+        $attempt->forceFill([
             'created_at' => now()->subSeconds(61),
             'updated_at' => now()->subSeconds(61),
-        ]);
+        ])->save();
 
         return [$withdrawal->fresh(), $attempt->fresh(), $player['wallet']->fresh()];
     }

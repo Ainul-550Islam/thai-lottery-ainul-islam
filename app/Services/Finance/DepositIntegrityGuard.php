@@ -89,6 +89,12 @@ final class DepositIntegrityGuard
     public function assertProof(Deposit $row, Wallet $wallet, FinancialTransaction $tx, string $canonicalKey): void
     {
         $this->assertTerms($row, $wallet);
+        if (array_key_exists(self::TERMS_KEY, $row->metadata ?? []) || $row->provider_reference !== null) {
+            [$provider, $reference] = $this->reference($row, []);
+            $scope = app(\App\Services\Payment\DepositProviderAccountService::class)->assertActive($row);
+            $payment = $this->payment($row, $provider, $reference, DB::transactionLevel() > 0);
+            app(\App\Services\Payment\FinancialProviderReferenceService::class)->assertBound($row, $provider, $scope, $reference, $payment);
+        }
         if ($tx->trashed() || $tx->type !== TransactionType::Deposit || $tx->status !== TransactionStatus::Completed
             || $tx->idempotency_key !== $canonicalKey || $tx->reference_type !== Deposit::class || (int) $tx->reference_id !== (int) $row->id
             || (int) $tx->wallet_id !== (int) $wallet->id || (int) $tx->user_id !== (int) $row->user_id || $tx->currency !== $row->currency

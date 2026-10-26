@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DTOs\Finance;
 
 use App\Exceptions\FinancialHoldException;
+use App\Enums\Currency;
 use Illuminate\Support\Carbon;
 
 /**
@@ -59,7 +60,7 @@ final readonly class FinancialHoldData
             );
         }
 
-        if (! preg_match('/^\d+(\.\d{1,2})?$/', $amt)) {
+        if (! preg_match('/^\d{1,18}(\.\d{1,2})?$/D', $amt)) {
             throw FinancialHoldException::malformed(
                 'the amount must be a decimal string (money, never float)',
             );
@@ -75,7 +76,7 @@ final readonly class FinancialHoldData
             );
         }
 
-        if (! preg_match('/^[a-z]{3}$/', $cur)) {
+        if (Currency::tryFrom(strtoupper($cur)) === null) {
             throw FinancialHoldException::malformed(
                 'the currency must be a 3-letter code',
             );
@@ -109,7 +110,7 @@ final readonly class FinancialHoldData
 
         return new self(
             walletId: $walletId,
-            amount: $amt,
+            amount: bcadd($amt, '0.00', 2),
             currency: strtoupper($cur),
             reason: $why,
             sourceReference: $src,
@@ -122,12 +123,14 @@ final readonly class FinancialHoldData
      */
     public function holdKey(): string
     {
+        $canonical = self::fromInput($this->walletId, $this->amount, $this->currency,
+            $this->reason, $this->sourceReference, $this->expiresAt);
         return hash('sha256', sprintf(
             'fin-hold:%d:%s:%s:%s',
-            $this->walletId,
-            $this->sourceReference,
-            $this->amount,
-            $this->currency,
+            $canonical->walletId,
+            $canonical->sourceReference,
+            $canonical->amount,
+            $canonical->currency,
         ));
     }
 }

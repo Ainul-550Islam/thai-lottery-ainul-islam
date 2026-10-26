@@ -12,6 +12,7 @@ use App\Enums\GatewayIntegrationStatus;
 use App\Enums\WebhookEventType;
 use App\Models\Deposit;
 use App\Models\Withdrawal;
+use App\Services\Payment\PaymentDecimalNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -86,10 +87,16 @@ class CryptoGateway extends AbstractPaymentGateway
 
         $txId = (string) ($data['txid'] ?? $data['transaction_id'] ?? $data['id'] ?? '');
         $invoiceId = (string) ($data['invoice_id'] ?? $data['order_id'] ?? $data['reference'] ?? '');
-        $amount = (string) ($data['amount'] ?? '0.00');
+        $amountRaw = $data['amount'] ?? null;
+        try {
+            $amount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($amountRaw, 2);
+        } catch (\InvalidArgumentException) {
+            $amount = null;
+        }
         $status = strtoupper((string) ($data['status'] ?? ''));
 
-        $currency = isset($data['currency']) ? (Currency::tryFrom(strtoupper((string) $data['currency'])) ?? Currency::USD) : Currency::USD;
+        $currencyRaw = $data['currency'] ?? null;
+        $currency = is_string($currencyRaw) ? Currency::tryFrom(strtoupper($currencyRaw)) : null;
 
         $eventType = match ($status) {
             'CONFIRMED', 'COMPLETED', 'PAID', 'SUCCESS' => WebhookEventType::DepositSuccess,

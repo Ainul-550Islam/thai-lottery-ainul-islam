@@ -132,7 +132,7 @@ final class KbankPayoutAdapter implements ThaiBankPayoutAdapterInterface
         if (! is_string($reference) || preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:-]{0,63}\z/D', $reference) !== 1
             || ! is_string($state) || $state === '' || strlen($state) > 64 || preg_match('/[\x00-\x1f\x7f]/', $state)
             || ($providerReference !== null && (! is_string($providerReference)
-                || preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:/-]{0,190}\z/D', $providerReference) !== 1))
+                || preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:\/-]{0,190}\z/D', $providerReference) !== 1))
             || ($currency !== null && (! is_string($currency) || strlen($currency) > 8 || preg_match('/[\x00-\x1f\x7f]/', $currency)))) {
             throw FinancialException::withCode('payout_webhook_payload_invalid', 'The KBank payout callback payload is incomplete.');
         }
@@ -246,7 +246,7 @@ final class KbankPayoutAdapter implements ThaiBankPayoutAdapterInterface
         $stateText = strtoupper((string) data_get($payload, 'data.status', data_get($payload, 'status', data_get($payload, 'data.state', ''))));
         $providerReference = data_get($payload, 'data.transactionId', data_get($payload, 'data.providerReference', data_get($payload, 'transactionId')));
         $providerReference = is_string($providerReference)
-            && preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:/-]{0,190}\z/D', $providerReference) === 1
+            && preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:\/-]{0,190}\z/D', $providerReference) === 1
             ? $providerReference : null;
         $amount = $this->exactAmount($payload, $response->body());
         $currency = data_get($payload, 'data.currency', $payload['currency'] ?? null);

@@ -260,7 +260,19 @@ class PrizeClaimService
     {
         $payout = Payout::query()->find($payoutId);
 
-        return $payout instanceof Payout ? $this->claimRecord($payout) : null;
+        if (! $payout) {
+            return null;
+        }
+        $claim = $this->claimRecord($payout);
+        if (($claim['status'] ?? null) === 'paid') {
+            try {
+                app(PrizeClaimCompletionService::class)->assertEvidence($payout);
+            } catch (\App\Exceptions\PrizeClaimException) {
+                return null;
+            }
+        }
+
+        return $claim;
     }
 
     /**
@@ -338,6 +350,7 @@ class PrizeClaimService
             'window_closes_at' => isset($claim['window_closes_at']) ? (string) $claim['window_closes_at'] : null,
             'claimed_at' => (string) ($claim['claimed_at'] ?? ''),
             'no_op' => $noOp,
+            'window_open' => $this->windows->allowsClaim($payout),
         ];
     }
 

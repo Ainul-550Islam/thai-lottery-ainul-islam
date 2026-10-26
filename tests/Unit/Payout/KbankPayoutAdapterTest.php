@@ -8,7 +8,6 @@ use App\DTOs\Payment\PayoutInstruction;
 use App\Enums\ThaiBankPayoutState;
 use App\Exceptions\FinancialException;
 use App\Services\Payout\ThaiBank\KbankPayoutAdapter;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -79,19 +78,21 @@ final class KbankPayoutAdapterTest extends TestCase
     {
         Cache::put(KbankPayoutAdapter::tokenCacheKey('consumer-id'), 'kbank-token', now()->addHour());
         $adapter = new KbankPayoutAdapter;
-        Http::fake(['*' => Http::response(['error' => 'declined'], 422)]);
+        Http::fake(['*' => Http::sequence()
+            ->push(['error' => 'declined'], 422)
+            ->push([
+                'data' => ['status' => 'SETTLED', 'transactionId' => 'KBANK-REDIRECT', 'amount' => '50.00', 'currency' => 'THB'],
+            ], 302, ['Location' => 'https://untrusted.example/'])
+            ->push(['error' => 'server'], 503)
+            ->pushFailedConnection('network detail')]);
         self::assertSame(ThaiBankPayoutState::Rejected, $adapter->initiateTransfer($this->instruction('WD-KB-002'))->state);
 
-        Http::fake(['*' => Http::response([
-            'data' => ['status' => 'SETTLED', 'transactionId' => 'KBANK-REDIRECT', 'amount' => '50.00', 'currency' => 'THB'],
-        ], 302, ['Location' => 'https://untrusted.example/'])]);
         self::assertSame(ThaiBankPayoutState::Uncertain, $adapter->initiateTransfer($this->instruction('WD-KB-REDIRECT'))->state);
 
-        Http::fake(['*' => Http::response(['error' => 'server'], 503)]);
         self::assertSame(ThaiBankPayoutState::Uncertain, $adapter->initiateTransfer($this->instruction('WD-KB-003'))->state);
 
-        Http::fake(['*' => static function () { throw new ConnectionException('network detail'); }]);
         self::assertSame(ThaiBankPayoutState::Uncertain, $adapter->initiateTransfer($this->instruction('WD-KB-004'))->state);
+        Http::assertSentCount(4);
     }
 
     public function test_status_query_client_errors_remain_uncertain(): void

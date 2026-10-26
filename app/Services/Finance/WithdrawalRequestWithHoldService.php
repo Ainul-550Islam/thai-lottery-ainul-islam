@@ -23,13 +23,11 @@ final class WithdrawalRequestWithHoldService
     /** @param array<string, mixed> $options */
     public function request(Wallet $wallet, Money $amount, PaymentMethod $method, ?string $idempotencyKey = null, array $options = []): Withdrawal
     {
-        $options['metadata'] = array_merge(is_array($options['metadata'] ?? null) ? $options['metadata'] : [], [WithdrawalInitialHoldService::ORIGIN_KEY => 'v1']);
-
         return DB::transaction(function () use ($wallet, $amount, $method, $idempotencyKey, $options): Withdrawal {
             // Lock before the canonical pre-policy reads can establish an old RR snapshot.
             $wallet = app(WalletLockService::class)->lock((int) $wallet->id);
             // Retain the canonical source/player lock through the first hold.
-            $row = $this->withdrawals->request($wallet, $amount, $method, $idempotencyKey, $options);
+            $row = $this->withdrawals->request($wallet, $amount, $method, $idempotencyKey, $options, initialHoldRequired: true);
             if ($row->wasRecentlyCreated) {
                 $this->initial->reserveNewRequest($row, $wallet);
             } else {

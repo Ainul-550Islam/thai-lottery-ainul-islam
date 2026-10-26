@@ -203,18 +203,7 @@ class PrizeClaimValidationService
      */
     private function payoutForBet(Bet $bet): ?Payout
     {
-        if ($bet->payout_id !== null) {
-            $payout = Payout::query()->find((int) $bet->payout_id);
-
-            if ($payout instanceof Payout) {
-                return $payout;
-            }
-        }
-
-        return Payout::query()
-            ->where('bet_id', (int) $bet->getKey())
-            ->orderBy('id')
-            ->first();
+        return app(PrizeClaimGuard::class)->resolve($bet);
     }
 
     /**
@@ -259,7 +248,7 @@ class PrizeClaimValidationService
             context: [
                 'bet_id' => $data->betId,
                 'claimant_user_id' => $data->claimantUserId,
-                'payout_id' => $payout instanceof Payout ? (int) $payout->getKey() : null,
+                ...($payout instanceof Payout ? ['payout_id' => (int) $payout->getKey()] : []),
             ],
         );
     }

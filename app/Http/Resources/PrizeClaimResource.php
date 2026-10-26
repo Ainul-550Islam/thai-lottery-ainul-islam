@@ -73,14 +73,12 @@ final class PrizeClaimResource extends JsonResource
             'currency' => $payout->currency?->value,
             'window_closes_at' => isset($claim['window_closes_at'])
                 ? (string) $claim['window_closes_at']
-                : (isset($window['closes_at']) ? (string) $window['closes_at'] : null),
+                : (isset($window['window_closes_at']) ? (string) $window['window_closes_at'] : null),
             'claimed_at' => isset($claim['claimed_at']) ? (string) $claim['claimed_at'] : null,
             'no_op' => false,
             'payout_reference' => (string) $payout->reference_number,
             'payout_status' => $payout->status?->value,
-            'window_open' => isset($window['status'])
-                ? ((string) $window['status'] === 'open')
-                : null,
+            'window_open' => app(\App\Services\Prize\ClaimWindowService::class)->allowsClaim($payout),
         ];
     }
 }

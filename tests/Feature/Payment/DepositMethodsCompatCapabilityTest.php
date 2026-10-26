@@ -66,8 +66,8 @@ final class DepositMethodsCompatCapabilityTest extends PaymentTestCase
         $this->assertSame('THB', $bankTransfer['currency']);
         // A rail without bounds of its own reports the global deposit bounds,
         // never a number invented in the controller.
-        $this->assertSame((string) config('deposit.min'), $bankTransfer['min_amount']);
-        $this->assertSame((string) config('deposit.max'), $bankTransfer['max_amount']);
+        $this->assertSame((string) config('payment.deposit.min'), $bankTransfer['min_amount']);
+        $this->assertSame((string) config('payment.deposit.max'), $bankTransfer['max_amount']);
     }
 
     public function test_a_configured_rail_is_reported_available(): void

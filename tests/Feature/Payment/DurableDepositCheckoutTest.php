@@ -32,7 +32,7 @@ final class DurableDepositCheckoutTest extends PaymentTestCase
     {
         Http::preventStrayRequests();
 
-        return $this->createPlayer('0.00');
+        return $this->createAdmittedPlayer('0.00');
     }
 
     private function runCheckout(array $f, array $options = [], ?string $key = 'synthetic-durable-checkout-request'): array
@@ -425,7 +425,7 @@ final class DurableDepositCheckoutTest extends PaymentTestCase
                     app(FinancialStateTransitionService::class)->transitionDeposit($row, DepositStatus::Failed);
                 });
             }
-        }, 'checkout_outcome_unknown');
+        }, 'deposit_checkout_unresolved');
         $this->assertSame($before, $this->rows());
         $this->assertSame('pending', $row->fresh()->status->value);
         Http::assertSentCount(1);

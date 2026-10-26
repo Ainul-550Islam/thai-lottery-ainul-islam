@@ -15,6 +15,7 @@ final class TrueMoneyReconcileCommandTest extends PaymentTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['finance.deposit.min' => '0.01']);
         config([
             'truemoney.min_amount' => '0.01',
             'truemoney.max_amount' => '100000.00',

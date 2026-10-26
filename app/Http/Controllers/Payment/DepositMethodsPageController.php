@@ -295,8 +295,8 @@ final class DepositMethodsPageController extends Controller
             'enabled' => $enabled,
             'state' => $enabled ? 'AVAILABLE' : 'NOT_CONFIGURED',
             'reason' => $reason ?? ($enabled ? null : 'This deposit rail is disabled or not configured on this deployment.'),
-            'min_amount' => (string) config('deposit.'.$method->value.'.min_amount', (string) config('deposit.min', '50.00')),
-            'max_amount' => (string) config('deposit.'.$method->value.'.max_amount', (string) config('deposit.max', '500000.00')),
+            'min_amount' => (string) config('payment.deposit.'.$method->value.'.min_amount', (string) config('payment.deposit.min', '50.00')),
+            'max_amount' => (string) config('payment.deposit.'.$method->value.'.max_amount', (string) config('payment.deposit.max', '500000.00')),
             'currency' => Currency::THB->value,
             'initiate_route' => route($initiateRoute),
         ];

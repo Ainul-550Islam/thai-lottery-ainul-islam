@@ -1186,3 +1186,9 @@ Route::prefix('download')
         Route::post('/verify-checksum', [PublicDownloadAppController::class, 'verifyChecksumLegacyApi'])->name('verify-checksum');
         Route::post('/track', [PublicDownloadAppController::class, 'trackDownloadApi'])->name('track');
     });
+
+// Legacy deterministic sandbox only. The controller independently refuses real
+// money and every environment except local/testing before it reads any payload.
+Route::post('/v1/webhooks/deposit/{provider}', [\App\Http\Controllers\Api\V1\DepositWebhookController::class, 'handleWebhook'])
+    ->whereIn('provider', ['sandbox'])
+    ->middleware('throttle:webhook');

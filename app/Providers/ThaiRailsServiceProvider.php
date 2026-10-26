@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Console\Commands\Ops\ThaiRailsPreflightCommand;
+use App\Console\Commands\Payment\ReconcileTruemoneyRedemptionsCommand;
+use App\Enums\ThaiBankCode;
 use App\Exceptions\FinancialException;
-use App\Filament\Resources\DepositSlipVerificationResource;
 use App\Models\DepositSlipVerification;
 use App\Policies\DepositSlipVerificationPolicy;
-use App\Services\Payout\ThaiBank\KbankPayoutAdapter;
-use App\Services\Payout\ThaiBank\ScbPayoutAdapter;
-use App\Services\Payout\ThaiBank\ThaiBankPayoutAdapterInterface;
 use App\Services\Payment\Slip\EasySlipProvider;
 use App\Services\Payment\Slip\SlipOkProvider;
 use App\Services\Payment\Slip\SlipVerificationProviderInterface;
+use App\Services\Payout\ThaiBank\KbankPayoutAdapter;
+use App\Services\Payout\ThaiBank\ScbPayoutAdapter;
+use App\Services\Payout\ThaiBank\ThaiBankPayoutAdapterInterface;
+use App\Support\Ops\ThaiBankPayoutPollDispatcher;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +26,10 @@ final class ThaiRailsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        if (! $this->app->bound(\App\Contracts\Security\MalwareScanner::class)) {
+            $this->app->bind(\App\Contracts\Security\MalwareScanner::class, \App\Services\Uploads\Scanners\ClamAvScanner::class);
+        }
+
         $this->mergeConfigFrom(config_path('truemoney.php'), 'truemoney');
         $this->mergeConfigFrom(config_path('slip_verification.php'), 'slip_verification');
         $this->mergeConfigFrom(config_path('thai_payout.php'), 'thai_payout');
@@ -48,7 +56,7 @@ final class ThaiRailsServiceProvider extends ServiceProvider
             $accountsConfigured = is_array($accounts) && $accounts !== [];
             foreach ($accountsConfigured ? $accounts : [] as $account) {
                 $accountsConfigured = $accountsConfigured && is_array($account)
-                    && \App\Enums\ThaiBankCode::resolve((string) ($account['bank'] ?? '')) !== null
+                    && ThaiBankCode::resolve((string) ($account['bank'] ?? '')) !== null
                     && preg_match('/\\A[0-9]{4}\\z/D', (string) ($account['account_last_digits'] ?? '')) === 1
                     && trim((string) ($account['name'] ?? '')) !== '';
             }
@@ -78,6 +86,23 @@ final class ThaiRailsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            if ((bool) config('thai_payout.enabled', false)) {
+                $schedule->call(fn (): int => app(ThaiBankPayoutPollDispatcher::class)->dispatchDue())
+                    ->name('Thai bank payout status polls')
+                    ->everyFiveMinutes()
+                    ->withoutOverlapping(600)
+                    ->onOneServer();
+            }
+            if ((bool) config('truemoney.enabled', false)) {
+                $schedule->command('truemoney:reconcile')
+                    ->description('Reconcile TrueMoney voucher redemptions')
+                    ->hourly()
+                    ->withoutOverlapping()
+                    ->onOneServer();
+            }
+        });
+
         foreach (['scb', 'kbank'] as $bank) {
             $callbackSignatureHeader = trim((string) config('thai_payout.banks.'.$bank.'.callback_signature_header', 'X-Signature'));
             if ($callbackSignatureHeader !== '') {
@@ -91,8 +116,8 @@ final class ThaiRailsServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                \App\Console\Commands\Payment\ReconcileTruemoneyRedemptionsCommand::class,
-                \App\Console\Commands\Ops\ThaiRailsPreflightCommand::class,
+                ReconcileTruemoneyRedemptionsCommand::class,
+                ThaiRailsPreflightCommand::class,
             ]);
         }
     }

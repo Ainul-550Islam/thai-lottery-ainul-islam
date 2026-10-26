@@ -102,6 +102,8 @@ final class PrizeDisbursementService
      */
     private function reserveWithin(PrizeDisbursementData $data, string $actorNote): array
     {
+        $this->assertUnmanagedPayout($data->payoutId);
+
         // REPLAY first, so a re-ask never re-writes anything — but a
         // replay is only a replay when THE FACTS agree too. A presented
         // settlement fingerprint that disagrees with the seated row is a
@@ -216,6 +218,8 @@ final class PrizeDisbursementService
                 throw PrizeDisbursementException::notFound((string) $disbursement->disbursement_key);
             }
 
+            $this->assertUnmanagedPayout((int) $locked->payout_id);
+
             if ($locked->status === PrizeDisbursementStatus::Disbursed) {
                 return $locked; // replay
             }
@@ -276,6 +280,8 @@ final class PrizeDisbursementService
                 throw PrizeDisbursementException::notFound((string) $disbursement->disbursement_key);
             }
 
+            $this->assertUnmanagedPayout((int) $locked->payout_id);
+
             if ($locked->status === PrizeDisbursementStatus::Reversed) {
                 return $locked;
             }
@@ -324,6 +330,8 @@ final class PrizeDisbursementService
             if (! $locked instanceof PrizeDisbursement) {
                 throw PrizeDisbursementException::notFound((string) $disbursement->disbursement_key);
             }
+
+            $this->assertUnmanagedPayout((int) $locked->payout_id);
 
             if ($locked->status === PrizeDisbursementStatus::Failed
                 && Str::contains((string) $locked->failure_reason, $reason)) {
@@ -380,4 +388,18 @@ final class PrizeDisbursementService
 
         return bcadd($amount, '0', 2);
     }
+    /** A status-only legacy journal cannot settle, reverse or steal a managed money lane. */
+    private function assertUnmanagedPayout(int $payoutId): void
+    {
+        $row = Payout::withTrashed()->lockForUpdate()->find($payoutId);
+        if (! $row) {
+            throw PrizeDisbursementException::notFound('payout:'.$payoutId);
+        }
+        if (array_key_exists('approval', $row->metadata ?? []) || array_key_exists('transfer', $row->metadata ?? [])
+            || DB::table('payout_batch_members')->where('payout_id', $payoutId)->exists()) {
+            throw new PrizeDisbursementException('managed_payout_route_required: retain the original managed payout lane.',
+                'managed_payout_route_required', ['payout_id' => $payoutId]);
+        }
+    }
+
 }

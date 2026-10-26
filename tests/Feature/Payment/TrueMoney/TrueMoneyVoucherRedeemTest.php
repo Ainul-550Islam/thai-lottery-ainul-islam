@@ -199,7 +199,11 @@ final class TrueMoneyVoucherRedeemTest extends PaymentTestCase
     {
         $player = $this->createPlayer('0.00');
         $this->allowFraud();
-        Http::fake(['*' => static function () { throw new ConnectionException('transport details'); }]);
+        $attempts = 0;
+        Http::fake(['*' => static function () use (&$attempts) {
+            ++$attempts;
+            throw new ConnectionException('transport details');
+        }]);
         $service = $this->service();
 
         try {
@@ -219,7 +223,7 @@ final class TrueMoneyVoucherRedeemTest extends PaymentTestCase
         } catch (FinancialException $exception) {
             self::assertSame('truemoney_voucher_already_processed', $exception->errorCode());
         }
-        self::assertSame(1, Http::recorded()->count());
+        self::assertSame(1, $attempts);
     }
 
     public function test_credit_failure_after_provider_success_is_audited_and_left_for_reconciliation(): void
@@ -227,11 +231,12 @@ final class TrueMoneyVoucherRedeemTest extends PaymentTestCase
         $player = $this->createPlayer('0.00');
         $this->allowFraud();
         Http::fake(['*' => Http::response($this->successfulPayload('76.25'), 200)]);
-        $completion = Mockery::mock(DepositCompletionService::class);
-        $completion->shouldReceive('complete')->once()->andThrow(new \RuntimeException('local ledger unavailable'));
+        // Fail real canonical ledger posting after provider redemption. No final
+        // completion-service mock and no fabricated financial evidence.
+        \App\Models\LedgerAccount::query()->update(['is_active' => false]);
 
         try {
-            $this->service($completion)->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+            $this->service()->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
             self::fail('Credit failure must be held for reconciliation.');
         } catch (FinancialException $exception) {
             self::assertSame('truemoney_credit_unconfirmed', $exception->errorCode());

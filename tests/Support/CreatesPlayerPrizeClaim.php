@@ -22,7 +22,7 @@ trait CreatesPlayerPrizeClaim
         config(['lottery.claims.review_threshold' => '100.00', 'lottery.claims.window_days' => 730,
             'finance.prize_payout.safety_mode' => 'LIVE']);
         $this->seed(RolePermissionSeeder::class);
-        $owner = $this->createPlayer('1000.00', $currency);
+        $owner = $this->createAdmittedPlayer('1000.00', $currency);
         $maker = User::factory()->create();
         $checker = User::factory()->create();
         $reviewer = User::factory()->create();

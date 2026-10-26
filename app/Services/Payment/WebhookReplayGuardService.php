@@ -214,8 +214,8 @@ final class WebhookReplayGuardService
             'bkash' => ['X-Bkash-Signature', 'X-Signature'],
             'nagad' => ['X-KM-Signature', 'X-Nagad-Signature', 'X-Signature'],
             'crypto' => ['X-Crypto-Signature', 'X-Signature'],
-            'kbank' => ['X-KBANK-Signature'],
-            'scb' => ['X-SCB-Signature'],
+            'kbank' => [config('payment.gateways.kbank.signature_header', 'X-KBANK-Signature'), 'X-KBANK-Signature'],
+            'scb' => [config('payment.gateways.scb.signature_header', 'X-SCB-Signature'), 'X-SCB-Signature'],
             default => array_values(array_filter([
                 config("payment.gateways.{$gateway}.signature_header"),
                 'X-Signature',

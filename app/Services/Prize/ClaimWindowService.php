@@ -32,40 +32,48 @@ class ClaimWindowService
      */
     public function register(Payout $payout, Bet $bet): array
     {
-        $guard = app(PrizeClaimGuard::class);
-        $metadata = is_array($payout->metadata) ? $payout->metadata : [];
+        $record = DB::transaction(function () use ($payout, $bet): array {
+            $payout = Payout::query()->lockForUpdate()->findOrFail($payout->id);
+            $bet = Bet::query()->findOrFail($bet->id);
+            app(PrizeClaimGuard::class)->assertIdentity($bet, $payout);
+            $guard = app(PrizeClaimGuard::class);
+            $metadata = is_array($payout->metadata) ? $payout->metadata : [];
 
-        if (array_key_exists(self::METADATA_KEY, $metadata)) {
-            if (! $guard->hasWindowSnapshot($payout)) {
+            if (array_key_exists(self::METADATA_KEY, $metadata)) {
+                if (! $guard->hasWindowSnapshot($payout)) {
+                    $guard->refuse($payout);
+                }
+                $existing = $this->windowRecord($payout) ?? [];
+
+                return [
+                    'status' => (string) ($existing['status'] ?? ClaimWindowStatus::Open->value),
+                    'window_closes_at' => (string) ($existing['window_closes_at'] ?? ''),
+                    'opened_at' => (string) ($existing['opened_at'] ?? ''),
+                    'closed_at' => isset($existing['closed_at']) && is_scalar($existing['closed_at']) ? (string) $existing['closed_at'] : null,
+                ];
+            }
+
+            $anchor = $bet->draw?->completed_at ?? $bet->won_at;
+            if (! $anchor instanceof Carbon) {
                 $guard->refuse($payout);
             }
-            $existing = $this->windowRecord($payout) ?? [];
 
-            return [
-                'status' => (string) ($existing['status'] ?? ClaimWindowStatus::Open->value),
-                'window_closes_at' => (string) ($existing['window_closes_at'] ?? ''),
-                'opened_at' => (string) ($existing['opened_at'] ?? ''),
-                'closed_at' => isset($existing['closed_at']) && is_scalar($existing['closed_at']) ? (string) $existing['closed_at'] : null,
+            $closesAt = $anchor->copy()->addDays($this->windowDays());
+            $closesAtIso = $closesAt->toIso8601String();
+
+            $record = [
+                'status' => ClaimWindowStatus::Open->value,
+                'opened_at' => now()->toIso8601String(),
+                'window_closes_at' => $closesAtIso,
+                'closed_at' => null,
+                'facts_hash' => $guard->windowFingerprint($payout, $closesAtIso),
             ];
-        }
 
-        $anchor = $bet->draw?->completed_at ?? $bet->won_at;
-        if (! $anchor instanceof Carbon) {
-            $guard->refuse($payout);
-        }
+            $this->writeRecord($payout, $record);
 
-        $closesAt = $anchor->copy()->addDays($this->windowDays());
-        $closesAtIso = $closesAt->toIso8601String();
-
-        $record = [
-            'status' => ClaimWindowStatus::Open->value,
-            'opened_at' => now()->toIso8601String(),
-            'window_closes_at' => $closesAtIso,
-            'closed_at' => null,
-            'facts_hash' => $guard->windowFingerprint($payout, $closesAtIso),
-        ];
-
-        $this->writeRecord($payout, $record);
+            return $record;
+        }, 3);
+        $payout->refresh();
 
         return $record;
     }
@@ -136,6 +144,9 @@ class ClaimWindowService
      */
     public function closeAsPaid(Payout $payout): void
     {
+        $current = Payout::query()->findOrFail($payout->id);
+        app(PrizeClaimCompletionService::class)->assertEvidence($current);
+        $payout = $current;
         $status = $this->statusFor($payout);
 
         if ($status !== ClaimWindowStatus::Open) {
@@ -180,7 +191,7 @@ class ClaimWindowService
         Payout::query()
             ->whereNotNull('metadata')
             ->whereNull('deleted_at')
-            ->whereRaw("json_extract(metadata, '$.claim_window.status') = ?", [ClaimWindowStatus::Open->value])
+            ->where('metadata->claim_window->status', ClaimWindowStatus::Open->value)
             ->orderBy('id')
             ->chunkById($chunkSize, function ($payouts) use (&$closed, &$totalsByCurrency, $guard): bool {
                 foreach ($payouts as $candidate) {
@@ -269,7 +280,7 @@ class ClaimWindowService
 
     private function recordAudit(Payout $payout, string $description, RiskLevel $riskLevel): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
 
         $log->fill([
             'user_id' => null,

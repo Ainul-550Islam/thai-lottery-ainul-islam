@@ -47,7 +47,7 @@ class UnclaimedPrizeService
         Payout::query()
             ->whereNotNull('metadata')
             ->whereNull('deleted_at')
-            ->whereIn(DB::raw("json_extract(metadata, '$.claim.status')"), $lockStatuses)
+            ->whereIn('metadata->claim->status', $lockStatuses)
             ->orderBy('id')
             ->chunkById($chunkSize, function ($payouts) use (&$expired, &$totalsByCurrency, $now, $guard, $lockStatuses): bool {
                 foreach ($payouts as $candidate) {
@@ -154,7 +154,7 @@ class UnclaimedPrizeService
         Payout::query()
             ->whereNotNull('metadata')
             ->whereNull('deleted_at')
-            ->whereRaw("json_extract(metadata, '$.unclaimed.status') = ?", [UnclaimedPrizeStatus::Expired->value])
+            ->where('metadata->unclaimed->status', UnclaimedPrizeStatus::Expired->value)
             ->orderBy('id')
             ->chunkById($chunkSize, function ($payouts) use (&$swept, &$totalsByCurrency, &$keys, $now, $guard): bool {
                 foreach ($payouts as $candidate) {
@@ -271,7 +271,7 @@ class UnclaimedPrizeService
         Payout::query()
             ->whereNotNull('metadata')
             ->whereNull('deleted_at')
-            ->whereIn(DB::raw("json_extract(metadata, '$.claim.status')"), [
+            ->whereIn('metadata->claim->status', [
                 PrizeClaimStatus::Submitted->value,
                 PrizeClaimStatus::UnderReview->value,
                 PrizeClaimStatus::Approved->value,
@@ -306,7 +306,7 @@ class UnclaimedPrizeService
         $query = Payout::query()
             ->whereNotNull('metadata')
             ->whereNull('deleted_at')
-            ->whereIn(DB::raw("json_extract(metadata, '$.claim.status')"), [
+            ->whereIn('metadata->claim->status', [
                 PrizeClaimStatus::Submitted->value,
                 PrizeClaimStatus::UnderReview->value,
                 PrizeClaimStatus::Approved->value,
@@ -350,13 +350,7 @@ class UnclaimedPrizeService
             'risk_level' => RiskLevel::High,
             'auditable_type' => Payout::class,
             'auditable_id' => $payout->getKey(),
-            'description' => sprintf(
-                'Prize claim of %s %s on payout #%d EXPIRED: the claim window closed at %s with no completed claim.',
-                (string) $payout->amount,
-                $payout->currency->value,
-                (int) $payout->getKey(),
-                (string) ($claim['window_closes_at'] ?? ''),
-            ),
+            'description' => 'Legacy prize expire annotation recorded; no funds moved or payout cancelled.',
             'metadata' => [
                 'payout_id' => (int) $payout->getKey(),
                 'payout_reference' => (string) $payout->reference_number,

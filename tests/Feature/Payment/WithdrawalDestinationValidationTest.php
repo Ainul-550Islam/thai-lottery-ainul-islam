@@ -21,6 +21,7 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
     {
         parent::setUp();
 
+        Config::set('payment.gateways.bank_transfer.enabled', true);
         Config::set('payment.withdrawal.enabled', true);
         Config::set('payment.withdrawal.allowed_methods', ['bank_transfer', 'bkash', 'nagad', 'crypto']);
         Config::set('payment.supported_banks', [
@@ -32,7 +33,7 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
 
     public function test_bank_transfer_withdrawal_requires_canonical_bank_and_account(): void
     {
-        $player = $this->createPlayer('5000.00');
+        $player = $this->createAdmittedPlayer('5000.00');
 
         // Valid bank withdrawal
         $response = $this->actingAs($player['user'])->post('/withdraw', [
@@ -55,7 +56,7 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
 
     public function test_bank_transfer_rejects_unsupported_bank(): void
     {
-        $player = $this->createPlayer('5000.00');
+        $player = $this->createAdmittedPlayer('5000.00');
 
         $response = $this->actingAs($player['user'])->post('/withdraw', [
             'amount' => '500.00',
@@ -72,7 +73,7 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
 
     public function test_bkash_requires_mobile_format_and_prohibits_bank_name(): void
     {
-        $player = $this->createPlayer('5000.00');
+        $player = $this->createAdmittedPlayer('5000.00');
 
         // Valid bKash
         $valid = $this->actingAs($player['user'])->post('/withdraw', [
@@ -98,9 +99,9 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
 
     public function test_crypto_requires_valid_address_and_prohibits_bank_name(): void
     {
-        $player = $this->createPlayer('5000.00');
+        $player = $this->createAdmittedPlayer('5000.00');
 
-        // Valid crypto withdrawal
+        // Syntactically valid destination is not authority to enable an unsupported rail.
         $valid = $this->actingAs($player['user'])->post('/withdraw', [
             'amount' => '1000.00',
             'method' => 'crypto',
@@ -108,7 +109,13 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
             'account_name' => 'USDT-ERC20',
             'idempotency_key' => 'wd-test-crypto-valid',
         ]);
-        $valid->assertSessionHasNoErrors();
+        $valid->assertSessionHasErrors(['method']);
+        $valid->assertSessionDoesntHaveErrors(['account_number']);
+        $this->assertDatabaseCount('withdrawals', 0);
+        $this->assertSame('5000.00', $player['wallet']->fresh()->balance);
+        $this->assertSame('0.00', $player['wallet']->fresh()->locked_balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
+        $this->assertDatabaseCount('ledger_entries', 0);
 
         // Short / malformed address rejected
         $invalid = $this->actingAs($player['user'])->post('/withdraw', [

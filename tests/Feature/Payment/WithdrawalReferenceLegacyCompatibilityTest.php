@@ -89,9 +89,17 @@ final class WithdrawalReferenceLegacyCompatibilityTest extends PaymentTestCase
         DB::transaction(fn () => app(WithdrawalProviderReferenceService::class)->bind($row, 'bank_transfer', 'SYNTHETIC-ATTACH', $payment));
         $this->assertSame($payment->id, DB::table('withdrawal_provider_references')->find($id)->payment_id);
         $payment->delete();
-        $replacement = $this->payment($row);
+        $replacement = $this->payment($this->row());
         $this->expectException(FinancialException::class);
         DB::transaction(fn () => app(WithdrawalProviderReferenceService::class)->bind($row, 'bank_transfer', 'SYNTHETIC-ATTACH', $replacement));
+    }
+
+    public function test_soft_deleted_original_payment_still_blocks_a_second_payment_for_the_same_payable(): void
+    {
+        $row = $this->row();
+        $this->payment($row)->delete();
+        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
+        $this->payment($row);
     }
 
     public function test_trashed_own_payment_with_incompatible_gateway_cannot_disappear_from_historical_checks(): void

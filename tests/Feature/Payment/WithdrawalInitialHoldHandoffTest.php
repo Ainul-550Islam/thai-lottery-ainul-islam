@@ -79,7 +79,7 @@ final class WithdrawalInitialHoldHandoffTest extends FinancialMasterTestCase
 
     public function test_api_request_approve_complete_and_exact_replays_hold_and_debit_only_once(): void
     {
-        $p = $this->createPlayer('100', Currency::THB);
+        $p = $this->createAdmittedPlayer('100', Currency::THB);
         $this->actingAs($p['user'], 'sanctum');
         $payload = ['amount' => '10.00', 'currency' => 'THB', 'method' => 'manual', 'idempotency_key' => 'initial-http-round-trip'];
         $result = $this->postJson('/api/v1/withdrawals', $payload)->assertCreated();
@@ -302,7 +302,7 @@ final class WithdrawalInitialHoldHandoffTest extends FinancialMasterTestCase
 
     public function test_member_cancellation_endpoint_releases_pending_initial_funds_once(): void
     {
-        $p = $this->createPlayer('100', Currency::THB);
+        $p = $this->createAdmittedPlayer('100', Currency::THB);
         $this->actingAs($p['user'], 'sanctum');
         $response = $this->postJson('/api/v1/withdrawals', ['amount' => '10.00', 'currency' => 'THB', 'method' => 'manual', 'idempotency_key' => 'http-cancel-initial-hold'])->assertCreated();
         $id = $response->json('data.withdrawal.id');

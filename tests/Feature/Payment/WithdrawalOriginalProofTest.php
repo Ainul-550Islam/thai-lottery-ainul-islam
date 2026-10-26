@@ -48,7 +48,7 @@ final class WithdrawalOriginalProofTest extends PaymentTestCase
 
     private function settle(array $f): array
     {
-        return app(WithdrawalCompletionService::class)->complete($f['row'], 'synthetic-delivery-key',
+        return app(WithdrawalCompletionService::class)->complete($f['row'], null,
             ['provider' => 'bank_transfer', 'provider_reference' => 'SYNTHETIC-SETTLED-'.$f['row']->id]);
     }
 

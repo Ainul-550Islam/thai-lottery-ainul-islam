@@ -69,7 +69,7 @@ final class ReconcileTruemoneyRedemptionsCommand extends Command
                         }
 
                         try {
-                            DB::transaction(function () use ($row, $evidence, $deposits, $approval, $completion, &$credited): void {
+                            DB::transaction(function () use ($row, $evidence, $deposits, $approval, $completion, $audit, &$credited): void {
                                 $current = TruemoneyVoucherRedemption::query()->lockForUpdate()->findOrFail($row->getKey());
                                 if ($current->status === TruemoneyRedemptionStatus::Credited
                                     || $current->status !== TruemoneyRedemptionStatus::RedeemedUnconfirmed) {

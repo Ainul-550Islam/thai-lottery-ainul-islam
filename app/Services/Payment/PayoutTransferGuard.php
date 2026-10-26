@@ -16,7 +16,7 @@ use App\Services\Finance\PayoutBatchMembershipService;
 
 final class PayoutTransferGuard
 {
-    public function identity(Payout $row, PayoutTransferData $data): void
+    public function identity(Payout $row, PayoutTransferData $data, bool $verifyKyc = true): void
     {
         $guard = app(PayoutApprovalGuard::class);
         $target = $data->beneficiary;
@@ -32,7 +32,7 @@ final class PayoutTransferGuard
             || $data->idempotencyKey !== PayoutTransferData::deriveIdempotencyKey($data->batchKey, $row->reference_number, (int) $row->user_id, (string) $row->amount, $row->currency)) {
             $this->refuse($row);
         }
-        $guard->assertApproved($row, $row->status === PayoutStatus::Completed);
+        $guard->assertApproved($row, $row->status === PayoutStatus::Completed, $verifyKyc);
         app(PayoutBatchMembershipService::class)->assertMember($row);
     }
 

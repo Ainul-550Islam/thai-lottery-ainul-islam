@@ -143,8 +143,13 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
             $selected++;
 
             $claim = is_array($payout->metadata['claim'] ?? null) ? $payout->metadata['claim'] : [];
-            $methodValue = (string) ($claim['payout_method'] ?? 'bank_transfer');
-            $method = PrizePayoutMethod::tryFrom($methodValue) ?? PrizePayoutMethod::BankTransfer;
+            $methodValue = $claim['payout_method'] ?? null;
+            $method = is_string($methodValue) ? PrizePayoutMethod::tryFrom($methodValue) : null;
+            if ($method === null) {
+                $failed++;
+                $failures[] = ['payout_id' => (int) $payout->id, 'code' => 'PAYOUT_AUTHORITY_OR_FINANCIAL_GUARD'];
+                continue;
+            }
 
             if ($method === PrizePayoutMethod::Wallet) {
                 $skippedWallet++;
@@ -173,17 +178,17 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
             try {
                 $service->transfer($data);
                 $opened++;
-            } catch (PayoutTransferException $e) {
+            } catch (Throwable $e) {
                 $failed++;
                 $failures[] = [
                     'payout_id' => (int) $payout->getKey(),
                     'payout_reference' => (string) $payout->reference_number,
-                    'code' => $e->errorCode(),
+                    'code' => $e instanceof PayoutTransferException ? $e->errorCode() : 'PAYOUT_AUTHORITY_OR_FINANCIAL_GUARD',
                 ];
 
                 Log::warning('ExecutePayoutTransferJob: member refused by transfer service', [
                     'payout_id' => (int) $payout->getKey(),
-                    'code' => $e->errorCode(),
+                    'code' => $e instanceof PayoutTransferException ? $e->errorCode() : 'PAYOUT_AUTHORITY_OR_FINANCIAL_GUARD',
                 ]);
             }
         }

@@ -120,10 +120,12 @@ final class DepositCompletionService
             }
 
             $this->assertWalletCanReceive($current, $wallet);
+            app(DepositAdmission::class)->assertAllowed($wallet, (string) $current->amount, (int) $current->id);
 
             $candidateRef = array_key_exists('provider_reference', $options) ? $options['provider_reference'] : $current->provider_reference;
             $provider = $this->stringOption($options, 'provider') ?? $current->provider;
-            if ($candidateRef !== null || array_key_exists('provider_reference', $options)) {
+            if (array_key_exists(DepositIntegrityGuard::TERMS_KEY, $current->metadata ?? [])
+                || $candidateRef !== null || array_key_exists('provider_reference', $options)) {
                 [$canonicalProvider, $verifiedRef] = $guard->reference($current, $options);
                 $boundPayment = $guard->payment($current, $canonicalProvider, $verifiedRef);
                 app(\App\Services\Payment\FinancialProviderReferenceService::class)->bind($current, $canonicalProvider, $scope, $verifiedRef, $boundPayment);

@@ -83,6 +83,31 @@ abstract class PaymentTestCase extends TestCase
         return ['user' => $user, 'wallet' => $wallet];
     }
 
+    /** Explicit legal prerequisites for fixtures exercising money HTTP routes. */
+    protected function createAdmittedPlayer(string $balance = '500.00', Currency $currency = Currency::THB): array
+    {
+        $player = $this->createPlayer($balance, $currency);
+        $user = $player['user'];
+        $user->forceFill(['date_of_birth' => now()->subYears(30)->toDateString()])->save();
+        \App\Models\AgeVerification::query()->create([
+            'user_id' => $user->id, 'status' => 'eligible',
+            'minimum_age' => (int) config('legal.minimum_age', 18),
+            'method' => 'self_declaration', 'attested_at' => now(),
+            'ip_address' => '127.0.0.1', 'user_agent' => 'phpunit', 'source' => 'test',
+        ]);
+        $consent = app(\App\Services\Legal\ConsentService::class);
+        $documents = collect($consent->currentDocuments())->keyBy('document_type');
+        $consent->acceptCurrentDocuments($user, \Illuminate\Http\Request::create('/test', 'POST', [
+            'terms' => true, 'privacy_notice' => true,
+            'terms_version' => (string) $documents->get('terms')['version'],
+            'terms_hash' => (string) $documents->get('terms')['content_hash'],
+            'privacy_version' => (string) $documents->get('privacy')['version'],
+            'privacy_hash' => (string) $documents->get('privacy')['content_hash'],
+        ], server: ['REMOTE_ADDR' => '127.0.0.1']), 'api');
+
+        return $player;
+    }
+
     protected function createPendingDeposit(
         Wallet $wallet,
         string $amount = '1000.00',

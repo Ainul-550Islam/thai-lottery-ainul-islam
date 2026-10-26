@@ -12,6 +12,7 @@ use App\Enums\GatewayIntegrationStatus;
 use App\Enums\WebhookEventType;
 use App\Models\Deposit;
 use App\Models\Withdrawal;
+use App\Services\Payment\PaymentDecimalNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -170,10 +171,16 @@ class BkashGateway extends AbstractPaymentGateway
         $paymentId = (string) ($data['paymentID'] ?? $data['payment_id'] ?? '');
         $trxId = (string) ($data['trxID'] ?? $data['transaction_id'] ?? '');
         $invoice = (string) ($data['merchantInvoiceNumber'] ?? $data['invoice_number'] ?? $data['reference'] ?? '');
-        $amount = (string) ($data['amount'] ?? '0.00');
+        $amountRaw = $data['amount'] ?? null;
+        try {
+            $amount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($amountRaw, 2);
+        } catch (\InvalidArgumentException) {
+            $amount = null;
+        }
         $status = strtoupper((string) ($data['transactionStatus'] ?? $data['status'] ?? ''));
 
-        $currency = isset($data['currency']) ? (Currency::tryFrom(strtoupper((string) $data['currency'])) ?? Currency::BDT) : Currency::BDT;
+        $currencyRaw = $data['currency'] ?? null;
+        $currency = is_string($currencyRaw) ? Currency::tryFrom(strtoupper($currencyRaw)) : null;
 
         $eventType = match ($status) {
             'COMPLETED', 'SUCCESS', 'SUCCESSFUL' => WebhookEventType::DepositSuccess,

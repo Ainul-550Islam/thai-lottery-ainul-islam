@@ -63,7 +63,8 @@ trait RunsServerFinancialRaces
                     'DB_SOCKET' => (string) DB::connection()->getConfig('unix_socket'),
                     'DB_USERNAME' => (string) DB::connection()->getConfig('username'),
                     'DB_PASSWORD' => (string) DB::connection()->getConfig('password'), 'DB_URL' => '',
-                    'APP_KEY' => config('app.key'), 'CACHE_STORE' => 'array', 'QUEUE_CONNECTION' => 'database',
+                    'APP_KEY' => config('app.key'), 'CACHE_STORE' => 'array',
+                    'REAL_MONEY_ENABLED' => config('real_money.enabled', false) ? 'true' : 'false', 'QUEUE_CONNECTION' => 'database',
                 ]);
                 $process->setTimeout(30);
                 $process->start();

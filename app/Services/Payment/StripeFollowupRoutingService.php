@@ -26,15 +26,18 @@ final class StripeFollowupRoutingService
         $snapshot = $this->inbox($inboxId);
         $source = app(StripeDepositFollowupInbox::class)->read($snapshot);
         $candidate = $this->candidate($source, $snapshot);
+        // Routing-only read before opening the owned root. A consistent read
+        // inside the root would establish an old RR snapshot before the wallet
+        // wait and hide the winning worker's committed case/observations.
+        $route = $candidate !== null ? Deposit::query()->useWritePdo()->find($candidate) : null;
+        if ($candidate !== null && ! $route) {
+            $this->refuse();
+        }
 
-        return DB::transaction(function () use ($inboxId, $actor, $snapshot, $candidate): array {
+        return DB::transaction(function () use ($inboxId, $actor, $snapshot, $candidate, $route): array {
             $deposit = null;
             // Never acquire a wallet after an inbox lock. A changed candidate requires a fresh top-level retry.
-            if ($candidate !== null) {
-                $route = Deposit::query()->useWritePdo()->find($candidate);
-                if (! $route) {
-                    $this->refuse();
-                }
+            if ($route !== null) {
                 [$deposit] = app(DepositCheckoutService::class)->lockedStripeSettlement($route);
             }
             $current = $this->inbox($inboxId, true);

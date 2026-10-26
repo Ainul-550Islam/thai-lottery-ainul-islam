@@ -124,11 +124,22 @@ final class DepositController
         } catch (FinancialException $exception) {
             $code = $exception->errorCode() ?? 'deposit_request_refused';
 
-            return ApiResponse::error(
-                code: $code,
-                message: 'The deposit could not be initiated with the requested details.',
-                status: in_array($code, ['payment_gateway_disabled', 'payment_gateway_unavailable'], true) ? 503 : 422,
-            );
+            $details = [];
+            $status = in_array($code, ['payment_gateway_disabled', 'payment_gateway_unavailable'], true) ? 503 : 422;
+            if ($code === 'checkout_outcome_unknown') {
+                // Project only the caller's original, keyed obligation. Never expose
+                // provider payloads, encrypted custody, dispatch keys or SQL fences.
+                $owned = Deposit::query()->where('user_id', $user->id)->where('wallet_id', $wallet->id)
+                    ->where('idempotency_key', $idempotencyKey)->first();
+                if ($owned) {
+                    $details = ['deposit_uuid' => $owned->uuid,
+                        'checkout' => app(\App\Services\Payment\DepositCheckoutService::class)->status($owned)];
+                }
+                $status = 409;
+            }
+
+            return ApiResponse::error(code: $code,
+                message: 'The deposit could not be initiated with the requested details.', status: $status, details: $details);
         }
 
         $gatewayResponse = $result['gateway_response'];
@@ -212,6 +223,7 @@ final class DepositController
                 'method' => $deposit->method->value,
                 'confirmed_at' => $deposit->confirmed_at?->toIso8601String(),
                 'failed_at' => $deposit->failed_at?->toIso8601String(),
+                'checkout' => app(\App\Services\Payment\DepositCheckoutService::class)->status($deposit),
             ],
             message: 'Deposit retrieved successfully.',
         );

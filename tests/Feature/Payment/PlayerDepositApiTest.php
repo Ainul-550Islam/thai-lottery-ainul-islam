@@ -16,13 +16,23 @@ use PHPUnit\Framework\Attributes\Test;
 
 final class PlayerDepositApiTest extends PaymentTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
+        \Illuminate\Support\Facades\Http::fake(['api.stripe.com/*' =>
+            \Illuminate\Support\Facades\Http::response(['id' => 'cs_test_SYNTHETIC_API',
+                'url' => 'https://example.invalid/synthetic-checkout'], 200)]);
+    }
+
     #[Test]
     public function authenticated_player_can_initiate_stripe_deposit(): void
     {
-        $player = $this->createPlayer('100.00', Currency::THB);
+        $player = $this->createAdmittedPlayer('100.00', Currency::THB);
         Sanctum::actingAs($player['user']);
 
         $response = $this->postJson('/api/v1/deposits', [
+            'idempotency_key' => 'synthetic-api-request',
             'amount' => '500.00',
             'method' => 'stripe',
             'currency' => 'THB',
@@ -43,7 +53,7 @@ final class PlayerDepositApiTest extends PaymentTestCase
     #[Test]
     public function player_can_view_their_own_deposit(): void
     {
-        $player = $this->createPlayer('100.00', Currency::THB);
+        $player = $this->createAdmittedPlayer('100.00', Currency::THB);
         $deposit = $this->createPendingDeposit($player['wallet'], '750.00', PaymentMethod::Stripe);
         Sanctum::actingAs($player['user']);
 
@@ -58,8 +68,8 @@ final class PlayerDepositApiTest extends PaymentTestCase
     #[Test]
     public function player_cannot_view_another_players_deposit(): void
     {
-        $player1 = $this->createPlayer('100.00', Currency::THB);
-        $player2 = $this->createPlayer('200.00', Currency::THB);
+        $player1 = $this->createAdmittedPlayer('100.00', Currency::THB);
+        $player2 = $this->createAdmittedPlayer('200.00', Currency::THB);
 
         $deposit = $this->createPendingDeposit($player1['wallet'], '500.00', PaymentMethod::Stripe);
         Sanctum::actingAs($player2['user']);
@@ -79,10 +89,11 @@ final class PlayerDepositApiTest extends PaymentTestCase
     {
         Config()->set('finance.deposit.fee_percentage', '2.00');
 
-        $player = $this->createPlayer('100.00', Currency::THB);
+        $player = $this->createAdmittedPlayer('100.00', Currency::THB);
         Sanctum::actingAs($player['user']);
 
         $response = $this->postJson('/api/v1/deposits', [
+            'idempotency_key' => 'synthetic-api-request',
             'amount' => '500.00',
             'method' => 'stripe',
             'currency' => 'THB',
@@ -120,11 +131,12 @@ final class PlayerDepositApiTest extends PaymentTestCase
     {
         Config()->set('finance.deposit.fee_percentage', '2.00');
 
-        $player = $this->createPlayer('100.00', Currency::THB);
+        $player = $this->createAdmittedPlayer('100.00', Currency::THB);
         Sanctum::actingAs($player['user']);
 
         // Smuggled fee/rate/net fields must not change the server's numbers.
         $response = $this->postJson('/api/v1/deposits', [
+            'idempotency_key' => 'synthetic-api-request',
             'amount' => '500.00',
             'method' => 'stripe',
             'currency' => 'THB',
@@ -144,10 +156,11 @@ final class PlayerDepositApiTest extends PaymentTestCase
     #[Test]
     public function default_zero_percent_deposit_fee_keeps_the_deposit_free(): void
     {
-        $player = $this->createPlayer('100.00', Currency::THB);
+        $player = $this->createAdmittedPlayer('100.00', Currency::THB);
         Sanctum::actingAs($player['user']);
 
         $this->postJson('/api/v1/deposits', [
+            'idempotency_key' => 'synthetic-api-request',
             'amount' => '500.00',
             'method' => 'stripe',
             'currency' => 'THB',
@@ -163,7 +176,7 @@ final class PlayerDepositApiTest extends PaymentTestCase
     {
         Config()->set('finance.deposit.fee_percentage', '2.00');
 
-        $player = $this->createPlayer('100.00', Currency::THB);
+        $player = $this->createAdmittedPlayer('100.00', Currency::THB);
         Sanctum::actingAs($player['user']);
 
         $key = 'fees-parity-replay-'.bin2hex(random_bytes(8));

@@ -33,6 +33,10 @@ final class PayoutBatchRoutingService
             if ($actor) {
                 app(PayoutTransferAccess::class)->authorize($actor, PayoutTransferAccess::ROUTE);
             }
+            // Acquire decisive member locks before the shared batch claim. Two
+            // contenders must both wait on the original obligation, not chain
+            // behind a batch lock held by another waiter.
+            $guard->members($batch, true);
             $claim = app(PayoutBatchService::class)->claim($batch);
             $row = $claim['batch'];
             if (! $claim['claimed']) {

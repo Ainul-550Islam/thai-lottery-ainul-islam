@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace App\Services\Payment;
 
+use App\DTOs\Payment\GatewayWithdrawalResponse;
 use App\DTOs\Payment\WithdrawalReconciliationFacts;
 use App\Enums\AuditAction;
 use App\Enums\PaymentStatus;
 use App\Enums\RiskLevel;
+use App\Enums\ThaiBankPayoutState;
 use App\Enums\WithdrawalStatus;
 use App\Exceptions\FinancialException;
 use App\Exceptions\WithdrawalReconciliationException;
+use App\Jobs\PollThaiBankPayoutStatusJob;
 use App\Models\AuditLog;
 use App\Models\Payment;
+use App\Models\ThaiBankPayoutAttempt;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
@@ -25,7 +29,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
-/** Evidence-backed human reconciliation. Never invokes a gateway or resets a claim. */
+/** Evidence-backed reconciliation. Bank attempts are queried, never dispatched again. */
 final class WithdrawalReconciliationService
 {
     public function __construct(
@@ -36,6 +40,63 @@ final class WithdrawalReconciliationService
         private readonly WithdrawalCompletionService $completion,
         private readonly WithdrawalApprovalService $approval,
     ) {}
+
+    /** Historical rows without a routing key retain their original method. */
+    public function resolveGatewayKey(Withdrawal $withdrawal): string
+    {
+        return array_key_exists('gateway_key', $withdrawal->metadata ?? [])
+            ? $this->dispatch->resolveGatewayKey($withdrawal)
+            : $withdrawal->method->value;
+    }
+
+    /**
+     * Obtain bank evidence through the same locked, non-resending poller used by the queue.
+     * Operator rails retain their evidence-backed maker/checker workflow.
+     */
+    public function reconcile(Withdrawal $withdrawal): GatewayWithdrawalResponse
+    {
+        if (DB::transactionLevel() > 0 || DB::connection()->getPdo()->inTransaction()) {
+            throw FinancialException::withCode('reconciliation_requires_top_level', 'Bank status reconciliation must run outside a SQL transaction.');
+        }
+        $row = Withdrawal::query()->findOrFail($withdrawal->getKey());
+        $key = $this->resolveGatewayKey($row);
+        app(PaymentGatewayManager::class)->driver($key);
+        if ($key !== 'thai_bank') {
+            return GatewayWithdrawalResponse::pending($row->provider_reference, metadata: [
+                'gateway_key' => $key,
+                'state' => 'reconciliation_required',
+                'reconciliation_required' => true,
+            ]);
+        }
+
+        $attempt = ThaiBankPayoutAttempt::query()->where('withdrawal_id', $row->getKey())
+            ->where('withdrawal_reference', $row->reference_number)->first();
+        if (! $attempt instanceof ThaiBankPayoutAttempt) {
+            $log = new AuditLog;
+            $log->fill(['action' => AuditAction::Reconcile, 'risk_level' => RiskLevel::High,
+                'auditable_type' => Withdrawal::class, 'auditable_id' => $row->getKey(),
+                'description' => 'Routed Thai bank withdrawal has no matching payout attempt; hold preserved without resending.',
+                'metadata' => ['withdrawal_id' => (int) $row->getKey(), 'reason_code' => 'thai_payout_attempt_missing']]);
+            $log->save();
+
+            return GatewayWithdrawalResponse::uncertain(metadata: ['gateway_key' => $key, 'reason' => 'thai_payout_attempt_missing']);
+        }
+
+        app()->call([new PollThaiBankPayoutStatusJob((int) $attempt->getKey()), 'handle']);
+        $row->refresh();
+        $attempt->refresh();
+        if ($row->status === WithdrawalStatus::Completed && $attempt->state === ThaiBankPayoutState::Settled
+            && is_string($attempt->provider_reference) && $attempt->provider_reference !== '') {
+            return GatewayWithdrawalResponse::completed($attempt->provider_reference);
+        }
+        if ($row->status === WithdrawalStatus::Failed && $attempt->state === ThaiBankPayoutState::Rejected) {
+            return GatewayWithdrawalResponse::failed('The bank confirmed the payout was rejected.');
+        }
+
+        return $attempt->state === ThaiBankPayoutState::Accepted
+            ? GatewayWithdrawalResponse::pending($attempt->provider_reference, metadata: ['gateway_key' => $key, 'reconciliation_required' => true])
+            : GatewayWithdrawalResponse::uncertain($attempt->provider_reference, metadata: ['gateway_key' => $key]);
+    }
 
     public function request(User $actor, int $withdrawalId, WithdrawalReconciliationFacts $facts, UploadedFile $file): WithdrawalReconciliation
     {
@@ -180,6 +241,9 @@ final class WithdrawalReconciliationService
 
     private function assertOpen(Withdrawal $row, Wallet $wallet, Payment $payment, WithdrawalReconciliationFacts $facts): void
     {
+        if ($this->resolveGatewayKey($row) === 'thai_bank') {
+            throw new WithdrawalReconciliationException('thai_bank_status_reconciliation_required');
+        }
         $claim = $this->dispatch->inspectReconciliationClaim($row, $wallet, $payment);
         $this->destinationDetails($row);
         $v = $facts->values;
@@ -252,7 +316,7 @@ final class WithdrawalReconciliationService
     private function snapshot(Withdrawal $row, Payment $payment): string
     {
         return hash('sha256', json_encode([$row->id, $row->metadata[WithdrawalDisbursementService::CLAIM],
-            $row->provider, $row->provider_reference, $payment->id, $payment->gateway_reference, $payment->metadata], JSON_THROW_ON_ERROR));
+            $row->provider, $row->provider_reference, $this->resolveGatewayKey($row), $payment->id, $payment->gateway_reference, $payment->metadata], JSON_THROW_ON_ERROR));
     }
 
     private function assertNotBeneficiary(Withdrawal $row, User $actor): void

@@ -635,10 +635,12 @@ final class WalletService
      */
     private function detachedWallet(Wallet $wallet): Wallet
     {
-        $copy = clone $wallet;
-        $copy->setRawAttributes($wallet->getAttributes(), true);
+        $this->assertWalletIdentity($wallet);
+        $this->assertInsideTransaction();
 
-        return $copy;
+        // A detached caller snapshot is not the locked row's present balance.
+        // Relock returns a separate current model and leaves the caller untouched.
+        return $this->locks->relock($wallet);
     }
 
     private function persistWallet(Wallet $wallet, string $operation): void

@@ -107,7 +107,7 @@ final class WithdrawalController
             );
         } catch (WithdrawalException $e) {
             return ApiResponse::error(
-                code: 'withdrawal_refused',
+                code: in_array($e->errorCode(), ['withdrawal_refund_exposure_pending', 'withdrawal_refund_exposure_unproven'], true) ? 'refund_recovery_required' : 'withdrawal_refused',
                 message: $e->getMessage(),
                 status: 422,
             );

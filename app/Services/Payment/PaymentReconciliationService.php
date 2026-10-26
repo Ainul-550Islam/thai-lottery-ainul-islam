@@ -206,44 +206,56 @@ final class PaymentReconciliationService
 
         // PROVIDER OBSERVATION: latest APPLIED webhook for this
         // (provider, event) which names this reference in its payload.
-        $observedAmount = null;
-        $observedStatus = null;
+        $capture = $provider === 'stripe' ? app(StripeDepositSettlementService::class)->observedCapture($payment) : null;
+        $observedAmount = $capture['amount'] ?? null;
+        $observedStatus = $capture ? PaymentTransactionStatus::Succeeded : null;
+        $providerFollowup = false;
+        $references = $capture['references'] ?? [$reference];
 
         /** @var PaymentWebhook|null $applied */
         $applied = PaymentWebhook::query()
             ->where('provider', $provider)
             ->where('status', PaymentWebhookStatus::Applied->value)
             ->orderByDesc('id')
-            ->get(['payload'])
-            ->first(function (PaymentWebhook $webhook) use ($reference): bool {
+            ->get(['payload', 'event_type'])
+            ->first(function (PaymentWebhook $webhook) use ($references): bool {
                 $payload = is_array($webhook->payload) ? $webhook->payload : [];
                 $facts = is_array($payload['data']['object'] ?? null) ? $payload['data']['object'] : $payload;
 
-                return in_array($reference, [
-                    is_string($facts['reference'] ?? null) ? $facts['reference'] : null,
-                    is_string($facts['gateway_reference'] ?? null) ? $facts['gateway_reference'] : null,
-                    is_string($facts['payment_reference'] ?? null) ? $facts['payment_reference'] : null,
-                    is_string($facts['id'] ?? null) ? $facts['id'] : null,
-                ], true);
+                $named = array_filter([$facts['reference'] ?? null, $facts['gateway_reference'] ?? null,
+                    $facts['payment_reference'] ?? null, $facts['id'] ?? null,
+                    $facts['charge'] ?? null, $facts['payment_intent'] ?? null], 'is_string');
+
+                return array_intersect($references, $named) !== [];
             });
 
         if ($applied instanceof PaymentWebhook) {
             $payload = is_array($applied->payload) ? $applied->payload : [];
             $facts = is_array($payload['data']['object'] ?? null) ? $payload['data']['object'] : $payload;
 
-            if (isset($facts['amount'])) {
+            $native = $provider === 'stripe' && in_array($facts['object'] ?? null, ['charge', 'refund', 'payment_intent', 'checkout.session'], true);
+            $providerFollowup = $capture && $native && in_array($facts['object'] ?? null, ['charge', 'refund'], true)
+                && (($facts['object'] ?? null) === 'refund' || str_contains((string) $applied->event_type, 'refund')
+                    || ($facts['refunded'] ?? false) === true || ($facts['disputed'] ?? false) === true
+                    || (is_numeric($facts['amount_refunded'] ?? null) && bccomp((string) $facts['amount_refunded'], '0', 0) > 0));
+            if ($providerFollowup) {
+                $observedAmount = null;
+                $observedStatus = null;
+            }
+            if (! $providerFollowup && isset($facts['amount'])) {
                 $raw = is_string($facts['amount'])
                     ? trim($facts['amount'])
                     : (is_int($facts['amount']) ? (string) $facts['amount'] : null);
 
                 if ($raw !== null && preg_match('/^\d+(\.\d{1,2})?$/', $raw) === 1) {
-                    $observedAmount = PaymentCallbackService::moneyOf($raw);
+                    $observedAmount = $native && preg_match('/^\d+$/D', $raw) === 1
+                        ? bcdiv($raw, '100', 2) : PaymentCallbackService::moneyOf($raw);
                 }
             }
 
             $word = $facts['status'] ?? $payload['status'] ?? null;
 
-            if (is_string($word)) {
+            if (! $providerFollowup && is_string($word)) {
                 $observedStatus = PaymentTransactionStatus::fromProviderWord($word);
             }
         }
@@ -260,7 +272,7 @@ final class PaymentReconciliationService
         );
 
         // --- DRIFT LINES ------------------------------------------------
-        $driftLines = [];
+        $driftLines = $providerFollowup ? ['provider-followup: linked refund or dispute evidence requires controlled review; no new definitive funding outcome is inferred.'] : [];
 
         if ($observedAmount !== null && bccomp($expected, $observedAmount, 2) !== 0) {
             $driftLines[] = sprintf('amount: internal paper says %s %s, provider evidence says %s', $expected, $currency, $observedAmount);

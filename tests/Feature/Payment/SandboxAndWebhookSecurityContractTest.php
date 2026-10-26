@@ -121,6 +121,7 @@ final class SandboxAndWebhookSecurityContractTest extends TestCase
 
     public function test_deposit_webhook_controller_enforces_secret_hmac_replay_idempotency_and_terms_conflict(): void
     {
+        config(['real_money.enabled' => false, 'payment.gateways.sandbox.enabled' => true]);
         $user = User::factory()->create();
         $wallet = Wallet::factory()->for($user)->create([
             'currency' => Currency::THB,
@@ -219,6 +220,22 @@ final class SandboxAndWebhookSecurityContractTest extends TestCase
         ], $conflictingBody)->assertStatus(409)->assertJsonPath('error', 'WEBHOOK_TERMS_CONFLICT');
 
         $this->assertSame('400.00', bcadd((string) $wallet->fresh()->balance, '0.00', 2));
+
+        // The same valid signature cannot authorize sandbox credits with real
+        // money enabled, or in production even if someone toggles its flag.
+        config(['real_money.enabled' => true]);
+        $this->call('POST', '/api/v1/webhooks/deposit/sandbox', [], [], [], [
+            'CONTENT_TYPE' => 'application/json', 'HTTP_X_WEBHOOK_TIMESTAMP' => $freshTs,
+            'HTTP_X_WEBHOOK_SIGNATURE' => $validSig,
+        ], $body)->assertStatus(503)->assertJsonPath('error', 'WEBHOOK_NOT_CONFIGURED');
+        config(['real_money.enabled' => false]);
+        $this->app->instance('env', 'production');
+        $this->call('POST', '/api/v1/webhooks/deposit/sandbox', [], [], [], [
+            'CONTENT_TYPE' => 'application/json', 'HTTP_X_WEBHOOK_TIMESTAMP' => $freshTs,
+            'HTTP_X_WEBHOOK_SIGNATURE' => $validSig,
+        ], $body)->assertStatus(503)->assertJsonPath('error', 'WEBHOOK_NOT_CONFIGURED');
+        $this->assertSame('400.00', bcadd((string) $wallet->fresh()->balance, '0.00', 2));
+        $this->assertSame(1, DepositTransaction::query()->count());
     }
 
     public function test_unconfigured_providers_fail_closed_and_decimal_normalizer_rejects_imprecise_inputs(): void

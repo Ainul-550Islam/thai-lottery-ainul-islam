@@ -5,18 +5,16 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Enums\AuditAction;
-use App\Enums\FinancialTransactionType;
 use App\Enums\PayoutStatus;
 use App\Enums\QueueName;
 use App\Enums\RiskLevel;
-use App\Events\PrizePayoutCompleted;
-use App\Exceptions\PayoutException;
 use App\Models\AuditLog;
 use App\Models\Payout;
-use App\Models\User;
-use App\Services\Finance\Money;
+use App\Models\PayoutBatch;
+use App\Enums\PayoutBatchStatus;
+use App\Services\Finance\ApprovedWalletPayoutService;
+use App\Services\Finance\PayoutBatchService;
 use App\Services\Finance\WalletService;
-use App\Services\Observability\CorrelationContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -116,227 +114,57 @@ class ProcessPayoutBatchJob implements ShouldBeUnique, ShouldQueue
      */
     public function handle(WalletService $walletService): ?array
     {
-        $eligible = $this->eligiblePayouts();
-
-        if ($eligible->isEmpty()) {
-            Log::info('ProcessPayoutBatchJob: no eligible pending payouts for tag #{tag}', [
-                'tag' => $this->batchTag,
-            ]);
-
-            return [
-                'processed' => 0,
-                'paid' => 0,
-                'failed' => 0,
-                'replayed' => 0,
-                'total_paid' => '0.00',
-            ];
+        $summary = ['processed' => 0, 'paid' => 0, 'failed' => 0, 'held' => 0,
+            'replayed' => 0, 'total_paid' => '0.00'];
+        $members = DB::table('payout_batch_members')->select('payout_id');
+        if ($this->batchTag !== null) {
+            $members->where('payout_batch_id', $this->batchTag);
         }
-
-        $paid = 0;
-        $failed = 0;
-        $replayed = 0;
-        $totalPaid = '0.00';
-
-        foreach ($eligible as $payoutRow) {
-            $outcome = $this->processOne($walletService, (int) $payoutRow->id);
-
-            match ($outcome['result']) {
-                'paid' => [$paid, $totalPaid] = [$paid + 1, bcadd($totalPaid, $outcome['amount'], 2)],
-                'failed' => $failed++,
-                'replayed' => $replayed++,
-                default => null,
-            };
+        $query = Payout::query()->whereIn('id', $members)->orderBy('id');
+        if ($this->payoutIds !== null) {
+            $query->whereIn('id', $this->payoutIds);
+        } else {
+            $query->where('status', PayoutStatus::Pending->value);
         }
-
-        $summary = [
-            'processed' => $eligible->count(),
-            'paid' => $paid,
-            'failed' => $failed,
-            'replayed' => $replayed,
-            'total_paid' => $totalPaid,
-        ];
-
-        Log::info('ProcessPayoutBatchJob: batch complete', $summary + [
-            'batch_tag' => $this->batchTag,
-        ]);
-
+        $rows = $query->limit(max(1, min(1000, (int) config('lottery.payouts.batch_size', 200))))->get();
+        $batchIds = [];
+        foreach ($rows as $row) {
+            $summary['processed']++;
+            try {
+                $batchId = DB::table('payout_batch_members')->where('payout_id', $row->id)->value('payout_batch_id');
+                $batchIds[(int) $batchId] = true;
+                $outcome = app(ApprovedWalletPayoutService::class)->execute((int) $row->id);
+                if ($outcome['result'] === 'paid') {
+                    $summary['paid']++;
+                    $summary['total_paid'] = bcadd($summary['total_paid'], $outcome['amount'], 2);
+                } else {
+                    $summary['replayed']++;
+                }
+            } catch (Throwable $exception) {
+                // Uncertain authority or evidence is NOT a provider's final refusal.
+                // Never mutate the payout to Failed or release money on worker errors.
+                $summary['held']++;
+                Log::warning('Wallet payout retained for controlled review.', [
+                    'payout_id' => (int) $row->id, 'code' => 'PAYOUT_AUTHORITY_OR_FINANCIAL_GUARD',
+                ]);
+            }
+        }
+        foreach (array_keys($batchIds) as $id) {
+            $batch = PayoutBatch::query()->find($id);
+            if (! $batch || ($batch->metadata['execution_lane'] ?? null) !== 'wallet') {
+                continue;
+            }
+            $service = app(PayoutBatchService::class);
+            $current = $service->refresh($batch);
+            if ($current->status === PayoutBatchStatus::Processing && $current->processed_count === $current->member_count) {
+                $service->settle($current);
+            }
+        }
         $this->recordBatchAudit($summary);
 
         return $summary;
     }
 
-    /**
-     * The rows this run claims: pending (never processed) or explicitly listed
-     * eligible payouts, age-ordered, bounded by the configured batch size.
-     * Rows already Completed are never candidates; the lock inside processOne
-     * proves it one more time per row.
-     */
-    private function eligiblePayouts()
-    {
-        $query = Payout::query()
-            ->whereNull('deleted_at')
-            ->where('status', PayoutStatus::Pending->value)
-            ->orderBy('id')
-            ->limit((int) config('lottery.payouts.batch_size', 200));
-
-        if ($this->payoutIds !== null && $this->payoutIds !== []) {
-            $query->whereIn('id', $this->payoutIds);
-        }
-
-        return $query->get();
-    }
-
-    /**
-     * Settle ONE payout inside its own transaction. All or nothing:
-     * the credit, the marks and the event payload are all committed together,
-     * or — on any error — the payout moves to Failed and the wallet/ledger
-     * never moved.
-     *
-     * @return array{result: string, amount: string, reason?: string}
-     */
-    private function processOne(WalletService $walletService, int $payoutId): array
-    {
-        try {
-            return DB::transaction(function () use ($walletService, $payoutId): array {
-                /** @var Payout|null $payout */
-                $payout = Payout::query()->lockForUpdate()->find($payoutId);
-
-                if (! $payout instanceof Payout) {
-                    throw PayoutException::notFound($payoutId);
-                }
-
-                // Completed already: replay the stored outcome, no re-credit.
-                if ($payout->status === PayoutStatus::Completed) {
-                    return [
-                        'result' => 'replayed',
-                        'amount' => (string) $payout->amount,
-                    ];
-                }
-
-                if ($payout->status !== PayoutStatus::Pending) {
-                    throw PayoutException::stateForbids(
-                        $payoutId,
-                        $payout->status->value,
-                        'batch-processed',
-                    );
-                }
-
-                $payout->status = PayoutStatus::Processing;
-                $payout->save();
-
-                $user = $payout->user instanceof User ? $payout->user : User::query()->find((int) $payout->user_id);
-
-                if (! $user instanceof User) {
-                    throw PayoutException::walletUnavailable($payoutId, (int) $payout->user_id, (string) $payout->currency->value);
-                }
-
-                $wallet = $payout->wallet;
-
-                if ($wallet === null) {
-                    throw PayoutException::walletUnavailable($payoutId, (int) $payout->user_id, (string) $payout->currency->value);
-                }
-
-                if ($wallet->currency !== $payout->currency) {
-                    throw PayoutException::currencyMismatch(
-                        $payoutId,
-                        $payout->currency->value,
-                        $wallet->currency->value,
-                    );
-                }
-
-                // The credit: balanced double entry, idempotency keyed per
-                // payout. A retry of THIS job replays the same key and gets
-                // the same stored transaction, never a second credit. Wallet
-                // itself re-locks the row inside the credit pipeline.
-                $transaction = $walletService->credit(
-                    wallet: $wallet,
-                    amount: Money::fromDatabase((string) $payout->amount, $payout->currency),
-                    type: FinancialTransactionType::Payout,
-                    idempotencyKey: sprintf('payout-batch-%d', $payoutId),
-                    options: [
-                        'description' => sprintf('Prize payout %s (batch)', (string) $payout->reference_number),
-                        'reference_type' => Payout::class,
-                        'reference_id' => (int) $payout->getKey(),
-                        'metadata' => [
-                            'payout_id' => (int) $payout->getKey(),
-                            'payout_reference' => (string) $payout->reference_number,
-                            'batch_tag' => $this->batchTag,
-                            'source' => 'payout_batch',
-                        ],
-                    ],
-                );
-
-                $payout->financial_transaction_id = (int) $transaction->getKey();
-                $payout->status = PayoutStatus::Completed;
-                $payout->processed_at = now();
-                $payout->save();
-
-                event(new PrizePayoutCompleted(
-                    payout: $payout,
-                    winner: $user,
-                    correlationId: CorrelationContext::get(),
-                ));
-
-                return [
-                    'result' => 'paid',
-                    'amount' => (string) $payout->amount,
-                ];
-            });
-        } catch (Throwable $exception) {
-            // A single-row failure must not poison the batch. The payout is
-            // stamped Failed with the reason so operations can review it, and
-            // the loop continues with the next row.
-            $this->failRow($payoutId, $exception);
-
-            Log::warning('ProcessPayoutBatchJob: payout failed batch-level fail-per-row', [
-                'payout_id' => $payoutId,
-                'reason' => $exception->getMessage(),
-                'batch_tag' => $this->batchTag,
-            ]);
-
-            return [
-                'result' => 'failed',
-                'amount' => '0.00',
-                'reason' => $exception->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * Stamp one payout Failed with the failure reason. Outside the rolling
-     * transaction on purpose: the row's failure stamp must survive even when
-     * the payout's own writes rolled back.
-     */
-    private function failRow(int $payoutId, Throwable $exception): void
-    {
-        try {
-            $fresh = Payout::query()->find($payoutId);
-
-            if (! $fresh instanceof Payout) {
-                return;
-            }
-
-            if (! in_array($fresh->status, [PayoutStatus::Pending, PayoutStatus::Processing], true)) {
-                return;
-            }
-
-            $fresh->status = PayoutStatus::Failed;
-            $fresh->failed_at = now();
-            $fresh->failure_reason = mb_substr($exception->getMessage(), 0, 500);
-            $fresh->save();
-        } catch (Throwable) {
-            // The failure stamp itself failed; better to lose the stamp and
-            // keep processing than to cascade the batch.
-        }
-    }
-
-    /**
-     * One audit line per run: what tag, how many paid/failed/replayed, and
-     * the total moved. Completed batches should never trip alerts, so the
-     * level is only Medium when failures happened and Low otherwise.
-     *
-     * @param  array{processed: int, paid: int, failed: int, replayed: int, total_paid: string}  $summary
-     */
     private function recordBatchAudit(array $summary): void
     {
         if ($summary['processed'] === 0) {
@@ -348,7 +176,7 @@ class ProcessPayoutBatchJob implements ShouldBeUnique, ShouldQueue
         $log->fill([
             'user_id' => null,
             'action' => AuditAction::Payout,
-            'risk_level' => $summary['failed'] > 0 ? RiskLevel::Medium : RiskLevel::Low,
+            'risk_level' => ($summary['failed'] > 0 || $summary['held'] > 0) ? RiskLevel::High : RiskLevel::Low,
             'auditable_type' => 'payout_batch',
             'auditable_id' => $this->batchTag ?? 0,
             'description' => sprintf(

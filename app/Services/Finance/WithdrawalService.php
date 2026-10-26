@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Compliance\WithdrawalKycGateService as ComplianceKycGate;
+use App\Services\Payment\WithdrawalProviderAccountService;
 use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -81,6 +82,7 @@ final class WithdrawalService
         PaymentMethod $method = PaymentMethod::Manual,
         ?string $idempotencyKey = null,
         array $options = [],
+        bool $initialHoldRequired = false,
     ): Withdrawal {
         $amount->assertPositive('withdrawal amount');
         Money::assertExactArithmeticIsAvailable();
@@ -107,7 +109,7 @@ final class WithdrawalService
                 ->assertCanWithdraw($rgUser, $amount->toString(), $amount->currency());
         }
 
-        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options): Withdrawal {
+        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options, $initialHoldRequired): Withdrawal {
             $lockedWallet = $this->locks->lock((int) $wallet->getKey());
 
             $this->assertWalletAllowsWithdrawal($lockedWallet, $amount->currency());
@@ -138,10 +140,16 @@ final class WithdrawalService
                 );
             }
 
-            $options['metadata'] = array_merge(
-                [\App\Services\Payment\WithdrawalProviderAccountService::METADATA_KEY => app(\App\Services\Payment\WithdrawalProviderAccountService::class)->current($method->value)],
+            $options['metadata'] = array_diff_key(
                 isset($options['metadata']) && is_array($options['metadata']) ? $options['metadata'] : [],
+                array_flip(['outbound_dispatch', 'gateway_key', 'disbursement_attempt_started_at',
+                    WithdrawalIntegrityGuard::TERMS_KEY, WithdrawalInitialHoldService::ORIGIN_KEY]),
             );
+            if ($initialHoldRequired) {
+                $options['metadata'][WithdrawalInitialHoldService::ORIGIN_KEY] = 'v1';
+            }
+            $options['metadata'][WithdrawalProviderAccountService::METADATA_KEY]
+                = app(WithdrawalProviderAccountService::class)->current($method->value);
 
             $withdrawal = new Withdrawal;
 
@@ -276,7 +284,8 @@ final class WithdrawalService
             $released = false;
             $wallet = $lockedWallet;
 
-            if ($current->status->holdsReservedFunds()) {
+            if ($current->status->holdsReservedFunds()
+                || app(WithdrawalReservationService::class)->exists($current)) {
                 $outcome = app(WithdrawalReservationService::class)->release($current, $lockedWallet, false);
                 $wallet = $outcome['wallet'];
                 $released = $outcome['released'];

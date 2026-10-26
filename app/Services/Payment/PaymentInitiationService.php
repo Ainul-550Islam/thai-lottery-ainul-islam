@@ -58,11 +58,16 @@ final class PaymentInitiationService
             );
         }
 
+        if (! is_string($idempotencyKey) || trim($idempotencyKey) === '') {
+            throw FinancialException::withCode('checkout_request_key_required',
+                'A stable request key is required before a remote checkout can be created.');
+        }
+
         return app(DepositCheckoutService::class)->execute(
             wallet: $wallet,
             amount: $amount,
             method: $method,
-            key: $idempotencyKey ?? 'checkout-auto-'.bin2hex(random_bytes(16)),
+            key: $idempotencyKey,
             options: $options,
             driver: $driver,
         );

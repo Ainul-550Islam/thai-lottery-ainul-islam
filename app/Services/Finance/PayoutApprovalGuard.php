@@ -58,15 +58,15 @@ final class PayoutApprovalGuard
             $row->currency->value, (string) $row->amount, $method->value, $this->beneficiary($row), $scope], JSON_THROW_ON_ERROR));
     }
 
-    public function assertBeneficiary(Payout $row): void
+    public function assertBeneficiary(Payout $row, bool $verifyKyc = true): void
     {
         $owner = User::query()->find($row->user_id);
-        if (! $owner || $owner->status !== UserStatus::Active || ($this->method($row)->requiresVerifiedKyc() && ! $owner->kycStatus()->isVerified())) {
+        if (! $owner || $owner->status !== UserStatus::Active || ($verifyKyc && $this->method($row)->requiresVerifiedKyc() && ! $owner->kycStatus()->isVerified())) {
             $this->refuse($row);
         }
     }
 
-    public function assertApproved(Payout $row, bool $completed = false): array
+    public function assertApproved(Payout $row, bool $completed = false, bool $verifyKyc = true): array
     {
         app(PrizeClaimGuard::class)->assertPayableClaim($row);
         $a = $row->metadata['approval'] ?? null;
@@ -79,7 +79,7 @@ final class PayoutApprovalGuard
         }
         app(PayoutTransferAccess::class)->authorize(User::query()->find($a['maker_user_id']), PayoutTransferAccess::REQUEST);
         app(PayoutTransferAccess::class)->authorize(User::query()->find($a['checker_user_id']), PayoutTransferAccess::APPROVE);
-        $this->assertBeneficiary($row);
+        $this->assertBeneficiary($row, $verifyKyc);
 
         return $a;
     }

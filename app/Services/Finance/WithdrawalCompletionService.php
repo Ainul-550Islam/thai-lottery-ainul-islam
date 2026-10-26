@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Finance;
 
-use App\Enums\FinancialTransactionType;
 use App\Enums\WithdrawalStatus;
 use App\Exceptions\FinancialException;
 use App\Exceptions\WithdrawalException;
 use App\Models\FinancialTransaction;
+use App\Models\Payment;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
+use App\Services\Payment\WithdrawalProviderAccountService;
+use App\Services\Payment\WithdrawalProviderReferenceService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -116,7 +118,9 @@ final class WithdrawalCompletionService
 
             // Debited but never marked: finish the bookkeeping, do not debit again.
             if ($current->financial_transaction_id !== null) {
-                return $this->healUnmarkedWithdrawal($current, $wallet);
+                // A foreign link or an unmarked debit is contradictory evidence,
+                // not permission to repair historical rows during settlement.
+                $guard->refuse();
             }
 
             if (! $current->status->canComplete()) {
@@ -124,7 +128,7 @@ final class WithdrawalCompletionService
             }
 
             $this->assertCurrencyMatches($current, $wallet);
-            app(\App\Services\Payment\WithdrawalProviderAccountService::class)->assertActive($current);
+            app(WithdrawalProviderAccountService::class)->assertActive($current);
 
             if (! $wallet->canDebit()) {
                 throw WithdrawalException::walletNotDebitable((int) $wallet->getKey(), $wallet->status->value);
@@ -138,15 +142,15 @@ final class WithdrawalCompletionService
 
             $resolvedProvider = $this->stringOption($options, 'provider') ?? $current->provider;
             $resolvedReference = $this->stringOption($options, 'provider_reference') ?? $current->provider_reference;
-            $linkedPayment = \App\Models\Payment::withTrashed()
+            $linkedPayment = Payment::withTrashed()
                 ->where('payable_type', Withdrawal::class)
                 ->where('payable_id', $current->getKey())
                 ->lockForUpdate()
                 ->first();
 
             if ($resolvedReference !== null) {
-                $canonicalProvider = app(\App\Services\Payment\WithdrawalProviderAccountService::class)->canonical($resolvedProvider ?? $current->method->value);
-                app(\App\Services\Payment\WithdrawalProviderReferenceService::class)->bind($current, $canonicalProvider, $resolvedReference, $linkedPayment);
+                $canonicalProvider = app(WithdrawalProviderAccountService::class)->canonical($resolvedProvider ?? $current->method->value);
+                app(WithdrawalProviderReferenceService::class)->bind($current, $canonicalProvider, $resolvedReference, $linkedPayment);
                 $resolvedProvider = $canonicalProvider;
 
                 // The reference is now bound in the index tables, so the obligation
@@ -203,6 +207,7 @@ final class WithdrawalCompletionService
         $this->withinTransaction(function () use ($withdrawal): void {
             $wallet = $this->locks->lock((int) $withdrawal->wallet_id);
             $current = $this->transitions->lockWithdrawal($withdrawal);
+            $this->assertSettled($current);
             $tx = $this->existingTransactionFor($current);
             if ($current->status !== WithdrawalStatus::Completed || ! $tx instanceof FinancialTransaction) {
                 app(WithdrawalIntegrityGuard::class)->refuse();
@@ -252,7 +257,13 @@ final class WithdrawalCompletionService
 
     public function isSettled(Withdrawal $withdrawal): bool
     {
-        return $withdrawal->status === WithdrawalStatus::Completed && $withdrawal->financial_transaction_id !== null;
+        try {
+            $this->verifySettled($withdrawal);
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -264,6 +275,7 @@ final class WithdrawalCompletionService
      */
     private function replayResult(Withdrawal $withdrawal, Wallet $wallet): array
     {
+        $this->assertSettled($withdrawal);
         $transaction = $this->existingTransactionFor($withdrawal);
 
         if (! $transaction instanceof FinancialTransaction) {
@@ -401,10 +413,8 @@ final class WithdrawalCompletionService
 
     private function withinTransaction(\Closure $callback): mixed
     {
-        if (DB::transactionLevel() > 0) {
-            return $callback();
-        }
-
+        // A caught refusal inside an ambient transaction must roll back this
+        // whole settlement unit, including reference reservations.
         return DB::transaction($callback);
     }
 }

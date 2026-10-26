@@ -12,6 +12,7 @@ use App\Enums\GatewayIntegrationStatus;
 use App\Enums\WebhookEventType;
 use App\Models\Deposit;
 use App\Models\Withdrawal;
+use App\Services\Payment\PaymentDecimalNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -156,9 +157,15 @@ class NagadGateway extends AbstractPaymentGateway
         $paymentRef = (string) ($data['payment_ref_id'] ?? $data['paymentReferenceId'] ?? '');
         $orderId = (string) ($data['order_id'] ?? $data['orderId'] ?? $data['reference'] ?? '');
         $status = strtoupper((string) ($data['status'] ?? $data['payment_status'] ?? ''));
-        $amount = (string) ($data['amount'] ?? '0.00');
+        $amountRaw = $data['amount'] ?? null;
+        try {
+            $amount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($amountRaw, 2);
+        } catch (\InvalidArgumentException) {
+            $amount = null;
+        }
 
-        $currency = isset($data['currency']) ? (Currency::tryFrom(strtoupper((string) $data['currency'])) ?? Currency::BDT) : Currency::BDT;
+        $currencyRaw = $data['currency'] ?? null;
+        $currency = is_string($currencyRaw) ? Currency::tryFrom(strtoupper($currencyRaw)) : null;
 
         $eventType = match ($status) {
             'SUCCESS', 'COMPLETED' => WebhookEventType::DepositSuccess,

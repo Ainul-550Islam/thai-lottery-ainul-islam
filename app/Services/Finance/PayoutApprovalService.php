@@ -13,6 +13,8 @@ use App\Enums\RiskLevel;
 use App\Exceptions\PayoutApprovalException;
 use App\Models\AuditLog;
 use App\Models\Payout;
+use App\Models\User;
+use App\Services\Payment\PayoutTransferAccess;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -86,12 +88,32 @@ class PayoutApprovalService
                 throw PayoutApprovalException::requestNotFound((int) $payout->getKey());
             }
 
+            $access = app(PayoutTransferAccess::class);
+            $access->authorize(User::query()->find($data->requesterUserId), PayoutTransferAccess::REQUEST);
+            $expectedKey = PayoutRequestData::deriveRequestKey($locked->reference_number,
+                (string) $locked->amount, $locked->currency, (int) $locked->user_id);
+            if ($data->prizeReference !== $locked->reference_number || $data->currency !== $locked->currency
+                || $data->beneficiaryUserId !== (int) $locked->user_id || $data->requesterUserId === (int) $locked->user_id
+                || ! $data->amountIsWellFormed() || bccomp($data->amount, (string) $locked->amount, 2) !== 0
+                || ! hash_equals($expectedKey, $data->requestKey)) {
+                throw PayoutApprovalException::decisionShapeInvalid((int) $locked->id, 'original_request_conflict');
+            }
             $existing = $this->recordFor($locked);
 
             if (is_array($existing)) {
                 $status = $this->statusOf($existing);
 
                 if (($existing['request_key'] ?? null) === $data->requestKey) {
+                    $guard = app(PayoutApprovalGuard::class);
+                    $destination = $data->beneficiary ?? [];
+                    ksort($destination);
+                    if (($existing['maker_user_id'] ?? null) !== $data->requesterUserId
+                        || $guard->method($locked) !== $data->method || $guard->beneficiary($locked) !== $destination
+                        || ! is_string($existing['facts_hash'] ?? null)
+                        || ! hash_equals($existing['facts_hash'], $guard->fingerprint($locked))) {
+                        throw PayoutApprovalException::decisionShapeInvalid((int) $locked->id, 'original_request_conflict');
+                    }
+
                     return $existing;
                 }
 
@@ -173,6 +195,8 @@ class PayoutApprovalService
             if (! $locked instanceof Payout) {
                 throw PayoutApprovalException::requestNotFound((int) $payout->getKey());
             }
+
+            app(PayoutTransferAccess::class)->authorize(User::query()->find($data->actorUserId), PayoutTransferAccess::APPROVE);
 
             $record = $this->recordFor($locked);
 
@@ -265,6 +289,13 @@ class PayoutApprovalService
             if (! $locked instanceof Payout) {
                 throw PayoutApprovalException::requestNotFound((int) $payout->getKey());
             }
+
+            if ($locked->status !== PayoutStatus::Completed || $locked->financial_transaction_id === null) {
+                throw PayoutApprovalException::decisionShapeInvalid((int) $locked->id, 'canonical_money_unproved');
+            }
+            $membership = app(PayoutBatchMembershipService::class);
+            $batch = $membership->assertMember($locked);
+            $membership->rollup($batch, $membership->members($batch, true));
 
             $record = $this->recordFor($locked);
 

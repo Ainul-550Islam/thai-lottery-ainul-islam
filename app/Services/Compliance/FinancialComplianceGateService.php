@@ -106,6 +106,20 @@ final class FinancialComplianceGateService
         $this->assertAllowed($user, $amount, $currency, 'withdrawal', $context, self::LANE_WITHDRAWAL);
     }
 
+    /** Persist the original gate refusal after a caller's money boundary has unwound. */
+    public function auditPayoutRefusalAfterRollback(User $subject, FinancialException $failure, int $payoutId): void
+    {
+        $facts = $failure->context();
+        $currency = is_string($facts['currency'] ?? null) ? Currency::tryFrom($facts['currency']) : null;
+        if (($facts['lane'] ?? null) !== self::LANE_PAYOUT || ($facts['operation'] ?? null) !== 'prize_payout'
+            || ($facts['user_id'] ?? null) !== (int) $subject->id || $currency === null
+            || ! is_string($facts['amount'] ?? null) || $failure->errorCode() === null) {
+            return;
+        }
+        $this->recordRefusal($subject, $failure->errorCode(), 'prize_payout', self::LANE_PAYOUT,
+            $facts['amount'], $currency, ['payout_id' => $payoutId]);
+    }
+
     /**
      * The one ordered interrogation. Every step is independent: the first
      * refusal stops the walk, so the audit row names the FIRST rule that said
@@ -318,19 +332,6 @@ final class FinancialComplianceGateService
                 ->whereIn('status', $liveStatuses)
                 ->exists();
 
-            if ($openCase) {
-                $this->refuse(
-                    $subject,
-                    'compliance_case_open',
-                    'An open compliance case applies to this account; the payout was not released.',
-                    $operation,
-                    $lane,
-                    $amount,
-                    $currency,
-                    $context,
-                );
-            }
-
             // An unreleased Restrict/Hold act is the desk's seal on the money
             // lane; only a Release act from the same case lifts it, and that
             // happens in ComplianceActionService, never here.
@@ -361,11 +362,25 @@ final class FinancialComplianceGateService
             return;
         }
 
+        // Refusals are decisions, not read failures: preserve their reason and single audit.
         if ($activeHold) {
             $this->refuse(
                 $subject,
                 'compliance_hold_active',
                 'A compliance hold applies to this account; the payout was not released.',
+                $operation,
+                $lane,
+                $amount,
+                $currency,
+                $context,
+            );
+        }
+
+        if ($openCase) {
+            $this->refuse(
+                $subject,
+                'compliance_case_open',
+                'An open compliance case applies to this account; the payout was not released.',
                 $operation,
                 $lane,
                 $amount,

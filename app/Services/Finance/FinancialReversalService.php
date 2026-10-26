@@ -11,6 +11,7 @@ use App\Exceptions\FinancialException;
 use App\Models\FinancialTransaction;
 use App\Models\LedgerEntry;
 use App\Models\Wallet;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -52,8 +53,7 @@ final class FinancialReversalService
         private readonly WalletService $wallets,
         private readonly LedgerBalanceValidator $validator,
         private readonly FinancialTransactionService $transactions,
-    ) {
-    }
+    ) {}
 
     /**
      * Reverse a completed transaction.
@@ -79,14 +79,6 @@ final class FinancialReversalService
         FinancialRecordIdentifier::fromModel($original, 'reversal_transaction_not_persisted');
 
         $key = $idempotencyKey ?? $this->reversalKeyFor($original);
-        if ($idempotencyKey !== null && $key !== $this->reversalKeyFor($original)) {
-            throw FinancialException::withCode(
-                'reversal_noncanonical_key',
-                'Reversal idempotency key must equal the canonical reversal key derived from the original transaction.',
-                ['transaction_id' => (int) $original->getKey()],
-            );
-        }
-
         // The preliminary wallet-routing read stays OUTSIDE the owned root: it must
         // not open a repeatable-read snapshot before we wait on the wallet row.
         $walletId = $this->routeWalletId($original);
@@ -336,6 +328,12 @@ final class FinancialReversalService
             $wallet = $this->locks->lock((int) $locked->wallet_id);
         }
 
+        if ($key !== $this->reversalKeyFor($locked)) {
+            throw FinancialException::withCode('reversal_noncanonical_key',
+                'Reversal idempotency key must equal the canonical key of the locked original transaction.',
+                ['transaction_id' => (int) $locked->getKey()]);
+        }
+
         $guard = app(ReversalIntegrityGuard::class);
         $originalEntries = $guard->entries($locked);
         $walletSide = $guard->assertOriginal($locked, $wallet, $originalEntries);
@@ -452,7 +450,7 @@ final class FinancialReversalService
      */
     private function createReversalTransaction(
         FinancialTransaction $original,
-        \Illuminate\Database\Eloquent\Collection $originalEntries,
+        Collection $originalEntries,
         string $key,
         ?string $reason,
     ): FinancialTransaction {
@@ -468,7 +466,7 @@ final class FinancialReversalService
             $metadata['reversal_reason'] = $reason;
         }
 
-        $reversal = new FinancialTransaction();
+        $reversal = new FinancialTransaction;
 
         $reversal->fill([
             'reference_number' => $this->transactions->generateReferenceNumber(),
@@ -500,7 +498,7 @@ final class FinancialReversalService
      * SAME amount on the OPPOSITE side. Because the original set balanced, the
      * mirror balances too, and the two sets sum to zero per account.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, LedgerEntry>  $originalEntries
+     * @param  Collection<int, LedgerEntry>  $originalEntries
      * @return array<int, array<string, mixed>>
      */
     /**
@@ -538,7 +536,7 @@ final class FinancialReversalService
      * Read from the persisted entries rather than inferred from the type, so the
      * compensation always matches what actually happened.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, LedgerEntry>  $entries
+     * @param  Collection<int, LedgerEntry>  $entries
      */
     private function walletSideOf($entries, int $walletId): ?LedgerEntryType
     {

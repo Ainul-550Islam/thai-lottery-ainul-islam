@@ -14,9 +14,9 @@ use App\Services\Payment\Drivers\CryptoGateway;
 use App\Services\Payment\Drivers\NagadGateway;
 use App\Services\Payment\Drivers\PromptPayGateway;
 use App\Services\Payment\Drivers\StripeGateway;
+use App\Services\Payment\Drivers\ThaiBankPayoutGateway;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
-use InvalidArgumentException;
 
 /**
  * Gateway factory and driver manager.
@@ -31,8 +31,7 @@ class PaymentGatewayManager
     public function __construct(
         private readonly Container $container,
         private readonly ConfigRepository $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Resolve a gateway driver by string name or PaymentMethod enum.
@@ -55,6 +54,8 @@ class PaymentGatewayManager
             'bank_transfer', 'manual' => $this->container->make(BankTransferGateway::class),
 
             'promptpay' => $this->container->make(PromptPayGateway::class),
+            'thai_bank' => $this->container->make(ThaiBankPayoutGateway::class),
+            'sandbox' => $this->container->make(\App\Services\Payment\Drivers\SandboxDeterministicGateway::class),
 
             default => throw FinancialException::withCode(
                 'unsupported_payment_gateway',
@@ -83,7 +84,37 @@ class PaymentGatewayManager
     {
         $key = strtolower(trim($name));
 
-        return in_array($key, ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'manual'], true);
+        return in_array($key, ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'thai_bank', 'manual', 'sandbox'], true);
+    }
+
+    /**
+     * Operator-only inventory. Internal routing keys are not client methods.
+     *
+     * @return array<string, array{status: string, enabled: bool, supports_deposit: bool, supports_withdrawal: bool}>
+     */
+    public function availability(): array
+    {
+        $availability = [];
+        foreach (['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'thai_bank'] as $key) {
+            try {
+                $driver = $this->driver($key);
+                $availability[$key] = [
+                    'status' => $driver->status()->value,
+                    'enabled' => $this->isEnabled($key),
+                    'supports_deposit' => $driver->supportsDeposit(),
+                    'supports_withdrawal' => $driver->supportsWithdrawal(),
+                ];
+            } catch (FinancialException) {
+                $availability[$key] = [
+                    'status' => GatewayIntegrationStatus::ConfiguredOnly->value,
+                    'enabled' => false,
+                    'supports_deposit' => $key !== 'thai_bank',
+                    'supports_withdrawal' => $key !== 'promptpay',
+                ];
+            }
+        }
+
+        return $availability;
     }
 
     /**
@@ -174,7 +205,7 @@ class PaymentGatewayManager
      *
      * @throws FinancialException with a stable code per refusal reason
      */
-    public function withdrawalDriver(PaymentMethod $method): PaymentGatewayInterface
+    public function withdrawalDriver(string|PaymentMethod $method): PaymentGatewayInterface
     {
         $driver = $this->driver($method);
 

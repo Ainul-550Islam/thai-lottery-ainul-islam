@@ -20,7 +20,7 @@ use App\Services\Payment\PaymentLogSanitizer;
 use App\Services\Payout\ThaiBank\KbankPayoutAdapter;
 use App\Services\Payout\ThaiBank\ScbPayoutAdapter;
 use App\Services\Payout\ThaiBank\ThaiBankPayoutWebhookService;
-use Illuminate\Bus\InteractsWithQueue;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;

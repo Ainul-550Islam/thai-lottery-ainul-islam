@@ -87,7 +87,7 @@ final class PayoutTransferComplianceGateTest extends PaymentTestCase
             );
             $this->fail('A payout completed while the real-money lane was closed.');
         } catch (PayoutTransferException $e) {
-            $this->assertSame('gateway_refused', $e->errorCode());
+            $this->assertSame(PayoutTransferException::CODE_GATEWAY_REFUSED, $e->errorCode());
             $this->assertStringContainsString('real_money_disabled', $e->getMessage());
         }
 
@@ -121,7 +121,7 @@ final class PayoutTransferComplianceGateTest extends PaymentTestCase
             );
             $this->fail('A payout completed for a beneficiary whose KYC was revoked.');
         } catch (PayoutTransferException $e) {
-            $this->assertSame('gateway_refused', $e->errorCode());
+            $this->assertSame(PayoutTransferException::CODE_GATEWAY_REFUSED, $e->errorCode());
             $this->assertStringContainsString('payout_kyc_not_verified', $e->getMessage());
         }
 
@@ -159,7 +159,7 @@ final class PayoutTransferComplianceGateTest extends PaymentTestCase
             );
             $this->fail('A payout completed while a compliance case was open.');
         } catch (PayoutTransferException $e) {
-            $this->assertSame('gateway_refused', $e->errorCode());
+            $this->assertSame(PayoutTransferException::CODE_GATEWAY_REFUSED, $e->errorCode());
             $this->assertStringContainsString('compliance_case_open', $e->getMessage());
         }
 
@@ -226,7 +226,7 @@ final class PayoutTransferComplianceGateTest extends PaymentTestCase
                 $service->complete($f['data'], $reference, $f['reviewer'], true, 'Independently verified final provider evidence.');
                 $this->fail('A payout completed while the real-money lane was closed.');
             } catch (PayoutTransferException $e) {
-                $this->assertSame('gateway_refused', $e->errorCode());
+                $this->assertSame(PayoutTransferException::CODE_GATEWAY_REFUSED, $e->errorCode());
             }
         }
 

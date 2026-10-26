@@ -79,7 +79,19 @@ final class DepositCallbackOriginalProofTest extends PaymentTestCase
             $duplicate = $p->replicate();
             $duplicate->reference_number = 'PAY-SYNTHETIC-DUPLICATE';
             $duplicate->gateway_reference = 'SYNTHETIC-OTHER-REFERENCE';
-            $duplicate->save();
+            try {
+                $duplicate->save();
+                $this->fail('The one-payable constraint must reject a duplicate original Payment.');
+            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                $this->assertDatabaseCount('payments', 1);
+                $this->assertSame(PaymentStatus::Pending, $p->fresh()->status);
+                $this->assertSame('100.00', $f['wallet']->fresh()->balance);
+                $this->assertDatabaseCount('financial_transactions', 0);
+                $this->assertDatabaseCount('ledger_entries', 0);
+                $this->assertDatabaseCount(FinancialProviderReferenceService::TABLE, 0);
+
+                return;
+            }
         } elseif (in_array($kind, ['captured', 'failed', 'disputed', 'partially_refunded'], true)) {
             $p->status = PaymentStatus::from($kind);
         }

@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Payout;
 
 use App\DTOs\Payment\PayoutInstruction;
-use App\DTOs\Payment\PayoutOutcome;
 use App\Enums\ThaiBankPayoutState;
 use App\Exceptions\FinancialException;
 use App\Services\Payout\ThaiBank\ScbPayoutAdapter;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -60,7 +58,7 @@ final class ScbPayoutAdapterTest extends TestCase
         self::assertSame(ThaiBankPayoutState::Accepted, $first->state);
         self::assertSame('SCB-TXN-1', $first->providerReference);
         self::assertSame(ThaiBankPayoutState::Accepted, $second->state);
-        self::assertSame(1, Http::recorded()->filter(fn ($request): bool => str_ends_with($request->url(), '/v1/oauth/token'))->count());
+        self::assertSame(1, Http::recorded(fn ($request): bool => str_ends_with($request->url(), '/v1/oauth/token'))->count());
         Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/v1/approved/credit-transfer')
             && $request->hasHeader('Idempotency-Key', 'WD-SCB-001')
             && $request->hasHeader('resourceOwnerId', 'owner-id')
@@ -71,21 +69,23 @@ final class ScbPayoutAdapterTest extends TestCase
     {
         Cache::put(ScbPayoutAdapter::tokenCacheKey('client-id'), 'access-token', now()->addHour());
         $adapter = new ScbPayoutAdapter;
-        Http::fake(['*' => Http::response(['error' => 'declined'], 422)]);
+        Http::fake(['*' => Http::sequence()
+            ->push(['error' => 'declined'], 422)
+            ->push([
+                'data' => ['status' => 'SETTLED', 'transactionId' => 'SCB-REDIRECT', 'amount' => '50.00', 'currency' => 'THB'],
+            ], 302, ['Location' => 'https://untrusted.example/'])
+            ->push(['error' => 'server'], 503)
+            ->pushFailedConnection('connection detail')]);
         self::assertSame(ThaiBankPayoutState::Rejected, $adapter->initiateTransfer($this->instruction('WD-SCB-003'))->state);
 
-        Http::fake(['*' => Http::response([
-            'data' => ['status' => 'SETTLED', 'transactionId' => 'SCB-REDIRECT', 'amount' => '50.00', 'currency' => 'THB'],
-        ], 302, ['Location' => 'https://untrusted.example/'])]);
         self::assertSame(ThaiBankPayoutState::Uncertain, $adapter->initiateTransfer($this->instruction('WD-SCB-REDIRECT'))->state);
 
-        Http::fake(['*' => Http::response(['error' => 'server'], 503)]);
         self::assertSame(ThaiBankPayoutState::Uncertain, $adapter->initiateTransfer($this->instruction('WD-SCB-004'))->state);
 
-        Http::fake(['*' => static function () { throw new ConnectionException('connection detail'); }]);
         $outcome = $adapter->initiateTransfer($this->instruction('WD-SCB-005'));
         self::assertSame(ThaiBankPayoutState::Uncertain, $outcome->state);
         self::assertStringNotContainsString('connection detail', (string) $outcome->message);
+        Http::assertSentCount(4);
     }
 
     public function test_status_query_http_errors_remain_uncertain_instead_of_releasing_a_hold(): void

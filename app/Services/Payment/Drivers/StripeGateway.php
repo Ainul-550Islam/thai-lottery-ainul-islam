@@ -89,6 +89,10 @@ class StripeGateway extends AbstractPaymentGateway
             ],
             'metadata' => [
                 'deposit_reference' => $deposit->reference_number,
+                'deposit_id' => (string) $deposit->id,
+                'user_id' => (string) $deposit->user_id,
+                'checkout_attempt' => $options['checkout_attempt'] ?? '',
+                'account_scope' => $options['account_scope'] ?? '',
             ],
         ];
 
@@ -97,7 +101,7 @@ class StripeGateway extends AbstractPaymentGateway
                 ? $deposit->uuid
                 : $deposit->reference_number;
             $response = Http::withToken($secretKey)
-                ->withHeaders(['Idempotency-Key' => 'deposit-'.$stableReference])
+                ->withHeaders(['Idempotency-Key' => $options['checkout_dispatch_key'] ?? 'deposit-'.$stableReference])
                 ->asForm()
                 ->post('https://api.stripe.com/v1/checkout/sessions', $params);
 
@@ -212,11 +216,13 @@ class StripeGateway extends AbstractPaymentGateway
             ?? null;
 
         $providerReference = $object['id'] ?? null;
-        $currencyString = strtoupper((string) ($object['currency'] ?? 'THB'));
-        $currency = Currency::tryFrom($currencyString) ?? Currency::THB;
-
-        $amountRaw = $object['amount_total'] ?? $object['amount'] ?? 0;
-        $amount = bcdiv((string) $amountRaw, '100', 2);
+        $currencyRaw = $object['currency'] ?? null;
+        $currency = is_string($currencyRaw) ? Currency::tryFrom(strtoupper($currencyRaw)) : null;
+        $amountRaw = $object['amount_total'] ?? $object['amount'] ?? null;
+        // Minor units are exact integers, not floating point or decimal amounts.
+        $amount = (is_int($amountRaw) || is_string($amountRaw))
+            && preg_match('/\A[0-9]+\z/D', (string) $amountRaw) === 1
+            ? bcdiv((string) $amountRaw, '100', 2) : null;
 
         $eventType = match ($type) {
             'checkout.session.completed', 'payment_intent.succeeded' => WebhookEventType::DepositSuccess,

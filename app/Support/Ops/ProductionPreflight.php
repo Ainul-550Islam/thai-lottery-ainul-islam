@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Support\Ops;
 
 use App\Providers\ProductionSafetyServiceProvider;
+use App\Services\Compliance\FinancialComplianceGateService;
+use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\PromptPayQrGeneratorService;
 use App\Support\Backup\BackupCipher;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +82,7 @@ final class ProductionPreflight
         $this->checkQueueTimeouts();
         $this->checkRedisPassword();
         $this->checkLogPrivacy();
+        $this->checkPaymentLanes();
 
         if ($this->withConnectivity) {
             $this->checkDatabaseConnectivity();
@@ -117,6 +120,46 @@ final class ProductionPreflight
     private function recordAdvisory(string $id, string $status, string $detail): void
     {
         $this->record($id, $status, $detail, 'advisory');
+    }
+
+    private function checkPaymentLanes(): void
+    {
+        foreach (app(ThaiRailsChecks::class)->run() as $check) {
+            $this->record('thai_rails.'.$check->name, $check->status, $check->message,
+                str_contains($check->message, 'disabled (skipped)') ? 'advisory' : 'blocking');
+        }
+        if ((bool) config('realtime.enabled', false)) {
+            foreach (app(RealtimeChecks::class)->run(skipNetwork: ! $this->withConnectivity) as $check) {
+                $this->record('realtime.'.$check->name, $check->status, $check->message,
+                    $check->status === CheckResult::SKIP ? 'advisory' : 'blocking');
+            }
+        } else {
+            $this->recordAdvisory('realtime.lane', 'SKIP', 'Realtime is disabled (skipped).');
+        }
+        foreach (app(LaneFlagChecks::class)->run() as $check) {
+            $this->record('lane.'.$check->name, $check->status, $check->message,
+                $check->status === CheckResult::SKIP ? 'advisory' : 'blocking');
+        }
+        try {
+            app(FinancialComplianceGateService::class);
+            $this->record('payout.compliance_gate', 'PASS', 'The financial compliance gate is resolvable.');
+        } catch (Throwable) {
+            $this->record('payout.compliance_gate', 'FAIL', 'The financial compliance gate cannot be resolved; payouts must not proceed.');
+        }
+        if (! (bool) config('thai_payout.enabled', false)) {
+            $this->recordAdvisory('payout.gateway_routing', 'SKIP', 'Automated Thai bank routing is disabled (skipped).');
+
+            return;
+        }
+        try {
+            $driver = app(PaymentGatewayManager::class)->driver('thai_bank');
+            $ready = $driver->isEnabled() && $driver->supportsWithdrawal() && ! $driver->supportsDeposit();
+            $this->record('payout.gateway_routing', $ready ? 'PASS' : 'FAIL', $ready
+                ? 'The internal Thai bank payout driver is configured and resolvable.'
+                : 'The internal Thai bank payout driver is not configured for withdrawals.');
+        } catch (Throwable) {
+            $this->record('payout.gateway_routing', 'FAIL', 'The internal Thai bank payout driver cannot be resolved; bank configuration is required.');
+        }
     }
 
     private function checkAppEnvironment(): void
@@ -574,7 +617,7 @@ final class ProductionPreflight
         $connection = (string) config('queue.default');
         $usesRedis = $connection === 'redis'
             || (string) config('cache.default') === 'redis'
-            || (string) config('session.driver') === 'redis';
+            || (string) config('session.default', config('session.driver')) === 'redis';
 
         if (! $usesRedis) {
             $this->recordAdvisory('redis.password', 'SKIP', 'Redis is not used for queue, cache or sessions.');
@@ -601,7 +644,6 @@ final class ProductionPreflight
     private function checkLogPrivacy(): void
     {
         $channel = (string) config('logging.default');
-        $redaction = (bool) config('logging.redaction.enabled', true);
 
         if ($this->production && in_array($channel, ['single', 'daily'], true)) {
             $this->recordAdvisory('log.privacy', 'WARN', sprintf(
@@ -612,9 +654,44 @@ final class ProductionPreflight
             $this->recordAdvisory('log.privacy', 'PASS', sprintf('LOG_CHANNEL is "%s".', $channel));
         }
 
-        $redaction
-            ? $this->recordAdvisory('log.redaction', 'PASS', 'Secret redaction is enabled for every log channel.')
-            : $this->record('log.redaction', $this->production ? 'FAIL' : 'WARN', 'LOG_REDACT_SENSITIVE is false; secrets could reach the log sink.');
+        // Inspect the actual leaf channels, not an undeclared global switch.
+        $pending = [$channel];
+        $visited = [];
+        $disabled = [];
+        $unconfirmed = [];
+        $confirmed = [];
+        while ($pending !== []) {
+            $name = array_pop($pending);
+            if (isset($visited[$name])) {
+                continue;
+            }
+            $visited[$name] = true;
+            $settings = config('logging.channels.'.$name);
+            if (! is_array($settings)) {
+                $unconfirmed[] = $name;
+            } elseif (($settings['driver'] ?? null) === 'stack') {
+                $children = $settings['channels'] ?? [];
+                if (! is_array($children) || $children === [] || ! array_all($children, static fn (mixed $child): bool => is_string($child))) {
+                    $unconfirmed[] = $name;
+                } else {
+                    $pending = array_merge($pending, $children);
+                }
+            } elseif (in_array($settings['replace_placeholders'] ?? null, [false, 0, 'false'], true)) {
+                $disabled[] = $name;
+            } elseif (($settings['replace_placeholders'] ?? null) === true) {
+                $confirmed[] = $name;
+            } else {
+                $unconfirmed[] = $name;
+            }
+        }
+        if ($disabled !== []) {
+            $this->record('log.redaction', $this->production ? 'FAIL' : 'WARN',
+                'replace_placeholders disabled for channel(s): '.implode(', ', $disabled).'.');
+        } elseif ($unconfirmed !== [] || $confirmed === []) {
+            $this->record('log.redaction', 'WARN', 'Log redaction cannot be confirmed for the configured channels.');
+        } else {
+            $this->recordAdvisory('log.redaction', 'PASS', 'Placeholder replacement is enabled for channel(s): '.implode(', ', $confirmed).'.');
+        }
     }
 
     private function checkDatabaseConnectivity(): void

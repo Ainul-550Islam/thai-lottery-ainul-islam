@@ -173,6 +173,10 @@ abstract class TestCase extends BaseTestCase
         }
 
         parent::tearDown();
+
+        // Full financial suites repeatedly rebuild a large Laravel container.
+        // Collect unreachable per-application cycles before the next bootstrap.
+        gc_collect_cycles();
     }
 
     /**

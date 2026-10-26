@@ -153,7 +153,8 @@ final class PrizeClaimController
 
         $payouts = Payout::query()
             ->where('user_id', (int) $user->getAuthIdentifier())
-            ->whereNotNull('metadata->claim')
+            ->whereNotNull('metadata->claim->claimant_user_id')
+            ->whereNotNull('metadata->claim->claimed_at')
             ->latest('id')
             ->paginate($perPage);
 
@@ -180,14 +181,6 @@ final class PrizeClaimController
      */
     private function payoutForBet(Bet $bet): ?Payout
     {
-        if ($bet->payout_id !== null) {
-            $byDirectId = Payout::query()->find((int) $bet->payout_id);
-
-            if ($byDirectId instanceof Payout) {
-                return $byDirectId;
-            }
-        }
-
-        return Payout::query()->where('bet_id', (int) $bet->getKey())->first();
+        return app(\App\Services\Prize\PrizeClaimGuard::class)->resolve($bet);
     }
 }

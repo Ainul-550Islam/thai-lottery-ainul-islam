@@ -205,6 +205,7 @@ PHP;
                     'DB_DATABASE' => 'thai_lottery_test', 'DB_SOCKET' => $db->getConfig('unix_socket'),
                     'DB_HOST' => 'localhost', 'DB_USERNAME' => $db->getConfig('username'), 'DB_PASSWORD' => $db->getConfig('password'),
                     'DB_URL' => '', 'APP_KEY' => config('app.key'), 'CACHE_STORE' => 'array',
+                    'REAL_MONEY_ENABLED' => config('real_money.enabled', false) ? 'true' : 'false',
                 ]);
                 $process->setTimeout(30);
                 $process->start();
