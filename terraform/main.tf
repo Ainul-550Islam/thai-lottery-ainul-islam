@@ -9,12 +9,15 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~> 2.27"
     }
-    cloudflare = {
-      source  = "cloudflare/cloudflare"
-      version = "~> 4.25"
-    }
   }
 
+  backend "s3" {
+    bucket         = "thai-lottery-terraform-state-prod"
+    key            = "prod/enterprise-ledger/terraform.tfstate"
+    region         = "ap-southeast-1"
+    encrypt        = true
+    dynamodb_table = "thai-lottery-terraform-locks"
+  }
 }
 
 provider "aws" {
@@ -37,9 +40,9 @@ module "vpc" {
   name = "thai-lottery-vpc-${var.environment}"
   cidr = var.vpc_cidr
 
-  azs              = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
-  private_subnets  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-  public_subnets   = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+  azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
   database_subnets = ["10.0.201.0/24", "10.0.202.0/24", "10.0.203.0/24"]
 
   enable_nat_gateway     = true
@@ -97,57 +100,51 @@ module "eks" {
   }
 }
 
-# --- Aurora MySQL 8.0-compatible Multi-AZ Cluster ---
-resource "aws_rds_cluster" "aurora_mysql" {
-  cluster_identifier              = "thai-lottery-db-cluster-${var.environment}"
-  engine                          = "aurora-mysql"
-  engine_version                  = var.aurora_mysql_engine_version
-  database_name                   = "lottery_ledger"
-  master_username                 = var.db_master_username
-  master_password                 = var.db_master_password
-  db_subnet_group_name            = module.vpc.database_subnet_group_name
-  vpc_security_group_ids          = [aws_security_group.rds_sg.id]
-  storage_encrypted               = true
-  kms_key_id                      = aws_kms_key.db_key.arn
-  backup_retention_period         = var.backup_retention_period
-  preferred_backup_window         = "03:00-04:00"
-  deletion_protection             = true
-  skip_final_snapshot             = false
-  final_snapshot_identifier       = "${var.final_snapshot_prefix}-${formatdate("YYYYMMDDhhmmss", timestamp())}"
-  copy_tags_to_snapshot           = true
-  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.mysql8.name
-
-  lifecycle {
-    ignore_changes = [final_snapshot_identifier]
-  }
+# --- Aurora PostgreSQL 16 Multi-AZ Cluster ---
+resource "aws_rds_cluster" "aurora_postgres" {
+  cluster_identifier      = "thai-lottery-db-cluster-${var.environment}"
+  engine                  = "aurora-postgresql"
+  engine_version          = "16.1"
+  database_name           = "lottery_ledger"
+  master_username         = var.db_master_username
+  master_password         = var.db_master_password
+  db_subnet_group_name    = module.vpc.database_subnet_group_name
+  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
+  storage_encrypted       = true
+  kms_key_id              = aws_kms_key.db_key.arn
+  backup_retention_period = 30
+  preferred_backup_window = "03:00-04:00"
+  deletion_protection     = true
+  skip_final_snapshot     = false
+  final_snapshot_identifier = "thai-lottery-db-final-snapshot"
 }
 
 resource "aws_rds_cluster_instance" "aurora_instances" {
   count              = 3
   identifier         = "thai-lottery-db-instance-${var.environment}-${count.index}"
-  cluster_identifier = aws_rds_cluster.aurora_mysql.id
+  cluster_identifier = aws_rds_cluster.aurora_postgres.id
   instance_class     = "db.r6g.2xlarge"
-  engine             = aws_rds_cluster.aurora_mysql.engine
-  engine_version     = aws_rds_cluster.aurora_mysql.engine_version
+  engine             = aws_rds_cluster.aurora_postgres.engine
+  engine_version     = aws_rds_cluster.aurora_postgres.engine_version
 }
 
 # --- Redis Cluster for Redlock & Cache ---
 resource "aws_elasticache_replication_group" "redis" {
-  replication_group_id       = "thai-lottery-redis-${var.environment}"
-  description                = "Redis cluster for distributed locking and session management"
-  engine                     = "redis"
-  engine_version             = "7.1"
-  node_type                  = "cache.r6g.xlarge"
-  num_cache_clusters         = 3
-  parameter_group_name       = "default.redis7"
-  port                       = 6379
-  subnet_group_name          = aws_elasticache_subnet_group.redis_subnet_group.name
-  security_group_ids         = [aws_security_group.redis_sg.id]
-  automatic_failover_enabled = true
-  multi_az_enabled           = true
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
-  auth_token                 = var.redis_auth_token
+  replication_group_id          = "thai-lottery-redis-${var.environment}"
+  description                   = "Redis cluster for distributed locking and session management"
+  engine                        = "redis"
+  engine_version                = "7.1"
+  node_type                     = "cache.r6g.xlarge"
+  num_cache_clusters            = 3
+  parameter_group_name          = "default.redis7"
+  port                          = 6379
+  subnet_group_name             = aws_elasticache_subnet_group.redis_subnet_group.name
+  security_group_ids            = [aws_security_group.redis_sg.id]
+  automatic_failover_enabled    = true
+  multi_az_enabled              = true
+  at_rest_encryption_enabled    = true
+  transit_encryption_enabled    = true
+  auth_token                    = var.redis_auth_token
 }
 
 resource "aws_elasticache_subnet_group" "redis_subnet_group" {
@@ -199,12 +196,12 @@ resource "aws_kms_key" "s3_key" {
 # --- Security Groups ---
 resource "aws_security_group" "rds_sg" {
   name        = "thai-lottery-rds-sg-${var.environment}"
-  description = "Allow inbound MySQL traffic from EKS node groups only"
+  description = "Allow inbound postgres traffic from EKS node groups only"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    from_port       = 3306
-    to_port         = 3306
+    from_port       = 5432
+    to_port         = 5432
     protocol        = "tcp"
     security_groups = [module.eks.node_security_group_id]
   }
@@ -234,23 +231,5 @@ resource "aws_security_group" "redis_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_rds_cluster_parameter_group" "mysql8" {
-  name        = "thai-lottery-aurora-mysql8-${var.environment}"
-  family      = "aurora-mysql8.0"
-  description = "UTF-8 defaults for the Laravel MySQL application"
-
-  parameter {
-    name         = "character_set_server"
-    value        = "utf8mb4"
-    apply_method = "pending-reboot"
-  }
-
-  parameter {
-    name         = "collation_server"
-    value        = "utf8mb4_unicode_ci"
-    apply_method = "pending-reboot"
   }
 }

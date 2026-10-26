@@ -47,8 +47,4 @@ else
     load_secret_file REDIS_PASSWORD "${REDIS_PASSWORD_FILE:-}" no
 fi
 
-# The settlement worker secret is optional for local/dev containers but loaded
-# into PHP for the signed, read-only Rust parity request when mounted.
-load_secret_file SETTLEMENT_WORKER_HMAC_SECRET "${SETTLEMENT_WORKER_HMAC_SECRET_FILE:-}" no
-
 exec /usr/local/bin/docker-php-entrypoint "$@"

@@ -14,54 +14,10 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Release.Name }}-horizon
     spec:
-      automountServiceAccountToken: false
-      securityContext:
-        {{- toYaml .Values.securityContext.pod | nindent 8 }}
-      initContainers:
-        - name: prepare-storage
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/bin/sh", "-c", "mkdir -p /shared/app/private /shared/app/public /shared/framework/cache/data /shared/framework/sessions /shared/framework/views /shared/logs"]
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 10001
-            runAsGroup: 10001
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: [ALL]
-          resources:
-            requests:
-              cpu: 25m
-              memory: 32Mi
-            limits:
-              cpu: 100m
-              memory: 64Mi
-          volumeMounts:
-            - name: app-storage
-              mountPath: /shared
       containers:
         - name: horizon
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["php", "artisan", "horizon"]
-          securityContext:
-            {{- toYaml .Values.securityContext.container | nindent 12 }}
-          startupProbe:
-            exec:
-              command: ["php", "artisan", "horizon:status"]
-            periodSeconds: 10
-            failureThreshold: 18
-          readinessProbe:
-            exec:
-              command: ["php", "artisan", "horizon:status"]
-            periodSeconds: 15
-            failureThreshold: 3
-          livenessProbe:
-            exec:
-              command: ["php", "artisan", "horizon:status"]
-            periodSeconds: 30
-            failureThreshold: 3
           resources:
             {{- toYaml .Values.horizon.resources | nindent 12 }}
           envFrom:
@@ -69,16 +25,3 @@ spec:
                 name: {{ .Release.Name }}-config
             - secretRef:
                 name: {{ .Release.Name }}-secrets
-          volumeMounts:
-            - name: php-temp
-              mountPath: /tmp
-            - name: app-storage
-              mountPath: /var/www/html/storage
-      volumes:
-        - name: php-temp
-          emptyDir:
-            medium: Memory
-            sizeLimit: 256Mi
-        - name: app-storage
-          persistentVolumeClaim:
-            claimName: {{ .Release.Name }}-app-storage

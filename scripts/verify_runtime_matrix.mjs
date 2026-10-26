@@ -62,12 +62,11 @@ export function verifyRuntimeMatrix(root, { installed = false } = {}) {
 
     const canonicalDocker = read(root, 'docker/php/Dockerfile');
     if (!canonicalDocker.includes(`ARG PHP_VERSION=${php}`)) issues.push('docker/php/Dockerfile PHP argument does not match Composer.');
-    if (!canonicalDocker.includes(`ARG NODE_VERSION=${node}`) || !canonicalDocker.includes('FROM node:${NODE_VERSION}-alpine AS frontend')) {
-        issues.push('docker/php/Dockerfile does not bind the frontend image to the pinned Node version.');
-    }
-    if (!canonicalDocker.includes(`ARG NPM_VERSION=${npm}`) || !canonicalDocker.includes('npm install --global npm@${NPM_VERSION}')) {
-        issues.push('docker/php/Dockerfile does not activate the pinned npm version.');
-    }
+    if (!canonicalDocker.includes(`node:${node}-alpine`)) issues.push('docker/php/Dockerfile does not use the pinned Node build image.');
+    if (!canonicalDocker.includes(`npm install --global npm@${npm}`)) issues.push('docker/php/Dockerfile does not activate the pinned npm.');
+    const legacyDocker = read(root, 'docker/php-fpm/Dockerfile');
+    if (!legacyDocker.includes(`FROM php:${php}-fpm-alpine`)) issues.push('Legacy docker/php-fpm/Dockerfile does not use the supported PHP runtime.');
+
     const cutover = read(root, 'deployment/CUTOVER-CHECKLIST.md');
     for (const label of [`PHP ${php}`, 'Laravel 12.x', `Node.js ${node}`, `NPM ${npm}`]) {
         if (!cutover.includes(label)) issues.push(`Cutover checklist is missing runtime declaration: ${label}`);

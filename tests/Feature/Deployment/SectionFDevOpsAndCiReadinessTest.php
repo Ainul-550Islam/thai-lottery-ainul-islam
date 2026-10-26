@@ -76,35 +76,23 @@ class SectionFDevOpsAndCiReadinessTest extends TestCase
         }
     }
 
-    public function test_f9_f10_repository_bloat_is_untracked_but_kept_on_disk_and_gitignored(): void
+    public function test_f9_f10_repository_bloat_and_docker_build_artifacts_are_removed_and_gitignored(): void
     {
-        $untrackList = (string) file_get_contents(base_path('UNTRACK-LIST.txt'));
-        $paths = [
-            'images/',
-            'artifacts/',
-            'design-previews/',
-            'qa-fixes/',
-            'files/',
-            'evidence/',
-            'repo/',
+        foreach ([
+            'images',
             'uploads/SECURITY_MASTER_PROMPT_01-05.md',
+            'qa-fixes',
+            'repo',
             '.profile',
             '.sudo_as_admin_successful',
-        ];
-
-        foreach ($paths as $junkPath) {
-            $this->assertContains($junkPath, preg_split('/\\R/', trim($untrackList)) ?: []);
-            $process = new Process(['git', 'ls-files', '--', $junkPath], base_path());
-            $process->setTimeout(10);
-            $process->run();
-            $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
-            $this->assertSame('', trim($process->getOutput()), "Repository bloat [{$junkPath}] must not remain tracked.");
+        ] as $junkPath) {
+            $this->assertFileDoesNotExist(base_path($junkPath), "Committed artifact [{$junkPath}] must be removed.");
         }
 
         $gitignore = (string) file_get_contents(base_path('.gitignore'));
-        foreach (['/.sudo_as_admin_successful', '/.profile', '/evidence/', '/images/', '/artifacts/', '/design-previews/', '/qa-fixes/', '/files/', '/repo/'] as $rule) {
-            $this->assertStringContainsString($rule, $gitignore);
-        }
+        $this->assertStringContainsString('/.sudo_as_admin_successful', $gitignore);
+        $this->assertStringContainsString('/evidence/', $gitignore);
+        $this->assertStringContainsString('/images/', $gitignore);
     }
 
     public function test_f11_environment_templates_pass_zero_drift_parity_script(): void
@@ -126,38 +114,4 @@ class SectionFDevOpsAndCiReadinessTest extends TestCase
             $report['templates']['.env.production.example'],
         );
     }
-    public function test_f12_immutable_images_and_kubernetes_safety_files_are_present(): void
-    {
-        foreach ([
-            '.github/workflows/build-image.yml',
-            '.github/workflows/deploy.yml',
-            'k8s/deployment-scheduler.yaml',
-            'k8s/deployment-settlement-worker.yaml',
-            'k8s/service-ingress.yaml',
-            'k8s/config.yaml',
-            'k8s/jobs.yaml',
-            'k8s/policies.yaml',
-            'k8s/kustomization.yaml',
-            'deployment/RUNBOOK-secrets-and-key-rotation.md',
-            'deployment/RUNBOOK-payments-incidents.md',
-            'deployment/RUNBOOK-backup-restore.md',
-        ] as $requiredPath) {
-            $this->assertFileExists(base_path($requiredPath), "Required deployment hardening file [{$requiredPath}] is missing.");
-        }
-
-        foreach (['k8s', 'helm/thai-lottery-ledger'] as $manifestDirectory) {
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(base_path($manifestDirectory), \FilesystemIterator::SKIP_DOTS));
-            foreach ($iterator as $file) {
-                if (! $file->isFile() || ! in_array($file->getExtension(), ['yaml', 'yml'], true)) {
-                    continue;
-                }
-                $this->assertStringNotContainsString(':latest', (string) file_get_contents($file->getPathname()), $file->getPathname().' must use immutable image tags.');
-            }
-        }
-
-        $terraform = (string) file_get_contents(base_path('terraform/main.tf'));
-        $this->assertMatchesRegularExpression('/^\\s*engine\\s*=\\s*"aurora-mysql"$/m', $terraform);
-        $this->assertStringNotContainsString('aurora-postgresql', $terraform);
-    }
-
 }

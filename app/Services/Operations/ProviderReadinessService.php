@@ -19,9 +19,18 @@ use Illuminate\Support\Facades\Config;
  *
  * WHAT IT WILL NOT DO
  * It does not guess a provider's status, synthesise an uptime figure, or call
- * any external API. It reads config keys named in config/operations-readiness.php
- * and reports what they hold. A lane that is off stays NOT_CONFIGURED; that is a
- * true statement about this deployment, not a placeholder to be filled in.
+ * any external API. It reads the lane catalogue in
+ * config/operations_readiness.php and reports what the named keys hold. A lane
+ * that is off stays NOT_CONFIGURED; that is a true statement about this
+ * deployment, not a placeholder to be filled in.
+ *
+ * DECLARATION GAP vs CONFIGURATION GAP
+ * The `declared` list names the config keys that must EXIST for the lane to be
+ * declared at all; a missing one is a LANE_NOT_DECLARED finding. The
+ * `credentials` list names the keys that must hold a value once the lane is in
+ * use; an existing-but-empty one is a NOT_CONFIGURED /
+ * ENABLED_WITHOUT_CREDENTIALS gap. The hyphenated config file is only a
+ * schedule alias and never carries the lanes.
  *
  * THE STATE THAT MATTERS MOST
  * `ENABLED_WITHOUT_CREDENTIALS` — a switch flipped on with no credentials behind
@@ -39,6 +48,13 @@ final class ProviderReadinessService
     public const LANE_NOT_DECLARED = 'LANE_NOT_DECLARED';
 
     /**
+     * The config root that holds the lane catalogue. Kept in one place so the
+     * hyphenated alias file (which only carries required_scheduled_commands)
+     * can never again be mistaken for the source of the lanes.
+     */
+    private const LANES_CONFIG_KEY = 'operations_readiness.lanes';
+
+    /**
      * Every declared lane, in config order.
      *
      * @return array<string, array<string, mixed>>
@@ -47,7 +63,7 @@ final class ProviderReadinessService
     {
         $report = [];
 
-        foreach ((array) config('operations-readiness.lanes', []) as $lane => $definition) {
+        foreach ((array) config(self::LANES_CONFIG_KEY, []) as $lane => $definition) {
             $report[(string) $lane] = $this->lane((string) $lane, (array) $definition);
         }
 
@@ -67,7 +83,7 @@ final class ProviderReadinessService
         // ('captcha.turnstile'), and config() would read those as nesting and
         // silently miss the lane.
         if ($definition === null) {
-            $lanes = (array) config('operations-readiness.lanes', []);
+            $lanes = (array) config(self::LANES_CONFIG_KEY, []);
             $definition = (array) ($lanes[$key] ?? []);
         }
 
@@ -79,45 +95,58 @@ final class ProviderReadinessService
                 'switch' => null,
                 'missing' => [],
                 'undeclared' => [$key],
-                'note' => 'This lane is not declared in config/operations-readiness.php.',
+                'note' => 'This lane is not declared in config/operations_readiness.php.',
             ];
         }
 
         $switch = $definition['switch'] ?? null;
-        $required = array_values(array_map('strval', (array) ($definition['required'] ?? [])));
+        $switch = is_string($switch) && $switch !== '' ? $switch : null;
+        $credentials = array_values(array_map('strval', (array) ($definition['credentials'] ?? [])));
+        $declared = array_values(array_map('strval', (array) ($definition['declared'] ?? [])));
 
-        $enabled = is_string($switch) && $switch !== '' ? (bool) config($switch, false) : false;
+        $enabled = $switch !== null ? (bool) config($switch, false) : false;
 
         $undeclared = [];
         $missing = [];
 
-        foreach ($required as $requiredKey) {
-            if (! Config::has($requiredKey)) {
-                $undeclared[] = $requiredKey;
+        // A declaration key that does not exist at all means the lane was
+        // never fully provisioned in configuration — distinct from an empty
+        // value the operator still has to fill in.
+        foreach ($declared as $declaredKey) {
+            if (! Config::has($declaredKey)) {
+                $undeclared[] = $declaredKey;
+            }
+        }
+
+        foreach ($credentials as $credentialKey) {
+            if (! Config::has($credentialKey)) {
+                $undeclared[] = $credentialKey;
 
                 continue;
             }
 
-            if (! $this->hasValue(config($requiredKey))) {
-                $missing[] = $requiredKey;
+            if (! $this->hasValue(config($credentialKey))) {
+                $missing[] = $credentialKey;
             }
         }
 
-        $state = match (true) {
-            $undeclared !== [] && $required !== [] => self::LANE_NOT_DECLARED,
-            ! $enabled => self::NOT_CONFIGURED,
-            $missing !== [] => self::ENABLED_WITHOUT_CREDENTIALS,
-            default => self::CONFIGURED,
-        };
+        $undeclared = array_values(array_unique($undeclared));
+        $missing = array_values(array_unique($missing));
 
-        // A lane with no switch is judged on its credentials alone: there is
-        // nothing to turn on, so "configured" means the values are there.
-        if (! is_string($switch) || $switch === '') {
-            $state = match (true) {
-                $undeclared !== [] => self::LANE_NOT_DECLARED,
-                $missing !== [] => self::NOT_CONFIGURED,
-                default => self::CONFIGURED,
-            };
+        // A declaration gap wins over every other verdict: the report cannot
+        // claim a lane is merely "off" when part of it does not exist.
+        if ($undeclared !== []) {
+            $state = self::LANE_NOT_DECLARED;
+        } elseif ($switch === null) {
+            // A lane with no switch is judged on its credentials alone: there
+            // is nothing to turn on, so "configured" means the values exist.
+            $state = $missing !== [] ? self::NOT_CONFIGURED : self::CONFIGURED;
+        } elseif (! $enabled) {
+            $state = self::NOT_CONFIGURED;
+        } elseif ($missing !== []) {
+            $state = self::ENABLED_WITHOUT_CREDENTIALS;
+        } else {
+            $state = self::CONFIGURED;
         }
 
         return [

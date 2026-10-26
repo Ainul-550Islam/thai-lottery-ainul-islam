@@ -4,97 +4,31 @@ metadata:
   name: fintech-horizon-deployment
   namespace: fintech-production
   labels:
-    app.kubernetes.io/name: thai-lottery-horizon
+    app: fintech-horizon
 spec:
-  replicas: 2
+  replicas: 6
   selector:
     matchLabels:
-      app.kubernetes.io/name: thai-lottery-horizon
+      app: fintech-horizon
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: thai-lottery-horizon
+        app: fintech-horizon
     spec:
-      serviceAccountName: thai-lottery-horizon
-      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 120
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 10001
-        runAsGroup: 10001
-        fsGroup: 10001
-        seccompProfile:
-          type: RuntimeDefault
-      initContainers:
-        - name: prepare-storage
-          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
-          imagePullPolicy: IfNotPresent
-          command: ["/bin/sh", "-c", "mkdir -p /shared/app/private /shared/app/public /shared/framework/cache/data /shared/framework/sessions /shared/framework/views /shared/logs"]
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 10001
-            runAsGroup: 10001
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: [ALL]
-          resources:
-            requests:
-              cpu: 25m
-              memory: 32Mi
-            limits:
-              cpu: 100m
-              memory: 64Mi
-          volumeMounts:
-            - name: app-storage
-              mountPath: /shared
       containers:
         - name: horizon-worker
-          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/ainul-550islam/thai-lottery-app:latest
           command: ["php", "artisan", "horizon"]
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "4000m"
+              memory: "4Gi"
           envFrom:
             - configMapRef:
                 name: fintech-config
             - secretRef:
                 name: fintech-secrets
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: [ALL]
-          resources:
-            requests:
-              cpu: 500m
-              memory: 1Gi
-            limits:
-              cpu: "4"
-              memory: 4Gi
-          startupProbe:
-            exec:
-              command: ["php", "artisan", "horizon:status"]
-            periodSeconds: 10
-            failureThreshold: 18
-          readinessProbe:
-            exec:
-              command: ["php", "artisan", "horizon:status"]
-            periodSeconds: 15
-            failureThreshold: 3
-          livenessProbe:
-            exec:
-              command: ["php", "artisan", "horizon:status"]
-            periodSeconds: 30
-            failureThreshold: 3
-          volumeMounts:
-            - name: php-temp
-              mountPath: /tmp
-            - name: app-storage
-              mountPath: /var/www/html/storage
-      volumes:
-        - name: php-temp
-          emptyDir:
-            medium: Memory
-            sizeLimit: 256Mi
-        - name: app-storage
-          persistentVolumeClaim:
-            claimName: fintech-app-storage

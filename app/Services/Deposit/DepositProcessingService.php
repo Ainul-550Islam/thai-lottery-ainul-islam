@@ -67,9 +67,27 @@ class DepositProcessingService
                 $rawPayload,
                 $idempotencyKey
             ) {
-                // Idempotency check: prevent duplicate deposit credits
+                // Idempotency check: prevent duplicate deposit credits.
+                // A replay is only a replay when every invariant term still
+                // matches: the same provider notification arriving twice with
+                // a different amount or currency is a conflict, not a retry,
+                // and must never be silently accepted (or, worse, credited).
                 $existing = DepositTransaction::where('idempotency_key', $idempotencyKey)->first();
                 if ($existing && $existing->isCompleted()) {
+                    $termsDiffer = (string) $existing->user_id !== $userIdStr
+                        || (string) $existing->gateway_provider !== $gatewayProvider
+                        || (string) $existing->gateway_reference_id !== $gatewayReferenceId
+                        || (string) $existing->currency !== $currency
+                        || bccomp((string) $existing->amount, $amount, 4) !== 0
+                        || bccomp((string) $existing->fee_amount, $feeAmount, 4) !== 0;
+
+                    if ($termsDiffer) {
+                        throw new InvalidArgumentException(sprintf(
+                            'Webhook terms conflict for gateway reference [%s]: the recorded deposit does not match the replayed notification.',
+                            $gatewayReferenceId,
+                        ));
+                    }
+
                     return $existing;
                 }
 

@@ -6,6 +6,7 @@ namespace App\Services\Operations;
 
 use App\DTOs\Operations\OperationalReportData;
 use App\DTOs\Operations\ReportExportData;
+use App\Enums\DrawLifecycleState;
 use App\Enums\ReportJobStatus;
 use App\Enums\ReportType;
 use App\Exceptions\OperationalReportException;
@@ -18,7 +19,6 @@ use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * OperationalReportService — READ-ONLY cross-lane reporting from
@@ -26,6 +26,15 @@ use Illuminate\Support\Facades\Schema;
  * timestamps pinned, and identical asks (same requester + blend)
  * seal into one generation job row, forever. Nothing here mutates
  * the desks it reads.
+ *
+ * FILTER TRUTH
+ * Every advertised filter is applied to the query that produces the
+ * rows, so a filtered report can never carry the unfiltered count.
+ * Each clause targets a real column, a real relation or a metadata
+ * lane some writer in app/ stamps; there are no LIKE '%%' predicates
+ * and no filter is accepted by the DTO then dropped on the floor. The
+ * prize family has no projection, so its reader refuses out loud and
+ * the job seats Failed instead of completing with zero rows.
  */
 final class OperationalReportService
 {
@@ -68,43 +77,64 @@ final class OperationalReportService
      */
     public function run(string $queryFingerprint): OperationalReportJob
     {
-        return DB::transaction(function () use ($queryFingerprint): OperationalReportJob {
-            /** @var OperationalReportJob $locked */
-            $locked = OperationalReportJob::query()->lockForUpdate()
-                ->where('query_fingerprint', $queryFingerprint)
-                ->first();
+        // Validate before opening the work transaction: an unknown or already
+        // terminal row is a request error, never a generation failure.
+        $job = OperationalReportJob::query()
+            ->where('query_fingerprint', $queryFingerprint)
+            ->first();
 
-            if (! $locked instanceof OperationalReportJob) {
-                throw OperationalReportException::notFound(substr($queryFingerprint, 0, 12));
-            }
+        if (! $job instanceof OperationalReportJob) {
+            throw OperationalReportException::notFound(substr($queryFingerprint, 0, 12));
+        }
 
-            if ($locked->status === ReportJobStatus::Completed) {
-                return $locked;
-            }
+        if ($job->status === ReportJobStatus::Completed) {
+            return $job;
+        }
 
-            if ($locked->status !== ReportJobStatus::Queued && $locked->status !== ReportJobStatus::Running) {
-                throw OperationalReportException::terminalJob($queryFingerprint, $locked->status->value);
-            }
+        if ($job->status !== ReportJobStatus::Queued && $job->status !== ReportJobStatus::Running) {
+            throw OperationalReportException::terminalJob($queryFingerprint, $job->status->value);
+        }
 
-            $locked->status = ReportJobStatus::Running;
-            $locked->started_at = now();
-            $locked->save();
+        try {
+            return DB::transaction(function () use ($job): OperationalReportJob {
+                /** @var OperationalReportJob $locked */
+                $locked = OperationalReportJob::query()->lockForUpdate()->findOrFail($job->getKey());
 
-            try {
+                $locked->status = ReportJobStatus::Running;
+                $locked->started_at = now();
+                $locked->save();
+
+                // A reader can refuse (the prize family has no projection); that
+                // exception rolls this transaction back.
                 $rows = $this->rows($locked);
+
                 $locked->row_count = $rows->count();
                 $locked->status = ReportJobStatus::Completed;
                 $locked->completed_at = now();
                 $locked->save();
-            } catch (\Throwable $e) {
-                $locked->status = ReportJobStatus::Failed;
-                $locked->failure_reason = substr('generation lane: '.$e->getMessage(), 0, 96);
-                $locked->save();
-                throw OperationalReportException::generationFailure($locked->failure_reason);
-            }
 
-            return $locked->refresh();
-        });
+                return $locked->refresh();
+            });
+        } catch (\Throwable $e) {
+            // The work transaction rolled back and took the Running marker with
+            // it, so the terminal Failed state is seated in a fresh transaction
+            // the rollback cannot reach. The desk keeps a durable failure_reason.
+            $reason = substr('generation lane: '.$e->getMessage(), 0, 96);
+
+            DB::transaction(function () use ($job, $reason): void {
+                /** @var OperationalReportJob|null $seat */
+                $seat = OperationalReportJob::query()->lockForUpdate()->find($job->getKey());
+
+                if ($seat instanceof OperationalReportJob
+                    && in_array($seat->status, [ReportJobStatus::Queued, ReportJobStatus::Running], true)) {
+                    $seat->status = ReportJobStatus::Failed;
+                    $seat->failure_reason = $reason;
+                    $seat->save();
+                }
+            });
+
+            throw OperationalReportException::generationFailure($reason);
+        }
     }
 
     /**
@@ -128,19 +158,28 @@ final class OperationalReportService
         };
     }
 
-    /** @return Collection<int, array<string, mixed>> */
+    /**
+     * Ledger entries. Currency is a column on the entry; the player and
+     * wallet kind travel through the entry's wallet relation, so the
+     * financial user filter can never again compile to a LIKE that is
+     * true of every row with a wallet.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
     private function financialRows(OperationalReportJob $job, array $filters): Collection
     {
         return LedgerEntry::query()
             ->whereBetween('posted_at', [$job->horizon_start, $job->horizon_end])
-            ->when(isset($filters['entry_purpose']), fn ($q) => $q->where('metadata->purpose', $filters['entry_purpose']))
-            ->when(isset($filters['user_id']), fn ($q) => $q->where('wallet_id', 'like', '%%'))
+            ->when(isset($filters['currency']), fn ($q) => $q->where('currency', $filters['currency']))
+            ->when(isset($filters['wallet_kind']), fn ($q) => $q->whereHas('wallet', fn ($w) => $w->where('type', $filters['wallet_kind'])))
+            ->when(isset($filters['user_id']), fn ($q) => $q->whereHas('wallet', fn ($w) => $w->where('user_id', (int) $filters['user_id'])))
             ->orderBy('posted_at')
             ->orderBy('id')
             ->limit(self::MAX_ROWS)
             ->get()
             ->map(fn (LedgerEntry $e): array => [
                 'id' => $e->id,
+                'wallet_id' => $e->wallet_id,
                 'type' => $e->type,
                 'amount' => $e->amount,
                 'currency' => $e->currency,
@@ -149,7 +188,12 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return Collection<int, array<string, mixed>> */
+    /**
+     * Payment aggregates. The provider filter reads the gateway column,
+     * which is where the driver name is persisted.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
     private function paymentRows(OperationalReportJob $job, array $filters): Collection
     {
         return Payment::query()
@@ -163,6 +207,7 @@ final class OperationalReportService
             ->limit(self::MAX_ROWS)
             ->get()
             ->map(fn (Payment $p): array => [
+                'id' => $p->id,
                 'reference_number' => $p->reference_number,
                 'user_id' => $p->user_id,
                 'method' => $p->method,
@@ -174,17 +219,26 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return Collection<int, array<string, mixed>> */
+    /**
+     * Draws. The desk vocabulary lifecycle_state is mapped onto the
+     * persisted DrawStatus value by the total DrawLifecycleState mapping,
+     * rather than guessed with a string comparison.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
     private function drawRows(OperationalReportJob $job, array $filters): Collection
     {
         return Draw::query()
             ->whereBetween('scheduled_at', [$job->horizon_start, $job->horizon_end])
             ->when(isset($filters['draw_id']), fn ($q) => $q->where('id', (int) $filters['draw_id']))
             ->when(isset($filters['draw_type']), fn ($q) => $q->where('type', $filters['draw_type']))
+            ->when(isset($filters['lifecycle_state']), fn ($q) => $q->where('status', $this->lifecycleStateToStatus((string) $filters['lifecycle_state'])))
             ->orderBy('draw_number')
+            ->orderBy('id')
             ->limit(self::MAX_ROWS)
             ->get()
             ->map(fn (Draw $d): array => [
+                'id' => $d->id,
                 'draw_number' => $d->draw_number,
                 'type' => $d->type,
                 'status' => $d->status,
@@ -193,17 +247,27 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return Collection<int, array<string, mixed>> */
+    /**
+     * The prize family has no projection. Seating a Completed job with
+     * zero rows would make "this family is not built" indistinguishable
+     * from "no claims this horizon", so the reader refuses and the job
+     * seats Failed with the same reason.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
     private function prizeRows(OperationalReportJob $job, array $filters): Collection
     {
-        if (! Schema::hasTable('prize_claims')) {
-            return collect();
-        }
-
-        return collect();
+        throw OperationalReportException::malformed(
+            'the prize report family has no projection in this desk; refusing instead of reporting an empty horizon'
+        );
     }
 
-    /** @return Collection<int, array<string, mixed>> */
+    /**
+     * Compliance cases. The player filter reads subject_user_id, the
+     * column that names the player a case is about.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
     private function complianceRows(OperationalReportJob $job, array $filters): Collection
     {
         return ComplianceCase::query()
@@ -217,6 +281,7 @@ final class OperationalReportService
             ->limit(self::MAX_ROWS)
             ->get()
             ->map(fn (ComplianceCase $c): array => [
+                'id' => $c->id,
                 'case_key' => $c->case_key,
                 'subject_user_id' => $c->subject_user_id,
                 'case_type' => $c->case_type,
@@ -226,12 +291,19 @@ final class OperationalReportService
             ]);
     }
 
-    /** @return Collection<int, array<string, mixed>> */
+    /**
+     * Players. The registration window is a lower bound on created_at;
+     * the DTO already guaranteed it is a whole number of days.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
     private function playerRows(OperationalReportJob $job, array $filters): Collection
     {
         return User::query()
             ->whereBetween('created_at', [$job->horizon_start, $job->horizon_end])
+            ->when(isset($filters['kyc_status']), fn ($q) => $q->where('kyc_status', $filters['kyc_status']))
             ->when(isset($filters['user_id']), fn ($q) => $q->where('id', (int) $filters['user_id']))
+            ->when(isset($filters['registered_within']), fn ($q) => $q->where('created_at', '>=', now()->subDays((int) $filters['registered_within'])))
             ->orderBy('id')
             ->limit(self::MAX_ROWS)
             ->get()
@@ -239,15 +311,24 @@ final class OperationalReportService
                 'id' => $u->id,
                 'username' => $u->username,
                 'status' => $u->status->value,
+                'kyc_status' => $u->kyc_status,
                 'created_at' => $u->created_at?->toIso8601String(),
             ]);
     }
 
-    /** @return Collection<int, array<string, mixed>> */
+    /**
+     * Audit log lines. lane and risk_rating are metadata lanes stamped
+     * by the audit listeners in app/Listeners, so they are filtered on
+     * the JSON column rather than a column that does not exist.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
     private function operationalRows(OperationalReportJob $job, array $filters): Collection
     {
         return AuditLog::query()
             ->whereBetween('created_at', [$job->horizon_start, $job->horizon_end])
+            ->when(isset($filters['lane']), fn ($q) => $q->where('metadata->lane', $filters['lane']))
+            ->when(isset($filters['risk_rating']), fn ($q) => $q->where('metadata->risk_rating', $filters['risk_rating']))
             ->when(isset($filters['auditable_type']), fn ($q) => $q->where('auditable_type', $filters['auditable_type']))
             ->when(isset($filters['user_id']), fn ($q) => $q->where('user_id', (int) $filters['user_id']))
             ->orderBy('id')
@@ -258,8 +339,28 @@ final class OperationalReportService
                 'user_id' => $a->user_id,
                 'action' => $a->action instanceof \BackedEnum ? $a->action->value : (string) $a->action,
                 'auditable_type' => $a->auditable_type,
+                'metadata' => $a->metadata,
                 'created_at' => $a->created_at?->toIso8601String(),
             ]);
+    }
+
+    /**
+     * Translate a desk lifecycle vocabulary value to the persisted
+     * draw status. The DTO already validated the vocabulary, so the
+     * mapping is total here.
+     */
+    private function lifecycleStateToStatus(string $lifecycleState): string
+    {
+        $state = DrawLifecycleState::tryFrom($lifecycleState);
+
+        if (! $state instanceof DrawLifecycleState) {
+            throw OperationalReportException::malformed(sprintf(
+                'filter [lifecycle_state] value [%s] is not a known draw lifecycle state',
+                $lifecycleState,
+            ));
+        }
+
+        return $state->toDrawStatus()->value;
     }
 
     /**
@@ -276,7 +377,7 @@ final class OperationalReportService
             ->get()
             ->each(function (OperationalReportJob $job) use (&$expired): void {
                 DB::transaction(function () use ($job, &$expired): void {
-                    /** @var OperationalReportJob $locked */
+                    /** @var OperationalReportJob|null $locked */
                     $locked = OperationalReportJob::query()->lockForUpdate()->findOrFail($job->id);
                     if ($locked->status->isTerminal()) {
                         return;

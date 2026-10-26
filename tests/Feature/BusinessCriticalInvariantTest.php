@@ -4,57 +4,46 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\DTOs\Agent\CommissionCalculationResult;
-use App\DTOs\Compliance\AmlRiskAssessmentData;
+use App\DTOs\BetPurchaseData;
+use App\DTOs\Betting\BulkBetSelectionData;
 use App\DTOs\ResponsibleGaming\SelfExclusionData;
 use App\Enums\AgentStatus;
-use App\Enums\AmlRiskLevel;
-use App\Enums\AuditAction;
 use App\Enums\CommissionStatus;
 use App\Enums\Currency;
+use App\Enums\DrawStatus;
+use App\Enums\DrawType;
 use App\Enums\FinancialTransactionType;
 use App\Enums\KycDocumentType;
-use App\Enums\PaymentChannel;
-use App\Enums\PaymentDirection;
-use App\Enums\PaymentStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PrizeDisbursementStatus;
-use App\Enums\ReservationStatus;
 use App\Enums\SelfExclusionStatus;
 use App\Enums\TransactionStatus;
+use App\Enums\WalletReservationStatus;
 use App\Enums\WithdrawalStatus;
-use App\Exceptions\FinancialException;
+use App\Exceptions\SelfExclusionException;
+use App\Exceptions\WithdrawalException;
 use App\Http\Middleware\VerifyCsrfToken;
-use App\Models\AccountVerificationDocument;
 use App\Models\Agent;
 use App\Models\AgentCommission;
-use App\Models\AmlRiskAssessment;
-use App\Models\AuditLog;
 use App\Models\Draw;
-use App\Models\FinancialTransaction;
-use App\Models\KycDocument;
-use App\Models\PaymentTransaction;
-use App\Models\PaymentWebhook;
 use App\Models\PrizeDisbursement;
-use App\Models\SelfExclusion;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletReservation;
 use App\Models\Withdrawal;
 use App\Services\Account\AccountVerificationDocumentService;
-use App\Services\Agent\AgentCommissionService;
 use App\Services\Agent\AgentSettlementService;
+use App\Services\Betting\BetPurchaseService;
 use App\Services\Compliance\AmlRiskAssessmentService;
-use App\Services\Compliance\AmlRiskService;
 use App\Services\Compliance\SelfExclusionService;
 use App\Services\Finance\FinancialReconciliationService;
 use App\Services\Finance\Money;
-use App\Services\Finance\WalletLockService;
 use App\Services\Finance\WalletReservationService;
-use App\Services\Finance\WalletService;
+use App\Services\Finance\WithdrawalRequestWithHoldService;
 use App\Services\Payment\ProcessPaymentWebhookService;
 use App\Services\Payment\WithdrawalDisbursementService;
-use App\Services\Security\SecurityEventService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\Wallet\WalletService;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -66,10 +55,19 @@ use Tests\TestCase;
  * Business-Critical Invariant Master Test Suite.
  *
  * Verifies the 15 core architectural and financial invariants across the system.
+ *
+ * DatabaseTruncation is used instead of RefreshDatabase on purpose: money flows
+ * such as bet purchases and withdrawal disbursements refuse to run inside a
+ * caller-owned transaction, so these proofs commit against the disposable test
+ * database the way production does and truncate between tests.
+ *
+ * The historical file imported App\Enums\ReservationStatus, a class that never
+ * existed. The real reservation vocabulary is App\Enums\WalletReservationStatus,
+ * which invariant 15 now asserts against the persisted reservation row.
  */
 class BusinessCriticalInvariantTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTruncation;
 
     /**
      * Invariant 1: Idempotent Webhook Processing.
@@ -83,7 +81,7 @@ class BusinessCriticalInvariantTest extends TestCase
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
         $initialBalance = $wallet->balance;
 
-        $externalId = 'WH-TX-' . uniqid();
+        $externalId = 'WH-TX-'.uniqid();
         $payload = [
             'provider' => 'bkash',
             'external_id' => $externalId,
@@ -110,27 +108,52 @@ class BusinessCriticalInvariantTest extends TestCase
      */
     public function test_invariant_2_withdrawal_disbursement_terminal_state_safety(): void
     {
+        config(['finance.withdrawal.min' => '1.00']);
+
         $user = User::factory()->create();
+        $this->verifyUserKycForTest($user);
         $walletService = app(WalletService::class);
         $disbursementService = app(WithdrawalDisbursementService::class);
 
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
-        $walletService->credit($wallet->id, '1000.00', 'Initial funds');
+        $walletService->credit(
+            $wallet,
+            '1000.00',
+            'deposit',
+            'bci-inv2-seed-'.bin2hex(random_bytes(8)),
+            'Initial funds',
+        );
 
-        $withdrawal = Withdrawal::create([
-            'user_id' => $user->id,
-            'wallet_id' => $wallet->id,
-            'amount' => '300.00',
-            'fee' => '0.00',
-            'currency' => Currency::THB->value,
-            'channel' => 'bank_transfer',
-            'status' => WithdrawalStatus::Completed->value,
-            'destination_details' => json_encode(['account' => '123456789']),
-        ]);
+        // A real requested withdrawal carries an initial wallet hold.
+        $withdrawal = app(WithdrawalRequestWithHoldService::class)->request(
+            $wallet,
+            Money::of('300.00', Currency::THB),
+            PaymentMethod::Manual,
+            'bci-inv2-withdrawal-'.bin2hex(random_bytes(8)),
+            [
+                'payout_details' => [
+                    'bank_name' => 'KBANK',
+                    'account_number' => '123456789',
+                    'account_name' => 'Test claimant',
+                ],
+            ],
+        );
 
-        // Attempting to disburse an already completed withdrawal must throw or return false
-        $this->expectException(InvalidArgumentException::class);
-        $disbursementService->disburse((int) $withdrawal->id);
+        // Seal the terminal state the way the completion writer would.
+        $withdrawal->forceFill([
+            'status' => WithdrawalStatus::Completed,
+            'completed_at' => now(),
+        ])->save();
+
+        // Disbursing an already completed withdrawal must refuse with the
+        // domain's terminal-state exception, never create a second payout.
+        try {
+            $disbursementService->disburse($withdrawal->fresh());
+            $this->fail('A completed withdrawal must not be disbursed a second time.');
+        } catch (WithdrawalException $e) {
+            $this->assertSame(WithdrawalException::ERROR_ALREADY_COMPLETED, $e->errorCode());
+            $this->assertStringContainsString((string) $withdrawal->id, $e->getMessage());
+        }
     }
 
     /**
@@ -139,11 +162,12 @@ class BusinessCriticalInvariantTest extends TestCase
     public function test_invariant_3_financial_reconciliation_engine_auditing(): void
     {
         $reconService = app(FinancialReconciliationService::class);
-        $report = $reconService->reconcileSystem(Carbon::today()->subDays(1), Carbon::today());
+        $report = $reconService->reconcile(Carbon::today()->subDays(1), Carbon::today());
 
         $this->assertNotNull($report);
         $this->assertIsArray($report->discrepancies);
         $this->assertNotNull($report->summary);
+        $this->assertContains($report->status->value, ['pass', 'warning', 'critical']);
     }
 
     /**
@@ -155,9 +179,9 @@ class BusinessCriticalInvariantTest extends TestCase
         $walletService = app(WalletService::class);
 
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
-        $walletService->credit($wallet->id, '500.00', 'Credit 1');
-        $walletService->credit($wallet->id, '300.00', 'Credit 2');
-        $walletService->debit($wallet->id, '200.00', 'Debit 1');
+        $walletService->credit($wallet, '500.00', FinancialTransactionType::Deposit, 'bci-inv4-credit-1-'.bin2hex(random_bytes(8)), 'Credit 1');
+        $walletService->credit($wallet, '300.00', FinancialTransactionType::Deposit, 'bci-inv4-credit-2-'.bin2hex(random_bytes(8)), 'Credit 2');
+        $walletService->debit($wallet, '200.00', FinancialTransactionType::Withdrawal, 'bci-inv4-debit-1-'.bin2hex(random_bytes(8)), 'Debit 1');
 
         $totalBalance = (string) $wallet->fresh()->balance;
         $this->assertEquals('600.00', $totalBalance);
@@ -184,7 +208,7 @@ class BusinessCriticalInvariantTest extends TestCase
             'prize_amount' => '5000.00',
             'currency' => Currency::THB->value,
             'status' => PrizeDisbursementStatus::Pending->value,
-            'reference_number' => 'DISB-' . uniqid(),
+            'reference_number' => 'DISB-'.uniqid(),
         ]);
 
         // Non-settled prize must not trigger winner notification dispatch
@@ -262,80 +286,51 @@ class BusinessCriticalInvariantTest extends TestCase
      */
     public function test_invariant_10_agent_commission_settlement_idempotency(): void
     {
-        $agentUser = User::factory()->create();
-        $walletService = app(WalletService::class);
-        $walletService->getOrCreateWallet($agentUser->id, Currency::THB->value);
+        $fixture = $this->commissionFixture();
 
-        $agent = Agent::create([
-            'user_id' => $agentUser->id,
-            'agent_code' => 'AGT100',
-            'status' => AgentStatus::Active->value,
-            'currency' => Currency::THB->value,
-            'commission_rate' => '0.0500',
-        ]);
-
-        $draw = Draw::factory()->create();
-
-        $commission = AgentCommission::create([
-            'agent_id' => $agent->id,
-            'draw_id' => $draw->id,
-            'bet_id' => 1,
-            'stake_amount' => '1000.00',
-            'commission_amount' => '50.00',
-            'currency' => Currency::THB->value,
-            'status' => CommissionStatus::Accrued->value,
-            'reference_number' => 'COMM-' . uniqid(),
-        ]);
+        $commission = AgentCommission::query()
+            ->where('agent_id', $fixture['agent']->id)
+            ->sole();
 
         $settlementService = app(AgentSettlementService::class);
 
-        // Settle first time
-        $result1 = $settlementService->settleForDraw((int) $draw->id);
+        // Settle first time: the owned commission is paid to the agent's wallet.
+        $result1 = $settlementService->settleForDraw((int) $fixture['draw']->id);
         $this->assertEquals(1, $result1->commissionsSettled);
-        $this->assertEquals('50.00', $result1->totalCommissionPaid);
-        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status);
+        $this->assertEquals('0.50', $result1->totalCommissionPaid);
+        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status->value);
+        $this->assertSame('0.50', (string) $fixture['agentWallet']->fresh()->balance);
 
-        // Settle second time (idempotent replay)
-        $result2 = $settlementService->settleForDraw((int) $draw->id);
+        // Settle second time (idempotent replay): nothing is paid twice.
+        $result2 = $settlementService->settleForDraw((int) $fixture['draw']->id);
         $this->assertEquals(0, $result2->commissionsSettled);
         $this->assertTrue($result2->alreadySettled);
+        $this->assertSame('0.50', (string) $fixture['agentWallet']->fresh()->balance);
     }
 
     /**
-     * Invariant 11: Agent Commission Cancellation on Inactive Status.
+     * Invariant 11: Agent Commission is held (never paid, never cancelled) when
+     * the agent is suspended at settlement time.
      */
-    public function test_invariant_11_agent_commission_cancellation_for_suspended_agent(): void
+    public function test_invariant_11_agent_commission_held_for_suspended_agent(): void
     {
-        $agentUser = User::factory()->create();
-        $walletService = app(WalletService::class);
-        $walletService->getOrCreateWallet($agentUser->id, Currency::THB->value);
+        $fixture = $this->commissionFixture();
 
-        $agent = Agent::create([
-            'user_id' => $agentUser->id,
-            'agent_code' => 'AGT200',
-            'status' => AgentStatus::Suspended->value,
-            'currency' => Currency::THB->value,
-            'commission_rate' => '0.0500',
-        ]);
+        $commission = AgentCommission::query()
+            ->where('agent_id', $fixture['agent']->id)
+            ->sole();
 
-        $draw = Draw::factory()->create();
-
-        $commission = AgentCommission::create([
-            'agent_id' => $agent->id,
-            'draw_id' => $draw->id,
-            'bet_id' => 2,
-            'stake_amount' => '1000.00',
-            'commission_amount' => '50.00',
-            'currency' => Currency::THB->value,
-            'status' => CommissionStatus::Accrued->value,
-            'reference_number' => 'COMM-' . uniqid(),
-        ]);
+        // Suspend the agent after the commission accrued but before settlement.
+        $fixture['agent']->forceFill(['status' => AgentStatus::Suspended])->save();
 
         $settlementService = app(AgentSettlementService::class);
-        $result = $settlementService->settleForDraw((int) $draw->id);
+        $result = $settlementService->settleForDraw((int) $fixture['draw']->id);
 
+        // Suspension is a hold, not forfeiture: the row is neither paid nor cancelled.
         $this->assertEquals(0, $result->commissionsSettled);
-        $this->assertEquals(CommissionStatus::Cancelled->value, $commission->fresh()->status);
+        $this->assertSame(1, $result->context['held_commissions']);
+        $this->assertEquals(CommissionStatus::Accrued->value, $commission->fresh()->status->value);
+        $this->assertSame('0.00', (string) $fixture['agentWallet']->fresh()->balance);
     }
 
     /**
@@ -373,15 +368,15 @@ class BusinessCriticalInvariantTest extends TestCase
         );
 
         $exclusion = $rgService->request($data);
-        $this->assertEquals(SelfExclusionStatus::Requested->value, $exclusion->status);
+        $this->assertEquals(SelfExclusionStatus::Requested, $exclusion->status);
 
         // Activate
         $active = $rgService->activate($exclusion);
-        $this->assertEquals(SelfExclusionStatus::Active->value, $active->status);
+        $this->assertEquals(SelfExclusionStatus::Active, $active->status);
         $this->assertTrue($rgService->hasActiveExclusion($user->id));
 
         // Premature expiry rejection
-        $this->expectException(\App\Exceptions\SelfExclusionException::class);
+        $this->expectException(SelfExclusionException::class);
         $rgService->expire($active);
     }
 
@@ -416,24 +411,92 @@ class BusinessCriticalInvariantTest extends TestCase
         $walletThb = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
         $walletUsd = $walletService->getOrCreateWallet($user->id, Currency::USD->value);
 
-        $walletService->credit($walletThb->id, '1000.00', 'THB credit');
-        $walletService->credit($walletUsd->id, '50.00', 'USD credit');
+        $walletService->credit($walletThb, '1000.00', 'deposit', 'bci-inv15-thb-'.bin2hex(random_bytes(8)), 'THB credit');
+        $walletService->credit($walletUsd, '50.00', 'deposit', 'bci-inv15-usd-'.bin2hex(random_bytes(8)), 'USD credit');
 
-        $this->assertEquals('1000.00', $walletThb->fresh()->balance);
-        $this->assertEquals('50.00', $walletUsd->fresh()->balance);
+        $this->assertEquals('1000.00', (string) $walletThb->fresh()->balance);
+        $this->assertEquals('50.00', (string) $walletUsd->fresh()->balance);
 
-        // Reserve in THB
+        // Reserve in THB using the service's positional contract.
         $res = $reservationService->reserve(
-            userId: $user->id,
-            amount: '200.00',
-            currency: Currency::THB->value,
-            reason: 'Test reservation',
-            ttlSeconds: 60
+            $user->id,
+            '200.00',
+            Currency::THB->value,
+            'Test reservation',
+            60,
         );
 
-        $this->assertNotNull($res);
+        $this->assertInstanceOf(WalletReservation::class, $res);
+        $this->assertSame(WalletReservationStatus::Reserved, $res->status);
+        $this->assertSame('200.00', (string) $res->amount);
         $this->assertEquals('800.00', $walletThb->fresh()->available_balance);
-        // USD wallet must remain untouched
+        // USD wallet must remain untouched, including its available balance.
+        $this->assertEquals('50.00', (string) $walletUsd->fresh()->balance);
         $this->assertEquals('50.00', $walletUsd->fresh()->available_balance);
+        $this->assertSame('0.00', (string) $walletUsd->fresh()->locked_balance);
+    }
+
+    /**
+     * Build the canonical owned-commission fixture: a referred player's real
+     * purchase accrues a commission with its bet/commission ownership rows, so
+     * the settlement writer has the proof it pays against.
+     *
+     * @return array<string, mixed>
+     */
+    private function commissionFixture(): array
+    {
+        config([
+            'lottery.betting.currency' => Currency::THB->value,
+            'agent.hierarchy.enabled' => true,
+            'agent.hierarchy.parent_commission_rate' => '0.0100',
+        ]);
+
+        $agent = Agent::factory()->active()->create(['currency' => Currency::THB]);
+        $agentWallet = app(WalletService::class)->getOrCreateWallet($agent->user_id, Currency::THB);
+
+        $user = User::factory()->create(['preferences' => ['referred_by_agent_id' => $agent->id]]);
+        $wallet = app(WalletService::class)->getOrCreateWallet($user, Currency::THB);
+        app(WalletService::class)->credit(
+            $wallet,
+            '100.00',
+            'deposit',
+            'bci-agent-seed-'.bin2hex(random_bytes(8)),
+            'Synthetic coordinated funded purchase',
+        );
+
+        $selection = new BulkBetSelectionData(marketKey: '3d_direct', number: '007', stake: '10.00');
+        $draw = $this->openDrawForSelections([$selection]);
+
+        $result = app(BetPurchaseService::class)->purchase(new BetPurchaseData(
+            userId: $user->id,
+            drawId: $draw->id,
+            marketKey: '3d_direct',
+            rawNumber: '007',
+            rawStake: '10.00',
+            idempotencyKey: 'bci-coordinated-member-purchase-'.bin2hex(random_bytes(6)),
+        ));
+
+        return compact('agent', 'agentWallet', 'user', 'wallet', 'draw', 'result');
+    }
+
+    /**
+     * @param  list<BulkBetSelectionData>  $selections
+     */
+    private function openDrawForSelections(array $selections): Draw
+    {
+        $draw = Draw::factory()->create([
+            'type' => DrawType::ThreeD,
+            'status' => DrawStatus::Open,
+            'betting_open_at' => now()->subHour(),
+            'betting_close_at' => now()->addHour(),
+            'opened_at' => now()->subHour(),
+            'scheduled_at' => now()->addDay(),
+        ]);
+
+        foreach ($selections as $selection) {
+            $this->provisionBetLimitForTest($draw, $selection->marketKey, $selection->number);
+        }
+
+        return $draw;
     }
 }

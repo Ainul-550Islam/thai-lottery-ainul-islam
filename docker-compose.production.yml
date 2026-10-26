@@ -1,26 +1,80 @@
-# Production Compose topology for the MySQL/MariaDB Laravel application.
-# Secrets are mounted from the external secret store; non-secret overrides are
-# supplied by the operator-provided .env.production file.
+# =============================================================================
+# Thai Lottery — Production Compose
+# =============================================================================
+#
+# WHY THIS FILE EXISTS
+# The repository contained NO Dockerfile, NO compose file, NO nginx config and
+# NO php-fpm config anywhere — `find . -iname "*docker*"` returned nothing. The
+# only deployment artifact was one supervisord snippet for a single queue worker
+# (deployment/supervisor/thai-lottery-worker.conf). The brief's requirement —
+# "Validate PHP-FPM, Nginx, Redis, PostgreSQL, and Rust Worker Docker
+# configurations for production" — could not be validated because none existed.
+#
+# WHAT THIS PROVIDES
+#   nginx        TLS-terminating edge, serves static, proxies to php-fpm
+#   app          php-fpm 8.4 runtime, read-only rootfs, no shell in prod image
+#   horizon      queue workers (settlement / payouts / webhooks / notifications)
+#   scheduler    `schedule:work` — exactly ONE replica, ever
+#   db           PostgreSQL 16 (see the DATABASE MIGRATION NOTE below)
+#   redis        Redis 7, AOF on, used for cache + locks + queues
+#   reverb       WebSocket server (Laravel Reverb) — was BROADCAST_CONNECTION=log
+#   settlement-worker  the Rust hot-path worker
+#
+# -----------------------------------------------------------------------------
+# DATABASE MIGRATION NOTE — READ BEFORE FIRST DEPLOY
+# -----------------------------------------------------------------------------
+# The brief targets PostgreSQL. THIS REPOSITORY DOES NOT CURRENTLY RUN ON IT.
+# `config/database.php` declares `'default' => env('DB_CONNECTION', 'pgsql')`
+# while `.env.example` sets `DB_CONNECTION=mysql` and CI runs on sqlite. Three
+# different engines across three surfaces is not a configuration, it is an
+# untested claim. Before PostgreSQL is switched on you MUST:
+#
+#   1. Run the migration suite against PostgreSQL in CI (see
+#      .github/workflows/ci.yml — add a matrix leg with pgsql).
+#   2. Port the raw SQL in FinancialReconciliationService and
+#      PayoutReconciliationService: GROUP_CONCAT is MySQL-only. On PostgreSQL
+#      it is STRING_AGG, and on PostgreSQL the silent-truncation hazard below
+#      does not exist.
+#   3. Re-check every `selectRaw` for backtick quoting and `IFNULL`/`NOW()`
+#      usages.
+#
+# The safest sequence is: SHIP ON MYSQL FIRST (the engine the code and its
+# tests were actually written against), then migrate to PostgreSQL as a
+# deliberate, tested project. Deploying to PostgreSQL because the brief names
+# it, without doing (1)-(3), trades a known-good engine for a guess.
+#
+# -----------------------------------------------------------------------------
+# THE GROUP_CONCAT HAZARD (applies while on MySQL)
+# -----------------------------------------------------------------------------
+# MySQL silently truncates GROUP_CONCAT at `group_concat_max_len` (default
+# 1024 bytes) WITHOUT raising an error. FinancialReconciliationService uses
+# GROUP_CONCAT to compress ledger amounts into strings that are then summed in
+# PHP (see its own note at FinancialReconciliationService.php:1063). Past ~100
+# amounts the concatenated list is cut and the reconciliation reports a
+# discrepancy that does not exist — or, worse, fails to report one that does.
+# The `db` service below sets group_concat_max_len to 1MB at the session level
+# via `command`, and the migration to PostgreSQL removes the class of bug
+# entirely. Setting it in compose is a mitigation, not a fix.
+#
+# SECRETS
+# Every credential is `*_FILE` or an env var with no default. Nothing in this
+# file carries a usable secret, and no service falls back to a placeholder.
+# -----------------------------------------------------------------------------
 
 name: thai-lottery
 
 x-app-image: &app-image
-  image: ghcr.io/ainul-550islam/thai-lottery-app:${APP_IMAGE_TAG:?APP_IMAGE_TAG must be an immutable release tag}
   build:
     context: .
     dockerfile: docker/php/Dockerfile
     target: runtime
     args:
       PHP_VERSION: "8.4"
-      BASE_DIGEST: "${PHP_BASE_DIGEST:?PHP_BASE_DIGEST must be supplied}"
-      NODE_VERSION: "24.22.0"
-      NPM_VERSION: "11.21.1"
 
 x-app-env: &app-env
   APP_ENV: production
   APP_DEBUG: "false"
   LOG_CHANNEL: stderr
-  APP_URL: "https://${APP_HOST:?APP_HOST must be supplied}"
   APP_KEY_FILE: /run/secrets/app_key
   DB_CONNECTION: mysql
   DB_HOST: db
@@ -28,7 +82,7 @@ x-app-env: &app-env
   DB_PASSWORD_FILE: /run/secrets/db_password
   REDIS_HOST: redis
   REDIS_PORT: "6379"
-  REDIS_PASSWORD_FILE: /run/secrets/redis_password
+  REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
   CACHE_STORE: redis
   SESSION_DRIVER: redis
   QUEUE_CONNECTION: redis
@@ -71,12 +125,6 @@ services:
     secrets:
       - db_password
       - db_root_password
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=256m
-      - /var/run/mysqld:rw,noexec,nosuid,size=64m
-    cpus: 4.0
-    mem_limit: 8g
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 10s
@@ -91,39 +139,30 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command:
-      - /bin/sh
-      - -ec
-      - exec redis-server --appendonly yes --appendfsync everysec --maxmemory 1gb --maxmemory-policy noeviction --requirepass "$$(cat /run/secrets/redis_password)"
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 1gb
+      --maxmemory-policy noeviction
+      --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 12
-    secrets:
-      - redis_password
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=128m
-    cpus: 1.0
-    mem_limit: 1536m
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
     networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Migrations — one-shot, must complete before the app starts
   # ───────────────────────────────────────────────────────────────────────────
   migrate:
-    env_file:
-      - .env.production
     <<: *app-image
     restart: "no"
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=256m
-    cpus: 2.0
-    mem_limit: 2g
     environment:
       <<: *app-env
     command: >
@@ -132,7 +171,7 @@ services:
              php artisan route:cache &&
              php artisan view:cache &&
              php artisan event:cache"
-    secrets: [app_key, db_password, redis_password]
+    secrets: [app_key, db_password]
     depends_on:
       db:
         condition: service_healthy
@@ -141,36 +180,18 @@ services:
     networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
-  # Application — PHP-FPM
+  # Application — php-fpm
   # ───────────────────────────────────────────────────────────────────────────
   app:
-    env_file:
-      - .env.production
     <<: *app-image
     restart: unless-stopped
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=256m
-    cpus: 2.0
-    mem_limit: 2g
     environment:
       <<: *app-env
-      SETTLEMENT_WORKER_ENABLED: "${SETTLEMENT_WORKER_ENABLED:-true}"
-      SETTLEMENT_WORKER_URL: "http://settlement-worker:9101"
-      SETTLEMENT_WORKER_HMAC_SECRET_FILE: /run/secrets/settlement_worker_hmac_secret
-    secrets: [app_key, db_password, redis_password, settlement_worker_hmac_secret]
-    depends_on:
-      <<: *app-depends
-      settlement-worker:
-        condition: service_healthy
+    secrets: [app_key, db_password]
+    depends_on: *app-depends
     volumes:
       - app-storage:/var/www/html/storage
-    healthcheck:
-      test: ["CMD-SHELL", "php-fpm -t"]
-      interval: 20s
-      timeout: 5s
-      retries: 3
-    networks: [backend, provider-egress]
+    networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Nginx — the only service exposed to the internet
@@ -178,96 +199,53 @@ services:
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=128m
-      - /var/cache/nginx:rw,noexec,nosuid,size=128m
-      - /var/run:rw,noexec,nosuid,size=16m
-    cpus: 2.0
-    mem_limit: 1g
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
     volumes:
-      - ./docker/nginx/conf.d/app.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/snippets/websocket.conf:/etc/nginx/snippets/websocket.conf:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./public:/var/www/html/public:ro
       - app-storage:/var/www/html/storage:ro
       - ./docker/nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - app
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/up || exit 1"]
-      interval: 20s
-      timeout: 5s
-      retries: 3
     networks: [backend, edge]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Horizon — queue workers (replaces the single supervisord worker)
   # ───────────────────────────────────────────────────────────────────────────
   horizon:
-    env_file:
-      - .env.production
     <<: *app-image
     restart: unless-stopped
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=256m
-    cpus: 2.0
-    mem_limit: 2g
     environment:
       <<: *app-env
-      SETTLEMENT_WORKER_ENABLED: "${SETTLEMENT_WORKER_ENABLED:-true}"
-      SETTLEMENT_WORKER_URL: "http://settlement-worker:9101"
-      SETTLEMENT_WORKER_HMAC_SECRET_FILE: /run/secrets/settlement_worker_hmac_secret
     command: ["php", "artisan", "horizon"]
-    secrets: [app_key, db_password, redis_password, settlement_worker_hmac_secret]
-    depends_on:
-      <<: *app-depends
-      settlement-worker:
-        condition: service_healthy
+    secrets: [app_key, db_password]
+    depends_on: *app-depends
     volumes:
       - app-storage:/var/www/html/storage
     # Horizon's own auto-restart on memory/time limits is configured in
     # config/horizon.php. `restart: unless-stopped` covers the process itself.
     stop_grace_period: 120s
-    healthcheck:
-      test: ["CMD", "php", "artisan", "horizon:status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks: [backend, provider-egress]
+    networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Scheduler — EXACTLY ONE replica. Two schedulers double-fire every task.
   # ───────────────────────────────────────────────────────────────────────────
   scheduler:
-    env_file:
-      - .env.production
     <<: *app-image
     restart: unless-stopped
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=256m
-    cpus: 2.0
-    mem_limit: 2g
     environment:
       <<: *app-env
     command: ["php", "artisan", "schedule:work"]
-    secrets: [app_key, db_password, redis_password]
+    secrets: [app_key, db_password]
     depends_on: *app-depends
     volumes:
       - app-storage:/var/www/html/storage
     # Do NOT scale this service.
-    healthcheck:
-      test: ["CMD", "php", "artisan", "schedule:list"]
-      interval: 60s
-      timeout: 15s
-      retries: 2
     deploy:
       replicas: 1
-    networks: [backend, provider-egress]
+    networks: [backend]
 
   # ───────────────────────────────────────────────────────────────────────────
   # Reverb — WebSocket server. Without it, every one of the seven
@@ -275,26 +253,14 @@ services:
   # ever receives a result push.
   # ───────────────────────────────────────────────────────────────────────────
   reverb:
-    env_file:
-      - .env.production
     <<: *app-image
     restart: unless-stopped
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=256m
-    cpus: 2.0
-    mem_limit: 2g
     environment:
       <<: *app-env
       REVERB_SERVER_HOST: 0.0.0.0
       REVERB_SERVER_PORT: "8080"
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
-    healthcheck:
-      test: ["CMD-SHELL", "php -r \"exit(@fsockopen(\\\"127.0.0.1\\\", 8080) ? 0 : 1);\""]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-    secrets: [app_key, db_password, redis_password]
+    secrets: [app_key, db_password]
     depends_on: *app-depends
     networks: [backend]
 
@@ -302,12 +268,10 @@ services:
   # Rust settlement worker — the hot path
   # ───────────────────────────────────────────────────────────────────────────
   settlement-worker:
-    image: ghcr.io/ainul-550islam/thai-lottery-settlement-worker:${APP_IMAGE_TAG:?APP_IMAGE_TAG must be an immutable release tag}
     build:
       context: .
       dockerfile: docker/rust/Dockerfile
     restart: unless-stopped
-    read_only: true
     environment:
       WORKER_BIND: "0.0.0.0:9101"
       RUST_LOG: "info"
@@ -318,13 +282,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    cpus: 2.0
-    mem_limit: 512m
-    healthcheck:
-      test: ["CMD", "/settlement-worker", "--healthcheck"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
     networks: [backend]
 
 networks:
@@ -333,11 +290,6 @@ networks:
   backend:
     driver: bridge
     internal: true
-  # Only Laravel request/worker processes use this egress-capable bridge.
-  # Restrict its outbound destinations at the Docker host/firewall to the
-  # operator-verified provider CIDRs; DB and Redis remain on internal backend.
-  provider-egress:
-    driver: bridge
 
 volumes:
   db-data:
@@ -346,8 +298,6 @@ volumes:
 
 secrets:
   app_key:
-    external: true
-  redis_password:
     external: true
   db_password:
     external: true

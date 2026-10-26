@@ -56,10 +56,12 @@ final class SlipVerificationFlowTest extends PaymentTestCase
     public function test_default_review_mode_records_a_valid_slip_without_credit(): void
     {
         $player = $this->createPlayer('0.00');
-        $deposit = app(DepositService::class)->request($player['wallet'], Money::of('90.00', Currency::THB), PaymentMethod::BankTransfer);
-        $provider = $this->provider($this->result('SLIP-REVIEW-001', '90.00'));
+        // Amounts must satisfy the real finance.deposit.min guard (100.00 THB);
+        // 120.00 keeps the review-mode assertions identical while staying legal.
+        $deposit = app(DepositService::class)->request($player['wallet'], Money::of('120.00', Currency::THB), PaymentMethod::BankTransfer);
+        $provider = $this->provider($this->slipResult('SLIP-REVIEW-001', '120.00'));
 
-        $verification = $this->service($provider)->verify($player['user'], null, 'QR-VALID', '90.00', '203.0.113.20', $deposit);
+        $verification = $this->service($provider)->verify($player['user'], null, 'QR-VALID', '120.00', '203.0.113.20', $deposit);
 
         self::assertSame(SlipVerificationStatus::NeedsReview, $verification->status);
         self::assertSame('manual_review_required', $verification->review_reason);
@@ -71,15 +73,17 @@ final class SlipVerificationFlowTest extends PaymentTestCase
     {
         config(['slip_verification.auto_credit' => true]);
         $player = $this->createPlayer('0.00');
-        $deposit = app(DepositService::class)->request($player['wallet'], Money::of('91.25', Currency::THB), PaymentMethod::BankTransfer);
-        $service = $this->service($this->provider($this->result('SLIP-CREDIT-001', '91.25')));
+        // 121.25 keeps the satang-precision coverage of the original 91.25 case
+        // while clearing finance.deposit.min (100.00 THB).
+        $deposit = app(DepositService::class)->request($player['wallet'], Money::of('121.25', Currency::THB), PaymentMethod::BankTransfer);
+        $service = $this->service($this->provider($this->slipResult('SLIP-CREDIT-001', '121.25')));
 
-        $verification = $service->verify($player['user'], null, 'QR-VALID', '91.25', '203.0.113.20', $deposit);
-        $replay = $service->verify($player['user'], null, 'QR-VALID', '91.25', '203.0.113.20', $deposit);
+        $verification = $service->verify($player['user'], null, 'QR-VALID', '121.25', '203.0.113.20', $deposit);
+        $replay = $service->verify($player['user'], null, 'QR-VALID', '121.25', '203.0.113.20', $deposit);
 
         self::assertSame(SlipVerificationStatus::Credited, $verification->status);
         self::assertSame(SlipVerificationStatus::Duplicate, $replay->status);
-        self::assertSame('91.25', $player['wallet']->fresh()->balance);
+        self::assertSame('121.25', $player['wallet']->fresh()->balance);
         self::assertSame('confirmed', $deposit->fresh()->status->value);
         self::assertDatabaseCount('financial_transactions', 1);
         self::assertDatabaseCount('ledger_entries', 2);
@@ -88,10 +92,10 @@ final class SlipVerificationFlowTest extends PaymentTestCase
     public function test_wrong_amount_wrong_receiver_old_and_future_slips_are_never_credited(): void
     {
         $cases = [
-            ['SLIP-WRONG-AMOUNT', $this->result('SLIP-WRONG-AMOUNT', '92.00'), '91.00', 'amount_mismatch'],
-            ['SLIP-WRONG-RECEIVER', $this->result('SLIP-WRONG-RECEIVER', '91.00', receiverBank: 'KBANK'), '91.00', 'receiver_mismatch'],
-            ['SLIP-EXPIRED', $this->result('SLIP-EXPIRED', '91.00', at: CarbonImmutable::now()->subHours(2)), '91.00', 'expired'],
-            ['SLIP-FUTURE', $this->result('SLIP-FUTURE', '91.00', at: CarbonImmutable::now()->addMinutes(2)), '91.00', 'future_dated'],
+            ['SLIP-WRONG-AMOUNT', $this->slipResult('SLIP-WRONG-AMOUNT', '92.00'), '91.00', 'amount_mismatch'],
+            ['SLIP-WRONG-RECEIVER', $this->slipResult('SLIP-WRONG-RECEIVER', '91.00', receiverBank: 'KBANK'), '91.00', 'receiver_mismatch'],
+            ['SLIP-EXPIRED', $this->slipResult('SLIP-EXPIRED', '91.00', at: CarbonImmutable::now()->subHours(2)), '91.00', 'expired'],
+            ['SLIP-FUTURE', $this->slipResult('SLIP-FUTURE', '91.00', at: CarbonImmutable::now()->addMinutes(2)), '91.00', 'future_dated'],
         ];
         foreach ($cases as [, $result, $claimed, $reason]) {
             $player = $this->createPlayer('0.00');
@@ -106,7 +110,7 @@ final class SlipVerificationFlowTest extends PaymentTestCase
     public function test_provider_duplicate_and_duplicate_transaction_reference_are_not_creditable(): void
     {
         $first = $this->createPlayer('0.00');
-        $same = $this->result('SLIP-DUP-001', '40.00');
+        $same = $this->slipResult('SLIP-DUP-001', '40.00');
         $firstRecord = $this->service($this->provider($same))->verify($first['user'], null, 'QR-VALID', '40.00', '203.0.113.20');
         self::assertSame(SlipVerificationStatus::NeedsReview, $firstRecord->status);
 
@@ -115,7 +119,7 @@ final class SlipVerificationFlowTest extends PaymentTestCase
         self::assertSame(SlipVerificationStatus::Duplicate, $duplicate->status);
         self::assertSame('trans_ref_already_seen', $duplicate->review_reason);
 
-        $providerDuplicate = $this->service($this->provider($this->result('SLIP-DUP-PROVIDER', '40.00', duplicate: true)))
+        $providerDuplicate = $this->service($this->provider($this->slipResult('SLIP-DUP-PROVIDER', '40.00', duplicate: true)))
             ->verify($second['user'], null, 'QR-VALID', '40.00', '203.0.113.21');
         self::assertSame(SlipVerificationStatus::Duplicate, $providerDuplicate->status);
         self::assertSame('0.00', $first['wallet']->fresh()->balance);
@@ -131,7 +135,7 @@ final class SlipVerificationFlowTest extends PaymentTestCase
             'name' => 'Example Receiver',
         ]]]);
         $player = $this->createPlayer('0.00');
-        $result = $this->result('SLIP-WRONG-SUFFIX-001', '35.00', receiverAccountMasked: '••••1234');
+        $result = $this->slipResult('SLIP-WRONG-SUFFIX-001', '35.00', receiverAccountMasked: '••••1234');
 
         $verification = $this->service($this->provider($result))
             ->verify($player['user'], null, 'QR-VALID', '35.00', '203.0.113.25');
@@ -183,7 +187,12 @@ final class SlipVerificationFlowTest extends PaymentTestCase
         $provider = Mockery::mock(SlipVerificationProviderInterface::class);
         $provider->shouldNotReceive('verifyImage');
         $provider->shouldNotReceive('verifyQr');
-        $image = new UploadedFile(tempnam(sys_get_temp_dir(), 'slip'), 'slip.jpg', 'image/jpeg', null, true);
+        // A real non-empty file: the service rejects zero-byte uploads
+        // (getSize() < 1) before quarantine, so tempnam() alone cannot work.
+        // 12 bytes matches the file_size_bytes declared on the scan record.
+        $slipPath = tempnam(sys_get_temp_dir(), 'slip');
+        file_put_contents($slipPath, 'slip-bytes12');
+        $image = new UploadedFile($slipPath, 'slip.jpg', 'image/jpeg', null, true);
 
         $verification = $this->service($provider, $quarantine, $scanner)->verify($player['user'], $image, null, '20.00', '203.0.113.22');
 
@@ -230,7 +239,7 @@ final class SlipVerificationFlowTest extends PaymentTestCase
             $providerPath = is_string($path) ? $path : null;
 
             return is_string($path) && is_file($path) && hash_file('sha256', $path) === hash('sha256', $bytes);
-        }))->andReturn($this->result('SLIP-IMAGE-001', '20.00'));
+        }))->andReturn($this->slipResult('SLIP-IMAGE-001', '20.00'));
         $upload = tempnam(sys_get_temp_dir(), 'slip-upload-');
         self::assertIsString($upload);
         file_put_contents($upload, 'untrusted-original-upload');
@@ -254,7 +263,7 @@ final class SlipVerificationFlowTest extends PaymentTestCase
         $deny = new FraudDecisionData(99, FraudDecision::DENY, ['test-deny']);
         $fraud = Mockery::mock(FraudDetectionService::class);
         $fraud->shouldReceive('evaluateTransactionRisk')->once()->andReturn($deny);
-        $denied = $this->service($this->provider($this->result('SLIP-FRAUD-001', '25.00')), fraud: $fraud)
+        $denied = $this->service($this->provider($this->slipResult('SLIP-FRAUD-001', '25.00')), fraud: $fraud)
             ->verify($player['user'], null, 'QR-VALID', '25.00', '203.0.113.23');
         self::assertSame(SlipVerificationStatus::Rejected, $denied->status);
         self::assertSame('fraud_denied', $denied->review_reason);
@@ -304,7 +313,7 @@ final class SlipVerificationFlowTest extends PaymentTestCase
         return $provider;
     }
 
-    private function result(
+    private function slipResult(
         string $reference,
         string $amount,
         string $receiverBank = 'SCB',

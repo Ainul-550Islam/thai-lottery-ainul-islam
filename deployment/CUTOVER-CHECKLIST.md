@@ -13,15 +13,15 @@
 | :--- | :--- | :--- |
 | **Release Commit SHA** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Git Release Tag |
 | **Artifact SHA-256 Checksum** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Build Pipeline |
-| **Target PHP Version** | `PHP 8.4` (with `bcmath`, `pdo_mysql`, `redis`, `sodium`) | `[x] CODE VERIFIED` |
-| **Laravel Framework Version** | `Laravel 12.x` | `[x] CODE VERIFIED` |
-| **Node.js & NPM Version** | `Node.js 24.22.0` / `NPM 11.21.1` | `[x] CODE VERIFIED` |
+| **Target PHP Version** | `PHP 8.2+` (with `bcmath`, `pdo_mysql`, `redis`, `sodium`) | `[x] CODE VERIFIED` |
+| **Laravel Framework Version** | `Laravel 11.x` | `[x] CODE VERIFIED` |
+| **Node.js & NPM Version** | `Node.js 20.x` / `NPM 10.x` | `[x] CODE VERIFIED` |
 | **Rust / Cargo Engine** | `Cargo 1.75+` (GLO verification engine) | `[ ] NOT VERIFIED — HOST ENVIRONMENT` |
 | **Database Engine & Version** | `MySQL 8.0.16+` / `MariaDB 10.6+` (InnoDB, strict mode) | `[x] CODE VERIFIED` |
 | **Queue Backend & Driver** | `Redis` / `database` (Supervisor workers: `high`, `default`, `low`) | `[x] CODE VERIFIED` |
 | **Cache Backend & Driver** | `Redis` (isolated database / prefix) | `[x] CODE VERIFIED` |
-| **Production APP_URL** | `https://${APP_HOST}` | `[ ]` Pending Live Domain DNS |
-| **Session Cookie Domain** | `${APP_HOST} (operator supplied)` | `[ ]` Pending Live Domain DNS |
+| **Production APP_URL** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Live Domain DNS |
+| **Session Cookie Domain** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Live Domain DNS |
 | **CDN & Reverse Proxy** | Cloudflare / AWS CloudFront / Nginx Ingress | `[ ] NOT VERIFIED — OPERATOR INPUT REQUIRED` |
 | **Pre-Cutover Backup ID** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Pre-Deploy Dump |
 | **Pre-Cutover Backup Checksum** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Dump Generation |
@@ -99,9 +99,9 @@
 
 | Provider Lane | Production Webhook URL | Withdrawal Capability | Replay Protection | Live Check Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **bKash** | `/api/v1/payments/webhook/{gateway}` | Automated B2C Payout / Manual Fallback | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
-| **Nagad** | `/api/v1/payments/bank-webhook/kbank` | Manual Disbursement Review | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
-| **Crypto** | `/api/v1/payments/bank-webhook/scb` | Manual Cold-Wallet Review | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
+| **bKash** | `/api/payment/webhooks/bkash` | Automated B2C Payout / Manual Fallback | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
+| **Nagad** | `/api/payment/webhooks/nagad` | Manual Disbursement Review | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
+| **Crypto** | `/api/payment/webhooks/crypto` | Manual Cold-Wallet Review | Concurrency Lock + Idempotency Table | `[ ] NOT VERIFIED — PROVIDER ACCESS REQUIRED` |
 | **Bank Wire** | N/A (Manual Slip / Bank Settlement) | Manual Operator Wire Approval | Single-submission reservation lock | `[ ] NOT VERIFIED — OPERATOR INPUT REQUIRED` |
 
 *(Note: Live gateway verification requires operator entry of real merchant credentials).*
@@ -179,15 +179,3 @@ If an unrecoverable P0 issue occurs during cutover, execute the rollback immedia
    supervisorctl start thailotto-worker:*
    curl -f http://127.0.0.1/up
    ```
-
-
-## 11. New deployment gates and lane order
-
-- [ ] Run `php artisan thai-rails:preflight` with all provider lanes disabled.
-- [ ] Run `php artisan realtime:check` and verify the Reverb/Redis topology.
-- [ ] Run `php artisan ops:preflight --environment=production --strict`; stop on every blocking failure.
-- [ ] Validate webhook signatures and replay handling at the exact paths listed in `README.md`; do not guess a URL.
-- [ ] Complete the provider-approved small-amount smoke and reconcile wallet, ledger and provider records before any lane is enabled.
-- [ ] Enable lanes in order: preflight → webhook verification → small-amount smoke → independent reconciliation → explicit approval → lane enablement.
-- [ ] Confirm application, Horizon, scheduler, Reverb and settlement-worker rollouts and probes.
-- [ ] Confirm backup restore drill, private-storage recovery, and rollback image availability.
