@@ -17,6 +17,7 @@ use App\Services\Payment\Drivers\PromptPayGateway;
 use App\Services\Payment\Drivers\SandboxDeterministicGateway;
 use App\Services\Payment\Drivers\StripeGateway;
 use App\Services\Payment\Drivers\ThaiBankPayoutGateway;
+use App\Services\Operations\ProviderReadinessService;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
 
@@ -151,7 +152,7 @@ class PaymentGatewayManager
         $key = $name instanceof PaymentMethod ? $name->value : strtolower(trim($name));
         try {
             $driver = $this->driver($key);
-            $readiness = app(PaymentReadinessService::class)->evaluate($key, 'deposit');
+            $readiness = app(ProviderReadinessService::class)->gateway($key, 'deposit');
         } catch (\Throwable) {
             return false;
         }
@@ -168,7 +169,7 @@ class PaymentGatewayManager
         $rail = $key === 'promptpay' ? 'thai_bank' : $key;
         try {
             $driver = $this->driver($rail);
-            $readiness = app(PaymentReadinessService::class)->evaluate($rail, 'withdrawal');
+            $readiness = app(ProviderReadinessService::class)->gateway($rail, 'withdrawal');
             $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
         } catch (\Throwable) {
             return false;
@@ -221,7 +222,7 @@ class PaymentGatewayManager
             );
         }
 
-        $readiness = app(PaymentReadinessService::class)->evaluate($method->value, 'deposit');
+        $readiness = app(ProviderReadinessService::class)->gateway($method->value, 'deposit');
         if ($driver->status() === GatewayIntegrationStatus::Unsupported) {
             throw FinancialException::withCode('payment_gateway_not_ready', trans('payment_ops.errors.payment_gateway_not_ready'), [
                 'gateway' => $method->value,
@@ -291,7 +292,7 @@ class PaymentGatewayManager
             );
         }
 
-        $readiness = app(PaymentReadinessService::class)->evaluate($rail, 'withdrawal');
+        $readiness = app(ProviderReadinessService::class)->gateway($rail, 'withdrawal');
         if (! $readiness->ready || ! $this->matchesSiteMarket($key, $currency)) {
             throw FinancialException::withCode('payment_gateway_not_ready', trans('payment_ops.errors.payment_gateway_not_ready'), ['gateway' => $rail, 'issues' => $readiness->issues]);
         }

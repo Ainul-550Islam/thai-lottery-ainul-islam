@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Operations;
 
+use App\Enums\GatewayIntegrationStatus;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -53,6 +54,30 @@ final class ProviderReadinessService
      * can never again be mistaken for the source of the lanes.
      */
     private const LANES_CONFIG_KEY = 'operations_readiness.lanes';
+
+    /**
+     * The gateway catalogue, and the keys each one must hold before it can be
+     * called ready. `bank_transfer` and `thai_bank` have no flat credential
+     * list because their requirements depend on direction and on the selected
+     * bank, so they are judged separately below.
+     *
+     * @var list<string>
+     */
+    private const GATEWAYS = ['stripe', 'bkash', 'nagad', 'crypto', 'promptpay', 'bank_transfer', 'thai_bank'];
+
+    /** @var array<string, list<string>> */
+    private const REQUIRED = [
+        'stripe' => ['key', 'secret', 'webhook_secret'],
+        'bkash' => ['app_key', 'app_secret', 'username', 'password', 'base_url', 'webhook_secret'],
+        'nagad' => ['merchant_id', 'merchant_number', 'app_key', 'app_secret', 'public_key', 'private_key', 'base_url', 'webhook_secret'],
+        'crypto' => ['provider', 'api_key', 'api_secret', 'webhook_secret'],
+        'promptpay' => ['merchant_id'],
+        'bank_transfer' => [],
+        'thai_bank' => [],
+    ];
+
+    /** @var list<string> */
+    private const SCB_PATHS = ['token_path', 'transfer_path', 'status_path'];
 
     /**
      * Every declared lane, in config order.
@@ -200,6 +225,148 @@ final class ProviderReadinessService
         }
 
         return $counts;
+    }
+
+    /**
+     * Every gateway the platform knows about, in a fixed order.
+     *
+     * @return array<string, PaymentGatewayReadiness>
+     */
+    public function gateways(): array
+    {
+        $report = [];
+        foreach (self::GATEWAYS as $gateway) {
+            $report[$gateway] = $this->gateway($gateway);
+        }
+
+        return $report;
+    }
+
+    /**
+     * One gateway's readiness, judged from configuration only.
+     *
+     * This lives here rather than in a payment-specific service because a
+     * readiness answer must have exactly one owner: the same object answers the
+     * console command, the ops JSON endpoint, the boot refusal and the deposit
+     * page. Two evaluators that disagree is the bug this consolidation removes.
+     *
+     * It performs no network or database operation, and it never echoes a
+     * credential — issues name the missing KEY, never its value.
+     */
+    public function gateway(string $gateway, ?string $direction = null): PaymentGatewayReadiness
+    {
+        $gateway = strtolower(trim($gateway));
+        $config = (array) config('payment.gateways.'.$gateway, []);
+        $market = (array) config('payment.markets.'.$gateway, []);
+        $currencies = array_values(array_map('strtoupper', array_filter((array) ($market['currencies'] ?? $config['supported_currencies'] ?? []), 'is_string')));
+        $countries = array_values(array_map('strtoupper', array_filter((array) ($market['countries'] ?? []), 'is_string')));
+        $enabled = $gateway === 'thai_bank'
+            ? (bool) config('thai_payout.enabled', false)
+            : (bool) ($config['enabled'] ?? false);
+        $status = match ($gateway) {
+            'crypto' => GatewayIntegrationStatus::Unsupported,
+            'bank_transfer' => GatewayIntegrationStatus::ConfiguredOnly,
+            'thai_bank' => GatewayIntegrationStatus::PartiallyImplemented,
+            default => GatewayIntegrationStatus::FullyImplemented,
+        };
+        $issues = [];
+
+        if (! in_array($gateway, self::GATEWAYS, true)) {
+            $issues[] = 'gateway_unknown';
+        }
+        if (! $enabled) {
+            $issues[] = 'gateway_disabled';
+        }
+        if ($status === GatewayIntegrationStatus::Unsupported) {
+            $issues[] = 'gateway_unsupported';
+        }
+
+        // BDT-MARKET GUARD. A Thai-baht deployment must not be configured as a
+        // BDT/BD market: no part of the Thai payout lane is reconciled against
+        // taka, so the mismatch has to surface as a readiness failure rather
+        // than as a currency that quietly settles wrongly.
+        $siteCurrency = strtoupper((string) config('payment.currency.default', 'THB'));
+        $siteCountry = strtoupper((string) config('payment.country', 'TH'));
+
+        foreach (self::REQUIRED[$gateway] ?? [] as $key) {
+            $value = $config[$key] ?? null;
+            if (! is_string($value) || trim($value) === '') {
+                $issues[] = 'missing_'.$key;
+            }
+        }
+        if (in_array($gateway, ['bkash', 'nagad'], true) && ! $this->httpsUrl((string) ($config['base_url'] ?? ''))) {
+            $issues[] = 'invalid_base_url';
+        }
+        if ($gateway === 'bank_transfer' && ($direction === null || $direction === 'deposit')) {
+            foreach (['bank_name', 'account_number', 'account_name'] as $key) {
+                $value = $config['settlement'][$key] ?? null;
+                if (! is_string($value) || trim($value) === '') {
+                    $issues[] = 'missing_settlement_'.$key;
+                }
+            }
+        }
+        if ($gateway === 'promptpay') {
+            $bankSecrets = (array) ($config['bank_webhooks'] ?? []);
+            $hasWebhookSecret = false;
+            foreach (['kbank', 'scb'] as $bank) {
+                $secret = $bankSecrets[$bank]['webhook_secret'] ?? null;
+                $hasWebhookSecret = $hasWebhookSecret || (is_string($secret) && trim($secret) !== '');
+            }
+            if (! $hasWebhookSecret) {
+                $issues[] = 'missing_bank_webhook_secret';
+            }
+        }
+        if ($gateway === 'thai_bank') {
+            $bank = strtolower((string) config('thai_payout.default_bank', ''));
+            $bankConfig = (array) config('thai_payout.banks.'.$bank, []);
+            foreach (['enabled', 'contract_confirmed', 'base_url', 'token_path', 'transfer_path', 'status_path', 'client_id', 'client_secret', 'source_account'] as $key) {
+                $value = $bankConfig[$key] ?? null;
+                if (($key === 'enabled' || $key === 'contract_confirmed') ? $value !== true : (! is_string($value) || trim($value) === '')) {
+                    $issues[] = 'thai_bank_missing_'.$key;
+                }
+            }
+            if (! $this->httpsUrl((string) ($bankConfig['base_url'] ?? ''))) {
+                $issues[] = 'thai_bank_invalid_base_url';
+            }
+
+            // BLANK SCB PATHS. A valid host with no endpoint path passes every
+            // URL check and still sends the payout nowhere.
+            foreach (self::SCB_PATHS as $path) {
+                if (trim((string) config('thai_payout.banks.scb.'.$path, '')) === ''
+                    && (bool) config('thai_payout.banks.scb.enabled', false)) {
+                    $issues[] = 'scb_blank_'.$path;
+                }
+            }
+        }
+
+        if ($siteCurrency === 'BDT' || $siteCountry === 'BD') {
+            $issues[] = 'bdt_market_refused';
+        }
+        if ($currencies !== [] && ! in_array($siteCurrency, $currencies, true)) {
+            $issues[] = 'site_currency_not_in_market';
+        }
+        if ($countries !== [] && ! in_array($siteCountry, $countries, true)) {
+            $issues[] = 'site_country_not_in_market';
+        }
+        $issues = array_values(array_unique($issues));
+
+        return new PaymentGatewayReadiness($gateway, $enabled, $issues === [], $status, $issues, $currencies, $countries);
+    }
+
+    /**
+     * A credential-bearing endpoint must be HTTPS, must name a host, and must
+     * not smuggle userinfo, a query or a fragment into what the operator
+     * believes is a base URL.
+     */
+    private function httpsUrl(string $url): bool
+    {
+        $parts = parse_url(trim($url));
+
+        return is_array($parts)
+            && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
+            && is_string($parts['host'] ?? null) && $parts['host'] !== ''
+            && ! isset($parts['user']) && ! isset($parts['pass'])
+            && ! isset($parts['query']) && ! isset($parts['fragment']);
     }
 
     /**

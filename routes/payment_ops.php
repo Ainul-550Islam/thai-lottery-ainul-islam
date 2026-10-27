@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Services\Payment\PaymentReadinessService;
-use App\Services\Withdrawal\ManualDisbursementQueueService;
+use App\Services\Operations\ProviderReadinessService;
+use App\Services\Payment\ManualDisbursementQueueService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth', 'can:manage-payment-disbursements', 'throttle:30,1'])->prefix('ops/payments')->name('payment_ops.')->group(function (): void {
-    Route::get('/readiness', static function (PaymentReadinessService $readiness) {
-        $results = $readiness->evaluateAll();
+    Route::get('/readiness', static function (ProviderReadinessService $readiness) {
+        $results = $readiness->gateways();
         $failures = array_values(array_filter($results, static fn ($result): bool => $result->enabled && ! $result->ready));
         $realMoneyEnabled = (bool) config('real_money.enabled', false);
         $readyEnabled = array_filter($results, static fn ($result): bool => $result->enabled && $result->ready);

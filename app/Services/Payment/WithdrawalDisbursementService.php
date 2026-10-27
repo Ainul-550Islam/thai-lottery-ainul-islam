@@ -26,7 +26,7 @@ use App\Services\Finance\WithdrawalReservationService;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payout\ThaiBank\ThaiBankDestinationValidator;
 use App\Services\Payout\ThaiBank\ThaiBankPayoutAdapterInterface;
-use App\Services\Withdrawal\ManualDisbursementQueueService;
+use App\Services\Payment\ManualDisbursementQueueService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

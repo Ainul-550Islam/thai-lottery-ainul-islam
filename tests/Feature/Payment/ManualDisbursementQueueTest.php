@@ -12,7 +12,7 @@ use App\Models\Withdrawal;
 use App\Services\Finance\Money;
 use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalService;
-use App\Services\Withdrawal\ManualDisbursementQueueService;
+use App\Services\Payment\ManualDisbursementQueueService;
 use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
