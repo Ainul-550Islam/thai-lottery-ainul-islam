@@ -6,7 +6,6 @@ namespace App\Services\Finance;
 
 use App\DTOs\Finance\FinancialHoldData;
 use App\Enums\AuditAction;
-use App\Enums\Currency;
 use App\Enums\FinancialHoldStatus;
 use App\Enums\FinancialTransactionType;
 use App\Enums\RiskLevel;
@@ -172,6 +171,7 @@ final class FinancialHoldService
                 'reference_type' => FinancialHold::class, 'reference_id' => (int) $row->id,
                 'metadata' => ['financial_hold_id' => (int) $row->id, 'reviewed_by' => $operatorUserId],
             ]);
+            app(WithdrawalHoldFloor::class)->assertCovered($wallet->fresh());
             DB::table('financial_hold_claims')->where('financial_hold_id', $row->id)
                 ->update(['financial_transaction_id' => $transaction->id, 'updated_at' => now()]);
             $ev = $row->evidence ?? [];

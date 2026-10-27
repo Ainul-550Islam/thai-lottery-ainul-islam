@@ -58,6 +58,22 @@ class WeeklyResultIntegrityService
     /** A configured Ed25519 key verified a signature over the canonical bytes. */
     public const STATUS_SIGNED_VERIFIED = 'SIGNED_VERIFIED';
 
+    /**
+     * The only statuses the native protocol may report. An unknown status is
+     * not "some new thing the verifier learned" - it is a payload we do not
+     * understand, and we refuse payloads we do not understand.
+     *
+     * @var list<string>
+     */
+    public const CANONICAL_STATUSES = [
+        self::STATUS_HASH_ONLY,
+        self::STATUS_SIGNED_VERIFIED,
+        self::STATUS_SIGNATURE_INVALID,
+        self::STATUS_FINGERPRINT_MISMATCH,
+        self::STATUS_VERIFIER_UNAVAILABLE,
+        self::STATUS_REJECTED,
+    ];
+
     /** A signature was supplied and did not verify. */
     public const STATUS_SIGNATURE_INVALID = 'SIGNATURE_INVALID';
 
@@ -182,7 +198,25 @@ class WeeklyResultIntegrityService
             'error_code' => null,
         ];
 
+        $publicKey = $this->config->get('weekly_lottery.integrity.public_key_hex');
+        $signatureRequired = is_string($publicKey) && trim($publicKey) !== '';
+        $signatureSupplied = is_string($signatureHex) && trim($signatureHex) !== '';
+        $hardStop = (bool) $this->config->get('weekly_lottery.integrity.required', false);
+
+        // Turning the verifier off only ever turns off the *second opinion* on
+        // an unsigned payload. A deployment that demands a signature, or that
+        // marks the verifier required, cannot reach "acceptable" through this
+        // flag - otherwise the flag would be a bypass switch for the exact
+        // money path it exists to protect.
         if (! (bool) $this->config->get('weekly_lottery.integrity.enabled', true)) {
+            if ($hardStop || $signatureRequired || $signatureSupplied) {
+                $report['acceptable'] = false;
+                $report['status'] = $signatureRequired || $signatureSupplied
+                    ? self::STATUS_SIGNATURE_INVALID
+                    : self::STATUS_VERIFIER_UNAVAILABLE;
+                $report['error_code'] = 'VERIFIER_DISABLED';
+            }
+
             return $report;
         }
 
@@ -192,7 +226,7 @@ class WeeklyResultIntegrityService
             // Honest about what did not happen. 'required' decides whether
             // that is merely noted or is a hard stop.
             $report['status'] = self::STATUS_VERIFIER_UNAVAILABLE;
-            $report['acceptable'] = ! (bool) $this->config->get('weekly_lottery.integrity.required', false);
+            $report['acceptable'] = ! $hardStop && ! $signatureRequired && ! $signatureSupplied;
             $report['error_code'] = 'VERIFIER_BINARY_NOT_FOUND';
 
             return $report;
@@ -241,34 +275,27 @@ class WeeklyResultIntegrityService
             $decoded = $output === '' ? null : json_decode($output, true);
 
             if (! is_array($decoded) || ! isset($decoded['status']) || ! is_string($decoded['status'])) {
+                // An installed verifier that answers nothing we can read has
+                // not vouched for anything. That is a refusal, not a reason to
+                // fall back to the PHP hash quietly.
                 $report['status'] = self::STATUS_VERIFIER_UNAVAILABLE;
-                $report['acceptable'] = ! (bool) $this->config->get('weekly_lottery.integrity.required', false);
+                $report['acceptable'] = false;
                 $report['error_code'] = 'VERIFIER_OUTPUT_UNREADABLE';
 
                 return $report;
             }
 
             $report['native'] = true;
-            $report['status'] = $decoded['status'];
-            $report['acceptable'] = (bool) ($decoded['acceptable'] ?? false);
-            $report['error_code'] = isset($decoded['error_code']) && is_string($decoded['error_code'])
-                ? $decoded['error_code']
-                : null;
 
-            if (isset($decoded['canonical_version']) && is_string($decoded['canonical_version'])) {
-                $report['canonical_version'] = $decoded['canonical_version'];
-            }
-
-            // The native fingerprint is authoritative for the comparison but
-            // the stored value stays the PHP one - they are asserted equal
-            // here, so if they ever differ the import stops rather than
-            // silently preferring one implementation.
-            if (isset($decoded['fingerprint']) && is_string($decoded['fingerprint'])
-                && ! hash_equals($fingerprint, $decoded['fingerprint'])) {
-                $report['status'] = self::STATUS_FINGERPRINT_MISMATCH;
-                $report['acceptable'] = false;
-            }
-
+            return $this->applyNativeReply(
+                report: $report,
+                decoded: $decoded,
+                fields: $fields,
+                phpFingerprint: $fingerprint,
+                exitCode: $process->getExitCode(),
+                signatureRequired: $signatureRequired,
+                signatureSupplied: $signatureSupplied,
+            );
             return $report;
         } catch (ProcessException|Throwable $exception) {
             // Report the failure, never the exception text: a process error
@@ -281,6 +308,138 @@ class WeeklyResultIntegrityService
 
             return $report;
         }
+    }
+
+    /**
+     * Turn a native verifier reply into a decision, and only ever into a
+     * *narrower* decision than the PHP hash alone would have produced.
+     *
+     * The verifier is an external process whose stdout is untrusted input. Every
+     * field it sends is therefore validated positively: the status must be one
+     * we know, `acceptable` must be a real boolean, the fingerprint and version
+     * must match what this process computed itself, and the payload length must
+     * be the length of the bytes we canonicalized. Anything unrecognised,
+     * missing, or self-contradictory is a refusal - never a default.
+     *
+     * @param  array<string, mixed>  $report
+     * @param  array<string, mixed>  $decoded
+     * @param  array<string, string|null>  $fields
+     * @return array<string, mixed>
+     */
+    private function applyNativeReply(
+        array $report,
+        array $decoded,
+        array $fields,
+        string $phpFingerprint,
+        ?int $exitCode,
+        bool $signatureRequired,
+        bool $signatureSupplied,
+    ): array {
+        // A nonzero exit means the verifier is telling us it did not complete.
+        // Whatever it printed on the way out is not a verdict.
+        if ($exitCode !== 0) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'VERIFIER_NONZERO_EXIT');
+        }
+
+        $status = $decoded['status'] ?? null;
+
+        if (! is_string($status) || ! in_array($status, self::CANONICAL_STATUSES, true)) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'UNKNOWN_STATUS');
+        }
+
+        // "false" (string) and 1 (int) are the two shapes a sloppy verifier
+        // emits; both would be truthy or falsy in the wrong direction.
+        $acceptable = $decoded['acceptable'] ?? null;
+
+        if (! is_bool($acceptable)) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'NON_BOOLEAN_ACCEPTABLE');
+        }
+
+        $acceptingStatus = in_array($status, [self::STATUS_HASH_ONLY, self::STATUS_SIGNED_VERIFIED], true);
+
+        if ($acceptable !== $acceptingStatus) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'STATUS_ACCEPTABLE_DISAGREE');
+        }
+
+        // The fingerprint is a hash of bytes we produced. A verifier that
+        // cannot reproduce it has not verified our payload.
+        $claimed = $decoded['fingerprint'] ?? null;
+
+        if (! is_string($claimed) || ! preg_match('/^[0-9a-f]{64}$/', $claimed) || $claimed !== $phpFingerprint) {
+            return $this->refuse($report, self::STATUS_FINGERPRINT_MISMATCH, 'FINGERPRINT_MISMATCH');
+        }
+
+        // A verifier answering under a different canonical version is
+        // answering about different bytes; relabelling them is exactly the
+        // downgrade this check exists to stop.
+        $version = $decoded['canonical_version'] ?? null;
+
+        if (! is_string($version) || $version === '' || $version !== $this->canonicalVersion()) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'CANONICAL_VERSION_MISMATCH');
+        }
+
+        $length = $decoded['canonical_length'] ?? null;
+
+        if (! is_int($length) || $length !== strlen($this->canonicalBytes($fields))) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'CANONICAL_LENGTH_MISMATCH');
+        }
+
+        $errorCode = $decoded['error_code'] ?? null;
+        $errorField = $decoded['error_field'] ?? null;
+
+        if ($errorCode !== null && ! is_string($errorCode)) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'MALFORMED_ERROR_CODE');
+        }
+
+        if ($errorField !== null && ! is_string($errorField)) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'MALFORMED_ERROR_FIELD');
+        }
+
+        // An "acceptable" reply carrying an error is a contradiction: one of
+        // the two statements is wrong and we cannot tell which.
+        if ($acceptable && ($errorCode !== null || $errorField !== null)) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'ERROR_ON_ACCEPTED_REPLY');
+        }
+
+        // SIGNED_VERIFIED is an assertion that a signature verified against a
+        // trusted key. With no key configured, or no signature requested, that
+        // assertion is unearned and must not be accepted.
+        if ($status === self::STATUS_SIGNED_VERIFIED && ! ($signatureRequired && $signatureSupplied)) {
+            return $this->refuse($report, self::STATUS_SIGNATURE_INVALID, 'UNREQUESTED_SIGNATURE');
+        }
+
+        // A trusted key means this deployment requires a signature. A reply
+        // that verified only a hash cannot satisfy that requirement, and
+        // neither can a request that arrived with no signature to check.
+        if ($signatureRequired || $signatureSupplied) {
+            if (! ($signatureRequired && $signatureSupplied) || $status !== self::STATUS_SIGNED_VERIFIED) {
+                return $this->refuse($report, self::STATUS_SIGNATURE_INVALID, 'SIGNATURE_NOT_VERIFIED');
+            }
+        }
+
+        $report['status'] = $status;
+        $report['acceptable'] = $acceptable;
+        $report['error_code'] = $errorCode;
+        $report['canonical_version'] = $version;
+
+        return $report;
+    }
+
+    /**
+     * A refusal keeps the report shape stable for callers and always clears
+     * `acceptable`: nothing in this class may widen what an unverified payload
+     * is allowed to do.
+     *
+     * @param  array<string, mixed>  $report
+     * @return array<string, mixed>
+     */
+    private function refuse(array $report, string $status, string $errorCode): array
+    {
+        $report['status'] = $status;
+        $report['acceptable'] = false;
+        $report['error_code'] = $errorCode;
+
+        return $report;
     }
 
     /**

@@ -20,15 +20,27 @@ declare(strict_types=1);
 | run_top = 3 and run_bottom = 4), no rate is chosen: the bet type answers
 | NOT_CONFIGURED instead of illustrating a number nobody signed off.
 |
-| The lane ships OFF. While PAYOUT_ILLUSTRATION_ENABLED is false the endpoint
-| answers exactly what it answered before (HTTP 501 + state NOT_CONFIGURED).
+| The lane ships ON, because App\Services\Lottery\PayoutIllustrationService is
+| complete: it reads the multiplier from the declared payout source, refuses a
+| bet type whose configured rates contradict one another, computes in bcmath at
+| a fixed scale, and attaches a mandatory disclaimer key to every READY figure.
+| Setting PAYOUT_ILLUSTRATION_ENABLED=false returns exactly what the endpoint
+| answered before the lane existed (HTTP 501 + state NOT_CONFIGURED).
+|
+| EVERY OUTPUT IS LABELLED ILLUSTRATIVE. The response carries `illustrative:
+| true` and the disclaimer key, and no surface may render the figure without it.
+| Nothing here predicts a number, states a probability or promises a win.
 |
 */
 
 return [
 
-    // Master switch. OFF by default.
-    'enabled' => filter_var(env('PAYOUT_ILLUSTRATION_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+    // Master switch. ON by default; see the header for why that is safe.
+    'enabled' => filter_var(env('PAYOUT_ILLUSTRATION_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+
+    // Stamped onto every response so a client cannot render the figure as a
+    // promise. The value is part of the contract; do not remove it.
+    'illustrative' => true,
 
     // Bet types a caller may illustrate (values of App\Enums\BetType).
     'supported_bet_types' => ['2d', '3d', 'tod', 'run'],

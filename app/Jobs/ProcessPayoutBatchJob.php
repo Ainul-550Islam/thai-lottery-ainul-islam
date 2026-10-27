@@ -177,8 +177,8 @@ class ProcessPayoutBatchJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Payout,
             'risk_level' => ($summary['failed'] > 0 || $summary['held'] > 0) ? RiskLevel::High : RiskLevel::Low,
-            'auditable_type' => 'payout_batch',
-            'auditable_id' => $this->batchTag ?? 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'Payout batch %s processed %d row(s): %d paid (%s), %d failed, %d replayed.',
                 $this->batchTag !== null ? '#'.$this->batchTag : '(sweep)',
@@ -189,6 +189,7 @@ class ProcessPayoutBatchJob implements ShouldBeUnique, ShouldQueue
                 $summary['replayed'],
             ),
             'metadata' => [
+                'lane' => 'payout_batch',
                 'batch_tag' => $this->batchTag,
                 'payout_ids' => $this->payoutIds,
                 'processed' => $summary['processed'],
@@ -218,8 +219,8 @@ class ProcessPayoutBatchJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Payout,
             'risk_level' => RiskLevel::Critical,
-            'auditable_type' => 'payout_batch',
-            'auditable_id' => $this->batchTag ?? 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'Payout batch job %s failed permanently after %d attempts: %s',
                 $this->batchTag !== null ? '#'.$this->batchTag : '(sweep)',
@@ -227,6 +228,7 @@ class ProcessPayoutBatchJob implements ShouldBeUnique, ShouldQueue
                 $exception->getMessage(),
             ),
             'metadata' => [
+                'lane' => 'payout_batch',
                 'batch_tag' => $this->batchTag,
                 'attempts' => $this->attempts(),
                 'error' => $exception->getMessage(),

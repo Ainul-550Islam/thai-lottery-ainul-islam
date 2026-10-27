@@ -55,6 +55,39 @@ return [
     // cache miss even inside the TTL.
     'cache_ttl_minutes' => max(0, (int) env('LEGAL_PDF_CACHE_TTL_MINUTES', 1440)),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fee schedule export
+    |--------------------------------------------------------------------------
+    |
+    | The fee schedule is a TABLE, not prose, and it is the only export whose
+    | content is generated from live configuration rather than from a published
+    | legal document. These settings control that render.
+    |
+    | paper              A4 portrait; the schedule is one column of categories.
+    | show_effective_at  stamp the fee schedule's own effective date on the page
+    |                    so a dated PDF cannot be mistaken for a current one.
+    | show_source        stamp the source reference for each row (the platform's
+    |                    published fee basis), because a fee table without a
+    |                    provenance column is a number with no author.
+    | max_rows           a hard ceiling. A schedule that suddenly contains
+    |                    thousands of rows is a data fault, and a 300-page PDF is
+    |                    a denial of service on the operator's own mail relay.
+    |
+    | The renderer is App\Services\PublicPages\LegalPdfExportService through
+    | App\Services\PublicPages\FeesPageService. No fee amount is computed here.
+    */
+    'fees' => [
+        'paper' => 'A4',
+        'orientation' => 'P',
+        'show_effective_at' => true,
+        'show_source' => true,
+        'show_illustrative_notice' => true,
+        'max_rows' => max(1, (int) env('LEGAL_PDF_FEES_MAX_ROWS', 500)),
+        'title_key' => 'frontend_ops.fees.download_pdf',
+        'illustrative_key' => 'frontend_ops.fees.illustrative',
+    ],
+
     // Private disk: an export is an operator document, never a public asset.
     'storage_disk' => (string) env('LEGAL_PDF_STORAGE_DISK', 'local'),
 

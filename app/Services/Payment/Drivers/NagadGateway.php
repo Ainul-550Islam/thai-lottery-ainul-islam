@@ -10,6 +10,7 @@ use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
 use App\Enums\WebhookEventType;
+use App\Exceptions\FinancialException;
 use App\Models\Deposit;
 use App\Models\Withdrawal;
 use App\Services\Payment\PaymentDecimalNormalizer;
@@ -53,6 +54,10 @@ class NagadGateway extends AbstractPaymentGateway
 
     public function initiateDeposit(Deposit $deposit, array $options = []): GatewayDepositResponse
     {
+        if ($deposit->currency !== Currency::BDT) {
+            throw FinancialException::withCode('payment_gateway_currency_unsupported', trans('payment_ops.errors.payment_gateway_currency_unsupported'), ['gateway' => $this->name(), 'currency' => $deposit->currency->value]);
+        }
+
         $merchantId = $this->merchantId();
 
         if (empty($merchantId)) {

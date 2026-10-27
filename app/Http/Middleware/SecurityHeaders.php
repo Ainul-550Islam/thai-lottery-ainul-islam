@@ -4,186 +4,67 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Services\Security\SecurityHeaderPolicy;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Applies the response security headers.
+ *
+ * THE POLICY LIVES IN {@see SecurityHeaderPolicy}. This class is now only the
+ * request/response adapter: it asks the policy what the headers are, sets them,
+ * and preserves two things that must never be overwritten —
+ *
+ *   1. a stricter Content-Security-Policy already set by a private download
+ *      controller (`sandbox; default-src 'none'`), which is deliberately harsher
+ *      than the site policy and must not be downgraded by the middleware; and
+ *   2. a `Vary`-sensitive cache, by leaving the response's own caching headers
+ *      untouched.
+ *
+ * THE NONCE ORDER MATTERS. `Vite::useCspNonce()` is called BEFORE the pipeline
+ * continues so `@cspNonce` in Blade and the header share one request-scoped
+ * nonce. Calling it afterwards would emit a header that no inline script could
+ * ever match, which breaks every page with an inline bootstrap block.
+ */
 final class SecurityHeaders
 {
+    public function __construct(private readonly SecurityHeaderPolicy $policy) {}
+
     public function handle(Request $request, Closure $next): Response
     {
-        $config = (array) config('security.security_headers', []);
-        $cspConfig = is_array($config['content_security_policy'] ?? null)
-            ? $config['content_security_policy']
-            : [];
-        $cspEnabled = (bool) ($cspConfig['enabled'] ?? false);
-
-        if ($cspEnabled) {
-            // Generate before Blade renders, so @cspNonce and the response
-            // policy share the same request-scoped nonce.
+        if ($this->policy->cspEnabled()) {
             Vite::useCspNonce();
         }
 
         $response = $next($request);
 
-        $headers = array_filter([
-            'X-Frame-Options' => $config['x_frame_options'] ?? null,
-            'X-Content-Type-Options' => $config['x_content_type_options'] ?? null,
-            'X-XSS-Protection' => $config['x_xss_protection'] ?? null,
-            'Referrer-Policy' => $config['referrer_policy'] ?? null,
-            'Permissions-Policy' => $config['permissions_policy'] ?? null,
-        ]);
-
-        foreach ($headers as $header => $value) {
-            $response->headers->set($header, (string) $value);
+        foreach ($this->policy->headers() as $header => $value) {
+            $response->headers->set($header, $value);
         }
 
-        // Private pages must be unindexable even when a crawler reaches them
-        // without a session: the sign-in and recovery forms, and everything behind
-        // the `auth` middleware. `X-Robots-Tag` is the header half of that; the
-        // <meta name="robots"> half lives in the layouts.
-        if ($this->isPrivatePage($request)) {
+        if ($this->policy->isPrivate($request)) {
             $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
         }
 
-        if ($request->isSecure() && ! empty($config['hsts_max_age'])) {
-            $hsts = 'max-age='.(int) $config['hsts_max_age'];
+        $hsts = $this->policy->strictTransportSecurity($request);
 
-            if (! empty($config['hsts_include_subdomains'])) {
-                $hsts .= '; includeSubDomains';
-            }
-
+        if ($hsts !== '') {
             $response->headers->set('Strict-Transport-Security', $hsts);
         }
 
-        // Preserve strict attachment sandbox CSP (`sandbox; default-src 'none'...`)
-        // already applied by private download controllers instead of downgrading it.
         $existingCsp = trim((string) $response->headers->get('Content-Security-Policy', ''));
-        if ($cspEnabled && $existingCsp === '') {
+
+        if ($this->policy->cspEnabled() && $existingCsp === '') {
             $nonce = Vite::cspNonce();
-            $policy = $this->buildContentSecurityPolicy($cspConfig, is_string($nonce) ? $nonce : null);
+            $csp = $this->policy->csp(is_string($nonce) ? $nonce : null);
 
-            if ($policy !== '') {
-                $header = (bool) ($cspConfig['report_only'] ?? false)
-                    ? 'Content-Security-Policy-Report-Only'
-                    : 'Content-Security-Policy';
-
-                $response->headers->set($header, $policy);
+            if ($csp !== '') {
+                $response->headers->set($this->policy->cspHeaderName(), $csp);
             }
         }
 
         return $response;
-    }
-
-    /** @param array<string, mixed> $config */
-    private function buildContentSecurityPolicy(array $config, ?string $nonce): string
-    {
-        $directives = is_array($config['directives'] ?? null) ? $config['directives'] : [];
-        $nonceDirectives = is_array($config['nonce_directives'] ?? null)
-            ? $config['nonce_directives']
-            : [];
-        $nonceDirectives = array_fill_keys(array_filter(
-            array_map(static fn (mixed $directive): string => is_string($directive) ? strtolower(trim($directive)) : '', $nonceDirectives),
-            static fn (string $directive): bool => preg_match('/^[a-z][a-z0-9-]*$/D', $directive) === 1,
-        ), true);
-
-        $parts = [];
-
-        foreach ($directives as $name => $sources) {
-            if (! is_string($name)) {
-                continue;
-            }
-
-            $name = strtolower(trim($name));
-
-            if (preg_match('/^[a-z][a-z0-9-]*$/D', $name) !== 1) {
-                continue;
-            }
-
-            if (! is_array($sources)) {
-                continue;
-            }
-
-            $values = [];
-
-            foreach ($sources as $source) {
-                if (! is_string($source)) {
-                    continue;
-                }
-
-                $source = trim($source);
-
-                if ($source === '' || preg_match('/[;\r\n]/', $source) === 1) {
-                    continue;
-                }
-
-                $values[] = $source;
-            }
-
-            if (isset($nonceDirectives[$name]) && $nonce !== null && $nonce !== '') {
-                $values[] = "'nonce-{$nonce}'";
-            }
-
-            $values = array_values(array_unique($values));
-
-            if ($values === []) {
-                continue;
-            }
-
-            $parts[] = $name.' '.implode(' ', $values);
-        }
-
-        return implode('; ', $parts);
-    }
-
-    /**
-     * Guest-facing pages that must never be indexed.
-     *
-     * An explicit list rather than a pattern: `/login` is public, `/login-as-admin`
-     * would not be, and guessing from a prefix is how a private page ends up
-     * crawlable.
-     *
-     * @var list<string>
-     */
-    private const PRIVATE_GUEST_PATHS = [
-        'login',
-        'register',
-        'forgot-password',
-        'reset-password',
-        'reset-password/*',
-        'legal/consent',
-        'account/age-verification',
-    ];
-
-    /**
-     * Whether the current request is a private (non-indexable) page.
-     */
-    private function isPrivatePage(Request $request): bool
-    {
-        if ($request->is(self::PRIVATE_GUEST_PATHS)) {
-            return true;
-        }
-
-        $route = $request->route();
-
-        if ($route === null) {
-            return false;
-        }
-
-        // Any route that requires authentication is private by definition — this
-        // covers the player area and every admin/agent surface without keeping a
-        // second list of URLs that could drift from routes/web.php.
-        foreach ($route->gatherMiddleware() as $middleware) {
-            if (! is_string($middleware)) {
-                continue;
-            }
-
-            if ($middleware === 'auth' || str_starts_with($middleware, 'auth:') || $middleware === 'admin.auth') {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

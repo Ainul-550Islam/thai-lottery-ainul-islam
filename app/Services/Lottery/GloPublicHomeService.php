@@ -31,6 +31,38 @@ class GloPublicHomeService
      */
     public function currentResultCard(): array
     {
+        return $this->withThaiAliases($this->resolveCurrentResultCard());
+    }
+
+    /**
+     * thailotto.club names the result tiers 3Up / 2Up / 2Down. The card carries
+     * both vocabularies: the Thai aliases are derived from the canonical tier,
+     * never stored, so they cannot disagree with it.
+     *
+     * @param  array<string, mixed>  $card
+     * @return array<string, mixed>
+     */
+    private function withThaiAliases(array $card): array
+    {
+        $tier = static function (mixed $value): array {
+            return is_array($value)
+                ? array_values(array_map(static fn (mixed $digit): string => (string) $digit, $value))
+                : [];
+        };
+
+        $frontThree = $tier($card['front_three'] ?? []);
+        $thirdPrize = $tier($card['third_prize'] ?? []);
+        $lastTwo = $tier($card['last_two'] ?? []);
+
+        $card['three_up'] = $frontThree !== [] ? $frontThree : $thirdPrize;
+        $card['two_up'] = $lastTwo;
+        $card['two_down'] = $lastTwo;
+
+        return $card;
+    }
+
+    private function resolveCurrentResultCard(): array
+    {
         try {
             $payload = Cache::remember('home.current-result', 60, function (): array {
                 $draw = Draw::query()
@@ -157,14 +189,24 @@ class GloPublicHomeService
     {
         try {
             $status = $this->liveDraw->liveStatus();
+            $liveState = (string) ($status['live_status'] ?? 'not_configured');
             $replay = (string) ($status['replay_status'] ?? 'not_configured');
 
+            // Three separate answers, never collapsed into two: a configured lane
+            // that is down is an outage, and an outage must not read as "we never
+            // configured this" — nor the reverse.
             return [
-                'status' => ($status['live_status'] ?? 'not_configured') === 'configured'
-                    ? 'CONFIGURED'
-                    : 'NOT_CONFIGURED',
-                'live_status' => (string) ($status['live_status'] ?? 'not_configured'),
-                'replay_status' => $replay === 'configured' ? 'CONFIGURED' : 'NOT_CONFIGURED',
+                'status' => match ($liveState) {
+                    'configured' => 'CONFIGURED',
+                    'unavailable' => 'UNAVAILABLE',
+                    default => 'NOT_CONFIGURED',
+                },
+                'live_status' => $liveState,
+                'replay_status' => match ($replay) {
+                    'configured' => 'CONFIGURED',
+                    'unavailable' => 'UNAVAILABLE',
+                    default => 'NOT_CONFIGURED',
+                },
                 'source_state' => (string) ($status['source_state'] ?? GloSourceState::NotConfigured->value),
                 'provider' => $status['provider'] ?? null,
                 'embed_url' => $status['embed_url'] ?? null,
@@ -232,13 +274,13 @@ class GloPublicHomeService
             'products' => [
                 [
                     'code' => 'L6',
-                    'name' => 'Government Lottery L6',
+                    'name' => 'L6 six-digit product',
                     'ticket_price' => $l6Price,
                     'currency' => 'THB',
                     'digits' => (int) config('glo.l6.digits', 6),
-                    'prize_model' => 'official_full_sale',
+                    'prize_model' => 'full_sale',
                     'headline_prize' => $firstPrize,
-                    'notes' => 'Official full-sale prize schedule; stamp duty ceil(gross/200); income tax exempt.',
+                    'notes' => 'Full-sale prize schedule as published for the draw; stamp duty ceil(gross/200); income tax exempt.',
                 ],
                 [
                     'code' => 'N3',
@@ -248,7 +290,7 @@ class GloPublicHomeService
                     'digits' => (int) config('glo.n3.digits', 3),
                     'prize_model' => (string) config('glo.n3.prize_engine.mode', 'pool_variable'),
                     'headline_prize' => null,
-                    'notes' => 'Sales-based prize pool; payouts are draw-calculated, never fixed historical amounts.',
+                    'notes' => 'Sales-based prize pool; amounts are recalculated per draw and never reused from a previous draw.',
                 ],
             ],
         ];

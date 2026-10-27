@@ -9,6 +9,7 @@ use App\Enums\GloSourceState;
 use App\Exceptions\GloDealerException;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Services\PublicPages\PublishedResultSourceResolver;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
@@ -28,6 +29,7 @@ class GloPublicResultService
         private readonly CacheRepository $cache,
         private readonly GloTicketChecker $checker,
         private readonly GloResultService $results,
+        private readonly PublishedResultSourceResolver $sourceResolver,
     ) {}
 
     private function labels(): array
@@ -40,28 +42,7 @@ class GloPublicResultService
      */
     public function sourceStateFor(?DrawResult $result, ?Draw $draw): string
     {
-        if ($result === null) {
-            return GloSourceState::Unavailable->value;
-        }
-
-        $meta = is_array($result->metadata) ? $result->metadata : [];
-        $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
-        $provider = (string) ($lane['import_provider'] ?? '');
-
-        if ($provider === 'official') {
-            return GloSourceState::OfficialSourceVerified->value;
-        }
-
-        if ($provider === 'fixture') {
-            return GloSourceState::FixtureOnly->value;
-        }
-
-        // Admin entry / recovery / import without official provider → internal.
-        if ($draw !== null && in_array($draw->status, [DrawStatus::ResultPublished, DrawStatus::Completed], true)) {
-            return GloSourceState::InternalReconciled->value;
-        }
-
-        return GloSourceState::Unavailable->value;
+        return $this->sourceResolver->resolve($draw, $result)->value;
     }
 
     /**
@@ -73,15 +54,16 @@ class GloPublicResultService
     {
         $draw = $this->resolveDraw($drawRef);
         $result = DrawResult::query()->where('draw_id', $draw->getKey())->first();
+        $source = $this->sourceStateFor($result, $draw);
 
-        if ($result === null) {
+        if ($result === null || $source === GloSourceState::Unavailable->value) {
             return [
                 'draw_id' => $draw->getKey(),
                 'draw_number' => $draw->draw_number,
                 'draw_date' => $draw->scheduled_at?->toDateString(),
                 'has_result' => false,
                 'source_state' => GloSourceState::Unavailable->value,
-                'message' => 'No result is recorded for this draw.',
+                'message' => 'No verified result is recorded for this draw.',
             ];
         }
 
@@ -105,7 +87,7 @@ class GloPublicResultService
 
         $source = $this->sourceStateFor($result, $draw);
 
-        if ($result === null) {
+        if ($result === null || $source === GloSourceState::Unavailable->value) {
             return [
                 'ticket_number' => $number,
                 'draw_id' => $draw->getKey(),
@@ -256,14 +238,16 @@ class GloPublicResultService
         /** @var Draw $draw */
         foreach ($draws as $draw) {
             $result = DrawResult::query()->where('draw_id', $draw->getKey())->first();
+            $sourceState = $this->sourceStateFor($result, $draw);
+            $verified = $result !== null && $sourceState !== GloSourceState::Unavailable->value;
             $rows[] = [
                 'draw_id' => $draw->getKey(),
                 'draw_number' => $draw->draw_number,
                 'draw_date' => $draw->scheduled_at?->toDateString(),
                 'product' => $draw->type->value,
-                'has_result' => $result !== null,
-                'first_prize' => $result?->first_prize,
-                'source_state' => $this->sourceStateFor($result, $draw),
+                'has_result' => $verified,
+                'first_prize' => $verified ? $result->first_prize : null,
+                'source_state' => $sourceState,
             ];
         }
 
@@ -277,7 +261,7 @@ class GloPublicResultService
     }
 
     /**
-     * Cached current result body. Key includes product|draw|result_version.
+     * Cached current result body. Key includes product|draw|result_version|source_state.
      *
      * @return array<string, mixed>
      */
@@ -285,19 +269,24 @@ class GloPublicResultService
     {
         $draw = $this->resolveDraw($drawRef);
         $result = DrawResult::query()->where('draw_id', $draw->getKey())->first();
+        $sourceState = $this->sourceStateFor($result, $draw);
+
+        if ($result === null || $sourceState === GloSourceState::Unavailable->value) {
+            return $this->currentResult((string) $draw->getKey());
+        }
+
         $version = $this->resultVersion($draw, $result);
         $key = implode('|', [
             'glo:result',
             (string) $draw->type->value,
             (string) $draw->getKey(),
             $version,
+            $sourceState,
         ]);
         $ttl = (int) config('glo.result_experience.cache_ttl_seconds', 60);
 
         return $this->cache->remember($key, $ttl, function () use ($draw, $result): array {
-            return $result === null
-                ? $this->currentResult((string) $draw->getKey())
-                : $this->resultPayload($draw, $result);
+            return $this->resultPayload($draw, $result);
         });
     }
 
@@ -331,8 +320,9 @@ class GloPublicResultService
             return 'none-'.sha1((string) $draw->getKey());
         }
 
+        $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
         $meta = is_array($result->metadata) ? $result->metadata : [];
-        $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
+        $lane = is_array($meta[$tierKey] ?? null) ? $meta[$tierKey] : [];
 
         if (! empty($lane['import_fingerprint'])) {
             return (string) $lane['import_fingerprint'];

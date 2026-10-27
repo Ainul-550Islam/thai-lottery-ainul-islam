@@ -10,10 +10,14 @@ use App\Enums\ResponsibleGamingLimitStatus;
 use App\Enums\ResponsibleGamingLimitType;
 use App\Enums\RiskLevel;
 use App\Enums\SelfExclusionStatus;
+use App\Enums\UserStatus;
 use App\Exceptions\ResponsibleGamingLimitException;
 use App\Exceptions\SelfExclusionException;
 use App\Models\AuditLog;
+use App\Models\ResponsibleGamingLimit;
+use App\Models\ResponsibleGamingLimitOwnership;
 use App\Models\ResponsibleGamingLimitVersion;
+use App\Models\User;
 use App\Models\SelfExclusion;
 use Illuminate\Support\Facades\DB;
 
@@ -48,19 +52,43 @@ class ResponsibleGamingLimitService
         return DB::transaction(function () use ($data): array {
             $key = $data->limitKey();
 
+            // ── 1. IDENTITY. An explicit request key IS the identity of the
+            //    request, so a replay must reproduce the same definition. A key
+            //    that comes back carrying a different amount, type, currency or
+            //    window is not a replay: it is an attempt to rewrite a decision
+            //    the player already made, and it is refused without touching a
+            //    single row.
             /** @var ResponsibleGamingLimitVersion|null $existing */
             $existing = ResponsibleGamingLimitVersion::query()->where('limit_key', $key)->first();
 
             if ($existing instanceof ResponsibleGamingLimitVersion) {
-                return ['version' => $existing, 'replayed' => true];
+                // An explicit request key replays its row whatever state that
+                // row reached: re-submitting a request that was cancelled must
+                // not silently resurrect it, and must never fork a second row
+                // under the same identity.
+                if ($data->requestKey !== null) {
+                    $this->assertSameDefinition($existing, $data);
+
+                    return ['version' => $existing, 'replayed' => true];
+                }
+
+                // A payload-identified request replays only while the row is
+                // still in force. A sealed one is history, and re-choosing a
+                // value the player once held is a new decision - so it gets a
+                // fresh generation of the key rather than the unique index
+                // swallowing it.
+                if (! $existing->limit_status->isTerminal()) {
+                    return ['version' => $existing, 'replayed' => true];
+                }
+
+                [$key, $liveRow] = $this->nextGeneration($key);
+
+                if ($liveRow instanceof ResponsibleGamingLimitVersion) {
+                    return ['version' => $liveRow, 'replayed' => true];
+                }
             }
 
             /** @var ResponsibleGamingLimitVersion|null $active */
-            // A ceiling is per (player, type, CURRENCY): the same limit type in another
-            // currency is a different ceiling, so it may neither replace nor cool down
-            // this one. Without the currency scope a THB limit and a USD limit of the
-            // same type overwrite each other, and whichever was pronounced last silently
-            // became the only ceiling the player had.
             $active = ResponsibleGamingLimitVersion::query()
                 ->where('user_id', $data->userId)
                 ->where('limit_type', $data->type->value)
@@ -78,20 +106,21 @@ class ResponsibleGamingLimitService
                 ->lockForUpdate()
                 ->first();
 
-            // Stricter precedence: while ANY version is pending on this
-            // (user, type), a second pronunciation must not dodge the
-            // cooling-off of the first. Two Pending twins = fork.
-            if ($pending instanceof ResponsibleGamingLimitVersion) {
-                throw ResponsibleGamingLimitException::cooldownViolation(
-                    $data->type->value,
-                    $pending->effective_from?->toIso8601String() ?? 'unset',
-                );
+            // ── 2. A payload that has already been pronounced and is still in
+            //    force is a replay, even without an explicit key. A sealed
+            //    version (replaced / cancelled / expired) is history: asking for
+            //    the same ceiling again is a NEW decision and gets its own row,
+            //    otherwise the player could never choose a value they once held.
+            if ($pending instanceof ResponsibleGamingLimitVersion
+                && bccomp($data->amount, (string) $pending->amount, 2) === 0) {
+                return ['version' => $pending, 'replayed' => true];
             }
 
-            // Self-exclusion is the master's voice: limits MUST NOT be
-            // raised while an exclusion stands active (the gate itself).
-            if ($active instanceof ResponsibleGamingLimitVersion
-                && bccomp($data->amount, (string) $active->amount, 2) > 0) {
+            $isStricter = $active === null || bccomp($data->amount, (string) $active->amount, 2) <= 0;
+
+            // ── 3. SELF-EXCLUSION IS THE MASTER'S VOICE. No ceiling may be
+            //    loosened while an exclusion stands.
+            if (! $isStricter) {
                 $exclusion = SelfExclusion::query()
                     ->where('user_id', $data->userId)
                     ->where('status', SelfExclusionStatus::Active->value)
@@ -103,7 +132,52 @@ class ResponsibleGamingLimitService
                 }
             }
 
-            $isStricter = $active === null || bccomp($data->amount, (string) $active->amount, 2) <= 0;
+            // ── 4. A second INCREASE while one is still cooling off would fork
+            //    the horizon: the player would be choosing between two pending
+            //    futures. The existing horizon stands; the caller must wait or
+            //    choose something stricter.
+            if ($pending instanceof ResponsibleGamingLimitVersion && ! $isStricter) {
+                throw ResponsibleGamingLimitException::cooldownViolation(
+                    $data->type->value,
+                    $pending->effective_from?->toIso8601String() ?? 'unset',
+                );
+            }
+
+            // ── 5. A stricter choice is the player's to make at any time, and
+            //    it cancels the increase they no longer want. That is the whole
+            //    point of a cooling-off: protection is immediate, loosening is
+            //    not.
+            if ($pending instanceof ResponsibleGamingLimitVersion && $isStricter) {
+                $this->markCancelled($pending, 'cancelled by a stricter choice made during the cooling-off');
+            }
+
+            // Every instant on file was recorded under the timezone this
+            // process ran in. If that has changed, a new pronunciation cannot be
+            // compared with the ones on record, and the safe answer is to refuse
+            // rather than to reinterpret the player's earlier choices.
+            $this->assertTimezoneUnchanged($data->userId);
+
+            $activationAt = $isStricter
+                ? now()
+                : now()->addHours(self::COOLING_OFF_HOURS);
+
+            // A requested start can only ever ADD time to the cool-off. Letting
+            // it replace the horizon would let a caller pronounce an increase
+            // that takes effect "tomorrow" in a configuration where the horizon
+            // is longer than that.
+            if (! $isStricter && $data->effectiveFrom !== null
+                && $data->effectiveFrom->getTimestamp() > $activationAt->getTimestamp()) {
+                $activationAt = now()->setTimestamp($data->effectiveFrom->getTimestamp());
+            }
+
+            // A window that closes before the increase could ever become law is
+            // not a shorter window, it is a request that cannot be honoured.
+            if (! $isStricter && $data->effectiveTo !== null
+                && $data->effectiveTo->getTimestamp() <= $activationAt->getTimestamp()) {
+                throw ResponsibleGamingLimitException::malformed(
+                    'effective_to must stand after the cooling-off horizon',
+                );
+            }
 
             $version = new ResponsibleGamingLimitVersion;
             $version->fill([
@@ -113,11 +187,13 @@ class ResponsibleGamingLimitService
                 'currency' => $data->currency,
                 'limit_key' => $key,
                 'limit_status' => $isStricter ? ResponsibleGamingLimitStatus::Active : ResponsibleGamingLimitStatus::Pending,
-                'effective_from' => $isStricter ? now() : now()->addHours(self::COOLING_OFF_HOURS),
+                'effective_from' => $activationAt,
                 'effective_to' => $data->effectiveTo,
                 'activated_at' => $isStricter ? now() : null,
             ]);
             $version->save();
+
+            $this->enroll($version, $data, $active);
 
             if ($isStricter && $active instanceof ResponsibleGamingLimitVersion) {
                 $this->markReplaced($active, $version);
@@ -132,6 +208,78 @@ class ResponsibleGamingLimitService
 
             return ['version' => $version, 'replayed' => false];
         });
+    }
+
+    /**
+     * Walk the generations of a payload key whose first row has been sealed.
+     *
+     * Deterministic, so a retry of the same new decision lands on the same row:
+     * the first generation that is either free (create here) or still in force
+     * (replay it) wins. A sealed generation is skipped - re-choosing a value the
+     * player once held must not be answered with the historical row.
+     *
+     * @return array{0: string, 1: ResponsibleGamingLimitVersion|null}
+     */
+    private function nextGeneration(string $baseKey): array
+    {
+        for ($generation = 1; $generation <= 1000; $generation++) {
+            $candidate = hash('sha256', $baseKey.'|generation|'.$generation);
+
+            /** @var ResponsibleGamingLimitVersion|null $row */
+            $row = ResponsibleGamingLimitVersion::query()->where('limit_key', $candidate)->first();
+
+            if (! $row instanceof ResponsibleGamingLimitVersion) {
+                return [$candidate, null];
+            }
+
+            if (! $row->limit_status->isTerminal()) {
+                return [$candidate, $row];
+            }
+        }
+
+        throw ResponsibleGamingLimitException::malformed('No free limit-version identity available');
+    }
+
+    /**
+     * A version replayed under its own identity must describe the same
+     * decision as the one on record.
+     */
+    private function assertSameDefinition(ResponsibleGamingLimitVersion $existing, ResponsibleGamingLimitData $data): void
+    {
+        // The ownership record holds the payload hash the version was born
+        // with. Comparing hashes rather than re-deriving fields keeps the two
+        // notions of "the same request" in one place: the DTO decides what the
+        // payload is, the record remembers it, and a replay must reproduce it
+        // exactly — amount, type, currency AND the requested window.
+        $ownership = $this->ownershipFor($existing);
+
+        if ($ownership instanceof ResponsibleGamingLimitOwnership) {
+            if (! hash_equals((string) $ownership->payload_hash, $data->payloadHash())) {
+                throw ResponsibleGamingLimitException::malformed(
+                    'A request key already pronounced a different limit definition',
+                );
+            }
+
+            return;
+        }
+
+        // No ownership record (history from before enrollment): fall back to the
+        // stored row, which still pins type, amount and currency.
+        if ($existing->limit_type->value !== $data->type->value
+            || bccomp((string) $existing->amount, $data->amount, 2) !== 0
+            || strtoupper((string) $existing->currency) !== $data->currency) {
+            throw ResponsibleGamingLimitException::malformed(
+                'A request key already pronounced a different limit definition',
+            );
+        }
+    }
+
+    private function markCancelled(ResponsibleGamingLimitVersion $pending, string $why): void
+    {
+        $pending->limit_status = ResponsibleGamingLimitStatus::Cancelled;
+        $pending->cancelled_at = now();
+        $pending->save();
+        $this->scribble($pending, $why);
     }
 
     /**
@@ -244,6 +392,17 @@ class ResponsibleGamingLimitService
                         return;
                     }
 
+                    $refusal = $this->refusalToSeat($locked, $ceiling);
+
+                    if ($refusal !== null) {
+                        $locked->limit_status = ResponsibleGamingLimitStatus::Cancelled;
+                        $locked->cancelled_at = now();
+                        $locked->save();
+                        $this->scribble($locked, 'pending increase cancelled — '.$refusal);
+
+                        return;
+                    }
+
                     if ($ceiling instanceof ResponsibleGamingLimitVersion) {
                         $this->markReplaced($ceiling, $locked);
                     }
@@ -283,6 +442,18 @@ class ResponsibleGamingLimitService
                         return;
                     }
 
+                    // Ownerless history is not evidence. A version whose
+                    // ownership record is gone cannot be shown to have been
+                    // pronounced by anyone, so it is left exactly as it is
+                    // rather than being moved by a sweep.
+                    $ownership = $this->ownershipFor($locked);
+
+                    if ($ownership === null
+                        || $ownership->expiry_epoch === null
+                        || (int) $ownership->expiry_epoch > now()->getTimestamp()) {
+                        return;
+                    }
+
                     $locked->limit_status = ResponsibleGamingLimitStatus::Expired;
                     $locked->expired_at = now();
                     $locked->save();
@@ -310,7 +481,229 @@ class ResponsibleGamingLimitService
             $query->where('currency', $currency);
         }
 
-        return $query->orderBy('amount')->first();
+        $binding = $query->orderBy('amount')->first();
+
+        if ($binding instanceof ResponsibleGamingLimitVersion) {
+            // A ceiling that grants paid permission is only readable while its
+            // recorded terms and its recorded timezone still describe it. A row
+            // whose amount was edited in place, or whose instants were recorded
+            // under a different backend timezone, is not a ceiling - it is an
+            // unexplained row, and the gate refuses on it.
+            $this->assertOwnedTermsIntact($binding);
+        }
+
+        return $binding;
+    }
+
+    /**
+     * @throws ResponsibleGamingLimitException when a ceiling on file was
+     *                                         pronounced under a different backend timezone
+     */
+    private function assertTimezoneUnchanged(int $userId): void
+    {
+        $recorded = ResponsibleGamingLimitOwnership::query()
+            ->whereIn('version_id', ResponsibleGamingLimitVersion::query()
+                ->where('user_id', $userId)
+                ->select('id'))
+            ->orderByDesc('id')
+            ->value('timezone');
+
+        if ($recorded === null) {
+            return;
+        }
+
+        if ((string) $recorded !== (string) config('app.timezone', 'UTC')) {
+            throw ResponsibleGamingLimitException::malformed(
+                'The backend timezone changed since the last ceiling was pronounced',
+            );
+        }
+    }
+
+    /**
+     * Record WHO pronounced this version and against WHAT.
+     *
+     * The ownership row is what makes a later sweep auditable: it pins the
+     * payload, the terms, the basis the decision was measured against, the
+     * backend timezone those instants were recorded under, and the epochs that
+     * decide when it may take effect and when it lapses.
+     */
+    private function enroll(
+        ResponsibleGamingLimitVersion $version,
+        ResponsibleGamingLimitData $data,
+        ?ResponsibleGamingLimitVersion $active,
+    ): void {
+        $timezone = (string) config('app.timezone', 'UTC');
+
+        ResponsibleGamingLimitOwnership::query()->create([
+            'version_id' => $version->id,
+            'request_identity' => substr((string) $version->limit_key, 0, 64),
+            'payload_hash' => $data->payloadHash(),
+            'terms_hash' => $this->termsHash($version),
+            'basis_hash' => $this->basisHash($version->user_id, $version->limit_type->value,
+                $version->currency, $active),
+            'timezone' => $timezone,
+            'activation_epoch' => (int) $version->effective_from?->getTimestamp(),
+            'expiry_epoch' => $version->effective_to === null
+                ? null
+                : (int) $version->effective_to->getTimestamp(),
+        ]);
+    }
+
+    private function ownershipFor(ResponsibleGamingLimitVersion $version): ?ResponsibleGamingLimitOwnership
+    {
+        /** @var ResponsibleGamingLimitOwnership|null $ownership */
+        $ownership = ResponsibleGamingLimitOwnership::query()
+            ->where('version_id', $version->id)
+            ->first();
+
+        return $ownership;
+    }
+
+    /**
+     * The terms the player agreed to, hashed from the stored row.
+     */
+    private function termsHash(ResponsibleGamingLimitVersion $version): string
+    {
+        return hash('sha256', implode('|', [
+            'rgl-terms',
+            (string) $version->user_id,
+            $version->limit_type->value,
+            (string) $version->amount,
+            (string) $version->currency,
+            (string) $version->effective_from?->getTimestamp(),
+            $version->effective_to === null ? 'open' : (string) $version->effective_to->getTimestamp(),
+        ]));
+    }
+
+    /**
+     * The state the decision was measured against: which ceiling stood, how
+     * much it allowed, in which currency, and whether the account was in good
+     * standing at the time.
+     */
+    private function basisHash(int $userId, string $type, string $currency, ?ResponsibleGamingLimitVersion $ceiling): string
+    {
+        return hash('sha256', implode('|', [
+            'rgl-basis',
+            (string) $userId,
+            $type,
+            $currency,
+            $ceiling instanceof ResponsibleGamingLimitVersion ? (string) $ceiling->limit_key : 'none',
+            $ceiling instanceof ResponsibleGamingLimitVersion ? (string) $ceiling->amount : 'none',
+            (string) config('app.timezone', 'UTC'),
+        ]));
+    }
+
+    /**
+     * @throws ResponsibleGamingLimitException when a stored ceiling no longer
+     *                                         matches the record of how it was pronounced
+     */
+    private function assertOwnedTermsIntact(ResponsibleGamingLimitVersion $version): void
+    {
+        $ownership = $this->ownershipFor($version);
+
+        if ($ownership === null) {
+            // Ownerless history is readable (it predates enrollment) but grants
+            // nothing new; callers that need a decision take the refusal path
+            // elsewhere.
+            return;
+        }
+
+        if ((string) $ownership->timezone !== (string) config('app.timezone', 'UTC')) {
+            throw ResponsibleGamingLimitException::malformed(
+                'The backend timezone changed since this ceiling was pronounced',
+            );
+        }
+
+        if (! hash_equals((string) $ownership->terms_hash, $this->termsHash($version))) {
+            throw ResponsibleGamingLimitException::malformed(
+                'The stored ceiling no longer matches the terms it was pronounced with',
+            );
+        }
+    }
+
+    /**
+     * Why a due pending increase must NOT be seated, or null when it may be.
+     *
+     * Every reason here is a fact about the world changing underneath a decision
+     * the player made a day ago. None of them may be resolved in favour of the
+     * looser ceiling.
+     */
+    private function refusalToSeat(
+        ResponsibleGamingLimitVersion $pending,
+        ?ResponsibleGamingLimitVersion $ceiling,
+    ): ?string {
+        $ownership = $this->ownershipFor($pending);
+
+        if ($ownership === null) {
+            return 'its ownership record is missing';
+        }
+
+        if ((string) $ownership->timezone !== (string) config('app.timezone', 'UTC')) {
+            return 'the backend timezone changed since it was pronounced';
+        }
+
+        if (! hash_equals((string) $ownership->terms_hash, $this->termsHash($pending))) {
+            return 'its stored terms no longer match what was pronounced';
+        }
+
+        if (! hash_equals((string) $ownership->basis_hash,
+            $this->basisHash($pending->user_id, $pending->limit_type->value, $pending->currency, $ceiling))) {
+            return 'the ceiling it was measured against has changed';
+        }
+
+        if ($pending->effective_to !== null && $pending->effective_to->getTimestamp() <= now()->getTimestamp()) {
+            return 'its own window closed before it could take effect';
+        }
+
+        /** @var ResponsibleGamingLimitVersion|null $fork */
+        $fork = ResponsibleGamingLimitVersion::query()
+            ->where('user_id', $pending->user_id)
+            ->where('limit_type', $pending->limit_type->value)
+            ->where('currency', $pending->currency)
+            ->where('limit_status', ResponsibleGamingLimitStatus::Pending->value)
+            ->whereKeyNot($pending->id)
+            ->first();
+
+        if ($fork instanceof ResponsibleGamingLimitVersion) {
+            return 'a second pending increase exists for the same ceiling';
+        }
+
+        $user = User::query()->find($pending->user_id);
+
+        if ($user === null || $user->status !== UserStatus::Active) {
+            return 'the account is not in good standing';
+        }
+
+        $legacy = ResponsibleGamingLimit::query()->where('user_id', $pending->user_id)->first();
+
+        if ($legacy instanceof ResponsibleGamingLimit
+            && (($legacy->self_excluded_until !== null && $legacy->self_excluded_until->isFuture())
+                || ($legacy->cool_off_until !== null && $legacy->cool_off_until->isFuture()))) {
+            return 'a self-exclusion or cool-off still stands';
+        }
+
+        $exclusion = SelfExclusion::query()
+            ->where('user_id', $pending->user_id)
+            ->where('status', SelfExclusionStatus::Active->value)
+            ->where('ends_at', '>', now())
+            ->first();
+
+        if ($exclusion !== null) {
+            return 'a self-exclusion still stands';
+        }
+
+        return null;
+    }
+
+    /**
+     * Choose a ceiling. Same transaction and same refusals as pronounce();
+     * named separately because callers think in choices, not in announcements.
+     *
+     * @return array{version: ResponsibleGamingLimitVersion, replayed: bool}
+     */
+    public function choose(ResponsibleGamingLimitData $data): array
+    {
+        return $this->pronounce($data);
     }
 
     /**

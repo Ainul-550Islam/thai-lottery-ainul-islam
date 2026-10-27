@@ -16,7 +16,6 @@ use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Wallet balance operations.
@@ -120,20 +119,20 @@ final class WalletService
      */
     public function credit(
         Wallet $wallet,
-        Money $amount,
-        FinancialTransactionType $type = FinancialTransactionType::Deposit,
+        Money|string $amount,
+        FinancialTransactionType|string $type = FinancialTransactionType::Deposit,
         ?string $idempotencyKey = null,
-        array $options = [],
+        array|string $options = [],
     ): FinancialTransaction {
         $this->assertWalletIdentity($wallet);
 
         return $this->transactions()->execute(
             wallet: $wallet,
-            amount: $amount,
-            type: $type,
+            amount: $this->normaliseMoney($wallet, $amount),
+            type: $this->normaliseTransactionType($type),
             walletSide: LedgerEntryType::Credit,
-            idempotencyKey: $idempotencyKey,
-            options: $options,
+            idempotencyKey: $this->normaliseIdempotencyKey($idempotencyKey),
+            options: $this->normaliseTransactionOptions($options),
         );
     }
 
@@ -147,20 +146,20 @@ final class WalletService
      */
     public function debit(
         Wallet $wallet,
-        Money $amount,
-        FinancialTransactionType $type = FinancialTransactionType::Withdrawal,
+        Money|string $amount,
+        FinancialTransactionType|string $type = FinancialTransactionType::Withdrawal,
         ?string $idempotencyKey = null,
-        array $options = [],
+        array|string $options = [],
     ): FinancialTransaction {
         $this->assertWalletIdentity($wallet);
 
         return $this->transactions()->execute(
             wallet: $wallet,
-            amount: $amount,
-            type: $type,
+            amount: $this->normaliseMoney($wallet, $amount),
+            type: $this->normaliseTransactionType($type),
             walletSide: LedgerEntryType::Debit,
-            idempotencyKey: $idempotencyKey,
-            options: $options,
+            idempotencyKey: $this->normaliseIdempotencyKey($idempotencyKey),
+            options: $this->normaliseTransactionOptions($options),
         );
     }
 
@@ -598,6 +597,59 @@ final class WalletService
     public function walletAccountCode(): string
     {
         return self::ACCOUNT_PLAYER_LIABILITY;
+    }
+
+    /**
+     * Parse the original decimal string API through Money; no float path exists.
+     */
+    private function normaliseMoney(Wallet $wallet, Money|string $amount): Money
+    {
+        return $amount instanceof Money
+            ? $amount
+            : Money::of($amount, $wallet->currency);
+    }
+
+    /**
+     * Keep historical string callers on the canonical transaction vocabulary.
+     */
+    private function normaliseTransactionType(FinancialTransactionType|string $type): FinancialTransactionType
+    {
+        if ($type instanceof FinancialTransactionType) {
+            return $type;
+        }
+
+        $resolved = FinancialTransactionType::tryFrom(strtolower(trim($type)));
+
+        if ($resolved === null) {
+            throw FinancialException::withCode(
+                'financial_transaction_type_invalid',
+                'The requested wallet transaction type is not supported.',
+            );
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Convert old positional descriptions into the current options shape.
+     *
+     * @return array<string, mixed>
+     */
+    private function normaliseTransactionOptions(array|string $options): array
+    {
+        return is_string($options) ? ['description' => $options] : $options;
+    }
+
+    /**
+     * Preserve short historical keys deterministically inside current length bounds.
+     */
+    private function normaliseIdempotencyKey(?string $key): ?string
+    {
+        if ($key === null || (strlen($key) >= 16 && strlen($key) <= 128)) {
+            return $key;
+        }
+
+        return 'legacy-wallet:'.hash('sha256', $key);
     }
 
     /**

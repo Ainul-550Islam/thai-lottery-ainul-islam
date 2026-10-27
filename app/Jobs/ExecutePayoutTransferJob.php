@@ -241,8 +241,8 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Payout,
             'risk_level' => RiskLevel::Medium,
-            'auditable_type' => 'payout_transfer_run',
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'Payout transfer run for batch [%s]: %d selected, %d opened, %d internal-wallet skipped, %d failed.',
                 $this->batchKey,
@@ -252,6 +252,7 @@ class ExecutePayoutTransferJob implements ShouldBeUnique, ShouldQueue
                 $summary['failed'],
             ),
             'metadata' => [
+                'lane' => 'payout_transfer_run',
                 'batch_key' => $this->batchKey,
                 'selected' => $summary['selected'],
                 'opened' => $summary['opened'],

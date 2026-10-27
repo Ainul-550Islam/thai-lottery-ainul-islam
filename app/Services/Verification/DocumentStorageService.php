@@ -6,8 +6,10 @@ namespace App\Services\Verification;
 
 use App\Enums\KycDocumentType;
 use App\Enums\KycStatus;
+use App\Exceptions\AntimalwareException;
 use App\Models\KycDocument;
 use App\Models\User;
+use App\Services\Antimalware\AntimalwareManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -31,6 +33,26 @@ use InvalidArgumentException;
  * - retrieval is authorization-gated: only readForAuthorized() exists,
  *   and its callers enforce owner-or-reviewer policy. No public URL
  *   for a document is ever produced by this class.
+ *
+ * ANTIMALWARE SCAN — WHERE IT SITS AND WHY THERE
+ * ---------------------------------------------------------------------------
+ * The scan runs between "this file claims to be a PDF" and "these bytes are
+ * written to the private disk". That ordering is the whole control:
+ *
+ *   before the write   a malicious file never reaches storage, so a later
+ *                      reviewer opening it downloads nothing dangerous and the
+ *                      private disk never holds an infected artefact to clean;
+ *   after the sniff    the scanner sees a file that has ALREADY passed the type
+ *                      and size checks, so a rejected-declared-type upload is
+ *                      refused without spending a ClamAV round trip;
+ *   before the row     a KvDocument row only ever refers to a file the platform
+ *                      is willing to serve.
+ *
+ * A scan that cannot complete throws {@see AntimalwareException} and the upload
+ * fails. There is deliberately no try/catch around it: "the scanner was down,
+ * so the document was accepted" is the exact failure this control exists to
+ * prevent, and an upload outage is recoverable in a way that a stored payload
+ * is not.
  */
 final class DocumentStorageService
 {
@@ -45,6 +67,10 @@ final class DocumentStorageService
         'image/png' => 'png',
         'image/webp' => 'webp',
     ];
+
+    public function __construct(
+        private readonly AntimalwareManager $antimalware,
+    ) {}
 
     public function store(
         User $user,
@@ -80,6 +106,21 @@ final class DocumentStorageService
                 throw new InvalidArgumentException('Document image is corrupt or unreadable.');
             }
         }
+
+        /*
+        | THE MALWARE GATE.
+        |
+        | `scanPath` throws on infected, unreadable and unscannable alike, so the
+        | three outcomes the rest of this method has to consider are "clean",
+        | "clean" and "clean". The verdict is recorded on the document row rather
+        | than logged only, because a reviewer needs to know that the bytes they
+        | are about to open were scanned, and by which engine.
+        */
+        $scan = $this->antimalware->scanUploadedFile(
+            $file,
+            (int) $user->id,
+            'kyc_document',
+        );
 
         $diskName = (string) config('account_verification.storage.disk', 'local');
         $prefix = trim((string) config('account_verification.storage.path_prefix', 'kyc_documents'), '/');
@@ -128,6 +169,13 @@ final class DocumentStorageService
                 'submitted_at' => now()->toIso8601String(),
                 'storage_disk' => $diskName,
                 'storage' => 'private',
+                'scan' => [
+                    'driver' => (string) ($scan['driver'] ?? ''),
+                    'verdict' => (string) ($scan['verdict'] ?? ''),
+                    'signature' => $scan['signature'] ?? null,
+                    'duration_ms' => (int) ($scan['duration_ms'] ?? 0),
+                    'scanned_at' => now()->toIso8601String(),
+                ],
             ],
         ]);
 

@@ -21,6 +21,13 @@ use Illuminate\Support\Facades\Cache;
 class GloPublicStatsService
 {
     /**
+     * A member counts as active while their last authenticated request is inside
+     * this window. It is a constant, not a marketing dial: the same number labels
+     * the metric that the query filters on.
+     */
+    public const ACTIVE_WINDOW_MINUTES = 15;
+
+    /**
      * @return array{
      *     status: string,
      *     generated_at: string,
@@ -80,6 +87,19 @@ class GloPublicStatsService
                 ];
             });
 
+            // Session presence moves far faster than the slow counters above, so it is
+            // read live on every call and never frozen into the cached payload.
+            $payload['metrics'] = array_values(array_filter(
+                $payload['metrics'] ?? [],
+                static fn (array $metric): bool => ($metric['key'] ?? null) !== 'active_members',
+            ));
+            array_unshift($payload['metrics'], [
+                'key' => 'active_members',
+                'label' => sprintf('Members active in the last %d minutes', self::ACTIVE_WINDOW_MINUTES),
+                'value' => (string) $this->activeMembersNow(),
+                'available' => true,
+            ]);
+
             return $payload;
         } catch (\Throwable $e) {
             report($e);
@@ -90,6 +110,28 @@ class GloPublicStatsService
                 'metrics' => [],
                 'message' => 'Statistics are temporarily unavailable.',
             ];
+        }
+    }
+
+    /**
+     * Members with an authenticated request inside the presence window.
+     *
+     * Session-based, not "registered": a soft-deleted account can never be active,
+     * and a member who has never been seen carries a null stamp and is excluded by
+     * the window comparison itself.
+     */
+    public function activeMembersNow(): int
+    {
+        try {
+            return (int) User::query()
+                ->whereNull('deleted_at')
+                ->whereNotNull('last_seen_at')
+                ->where('last_seen_at', '>=', Carbon::now()->subMinutes(self::ACTIVE_WINDOW_MINUTES))
+                ->count();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return 0;
         }
     }
 

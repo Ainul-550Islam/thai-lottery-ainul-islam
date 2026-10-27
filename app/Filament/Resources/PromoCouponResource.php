@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PromoCouponResource\Pages;
 use App\Models\PromoCoupon;
+use App\Support\Admin\AdminAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -27,6 +28,45 @@ final class PromoCouponResource extends Resource
     protected static ?string $navigationGroup = 'Marketing & Content';
 
     protected static ?string $navigationLabel = 'Promo Coupons';
+
+    /*
+     * AUTHORISATION.
+     *
+     * A coupon changes what a member is charged, so creating or editing one is a
+     * financial-settings action. Viewing is gated on the same permission as the
+     * rest of the marketing/promotional console; nothing here inherits the
+     * framework's permissive default.
+     */
+    public static function canViewAny(): bool
+    {
+        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+    }
+
+    public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canCreate(): bool
+    {
+        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        // Redeemed coupons are financial evidence; they are deactivated, never removed.
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
+    }
 
     public static function form(Form $form): Form
     {

@@ -233,7 +233,7 @@ final class AccountGradeService
             $previousGrade = $previous !== null ? (string) $previous->grade_key : null;
             $gradeChanged = $previousGrade !== null && $previousGrade !== (string) $row['grade_key'];
 
-            AccountGradeSnapshot::create([
+            $snapshot = AccountGradeSnapshot::create([
                 'user_id' => $user->id,
                 'period_start' => (string) $row['period_start'],
                 'period_end' => (string) $row['period_end'],
@@ -253,7 +253,7 @@ final class AccountGradeService
                 'user_id' => $user->id,
                 'action' => AuditAction::Create,
                 'auditable_type' => AccountGradeSnapshot::class,
-                'auditable_id' => null,
+                'auditable_id' => $snapshot->id,
                 'metadata' => [
                     'action_type' => $gradeChanged ? 'grade_changed' : 'grade_calculated',
                     'grade_key' => (string) $row['grade_key'],

@@ -9,6 +9,7 @@ use App\Enums\ArticleStatus;
 use App\Filament\Resources\ArticleResource\Pages;
 use App\Models\Article;
 use App\Services\Content\ArticleService;
+use App\Support\Admin\AdminAccess;
 use App\Support\SupportedLocale;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -46,6 +47,47 @@ final class ArticleResource extends Resource
     protected static ?string $navigationGroup = 'Content';
 
     protected static ?int $navigationSort = 1;
+
+    /*
+     * AUTHORISATION.
+     *
+     * Article copy is regulated marketing on a real-money platform: publishing a
+     * page is a controlled action, not a read. The resource therefore asks
+     * AdminAccess for the settings-level permission that governs published copy,
+     * exactly like every other resource in the console - a resource that inherits
+     * canViewAny() from the framework is open to anyone the panel admits.
+     */
+    public static function canViewAny(): bool
+    {
+        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+    }
+
+    public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canCreate(): bool
+    {
+        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        // Copy is never hard-deleted: unpublishing is the reversible action, and a
+        // deleted article cannot be produced for a regulator.
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
+    }
 
     public static function getModelLabel(): string
     {

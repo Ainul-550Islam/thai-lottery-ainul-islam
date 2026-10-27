@@ -233,8 +233,8 @@ class GeneratePayoutBatchJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Update,
             'risk_level' => RiskLevel::Medium,
-            'auditable_type' => 'payout_batch_generation',
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'Payout batch generation selected %d approved pending payout(s) and dispatched %d executor batch(es) of at most %d.',
                 $summary['selected'],
@@ -242,6 +242,7 @@ class GeneratePayoutBatchJob implements ShouldBeUnique, ShouldQueue
                 $summary['chunk_size'],
             ),
             'metadata' => [
+                'lane' => 'payout_batch_generation',
                 'selected' => $summary['selected'],
                 'dispatched' => $summary['dispatched'],
                 'chunk_size' => $summary['chunk_size'],

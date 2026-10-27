@@ -7,6 +7,7 @@ use App\Http\Middleware\AuthenticateBoundSession;
 use App\Http\Middleware\BotDetectionMiddleware;
 use App\Http\Middleware\ConfiguredIpAccessMiddleware;
 use App\Http\Middleware\CorrelationIdMiddleware;
+use App\Http\Middleware\FraudRiskGateMiddleware;
 use App\Http\Middleware\EnsureAdult;
 use App\Http\Middleware\EnsureDrawIsOpen;
 use App\Http\Middleware\EnsureUserIsActive;
@@ -282,6 +283,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'conversion.idempotency' => RequireConversionIdempotencyKey::class,
             // Real-money licence gate — fail-closed on deposit/withdrawal/bet routes.
             'real_money.license' => \App\Http\Middleware\EnforceRealMoneyLicense::class,
+            // Pre-transaction risk gate. The parameter is the event type the risk
+            // engine is asked about (`fraud.gate:bet`, `fraud.gate:TRANSACTION`).
+            'fraud.gate' => FraudRiskGateMiddleware::class,
         ]);
 
         // Applied globally: security headers, and a correlation id pinned on the way in and

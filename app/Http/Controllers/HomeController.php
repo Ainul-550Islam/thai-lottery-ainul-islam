@@ -30,10 +30,10 @@ class HomeController
         $locale = (string) app()->getLocale();
         $seo = [
             'title' => (string) (trans('home.meta_title', [], $locale) ?: config('app.name', 'Thai Lottery')),
-            'description' => (string) (trans('home.meta_description', [], $locale) ?: 'Government Lottery results, ticket checking tools, and wagering platform.'),
+            'description' => (string) (trans('home.meta_description', [], $locale) ?: 'Published lottery results, a six-digit ticket checker, and the platform rules that apply to this independent service.'),
             'canonical' => rtrim((string) config('app.url'), '/'),
             'og_title' => (string) (trans('home.meta_title', [], $locale) ?: config('app.name', 'Thai Lottery')),
-            'og_description' => (string) (trans('home.meta_description', [], $locale) ?: 'Government Lottery results, ticket checking tools, and wagering platform.'),
+            'og_description' => (string) (trans('home.meta_description', [], $locale) ?: 'Published lottery results, a six-digit ticket checker, and the platform rules that apply to this independent service.'),
             'og_type' => 'website',
             'og_url' => rtrim((string) config('app.url'), '/'),
         ];

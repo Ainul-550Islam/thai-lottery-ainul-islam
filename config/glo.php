@@ -279,16 +279,95 @@ return [
     */
 
     'official_source' => [
-        'base_url' => 'https://www.glo.or.th',
-        // Documented public catalog endpoints ONLY — never invent others.
-        'latest_lottery_path' => '/api/lottery/getLatestLottery',
-        'lottery_result_path' => '/api/checking/getLotteryResult',
-        // 'fixture' replays resources/glo/fixtures; 'official' attempts the
-        // documented endpoints and reports NOT_CONFIGURED when unreachable.
-        'mode' => env('GLO_OFFICIAL_SOURCE_MODE', 'fixture'),
-        'request_timeout_seconds' => 10,
+
+        /*
+        |------------------------------------------------------------------
+        | base_url
+        |------------------------------------------------------------------
+        | The scheme and host of the documented public GLO catalogue. It is
+        | read HERE and nowhere else: no command, service or middleware may
+        | contain a URL literal, so a host change is this one line and a
+        | stale URL cannot survive in a scheduled command.
+        |
+        | config('services.glo.base_url') is the same value for callers that
+        | already read config/services.php; App\Console\Commands\
+        | FetchGloOfficialDrawResultCommand resolves it through this block and
+        | falls back to services.glo, never to a hardcoded string.
+        */
+        'base_url' => (string) env('GLO_OFFICIAL_BASE_URL', env('GLO_API_BASE_URL', 'https://www.glo.or.th')),
+
+        /*
+        |------------------------------------------------------------------
+        | Endpoint paths
+        |------------------------------------------------------------------
+        | Documented public catalogue endpoints ONLY. These two paths are the
+        | whole public surface this project is entitled to call; anything else
+        | would be an invented integration.
+        */
+        'latest_lottery_path' => (string) env('GLO_LATEST_LOTTERY_PATH', '/api/lottery/getLatestLottery'),
+        'lottery_result_path' => (string) env('GLO_LOTTERY_RESULT_PATH', '/api/checking/getLotteryResult'),
+
+        /*
+        |------------------------------------------------------------------
+        | mode
+        |------------------------------------------------------------------
+        |   official  attempt the documented endpoints; report NOT_CONFIGURED
+        |             honestly when they cannot be reached or the schema moved
+        |   fixture   replay resources/glo/fixtures — SYNTHETIC test vectors
+        |
+        | A FIXTURE MAY NEVER ANSWER IN PRODUCTION, AND THAT IS ENFORCED AT
+        | REQUEST TIME, NOT ONLY AT BOOT. ProductionSafetyServiceProvider
+        | refuses to *boot* production outside `official`, and
+        | App\Services\Lottery\GloOfficialResultProvider re-checks on every
+        | fetch, so a runtime config override, a cached config, a queue worker
+        | started before the change, or a `php artisan config:cache` from a
+        | stale file all still refuse. The default is 'fixture' only because a
+        | developer cloning this repository has no GLO feed; a deployment states
+        | `official` and that statement is verified per request.
+        */
+        'mode' => (string) env('GLO_OFFICIAL_SOURCE_MODE', 'fixture'),
+
+        // A fixture result is refused in production when this is true. It
+        // exists so an operator can see the guard as a switch; turning it off
+        // does NOT unblock a fixture in production, because the provider's own
+        // refusal is unconditional.
+        'refuse_fixture_in_production' => filter_var(env('GLO_REFUSE_FIXTURE_IN_PRODUCTION', true), FILTER_VALIDATE_BOOL),
+
+        /*
+        |------------------------------------------------------------------
+        | Transport
+        |------------------------------------------------------------------
+        | connect_timeout_seconds bounds the TCP/TLS handshake; a hung DNS
+        | lookup or a black-holed SYN would otherwise sit inside the scheduler
+        | for the whole request timeout. request_timeout_seconds bounds the
+        | whole exchange. request_retries counts RETRIES, so 1 means "one
+        | extra attempt"; attempts do not multiply when the breaker is open.
+        */
+        'request_timeout_seconds' => (int) env('GLO_REQUEST_TIMEOUT_SECONDS', 10),
+        'connect_timeout_seconds' => (int) env('GLO_CONNECT_TIMEOUT_SECONDS', 3),
+        'request_retries' => max(0, min(3, (int) env('GLO_REQUEST_RETRIES', 1))),
+
+        // Fixture root. Only ever read when mode is 'fixture' outside production.
         'fixture_path' => resource_path('glo/fixtures'),
-        'user_agent' => 'thai-lottery-glo-result-provider/1.0',
+
+        // Sent on every request so the upstream can identify this client.
+        'user_agent' => (string) env('GLO_USER_AGENT', 'thai-lottery-glo-result-provider/1.0'),
+
+        /*
+        |------------------------------------------------------------------
+        | Provenance
+        |------------------------------------------------------------------
+        | Every ingested result records where it came from. These are the labels
+        | written to draw_results.metadata and to the result_versions rows; a
+        | public page renders them through lang/{en,th}/frontend_ops.php, never
+        | as a raw enum value.
+        */
+        'provenance' => [
+            'official' => 'OFFICIAL_SOURCE_VERIFIED',
+            'operator' => 'INTERNAL_RECONCILED',
+            'fixture' => 'FIXTURE_ONLY',
+            'unavailable' => 'UNAVAILABLE',
+        ],
     ],
 
     /*

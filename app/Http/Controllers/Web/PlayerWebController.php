@@ -13,7 +13,9 @@ use App\Exceptions\FinancialException;
 use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\WithdrawalException;
 use App\Exceptions\WithdrawalKycException;
+use App\Http\Requests\Web\DepositRequest;
 use App\Http\Requests\Web\UpdateResponsibleGamingLimitsRequest;
+use App\Http\Requests\Web\WithdrawalRequest;
 use App\Models\Bet;
 use App\Models\Deposit;
 use App\Models\Draw;
@@ -29,10 +31,12 @@ use App\Services\Finance\WithdrawalService;
 use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\PaymentInitiationService;
 use App\Services\Security\ResponsibleGamingService;
+use App\Services\Transfer\TransferPanelService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -72,7 +76,11 @@ final class PlayerWebController
                 continue;
             }
 
-            $options[$method] = (string) trans('player.payment_method_'.$method);
+            $key = 'player.payment_method_'.$method;
+            $label = trans($key);
+            $options[$method] = (string) ($label === $key
+                ? trans('payment_ops.method_'.$method)
+                : $label);
         }
 
         return $options;
@@ -412,41 +420,13 @@ final class PlayerWebController
     /**
      * Handle deposit initiation.
      */
-    public function storeDeposit(Request $request): RedirectResponse
+    public function storeDeposit(DepositRequest $request): RedirectResponse
     {
         /** @var User $user */
         $user = Auth::user();
         $currency = $this->configuredFinanceCurrency();
 
-        $limits = (array) config('payment.deposit');
-        $allowedMethods = array_keys($this->availableDepositMethods());
-
-        $validated = $request->validate([
-            'amount' => [
-                'required',
-                'string',
-                'regex:/^\d{1,12}(?:\.\d{1,2})?$/',
-                function (string $attribute, mixed $value, \Closure $fail) use ($limits, $currency): void {
-                    try {
-                        $candidate = Money::of((string) $value, $currency);
-                        $minimum = (string) ($limits['min'] ?? '');
-                        $maximum = (string) ($limits['max'] ?? '');
-
-                        if ($minimum !== '' && $candidate->isLessThan(Money::of($minimum, $currency))) {
-                            $fail(trans('player.invalid_deposit_amount'));
-                        }
-
-                        if ($maximum !== '' && $candidate->isGreaterThan(Money::of($maximum, $currency))) {
-                            $fail(trans('player.invalid_deposit_amount'));
-                        }
-                    } catch (\Throwable) {
-                        $fail(trans('player.invalid_deposit_amount'));
-                    }
-                },
-            ],
-            'method' => ['required', 'string', Rule::in($allowedMethods)],
-            'idempotency_key' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9._:-]+$/'],
-        ]);
+        $validated = $request->validated();
 
         $wallet = Wallet::query()
             ->where('user_id', $user->id)
@@ -583,69 +563,15 @@ final class PlayerWebController
     /**
      * Handle withdrawal request with method-specific destination validation.
      */
-    public function storeWithdraw(Request $request): RedirectResponse
+    public function storeWithdraw(WithdrawalRequest $request): RedirectResponse
     {
         /** @var User $user */
         $user = Auth::user();
         $currency = $this->configuredFinanceCurrency();
 
         $limits = (array) config('payment.withdrawal');
-        $allowedMethods = array_keys($this->availableWithdrawalMethods());
-        $supportedBanks = (array) config('payment.supported_banks', []);
-
-        $method = (string) $request->input('method');
-
-        $rules = [
-            'amount' => [
-                'required',
-                'string',
-                'regex:/^\d{1,12}(?:\.\d{1,2})?$/',
-                function (string $attribute, mixed $value, \Closure $fail) use ($limits, $currency): void {
-                    try {
-                        $candidate = Money::of((string) $value, $currency);
-                        $minimum = (string) ($limits['min'] ?? '');
-                        $maximum = (string) ($limits['max'] ?? '');
-
-                        if ($minimum !== '' && $candidate->isLessThan(Money::of($minimum, $currency))) {
-                            $fail(trans('player.invalid_withdrawal_amount'));
-                        }
-
-                        if ($maximum !== '' && $candidate->isGreaterThan(Money::of($maximum, $currency))) {
-                            $fail(trans('player.invalid_withdrawal_amount'));
-                        }
-                    } catch (\Throwable) {
-                        $fail(trans('player.invalid_withdrawal_amount'));
-                    }
-                },
-            ],
-            'method' => ['required', 'string', Rule::in($allowedMethods)],
-            'account_name' => ['required', 'string', 'max:255'],
-            'idempotency_key' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9._:-]+$/'],
-        ];
-
-        if ($method === PaymentMethod::BankTransfer->value) {
-            $rules['bank_name'] = [
-                'required',
-                'string',
-                'max:255',
-                Rule::in(array_unique(array_merge(
-                    array_keys($supportedBanks),
-                    array_values($supportedBanks),
-                ))),
-            ];
-            $rules['account_number'] = ['required', 'string', 'regex:/^\d{8,15}$/'];
-        } elseif ($method === PaymentMethod::Bkash->value || $method === PaymentMethod::Nagad->value) {
-            $rules['bank_name'] = ['prohibited'];
-            $rules['account_number'] = ['required', 'string', 'regex:/^01[3-9]\d{8}$/'];
-        } elseif ($method === PaymentMethod::Crypto->value) {
-            $rules['bank_name'] = ['prohibited'];
-            $rules['account_number'] = ['required', 'string', 'min:20', 'max:120'];
-        } else {
-            $rules['account_number'] = ['required', 'string', 'max:255'];
-            $rules['bank_name'] = ['nullable', 'string', 'max:255'];
-        }
-
-        $validated = $request->validate($rules);
+        $validated = $request->validated();
+        $method = (string) $validated['method'];
 
         $wallet = Wallet::query()
             ->where('user_id', $user->id)
@@ -659,10 +585,20 @@ final class PlayerWebController
 
         $amount = Money::of((string) $validated['amount'], $currency);
 
+        $destinationNumber = $method === PaymentMethod::PromptPay->value
+            ? (string) (($validated['destination_type'] ?? 'promptpay_mobile') === 'promptpay_national_id'
+                ? ($validated['national_id'] ?? '') : ($validated['mobile'] ?? ''))
+            : (string) ($validated['account_number'] ?? '');
         $payoutDetails = array_filter([
             'bank_name' => $validated['bank_name'] ?? null,
-            'account_number' => (string) $validated['account_number'],
+            'bank_code' => $validated['bank_code'] ?? null,
+            'account_number' => $destinationNumber,
             'account_name' => (string) $validated['account_name'],
+            'destination_type' => $method === PaymentMethod::PromptPay->value
+                ? (string) ($validated['destination_type'] ?? 'promptpay_mobile')
+                : 'bank_account',
+            'mobile' => $method === PaymentMethod::PromptPay->value ? ($validated['mobile'] ?? null) : null,
+            'national_id' => $method === PaymentMethod::PromptPay->value ? ($validated['national_id'] ?? null) : null,
             'method' => $method,
         ], static fn ($value): bool => $value !== null && $value !== '');
 
@@ -864,9 +800,9 @@ final class PlayerWebController
     private function transferPanel(User $user): ?array
     {
         try {
-            return app(\App\Services\Transfer\TransferPanelService::class)->panelData($user);
+            return app(TransferPanelService::class)->panelData($user);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('wallet.transfer_panel_unavailable', [
+            Log::error('wallet.transfer_panel_unavailable', [
                 'user_id' => (int) $user->getKey(),
                 'exception' => $e::class,
             ]);

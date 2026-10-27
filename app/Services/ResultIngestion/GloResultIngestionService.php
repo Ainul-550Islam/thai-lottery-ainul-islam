@@ -20,6 +20,17 @@ use RuntimeException;
 class GloResultIngestionService
 {
     /**
+     * The importer id recorded for an unattended fetch.
+     *
+     * Named rather than spelled `0` at each call site, and documented here so
+     * the four-eyes check in {@see DrawResultConfirmationService} has a stable,
+     * explainable value to compare against. No users row carries id 0, which is
+     * precisely why it is safe: the automated importer can never be the same
+     * identity as the human who confirms.
+     */
+    public const AUTOMATED_IMPORTER_ID = 0;
+
+    /**
      * Ingest official draw results from GLO API or signed payload.
      *
      * @param array{

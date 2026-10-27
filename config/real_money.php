@@ -32,6 +32,7 @@ return [
     |----------------------------------------------------------------------
     */
     'enabled' => filter_var(env('REAL_MONEY_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+    'require_readiness_pass' => filter_var(env('REAL_MONEY_REQUIRE_READINESS_PASS', true), FILTER_VALIDATE_BOOLEAN),
 
     /*
     |----------------------------------------------------------------------
@@ -39,11 +40,11 @@ return [
     |----------------------------------------------------------------------
     */
     'license' => [
-        'issuer'     => (string) env('REAL_MONEY_LICENSE_ISSUER', ''),
-        'scope'      => (string) env('REAL_MONEY_LICENSE_SCOPE', ''),
-        'expiry'     => (string) env('REAL_MONEY_LICENSE_EXPIRY', ''),
-        'countries'  => (string) env('REAL_MONEY_LICENSE_COUNTRIES', ''),
-        'signature'  => (string) env('REAL_MONEY_LICENSE_SIGNATURE', ''),
+        'issuer' => (string) env('REAL_MONEY_LICENSE_ISSUER', ''),
+        'scope' => (string) env('REAL_MONEY_LICENSE_SCOPE', ''),
+        'expiry' => (string) env('REAL_MONEY_LICENSE_EXPIRY', ''),
+        'countries' => (string) env('REAL_MONEY_LICENSE_COUNTRIES', ''),
+        'signature' => (string) env('REAL_MONEY_LICENSE_SIGNATURE', ''),
     ],
 
     /*
@@ -57,6 +58,7 @@ return [
         if ($raw === '') {
             return [];
         }
+
         return array_unique(array_map('strtoupper', array_filter(array_map('trim', explode(',', $raw)))));
     },
 
@@ -82,9 +84,9 @@ return [
     |----------------------------------------------------------------------
     */
     'not_licensed' => [
-        'code'    => 'real_money_not_licensed',
+        'code' => 'real_money_not_licensed',
         'message' => 'Real-money features are not licensed.',
-        'status'  => 403,
+        'status' => 403,
     ],
 
 ];

@@ -26,6 +26,7 @@ use App\Models\PaymentWebhook;
 use App\Models\Withdrawal;
 use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
+use App\Services\Finance\ExternalRefundPolicy;
 use App\Services\Finance\FinancialReversalService;
 use App\Services\Finance\FinancialStateTransitionService;
 use App\Services\Finance\WithdrawalApprovalService;
@@ -133,24 +134,36 @@ class PaymentWebhookService
         }
 
         try {
-            $result = DB::transaction(function () use ($payload, $gateway): PaymentProcessingResult {
-                if ($payload->eventType->isDeposit()) {
-                    return $this->processDepositWebhook($payload);
-                }
+            for ($attempt = 1; ; $attempt++) {
+                try {
+                    $result = DB::transaction(function () use ($payload, $gateway): PaymentProcessingResult {
+                        if ($payload->eventType->isDeposit()) {
+                            return $this->processDepositWebhook($payload);
+                        }
 
-                if ($payload->eventType->isWithdrawal()) {
-                    return $this->processWithdrawalWebhook($payload);
-                }
+                        if ($payload->eventType->isWithdrawal()) {
+                            return $this->processWithdrawalWebhook($payload);
+                        }
 
-                if ($payload->eventType->isReversal()) {
-                    return $this->processReversalWebhook($payload);
-                }
+                        if ($payload->eventType->isReversal()) {
+                            return $this->processReversalWebhook($payload);
+                        }
 
-                return PaymentProcessingResult::ignored(
-                    gateway: $gateway,
-                    reason: 'Ignored unsupported webhook event: '.$payload->eventType->value,
-                );
-            });
+                        return PaymentProcessingResult::ignored(
+                            gateway: $gateway,
+                            reason: 'Ignored unsupported webhook event: '.$payload->eventType->value,
+                        );
+                    });
+
+                    break;
+                } catch (QueryException $exception) {
+                    if ($attempt >= 3 || ! $this->isRetryableInnoDbRecordChangedConflict($exception)) {
+                        throw $exception;
+                    }
+
+                    usleep(25_000 * $attempt);
+                }
+            }
 
             if (! $result->success) {
                 $this->cache->forget($cacheKey);
@@ -162,6 +175,18 @@ class PaymentWebhookService
 
             throw $exception;
         }
+    }
+
+    /**
+     * MariaDB reports a concurrent InnoDB current-read conflict as error 1020.
+     * The enclosing transaction has rolled back, so retrying the idempotent
+     * webhook against a fresh snapshot is safe; other SQL errors still fail closed.
+     */
+    private function isRetryableInnoDbRecordChangedConflict(QueryException $exception): bool
+    {
+        return DB::connection()->getDriverName() === 'mysql'
+            && ($exception->errorInfo[0] ?? null) === 'HY000'
+            && (int) ($exception->errorInfo[1] ?? 0) === 1020;
     }
 
     /**
@@ -180,6 +205,28 @@ class PaymentWebhookService
             ]);
 
             return PaymentProcessingResult::failed($gateway, 'Matching deposit not found.');
+        }
+
+        // A successful provider event without both signed amount and currency is
+        // insufficient evidence for wallet credit. Reject before creating a
+        // payment aggregate or entering the settlement writer.
+        if ($payload->isSuccess && ($payload->amount === null || $payload->currency === null)) {
+            $this->recordAudit(
+                action: AuditAction::Deposit,
+                auditable: $deposit,
+                description: 'Payment webhook omitted a required amount or currency fact; deposit settlement was refused.',
+                metadata: [
+                    'deposit_id' => (int) $deposit->getKey(),
+                    'gateway' => $gateway,
+                    'reason_code' => 'webhook_amount_or_currency_missing',
+                ],
+            );
+
+            return PaymentProcessingResult::failed(
+                $gateway,
+                trans('payment_ops.errors.webhook_amount_or_currency_missing'),
+                metadata: ['error_code' => 'webhook_amount_or_currency_missing'],
+            );
         }
 
         $payment = $this->resolveOrCreatePayment($deposit, $payload);
@@ -559,10 +606,19 @@ class PaymentWebhookService
      */
     private function processReversalWebhook(WebhookPayload $payload): PaymentProcessingResult
     {
-        return PaymentProcessingResult::failed(
-            $payload->gateway,
-            \App\Services\Finance\ExternalRefundPolicy::MESSAGE,
-        );
+        try {
+            app(ExternalRefundPolicy::class)->refuse();
+        } catch (FinancialException $exception) {
+            if ($exception->errorCode() !== ExternalRefundPolicy::CODE) {
+                throw $exception;
+            }
+
+            return PaymentProcessingResult::failed(
+                gateway: $payload->gateway,
+                errorMessage: $exception->getMessage(),
+                metadata: ['error_code' => ExternalRefundPolicy::CODE],
+            );
+        }
     }
 
     /**

@@ -7,9 +7,14 @@ declare(strict_types=1);
 | Support ticket lookup and the staff inbox
 |--------------------------------------------------------------------------
 |
-| THE LANE IS OFF. While SUPPORT_TICKET_STATUS_ENABLED is false, the public
-| status endpoint answers the exact 501 body it answered before this lane
-| existed. The staff inbox in the operator panel is gated by permissions, not
+| THE LANE IS ON BY DEFAULT, AND THAT IS A CLAIM ABOUT THE CODE, NOT A WISH.
+| App\Services\Support\TicketStatusLookupService is complete: it returns one
+| shape for every outcome, compares the address by digest with hash_equals(),
+| runs the same work on the miss path as on the hit path, and is rate limited
+| per IP and per reference digest. Because the service is finished, the public
+| endpoint may be enabled by default. Setting SUPPORT_TICKET_STATUS_ENABLED=false
+| still returns the exact 501 body this lane answered before it existed, which
+| is the correct posture for an operator who has not staffed the inbox. The staff inbox in the operator panel is gated by permissions, not
 | by this flag: it is an internal surface and hiding it would leave real
 | contact messages with nowhere to be worked.
 |
@@ -30,7 +35,7 @@ declare(strict_types=1);
 return [
 
     // Master switch for the PUBLIC status lookup only.
-    'status_lookup_enabled' => (bool) env('SUPPORT_TICKET_STATUS_ENABLED', false),
+    'status_lookup_enabled' => filter_var(env('SUPPORT_TICKET_STATUS_ENABLED', true), FILTER_VALIDATE_BOOL),
 
     /*
     |--------------------------------------------------------------------------

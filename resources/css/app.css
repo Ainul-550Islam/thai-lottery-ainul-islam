@@ -49,3 +49,147 @@ body {
         scroll-behavior: auto !important;
     }
 }
+
+/*
+|--------------------------------------------------------------------------
+| Toast region — the replacement for alert()
+|--------------------------------------------------------------------------
+| Portals used to confirm outcomes with alert(). This is the surface that
+| replaces it. The rules that matter:
+|
+|   - the region is fixed and pointer-events: none, so a toast can never sit
+|     between a finger and a button underneath it;
+|   - the individual toast re-enables pointer events for its dismiss button;
+|   - nothing is communicated by colour alone: each kind carries a left border
+|     AND its text, and the live-region role is set in JS;
+|   - the stack is capped visually by max-height + scroll on the region so twenty
+|     toasts cannot cover the viewport;
+|   - the leaving state is a transition on opacity/translate only, so removal
+|     never shifts the layout.
+*/
+.tl-toast-region {
+    position: fixed;
+    inset-block-end: 1rem;
+    inset-inline-end: 1rem;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-inline-size: min(24rem, calc(100vw - 2rem));
+    max-block-size: 60vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    pointer-events: none;
+}
+
+.tl-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0.5rem;
+    border-inline-start: 4px solid currentColor;
+    background: rgb(15 23 42 / 0.96);
+    color: #e2e8f0;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: auto;
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
+}
+
+.tl-toast--leaving {
+    opacity: 0;
+    transform: translateY(0.5rem);
+}
+
+.tl-toast--success {
+    color: #6ee7b7;
+}
+
+.tl-toast--error {
+    color: #fca5a5;
+}
+
+.tl-toast--warn {
+    color: #fcd34d;
+}
+
+.tl-toast--info {
+    color: #93c5fd;
+}
+
+.tl-toast__text {
+    margin: 0;
+    flex: 1 1 auto;
+}
+
+.tl-toast__close {
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.125rem;
+    line-height: 1;
+    padding: 0 0.125rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+}
+
+.tl-toast__close:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tl-toast {
+        transition: none;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Public prize checker
+|--------------------------------------------------------------------------
+| The result panel states its own condition through [data-state], so the shape
+| of the panel is decided by the server's answer rather than by a class the
+| script guesses. Hidden (absence) states never show a money block.
+*/
+[data-prize-result] {
+    border-radius: 0.5rem;
+    border: 1px solid rgb(148 163 184 / 0.35);
+    padding: 1rem;
+}
+
+[data-prize-result][data-verdict='WINNING'] {
+    border-color: rgb(52 211 153 / 0.6);
+}
+
+[data-prize-result][data-state='ERROR'],
+[data-prize-result][data-state='UNAVAILABLE'] {
+    border-color: rgb(248 113 113 / 0.6);
+}
+
+[data-prize-tier] dl,
+[data-prize-claim] dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.25rem 0.75rem;
+    margin: 0.75rem 0 0;
+}
+
+[data-prize-tier] dt,
+[data-prize-claim] dt {
+    font-size: 0.8125rem;
+    opacity: 0.75;
+}
+
+[data-prize-tier] dd,
+[data-prize-claim] dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}

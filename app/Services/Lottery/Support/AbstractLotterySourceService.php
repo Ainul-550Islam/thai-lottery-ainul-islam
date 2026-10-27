@@ -51,6 +51,16 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  */
 abstract class AbstractLotterySourceService
 {
+    /** The label a human-entered result claims when nothing else is configured. */
+    public const OPERATOR_PROVIDER_LABEL = 'internal';
+
+    /**
+     * Every provider label {@see stateForProvider()} can classify.
+     *
+     * @var list<string>
+     */
+    public const CLASSIFIABLE_PROVIDERS = ['official', 'internal', 'operator', 'replay', 'fixture'];
+
     /**
      * Highest trust first. Used to break ties between two publishable
      * versions for the same draw.
@@ -135,6 +145,69 @@ abstract class AbstractLotterySourceService
     public function mayFallThroughToFixture(): bool
     {
         return (bool) $this->config->get($this->configKey('sources.fall_through_to_fixture'), false);
+    }
+
+    /**
+     * The provider label a manual operator entry claims in this lane.
+     *
+     * WHY THIS LIVES ON THE SHARED SOURCE SERVICE
+     * -----------------------------------------------------------------------
+     * `stateForProvider('internal', true)` already maps to
+     * INTERNAL_RECONCILED for every lane, so the label must be one this class
+     * already understands. Reading it here - once, from the lane's own config
+     * prefix - means the four lanes cannot disagree about what a human-entered
+     * result is called, and cannot be pointed at a label the rest of this class
+     * would classify as UNAVAILABLE.
+     *
+     * The label is validated against the same closed set that
+     * {@see stateForProvider()} accepts. A misconfigured label therefore falls
+     * back to 'internal' rather than to something the lane cannot classify,
+     * because an unclassifiable label would publish as UNAVAILABLE and confuse
+     * an operator who had just seen their entry accepted.
+     */
+    public function operatorProviderLabel(): string
+    {
+        $configured = $this->config->get($this->configKey('sources.operator.provider_label'));
+
+        if (! is_string($configured)) {
+            return self::OPERATOR_PROVIDER_LABEL;
+        }
+
+        $candidate = strtolower(trim($configured));
+
+        return in_array($candidate, self::CLASSIFIABLE_PROVIDERS, true)
+            ? $candidate
+            : self::OPERATOR_PROVIDER_LABEL;
+    }
+
+    /**
+     * Whether manual entry is open in this lane.
+     *
+     * Defaults to TRUE. A lane with no manual path is a lane where the day the
+     * feed is late is the day someone edits the database by hand, and that path
+     * has no second signature. An operator can still close it, and the reason to
+     * do so is regulatory (a lane that is not permitted to publish without the
+     * official feed), never convenience — so the flag is named `enabled` and
+     * defaults to the safe-for-integrity value.
+     */
+    public function operatorEntryEnabled(): bool
+    {
+        return (bool) $this->config->get($this->configKey('sources.operator.enabled'), true);
+    }
+
+    /**
+     * Whether a manual entry must carry a second signature before publication.
+     *
+     * Always true in effect: `approveVersion()` on the import engine refuses an
+     * approval by the importer regardless of this value, because four eyes that
+     * can be switched off with a flag is one pair of eyes. The getter exists so
+     * an admin page can DISPLAY the guarantee, and so a deployment that
+     * accidentally sets it false is visible in review rather than silently
+     * ignored.
+     */
+    public function operatorRequiresSecondPerson(): bool
+    {
+        return (bool) $this->config->get($this->configKey('sources.operator.require_second_person'), true);
     }
 
     /**

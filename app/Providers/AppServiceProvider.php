@@ -54,6 +54,29 @@ class AppServiceProvider extends ServiceProvider
             \App\Http\Middleware\VerifyCsrfToken::class,
         );
 
+        /*
+         * Security contracts.
+         *
+         * These three interfaces are how the risk gate, the upload scanner and the
+         * threat-reputation middleware ask for an implementation without knowing
+         * which one is deployed. They must be bound in the container because a
+         * middleware whose contract has no binding fails at RESOLUTION time - the
+         * route answers 500 before a single line of the request is evaluated, which
+         * is how `fraud.gate` took the L6 reservation endpoint down.
+         */
+        $this->app->bind(
+            \App\Contracts\Security\MalwareScanner::class,
+            \App\Services\Uploads\Scanners\ClamAvScanner::class,
+        );
+        $this->app->bind(
+            \App\Contracts\Security\SecurityRiskEngine::class,
+            \App\Services\Fraud\FraudDetectionService::class,
+        );
+        $this->app->bind(
+            \App\Contracts\Security\ThreatReputationProvider::class,
+            \App\Services\Security\LocalBlocklistThreatReputationProvider::class,
+        );
+
         // Laravel 12 removed the old named-limiter probe; keep the adapter
         // available for the existing security contract without changing the
         // framework limiter semantics.
@@ -103,6 +126,7 @@ class AppServiceProvider extends ServiceProvider
     private function registerRateLimiters(): void
     {
         $this->registerLoginLimiter();
+        $this->registerRegistrationLimiter();
 
         $apiPerMinute = (int) config('security.rate_limits.api.max_per_minute', 60);
         $betPerMinute = (int) config('security.rate_limits.bet.max_per_minute', 10);
@@ -481,6 +505,36 @@ class AppServiceProvider extends ServiceProvider
                     ->response($this->throttleResponse()),
                 Limit::perMinutes($decayMinutes, $maxAttempts * 5)
                     ->by('login:ip:'.$request->ip())
+                    ->response($this->throttleResponse()),
+            ];
+        });
+    }
+
+    /**
+     * Registration throttle.
+     *
+     * `POST /register` carries `throttle:register`, so the limiter has to exist or every
+     * registration - valid or not - dies with MissingRateLimiterException. Registration has
+     * no session to key on: the email/mobile the visitor typed is the only identifier, and
+     * it is lower-cased before hashing so casing cannot multiply the allowance. The IP leg
+     * is deliberately looser (x5) because one household, school or carrier NAT can share a
+     * single address legitimately, while a single identifier must never exceed the budget
+     * that protects against duplicate-account farming.
+     */
+    private function registerRegistrationLimiter(): void
+    {
+        $maxAttempts = (int) config('security.rate_limits.register.max_attempts', 5);
+        $decayMinutes = (int) config('security.rate_limits.register.decay_minutes', 60);
+
+        RateLimiter::for('register', function (Request $request) use ($maxAttempts, $decayMinutes): array {
+            $identifier = mb_strtolower(trim((string) $request->input('email', $request->input('mobile', ''))));
+
+            return [
+                Limit::perMinutes($decayMinutes, $maxAttempts)
+                    ->by('register:id:'.sha1($identifier))
+                    ->response($this->throttleResponse()),
+                Limit::perMinutes($decayMinutes, $maxAttempts * 5)
+                    ->by('register:ip:'.$request->ip())
                     ->response($this->throttleResponse()),
             ];
         });

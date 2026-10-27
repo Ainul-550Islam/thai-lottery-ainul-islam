@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Lottery;
 
 use App\Enums\AuditAction;
+use App\Exceptions\DrawResultException;
 use App\Enums\ResultSourceType;
 use App\Enums\RiskLevel;
 use App\Models\AuditLog;
@@ -92,14 +93,37 @@ class GloResultImportService
         private readonly DatabaseManager $db,
         private readonly GloFixtureResultProvider $fixtureProvider,
         private readonly GloOfficialResultProvider $officialProvider,
+        private readonly GloResultProviderChain $chain,
         private readonly DrawResultIngestionService $ingestion,
     ) {}
 
+    /**
+     * The source the import path asks.
+     *
+     * Always the ladder: `GloResultProviderChain` already resolves
+     * `glo.sources.priority` (and the legacy `glo.official_source.mode`) into an
+     * order and walks it, so choosing a single provider here would bypass the
+     * breaker, the skip recording and the fall-through rules.
+     */
     public function provider(): GloResultProvider
     {
-        $mode = (string) config('glo.official_source.mode', 'fixture');
+        return $this->chain;
+    }
 
-        return $mode === 'official' ? $this->officialProvider : $this->fixtureProvider;
+    /**
+     * The name written to the provenance row.
+     *
+     * The ladder's own name is `chain`, which describes the transport rather
+     * than the publication. What a reader of `glo_result_imports.provider` needs
+     * is which source actually answered - and only the payload knows that.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function sourceLabel(GloResultProvider $provider, array $payload): string
+    {
+        $answered = $payload['provider'] ?? null;
+
+        return is_string($answered) && $answered !== '' ? $answered : $provider->name();
     }
 
     /**
@@ -236,22 +260,41 @@ class GloResultImportService
         //    result. It owns the row lock, the lifecycle guard, the canonical
         //    fingerprint and the Pending state. This file does not write
         //    draw_results, does not set published_at, and cannot publish.
-        $ingestion = $this->ingestion->ingest(
-            $drawId,
-            [
-                'first_prize' => (string) ($payload['first_prize'] ?? ''),
-                'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
-                'tiers' => (array) ($payload['tiers'] ?? []),
-                'n3' => (array) ($payload['n3'] ?? []),
-                'provider_fingerprint' => $fingerprint,
-            ],
-            source: sprintf('glo_import:%s', $provider->name()),
-            actorUserId: $actor?->getKey() === null ? null : (int) $actor->getKey(),
-        );
+        try {
+            $ingestion = $this->ingestion->ingest(
+                $drawId,
+                [
+                    'first_prize' => (string) ($payload['first_prize'] ?? ''),
+                    'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
+                    'tiers' => (array) ($payload['tiers'] ?? []),
+                    'n3' => (array) ($payload['n3'] ?? []),
+                    'provider_fingerprint' => $fingerprint,
+                ],
+                source: sprintf('glo_import:%s', $this->sourceLabel($provider, $payload)),
+                actorUserId: $actor?->getKey() === null ? null : (int) $actor->getKey(),
+            );
+        } catch (DrawResultException $exception) {
+            // The payload was fine; the DRAW would not take it. That is filed as
+            // `refused` - its own status, with its own sentence - because an
+            // operator reading this row must look at the draw's lifecycle, not
+            // at glo.or.th. Nothing was written to draw_results.
+            $payload['status'] = 'refused';
+            $payload['failure_reason'] = sprintf(
+                'Result refused by the draw lifecycle guard: %s',
+                $exception->getMessage(),
+            );
+
+            return [
+                'import' => $this->recordImport($drawId, $provider, $payload, $actor),
+                'draw_result' => null,
+                'payload' => $payload,
+                'ingestion' => null,
+            ];
+        }
 
         $import = $this->recordImport($drawId, $provider, $payload, $actor, $ingestion['fingerprint'] ?? null);
 
-        $this->recordAudit($drawId, $provider, $import, $ingestion, $fingerprint, $actor);
+        $this->recordAudit($drawId, $this->sourceLabel($provider, $payload), $import, $ingestion, $fingerprint, $actor);
 
         return [
             'import' => $import,
@@ -274,22 +317,41 @@ class GloResultImportService
         ?string $normalizedFingerprint = null,
     ): GloResultImport {
         $status = (string) ($payload['status'] ?? 'failed');
+
+        // A ladder that could not use any source says WHY in provider_status.
+        // "No credentials in this deployment" is a configuration fact, not an
+        // outage, and the provenance row must not conflate them.
+        if ($status === 'failed' && ($payload['provider_status'] ?? null) === 'not_configured') {
+            $status = 'not_configured';
+        }
+
         $mode = (string) config('glo.official_source.mode', 'fixture');
 
         return GloResultImport::query()->create([
             'draw_id' => $drawId,
-            'provider' => $provider->name(),
+            'provider' => $this->sourceLabel($provider, $payload),
             'mode' => $mode,
             'status' => $status,
             'endpoint' => isset($payload['endpoint']) ? (string) $payload['endpoint'] : null,
-            'draw_number' => isset($payload['draw_number']) ? (string) $payload['draw_number'] : null,
-            'result_fingerprint' => $normalizedFingerprint
-                ?? (isset($payload['fingerprint']) ? (string) $payload['fingerprint'] : null),
-            'failure_reason' => isset($payload['failure_reason']) ? (string) $payload['failure_reason'] : null,
+            'upstream_draw_id' => isset($payload['draw_number']) && (string) $payload['draw_number'] !== ''
+                ? mb_substr((string) $payload['draw_number'], 0, 64)
+                : null,
+            // The PROVIDER fingerprint: it is the value an auditor can recompute
+            // from the source payload, and the value this service compares when
+            // deciding whether a replay is the same result. The ingestion
+            // fingerprint (a hash over the canonicalized draw_result) belongs to
+            // draw_results, where it is written, and is kept in the summary here
+            // only as a cross-reference between the two rows.
+            'result_fingerprint' => isset($payload['fingerprint']) && (string) $payload['fingerprint'] !== ''
+                ? (string) $payload['fingerprint']
+                : $normalizedFingerprint,
+            'failure_reason' => isset($payload['failure_reason'])
+                ? mb_substr((string) $payload['failure_reason'], 0, 500)
+                : null,
             'import_reference' => 'glo-'.Str::lower(Str::ulid()->toBase32()),
             'imported_by' => $actor?->getKey(),
             'imported_at' => now(),
-            'payload' => $this->redact($payload),
+            'payload_summary' => $this->payloadSummary($payload, $normalizedFingerprint),
         ]);
     }
 
@@ -301,7 +363,7 @@ class GloResultImportService
      */
     private function recordAudit(
         int $drawId,
-        GloResultProvider $provider,
+        string $sourceLabel,
         GloResultImport $import,
         array $ingestion,
         string $providerFingerprint,
@@ -316,7 +378,7 @@ class GloResultImportService
             'description' => 'glo_result_ingested_pending_confirmation',
             'metadata' => [
                 'action_type' => 'glo_result_ingested_pending_confirmation',
-                'provider' => $provider->name(),
+                'provider' => $sourceLabel,
                 'draw_id' => $drawId,
                 'import_reference' => $import->import_reference,
                 'provider_fingerprint' => $providerFingerprint,
@@ -335,6 +397,53 @@ class GloResultImportService
 
     /**
      * Strip anything credential-shaped before a provider payload is persisted.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    /**
+     * A bounded digest of what arrived - never the upstream document.
+     *
+     * The column is called `payload_summary` for a reason: an auditor needs the
+     * draw number, the prize actually received and how many entries each tier
+     * carried, not a copy of the response body. Anything that could carry a
+     * credential is excluded by construction, because this method lists the keys
+     * it keeps rather than filtering the ones it drops.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function payloadSummary(array $payload, ?string $ingestionFingerprint = null): array
+    {
+        $first = $payload['first_prize'] ?? null;
+        $drawNumber = $payload['draw_number'] ?? null;
+
+        return [
+            'provider' => isset($payload['provider']) && is_string($payload['provider'])
+                ? mb_substr($payload['provider'], 0, 32)
+                : null,
+            'draw_number' => is_string($drawNumber) ? mb_substr($drawNumber, 0, 64) : null,
+            // Digit strings, never ints: leading zeros are part of a result.
+            'first_prize' => is_string($first) ? $first : null,
+            'second_prize_count' => is_array($payload['second_prize'] ?? null)
+                ? count($payload['second_prize'])
+                : 0,
+            'third_prize_count' => is_array($payload['third_prize'] ?? null)
+                ? count($payload['third_prize'])
+                : 0,
+            'has_n3' => is_array($payload['n3'] ?? null) && $payload['n3'] !== [],
+            'tier_keys' => is_array($payload['tiers'] ?? null)
+                ? array_slice(array_map('strval', array_keys($payload['tiers'])), 0, 20)
+                : [],
+            'fingerprint' => isset($payload['fingerprint']) && is_string($payload['fingerprint'])
+                ? $payload['fingerprint']
+                : null,
+            'ingestion_fingerprint' => $ingestionFingerprint,
+        ];
+    }
+
+    /**
+     * Strips credential-shaped keys from a structure before it is logged.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>

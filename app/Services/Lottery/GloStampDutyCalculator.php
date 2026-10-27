@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
+use App\DTOs\Lottery\GloStampDutyReport;
 use InvalidArgumentException;
 
 /**
@@ -59,6 +60,27 @@ class GloStampDutyCalculator
         }
 
         return bcadd($quotient, '0.00', 2);
+    }
+
+    /**
+     * The same answer as dutyFor()/netAfterDuty(), packaged as the claim-record DTO.
+     *
+     * This method deliberately contains NO arithmetic of its own: it delegates to the
+     * two scalar methods and states the rule string once. A DTO that recomputed the
+     * ceiling would be a second implementation of a money rule, and the two would
+     * disagree the first time one of them was edited.
+     */
+    public function calculateDuty(string $grossPrize): GloStampDutyReport
+    {
+        $parts = $this->breakdown($grossPrize);
+
+        return new GloStampDutyReport(
+            grossPrizeThb: $parts['gross_prize'],
+            stampDutyThb: $parts['stamp_duty'],
+            netPayoutThb: $parts['net_prize'],
+            isIncomeTaxExempt: $parts['income_tax'] === '0.00',
+            rule: $parts['rule'],
+        );
     }
 
     /**

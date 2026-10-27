@@ -1,0 +1,26 @@
+services:
+  mysql-test:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: thai_lottery_test
+      MARIADB_USER: lotto
+      MARIADB_PASSWORD: lotto_test_pw
+      MARIADB_ROOT_PASSWORD: root_test_pw
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=256M
+      - --transaction-isolation=READ-COMMITTED
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - ./.mysql-test-socket:/run/mysqld
+    tmpfs:
+      - /var/lib/mysql:rw,noexec,nosuid,size=1g
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 45
+      start_period: 10s
+    restart: "no"

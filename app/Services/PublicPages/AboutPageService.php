@@ -171,6 +171,8 @@ final class AboutPageService
             ],
             'contact' => [
                 'title' => $this->text->line('about_contact_title', $locale),
+                'text' => $this->text->line('about_contact_heading', $locale),
+                'href' => $this->namedRoute('contact'),
                 'lead' => $this->text->line('about_contact_lead', $locale),
                 'full_text' => $this->text->line('about_contact_full_text', $locale),
                 'channels' => $this->contactChannels($locale),

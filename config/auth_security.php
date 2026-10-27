@@ -43,6 +43,18 @@ return [
     | an SSO gate), never a client-controlled flag: the answer is ALWAYS
     | verified server-side when enabled, and 'captcha=true' from a
     | client is never accepted as proof.
+    |
+    | PRODUCTION REFUSES THE LOCAL DRIVER. 'local' renders an arithmetic
+    | challenge whose answer is in the same page the bot is reading, so it
+    | stops a naive script and nothing else. It is the right default for
+    | development and the wrong driver for a public login form that guards
+    | a wallet. ProductionSafetyServiceProvider refuses a production
+    | request while `driver` is 'local' or 'fixed' AND captcha is enabled,
+    | so a deployment must choose hcaptcha or turnstile and supply the
+    | Siteverify secret. The refusal is per request, not only at boot.
+    |
+    | 'fixed' is the deterministic test driver. It is refused in production
+    | for the same reason and with the same severity.
     |----------------------------------------------------------------------
     */
     'captcha' => [

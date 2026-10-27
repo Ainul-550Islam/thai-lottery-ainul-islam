@@ -78,17 +78,20 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
         'preferences',
         // PROMPT 3 registration details (columns added by migration
         // 2026_09_28_230001; all nullable, all additive).
-                'date_of_birth',
-                'gender',
-                'city',
-                'country',
-                'nationality',
-                // Social login (PROMPT: FB / Twitter / Google+)
-                'provider',
-                'provider_id',
-                // Wechat ID / IC No. registration fields
-                'wechat_id',
-                'ic_no',
+        'date_of_birth',
+        'gender',
+        'city',
+        'country',
+        'nationality',
+        // Wechat ID + IC No from the registration form (migration
+        // 2026_10_26_000001; both nullable, both uniquely constrained).
+        'wechat_id',
+        'ic_no',
+        // Verification state (migration 2026_09_30_001000). It is assignable so the
+        // verification lanes can record an outcome through the model, but no request
+        // validator ever accepts it: the value a player may send is never this column,
+        // it is the evidence a KYC/KYB review acts on.
+        'kyc_status',
     ];
 
     /**
@@ -116,22 +119,6 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
             'last_seen_at' => 'datetime',
             'preferences' => 'array',
         ];
-    }
-
-    /**
-     * @return HasMany<UserConsent>
-     */
-    public function consents(): HasMany
-    {
-        return $this->hasMany(UserConsent::class);
-    }
-
-    /**
-     * @return HasOne<AgeVerification>
-     */
-    public function ageVerification(): HasOne
-    {
-        return $this->hasOne(AgeVerification::class);
     }
 
     /**
@@ -253,6 +240,44 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     public function responsibleGamingLimit(): HasOne
     {
         return $this->hasOne(ResponsibleGamingLimit::class);
+    }
+
+    /**
+     * @return HasOne<AgeVerification, self>
+     */
+    public function ageVerification(): HasOne
+    {
+        return $this->hasOne(AgeVerification::class);
+    }
+
+    /**
+     * @return HasMany<UserConsent, self>
+     */
+    public function consents(): HasMany
+    {
+        return $this->hasMany(UserConsent::class);
+    }
+
+    /**
+     * Whether the player has an eligible 18+ age attestation and a matching
+     * adult date of birth. Note: self-declaration is an attestation, not ID/KYC
+     * document verification.
+     */
+    public function hasEligibleAgeVerification(): bool
+    {
+        $minimumAge = max(18, (int) config('legal.minimum_age', 18));
+        $age = $this->ageAt(now());
+
+        if ($age === null || $age < $minimumAge) {
+            return false;
+        }
+
+        $verification = $this->ageVerification;
+
+        return $verification instanceof AgeVerification
+            && $verification->status === 'eligible'
+            && $verification->attested_at !== null
+            && (int) $verification->minimum_age <= $age;
     }
 
     /**

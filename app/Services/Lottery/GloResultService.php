@@ -65,9 +65,12 @@ class GloResultService
             'third' => $this->stringList($result->third_prize),
             'fourth' => $this->tierList($tiers, ['fourth', 'fourth_prize', 'fourth_numbers']),
             'fifth' => $this->tierList($tiers, ['fifth', 'fifth_prize', 'fifth_numbers']),
-            'front_three' => $this->tierList($tiers, ['front_three', 'front_3', 'three_front']),
-            'last_three' => $this->tierList($tiers, ['last_three', 'last_3', 'three_back']),
-            'last_two' => $this->tierList($tiers, ['last_two', 'last_2', 'two_back']),
+            // The GLO payload tiers win when present; the canonical tier columns on
+            // the row are the fallback, so an operator-entered result (which has no
+            // provider metadata) still publishes 3Up / 2Up / 2Down.
+            'front_three' => $this->tierOrColumn($tiers, ['front_three', 'front_3', 'three_front'], $result->front_three),
+            'last_three' => $this->tierOrColumn($tiers, ['last_three', 'last_3', 'three_back'], $result->last_three),
+            'last_two' => $this->tierOrColumn($tiers, ['last_two', 'last_2', 'two_back'], $result->last_two),
             'adjacent_first' => $firstPrize !== '' ? $this->adjacentOf($firstPrize) : [],
         ];
 
@@ -94,6 +97,21 @@ class GloResultService
     /**
      * Whether a draw has a recorded result at all.
      */
+    /**
+     * Provider tiers first, the row's own column when the metadata is silent.
+     *
+     * @param  array<string, mixed>  $tiers
+     * @param  list<string>  $keys
+     * @param  list<string>  $column
+     * @return list<string>
+     */
+    private function tierOrColumn(array $tiers, array $keys, array $column): array
+    {
+        $fromMetadata = $this->tierList($tiers, $keys);
+
+        return $fromMetadata !== [] ? $fromMetadata : $this->stringList($column);
+    }
+
     public function hasResult(int $drawId): bool
     {
         return DrawResult::query()->where('draw_id', $drawId)->exists();

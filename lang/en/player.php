@@ -394,6 +394,7 @@ return [
     'two_factor_back_to_security' => 'Back to security settings',
     'two_factor_back_to_status' => 'Back to 2FA status',
     'two_factor_setup_title' => 'Set up 2FA',
+    'two_factor_setup_expired' => 'That setup session has expired, so nothing was changed. Start again to get a fresh secret.',
     'two_factor_setup_lead' => 'Scan the QR code with your authenticator app, then enter the 6-digit code to activate.',
     'two_factor_scan_qr' => 'Scan QR Code',
     'two_factor_qr_alt' => 'TOTP QR code',

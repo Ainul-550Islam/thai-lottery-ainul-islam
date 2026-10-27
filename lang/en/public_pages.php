@@ -15,7 +15,7 @@ return [
 
     // ------------------------------------------------------------------ meta
     'about_meta_title' => 'About',
-    'about_meta_description' => 'How this GLO-compatible lottery platform works: choose a draw, buy securely, follow verified results, and claim under clear rules.',
+    'about_meta_description' => 'How this independent lottery platform works: choose a draw, buy securely, follow verified results, and claim under clear rules.',
     'vision_meta_title' => 'Vision & Mission',
     'vision_meta_description' => 'Our platform vision, mission, core values, and the governance controls we actually implement for lottery results, settlement, and player protection.',
     'terms_meta_title' => 'Terms of Use',
@@ -24,11 +24,11 @@ return [
 
     // ------------------------------------------------------------------ about
     'about_title' => 'About this platform',
-    'about_lead' => 'An independent, GLO-compatible lottery information and wagering platform. We are not the Government Lottery Office, not an official GLO agent, and not a government portal.',
+    'about_lead' => 'An independent lottery information and wagering platform. We are not the Government Lottery Office, not an official GLO agent, and not a government portal.',
 
     'how_it_works_title' => 'How it works',
     'how_it_works_choose_label' => 'Choose',
-    'how_it_works_choose_text' => 'Browse published draws and results, then choose a product: GLO-style L6 or N3 on this platform, or operator markets such as 3D, TOD, 2D, and Run.',
+    'how_it_works_choose_text' => 'Browse published draws and results, then choose a product: L6 or N3 on this platform, or operator markets such as 3D, TOD, 2D, and Run.',
     'how_it_works_buy_label' => 'Buy',
     'how_it_works_buy_text' => 'Create an account or sign in, fund your wallet through configured payment methods, and place your purchase. Ticket numbers keep leading zeros.',
     'how_it_works_result_label' => 'Result',
@@ -37,7 +37,7 @@ return [
     'how_it_works_claim_text' => 'If a ticket wins, claim follows verification, eligibility checks, any applicable holds, KYC gates, stamp duty calculation, and the approved payout path — never an automatic promise of instant payment.',
 
     'history_title' => 'Our approach',
-    'history_text' => 'This platform exists to make lottery results, ticket checking, and account tooling clear and auditable. We publish results only with honest source labels, calculate prizes from configured GLO-compatible rules, and keep an append-only trail for money movements. We do not claim a founding date, government affiliation, or certification that is not published here.',
+    'history_text' => 'This platform exists to make lottery results, ticket checking, and account tooling clear and auditable. We publish results only with honest source labels, calculate prizes from the rules configured for each product, and keep an append-only trail for money movements. We do not claim a founding date, government affiliation, or certification that is not published here.',
 
     'useful_links_title' => 'Useful links',
     'useful_links_text' => 'Public pages on this site — no account required for results, ticket checks, or sales-point search.',
@@ -87,10 +87,10 @@ return [
 
     // ------------------------------------------------------------------ vision
     'vision_title' => 'Vision & Mission',
-    'vision_lead' => 'A trustworthy, GLO-compatible lottery platform where every result, prize, and payout is verifiable.',
+    'vision_lead' => 'A trustworthy lottery platform where every result, prize, and payout is verifiable.',
 
     'vision_section_title' => 'Vision',
-    'vision_section_text' => 'To be the most transparent GLO-compatible lottery platform: players can verify every published result, understand every prize calculation, and follow every payout decision with clear source labels and audit evidence.',
+    'vision_section_text' => 'To be the most transparent lottery platform: players can verify every published result, understand every prize calculation, and follow every payout decision with clear source labels and audit evidence.',
 
     'mission_section_title' => 'Mission',
     'mission_section_text' => 'Operate lottery information and wagering features with verified result publication, configured prize settlement, sales reconciliation, immutable audit trails, KYC-gated withdrawals, and privacy-respecting public pages.',
@@ -184,8 +184,8 @@ return [
     'terms_intro_text' => 'These Terms govern your use of this independent lottery information and wagering platform. We are not the Government Lottery Office (GLO), not an official agent, and not a government portal. GLO product rules are referenced only for prize-rule compatibility.',
 
     'terms_products_title' => '2. Products and prize rules',
-    'terms_products_l6_text' => 'GLO-compatible L6: ticket price {l6_price} THB; full-sale allocation {l6_allocation} THB across {l6_units} units; {l6_prize_count} prizes in the full-sale schedule; prizes scale proportionally when sales are below full sale.',
-    'terms_products_n3_text' => 'GLO-compatible N3: ticket price {n3_price} THB; prize pool is {n3_pool_rate} of N3 gross sales; payouts are variable and draw-calculated — never fixed historical amounts.',
+    'terms_products_l6_text' => 'L6 six-digit product: ticket price {l6_price} THB; full-sale allocation {l6_allocation} THB across {l6_units} units; {l6_prize_count} prizes in the full-sale schedule; prizes scale proportionally when sales are below full sale.',
+    'terms_products_n3_text' => 'N3 three-digit product: ticket price {n3_price} THB; prize pool is {n3_pool_rate} of N3 gross sales; payouts are variable and draw-calculated — never fixed historical amounts.',
     'terms_products_separation_text' => 'Operator markets (3D, TOD, 2D, Run) are platform products. They are never described as GLO N3 or as government lottery products.',
 
     'terms_stamp_title' => '3. Prize duty and tax treatment',
@@ -201,13 +201,13 @@ return [
     'terms_age_claim_text' => 'Claim: prize claimants must be {claim_min_age} years of age or older, calculated from the verified date of birth on file — never from a client-supplied age.',
 
     'terms_ticket_title' => '6. Ticket ownership and transfers',
-    'terms_ticket_text' => 'Lottery ticket numbers are digit strings with leading zeros preserved. For GLO-style L6 prizes, a claim follows the authorized claimant path for the verified holder; tickets are not freely transferable instruments for claiming purposes on this platform.',
+    'terms_ticket_text' => 'Lottery ticket numbers are digit strings with leading zeros preserved. For L6 prizes, a claim follows the authorized claimant path for the verified holder; tickets are not freely transferable instruments for claiming purposes on this platform.',
 
     'terms_responsible_title' => '7. Responsible gaming',
     'terms_responsible_text' => 'Where enabled on your account, you can use self-exclusion, deposit/loss limits, and reality checks from your profile and the responsible-gaming settings. These are player-protection tools, not a statement of regulatory approval.',
 
     'terms_claim_title' => '8. Claims and payouts',
-    'terms_claim_text' => 'There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is {claim_window_years} years from the draw under configured GLO-compatible rules.',
+    'terms_claim_text' => 'There is no promise of immediate payment. Claims are subject to result verification, eligibility review, applicable holds, KYC where required, stamp duty calculation, and the approved payout channel. Claim window is {claim_window_years} years from the draw under the configured product rules.',
 
     'terms_disclaimer_title' => '9. Legal disclaimer',
     // The non-affiliation sentences are deliberately literal ("not the official GLO
@@ -534,7 +534,7 @@ return [
     'footer_kyc_guide' => 'Account verification guide',
     'footer_account_grades' => 'Account grades',
     'footer_prize_verification' => 'Prize verification',
-    'footer_contact' => 'Contact',
+    'footer_contact' => 'Contact Us',
     'footer_all_rights_reserved' => 'All rights reserved.',
     'footer_disclaimer' => 'This independent platform is not the official GLO website and is not operated by or endorsed by a government lottery authority. Verify published results and applicable rules against a reliable source.',
     'footer_version_label' => 'Version',
@@ -598,4 +598,10 @@ return [
     'download_terms_label' => 'TERMS OF USE',
     'download_privacy_label' => 'PRIVACY NOTICE',
     'download_fees_label' => 'FEE SCHEDULE',
+
+    // Batch 02: the about page contact block reads these through PublicPageTextBag.
+    'about_contact_title' => 'Contact',
+    'about_contact_heading' => 'Questions about this platform go to the operator support desk.',
+    'about_contact_lead' => 'The contact form is the only channel this platform answers on. Every message gets a reference you can quote back to support.',
+    'about_contact_full_text' => 'Support reads messages through the contact form. Response times, languages and the retention period are published on that page.',
 ];

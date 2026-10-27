@@ -653,6 +653,295 @@ abstract class AbstractLotteryImportService
     }
 
     /**
+     * SECOND-PERSON PUBLICATION of a version that was imported but withheld.
+     *
+     * THE GAP THIS CLOSES
+     * -----------------------------------------------------------------------
+     * `import($payload, $provider, $actorId, autoPublish: false)` stores a real,
+     * verified version and deliberately does NOT publish it. Until now there was
+     * no way to publish it at all except by importing the same payload again
+     * with autoPublish: true — which returns DUPLICATE, because the payload
+     * fingerprint already exists. So "withhold now, publish after review" was
+     * not an available workflow: the only path to publication was the same
+     * single actor re-running the import. That is one person publishing the
+     * numbers they typed.
+     *
+     * WHAT THIS METHOD REQUIRES
+     * -----------------------------------------------------------------------
+     *   1. the version exists and belongs to a draw;
+     *   2. the version is Verified — a Conflict version must go through
+     *      resolveConflict(), and a Superseded or Rejected one is dead;
+     *   3. the version is NOT already the draw's current version, so a double
+     *      click cannot publish twice or "re-publish" a retired number;
+     *   4. `imported_by` is recorded AND differs from $approverId. An unknown
+     *      importer (null) cannot be approved, because there is no second person
+     *      to distinguish the approver from;
+     *   5. the lane still considers the source state publishable;
+     *   6. a non-empty reason is supplied — "why this number is live" is part of
+     *      the record.
+     *
+     * WHAT IT DOES NOT DO
+     * -----------------------------------------------------------------------
+     *  - It does not change a single result value. The numbers were frozen when
+     *    they were imported; this only moves `is_current` and the publication
+     *    pointers, which is why a published result is immutable in the sense the
+     *    brief requires: nothing can rewrite it, only a new version can supersede
+     *    it and both remain readable.
+     *  - It does not resolve a conflict. A conflicting version is refused here
+     *    with CONFLICT_VERSION_REQUIRES_RESOLUTION rather than quietly published
+     *    over a number the previous version already asserted.
+     *
+     * @return array{
+     *     status: string,
+     *     draw_reference: string|null,
+     *     version: int|null,
+     *     source_state: string,
+     *     result_status: string|null,
+     *     published: bool,
+     *     integrity: array<string, mixed>|null,
+     *     errors: list<string>,
+     *     message: string
+     * }
+     */
+    public function approveVersion(
+        AbstractLotteryResultVersion $version,
+        int $approverId,
+        string $reason,
+    ): array {
+        $reason = trim($reason);
+
+        if ($reason === '') {
+            return $this->outcome(
+                self::STATUS_REJECTED,
+                null,
+                null,
+                $this->sources->resolve((string) $version->source_state),
+                null,
+                false,
+                null,
+                ['APPROVAL_REASON_REQUIRED'],
+                'An approval reason is required.',
+            );
+        }
+
+        /*
+        | A REASON, NOT A KEYSTROKE.
+        |
+        | The minimum length applies to entries made by a person, which are the
+        | only approvals where a reason is read by anyone afterwards: a later
+        | dispute asks why these numbers were published when the feed said
+        | otherwise, and "ok" answers nothing. Provider imports have their own
+        | provenance and are not held to this — their approval reason is a queue
+        | comment, not the sole record of a human judgement.
+        */
+        $operatorLabel = $this->config->get($this->configPrefix().'.sources.operator.provider_label', 'internal');
+        $minReasonLength = (int) $this->config->get($this->configPrefix().'.sources.operator.min_reason_length', 0);
+
+        if (
+            is_string($operatorLabel)
+            && $operatorLabel !== ''
+            && trim($operatorLabel) === trim((string) $version->provider)
+            && $minReasonLength > 0
+            && mb_strlen($reason) < $minReasonLength
+        ) {
+            return $this->outcome(
+                self::STATUS_REJECTED,
+                null,
+                (int) $version->version_number,
+                $this->sources->resolve((string) $version->source_state),
+                null,
+                false,
+                null,
+                ['APPROVAL_REASON_TOO_SHORT'],
+                sprintf('An approval reason of at least %d characters is required.', $minReasonLength),
+            );
+        }
+
+        $importerId = $version->imported_by === null ? null : (int) $version->imported_by;
+
+        if ($importerId === null) {
+            return $this->outcome(
+                self::STATUS_REJECTED,
+                null,
+                null,
+                $this->sources->resolve((string) $version->source_state),
+                null,
+                false,
+                null,
+                ['IMPORTER_UNKNOWN'],
+                'The version has no recorded importer, so a second person cannot be distinguished from the first.',
+            );
+        }
+
+        if ($importerId === $approverId) {
+            return $this->outcome(
+                self::STATUS_REJECTED,
+                null,
+                null,
+                $this->sources->resolve((string) $version->source_state),
+                null,
+                false,
+                null,
+                ['APPROVER_IS_IMPORTER'],
+                'The importer may not approve their own entry; a second person is required.',
+            );
+        }
+
+        if ($version->state !== ResultVersionState::Verified) {
+            $code = $version->state === ResultVersionState::Conflict
+                ? 'CONFLICT_VERSION_REQUIRES_RESOLUTION'
+                : 'VERSION_NOT_APPROVABLE';
+
+            return $this->outcome(
+                self::STATUS_REJECTED,
+                null,
+                (int) $version->version_number,
+                $this->sources->resolve((string) $version->source_state),
+                null,
+                false,
+                null,
+                [$code],
+                'Only a verified, non-conflicting version can be approved.',
+            );
+        }
+
+        try {
+            return DB::transaction(function () use ($version, $approverId, $reason): array {
+                /** @var AbstractLotteryResultVersion|null $locked */
+                $locked = $this->versionQuery()
+                    ->whereKey($version->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $locked instanceof AbstractLotteryResultVersion) {
+                    return $this->outcome(
+                        self::STATUS_REJECTED,
+                        null,
+                        null,
+                        GloSourceState::Unavailable,
+                        null,
+                        false,
+                        null,
+                        ['APPROVAL_TARGET_MISSING'],
+                        'The version no longer exists.',
+                    );
+                }
+
+                /** @var AbstractLotteryDraw|null $draw */
+                $draw = $this->drawQuery()
+                    ->whereKey($locked->draw_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $draw instanceof AbstractLotteryDraw) {
+                    return $this->outcome(
+                        self::STATUS_REJECTED,
+                        null,
+                        null,
+                        $this->sources->resolve((string) $locked->source_state),
+                        null,
+                        false,
+                        null,
+                        ['APPROVAL_DRAW_MISSING'],
+                        'The version has no draw.',
+                    );
+                }
+
+                // Already live: an idempotent no-op, reported as such rather
+                // than published a second time.
+                if ((int) ($draw->current_result_version_id ?? 0) === (int) $locked->id) {
+                    $existingResult = $this->resultQuery()
+                        ->where('result_version_id', $locked->id)
+                        ->first();
+
+                    return $this->outcome(
+                        self::STATUS_DUPLICATE,
+                        (string) $draw->draw_reference,
+                        (int) $locked->version_number,
+                        $this->sources->resolve((string) $locked->source_state),
+                        $existingResult instanceof AbstractLotteryResult ? (string) $existingResult->result_status : null,
+                        true,
+                        $locked->integrityProjection(),
+                        [],
+                        'This version is already the published one; nothing was changed.',
+                    );
+                }
+
+                $result = $this->resultQuery()
+                    ->where('result_version_id', $locked->id)
+                    ->first();
+
+                if (! $result instanceof AbstractLotteryResult) {
+                    return $this->outcome(
+                        self::STATUS_REJECTED,
+                        (string) $draw->draw_reference,
+                        (int) $locked->version_number,
+                        $this->sources->resolve((string) $locked->source_state),
+                        null,
+                        false,
+                        null,
+                        ['APPROVAL_RESULT_MISSING'],
+                        'The version has no stored result row.',
+                    );
+                }
+
+                if (! $this->mayPublish($draw, $this->sources->resolve((string) $locked->source_state))) {
+                    return $this->outcome(
+                        self::STATUS_REJECTED,
+                        (string) $draw->draw_reference,
+                        (int) $locked->version_number,
+                        $this->sources->resolve((string) $locked->source_state),
+                        (string) $result->result_status,
+                        false,
+                        null,
+                        ['PUBLICATION_BLOCKED'],
+                        'This source state may not be published, or an open conflict blocks publication.',
+                    );
+                }
+
+                $audit = is_array($locked->audit) ? $locked->audit : [];
+                $audit['second_person_approval'] = [
+                    'actor_id' => $approverId,
+                    'importer_id' => (int) $locked->imported_by,
+                    'reason' => mb_substr($reason, 0, 500),
+                    'approved_at' => now()->toIso8601String(),
+                ];
+
+                $locked->audit = $audit;
+                $locked->save();
+
+                $this->publishVersion($draw, $locked, $result, null, $approverId, 'second_person_approval');
+
+                return $this->outcome(
+                    self::STATUS_IMPORTED,
+                    (string) $draw->draw_reference,
+                    (int) $locked->version_number,
+                    $this->sources->resolve((string) $locked->source_state),
+                    (string) $result->result_status,
+                    true,
+                    $locked->integrityProjection(),
+                    [],
+                    'Version approved by a second person and published.',
+                );
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return $this->outcome(
+                self::STATUS_REJECTED,
+                null,
+                null,
+                $this->sources->resolve((string) $version->source_state),
+                null,
+                false,
+                null,
+                ['APPROVAL_FAILED'],
+                'Publication failed and was rolled back.',
+            );
+        }
+    }
+
+    /**
      * Make a version the live one, retiring whatever came before it.
      *
      * Runs inside the caller's transaction. No result value is UPDATEd; the

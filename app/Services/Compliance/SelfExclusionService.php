@@ -41,6 +41,20 @@ class SelfExclusionService
         return $this->engine->cancel($exclusion, $cancelledBy);
     }
 
+    /**
+     * Take the player's own request all the way down: a self-exclusion the player
+     * asked for is in force the moment it is asked for, not when a sweeper opens it.
+     */
+    public function exclude(SelfExclusionData $data): SelfExclusion
+    {
+        return $this->engine->activate($this->engine->request($data));
+    }
+
+    public function isSelfExcluded(int $userId): bool
+    {
+        return $this->engine->hasActiveExclusion($userId);
+    }
+
     public function hasActiveExclusion(int $userId): bool
     {
         return $this->engine->hasActiveExclusion($userId);

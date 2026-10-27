@@ -1,5 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+|--------------------------------------------------------------------------
+| Third-party service endpoints and credentials
+|--------------------------------------------------------------------------
+|
+| THE ONE PLACE A URL LIVES. `glo` below is the endpoint the scheduled fetch
+| command uses. App\Console\Commands\FetchGloOfficialDrawResultCommand reads it
+| from here (falling back to config('glo.official_source')) so no command and no
+| service contains a URL literal and a stale host cannot survive in a crontab.
+|
+| NOTHING IN THIS FILE REACHES THE BROWSER. The realtime client block lives in
+| config/realtime.php and carries public identifiers only; every `secret`, `key`
+| and `token` below is server-side and is never rendered into a view, a meta tag
+| or a JSON payload.
+|
+*/
+
 return [
 
     'postmark' => [
@@ -70,6 +89,30 @@ return [
         // LINE Messaging API (replacement)
         'messaging_channel_access_token' => env('LINE_MESSAGING_CHANNEL_ACCESS_TOKEN', ''),
         'messaging_user_id' => env('LINE_MESSAGING_USER_ID', ''),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Government Lottery Office (GLO) official catalogue
+    |--------------------------------------------------------------------------
+    |
+    | The documented public endpoints only. `base_url` is duplicated from
+    | config/glo.php by design: the command path reads THIS file first because a
+    | deployment may rotate the upstream host without touching the prize
+    | catalogue, and the two must be able to differ during a migration. Neither
+    | value may be hardcoded anywhere else.
+    |
+    | `timeout` and `connect_timeout` are seconds. A scheduled command that hangs
+    | is indistinguishable from a scheduler that is not running, so both are
+    | bounded and neither is left to a driver default.
+    */
+    'glo' => [
+        'base_url' => (string) env('GLO_OFFICIAL_BASE_URL', env('GLO_API_BASE_URL', 'https://www.glo.or.th')),
+        'latest_lottery_path' => (string) env('GLO_LATEST_LOTTERY_PATH', '/api/lottery/getLatestLottery'),
+        'lottery_result_path' => (string) env('GLO_LOTTERY_RESULT_PATH', '/api/checking/getLotteryResult'),
+        'timeout' => (int) env('GLO_REQUEST_TIMEOUT_SECONDS', 10),
+        'connect_timeout' => (int) env('GLO_CONNECT_TIMEOUT_SECONDS', 3),
+        'retries' => max(0, min(3, (int) env('GLO_REQUEST_RETRIES', 1))),
     ],
 
     /*

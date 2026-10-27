@@ -29,6 +29,9 @@ class KBankWebhookController extends Controller
                 $request->header('X-KBANK-Timestamp') ?? $request->header('X-Timestamp'),
             );
             $request->attributes->set('webhook.signature_verified', true);
+            if (in_array((string) ($result['result'] ?? ''), ['needs_review', 'unmatched'], true)) {
+                return response()->json(['status' => 'ERROR', 'message' => trans('payment_ops.webhook_match_failed')], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
 
             return response()->json([
                 'status' => 'SUCCESS',

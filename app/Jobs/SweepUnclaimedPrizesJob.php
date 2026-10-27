@@ -149,14 +149,15 @@ class SweepUnclaimedPrizesJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Update,
             'risk_level' => RiskLevel::Medium,
-            'auditable_type' => 'unclaimed_prize_disposal',
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'Unclaimed-prize disposal sweep enrolled %d lapsed prize(s) totalling %s.',
                 $summary['swept_count'],
                 $summary['total_swept_amount'],
             ),
             'metadata' => [
+                'lane' => 'unclaimed_prize_disposal',
                 'swept_count' => $summary['swept_count'],
                 'total_swept_amount' => $summary['total_swept_amount'],
                 'action' => 'unclaimed_prizes_swept',

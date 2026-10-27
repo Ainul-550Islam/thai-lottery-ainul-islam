@@ -74,18 +74,40 @@ final class ResponsibleGamingController
         /** @var User $user */
         $user = $request->user();
 
-        $record = $this->rgService->setLimits(
-            user: $user,
-            dailyDepositLimit: isset($validated['daily_deposit_limit']) ? (string) $validated['daily_deposit_limit'] : null,
-            singleBetLimit: isset($validated['single_bet_limit']) ? (string) $validated['single_bet_limit'] : null,
-            dailyWageringLimit: isset($validated['daily_wagering_limit']) ? (string) $validated['daily_wagering_limit'] : null,
-        );
+        try {
+            $record = $this->rgService->setLimits(
+                user: $user,
+                dailyDepositLimit: isset($validated['daily_deposit_limit']) ? (string) $validated['daily_deposit_limit'] : null,
+                singleBetLimit: isset($validated['single_bet_limit']) ? (string) $validated['single_bet_limit'] : null,
+                dailyWageringLimit: isset($validated['daily_wagering_limit']) ? (string) $validated['daily_wagering_limit'] : null,
+            );
+        } catch (ResponsibleGamingLimitException|SelfExclusionException $e) {
+            // A refused raise is a policy answer, not a server fault: the caller gets
+            // the reason and the unchanged state, never a stack trace.
+            return ApiResponse::error(code: strtolower($e->errorCode()), message: $e->getMessage(), status: 422);
+        }
+
+        $pending = ResponsibleGamingLimitVersion::query()
+            ->where('user_id', (int) $user->getKey())
+            ->where('limit_status', 'pending')
+            ->orderBy('effective_from')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ResponsibleGamingLimitVersion $version): array => [
+                'limit_type' => $version->limit_type->value,
+                'amount' => (string) $version->amount,
+                'currency' => (string) $version->currency,
+                'effective_from' => $version->effective_from?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
 
         return ApiResponse::success(
             data: [
                 'daily_deposit_limit' => $record->daily_deposit_limit,
                 'single_bet_limit' => $record->single_bet_limit,
                 'daily_wagering_limit' => $record->daily_wagering_limit,
+                'pending_limits' => $pending,
             ],
             message: 'Responsible gaming limits updated successfully.',
         );
@@ -140,6 +162,7 @@ final class ResponsibleGamingController
             'amount' => ['required', 'string', 'regex:/^\\d{1,12}(\\.\\d{1,2})?$/'],
             'currency' => ['nullable', 'string', 'size:3'],
             'effective_to' => ['nullable', 'date'],
+            'request_key' => ['nullable', 'string', 'max:128'],
         ]);
 
         /** @var User $user */
@@ -152,15 +175,26 @@ final class ResponsibleGamingController
                 'amount' => (string) $validated['amount'],
                 'currency' => $validated['currency'] ?? 'THB',
                 'effective_to' => isset($validated['effective_to']) ? Carbon::parse($validated['effective_to']) : null,
+                'request_key' => isset($validated['request_key']) ? (string) $validated['request_key'] : null,
             ]));
         } catch (ResponsibleGamingLimitException|SelfExclusionException $e) {
             return ApiResponse::error(code: strtolower($e->errorCode()), message: $e->getMessage(), status: 422);
         }
 
+        // What actually binds the player now. A raise is only pending until its
+        // cooling-off elapses, so the request's own amount is not the ceiling.
+        $binding = $this->limitVersions->bindingLimitFor(
+            (int) $user->getKey(),
+            $result['version']->limit_type,
+            (string) $result['version']->currency,
+        );
+
         return ApiResponse::success(data: [
             'limit_key' => $result['version']->limit_key,
             'limit_type' => $result['version']->limit_type->value,
             'amount' => (string) $result['version']->amount,
+            'binding_amount' => $binding !== null ? (string) $binding->amount : null,
+            'binding_limit_key' => $binding?->limit_key,
             'status' => $result['version']->limit_status->value,
             'effective_from' => $result['version']->effective_from?->toIso8601String(),
             'replayed' => $result['replayed'],

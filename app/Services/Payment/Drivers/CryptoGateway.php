@@ -43,12 +43,22 @@ class CryptoGateway extends AbstractPaymentGateway
         return GatewayIntegrationStatus::Unsupported;
     }
 
+    public function isEnabled(): bool
+    {
+        return false;
+    }
+
     public function supportsDeposit(): bool
     {
         return false;
     }
 
     public function supportsWithdrawal(): bool
+    {
+        return false;
+    }
+
+    public function supportsWebhook(): bool
     {
         return false;
     }

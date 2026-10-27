@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Player;
 
 use App\DTOs\ResponsibleGaming\SelfExclusionData;
+use App\Enums\NotificationChannel;
+use App\Enums\NotificationEventType;
 use App\Enums\UserSessionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ResponsibleGamingLimit;
@@ -52,7 +54,52 @@ final class PlayerSecuritySettingsController extends Controller
             'activeExclusion' => $activeExclusion,
             'sessions' => $sessions,
             'kycStatus' => $this->verification->publicStatus($user),
+            /*
+            | The notification matrix the page renders is the SERVER's closed
+            | vocabulary, not a list typed into the view. The page prints it, the
+            | endpoint validates against it, and both read the same enums, so a
+            | preference row can never be offered for an event the writer refuses.
+            */
+            'notificationMatrix' => self::notificationMatrix(),
         ]);
+    }
+
+    /**
+     * The closed notification vocabulary, as the player security page prints it.
+     *
+     * EVENTS are every domain event a player can hold a preference for. CHANNELS
+     * are the deliverable lanes only: `none` exists in the enum to mean
+     * "silenced" and is never offered as a column. MANDATORY is the floor the
+     * writer refuses to disable, so the page can show those rows as locked
+     * before the player tries and is told no.
+     *
+     * @return array{events: list<string>, channels: list<string>, mandatory: list<string>}
+     */
+    public static function notificationMatrix(): array
+    {
+        $events = array_values(array_map(
+            static fn (NotificationEventType $type): string => $type->value,
+            NotificationEventType::cases(),
+        ));
+
+        $channels = array_values(array_map(
+            static fn (NotificationChannel $channel): string => $channel->value,
+            array_values(array_filter(
+                NotificationChannel::cases(),
+                static fn (NotificationChannel $channel): bool => $channel->isDeliverable(),
+            )),
+        ));
+
+        $mandatory = array_values(array_filter(
+            $events,
+            static fn (string $event): bool => NotificationEventType::from($event)->isMandatory(),
+        ));
+
+        return [
+            'events' => $events,
+            'channels' => $channels,
+            'mandatory' => $mandatory,
+        ];
     }
 
     public function getLimitsApi(Request $request): JsonResponse

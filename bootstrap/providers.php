@@ -9,6 +9,7 @@ use App\Providers\ProductionSafetyServiceProvider;
 use App\Providers\QueueServiceProvider;
 use App\Providers\ThaiRailsServiceProvider;
 use App\Providers\WalletConversionServiceProvider;
+use App\Providers\FrontendOpsServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -22,4 +23,5 @@ return [
     ThaiRailsServiceProvider::class,
     WalletConversionServiceProvider::class,
     AdminPanelProvider::class,
+    FrontendOpsServiceProvider::class,
 ];

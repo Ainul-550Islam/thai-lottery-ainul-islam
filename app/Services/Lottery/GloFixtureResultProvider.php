@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Lottery;
 
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Contracts\Foundation\Application;
 
 /**
  * Fixture result provider — replays official-shape JSON from
@@ -16,15 +17,34 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  */
 class GloFixtureResultProvider implements GloResultProvider
 {
-    public function __construct(private readonly ConfigRepository $config) {}
+    public function __construct(
+        private readonly ConfigRepository $config,
+        private readonly Application $app,
+    ) {}
 
     public function name(): string
     {
         return 'fixture';
     }
 
+    /**
+     * A FIXTURE MAY NEVER BE CONFIGURED IN PRODUCTION.
+     *
+     * The refusal lives here, on the provider itself, and not only in the
+     * chain, the command or ProductionSafetyServiceProvider, because each of
+     * those is one caller: a queue worker restarted from a stale config, a
+     * console command run by hand, or a future service that resolves this class
+     * directly would each be a separate way in. `isConfigured()` returning false
+     * means the chain records the rung as `skipped: not_configured` and moves on;
+     * `fetch()` refuses independently, so a caller that ignores the first check
+     * still cannot obtain synthetic digits.
+     */
     public function isConfigured(): bool
     {
+        if ($this->app->environment('production')) {
+            return false;
+        }
+
         $dir = $this->fixtureDir();
 
         return $dir !== '' && is_dir($dir);
@@ -41,6 +61,7 @@ class GloFixtureResultProvider implements GloResultProvider
             'endpoint' => $endpoint,
             'draw_number' => $drawNumber,
             'first_prize' => null,
+            'bottom_two' => null,
             'second_prize' => [],
             'third_prize' => [],
             'n3' => [],
@@ -49,9 +70,16 @@ class GloFixtureResultProvider implements GloResultProvider
             'fingerprint' => null,
         ];
 
+        if ($this->app->environment('production')) {
+            $empty['status'] = 'not_configured';
+            $empty['failure_reason'] = 'the fixture result lane is refused in production';
+
+            return $empty;
+        }
+
         if (! $this->isConfigured()) {
             $empty['status'] = 'not_configured';
-            $empty['failure_reason'] = 'fixture directory missing: '.$dir;
+            $empty['failure_reason'] = 'fixture directory missing';
 
             return $empty;
         }
@@ -129,6 +157,7 @@ class GloFixtureResultProvider implements GloResultProvider
             'endpoint' => $endpoint,
             'draw_number' => $drawNumber ?? (string) ($body['draw'] ?? $body['draw_number'] ?? ''),
             'first_prize' => null,
+            'bottom_two' => null,
             'second_prize' => [],
             'third_prize' => [],
             'n3' => [],
@@ -143,6 +172,14 @@ class GloFixtureResultProvider implements GloResultProvider
 
         $seconds = $this->digitList($body['second'] ?? [], 6);
         $thirds = $this->digitList($body['third'] ?? [], 6);
+
+        // The two-digit number is DRAWN SEPARATELY from the first prize, so it is
+        // read from the source's own entry and never derived from the six-digit
+        // number. When the source carries none — or more than one — the field is
+        // null and ingestion refuses the draw rather than settling the two-digit
+        // market against a number that was never drawn.
+        $lastTwo = $this->digitList($body['last_two'] ?? [], 2);
+        $bottomTwo = count($lastTwo) === 1 ? $lastTwo[0] : null;
         $draw = (string) ($body['draw'] ?? $body['draw_number'] ?? $drawNumber ?? '');
 
         $n3 = [];
@@ -164,6 +201,7 @@ class GloFixtureResultProvider implements GloResultProvider
             $seconds,
             $thirds,
             $n3,
+            $bottomTwo,
         ], JSON_THROW_ON_ERROR));
 
         return [
@@ -172,6 +210,7 @@ class GloFixtureResultProvider implements GloResultProvider
             'endpoint' => $endpoint,
             'draw_number' => $draw,
             'first_prize' => $first,
+            'bottom_two' => $bottomTwo,
             'second_prize' => $seconds,
             'third_prize' => $thirds,
             'n3' => $n3,
@@ -180,7 +219,7 @@ class GloFixtureResultProvider implements GloResultProvider
                 'fifth' => $this->digitList($body['fifth'] ?? [], 6),
                 'front_three' => $this->digitList($body['front_three'] ?? [], 3),
                 'last_three' => $this->digitList($body['last_three'] ?? [], 3),
-                'last_two' => $this->digitList($body['last_two'] ?? [], 2),
+                'last_two' => $lastTwo,
             ],
             'failure_reason' => null,
             'fingerprint' => $fingerprint,

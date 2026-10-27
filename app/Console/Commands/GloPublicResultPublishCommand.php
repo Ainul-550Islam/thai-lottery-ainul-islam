@@ -8,10 +8,13 @@ use App\Enums\AuditAction;
 use App\Enums\DrawStatus;
 use App\Enums\GloSourceState;
 use App\Enums\RiskLevel;
+use App\Exceptions\DrawResultException;
 use App\Models\AuditLog;
 use App\Models\Draw;
 use App\Models\DrawReconciliation;
 use App\Models\DrawResult;
+use App\Services\Draw\DrawResultPublicationService;
+use App\Services\PublicPages\PublishedResultSourceResolver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
@@ -85,8 +88,9 @@ class GloPublicResultPublishCommand extends Command
         }
 
         // Gate 2: provenance must exist (import fingerprint or explicit publish hash).
+        $tierKey = (string) config('glo.tiers.metadata_key', 'glo');
         $meta = is_array($result->metadata) ? $result->metadata : [];
-        $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
+        $lane = is_array($meta[$tierKey] ?? null) ? $meta[$tierKey] : [];
         $fingerprint = (string) ($lane['import_fingerprint'] ?? $lane['n3_fingerprint'] ?? '');
 
         if ($fingerprint === '') {
@@ -107,9 +111,31 @@ class GloPublicResultPublishCommand extends Command
             return self::FAILURE;
         }
 
-        $sourceState = ($lane['import_provider'] ?? '') === 'fixture'
-            ? GloSourceState::FixtureOnly
-            : GloSourceState::OfficialSourceVerified;
+        $provider = strtolower(trim((string) ($lane['import_provider'] ?? '')));
+        $provenanceStr = strtolower(trim((string) ($meta['provenance'] ?? '')));
+        $isProduction = config('app.env') === 'production' || app()->environment('production');
+
+        if ($isProduction && (in_array($provider, ['fixture', 'fixture_only'], true) || str_contains($provenanceStr, 'fixture'))) {
+            $this->error('Result is fixture-sourced — refusing to publish fixture data in production.');
+
+            return self::FAILURE;
+        }
+
+        try {
+            app(DrawResultPublicationService::class)->verifiedProvenanceFor($draw, $result);
+        } catch (DrawResultException $e) {
+            $this->error('Result provenance verification failed — refusing to publish unverified data: '.$e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $sourceState = app(PublishedResultSourceResolver::class)->resolve($draw, $result);
+
+        if ($sourceState === GloSourceState::Unavailable) {
+            $this->error('Result source state is UNAVAILABLE — refusing to publish unverified data.');
+
+            return self::FAILURE;
+        }
 
         $cacheKey = sprintf(
             'glo:public-result:%s:%s:%s',
@@ -118,13 +144,10 @@ class GloPublicResultPublishCommand extends Command
             strtolower($sourceState->value),
         );
 
-        // Idempotent same-version publish: the key already embeds the
-        // fingerprint, so re-publishing the identical version is a no-op success.
-        // A DIFFERENT version for the same draw lives under a different key;
-        // readers pick the current key only after an explicit new-version
-        // publish. --force re-puts the same fingerprint (refresh TTL).
         $previous = Cache::get($cacheKey);
         $sameVersionAlreadyPublished = $previous !== null;
+        $forced = (bool) $this->option('force');
+        $ttlSeconds = max(1, (int) config('glo.result_experience.cache_ttl_seconds', 60));
 
         $payload = [
             'draw_id' => (int) $draw->getKey(),
@@ -139,35 +162,33 @@ class GloPublicResultPublishCommand extends Command
             'fixture_sample' => $sourceState === GloSourceState::FixtureOnly,
         ];
 
-        // 60 minutes matches glo.result_experience.cache_ttl_seconds default;
-        // key includes product|draw|result_version as required.
-        Cache::put($cacheKey, $payload, (int) config('glo.result_experience.cache_ttl_seconds', 60) * 60);
+        if (! $sameVersionAlreadyPublished || $forced) {
+            Cache::put($cacheKey, $payload, $ttlSeconds);
+            Cache::put('glo:public-result:current:'.$draw->getKey(), $cacheKey, $ttlSeconds);
 
-        // Alias for "current draw" readers (still version-stamped).
-        Cache::put('glo:public-result:current:'.$draw->getKey(), $cacheKey, (int) config('glo.result_experience.cache_ttl_seconds', 60) * 60);
+            foreach (['home.current-result', 'home.prize-summary', 'home.stats', 'home.page'] as $homeKey) {
+                Cache::forget($homeKey);
+            }
 
-        // Home aggregates that embed the current result must not serve a stale card.
-        foreach (['home.current-result', 'home.prize-summary', 'home.stats', 'home.page'] as $homeKey) {
-            Cache::forget($homeKey);
+            $actor = (string) ($this->option('actor') ?? 'CLI:glo:publish-public-result');
+            AuditLog::create([
+                'user_id' => null,
+                'action' => AuditAction::Update,
+                'risk_level' => RiskLevel::Medium,
+                'auditable_type' => DrawResult::class,
+                'auditable_id' => (int) $result->getKey(),
+                'description' => 'glo_public_result_published',
+                'metadata' => [
+                    'action_type' => 'glo_public_result_published',
+                    'draw_id' => (int) $draw->getKey(),
+                    'result_version' => $fingerprint,
+                    'source_state' => $sourceState->value,
+                    'actor' => $actor,
+                    'forced' => $forced,
+                    'ttl_seconds' => $ttlSeconds,
+                ],
+            ]);
         }
-
-        $actor = (string) ($this->option('actor') ?? 'CLI:glo:publish-public-result');
-        AuditLog::create([
-            'user_id' => null,
-            'action' => AuditAction::Update,
-            'risk_level' => RiskLevel::Medium,
-            'auditable_type' => DrawResult::class,
-            'auditable_id' => (int) $result->getKey(),
-            'description' => 'glo_public_result_published',
-            'metadata' => [
-                'action_type' => 'glo_public_result_published',
-                'draw_id' => (int) $draw->getKey(),
-                'result_version' => $fingerprint,
-                'source_state' => $sourceState->value,
-                'actor' => $actor,
-                'forced' => (bool) $this->option('force'),
-            ],
-        ]);
 
         $out = [
             'draw_id' => (int) $draw->getKey(),
@@ -175,8 +196,9 @@ class GloPublicResultPublishCommand extends Command
             'result_version' => $fingerprint,
             'source_state' => $sourceState->value,
             'cache_key' => $cacheKey,
+            'ttl_seconds' => $ttlSeconds,
             'already_published' => $sameVersionAlreadyPublished,
-            'forced' => (bool) $this->option('force'),
+            'forced' => $forced,
         ];
 
         if ($asJson) {

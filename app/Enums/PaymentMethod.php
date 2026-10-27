@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
 enum PaymentMethod: string
@@ -45,6 +47,18 @@ enum PaymentMethod: string
             self::BankTransfer, self::Manual => [Currency::THB, Currency::USD, Currency::BDT],
             self::PromptPay => [Currency::THB],
         };
+    }
+
+    /** Market currencies for this payment method. */
+    public function market(): array
+    {
+        return array_map(static fn (Currency $currency): string => $currency->value, $this->supportedCurrencies());
+    }
+
+    /** Whether a live provider can ever execute this method. */
+    public function isLiveCapable(): bool
+    {
+        return ! in_array($this, [self::Crypto, self::Manual], true);
     }
 
     public function icon(): string

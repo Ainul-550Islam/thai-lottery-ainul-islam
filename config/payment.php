@@ -37,6 +37,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    'country' => strtoupper((string) env('APP_COUNTRY', 'TH')),
     'currency' => [
         'default' => env('FINANCE_DEFAULT_CURRENCY', 'THB'),
         'supported' => ['THB', 'USD', 'BDT'],
@@ -69,6 +70,17 @@ return [
     */
 
     'methods' => array_column(PaymentMethod::cases(), 'value'),
+
+    // Market allowlists are enforced by PaymentGatewayManager before any
+    // payment method is displayed or resolved. Countries are ISO 3166-1 alpha-2.
+    'markets' => [
+        'stripe' => ['currencies' => ['THB', 'USD'], 'countries' => ['TH', 'US']],
+        'bkash' => ['currencies' => ['BDT'], 'countries' => ['BD']],
+        'nagad' => ['currencies' => ['BDT'], 'countries' => ['BD']],
+        'bank_transfer' => ['currencies' => ['THB'], 'countries' => ['TH']],
+        'promptpay' => ['currencies' => ['THB'], 'countries' => ['TH']],
+        'thai_bank' => ['currencies' => ['THB'], 'countries' => ['TH']],
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -140,7 +152,6 @@ return [
             PaymentMethod::Bkash->value,
             PaymentMethod::Nagad->value,
             PaymentMethod::BankTransfer->value,
-            PaymentMethod::Crypto->value,
             PaymentMethod::PromptPay->value,
         ],
     ],
@@ -163,7 +174,7 @@ return [
             PaymentMethod::Bkash->value,
             PaymentMethod::Nagad->value,
             PaymentMethod::BankTransfer->value,
-            PaymentMethod::Crypto->value,
+            PaymentMethod::PromptPay->value,
         ],
     ],
 
@@ -173,8 +184,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | How the SYSTEM chooses the rail that actually pays a withdrawal. This is
-    | not a player preference: the player chooses `bank_transfer` or
-    | `promptpay`, and WithdrawalDisbursementService decides from server-side
+    | not a player preference: the player chooses a supported payout method,
+    | such as `bank_transfer`, and WithdrawalDisbursementService decides from server-side
     | configuration plus the stored destination whether the automated Thai
     | bank rail can pay it, persisting the chosen key on the withdrawal before
     | the external call.

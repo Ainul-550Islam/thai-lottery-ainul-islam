@@ -147,14 +147,15 @@ class CloseExpiredClaimWindowsJob implements ShouldBeUnique, ShouldQueue
             'user_id' => null,
             'action' => AuditAction::Update,
             'risk_level' => RiskLevel::Medium,
-            'auditable_type' => 'claim_window_sweep',
-            'auditable_id' => 0,
+            'auditable_type' => null,
+            'auditable_id' => null,
             'description' => sprintf(
                 'Daily claim-window sweep closed %d lapsed window(s) totalling %s.',
                 $summary['closed_count'],
                 $summary['total_lapsed_amount'],
             ),
             'metadata' => [
+                'lane' => 'claim_window_sweep',
                 'closed_count' => $summary['closed_count'],
                 'total_lapsed_amount' => $summary['total_lapsed_amount'],
                 'action' => 'claim_windows_closed',

@@ -44,9 +44,9 @@ return [
     'priority_low' => 'নিম্ন',
     'priority_normal' => 'সাধারণ',
     'priority_high' => 'উচ্চ',
+    'unknown_value' => 'তথ্য অনুপলভ্য',
     'status_open' => 'খোলা',
     'status_in_progress' => 'চলমান',
     'status_resolved' => 'সমাধান হয়েছে',
     'status_closed' => 'বন্ধ',
-    'unknown_value' => 'তথ্য অনুপলভ্য',
 ];

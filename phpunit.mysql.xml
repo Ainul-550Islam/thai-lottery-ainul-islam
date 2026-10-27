@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         cacheDirectory=".phpunit.cache"
+         executionOrder="default">
+    <testsuites>
+        <testsuite name="mysql-financial-concurrency">
+            <!-- Explicit file membership prevents overlapping directory suffixes from
+                 adding ServerRaceTest files twice and makes suite discovery auditable. -->
+            <file>tests/Feature/Betting/OwnedBetAmendmentServerRaceTest.php</file>
+            <file>tests/Feature/Betting/OwnedPurchaseReplayServerRaceTest.php</file>
+            <file>tests/Feature/Betting/PlayerWagerAdmissionServerTest.php</file>
+            <file>tests/Feature/Betting/StripeRefundWagerGuardServerTest.php</file>
+            <file>tests/Feature/Compliance/PlayerDepositAdmissionServerTest.php</file>
+            <file>tests/Feature/Compliance/ResponsibleGamingLimitLifecycleServerTest.php</file>
+            <file>tests/Feature/Concurrency/RedisSettlementRecoveryTest.php</file>
+            <file>tests/Feature/Concurrency/SettlementServerRaceTest.php</file>
+            <file>tests/Feature/Concurrency/SettlementWorkerRecoveryTest.php</file>
+            <file>tests/Feature/Concurrency/WalletConversionServerRaceTest.php</file>
+            <file>tests/Feature/Concurrency/WebhookObligationServerRaceTest.php</file>
+            <file>tests/Feature/Concurrency/WithdrawalDispatchRecoveryTest.php</file>
+            <file>tests/Feature/Concurrency/WithdrawalDispatchServerRaceTest.php</file>
+            <file>tests/Feature/Concurrency/WithdrawalReconciliationServerRaceTest.php</file>
+            <file>tests/Feature/Concurrency/WithdrawalReferenceServerRaceTest.php</file>
+            <file>tests/Feature/Draw/OwnedDrawCancellationServerRaceTest.php</file>
+            <file>tests/Feature/Finance/FinancialRetryOwnershipServerTest.php</file>
+            <file>tests/Feature/Finance/LedgerPostingCurrentReadServerTest.php</file>
+            <file>tests/Feature/Finance/LifecycleTransactionBoundaryServerTest.php</file>
+            <file>tests/Feature/Finance/ReversalTransactionBoundaryServerTest.php</file>
+            <file>tests/Feature/Finance/WalletTransactionBoundaryServerTest.php</file>
+            <file>tests/Feature/Payment/DepositReferenceServerRaceTest.php</file>
+            <file>tests/Feature/Payment/DurableDepositCheckoutServerTest.php</file>
+            <file>tests/Feature/Payment/OutboundReferenceServerRaceTest.php</file>
+            <file>tests/Feature/Payment/PayoutEvidenceServerRaceTest.php</file>
+            <file>tests/Feature/Payment/PlayerPrizeClaimServerRaceTest.php</file>
+            <file>tests/Feature/Payment/ReversalIntegrityServerRaceTest.php</file>
+            <file>tests/Feature/Payment/StripeCheckoutReconciliationServerTest.php</file>
+            <file>tests/Feature/Payment/StripeDepositReviewServerTest.php</file>
+            <file>tests/Feature/Payment/StripeDepositSettlementServerTest.php</file>
+            <file>tests/Feature/Payment/StripeFollowupRoutingServerTest.php</file>
+            <file>tests/Feature/Payment/StripeFollowupSweepServerTest.php</file>
+            <file>tests/Feature/Payment/StripeRefundRecoveryServerTest.php</file>
+            <file>tests/Feature/Payment/StripeRefundWithdrawalGuardServerTest.php</file>
+            <file>tests/Feature/Payment/WithdrawalHoldFloorServerRaceTest.php</file>
+            <file>tests/Feature/Payment/WithdrawalInitialHoldHandoffServerTest.php</file>
+            <file>tests/Feature/Risk/DrawRiskAdmissionServerTest.php</file>
+            <file>tests/Feature/Wallet/Conversion/ConversionMemberEligibilityServerTest.php</file>
+            <file>tests/Feature/Wallet/Conversion/ConversionOriginalProofServerTest.php</file>
+            <file>tests/Feature/Wallet/Conversion/ConversionQuoteSlotServerTest.php</file>
+            <file>tests/Feature/Wallet/Conversion/ConversionReversalAuthorityServerTest.php</file>
+            <file>tests/Feature/Wallet/Conversion/ConversionRollingLimitServerTest.php</file>
+            <file>tests/Feature/Wallet/Conversion/ConversionWalletEligibilityServerTest.php</file>
+            <file>tests/Feature/Wallet/Conversion/StripeRefundConversionGuardServerTest.php</file>
+            <file>tests/Unit/WalletMutationConcurrencyTest.php</file>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_DEBUG" value="true" force="true"/>
+        <env name="APP_KEY" value="base64:ZdZRVoeGZh2IQXa67+qdQzaPbjnFovX4CCE0YgWHJI8=" force="true"/>
+        <env name="REAL_MONEY_ENABLED" value="false" force="true"/>
+        <env name="AUTH_CAPTCHA_ENABLED" value="false" force="true"/>
+        <env name="CONVERSION_ENABLED" value="true" force="true"/>
+        <env name="CONVERSION_CASH_TO_WIN_ENABLED" value="true" force="true"/>
+        <env name="CONVERSION_WIN_TO_CASH_ENABLED" value="true" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="BROADCAST_CONNECTION" value="log" force="true"/>
+        <env name="FILESYSTEM_DISK" value="local" force="true"/>
+        <env name="FINANCIAL_PAYOUT_RACE" value="1" force="true"/>
+        <!-- Synthetic test-only credentials let mocked Stripe fixtures pass the real readiness gate. -->
+        <env name="APP_COUNTRY" value="TH" force="true"/>
+        <env name="FINANCE_DEFAULT_CURRENCY" value="THB" force="true"/>
+        <env name="STRIPE_ENABLED" value="true" force="true"/>
+        <env name="STRIPE_KEY" value="pk_test_mock_public_key_12345" force="true"/>
+        <env name="STRIPE_SECRET" value="sk_test_mock_secret_key_12345" force="true"/>
+        <env name="STRIPE_WEBHOOK_SECRET" value="whsec_mock_stripe_webhook_secret_67890" force="true"/>
+        <env name="DB_CONNECTION" value="mysql" force="true"/>
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="3307" force="true"/>
+        <env name="DB_DATABASE" value="thai_lottery_test" force="true"/>
+        <env name="DB_USERNAME" value="lotto" force="true"/>
+        <env name="DB_PASSWORD" value="lotto_test_pw" force="true"/>
+        <env name="DB_CHARSET" value="utf8mb4" force="true"/>
+        <env name="DB_BUSY_TIMEOUT" value="15000" force="true"/>
+        <env name="DB_FOREIGN_KEYS" value="true" force="true"/>
+        <env name="RISK_MAX_STAKE_PER_NUMBER" value="100000.00" force="true"/>
+        <env name="WEEKLY_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
+        <env name="NATIONAL_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
+        <env name="PCSO_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
+        <env name="BINGO_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
+    </php>
+</phpunit>

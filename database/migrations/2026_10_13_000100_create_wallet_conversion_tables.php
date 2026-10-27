@@ -4,121 +4,116 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * The Cash <-> Win conversion lane's storage: quotes, movements, audit trail.
- *
- * THREE TABLES, ONE LIFECYCLE
- * A quote is a priced promise; a conversion is a movement; an audit row is an
- * event that happened to either. Splitting them means a consumed quote can be
- * bound to the conversion it produced without either row's history being
- * rewritten, and a refusal can be recorded with no movement row at all.
- *
- * MONEY COLUMNS ARE DECIMAL(18,2), NEVER FLOATS
- * The lane's whole claim is exact arithmetic — a fee of exactly 1.00 on 100.00
- * and a ledger that balances to the satang. A float column would round at
- * storage time and the books would stop balancing in ways no test could
- * reproduce. Rates keep four decimal places because a whole percent of
- * '5.00' must survive as '0.0500' exactly.
- */
+/** Additive schema only. No wallet balance, fee or existing ledger row is changed. */
 return new class extends Migration
 {
     public function up(): void
     {
-        if (! Schema::hasTable('wallet_conversions')) {
-            Schema::create('wallet_conversions', function (Blueprint $table): void {
-                $table->id();
-                $table->string('reference', 64)->unique();
-                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-                $table->string('direction', 32);
-                $table->string('status', 16);
-                $table->string('currency', 8);
-                $table->decimal('amount_in', 18, 2);
-                $table->decimal('fee_amount', 18, 2);
-                $table->decimal('amount_out', 18, 2);
-                $table->decimal('fee_rate', 12, 4);
-                $table->string('fee_rule_key', 191);
-                $table->string('fee_rule_version', 32);
-                $table->foreignId('from_wallet_id')->constrained('wallets');
-                $table->foreignId('to_wallet_id')->constrained('wallets');
-                $table->string('from_wallet_type', 32);
-                $table->string('to_wallet_type', 32);
-                $table->decimal('from_balance_after', 18, 2)->nullable();
-                $table->decimal('to_balance_after', 18, 2)->nullable();
-                $table->string('channel', 16)->nullable();
-                $table->string('quote_reference', 64)->nullable();
-                $table->string('idempotency_key', 128)->nullable();
-                $table->unsignedBigInteger('financial_transaction_id')->nullable();
-                $table->foreignId('reversal_of_id')->nullable()->constrained('wallet_conversions')->nullOnDelete();
-                $table->foreignId('reversed_by_id')->nullable()->constrained('wallet_conversions')->nullOnDelete();
-                $table->string('reversal_reason', 500)->nullable();
-                $table->timestamp('reversed_at')->nullable();
-                $table->timestamp('completed_at')->nullable();
-                $table->string('failure_reason', 500)->nullable();
-                $table->string('note', 500)->nullable();
-                $table->timestamps();
-    
-                // One movement per key, per member, per channel: a retry must
-                // replay the first row, never create a second one.
-                $table->unique(['user_id', 'channel', 'idempotency_key'], 'wc_idempotency_scope');
-                $table->index(['user_id', 'status', 'completed_at'], 'wc_user_settled_window');
-                $table->index(['user_id', 'created_at'], 'wc_user_history');
-            });
-        }
+        Schema::create('wallet_conversions', function (Blueprint $table): void {
+            $table->id();
+            $table->string('reference', 64)->unique();
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->string('direction', 32);
+            $table->string('status', 32)->default('pending');
+            $table->string('currency', 3);
+            $table->foreignId('from_wallet_id')->constrained('wallets')->restrictOnDelete();
+            $table->foreignId('to_wallet_id')->constrained('wallets')->restrictOnDelete();
+            $table->string('from_wallet_type', 32);
+            $table->string('to_wallet_type', 32);
+            $table->decimal('amount_in', 20, 2);
+            // Signed to support an explicit negative fee refund on a reversal row.
+            $table->decimal('fee_amount', 20, 2);
+            $table->decimal('amount_out', 20, 2);
+            $table->decimal('fee_rate', 12, 8);
+            $table->string('fee_bearer', 32);
+            $table->string('fee_rule_key', 128);
+            $table->string('fee_rule_version', 64);
+            $table->string('channel', 32);
+            $table->foreignId('actor_user_id')->nullable()->constrained('users')->restrictOnDelete();
+            $table->string('quote_reference', 64)->nullable()->index();
+            $table->string('idempotency_key', 128);
+            $table->char('request_fingerprint', 64)->nullable();
+            $table->foreignId('financial_transaction_id')->nullable()->constrained('financial_transactions')->restrictOnDelete();
+            $table->decimal('from_balance_before', 20, 2)->nullable();
+            $table->decimal('to_balance_before', 20, 2)->nullable();
+            $table->decimal('from_balance_after', 20, 2)->nullable();
+            $table->decimal('to_balance_after', 20, 2)->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->string('failure_reason', 128)->nullable();
+            // One reversal for each original; database uniqueness backs the service lock.
+            $table->foreignId('reversal_of_id')->nullable()->unique()->constrained('wallet_conversions')->restrictOnDelete();
+            $table->foreignId('reversed_by_id')->nullable()->unique()->constrained('wallet_conversions')->restrictOnDelete();
+            $table->timestamp('reversed_at')->nullable();
+            $table->text('reversal_reason')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+            $table->unique(['user_id', 'idempotency_key'], 'wconv_owner_key_unique');
+            $table->index(['user_id', 'status', 'completed_at'], 'wconv_owner_status_time');
+            $table->index(['status', 'created_at'], 'wconv_status_created');
+            $table->index(['user_id', 'direction', 'created_at'], 'wconv_owner_direction_time');
+        });
 
-        if (! Schema::hasTable('wallet_conversion_quotes')) {
-            Schema::create('wallet_conversion_quotes', function (Blueprint $table): void {
-                $table->id();
-                $table->string('reference', 64)->unique();
-                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-                $table->string('direction', 32);
-                $table->string('currency', 8);
-                $table->decimal('amount_in', 18, 2);
-                $table->decimal('fee_amount', 18, 2);
-                $table->decimal('amount_out', 18, 2);
-                $table->decimal('rate', 12, 4);
-                $table->string('fee_bearer', 16);
-                $table->string('fee_rule_key', 191);
-                $table->string('fee_rule_version', 32);
-                $table->string('status', 16)->default('open');
-                $table->string('idempotency_key', 128)->nullable();
-                $table->foreignId('converted_id')->nullable()->constrained('wallet_conversions')->nullOnDelete();
-                $table->timestamp('consumed_at')->nullable();
-                $table->timestamp('expires_at');
-                $table->timestamps();
-    
-                $table->index(['user_id', 'status', 'expires_at'], 'wc_quotes_open_window');
-            });
-        }
+        Schema::create('wallet_conversion_quotes', function (Blueprint $table): void {
+            $table->id();
+            $table->string('reference', 64)->unique();
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->string('direction', 32);
+            $table->string('currency', 3);
+            $table->decimal('amount_in', 20, 2);
+            $table->decimal('fee_amount', 20, 2);
+            $table->decimal('amount_out', 20, 2);
+            $table->decimal('rate', 12, 8);
+            $table->string('fee_bearer', 32);
+            $table->string('fee_rule_key', 128);
+            $table->string('fee_rule_version', 64);
+            $table->json('limits');
+            $table->string('status', 32)->default('open');
+            $table->timestamp('issued_at');
+            $table->timestamp('expires_at');
+            $table->foreignId('converted_id')->nullable()->unique()->constrained('wallet_conversions')->restrictOnDelete();
+            $table->timestamp('consumed_at')->nullable();
+            $table->text('description')->nullable();
+            $table->timestamps();
+            $table->index(['user_id', 'status', 'expires_at'], 'wquote_owner_status_expiry');
+            $table->index(['status', 'expires_at'], 'wquote_status_expiry');
+        });
 
-        if (! Schema::hasTable('wallet_conversion_audits')) {
-            Schema::create('wallet_conversion_audits', function (Blueprint $table): void {
-                $table->id();
-                $table->foreignId('wallet_conversion_id')->nullable()->constrained('wallet_conversions')->nullOnDelete();
-                $table->string('reference', 64);
-                $table->string('event', 64);
-                $table->string('error_code', 64)->nullable();
-                $table->string('channel', 16)->nullable();
-                $table->unsignedBigInteger('actor_user_id')->nullable();
-                $table->string('ip_address', 45)->nullable();
-                $table->string('user_agent', 500)->nullable();
-                $table->string('request_id', 64)->nullable();
-                $table->json('context')->nullable();
-                $table->timestamp('recorded_at');
-                $table->timestamps();
-    
-                $table->index(['reference', 'recorded_at'], 'wc_audit_reference_time');
-                $table->index(['recorded_at', 'error_code'], 'wc_audit_refusals');
-            });
-        }
+        Schema::create('wallet_conversion_audits', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('wallet_conversion_id')->nullable()->constrained('wallet_conversions')->restrictOnDelete();
+            $table->string('reference', 64)->nullable();
+            $table->foreignId('user_id')->nullable()->constrained()->restrictOnDelete();
+            $table->foreignId('actor_user_id')->nullable()->constrained('users')->restrictOnDelete();
+            $table->string('event', 64);
+            $table->string('direction', 32)->nullable();
+            $table->string('channel', 32);
+            $table->string('error_code', 128)->nullable();
+            $table->text('message')->nullable();
+            $table->json('checks')->nullable();
+            $table->json('context')->nullable();
+            $table->json('metadata')->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->string('user_agent', 512)->nullable();
+            $table->string('request_id', 128)->nullable();
+            $table->timestamp('recorded_at');
+            $table->index(['reference', 'recorded_at'], 'waudit_reference_time');
+            $table->index(['user_id', 'recorded_at'], 'waudit_owner_time');
+            $table->index(['error_code', 'recorded_at'], 'waudit_error_time');
+        });
     }
 
     public function down(): void
     {
-        // Children drop before parents: wallet_conversion_quotes carries the
-        // converted_id foreign key into wallet_conversions, and audits carry
-        // wallet_conversion_id, so the parents come down last.
+        // Refuse routine rollback once financial evidence exists. Never silently erase it.
+        foreach (['wallet_conversion_audits', 'wallet_conversion_quotes', 'wallet_conversions'] as $table) {
+            if (Schema::hasTable($table) && DB::table($table)->exists()) {
+                throw new RuntimeException('Refusing to drop populated conversion tables. Archive and review financial history first.');
+            }
+        }
+        // Drop dependent tables first; self references disappear with the parent table.
         Schema::dropIfExists('wallet_conversion_audits');
         Schema::dropIfExists('wallet_conversion_quotes');
         Schema::dropIfExists('wallet_conversions');

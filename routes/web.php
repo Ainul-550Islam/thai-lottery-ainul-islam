@@ -48,6 +48,7 @@ use App\Http\Controllers\Verification\AccountVerificationController as MemberAcc
 use App\Http\Controllers\Web\BetPurchaseController;
 use App\Http\Controllers\Web\PaymentCallbackController;
 use App\Http\Controllers\Web\PlayerWebController;
+use App\Http\Controllers\Web\TotpMfaWebController;
 use App\Http\Controllers\Wallet\WalletConversionActionController;
 use App\Http\Controllers\Wallet\WalletConversionPageController;
 use App\Http\Controllers\Chat\ChatAdminController;
@@ -237,8 +238,14 @@ Route::middleware('auth')->group(function (): void {
     // route is policy-walled (AccountVerificationPolicy::decide).
     Route::get('/account/verification', [MemberAccountVerificationController::class, 'show'])
         ->name('account.verification');
+    // Identity submission is a review request, not a money movement, and a
+    // member may be asked to verify BEFORE any legal document is published for
+    // their locale. Requiring a current consent record here made the page
+    // unreachable in exactly that case (it redirected to /legal/consent, which
+    // itself has no document to accept). The legal gate stays on every route
+    // that moves money or opens a position.
     Route::post('/account/verification', [MemberAccountVerificationController::class, 'submit'])
-        ->middleware(['throttle:account-verification', 'legal.current'])
+        ->middleware('throttle:account-verification')
         ->name('account.verification.submit');
     Route::get('/account/verification/document/{document}', [MemberAccountVerificationController::class, 'download'])
         ->middleware('throttle:account-verification')
@@ -331,6 +338,34 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/settings', [PlayerWebController::class, 'responsibleGaming'])->name('settings.index');
     Route::get('/member/settings', [PlayerWebController::class, 'responsibleGaming'])->name('member.settings');
     Route::get('/player/settings-portal', [PlayerWebController::class, 'responsibleGaming'])->name('player.settings.portal');
+
+    /*
+    | Two-factor enrollment.
+    |
+    | These four routes are the only way a member can turn TOTP on, replace their
+    | recovery codes, or turn it off. They live in the authenticated group because
+    | every one of them acts on the signed-in account, and each POST is CSRF
+    | protected by the web middleware: an attacker who can submit a form on another
+    | site must not be able to disable a member's second factor.
+    |
+    | `throttle` is applied per route rather than to the group: disabling 2FA and
+    | regenerating recovery codes both take a six-digit code, so they are exactly
+    | the endpoints a script would brute force.
+    */
+    Route::get('/player/security/2fa', [TotpMfaWebController::class, 'show'])->name('player.security.2fa');
+    Route::post('/player/security/2fa/start', [TotpMfaWebController::class, 'start'])
+        ->middleware('throttle:6,1')
+        ->name('player.security.2fa.start');
+    Route::get('/player/security/2fa/setup', [TotpMfaWebController::class, 'setup'])->name('player.security.2fa.setup');
+    Route::post('/player/security/2fa/confirm', [TotpMfaWebController::class, 'confirm'])
+        ->middleware('throttle:10,1')
+        ->name('player.security.2fa.confirm');
+    Route::post('/player/security/2fa/disable', [TotpMfaWebController::class, 'disable'])
+        ->middleware('throttle:5,1')
+        ->name('player.security.2fa.disable');
+    Route::post('/player/security/2fa/recovery-codes', [TotpMfaWebController::class, 'recoveryCodes'])
+        ->middleware('throttle:5,1')
+        ->name('player.security.2fa.recovery');
     Route::get('/member/profile', fn () => redirect()->route('player.profile'))->name('member.profile');
     Route::get('/player/profile-portal', fn () => redirect()->route('player.profile'))->name('player.profile.portal');
 });

@@ -26,6 +26,7 @@ use App\Services\Finance\WithdrawalReservationService;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payout\ThaiBank\ThaiBankDestinationValidator;
 use App\Services\Payout\ThaiBank\ThaiBankPayoutAdapterInterface;
+use App\Services\Withdrawal\ManualDisbursementQueueService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -98,6 +99,11 @@ class WithdrawalDisbursementService
             }
             $bank = strtolower(trim((string) config('thai_payout.default_bank', '')));
             if (! in_array($bank, ['scb', 'kbank'], true) || ! (bool) config('thai_payout.banks.'.$bank.'.enabled', false)) {
+                return $previous;
+            }
+            if ($w->method === PaymentMethod::PromptPay
+                && (! (bool) config('thai_payout.promptpay.enabled', false)
+                    || ! (bool) config('thai_payout.promptpay.banks.'.$bank, false))) {
                 return $previous;
             }
             $adapter = app(ThaiBankPayoutAdapterInterface::class);
@@ -520,6 +526,9 @@ class WithdrawalDisbursementService
                 }
                 $lockedWithdrawal->metadata = $metadata;
                 $lockedWithdrawal->save();
+                if ($manualPending && in_array($lockedWithdrawal->method->value, ['bkash', 'nagad', 'bank_transfer', 'promptpay'], true)) {
+                    app(ManualDisbursementQueueService::class)->enqueue($lockedWithdrawal);
+                }
 
                 $this->recordAudit(
                     action: AuditAction::Withdraw,

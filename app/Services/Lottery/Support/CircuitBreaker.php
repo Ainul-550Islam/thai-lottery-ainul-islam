@@ -92,7 +92,7 @@ final class CircuitBreaker
         }
 
         try {
-            $state = $this->state($source);
+            $state = $this->state($source, $policy);
 
             if ($state['state'] === self::STATE_CLOSED) {
                 return true;
@@ -141,7 +141,7 @@ final class CircuitBreaker
         }
 
         try {
-            $state = $this->state($source);
+            $state = $this->state($source, $policy);
             $state['failures'] = (int) $state['failures'] + 1;
             $state['last_failure_at'] = now()->toIso8601String();
             $state['probes_taken'] = 0;
@@ -202,7 +202,7 @@ final class CircuitBreaker
      */
     public function describe(string $source, BreakerPolicy $policy): array
     {
-        $state = $this->state($source);
+        $state = $this->state($source, $policy);
 
         $retryAfter = 0;
 
@@ -237,9 +237,15 @@ final class CircuitBreaker
     /**
      * @return array{state: string, failures: int, opened_at: string|null, last_success_at: string|null, last_failure_at: string|null, probes_taken: int}
      */
-    private function state(string $source): array
+    private function state(string $source, BreakerPolicy $policy): array
     {
-        $stored = $this->cache->get($this->key($source, null));
+        // The policy carries the key prefix, so the READ and the WRITE must be
+        // derived from the same object. Reading with a default prefix while
+        // writing with the configured one silently splits the breaker into two
+        // independent states: the circuit opens in one and is never seen by the
+        // other, which is how a source that has failed every attempt for an hour
+        // keeps being called.
+        $stored = $this->cache->get($this->key($source, $policy));
 
         if (! is_array($stored)) {
             return [

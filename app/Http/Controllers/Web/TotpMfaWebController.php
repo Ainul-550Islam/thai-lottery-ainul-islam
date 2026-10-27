@@ -56,17 +56,50 @@ final class TotpMfaWebController extends Controller
             return back()->with('error', $e->validator->errors()->first());
         }
 
-        // Store the reference in session so the confirm step can bind to it.
+        // The pending enrollment is carried in the session, not in the URL: the
+        // secret must never appear in a browser history entry, a referrer header
+        // or an access log.
         $request->session()->put('totp_enrollment_reference', $data['reference']);
         $request->session()->put('totp_enrollment_secret', $data['secret']);
+        $request->session()->put('totp_enrollment_otpauth_uri', $data['otpauth_uri']);
         $request->session()->put('totp_enrollment_expires_at', $data['expires_at_epoch']);
+
+        // POST-redirect-GET, not a rendered response: a member who refreshes the
+        // setup page must not mint a second pending enrollment, and the back
+        // button must not resubmit the form.
+        return redirect()->route('player.security.2fa.setup');
+    }
+
+    /**
+     * Render the pending enrollment, if there is one.
+     *
+     * The secret is read back out of the session rather than regenerated, so the
+     * authenticator app and the server stay in step. With nothing pending there
+     * is nothing to show and the member is sent back to the status page instead
+     * of being handed an empty setup screen.
+     */
+    public function setup(Request $request): View|RedirectResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        $reference = $request->session()->get('totp_enrollment_reference');
+        $secret = $request->session()->get('totp_enrollment_secret');
+        $otpauthUri = $request->session()->get('totp_enrollment_otpauth_uri');
+        $expiresAt = $request->session()->get('totp_enrollment_expires_at');
+
+        if (! is_string($reference) || ! is_string($secret) || ! is_string($otpauthUri) || ! is_int($expiresAt)) {
+            return redirect()
+                ->route('player.security.2fa')
+                ->with('error', __('player.two_factor_setup_expired'));
+        }
 
         return view('player.security.two-factor-setup', [
             'user' => $user,
-            'reference' => $data['reference'],
-            'secret' => $data['secret'],
-            'otpauth_uri' => $data['otpauth_uri'],
-            'expires_at_epoch' => $data['expires_at_epoch'],
+            'reference' => $reference,
+            'secret' => $secret,
+            'otpauth_uri' => $otpauthUri,
+            'expires_at_epoch' => $expiresAt,
         ]);
     }
 
@@ -91,6 +124,7 @@ final class TotpMfaWebController extends Controller
         $request->session()->forget([
             'totp_enrollment_reference',
             'totp_enrollment_secret',
+            'totp_enrollment_otpauth_uri',
             'totp_enrollment_expires_at',
         ]);
 

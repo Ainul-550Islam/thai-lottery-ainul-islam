@@ -7,7 +7,9 @@ use App\Models\AccountVerification;
 use App\Models\Agent;
 use App\Models\Bet;
 use App\Models\Draw;
+use App\Models\GloL6TicketReservation;
 use App\Models\GloPrizeClaim;
+use App\Models\GloTicket;
 use App\Models\GloTicketFreeze;
 use App\Models\GradeDiscountSnapshot;
 use App\Models\LedgerEntry;
@@ -19,6 +21,7 @@ use App\Policies\AccountVerificationPolicy;
 use App\Policies\AgentPolicy;
 use App\Policies\BetPolicy;
 use App\Policies\DrawPolicy;
+use App\Policies\GloL6TicketPolicy;
 use App\Policies\GloPrizeClaimPolicy;
 use App\Policies\GloTicketFreezePolicy;
 use App\Policies\LedgerPolicy;
@@ -47,6 +50,14 @@ class AuthServiceProvider extends ServiceProvider
         AccountVerification::class => AccountVerificationPolicy::class,
         GloTicketFreeze::class => GloTicketFreezePolicy::class,
         GloPrizeClaim::class => GloPrizeClaimPolicy::class,
+        // The L6 lane's policy is named for the FEATURE, not for one model, because
+        // it answers for both a reserved seat and an issued ticket. Laravel's
+        // convention-based discovery only looks for `{Model}Policy`, so without this
+        // registration `Gate::authorize('create', GloL6TicketReservation::class)`
+        // found no policy and refused every reservation - including the ones that
+        // must be refused for a DIFFERENT reason (an unconfigured lane, 503).
+        GloL6TicketReservation::class => GloL6TicketPolicy::class,
+        GloTicket::class => GloL6TicketPolicy::class,
     ];
 
     public function boot(): void

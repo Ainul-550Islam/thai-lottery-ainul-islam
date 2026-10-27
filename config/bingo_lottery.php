@@ -215,6 +215,81 @@ return [
             'provider_label' => 'replay',
         ],
 
+        /*
+        |------------------------------------------------------------------
+        | Operator entry (manual result, two-person approved)
+        |------------------------------------------------------------------
+        |
+        | WHEN THE FEED IS LATE, A HUMAN IS THE PROVIDER. This block names the
+        | provider label a manually entered result claims and states the only
+        | path by which it may reach the public.
+        |
+        | provider_label MUST ALSO APPEAR IN `priority` ABOVE. A label that is
+        | not in the priority list is refused by the import engine with
+        | UNKNOWN_PROVIDER, so App\Services\Lottery\OperatorResultEntryService
+        | checks this pairing before it accepts an entry and refuses early with a
+        | readable message instead. That check is why an operator cannot type a
+        | result into a lane that could never publish it.
+        |
+        | THE LABEL IS 'internal', NEVER 'official'. A person typing numbers is
+        | not the government printer. 'internal' renders as INTERNAL_RECONCILED
+        | on every public surface; 'official' would be a false provenance claim
+        | and the badge is the one thing a player trusts about a result page.
+        |
+        | require_second_person is not advisory. The approval method that
+        | publishes a withheld version refuses when the approver is the
+        | importer, when the importer is not recorded, when the version is not
+        | Verified, and when no reason is supplied. Setting this to false would
+        | have no effect on that code path; it exists so the intent is visible
+        | in configuration review.
+        */
+        'operator' => [
+            'enabled' => true,
+            'provider_label' => 'internal',
+            'require_second_person' => true,
+            'min_reason_length' => 10,
+            'audit_every_entry' => true,
+        ],
+
+        /*
+        |------------------------------------------------------------------
+        | Operator entry (manual result, two-person approved)
+        |------------------------------------------------------------------
+        | WHEN THE FEED IS LATE, A HUMAN IS THE PROVIDER. This block names the
+        | provider label a manually entered result claims and states the only
+        | path by which it may reach the public.
+        |
+        | provider_label MUST ALSO APPEAR IN `priority` ABOVE. A label that is not
+        | in the priority list is refused by the import engine with
+        | UNKNOWN_PROVIDER, so App\Services\Lottery\OperatorResultEntryService
+        | checks the pairing before it accepts an entry and refuses early with a
+        | readable message instead. That check is why an operator cannot type a
+        | result into a lane that could never publish it.
+        |
+        | THE LABEL IS 'internal', NEVER 'official'. A person typing numbers is not
+        | the government printer. 'internal' renders as INTERNAL_RECONCILED on
+        | every public surface; 'official' would be a false provenance claim, and
+        | the badge is the one thing a player trusts about a result page.
+        |
+        | require_second_person is not advisory. The approval path publishes a
+        | withheld version only when the approver is a different person from the
+        | importer, the importer is recorded, the version is Verified, and a reason
+        | is supplied. Setting this false would have no effect on that code path;
+        | it exists so the intent is visible in configuration review.
+        |
+        | min_reason_length is enforced by the import engine for operator entries
+        | only. A reason of "ok" answers nothing when a result is disputed a month
+        | later; the length floor is the smallest thing that makes the record
+        | useful to whoever has to read it next.
+        */
+        'operator' => [
+            'enabled' => true,
+            'provider_label' => 'internal',
+            'require_second_person' => true,
+            'min_reason_length' => 10,
+            'audit_every_entry' => true,
+        ],
+
         'fixture' => [
             // PRODUCTION FIXTURE CONTAMINATION GUARD.
             //

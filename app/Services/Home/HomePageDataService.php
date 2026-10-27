@@ -62,12 +62,7 @@ class HomePageDataService
         $laneResults = $this->section(fn (): array => $this->laneResults->lanes());
         $prizeHighlight = $this->section(fn (): array => $this->gloHome->prizeCard());
         $paymentMethods = $this->section(fn (): array => $this->payments->publicMethods());
-        $trustBullets = array_values(array_filter(array_map(
-            static fn (mixed $bullet): ?string => is_string($bullet) && trim($bullet) !== ''
-                ? trim($bullet)
-                : null,
-            (array) config('home.trust.bullets', []),
-        )));
+        $trustBullets = $this->trustBullets();
 
         return [
             'hero' => $hero,
@@ -115,6 +110,52 @@ class HomePageDataService
             'text' => $text,
             'csrf' => csrf_token(),
         ];
+    }
+
+    /**
+     * Trust claims, and the only two sources one may come from.
+     *
+     * An operator-configured bullet list always wins. When none is configured the
+     * section falls back to the platform's own documented, verifiable statements —
+     * every request is authorized server-side, and wallet credits are idempotent —
+     * rather than to an empty block or, worse, an invented audit badge. Nothing
+     * here names a certification the platform does not hold.
+     *
+     * @return list<string>
+     */
+    private function trustBullets(): array
+    {
+        $configured = array_values(array_filter(array_map(
+            static fn (mixed $bullet): ?string => is_string($bullet) && trim($bullet) !== ''
+                ? trim($bullet)
+                : null,
+            (array) config('home.trust.bullets', []),
+        )));
+
+        if ($configured !== []) {
+            return $configured;
+        }
+
+        // A configured-but-unusable list is NOT a reason to substitute the
+        // platform defaults: the operator asked to publish those entries and they
+        // were rejected, so the section stays honestly NOT_CONFIGURED rather than
+        // showing claims the operator did not choose.
+        if ((array) config('home.trust.bullets', []) !== []) {
+            return [];
+        }
+
+        $fallback = trans('home.trust_bullets');
+
+        if (! is_array($fallback)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $bullet): ?string => is_string($bullet) && trim($bullet) !== ''
+                ? trim($bullet)
+                : null,
+            $fallback,
+        )));
     }
 
     /**

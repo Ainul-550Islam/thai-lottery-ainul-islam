@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Payment;
 
+use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
 use App\Enums\PaymentMethod;
 use App\Exceptions\FinancialException;
@@ -13,6 +14,7 @@ use App\Services\Payment\Drivers\BkashGateway;
 use App\Services\Payment\Drivers\CryptoGateway;
 use App\Services\Payment\Drivers\NagadGateway;
 use App\Services\Payment\Drivers\PromptPayGateway;
+use App\Services\Payment\Drivers\SandboxDeterministicGateway;
 use App\Services\Payment\Drivers\StripeGateway;
 use App\Services\Payment\Drivers\ThaiBankPayoutGateway;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
@@ -55,7 +57,7 @@ class PaymentGatewayManager
 
             'promptpay' => $this->container->make(PromptPayGateway::class),
             'thai_bank' => $this->container->make(ThaiBankPayoutGateway::class),
-            'sandbox' => $this->container->make(\App\Services\Payment\Drivers\SandboxDeterministicGateway::class),
+            'sandbox' => $this->container->make(SandboxDeterministicGateway::class),
 
             default => throw FinancialException::withCode(
                 'unsupported_payment_gateway',
@@ -146,24 +148,57 @@ class PaymentGatewayManager
 
     public function isDepositCapable(string|PaymentMethod $name): bool
     {
+        $key = $name instanceof PaymentMethod ? $name->value : strtolower(trim($name));
         try {
-            $driver = $this->driver($name);
-        } catch (FinancialException) {
+            $driver = $this->driver($key);
+            $readiness = app(PaymentReadinessService::class)->evaluate($key, 'deposit');
+        } catch (\Throwable) {
             return false;
         }
 
-        return $driver->supportsDeposit() && $this->isEnabled($name);
+        $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
+
+        return $currency !== null && $driver->supportsDeposit() && $driver->supportsCurrency($currency)
+            && $this->isEnabled($key) && $readiness->ready && $this->matchesSiteMarket($key, $currency);
     }
 
     public function isWithdrawalCapable(string|PaymentMethod $name): bool
     {
+        $key = $name instanceof PaymentMethod ? $name->value : strtolower(trim($name));
+        $rail = $key === 'promptpay' ? 'thai_bank' : $key;
         try {
-            $driver = $this->driver($name);
-        } catch (FinancialException) {
+            $driver = $this->driver($rail);
+            $readiness = app(PaymentReadinessService::class)->evaluate($rail, 'withdrawal');
+            $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
+        } catch (\Throwable) {
             return false;
         }
 
-        return $driver->supportsWithdrawal() && $this->isEnabled($name);
+        $promptPaySupported = $key !== 'promptpay'
+            || ((bool) config('thai_payout.promptpay.enabled', false)
+                && strtolower((string) config('thai_payout.default_bank', '')) === 'scb'
+                && (bool) config('thai_payout.promptpay.banks.scb', false)
+                && in_array('mobile', (array) config('thai_payout.promptpay.proxy_types', []), true)
+                && in_array('national_id', (array) config('thai_payout.promptpay.proxy_types', []), true));
+
+        return $currency !== null && ($driver->supportsWithdrawal() || $this->supportsManualDisbursement($key)) && $this->isEnabled($rail)
+            && $readiness->ready && $this->matchesSiteMarket($key, $currency) && $promptPaySupported;
+    }
+
+    private function supportsManualDisbursement(string $key): bool
+    {
+        return in_array($key, ['bkash', 'nagad', 'bank_transfer'], true);
+    }
+
+    private function matchesSiteMarket(string $key, Currency $currency): bool
+    {
+        $market = (array) $this->config->get('payment.markets.'.$key, []);
+        $currencies = (array) ($market['currencies'] ?? []);
+        $countries = (array) ($market['countries'] ?? []);
+        $siteCountry = strtoupper((string) $this->config->get('payment.country', 'TH'));
+
+        return in_array($currency->value, $currencies, true)
+            && in_array($siteCountry, array_map('strtoupper', $countries), true);
     }
 
     /**
@@ -178,12 +213,20 @@ class PaymentGatewayManager
     {
         $driver = $this->driver($method);
 
-        if (! $driver->isEnabled()) {
+        if (! (bool) $this->config->get('payment.gateways.'.$method->value.'.enabled', false)) {
             throw FinancialException::withCode(
                 'payment_gateway_disabled',
                 sprintf('Payment gateway [%s] is not enabled.', $driver->name()),
                 ['gateway' => $driver->name()],
             );
+        }
+
+        $readiness = app(PaymentReadinessService::class)->evaluate($method->value, 'deposit');
+        if ($driver->status() === GatewayIntegrationStatus::Unsupported) {
+            throw FinancialException::withCode('payment_gateway_not_ready', trans('payment_ops.errors.payment_gateway_not_ready'), [
+                'gateway' => $method->value,
+                'issues' => $readiness->issues,
+            ]);
         }
 
         if (! $driver->supportsDeposit()) {
@@ -192,6 +235,19 @@ class PaymentGatewayManager
                 sprintf('Payment gateway [%s] does not support deposits.', $driver->name()),
                 ['gateway' => $driver->name()],
             );
+        }
+
+        $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
+        if ($currency === null || ! $driver->supportsCurrency($currency)) {
+            throw FinancialException::withCode(
+                'unsupported_gateway_currency',
+                sprintf('Gateway [%s] does not support the configured site currency.', $driver->name()),
+                ['gateway' => $driver->name(), 'currency' => $currency?->value],
+            );
+        }
+
+        if (! $readiness->ready || ! $this->matchesSiteMarket($method->value, $currency)) {
+            throw FinancialException::withCode('payment_gateway_not_ready', trans('payment_ops.errors.payment_gateway_not_ready'), ['gateway' => $method->value, 'issues' => $readiness->issues]);
         }
 
         return $driver;
@@ -207,8 +263,9 @@ class PaymentGatewayManager
      */
     public function withdrawalDriver(string|PaymentMethod $method): PaymentGatewayInterface
     {
-        $driver = $this->driver($method);
-
+        $key = $method instanceof PaymentMethod ? $method->value : strtolower(trim($method));
+        $rail = $key === 'promptpay' ? 'thai_bank' : $key;
+        $driver = $this->driver($rail);
         if (! $driver->isEnabled()) {
             throw FinancialException::withCode(
                 'payment_gateway_disabled',
@@ -217,12 +274,35 @@ class PaymentGatewayManager
             );
         }
 
-        if (! $driver->supportsWithdrawal()) {
+        if (! $driver->supportsWithdrawal() && ! $this->supportsManualDisbursement($key)) {
             throw FinancialException::withCode(
                 'payment_gateway_not_withdrawal_capable',
                 sprintf('Payment gateway [%s] does not support withdrawals.', $driver->name()),
                 ['gateway' => $driver->name()],
             );
+        }
+
+        $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
+        if ($currency === null || ! $driver->supportsCurrency($currency)) {
+            throw FinancialException::withCode(
+                'unsupported_gateway_currency',
+                sprintf('Gateway [%s] does not support the configured site currency.', $driver->name()),
+                ['gateway' => $key, 'currency' => $currency?->value],
+            );
+        }
+
+        $readiness = app(PaymentReadinessService::class)->evaluate($rail, 'withdrawal');
+        if (! $readiness->ready || ! $this->matchesSiteMarket($key, $currency)) {
+            throw FinancialException::withCode('payment_gateway_not_ready', trans('payment_ops.errors.payment_gateway_not_ready'), ['gateway' => $rail, 'issues' => $readiness->issues]);
+        }
+
+        if ($key === 'promptpay'
+            && (! (bool) config('thai_payout.promptpay.enabled', false)
+                || strtolower((string) config('thai_payout.default_bank', '')) !== 'scb'
+                || ! (bool) config('thai_payout.promptpay.banks.scb', false)
+                || ! in_array('mobile', (array) config('thai_payout.promptpay.proxy_types', []), true)
+                || ! in_array('national_id', (array) config('thai_payout.promptpay.proxy_types', []), true))) {
+            throw FinancialException::withCode('payment_gateway_not_withdrawal_capable', trans('payment_ops.errors.payment_gateway_not_ready'), ['gateway' => $key]);
         }
 
         return $driver;

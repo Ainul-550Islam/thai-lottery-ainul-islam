@@ -11,6 +11,16 @@ return [
     'poll_after_seconds' => (int) env('THAI_PAYOUT_POLL_AFTER_SECONDS', 60),
     'poll_max_age_hours' => (int) env('THAI_PAYOUT_POLL_MAX_AGE_HOURS', 24),
     'callback_tolerance_seconds' => (int) env('THAI_PAYOUT_CALLBACK_TOLERANCE_SECONDS', 300),
+    // Path keys are bank-contract-specific; never leave transfer_path or
+    // status_path blank on an enabled adapter. Base URLs must be HTTPS.
+    'promptpay' => [
+        'enabled' => (bool) env('THAI_PAYOUT_PROMPTPAY_ENABLED', false),
+        'proxy_types' => ['mobile', 'national_id'],
+        'banks' => [
+            'scb' => (bool) env('THAI_PAYOUT_PROMPTPAY_SCB_ENABLED', false),
+            'kbank' => (bool) env('THAI_PAYOUT_PROMPTPAY_KBANK_ENABLED', false),
+        ],
+    ],
     'banks' => [
         'scb' => [
             'enabled' => (bool) env('THAI_PAYOUT_SCB_ENABLED', false),
