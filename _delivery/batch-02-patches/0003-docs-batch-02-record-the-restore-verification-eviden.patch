@@ -1,0 +1,79 @@
+From eff248d2c8889be9ae15dbafa025e1d0810adc2e Mon Sep 17 00:00:00 2001
+From: Arena Agent <agent@arena.ai>
+Date: Tue, 27 Oct 2026 14:53:21 +0000
+Subject: [PATCH 3/3] docs(batch-02): record the restore verification evidence
+ and apply instructions
+
+---
+ docs/BATCH-02-AUDIT.md | 46 ++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 38 insertions(+), 8 deletions(-)
+
+diff --git a/docs/BATCH-02-AUDIT.md b/docs/BATCH-02-AUDIT.md
+index b91315b..fe3a92c 100644
+--- a/docs/BATCH-02-AUDIT.md
++++ b/docs/BATCH-02-AUDIT.md
+@@ -79,23 +79,53 @@ Before the repair I could not run a single test in this repository.
+ 
+ **All 1,073 files are intact and recoverable from `dd7a0a4`** (the commit immediately before the corrupting one). Verified: `recoverable: 1073 / unrecoverable: 0`.
+ 
+-A reusable script is committed at **`scripts/recover-zeroed-files.sh`**:
++### Status: DONE — restored and committed
++
++Commit **`0f7e018`** — *"fix(restore): recover 1,073 files that commit 10fd070 replaced with NUL bytes"* — contains all 1,073 restored paths.
++
++Apply it to your own clone with **one command** (the data is already in your repository at `dd7a0a4`, nothing needs to be transferred):
+ 
+ ```bash
+-./scripts/recover-zeroed-files.sh              # dry run, report only
+-./scripts/recover-zeroed-files.sh --apply      # restore
++git checkout dd7a0a4 -- $(git ls-tree -r --name-only HEAD | while read -r f; do
++  [ -s "$f" ] && [ "$(tr -cd '\000' < "$f" | wc -c)" = "$(wc -c < "$f")" ] && echo "$f"
++done)
+ ```
+ 
+-It restores a path only when the current copy is 100 % NUL bytes, and only from a revision where that exact path holds real content. It never overwrites a file that has content.
++Then verify and commit:
+ 
+-Manual equivalent, if you prefer one command:
++```bash
++git status --short | wc -l          # expect 1073
++git add -A && git commit -m "fix: restore 1,073 files zero-filled by 10fd070"
++```
++
++A reusable, safer tool is at **`scripts/recover-zeroed-files.sh`**:
+ 
+ ```bash
+-git checkout dd7a0a4 -- $(git ls-files | while read -r f; do
+-  [ -s "$f" ] && [ "$(tr -cd '\000' < "$f" | wc -c)" = "$(wc -c < "$f")" ] && echo "$f"
+-done)
++./scripts/recover-zeroed-files.sh              # dry run, report only
++./scripts/recover-zeroed-files.sh --apply      # restore
+ ```
+ 
++It restores a path only when the current copy is 100 % NUL bytes, and only from a revision where that exact path holds real content. It never overwrites a file that has content, and it reports any path it cannot recover instead of silently skipping it.
++
++### Verification after the restore
++
++| Check | Result |
++|---|---|
++| Zero-filled files remaining (whole worktree, `vendor`/`.git` excluded) | **0** |
++| Restored files byte-identical to `dd7a0a4` (`git hash-object` vs blob) | **1073 / 1073** |
++| Missing files | **0** |
++| Files differing from `dd7a0a4` | **0** |
++| PHP syntax errors across the 873 restored `.php` files | **0** |
++| Blade templates compiling (real `blade.compiler`, not `php -l`) | **244 / 244** |
++| JSON parse errors | **0** |
++| PHPUnit tests executable | **0 → 1567** |
++
++The full `tests/Unit` lane now runs: **1567 tests, 108,181 assertions**.
++
++Of those, **31 fail (11 errors, 20 failures)**. These are **not** restoration damage: the restored test files are byte-identical to `dd7a0a4`, and the application classes they exercise (`app/Services/Payment/Slip/`, `app/Services/Payment/BankSlipVerificationService.php`, `.github/workflows/`) are **unchanged** between `dd7a0a4` and `HEAD` — so they would fail identically on the pre-corruption tree. They are genuine pre-existing defects, e.g. `SlipOkProviderTest` expects `slip_provider_error` while the provider raises `slip_invalid`. Listed here rather than fixed, because fixing application behaviour is not restoration.
++
++One `php -l` false positive: `resources/views/sitemap.blade.php` starts with `@php echo '<?xml version="1.0" …'`, which `php -l` reads as broken PHP. It compiles correctly through Blade (included in the 244).
++
+ **Review before committing.** A blind restore to `dd7a0a4` also reverts any *intentional* edit `10fd070` made to those 1,073 files. In practice that risk is nil — the current content is nothing but zeros, so there is no edit left to preserve — but `git diff --stat` after the restore is the check.
+ 
+ ---
+-- 
+2.47.3
+

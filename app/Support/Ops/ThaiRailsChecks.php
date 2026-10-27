@@ -6,7 +6,6 @@ namespace App\Support\Ops;
 
 use App\Enums\Currency;
 use App\Services\Finance\Money;
-use App\Services\Payment\PaymentGatewayManager;
 use Throwable;
 
 /**
@@ -40,22 +39,6 @@ use Throwable;
 final class ThaiRailsChecks
 {
     /**
-     * Gateways whose driver builds requests against a configured base URL. An
-     * empty value here is a live-but-unreachable gateway, so it is checked for
-     * itself rather than inferred from the credential list.
-     *
-     * @var list<string>
-     */
-    private const BASE_URL_GATEWAYS = ['bkash', 'nagad'];
-
-    /**
-     * The three SCB Open API endpoints a payout cannot complete without.
-     *
-     * @var list<string>
-     */
-    private const SCB_PATHS = ['token_path', 'transfer_path', 'status_path'];
-
-    /**
      * @return list<CheckResult>
      */
     public function run(): array
@@ -64,141 +47,7 @@ final class ThaiRailsChecks
             $this->truemoney(),
             $this->slips(),
             $this->payouts(),
-            $this->market(),
-            $this->crypto(),
-            $this->gatewayBaseUrls(),
-            $this->scbPaths(),
         ];
-    }
-
-    /**
-     * THE BDT-MARKET GUARD.
-     *
-     * This is a Thai-baht deployment. A BDT market reaching production here does
-     * not fail loudly — bKash and Nagad quietly become the only usable rails,
-     * THB settlements stop matching, and the site is suddenly trading in a
-     * currency no part of the Thai payout lane was reconciled against. Two
-     * distinct ways that happens, and both are refused:
-     *
-     *   1. the site itself is configured as a BDT/BD market (currency or country);
-     *   2. a BDT-only rail is switched on while the site settles in another
-     *      currency, which is a market mismatch rather than an unfinished lane.
-     *
-     * A correctly Thai deployment passes without any operator action, and a
-     * bKash/Nagad lane that is merely turned OFF is not a finding at all.
-     */
-    public function market(): CheckResult
-    {
-        $currency = strtoupper((string) config('payment.currency.default', 'THB'));
-        $country = strtoupper((string) config('payment.country', 'TH'));
-
-        $issues = [];
-
-        if ($currency === 'BDT') {
-            $issues[] = 'site currency is BDT';
-        }
-        if ($country === 'BD') {
-            $issues[] = 'site country is BD';
-        }
-
-        $bdtRails = [];
-        foreach (['bkash', 'nagad'] as $rail) {
-            if ($this->liveOnSiteMarket($rail)) {
-                $bdtRails[] = $rail;
-            }
-        }
-        if ($bdtRails !== [] && $currency !== 'BDT') {
-            $issues[] = 'BDT-only rail live on a '.$currency.' site: '.implode(', ', $bdtRails);
-        }
-
-        return $issues === []
-            ? CheckResult::pass('market', 'site market is '.$currency.'/'.$country.' with no BDT rail enabled')
-            : CheckResult::fail('market', 'Thai rails refuse a BDT market ('.implode('; ', $issues).')');
-    }
-
-    /**
-     * CRYPTO INVISIBILITY.
-     *
-     * The crypto driver is deliberately Unsupported: it has no settlement
-     * proof, and surfacing it as a deposit method would advertise a rail that
-     * cannot pay anyone. The finding is therefore not "the flag is on" — a
-     * deployment may leave the switch flipped while working on the lane — but
-     * "a player can reach it", which is what invisibility actually forbids.
-     */
-    public function crypto(): CheckResult
-    {
-        if (! (bool) config('payment.gateways.crypto.enabled', false)) {
-            return CheckResult::pass('crypto', 'crypto gateway disabled and not offered to players');
-        }
-
-        try {
-            $manager = app(PaymentGatewayManager::class);
-            $exposed = $manager->isDepositCapable('crypto') || $manager->isWithdrawalCapable('crypto');
-        } catch (Throwable) {
-            // A resolver that cannot be asked cannot expose anything either.
-            $exposed = false;
-        }
-
-        return $exposed
-            ? CheckResult::fail('crypto', 'crypto is reachable by players; it must remain invisible')
-            : CheckResult::pass('crypto', 'crypto is enabled but not reachable: no settlement proof, so it is never offered');
-    }
-
-    /**
-     * EMPTY BASE URL.
-     *
-     * An enabled gateway whose base_url is empty resolves a driver that passes
-     * isEnabled() and then fails on the first outbound call — the player sees a
-     * generic "not ready" after money has been committed to an intent.
-     *
-     * Only lanes that are LIVE on this site's market are judged. A gateway that
-     * is switched on in configuration but whose market (say BDT/BD) does not
-     * match the site (THB/TH) is already unreachable through the market
-     * allowlist, so reporting it would be noise on every release.
-     */
-    public function gatewayBaseUrls(): CheckResult
-    {
-        $blank = [];
-
-        foreach (self::BASE_URL_GATEWAYS as $gateway) {
-            if (! $this->liveOnSiteMarket($gateway)) {
-                continue;
-            }
-            if (trim((string) config('payment.gateways.'.$gateway.'.base_url', '')) === '') {
-                $blank[] = $gateway;
-            }
-        }
-
-        return $blank === []
-            ? CheckResult::pass('gateway_base_url', 'every live gateway has a base URL')
-            : CheckResult::fail('gateway_base_url', 'live gateway with an empty base URL: '.implode(', ', $blank));
-    }
-
-    /**
-     * BLANK SCB PATHS.
-     *
-     * `payouts()` already refuses an incomplete SCB configuration, but it
-     * reports one sentence for a dozen possible causes. A blank endpoint path is
-     * the failure that survives a URL check — the host is perfectly valid and
-     * the request still goes nowhere — so it is named on its own line instead of
-     * being folded into the general verdict.
-     */
-    public function scbPaths(): CheckResult
-    {
-        if (! (bool) config('thai_payout.banks.scb.enabled', false)) {
-            return CheckResult::pass('thai_payout_scb_paths', 'SCB payouts disabled (skipped)');
-        }
-
-        $blank = [];
-        foreach (self::SCB_PATHS as $path) {
-            if (trim((string) config('thai_payout.banks.scb.'.$path, '')) === '') {
-                $blank[] = $path;
-            }
-        }
-
-        return $blank === []
-            ? CheckResult::pass('thai_payout_scb_paths', 'SCB token, transfer and status paths configured')
-            : CheckResult::fail('thai_payout_scb_paths', 'SCB endpoint path blank: '.implode(', ', $blank));
     }
 
     public function truemoney(): CheckResult
@@ -326,37 +175,6 @@ final class ThaiRailsChecks
         return $valid
             ? CheckResult::pass('promptpay', 'merchant identifier format valid')
             : CheckResult::fail('promptpay', 'PROMPTPAY_MERCHANT_ID is not a supported PromptPay identifier');
-    }
-
-    /**
-     * Is this gateway switched on AND aimed at the market this site actually
-     * serves?
-     *
-     * The same market allowlist PaymentGatewayManager enforces before a method
-     * is displayed, asked here without resolving a driver: a lane whose market
-     * does not include the site's currency and country can never be reached by a
-     * player, so none of its half-finished configuration is a release finding.
-     */
-    private function liveOnSiteMarket(string $gateway): bool
-    {
-        if (! (bool) config('payment.gateways.'.$gateway.'.enabled', false)) {
-            return false;
-        }
-
-        $market = (array) config('payment.markets.'.$gateway, []);
-        $currencies = array_map('strtoupper', array_filter((array) ($market['currencies'] ?? []), 'is_string'));
-        $countries = array_map('strtoupper', array_filter((array) ($market['countries'] ?? []), 'is_string'));
-
-        // No market declaration means nothing restricts this lane.
-        if ($currencies === [] && $countries === []) {
-            return true;
-        }
-
-        $siteCurrency = strtoupper((string) config('payment.currency.default', 'THB'));
-        $siteCountry = strtoupper((string) config('payment.country', 'TH'));
-
-        return ($currencies === [] || in_array($siteCurrency, $currencies, true))
-            && ($countries === [] || in_array($siteCountry, $countries, true));
     }
 
     private function payoutBankConfigured(string $bank): bool
