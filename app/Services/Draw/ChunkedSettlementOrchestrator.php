@@ -13,81 +13,21 @@ use App\Enums\Currency;
 use App\Models\Payout;
 use App\Models\SettlementRun;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
- * Chunked, resumable settlement orchestration for large draws.
+ * Resumable settlement with one durable, draw-owned checkpoint.
  *
- * ============================================================================
- * THE SCALE GAP THIS CLOSES
- * ============================================================================
- * RealPrizeSettlementService::settle() is a single DB transaction that does:
+ * start() pins the published result and participants under the draw lock.
+ * Each cursor-based chunk owns its money transaction, and the finalizer proves
+ * the recorded obligations before transitioning the draw. Jobs serialize on the
+ * run; they are not an independent parallel batch. Repeated deliveries must use
+ * the recorded cursor and may not credit a winner twice.
  *
- *     return DB::transaction(function () use ($drawId) {
- *         $draw = $this->lifecycle->lockForUpdate($drawId);
- *         ...
- *         $this->performSettlement($draw, $stateBefore);
- *     });
- *
- * and inside performSettlement it calls:
- *
- *     private function lockedBets(int $drawId)
- *     {
- *         return Bet::query()
- *             ->with(['ticket', 'user'])      // eager-loads two relations
- *             ->where('draw_id', $drawId)
- *             ->lockForUpdate()               // FOR UPDATE on EVERY bet row
- *             ->get();                        // materialises the whole set
- *     }
- *
- * then `lockedItems()` per bet. For a draw with 100,000 bet slips that is:
- *
- *   - ONE transaction holding FOR UPDATE row locks on 100,000 bet rows plus
- *     every related ticket and user row, for the entire duration of the run.
- *     MariaDB's default `innodb_lock_wait_timeout` is 50s. A run that exceeds it
- *     does not "settle slowly" — it ABORTS, rolls back everything, and (because
- *     the draw lifecycle has already moved) leaves the draw in a state that
- *     needs manual repair.
- *   - Peak memory of 100,000 hydrated Eloquent models, each with two eager
- *     relations loaded. At roughly 4-8 KB per hydrated Bet-with-relations that
- *     is 400-800 MB in a single PHP worker, against `memory_limit` — and it is
- *     the primary cause of "worker killed mid-settlement" on large draws.
- *   - An N+1 of 100,000 additional `lockedItems()` queries inside that one
- *     transaction, each of which holds more locks while the transaction ages.
- *   - No resumability. A crash at bet 90,000 of 100,000 loses all of it, and
- *     re-running is only safe because settlement is idempotent per bet — which
- *     is true here, but relies entirely on that property instead of on
- *     checkpointing.
- *
- * The brief's requirement — "100,000+ concurrent bet slips within seconds" —
- * cannot be met by a single transaction of that shape. It is met by:
- *
- *   1. A SHORT FINALIZE TRANSACTION (this class, phase 1): take the draw lock,
- *      assert the lifecycle, freeze the participant set by id, and commit.
- *      Milliseconds, not minutes. Locks are held for the duration of a few
- *      statements.
- *   2. INDEPENDENT CHUNK JOBS (SettleDrawChunkJob): each processes a bounded
- *      range of bet ids in its own transaction, so a failure rolls back ONE
- *      chunk, not the draw. Chunks run in parallel across the worker pool.
- *   3. A FINALIZE JOB (FinalizeDrawSettlementJob): runs only after every chunk
- *      reports success (Bus::batch `then`), verifies the total, and moves the
- *      draw to Settled.
- *
- * WHY THE PARTICIPANT SET IS FROZEN FIRST
- * Bet ids are captured AFTER the draw closes and BEFORE any payout. Without
- * that, a late-accepted bet could enter the settlement set mid-run and be paid
- * inconsistently. `bets:draw:{drawId}` is a cache-free, database-sourced list —
- * the cache holds only the checkpoint cursor.
- *
- * IDEMPOTENCY IS PRESERVED, NOT ASSUMED
- * RealPrizeSettlementService already derives a per-bet payout idempotency key
- * (`payoutIdempotencyKey($drawId, $betId)`) and refuses to pay an already-paid
- * bet. Chunking does not weaken that: a replayed chunk re-runs the same
- * keyed path and pays nothing twice. Chunking changes the TRANSACTION BOUNDARY,
- * not the money semantics.
+ * Fingerprinting currently materializes participant and outcome rows, so this
+ * implementation makes no throughput or large-draw memory guarantee without
+ * representative load testing.
  */
 final class ChunkedSettlementOrchestrator
 {
@@ -182,94 +122,107 @@ final class ChunkedSettlementOrchestrator
     public function start(int $drawId, ?int $chunkSize = null, ?int $startedBy = null): SettlementRun
     {
         $existing = $this->runFor($drawId);
-
         if ($existing instanceof SettlementRun) {
             return $existing;
         }
-
-        $draw = Draw::query()->find($drawId);
-
-        if (! $draw instanceof Draw) {
-            throw new \RuntimeException(sprintf('Draw %d does not exist; cannot open a settlement run.', $drawId));
+        if (DB::transactionLevel() !== 0 || DB::connection()->getPdo()->inTransaction()) {
+            throw new \RuntimeException('Opening a settlement run must own its transaction.');
         }
 
-        // Lifecycle + published result, validated once, before any chunk exists
-        // and before the run row. Throws on a draw that is not published, is
-        // already settled, or whose winning_numbers rows no longer agree with
-        // the published numbers.
-        $this->settlement->assertChunkable($draw);
-
-        $size = $chunkSize === null ? $this->defaultChunkSize() : max(1, $chunkSize);
-        $frozen = $this->freezeParticipants($drawId);
-
-        $attributes = [
-            'draw_id' => $drawId,
-            'status' => SettlementRun::STATUS_OPEN,
-            'chunk_size' => $size,
-            'cursor_bet_id' => 0,
-            'bets_total' => $frozen['count'],
-            'bets_settled' => 0,
-            'selections_evaluated' => 0,
-            'selections_written' => 0,
-            'winning_selections' => 0,
-            'payouts_created' => 0,
-            'total_stake' => '0.00',
-            'total_prize' => '0.00',
-            'currency' => $draw->currency instanceof Currency ? $draw->currency->value : (string) $draw->currency,
-            'mode' => RealPrizeSettlementService::MODE,
-            // PINNED, NOT RE-READ. Every later chunk pays under this mode, so a
-            // config edit mid-run cannot start paying under LIVE in chunk 4 of a
-            // run that opened under DRY_RUN. (A later switch to a STRICTER mode
-            // still applies — that is handled per chunk.)
-            'safety_mode' => $this->settlement->safetyMode(),
-            // The approval threshold in force at open, so raising it mid-run
-            // cannot turn a payout that needed approval into an automatic one.
-            'approval_threshold' => $this->settlement->thresholdAsString(
-                (string) config('finance.prize_payout.auto_approve_below', '1000000.00'),
-            ),
-            // The frozen participant set and its selection inputs, plus the
-            // highest bet id that belonged to the draw at open. A bet added,
-            // removed, emptied or edited mid-run is then visible instead of
-            // silently settled by a later chunk.
-            'max_bet_id' => $frozen['max_id'],
-            'participants_fingerprint' => $frozen['fingerprint'],
-            'result_fingerprint' => $this->resultFingerprint($drawId),
-            'outcomes_fingerprint' => null,
-            'chunks_processed' => 0,
-            'started_at' => now(),
-            'started_by' => $startedBy,
-        ];
-
+        $opened = false;
         try {
-            $id = DB::table('settlement_runs')->insertGetId($attributes + [
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        } catch (QueryException $e) {
-            // Another process won the unique index. Its run is the run.
-            $won = $this->runFor($drawId);
+            $run = DB::transaction(function () use ($drawId, $chunkSize, $startedBy, &$opened): SettlementRun {
+                $opened = false;
+                // Serialize the published-result proof, frozen participants, and
+                // durable run insert with monolithic settlement on this draw.
+                // An existing run is read without taking its lock under the draw:
+                // chunks/finalizers use the opposite run -> draw lock order.
+                $draw = Draw::query()->whereKey($drawId)->lockForUpdate()->first();
+                if (! $draw instanceof Draw) {
+                    throw new \RuntimeException(sprintf('Draw %d does not exist; cannot open a settlement run.', $drawId));
+                }
+                $existing = $this->runFor($drawId);
+                if ($existing instanceof SettlementRun) {
+                    return $existing;
+                }
+                $this->settlement->assertChunkable($draw, participating: true);
+                $size = $chunkSize === null ? $this->defaultChunkSize() : max(1, $chunkSize);
+                $frozen = $this->freezeParticipants($drawId);
 
-            if ($won instanceof SettlementRun) {
+                $attributes = [
+                    'draw_id' => $drawId,
+                    'status' => SettlementRun::STATUS_OPEN,
+                    'chunk_size' => $size,
+                    'cursor_bet_id' => 0,
+                    'bets_total' => $frozen['count'],
+                    'bets_settled' => 0,
+                    'selections_evaluated' => 0,
+                    'selections_written' => 0,
+                    'winning_selections' => 0,
+                    'payouts_created' => 0,
+                    'total_stake' => '0.00',
+                    'total_prize' => '0.00',
+                    'currency' => $draw->currency instanceof Currency ? $draw->currency->value : (string) $draw->currency,
+                    'mode' => RealPrizeSettlementService::MODE,
+                    // PINNED, NOT RE-READ. Every later chunk pays under this mode, so a
+                    // config edit mid-run cannot start paying under LIVE in chunk 4 of a
+                    // run that opened under DRY_RUN. (A later switch to a STRICTER mode
+                    // still applies — that is handled per chunk.)
+                    'safety_mode' => $this->settlement->safetyMode(),
+                    // The approval threshold in force at open, so raising it mid-run
+                    // cannot turn a payout that needed approval into an automatic one.
+                    'approval_threshold' => $this->settlement->thresholdAsString(
+                        (string) config('finance.prize_payout.auto_approve_below', '1000000.00'),
+                    ),
+                    // The frozen participant set and its selection inputs, plus the
+                    // highest bet id that belonged to the draw at open. A bet added,
+                    // removed, emptied or edited mid-run is then visible instead of
+                    // silently settled by a later chunk.
+                    'max_bet_id' => $frozen['max_id'],
+                    'participants_fingerprint' => $frozen['fingerprint'],
+                    'result_fingerprint' => $this->resultFingerprint($drawId),
+                    'outcomes_fingerprint' => null,
+                    'chunks_processed' => 0,
+                    'started_at' => now(),
+                    'started_by' => $startedBy,
+                ];
+
+                $id = DB::table('settlement_runs')->insertGetId($attributes + [
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+                $created = SettlementRun::query()->find($id);
+                if (! $created instanceof SettlementRun) {
+                    throw new \RuntimeException(sprintf('Settlement run %s disappeared immediately after insert.', (string) $id));
+                }
+                $opened = true;
+
+                return $created;
+            }, 3);
+        } catch (QueryException $e) {
+            // Only a duplicate of this exact draw claim is a replay. Foreign-key
+            // errors, other unique constraints and infrastructure failures must
+            // never be converted to an apparent successful start.
+            $driverCode = (int) ($e->errorInfo[1] ?? 0);
+            $detail = (string) ($e->errorInfo[2] ?? '');
+            $duplicateDraw = ((string) $e->getCode() === '23505' && str_contains($detail, 'settlement_runs_draw_unique'))
+                || ($driverCode === 1062 && str_contains($detail, 'settlement_runs_draw_unique'))
+                || ($driverCode === 19 && str_contains($detail, 'UNIQUE constraint failed: settlement_runs.draw_id'));
+            if ($duplicateDraw && ($won = $this->runFor($drawId)) instanceof SettlementRun) {
                 return $won;
             }
-
             throw $e;
         }
 
-        $run = SettlementRun::query()->find($id);
-
-        if (! $run instanceof SettlementRun) {
-            throw new \RuntimeException(sprintf('Settlement run %s disappeared immediately after insert.', (string) $id));
+        if ($opened) {
+            Log::info('settlement.run_opened', [
+                'draw_id' => $drawId,
+                'run_id' => (int) $run->getKey(),
+                'chunk_size' => (int) $run->chunk_size,
+                'bets_total' => (int) $run->bets_total,
+                'safety_mode' => $run->safety_mode,
+                'approval_threshold' => (string) $run->approval_threshold,
+            ]);
         }
-
-        Log::info('settlement.run_opened', [
-            'draw_id' => $drawId,
-            'run_id' => (int) $run->getKey(),
-            'chunk_size' => $size,
-            'bets_total' => (int) $run->bets_total,
-            'safety_mode' => $run->safety_mode,
-            'approval_threshold' => (string) $run->approval_threshold,
-        ]);
 
         return $run;
     }
@@ -286,25 +239,38 @@ final class ChunkedSettlementOrchestrator
      */
     public function reopen(SettlementRun $run): SettlementRun
     {
-        $run->refresh();
-        $this->assertPinned($run);
-
-        if ($run->isComplete()) {
-            return $run;
+        if (DB::transactionLevel() !== 0 || DB::connection()->getPdo()->inTransaction()) {
+            throw new \RuntimeException('Reopening a settlement run must own its transaction.');
         }
 
-        $run->forceFill([
-            'status' => SettlementRun::STATUS_OPEN,
-            'failure_reason' => null,
-        ])->save();
+        $reopened = false;
+        $current = DB::transaction(function () use ($run, &$reopened): SettlementRun {
+            $reopened = false;
+            // Serialize with chunks/finalizers. Never save a stale pre-lock
+            // status over a run that has since completed.
+            $locked = SettlementRun::query()->whereKey($run->getKey())->lockForUpdate()->firstOrFail();
+            $this->assertPinned($locked);
+            if ($locked->isComplete() || $locked->status === SettlementRun::STATUS_OPEN) {
+                return $locked;
+            }
+            if ($locked->status !== SettlementRun::STATUS_ABORTED) {
+                throw new \RuntimeException(sprintf('Settlement run %d has an unsupported status.', (int) $locked->getKey()));
+            }
+            $locked->forceFill(['status' => SettlementRun::STATUS_OPEN, 'failure_reason' => null])->save();
+            $reopened = true;
 
-        Log::info('settlement.run_reopened', [
-            'draw_id' => (int) $run->draw_id,
-            'run_id' => (int) $run->getKey(),
-            'cursor_bet_id' => (int) $run->cursor_bet_id,
-        ]);
+            return $locked;
+        }, 3);
 
-        return $run->refresh();
+        if ($reopened) {
+            Log::info('settlement.run_reopened', [
+                'draw_id' => (int) $current->draw_id,
+                'run_id' => (int) $current->getKey(),
+                'cursor_bet_id' => (int) $current->cursor_bet_id,
+            ]);
+        }
+
+        return $current;
     }
 
     /**
@@ -326,121 +292,90 @@ final class ChunkedSettlementOrchestrator
      */
     public function runChunk(SettlementRun $run, ?int $expectedCursor = null): SettlementRun
     {
-        if (DB::transactionLevel() > 0) {
-            // Each chunk must own its transaction, for the same reason settle()
-            // refuses: inside a caller's transaction a failure here could be
-            // swallowed by an outer catch and the partial chunk — including
-            // paid-out money — committed anyway.
+        if (DB::transactionLevel() > 0 || DB::connection()->getPdo()->inTransaction()) {
+            // A chunk must own its rollback boundary; a caller must not be able
+            // to catch a failed partial settlement and commit it.
             throw new \RuntimeException('A settlement chunk must own its transaction; refuse to run one inside a caller transaction.');
         }
 
-        $run->refresh();
-
-        if ($run->isComplete()) {
-            return $run;
-        }
-
-        if ((string) $run->status !== SettlementRun::STATUS_OPEN) {
-            throw new \RuntimeException(sprintf(
-                'Settlement run %d is %s; only an open run accepts chunks. Use --resume to reopen an interrupted run deliberately.',
-                (int) $run->getKey(),
-                (string) $run->status,
-            ));
-        }
-
-        if ($expectedCursor !== null && (int) $run->cursor_bet_id !== $expectedCursor) {
-            if ((int) $run->cursor_bet_id > $expectedCursor) {
-                // A DUPLICATE DELIVERY of a chunk that already ran, not a plan for
-                // different work. Nothing to do: the range it names is settled and
-                // its checkpoint is committed. Throwing here would fail a job that
-                // did nothing wrong, and re-running it would be worse.
-                Log::info('settlement.chunk_duplicate_delivery', [
-                    'draw_id' => (int) $run->draw_id,
-                    'run_id' => (int) $run->getKey(),
-                    'expected_cursor' => $expectedCursor,
-                    'recorded_cursor' => (int) $run->cursor_bet_id,
-                ]);
-
-                return $run;
-            }
-
-            throw new \RuntimeException(sprintf(
-                'Settlement run %d is at cursor %d; the delivered chunk expected cursor %d.',
-                (int) $run->getKey(),
-                (int) $run->cursor_bet_id,
-                $expectedCursor,
-            ));
-        }
-
-        $draw = Draw::query()->find((int) $run->draw_id);
-
-        if (! $draw instanceof Draw) {
-            throw new \RuntimeException(sprintf(
-                'Draw %d does not exist; settlement run %d cannot continue.',
-                (int) $run->draw_id,
-                (int) $run->getKey(),
-            ));
-        }
-
-        $this->assertPinned($run);
-        $this->assertParticipantsUnchanged($run);
-        $this->assertResultUnchanged($run);
-
-        $after = (int) $run->cursor_bet_id;
-        $size = max(1, (int) $run->chunk_size);
-        $currency = $run->currency === null ? null : Currency::tryFrom((string) $run->currency);
-        $safety = $this->effectiveSafetyMode($run);
-        $threshold = $this->effectiveApprovalThreshold($run);
-
-        $stats = null;
-
+        $runId = (int) $run->getKey();
+        $attempted = false;
         try {
-            DB::transaction(function () use ($run, $draw, $after, $size, $currency, $safety, $threshold, &$stats): void {
-                $result = $this->settlement->publishedResultFor($draw);
-
-                $stats = $this->settlement->settleBetRange(
-                    $draw,
-                    $result,
-                    $after,
-                    $size,
-                    $safety,
-                    $currency,
-                    $threshold,
-                    true,
-                );
-
-                $cursor = max($after, (int) $stats['last_bet_id']);
-
-                if ($cursor > (int) $run->max_bet_id) {
+            return DB::transaction(function () use ($runId, $expectedCursor, &$attempted): SettlementRun {
+                // This durable run row is the serialization point, not the stale
+                // pre-transaction cursor supplied by a worker. A second delivery
+                // must re-read it after waiting before it can touch any bet.
+                $current = SettlementRun::query()->whereKey($runId)->lockForUpdate()->firstOrFail();
+                if ($current->isComplete()) {
+                    return $current;
+                }
+                if ((string) $current->status !== SettlementRun::STATUS_OPEN) {
                     throw new \RuntimeException(sprintf(
-                        'Settlement run %d advanced to bet %d, past the frozen participant bound %d.',
-                        (int) $run->getKey(),
-                        $cursor,
-                        (int) $run->max_bet_id,
+                        'Settlement run %d is %s; only an open run accepts chunks. Use --resume to reopen an interrupted run deliberately.',
+                        $runId, (string) $current->status,
+                    ));
+                }
+                if ($expectedCursor !== null && (int) $current->cursor_bet_id !== $expectedCursor) {
+                    if ((int) $current->cursor_bet_id > $expectedCursor) {
+                        Log::info('settlement.chunk_duplicate_delivery', [
+                            'draw_id' => (int) $current->draw_id, 'run_id' => $runId,
+                            'expected_cursor' => $expectedCursor, 'recorded_cursor' => (int) $current->cursor_bet_id,
+                        ]);
+
+                        return $current;
+                    }
+                    throw new \RuntimeException(sprintf(
+                        'Settlement run %d is at cursor %d; the delivered chunk expected cursor %d.',
+                        $runId, (int) $current->cursor_bet_id, $expectedCursor,
                     ));
                 }
 
-                $this->persistProgress($run, $cursor, $stats);
-            });
-        } catch (\Throwable $e) {
-            // Recorded OUTSIDE the rolled-back transaction: the money is gone,
-            // but the operator still needs to know why the run stopped.
-            $run->newQuery()->whereKey($run->getKey())->update([
-                'failure_reason' => mb_substr($e->getMessage(), 0, 500),
-                'last_chunk_at' => now(),
-                'updated_at' => now(),
-            ]);
+                // Keep publication/lifecycle and the pinned participant checks
+                // stable throughout the bounded payout and checkpoint commit.
+                $draw = Draw::query()->whereKey((int) $current->draw_id)->lockForUpdate()->first();
+                if (! $draw instanceof Draw) {
+                    throw new \RuntimeException(sprintf(
+                        'Draw %d does not exist; settlement run %d cannot continue.', (int) $current->draw_id, $runId,
+                    ));
+                }
+                $this->lifecycle->assertCanSettle($draw, ['stage' => 'settlement.chunk', 'mode' => 'chunked']);
+                $this->assertPinned($current);
+                $this->assertParticipantsUnchanged($current);
+                $this->assertResultUnchanged($current);
 
+                $after = (int) $current->cursor_bet_id;
+                $size = max(1, (int) $current->chunk_size);
+                $currency = $current->currency === null ? null : Currency::tryFrom((string) $current->currency);
+                $safety = $this->effectiveSafetyMode($current);
+                $threshold = $this->effectiveApprovalThreshold($current);
+                $attempted = true;
+                $result = $this->settlement->publishedResultFor($draw);
+                $stats = $this->settlement->settleBetRange($draw, $result, $after, $size, $safety, $currency, $threshold, true);
+                $cursor = max($after, (int) $stats['last_bet_id']);
+                if ($cursor > (int) $current->max_bet_id) {
+                    throw new \RuntimeException(sprintf(
+                        'Settlement run %d advanced to bet %d, past the frozen participant bound %d.',
+                        $runId, $cursor, (int) $current->max_bet_id,
+                    ));
+                }
+                $this->persistProgress($current, $cursor, $stats);
+                if (($stats['currency'] ?? null) instanceof Currency) {
+                    // Currency is part of the checkpoint, not a post-commit write.
+                    $current->forceFill(['currency' => $stats['currency']->value])->save();
+                }
+
+                return $current;
+            }, 3);
+        } catch (\Throwable $e) {
+            if ($attempted) {
+                // Diagnostic only, after rollback; never change a completed run.
+                $run->newQuery()->whereKey($runId)->where('status', SettlementRun::STATUS_OPEN)->update([
+                    'failure_reason' => mb_substr($e->getMessage(), 0, 500),
+                    'last_chunk_at' => now(), 'updated_at' => now(),
+                ]);
+            }
             throw $e;
         }
-
-        $run->refresh();
-
-        if (($stats['currency'] ?? null) instanceof Currency) {
-            $run->forceFill(['currency' => $stats['currency']->value])->save();
-        }
-
-        return $run;
     }
 
     /**
@@ -520,74 +455,66 @@ final class ChunkedSettlementOrchestrator
      */
     public function finalize(SettlementRun $run): SettlementRun
     {
-        $run->refresh();
-
-        if ($run->isComplete()) {
-            // Idempotent: an already-finished run may still need its draw moved
-            // (a crash between the two writes), and finalizeChunkedSettlement
-            // itself returns an already-settled draw untouched.
-            $draw = Draw::query()->find((int) $run->draw_id);
-
-            if ($draw instanceof Draw && $this->lifecycle->currentState($draw)->isSettled() === false) {
-                $this->settlement->finalizeChunkedSettlement($draw, $run->totals(), $run);
-            }
-
-            return $run;
-        }
-
-        if (DB::transactionLevel() > 0) {
+        if (DB::transactionLevel() > 0 || DB::connection()->getPdo()->inTransaction()) {
             throw new \RuntimeException('Finalizing a settlement run must own its transaction.');
         }
 
-        $this->assertPinned($run);
+        $completedNow = false;
+        $current = DB::transaction(function () use ($run, &$completedNow): SettlementRun {
+            // Finalizers and chunks take the same run -> draw order. The proof,
+            // lifecycle transition, and checkpoint completion are one unit.
+            $locked = SettlementRun::query()->whereKey($run->getKey())->lockForUpdate()->firstOrFail();
+            $draw = Draw::query()->whereKey((int) $locked->draw_id)->lockForUpdate()->first();
+            if (! $draw instanceof Draw) {
+                throw new \RuntimeException(sprintf(
+                    'Draw %d does not exist; settlement run %d cannot be finalized.',
+                    (int) $locked->draw_id, (int) $locked->getKey(),
+                ));
+            }
+            if ($locked->isComplete() && $this->lifecycle->currentState($draw)->isSettled()) {
+                return $locked;
+            }
+            if (! $locked->isComplete() && (string) $locked->status !== SettlementRun::STATUS_OPEN) {
+                throw new \RuntimeException(sprintf('Settlement run %d is not open for finalization.', (int) $locked->getKey()));
+            }
 
-        $remaining = $this->remainingBets($run);
+            $this->assertPinned($locked);
+            $remaining = $this->remainingBets($locked);
+            if ($remaining > 0) {
+                throw new \RuntimeException(sprintf(
+                    'Settlement run %d cannot finalize: %d bet(s) remain past cursor %d. '
+                    .'Run the remaining chunks first; a draw is never moved to Settled with unpaid bets.',
+                    (int) $locked->getKey(), $remaining, (int) $locked->cursor_bet_id,
+                ));
+            }
+            // A cursor and counters are not proof: compare actual participants,
+            // published result, outcomes and payouts before changing lifecycle.
+            $this->assertCountersMatchRows($locked);
+            $this->assertParticipantsUnchanged($locked);
+            $this->assertResultUnchanged($locked);
+            $this->assertOutcomesIntact($locked);
+            $this->settlement->finalizeChunkedSettlement($draw, $locked->totals(), $locked);
 
-        if ($remaining > 0) {
-            throw new \RuntimeException(sprintf(
-                'Settlement run %d cannot finalize: %d bet(s) remain past cursor %d. '
-                .'Run the remaining chunks first; a draw is never moved to Settled with unpaid bets.',
-                (int) $run->getKey(),
-                $remaining,
-                (int) $run->cursor_bet_id,
-            ));
+            if (! $locked->isComplete()) {
+                $locked->forceFill([
+                    'status' => SettlementRun::STATUS_COMPLETED,
+                    'completed_at' => now(),
+                    'failure_reason' => null,
+                ])->save();
+                $completedNow = true;
+            }
+
+            return $locked;
+        }, 3);
+
+        if ($completedNow) {
+            Log::info('settlement.run_completed', [
+                'draw_id' => (int) $current->draw_id, 'run_id' => (int) $current->getKey(),
+                'bets_settled' => (int) $current->bets_settled, 'total_prize' => (string) $current->total_prize,
+            ]);
         }
 
-        // Cursor and counters are not proof on their own: they can be written by
-        // anything. These four checks read the rows the run claims to describe.
-        $this->assertCountersMatchRows($run);
-        $this->assertParticipantsUnchanged($run);
-        $this->assertResultUnchanged($run);
-        $this->assertOutcomesIntact($run);
-
-        $draw = Draw::query()->find((int) $run->draw_id);
-
-        if (! $draw instanceof Draw) {
-            throw new \RuntimeException(sprintf(
-                'Draw %d does not exist; settlement run %d cannot be finalized.',
-                (int) $run->draw_id,
-                (int) $run->getKey(),
-            ));
-        }
-
-        DB::transaction(function () use ($run, $draw): void {
-            $this->settlement->finalizeChunkedSettlement($draw, $run->totals(), $run);
-
-            $run->forceFill([
-                'status' => SettlementRun::STATUS_COMPLETED,
-                'completed_at' => now(),
-                'failure_reason' => null,
-            ])->save();
-        });
-
-        Log::info('settlement.run_completed', [
-            'draw_id' => (int) $run->draw_id,
-            'run_id' => (int) $run->getKey(),
-            'bets_settled' => (int) $run->bets_settled,
-            'total_prize' => (string) $run->total_prize,
-        ]);
-
-        return $run->refresh();
+        return $current;
     }
 
     /**
@@ -948,26 +875,20 @@ final class ChunkedSettlementOrchestrator
     }
 
     /**
-     * Settle a draw, choosing the inline or chunked path by participant count.
+     * Compatibility selector for callers choosing inline versus queued work.
      *
-     * @return array{
-     *     mode: string,
-     *     draw_id: int,
-     *     participants: int,
-     *     chunks: int,
-     *     batch_id: string|null
-     * }
+     * The inline result is a plan only: its caller must invoke the canonical
+     * monolithic service. A large or already-owned draw instead queues ONE
+     * cursor-bearing continuation against the existing durable settlement run.
+     * There is no independently authoritative batch or synthetic batch id.
+     *
+     * @return array{mode: string, draw_id: int, participants: int, chunks: int, batch_id: null, run_id?: int}
      */
     public function settle(int $drawId): array
     {
+        $existing = $this->runFor($drawId);
         $participants = $this->countParticipants($drawId);
-        $threshold = $this->chunkThreshold();
-        $size = $this->chunkSize();
-
-        if ($participants <= $threshold) {
-            // Small draw: the existing single-transaction path is correct and
-            // cheaper than orchestrating a batch. Do not fork behaviour that
-            // does not need forking.
+        if (! $existing instanceof SettlementRun && $participants <= $this->chunkThreshold()) {
             return [
                 'mode' => 'inline',
                 'draw_id' => $drawId,
@@ -977,73 +898,42 @@ final class ChunkedSettlementOrchestrator
             ];
         }
 
-        $range = $this->freezeParticipantRange($drawId);
-        $chunkCount = (int) ceil(($range['max_id'] - $range['min_id'] + 1) / $size);
-
-        if ($chunkCount < 1) {
-            $chunkCount = 1;
+        if (DB::transactionLevel() > 0 || DB::connection()->getPdo()->inTransaction()) {
+            throw new \RuntimeException('Queueing a settlement run must own its transaction.');
         }
-
-        $batchId = (string) Str::uuid();
-        $jobs = [];
-
-        // Build the exact chunk boundaries up front so the batch is a fixed,
-        // auditable plan: chunk i owns ids [from, to] and nothing else. A worker
-        // crash therefore loses a known, nameable unit of work.
-        for ($index = 0; $index < $chunkCount; $index++) {
-            $from = $range['min_id'] + ($index * $size);
-            $to = min($from + $size - 1, $range['max_id']);
-
-            if ($from > $range['max_id']) {
-                break;
+        if ($existing instanceof SettlementRun && ! $existing->isComplete()
+            && (string) $existing->status !== SettlementRun::STATUS_OPEN) {
+            throw new \RuntimeException('The existing settlement run is not open; explicit recovery is required.');
+        }
+        if (! $existing instanceof SettlementRun || ! $existing->isComplete()) {
+            $connection = (string) config('queue.default', 'sync');
+            $driver = (string) config(sprintf('queue.connections.%s.driver', $connection), $connection);
+            if (! in_array($driver, ['database', 'redis', 'sqs', 'beanstalkd'], true)) {
+                throw new \RuntimeException('A durable queue is required before opening or dispatching settlement.');
             }
-
-            $jobs[] = new SettleDrawChunkJob(
-                drawId: $drawId,
-                batchId: $batchId,
-                chunkIndex: $index,
-                fromBetId: $from,
-                toBetId: $to,
-                resultFingerprint: $range['result_fingerprint'],
-            );
         }
 
-        // allowFailures(0): a chunk that exhausts its retries must NOT be
-        // silently skipped. The batch is marked failed and the draw stays
-        // un-Settled, which is the correct, visible outcome. Partial payout with
-        // an unseen hole is the failure mode that must be impossible.
-        Bus::batch($jobs)
-            ->name("settle-draw:{$drawId}")
-            ->onQueue((string) config('lottery.settlement.queue', 'settlement'))
-            ->allowFailures()
-            ->then(function () use ($drawId, $batchId): void {
-                FinalizeDrawSettlementJob::dispatch($drawId, $batchId)
-                    ->onQueue((string) config('lottery.settlement.queue', 'settlement'));
-            })
-            ->catch(function ($batch, \Throwable $e) use ($drawId, $batchId): void {
-                Log::error('settlement.batch_failed', [
-                    'draw_id' => $drawId,
-                    'batch_id' => $batchId,
-                    'failed_jobs' => $batch->failedJobs,
-                    'error' => $e->getMessage(),
-                ]);
-            })
-            ->dispatch();
-
-        Log::info('settlement.chunked_plan', [
-            'draw_id' => $drawId,
-            'batch_id' => $batchId,
-            'participants' => $participants,
-            'chunks' => count($jobs),
-            'chunk_size' => $size,
-        ]);
+        $run = $existing ?? $this->start($drawId, $this->chunkSize());
+        if (! $run->isComplete()) {
+            // start() may have read back a run created concurrently; never resume
+            // an operator-aborted run just because it won that arbitration.
+            if ((string) $run->status !== SettlementRun::STATUS_OPEN) {
+                throw new \RuntimeException('The existing settlement run is not open; explicit recovery is required.');
+            }
+            if ($this->hasMoreWork($run)) {
+                SettleDrawChunkJob::dispatch($drawId, (int) $run->getKey(), (int) $run->cursor_bet_id);
+            } else {
+                FinalizeDrawSettlementJob::dispatch($drawId, (int) $run->getKey());
+            }
+        }
 
         return [
             'mode' => 'chunked',
             'draw_id' => $drawId,
-            'participants' => $participants,
-            'chunks' => count($jobs),
-            'batch_id' => $batchId,
+            'participants' => (int) $run->bets_total,
+            'chunks' => (int) ceil((int) $run->bets_total / max(1, (int) $run->chunk_size)),
+            'batch_id' => null,
+            'run_id' => (int) $run->getKey(),
         ];
     }
 
@@ -1056,55 +946,6 @@ final class ChunkedSettlementOrchestrator
             ->where('draw_id', $drawId)
             ->whereNull('deleted_at')
             ->count();
-    }
-
-    /**
-     * PHASE 1 — the only long-lived lock, and it is held for a few statements.
-     *
-     * Assert the draw can settle, capture the participant id range and the
-     * result fingerprint for the run, and read back what was captured. Commits
-     * immediately; chunk jobs read these frozen facts.
-     *
-     * @return array{min_id: int, max_id: int, result_fingerprint: string}
-     */
-    private function freezeParticipantRange(int $drawId): array
-    {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($drawId): array {
-            /** @var Draw|null $draw */
-            $draw = $this->lifecycle->lockForUpdate($drawId);
-            $state = $this->lifecycle->currentState($draw);
-
-            // Same guard the inline path uses, at the same point in the flow:
-            // a draw that cannot settle must be refused before a single chunk
-            // job exists. Refusing here means no partial batch is ever created.
-            $this->lifecycle->assertCanSettle($draw, [
-                'stage' => 'settlement.freeze',
-                'mode' => 'chunked',
-            ]);
-
-            $result = $draw->result ?? null;
-            $fingerprint = $result === null ? '' : (string) ($result->result_fingerprint ?? '');
-
-            if ($fingerprint === '') {
-                // No pinned fingerprint means chunk jobs could settle against a
-                // result that changes mid-run. Refuse rather than risk it.
-                throw new \RuntimeException(
-                    "Draw {$drawId} has no result fingerprint; refusing to chunk a settlement that cannot be pinned."
-                );
-            }
-
-            $range = Bet::query()
-                ->where('draw_id', $drawId)
-                ->whereNull('deleted_at')
-                ->selectRaw('MIN(id) as min_id, MAX(id) as max_id')
-                ->first();
-
-            return [
-                'min_id' => (int) ($range->min_id ?? 0),
-                'max_id' => (int) ($range->max_id ?? 0),
-                'result_fingerprint' => $fingerprint,
-            ];
-        });
     }
 
     /**

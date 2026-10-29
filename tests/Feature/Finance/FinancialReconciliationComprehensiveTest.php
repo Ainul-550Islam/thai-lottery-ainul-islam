@@ -156,9 +156,10 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
     {
         $player = $this->createReconciledPlayer('500.00', Currency::THB);
 
-        // Intentionally tamper with a ledger entry amount to simulate ledger imbalance
+        // A deposit credits the player-liability leg. Tamper with that real
+        // wallet leg to create an observable unbalanced double entry.
         $entry = LedgerEntry::where('wallet_id', $player['wallet']->id)
-            ->where('type', 'debit')
+            ->where('type', 'credit')
             ->firstOrFail();
 
         DB::table('ledger_entries')->where('id', $entry->id)->update(['amount' => '400.00']);
@@ -496,13 +497,18 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
     #[Test]
     public function test_15_reversal_uses_compensating_transaction(): void
     {
-        $player = $this->createReconciledPlayer('500.00', Currency::THB);
-        $deposit = Deposit::where('wallet_id', $player['wallet']->id)->firstOrFail();
-
-        $originalTx = FinancialTransaction::find($deposit->financial_transaction_id);
+        $player = $this->createReconciledPlayer('0.00', Currency::THB);
+        // A standalone adjustment is reversible by this general-purpose engine.
+        // A deposit-owned transaction must use its dedicated domain workflow.
+        $originalTx = $this->walletService->credit(
+            $player['wallet'], Money::of('500.00', Currency::THB),
+            FinancialTransactionType::Adjustment, 'reconciliation-original-adjustment',
+        );
 
         // Execute compensating reversal
-        $reversalTx = $this->reversalService->reverse($originalTx, 1, null, 'Customer chargeback');
+        $reversalTx = $this->reversalService->reverse($originalTx, $player['user']->id, null, 'Synthetic correction');
+        $this->assertSame('0.00', (string) $player['wallet']->fresh()->balance);
+        $this->assertDatabaseCount('ledger_entries', 4);
 
         $this->assertSame(TransactionStatus::Reversed, $originalTx->fresh()->status);
         $this->assertSame(TransactionStatus::Completed, $reversalTx->status);
@@ -637,28 +643,63 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
     public function test_24_duplicate_webhook_cannot_create_a_reconciliation_discrepancy_caused_by_duplicate_money(): void
     {
         $player = $this->createReconciledPlayer('0.00', Currency::THB);
-        $deposit = $this->createPendingDeposit($player['wallet'], '300.00', PaymentMethod::Bkash);
+        // bKash is a BDT-only provider and its callback contract is unverified.
+        // Use an actually verified synthetic Stripe signature for the positive
+        // duplicate-credit test rather than inventing a bKash/THB callback.
+        $deposit = $this->createPendingDeposit($player['wallet'], '300.00', PaymentMethod::Stripe);
+        $payload = [
+            'id' => 'evt_stripe_reconciliation_dup_24',
+            'type' => 'checkout.session.completed',
+            'data' => ['object' => [
+                'id' => 'cs_test_reconciliation_24',
+                'client_reference_id' => $deposit->reference_number,
+                'amount_total' => 30000,
+                'currency' => 'thb',
+            ]],
+        ];
+        $timestamp = time();
+        $json = json_encode($payload, JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', "{$timestamp}.{$json}", self::STRIPE_WEBHOOK_SECRET);
+        Config::set('payment.webhook.replay_protection', true);
 
-        $payload = new WebhookPayload(
-            gateway: 'bkash',
-            eventId: 'evt_bkash_dup_24',
-            eventType: WebhookEventType::DepositSuccess,
-            providerReference: 'BKASH-TRX-24',
-            internalReference: $deposit->reference_number,
-            amount: '300.00',
-            currency: Currency::THB,
-            isSuccess: true,
-        );
+        $this->withHeaders(['Stripe-Signature' => "t={$timestamp},v1={$signature}"])
+            ->postJson('/api/v1/payments/webhook/stripe', $payload)
+            ->assertOk()->assertJsonPath('success', true);
+        $this->assertSame('300.00', (string) $player['wallet']->fresh()->balance);
+        $transactions = FinancialTransaction::query()->count();
+        $entries = LedgerEntry::query()->count();
 
-        // 1st delivery
-        $this->webhookService()->processWebhookPayload($payload);
-        // 2nd duplicate delivery
-        $this->webhookService()->processWebhookPayload($payload);
+        $this->withHeaders(['Stripe-Signature' => "t={$timestamp},v1={$signature}"])
+            ->postJson('/api/v1/payments/webhook/stripe', $payload)
+            ->assertOk()->assertJsonPath('success', true)->assertJsonPath('duplicate', true);
+        $this->assertSame('300.00', (string) $player['wallet']->fresh()->balance);
+        $this->assertSame($transactions, FinancialTransaction::query()->count());
+        $this->assertSame($entries, LedgerEntry::query()->count());
+        $this->assertSame(DepositStatus::Confirmed, $deposit->fresh()->status);
 
         $report = $this->reconciliationService->reconcile();
-
         $this->assertSame(ReconciliationStatus::Pass, $report->status);
         $this->assertSame('300.00', $report->totalDeposits);
+    }
+
+    #[Test]
+    public function unverified_bkash_callbacks_never_credit_or_enter_reconciliation_totals(): void
+    {
+        $player = $this->createReconciledPlayer('0.00', Currency::BDT);
+        $deposit = $this->createPendingDeposit($player['wallet'], '300.00', PaymentMethod::Bkash);
+        $payload = new WebhookPayload(
+            gateway: 'bkash', eventId: 'evt_unverified_bkash_24',
+            eventType: WebhookEventType::DepositSuccess,
+            providerReference: 'BKASH-TRX-24', internalReference: $deposit->reference_number,
+            amount: '300.00', currency: Currency::BDT, isSuccess: true,
+        );
+        $first = $this->webhookService()->processWebhookPayload($payload);
+        $second = $this->webhookService()->processWebhookPayload($payload);
+        $this->assertFalse($first->success);
+        $this->assertFalse($second->success);
+        $this->assertSame('0.00', (string) $player['wallet']->fresh()->balance);
+        $this->assertSame(DepositStatus::Pending, $deposit->fresh()->status);
+        $this->assertSame('0.00', $this->reconciliationService->reconcile(currency: Currency::BDT)->totalDeposits);
     }
 
     #[Test]
@@ -787,6 +828,10 @@ final class FinancialReconciliationComprehensiveTest extends PaymentTestCase
         $audit = AuditLog::where('action', AuditAction::Reconcile->value)->latest('id')->first();
         $this->assertNotNull($audit);
         $this->assertStringContainsString($report->executionId, $audit->description);
+        $this->assertNull($audit->auditable_type);
+        $this->assertNull($audit->auditable_id);
+        $this->assertSame('reconciliation', $audit->metadata['lane']);
+        $this->assertSame($report->executionId, $audit->metadata['execution_id']);
 
         $json = json_encode($audit->toArray());
         $this->assertStringNotContainsString('password', $json);

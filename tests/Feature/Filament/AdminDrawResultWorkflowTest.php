@@ -8,9 +8,11 @@ use App\Enums\DrawStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\DrawResultException;
 use App\Models\Draw;
+use App\Models\DrawResult;
 use App\Models\User;
 use App\Services\Draw\AdminDrawResultWorkflow;
 use App\Services\Draw\DrawResultIngestionService;
+use App\Services\Draw\DrawResultPublicationService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
@@ -128,6 +130,30 @@ final class AdminDrawResultWorkflowTest extends TestCase
             $this->assertFalse(app(AdminDrawResultWorkflow::class)->canConfirm($draw));
         }
         $this->assertUnpublished($draw);
+    }
+
+    public function test_distinct_authorized_checker_publishes_the_existing_manual_card(): void
+    {
+        [$draw, $maker, $checker, $fingerprint] = $this->pending();
+        $draw->scheduled_at = now()->subMinute();
+        $draw->save();
+
+        $confirmed = app(AdminDrawResultWorkflow::class)->confirm(
+            (int) $draw->getKey(), self::NUMBERS, 'Checked both numbers.', $fingerprint,
+        );
+
+        $this->assertTrue($confirmed['published']);
+        $record = $draw->fresh()->metadata['result_ingestion'];
+        $this->assertSame('confirmed', $record['status']);
+        $this->assertSame('admin-panel', $record['source']);
+        $this->assertSame((int) $maker->getKey(), $record['ingested_by']);
+        $this->assertSame((int) $checker->getKey(), $record['confirmed_by']);
+        $this->assertDatabaseCount('draw_results', 1);
+
+        $result = DrawResult::query()->where('draw_id', $draw->getKey())->firstOrFail();
+        $provenance = app(DrawResultPublicationService::class)->verifiedProvenanceFor($draw->fresh(), $result);
+        $this->assertSame('source-known', $provenance['trust']);
+        $this->assertSame('internal', $provenance['provider']);
     }
 
     public function test_self_confirmation_is_refused_by_the_domain_not_only_button_visibility(): void

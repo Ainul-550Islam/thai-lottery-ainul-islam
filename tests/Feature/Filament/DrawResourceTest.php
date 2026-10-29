@@ -28,9 +28,8 @@ use Tests\TestCase;
  *   1. A button appears only when the domain would actually accept it. A "Publish" button
  *      on a draw that is still open is a trap, and an operator who trusts it will file a
  *      bug against the lifecycle service instead of the screen.
- *   2. The screen never writes state itself. Publishing goes through
- *      DrawResultPublicationService, so the row that lands in the database is the row the
- *      domain would have written from any other caller.
+ *   2. The screen stages a card first, then a different operator confirms it
+ *      through the existing workflow. The screen never publishes directly.
  *
  * WHAT IS DELIBERATELY NOT TESTED HERE
  * The lifecycle rules themselves - those have their own unit suites, and duplicating them
@@ -138,15 +137,16 @@ final class DrawResourceTest extends TestCase
     // Buttons appear only when the domain would accept them.
     // -------------------------------------------------------------------------
 
-    public function test_publish_is_offered_only_while_awaiting_numbers(): void
+    public function test_staging_is_offered_only_while_awaiting_numbers(): void
     {
         $awaiting = $this->draw(DrawStatus::Drawing);
         $open = $this->draw(DrawStatus::Open);
 
         Livewire::actingAs($this->operator())
             ->test(ListDraws::class, ['activeTab' => 'all'])
-            ->assertTableActionVisible('publish', record: $awaiting)
-            ->assertTableActionHidden('publish', record: $open);
+            ->assertTableActionVisible('ingestResult', record: $awaiting)
+            ->assertTableActionHidden('ingestResult', record: $open)
+            ->assertTableActionHidden('confirmResult', record: $awaiting);
     }
 
     public function test_open_is_offered_only_on_a_scheduled_draw(): void
@@ -209,32 +209,54 @@ final class DrawResourceTest extends TestCase
         $this->assertSame(DrawStatus::Open, $draw->fresh()->status);
     }
 
-    public function test_publishing_writes_the_result_through_the_domain_service(): void
+    public function test_two_operators_stage_and_confirm_through_the_existing_workflow(): void
     {
         $draw = $this->draw(DrawStatus::Drawing);
+        $maker = $this->operator();
+        $checker = $this->operator();
 
-        Livewire::actingAs($this->operator())
+        Livewire::actingAs($maker)
             ->test(ViewDraw::class, ['record' => $draw->getKey()])
-            ->callAction('publish', data: [
+            ->callAction('ingestResult', data: [
                 'first_prize' => '123456',
                 'bottom_two' => '56',
             ])
             ->assertHasNoActionErrors();
 
-        $result = DrawResult::query()->where('draw_id', $draw->getKey())->first();
+        $record = $draw->fresh()->metadata['result_ingestion'];
+        $this->assertSame('pending', $record['status']);
+        $this->assertSame((int) $maker->getKey(), $record['ingested_by']);
+        $this->assertDatabaseCount('draw_results', 0);
+        Livewire::actingAs($maker)
+            ->test(ListDraws::class, ['activeTab' => 'all'])
+            ->assertTableActionHidden('confirmResult', record: $draw->fresh());
 
-        $this->assertNotNull($result, 'Publishing produced no draw_results row.');
+        Livewire::actingAs($checker)
+            ->test(ViewDraw::class, ['record' => $draw->getKey()])
+            ->mountAction('confirmResult')
+            ->assertActionDataSet(['fingerprint' => $record['fingerprint']])
+            ->setActionData([
+                'first_prize' => '123456',
+                'bottom_two' => '56',
+                'notes' => 'Checked the staged numbers.',
+            ])
+            ->callMountedAction()
+            ->assertHasNoActionErrors();
+
+        $result = DrawResult::query()->where('draw_id', $draw->getKey())->first();
+        $this->assertNotNull($result, 'Confirmation produced no draw_results row.');
         $this->assertSame('123456', $result->first_prize);
         $this->assertSame(DrawStatus::ResultPublished, $draw->fresh()->status);
+        $this->assertSame((int) $checker->getKey(), $draw->fresh()->metadata['result_ingestion']['confirmed_by']);
     }
 
-    public function test_publishing_rejects_a_malformed_first_prize(): void
+    public function test_staging_rejects_a_malformed_first_prize(): void
     {
         $draw = $this->draw(DrawStatus::Drawing);
 
         Livewire::actingAs($this->operator())
             ->test(ViewDraw::class, ['record' => $draw->getKey()])
-            ->callAction('publish', data: [
+            ->callAction('ingestResult', data: [
                 'first_prize' => '12345',
                 'bottom_two' => '56',
             ])

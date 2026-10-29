@@ -200,8 +200,12 @@ class WeeklyResultIntegrityService
 
         $publicKey = $this->config->get('weekly_lottery.integrity.public_key_hex');
         $signatureRequired = is_string($publicKey) && trim($publicKey) !== '';
-        $signatureSupplied = is_string($signatureHex) && trim($signatureHex) !== '';
+        $signatureSupplied = $signatureHex !== null;
         $hardStop = (bool) $this->config->get('weekly_lottery.integrity.required', false);
+
+        if ($signatureSupplied && preg_match('/^[0-9a-fA-F]{128}$/D', $signatureHex) !== 1) {
+            return $this->refuse($report, self::STATUS_SIGNATURE_INVALID, 'INVALID_SIGNATURE_ENCODING');
+        }
 
         // Turning the verifier off only ever turns off the *second opinion* on
         // an unsigned payload. A deployment that demands a signature, or that
@@ -296,14 +300,14 @@ class WeeklyResultIntegrityService
                 signatureRequired: $signatureRequired,
                 signatureSupplied: $signatureSupplied,
             );
-            return $report;
         } catch (ProcessException|Throwable $exception) {
             // Report the failure, never the exception text: a process error
             // can contain a filesystem path.
             report($exception);
 
             $report['status'] = self::STATUS_VERIFIER_UNAVAILABLE;
-            $report['acceptable'] = ! (bool) $this->config->get('weekly_lottery.integrity.required', false);
+            // Optional hash-only mode is not permission to downgrade signing.
+            $report['acceptable'] = ! $hardStop && ! $signatureRequired && ! $signatureSupplied;
             $report['error_code'] = 'VERIFIER_EXECUTION_FAILED';
 
             return $report;
@@ -335,9 +339,9 @@ class WeeklyResultIntegrityService
         bool $signatureRequired,
         bool $signatureSupplied,
     ): array {
-        // A nonzero exit means the verifier is telling us it did not complete.
-        // Whatever it printed on the way out is not a verdict.
-        if ($exitCode !== 0) {
+        // The native protocol exits 0 for an accepted report and 2 for a
+        // determinate refusal. Other exit codes are process/protocol failures.
+        if ($exitCode !== 0 && $exitCode !== 2) {
             return $this->refuse($report, self::STATUS_REJECTED, 'VERIFIER_NONZERO_EXIT');
         }
 
@@ -353,6 +357,10 @@ class WeeklyResultIntegrityService
 
         if (! is_bool($acceptable)) {
             return $this->refuse($report, self::STATUS_REJECTED, 'NON_BOOLEAN_ACCEPTABLE');
+        }
+
+        if (($exitCode === 0) !== $acceptable) {
+            return $this->refuse($report, self::STATUS_REJECTED, 'EXIT_ACCEPTABLE_DISAGREE');
         }
 
         $acceptingStatus = in_array($status, [self::STATUS_HASH_ONLY, self::STATUS_SIGNED_VERIFIED], true);

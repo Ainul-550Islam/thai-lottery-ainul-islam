@@ -15,6 +15,10 @@ final class BetPurchaseAdmission
 {
     public function assertAllowed(BetPurchaseContext $context, Wallet $wallet): void
     {
+        // This authoritative check also covers direct, prevalidated transaction
+        // contexts and amendment replacements that never use the fast preflight.
+        app(\App\Services\Compliance\RealMoneyGate::class)->assertOpen('bet');
+
         // Wallet has already been locked by the purchase root. Policy writers never
         // acquire wallets, and must take this same player mutex before policy rows.
         $user = app(ResponsibleGamingPlayerLock::class)->lock($context->userId());
@@ -25,6 +29,9 @@ final class BetPurchaseAdmission
         if (! $user->isActive()) {
             throw BetPurchaseException::userUnavailable((int) $user->id, 'the current account cannot place a wager');
         }
+        // The advisory resolver read may be stale. Recheck the locked current
+        // type before any new risk or money movement; replay is not routed here.
+        app(BetPurchaseWalletService::class)->assertBettingWallet($wallet);
         app(StripeRefundWagerGuard::class)->assertNoPendingExposure($user, $wallet->currency);
         app(ResponsibleGamingEnforcementService::class)->assertBetAllowed(
             $user, $context->stakeMoney()->toString(), $wallet->currency->value,

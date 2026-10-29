@@ -298,7 +298,8 @@ final class DepositMethodsIntegrationTest extends PaymentTestCase
         $ids = collect($response->json('data.methods'))->pluck('id');
 
         $this->assertNotContains('thai_bank', $ids->all(), 'The automated payout rail is routed, never chosen.');
-        $this->assertTrue($response->json('data.routing.automated_thai_bank'));
+        $this->assertFalse($response->json('data.routing.automated_thai_bank'),
+            'Turning on a switch alone is not proof the bank adapter is configured.');
     }
 
     public function test_the_withdrawal_listing_requires_authentication(): void

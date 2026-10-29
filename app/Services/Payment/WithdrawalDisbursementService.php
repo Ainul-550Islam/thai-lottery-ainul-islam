@@ -6,6 +6,7 @@ namespace App\Services\Payment;
 
 use App\DTOs\Payment\GatewayWithdrawalResponse;
 use App\Enums\AuditAction;
+use App\Enums\Currency;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\RiskLevel;
@@ -26,7 +27,7 @@ use App\Services\Finance\WithdrawalReservationService;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payout\ThaiBank\ThaiBankDestinationValidator;
 use App\Services\Payout\ThaiBank\ThaiBankPayoutAdapterInterface;
-use App\Services\Withdrawal\ManualDisbursementQueueService;
+use App\Services\Payment\ManualDisbursementQueueService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -224,6 +225,11 @@ class WithdrawalDisbursementService
 
                 // Validate even on retries: an in-flight claim never excuses changed terms.
                 $gatewayKey = $this->resolveGatewayKey($current);
+                // Existing BDT obligations must remain reviewable even though
+                // these providers do not have an authenticated payout contract.
+                // This route NEVER invokes the driver and cannot send money.
+                $manualReconciliationOnly = in_array($gatewayKey, ['bkash', 'nagad'], true)
+                    && $current->currency === Currency::BDT;
                 $scope = app(WithdrawalProviderAccountService::class)->assertActive($current);
                 $payment = $this->dispatchPayment($current);
 
@@ -245,7 +251,7 @@ class WithdrawalDisbursementService
                 $currentMetadata['gateway_key'] = $gatewayKey;
                 $currentMetadata['disbursement_attempt_started_at'] = $startedAt;
                 $currentMetadata[self::CLAIM] = [
-                    'state' => 'sending',
+                    'state' => $manualReconciliationOnly ? 'reconciliation_required' : 'sending',
                     'gateway_key' => $gatewayKey,
                     'key' => hash('sha256', json_encode([
                         'withdrawal-dispatch-v1', (int) $current->getKey(),
@@ -259,13 +265,15 @@ class WithdrawalDisbursementService
                 $current->metadata = $currentMetadata;
                 $current->save();
 
-                // FINAL AUDIT #5: withdrawal payout resolves through the
-                // fail-closed guard - a disabled or non-withdrawal-capable
-                // gateway is refused here; the manual-approval design above is
-                // untouched.
-                $driver = $this->gateways->withdrawalDriver($gatewayKey);
+                // Actual payout dispatch must pass the fail-closed gateway guard.
+                // For an existing unverified BDT obligation only the driver's
+                // identity is read: it will never be called to send a payout.
+                $driver = $manualReconciliationOnly
+                    ? $this->gateways->driver($gatewayKey)
+                    : $this->gateways->withdrawalDriver($gatewayKey, $current->currency);
 
-                if (! $driver->supportsCurrency($current->currency)) {
+                if (($manualReconciliationOnly && $driver->name() !== $gatewayKey)
+                    || ! $driver->supportsCurrency($current->currency)) {
                     throw FinancialException::withCode(
                         'unsupported_gateway_currency',
                         sprintf('Gateway [%s] does not support currency [%s].', $driver->name(), $current->currency->value),
@@ -299,13 +307,16 @@ class WithdrawalDisbursementService
                 $this->recordAudit(
                     action: AuditAction::Withdraw,
                     auditable: $current,
-                    description: sprintf('Withdrawal %s prepared for a one-time disbursement attempt via %s.', $current->reference_number, $driver->name()),
+                    description: $manualReconciliationOnly
+                        ? sprintf('Withdrawal %s prepared for manual reconciliation; no provider transfer was attempted.', $current->reference_number)
+                        : sprintf('Withdrawal %s prepared for a one-time disbursement attempt via %s.', $current->reference_number, $driver->name()),
                     metadata: [
                         'withdrawal_id' => $current->getKey(),
                         'amount' => (string) $current->amount,
                         'net_amount' => (string) $current->net_amount,
                         'gateway' => $driver->name(),
-                        'attempt_started' => true,
+                        'attempt_started' => ! $manualReconciliationOnly,
+                        'manual_reconciliation_only' => $manualReconciliationOnly,
                     ],
                 );
 
@@ -313,6 +324,7 @@ class WithdrawalDisbursementService
                     'withdrawal' => $current,
                     'payment' => $payment,
                     'driver' => $driver,
+                    'manual_reconciliation_only' => $manualReconciliationOnly,
                 ];
             });
         } catch (FinancialException $exception) {
@@ -348,10 +360,18 @@ class WithdrawalDisbursementService
         $outcomeUnknown = false;
 
         try {
-            // The committed server claim wins over any caller-supplied option.
-            $options['idempotency_key'] = $currentWithdrawal->metadata[self::CLAIM]['key'];
-            $options['account_scope'] = $currentWithdrawal->metadata[self::CLAIM]['account_scope'];
-            $gatewayResponse = $driver->initiateWithdrawal($currentWithdrawal, $options);
+            if (($preparation['manual_reconciliation_only'] ?? false) === true) {
+                $gatewayResponse = GatewayWithdrawalResponse::pending(metadata: [
+                    'manual_disbursement_required' => true,
+                    'requires_b2c_disbursement' => true,
+                    'reconciliation_required' => true,
+                ]);
+            } else {
+                // The committed server claim wins over caller-supplied options.
+                $options['idempotency_key'] = $currentWithdrawal->metadata[self::CLAIM]['key'];
+                $options['account_scope'] = $currentWithdrawal->metadata[self::CLAIM]['account_scope'];
+                $gatewayResponse = $driver->initiateWithdrawal($currentWithdrawal, $options);
+            }
         } catch (\Throwable $e) {
             $outcomeUnknown = true;
             Log::error('Outbound withdrawal outcome is unknown; reconciliation is required', [

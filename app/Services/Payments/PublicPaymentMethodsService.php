@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Payments;
 
 use App\Enums\PaymentMethod;
+use App\Services\Compliance\RealMoneyGate;
 use App\Services\Payment\PaymentGatewayManager;
 
 /**
@@ -33,6 +34,13 @@ class PublicPaymentMethodsService
      */
     public function publicMethods(): array
     {
+        if (! app(RealMoneyGate::class)->isOpen()) {
+            return [
+                'status' => 'NOT_CONFIGURED',
+                'methods' => [],
+                'message' => 'Real-money deposits are temporarily unavailable.',
+            ];
+        }
         if (! (bool) config('payment.deposit.enabled', false)) {
             return [
                 'status' => 'NOT_CONFIGURED',
@@ -56,21 +64,14 @@ class PublicPaymentMethodsService
                 continue;
             }
 
-            if (! $manager->isDepositCapable($case)) {
-                continue;
-            }
-
-            try {
-                $driver = $manager->driver($case);
-                $currencies = [];
-                foreach ($case->supportedCurrencies() as $currency) {
-                    if ($driver->supportsCurrency($currency)) {
-                        $currencies[] = $currency->value;
-                    }
+            // A driver-level currency list is not merchant-market authority.
+            // Ask the same manager for each currency rather than letting the
+            // site default suppress (or falsely advertise) a different wallet.
+            $currencies = [];
+            foreach ($case->supportedCurrencies() as $currency) {
+                if ($manager->isDepositCapable($case, $currency)) {
+                    $currencies[] = $currency->value;
                 }
-            } catch (\Throwable) {
-                // A currency-query failure is not evidence of a THB settlement path.
-                continue;
             }
 
             if ($currencies === []) {

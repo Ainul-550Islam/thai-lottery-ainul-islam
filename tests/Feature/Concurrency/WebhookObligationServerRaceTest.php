@@ -48,14 +48,28 @@ final class WebhookObligationServerRaceTest extends PaymentTestCase
     public function test_concurrent_deposit_success_credits_once(): void
     {
         $player = $this->createPlayer('100.00', Currency::BDT);
-        $row = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Bkash);
-        $out = $this->serverRace([$this->command($row), $this->command($row)], 'wallets', (int) $player['wallet']->id);
+        // Synthetic Nagad facts exercise the common local obligation binding;
+        // they are not evidence of real-provider callback authentication.
+        $row = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Nagad);
+        $out = $this->serverRace([$this->command($row, gateway: 'nagad'), $this->command($row, gateway: 'nagad')], 'wallets', (int) $player['wallet']->id);
         $this->assertSame([true, true], array_column($out, 'success'), json_encode($out));
         $this->assertEqualsCanonicalizing(['credited', 'replayed'], array_column($out, 'outcome'));
         $this->assertSame('500.00', (string) $player['wallet']->fresh()->balance);
         $this->assertSame(1, FinancialTransaction::query()->count());
         $this->assertSame(2, LedgerEntry::query()->count());
         $this->assertSame(1, Payment::query()->count());
+    }
+
+    public function test_concurrent_bkash_success_without_original_checkout_proof_cannot_credit(): void
+    {
+        $player = $this->createPlayer('100.00', Currency::BDT);
+        $row = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Bkash);
+        $out = $this->serverRace([$this->command($row), $this->command($row)], 'wallets', (int) $player['wallet']->id);
+        $this->assertSame([false, false], array_column($out, 'success'), json_encode($out));
+        $this->assertSame('100.00', (string) $player['wallet']->fresh()->balance);
+        $this->assertSame(0, FinancialTransaction::query()->count());
+        $this->assertSame(0, LedgerEntry::query()->count());
+        $this->assertSame(0, Payment::query()->count());
     }
 
     public function test_concurrent_withdrawal_success_debits_once(): void
@@ -88,13 +102,13 @@ final class WebhookObligationServerRaceTest extends PaymentTestCase
     public function test_concurrent_foreign_provider_cannot_race_a_valid_credit(): void
     {
         $player = $this->createPlayer('100.00', Currency::BDT);
-        $row = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Bkash);
-        $out = $this->serverRace([$this->command($row), $this->command($row, gateway: 'stripe')], 'wallets', (int) $player['wallet']->id);
-        $this->assertTrue($out[0]['success']);
+        $row = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Nagad);
+        $out = $this->serverRace([$this->command($row, gateway: 'nagad'), $this->command($row, gateway: 'stripe')], 'wallets', (int) $player['wallet']->id);
+        $this->assertTrue($out[0]['success'], json_encode($out));
         $this->assertFalse($out[1]['success']);
         $this->assertSame('500.00', (string) $player['wallet']->fresh()->balance);
         $this->assertSame(1, FinancialTransaction::query()->count());
         $this->assertSame(2, LedgerEntry::query()->count());
-        $this->assertSame('bkash', Payment::query()->sole()->gateway);
+        $this->assertSame('nagad', Payment::query()->sole()->gateway);
     }
 }

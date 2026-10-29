@@ -74,9 +74,49 @@ class AutomatedBankReconciliationTest extends TestCase
 
         $result = $this->reconciliationService->reconcileDate($date);
 
-        $this->assertTrue($result['is_balanced']);
-        $this->assertSame('1000.0000', $result['bank_deposits_total']);
+        // These are internal records, not an independently verified bank statement.
+        $this->assertTrue($result['internal_aggregate_balanced']);
+        $this->assertFalse($result['external_evidence_verified']);
+        $this->assertFalse($result['is_balanced']);
+        $this->assertSame('THB', $result['currency']);
+        $this->assertSame('1000.0000', $result['recorded_deposits_total']);
         $this->assertSame('1000.0000', $result['ledger_deposits_total']);
         $this->assertSame('0.0000', $result['deposits_variance']);
+    }
+
+    public function test_mismatches_in_different_currencies_cannot_cancel_each_other(): void
+    {
+        $date = Carbon::create(2026, 10, 16, 12, 0, 0);
+        DepositTransaction::create([
+            'id' => (string) Str::uuid(), 'user_id' => 'user-recon-2',
+            'deposit_number' => 'DEP-THB-UNMATCHED', 'gateway_provider' => 'TEST',
+            'gateway_reference_id' => 'THB-ONLY', 'amount' => '100.0000',
+            'fee_amount' => '0.0000', 'net_amount' => '100.0000', 'currency' => 'THB',
+            'status' => 'COMPLETED', 'completed_at' => $date,
+        ]);
+        $ledger = app(\App\Services\Ledger\DoubleEntryLedgerService::class);
+        $asset = $ledger->getSystemAccount('RECON-USD-ASSET', 'USD asset', 'asset', 'USD');
+        $liability = $ledger->getSystemAccount('RECON-USD-LIABILITY', 'USD liability', 'liability', 'USD');
+        $tx = $ledger->postTransaction('DEPOSIT_SETTLEMENT', 'usd-unmatched', 'USD', [
+            ['account_id' => $asset->id, 'direction' => 'DEBIT', 'amount' => '100.00'],
+            ['account_id' => $liability->id, 'direction' => 'CREDIT', 'amount' => '100.00'],
+        ], 'recon-usd-unmatched');
+        $tx->update(['posted_at' => $date]);
+
+        $thb = $this->reconciliationService->reconcileDate($date, 'THB');
+        $usd = $this->reconciliationService->reconcileDate($date, 'USD');
+        $this->assertSame('100.0000', $thb['deposits_variance']);
+        $this->assertSame('-100.0000', $usd['deposits_variance']);
+        $this->assertFalse($thb['internal_aggregate_balanced']);
+        $this->assertFalse($usd['internal_aggregate_balanced']);
+        $this->assertFalse($thb['is_balanced']);
+        $this->assertFalse($usd['is_balanced']);
+    }
+
+    public function test_cli_cannot_report_a_verified_bank_reconciliation_without_external_evidence(): void
+    {
+        $this->artisan('ledger:reconcile-bank', ['date' => '2026-10-16', '--currency' => 'BDT'])
+            ->expectsOutputToContain('External bank evidence is not verified')
+            ->assertExitCode(1);
     }
 }

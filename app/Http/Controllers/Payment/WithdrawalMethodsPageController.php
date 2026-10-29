@@ -9,6 +9,8 @@ use App\Enums\PaymentMethod;
 use App\Http\Controllers\Api\V1\WithdrawalController as CanonicalWithdrawalController;
 use App\Http\Requests\Withdrawal\CreateWithdrawalRequest;
 use App\Http\Responses\ApiResponse;
+use App\Models\Wallet;
+use App\Services\Compliance\RealMoneyGate;
 use App\Services\Payment\PaymentGatewayManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -59,6 +61,25 @@ final class WithdrawalMethodsPageController extends Controller
             return $this->authenticationRequired();
         }
 
+        $defaultCurrency = Currency::tryFromCode((string) config('payment.currency.default', 'THB'));
+        if ($defaultCurrency === null) {
+            return response()->json([
+                'status' => 'NOT_CONFIGURED',
+                'message' => 'The configured site currency is unsupported.',
+            ], 503);
+        }
+        $currency = $defaultCurrency;
+        if ($request->query->has('currency')) {
+            $selected = $request->query('currency');
+            $currency = is_string($selected) ? Currency::tryFromCode($selected) : null;
+            if ($currency === null) {
+                return ApiResponse::error('unsupported_currency', 'The requested currency is unavailable.', 422);
+            }
+            if (! Wallet::query()->where('user_id', $request->user()->id)->where('currency', $currency->value)->exists()) {
+                return ApiResponse::error('wallet_not_found', 'No wallet is held for this currency.', 404);
+            }
+        }
+
         $manager = app(PaymentGatewayManager::class);
         $allowed = (array) config('payment.withdrawal.allowed_methods', []);
 
@@ -69,22 +90,26 @@ final class WithdrawalMethodsPageController extends Controller
             }
 
             $enum = PaymentMethod::tryFrom($method);
-            if (! $enum instanceof PaymentMethod) {
+            if (! $enum instanceof PaymentMethod || $enum === PaymentMethod::Crypto) {
+                // The unsupported crypto driver is not a public payment method,
+                // even when an operator accidentally adds it to the allowlist.
                 continue;
             }
 
-            $methods[] = $this->rail($manager, $enum);
+            $methods[] = $this->rail($manager, $enum, $currency);
         }
 
         return ApiResponse::success([
             'methods' => $methods,
-            'default_currency' => Currency::THB->value,
-            'currencies' => ['THB', 'USD', 'BDT'],
+            'default_currency' => $defaultCurrency->value,
+            'selected_currency' => $currency->value,
+            'currencies' => Currency::codes(),
             'min_amount' => (string) config('payment.withdrawal.min', '100.00'),
             'max_amount' => (string) config('payment.withdrawal.max', '500000.00'),
             'requires_kyc_above' => (string) config('finance.withdrawal.kyc_gate_threshold', '5000.00'),
             'routing' => [
-                'automated_thai_bank' => (bool) config('thai_payout.enabled', false),
+                'automated_thai_bank' => (bool) config('payment.withdrawal_routing.prefer_automated_payout', true)
+                    && $manager->isWithdrawalCapable('thai_bank', $currency),
                 'note' => 'The system, not the player, decides whether an automated Thai bank transfer pays a bank_transfer request.',
             ],
         ], 'Withdrawal methods retrieved.');
@@ -139,9 +164,10 @@ final class WithdrawalMethodsPageController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function rail(PaymentGatewayManager $manager, PaymentMethod $method): array
+    private function rail(PaymentGatewayManager $manager, PaymentMethod $method, Currency $currency): array
     {
-        $enabled = $manager->isWithdrawalCapable($method);
+        $launchOpen = app(RealMoneyGate::class)->isOpen();
+        $enabled = $manager->isWithdrawalCapable($method, $currency) && $launchOpen;
 
         return [
             'id' => $method->value,
@@ -149,10 +175,12 @@ final class WithdrawalMethodsPageController extends Controller
             'label' => $method->label(),
             'enabled' => $enabled,
             'state' => $enabled ? 'AVAILABLE' : 'NOT_CONFIGURED',
-            'reason' => $enabled ? null : 'This withdrawal rail is disabled or not configured on this deployment.',
+            'reason' => $enabled ? null : ($launchOpen
+                ? 'This withdrawal rail is disabled or not configured on this deployment.'
+                : 'Real-money withdrawals are temporarily unavailable.'),
             'min_amount' => (string) config('payment.withdrawal.min', '100.00'),
             'max_amount' => (string) config('payment.withdrawal.max', '500000.00'),
-            'currency' => Currency::THB->value,
+            'currency' => $currency->value,
             'request_route' => route('api.v1.withdrawal.request'),
         ];
     }

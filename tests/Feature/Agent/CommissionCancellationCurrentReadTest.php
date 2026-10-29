@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Agent;
 
 use App\DTOs\BetPurchaseData;
+use App\DTOs\Betting\BulkBetSelectionData;
 use App\Enums\Currency;
 use App\Exceptions\BetDomainException;
 use App\Models\AgentCommission;
@@ -26,7 +27,7 @@ final class CommissionCancellationCurrentReadTest extends FinancialMasterTestCas
 
     public static function operations(): array
     {
-        return ['accrual' => ['accrual'], 'book_deficit' => ['book_deficit'], 'cancelled' => ['cancelled'], 'paid' => ['paid']];
+        return ['historical_no_commission' => ['historical_no_commission'], 'book_deficit' => ['book_deficit'], 'cancelled' => ['cancelled'], 'paid' => ['paid']];
     }
 
     #[DataProvider('operations')]
@@ -37,9 +38,9 @@ final class CommissionCancellationCurrentReadTest extends FinancialMasterTestCas
         }
         $f = $this->commissionFixture(parent: false);
         $third = null;
-        if ($operation === 'accrual') {
-            // Isolated accrual mechanics on an already funded, initially
-            // unattributed synthetic sale. No nested purchase is permitted.
+        if ($operation === 'historical_no_commission') {
+            // The original funded purchase had no referral. Changing a profile
+            // later must not manufacture a commission for that old sale.
             $user = User::factory()->create();
             $wallet = app(WalletService::class)->getOrCreateWallet($user, Currency::THB);
             $this->creditFixture($wallet, '100.00', 'Synthetic native accrual source');
@@ -64,7 +65,7 @@ final class CommissionCancellationCurrentReadTest extends FinancialMasterTestCas
             $this->assertSame(1, $reader->table('bet_commission_ownerships')->count());
             $this->assertSame('accrued', $reader->table('agent_commissions')->sole()->status);
             DB::setDefaultConnection($peer);
-            if (in_array($operation, ['accrual', 'book_deficit'], true)) {
+            if (in_array($operation, ['historical_no_commission', 'book_deficit'], true)) {
                 $this->secondPurchase($f);
                 if ($operation === 'book_deficit') {
                     DB::table('agents')->where('id', $f['agent']->id)->update(['total_commission_earned' => '0.50']);
@@ -78,8 +79,9 @@ final class CommissionCancellationCurrentReadTest extends FinancialMasterTestCas
             $this->assertEquals('0.50', $reader->table('agents')->where('id', $f['agent']->id)->value('total_commission_earned'));
             $this->assertSame(1, $reader->table('bet_commission_ownerships')->count());
             $this->assertSame('accrued', $reader->table('agent_commissions')->sole()->status);
-            if ($operation === 'accrual') {
-                app(AgentCommissionAccrualService::class)->accrueForBet($third);
+            if ($operation === 'historical_no_commission') {
+                $this->assertSame([], app(AgentCommissionAccrualService::class)->accrueForBet($third));
+                $this->assertSame(0, AgentCommission::query()->where('bet_id', $third->id)->count());
             } elseif ($operation === 'cancelled') {
                 $this->assertTrue(app(BetCancellationService::class)->cancel($this->cancellation($f))->isReplay());
             } else {
@@ -92,16 +94,79 @@ final class CommissionCancellationCurrentReadTest extends FinancialMasterTestCas
             }
             $reader->commit();
             $this->assertSame(match ($operation) {
-                'accrual' => '1.50', 'cancelled' => '0.00', default => '0.50'
+                'historical_no_commission' => '1.00', 'cancelled' => '0.00', default => '0.50'
             }, $f['agent']->fresh()->total_commission_earned);
             $this->assertSame(match ($operation) {
-                'accrual' => '80.00', 'book_deficit' => '80.00', 'cancelled' => '100.00', default => '90.00'
+                'historical_no_commission' => '80.00', 'book_deficit' => '80.00', 'cancelled' => '100.00', default => '90.00'
             }, $f['wallet']->fresh()->balance);
         } finally {
             DB::setDefaultConnection($name);
             while ($reader->transactionLevel() > 0) {
                 $reader->rollBack();
             }
+            DB::purge($peer);
+        }
+    }
+
+    public function test_fresh_funded_purchase_accrues_against_current_agent_book_after_an_older_snapshot(): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            $this->markTestSkipped('Requires two independent sessions on the owned disposable SQL test store.');
+        }
+        $f = $this->commissionFixture(parent: false);
+        $user = User::factory()->create(['preferences' => ['referred_by_agent_id' => $f['agent']->id]]);
+        $wallet = app(WalletService::class)->getOrCreateWallet($user, Currency::THB);
+        $this->creditFixture($wallet, '100.00', 'Concurrent real referred purchase');
+        $draw = $this->openBulkDrawForTest([new BulkBetSelectionData(marketKey: '3d_direct', number: '007', stake: '10.00')]);
+
+        $name = DB::getDefaultConnection();
+        $peer = 'commission_fresh_purchase_peer';
+        config(['database.connections.'.$peer => config('database.connections.'.$name)]);
+        DB::purge($peer);
+        $reader = DB::connection($name);
+        $reader->statement('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        if (str_contains($reader->selectOne('SELECT VERSION() AS version')->version, 'MariaDB')) {
+            $reader->statement('SET SESSION innodb_snapshot_isolation = OFF');
+            DB::connection($peer)->statement('SET SESSION innodb_snapshot_isolation = OFF');
+        }
+        $this->assertNotSame($reader->selectOne('SELECT CONNECTION_ID() AS id')->id, DB::connection($peer)->selectOne('SELECT CONNECTION_ID() AS id')->id);
+        $triggered = false;
+        $old = null;
+        $stillOld = null;
+        DB::listen(function ($query) use ($reader, $name, $peer, $f, &$triggered, &$old, &$stillOld): void {
+            if ($triggered || $query->connectionName !== $name || $reader->transactionLevel() !== 1
+                || ! str_contains(strtolower($query->sql), 'wallets') || ! str_contains(strtolower($query->sql), 'for update')) {
+                return;
+            }
+            $triggered = true;
+            // The real purchase transaction has locked its own wallet but has
+            // not yet touched the shared commission book or ledger accounts.
+            $old = $reader->table('agents')->where('id', $f['agent']->id)->value('total_commission_earned');
+            DB::setDefaultConnection($peer);
+            try {
+                $this->secondPurchase($f); // real, funded and owned peer purchase
+            } finally {
+                DB::setDefaultConnection($name);
+            }
+            $stillOld = $reader->table('agents')->where('id', $f['agent']->id)->value('total_commission_earned');
+        });
+
+        try {
+            $result = app(BetPurchaseService::class)->purchase(new BetPurchaseData(
+                userId: $user->id, drawId: $draw->id, marketKey: '3d_direct', rawNumber: '007',
+                rawStake: '10.00', idempotencyKey: 'fresh-current-commission-purchase',
+            ));
+            $this->assertTrue($triggered);
+            $this->assertEquals('0.50', $old);
+            $this->assertEquals('0.50', $stillOld, 'The repeatable-read snapshot must really predate the peer commit.');
+            $this->assertFalse($result->isReplay());
+            $this->assertSame('1.50', $f['agent']->fresh()->total_commission_earned);
+            $this->assertSame('80.00', $f['wallet']->fresh()->balance);
+            $this->assertSame('90.00', $wallet->fresh()->balance);
+            $this->assertSame(3, AgentCommission::query()->where('agent_id', $f['agent']->id)->count());
+            $this->assertSame(3, DB::table('bet_commission_ownerships')->where('agent_id', $f['agent']->id)->where('state', 'active')->count());
+        } finally {
+            DB::setDefaultConnection($name);
             DB::purge($peer);
         }
     }

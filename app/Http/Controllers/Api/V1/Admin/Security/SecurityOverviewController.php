@@ -20,6 +20,11 @@ class SecurityOverviewController extends Controller
 
     public function overview(): JsonResponse
     {
+        // This response combines three privileged datasets and scanner state.
+        $this->authorize('viewAny', BlockedIp::class);
+        $this->authorize('viewAny', FraudAlert::class);
+        $this->authorize('viewAny', UploadScanRecord::class);
+
         $activeBlocksCount = BlockedIp::where('is_active', true)->count();
         $openFraudAlertsCount = FraudAlert::where('status', 'OPEN')->count();
         $pendingUploadScansCount = UploadScanRecord::where('scan_status', 'pending_scan')->count();

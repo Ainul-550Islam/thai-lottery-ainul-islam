@@ -8,6 +8,7 @@ use App\Enums\Currency;
 use App\Enums\LedgerEntryType;
 use App\Exceptions\FinancialException;
 use App\Models\FinancialTransaction;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Guards the fundamental accounting invariant: SUM(debits) === SUM(credits).
@@ -30,8 +31,9 @@ use App\Models\FinancialTransaction;
  *   reference_id       int|null        optional
  *   metadata           array|null      optional
  *
- * The validator performs no writes and no locking. It is deliberately usable on
- * a set of drafts that does not exist in the database yet.
+ * The validator performs no writes and is deliberately usable on drafts. Its
+ * persisted-transaction check is non-locking by default; a transaction owner
+ * may explicitly request a current locked read when proving a replay.
  */
 final class LedgerBalanceValidator
 {
@@ -166,7 +168,7 @@ final class LedgerBalanceValidator
      *
      * @throws FinancialException
      */
-    public function assertTransactionBalanced(FinancialTransaction $transaction): void
+    public function assertTransactionBalanced(FinancialTransaction $transaction, bool $currentRead = false): void
     {
         // The proof reads the transaction and its entries by key, so the key must
         // first be a canonical positive integer on the canonical writer. A model
@@ -182,7 +184,16 @@ final class LedgerBalanceValidator
         $credit = Money::zero($currency);
         $count = 0;
 
-        foreach ($transaction->ledgerEntries()->get() as $entry) {
+        $entries = $transaction->ledgerEntries();
+        if ($currentRead) {
+            if (DB::transactionLevel() < 1) {
+                throw FinancialException::withCode('ledger_current_read_requires_transaction',
+                    'A current ledger proof requires the caller-owned transaction.');
+            }
+            $entries->lockForUpdate();
+        }
+
+        foreach ($entries->get() as $entry) {
             $count++;
             $amount = Money::fromDatabase((string) $entry->amount, $currency);
 

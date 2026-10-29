@@ -7,6 +7,7 @@ namespace Database\Factories;
 use App\Enums\DrawPublicationStatus;
 use App\Enums\GloSourceState;
 use App\Models\WeeklyLotteryDraw;
+use Database\Factories\Support\LotteryFactoryDate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -30,8 +31,8 @@ class WeeklyLotteryDrawFactory extends Factory
      */
     public function definition(): array
     {
-        $timezone = config('weekly_lottery.timezone', 'Asia/Bangkok');
-        $date = now($timezone)->subDays($this->faker->numberBetween(1, 900));
+        $timezone = (string) config('weekly_lottery.timezone', 'Asia/Bangkok');
+        $date = LotteryFactoryDate::previous(WeeklyLotteryDraw::class, $timezone, $this->faker->numberBetween(1, 900));
         $iso = $date->toDateString();
 
         return [

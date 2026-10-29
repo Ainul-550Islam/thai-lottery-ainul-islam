@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Enums\RiskLevel;
 use App\Services\Observability\OperationalAlertService;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessing;
@@ -11,6 +12,7 @@ use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Throwable;
@@ -61,6 +63,10 @@ class QueueServiceProvider extends ServiceProvider
      */
     private const MONEY_QUEUES = [
         'financial-critical',
+        'webhooks',
+        'reconciliation',
+        // Existing queued names remain classified as money until operators
+        // inventory and resolve their legacy backlog.
         'settlement',
         'payouts',
         'finance',
@@ -88,7 +94,8 @@ class QueueServiceProvider extends ServiceProvider
                 'job_id' => $event->job->getJobId(),
                 'attempts' => $event->job->attempts(),
                 'correlation_id' => data_get($event->job->payload(), 'correlation_id'),
-                'exception' => $event->exception->getMessage(),
+                // Driver/HTTP exceptions can embed credentials or payment data;
+                // retain the class for triage without copying arbitrary messages.
                 'exception_class' => $event->exception::class,
                 'money_lane' => $isMoney,
             ];
@@ -142,23 +149,45 @@ class QueueServiceProvider extends ServiceProvider
             ]);
         });
 
-        // A worker that stops looping (Redis gone, DB gone) must say so loudly.
-        // Silence here is what turns a dead worker into an invisible backlog.
-        Event::listen(Looping::class, function (Looping $event): void {
-            if (! $event->queue) {
+        // Looping carries queue NAMES, not a queue object. Sampling must never
+        // take down a real worker, and must not add a query on every tight loop.
+        $lastSample = [];
+        Event::listen(Looping::class, function (Looping $event) use (&$lastSample): void {
+            if (! is_string($event->queue) || trim($event->queue) === '') {
                 return;
             }
+            $names = array_values(array_unique(array_filter(array_map('trim', explode(',', $event->queue)))));
+            $key = (string) $event->connectionName.'|'.implode(',', $names);
+            $now = microtime(true);
+            $interval = max(1, (int) config('queue.backlog_sample_seconds', 30));
+            if (isset($lastSample[$key]) && $now - $lastSample[$key] < $interval) {
+                return;
+            }
+            $lastSample[$key] = $now;
 
-            // Only alert when the queue actually has a backlog to worry about;
-            // an idle worker looping normally is not an incident.
-            $size = $event->queue->size();
-
-            if ($size > (int) config('queue.alert_backlog_threshold', 1000)) {
-                Log::warning('queue.backlog_growing', [
-                    'connection' => $event->connectionName,
-                    'queue' => $event->queue->getQueueName(),
-                    'size' => $size,
-                ]);
+            try {
+                $connection = Queue::connection($event->connectionName);
+                foreach ($names as $name) {
+                    $size = $connection->size($name);
+                    if ($size > (int) config('queue.alert_backlog_threshold', 1000)) {
+                        Log::warning('queue.backlog_growing', [
+                            'connection' => $event->connectionName,
+                            'queue' => $name,
+                            'size' => $size,
+                        ]);
+                    }
+                }
+            } catch (Throwable $e) {
+                try {
+                    Log::warning('queue.backlog_check_failed', [
+                        'connection' => $event->connectionName,
+                        'exception_class' => $e::class,
+                    ]);
+                } catch (Throwable) {
+                    // Logging is best-effort here too: telemetry must not stop
+                    // the worker or leak a driver's exception message.
+                    error_log('queue.backlog_check_failed: logging unavailable');
+                }
             }
         });
     }
@@ -184,6 +213,19 @@ class QueueServiceProvider extends ServiceProvider
         try {
             $service = $this->app->make(OperationalAlertService::class);
 
+            // This repository exposes alertFinancialAnomaly, not alert/dispatch.
+            // Calling the real contract avoids silently dropping money failures.
+            if (method_exists($service, 'alertFinancialAnomaly')) {
+                $service->alertFinancialAnomaly(
+                    'Queue job failed',
+                    $message,
+                    $level === 'critical' ? RiskLevel::Critical : RiskLevel::High,
+                    $context,
+                );
+
+                return;
+            }
+
             if (method_exists($service, 'alert')) {
                 $service->alert($level, $message, $context);
 
@@ -197,7 +239,7 @@ class QueueServiceProvider extends ServiceProvider
             // An alerting failure must never be the reason a job's failure goes
             // unreported. The critical log line above already recorded it.
             Log::warning('queue.alert_dispatch_failed', [
-                'error' => $e->getMessage(),
+                'exception_class' => $e::class,
                 'intended_message' => $message,
             ]);
         }

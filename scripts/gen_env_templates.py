@@ -144,12 +144,29 @@ PROD_OVERRIDES: dict[str, str] = {
     "BKASH_SANDBOX": "false",
     "NAGAD_SANDBOX": "false",
     "AUTH_CAPTCHA_ENABLED": "true",
+    # The captcha driver has to move with the flag above. ProductionSafetyServiceProvider
+    # refuses BOTH `local` and `fixed` when the captcha is enabled, because a local
+    # challenge ships its own answer to the same client that solves it. The stock
+    # default is `local`, so enabling the captcha without overriding the driver
+    # produced a template that its own safety provider rejects - and
+    # EnvTemplateSafetyTest asserts exactly that the driver is not `local`.
+    #
+    # This still leaves one violation the operator MUST clear: with `hcaptcha`
+    # selected, the provider also refuses to boot while HCAPTCHA_SECRET is empty,
+    # because every challenge would then fail closed and nobody could sign in.
+    # That is deliberate. A template cannot ship a siteverify secret (it is
+    # credential-shaped and check-env-parity.php forbids a value for it), and
+    # silently downgrading to a self-answering driver to avoid the refusal would
+    # be the worse failure. So the template names the real driver, leaves the
+    # secret empty, and the deployment fails loudly until it is supplied.
+    "AUTH_CAPTCHA_DRIVER": "hcaptcha",
 }
 
 # Keys the production template annotates with a REQUIRED marker comment inserted
 # immediately above the assignment, so the copy step cannot miss them.
 REQUIRED_KEYS: tuple[str, ...] = (
     "APP_URL",
+    "AUTH_CAPTCHA_DRIVER",
     "DB_HOST",
     "DB_DATABASE",
     "DB_USERNAME",

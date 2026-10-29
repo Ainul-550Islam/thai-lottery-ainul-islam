@@ -88,6 +88,15 @@ final class RbacAndPolicyEnforcementTest extends TestCase
         $secondAdmin->syncRoles(['admin']);
         $this->assertTrue(Gate::forUser($secondAdmin)->allows('review', $selfAlert));
 
+        $super = User::factory()->create();
+        $super->syncRoles(['super-admin']);
+        $inactiveSuper = User::factory()->suspended()->create();
+        $inactiveSuper->syncRoles(['super-admin']);
+        $superAlert = new FraudAlert;
+        $superAlert->forceFill(['user_id' => (string) $super->id]);
+        $this->assertFalse(Gate::forUser($super)->allows('review', $superAlert), 'Super-admin may not self-review.');
+        $this->assertFalse(Gate::forUser($inactiveSuper)->allows('viewAny', BlockedIp::class));
+
         // GloL6TicketPolicy (strict object ownership for players, read visibility for active admins)
         $ticket = new GloTicket;
         $ticket->forceFill(['owner_user_id' => $player->id]);
@@ -100,6 +109,7 @@ final class RbacAndPolicyEnforcementTest extends TestCase
         $this->assertTrue(Gate::forUser($player)->allows('confirm', $reservation));
         $this->assertFalse(Gate::forUser($otherPlayer)->allows('confirm', $reservation));
         $this->assertFalse(Gate::forUser($admin)->allows('confirm', $reservation), 'Admins cannot consume another player reservation.');
+        $this->assertFalse(Gate::forUser($super)->allows('confirm', $reservation), 'Super-admin cannot consume another player reservation.');
     }
 
     public function test_admin_security_http_endpoints_reject_unauthenticated_player_and_self_review_requests(): void
@@ -129,6 +139,12 @@ final class RbacAndPolicyEnforcementTest extends TestCase
         ])->assertStatus(403);
         $this->withToken($playerToken)->getJson('/api/v1/admin/security/fraud-alerts')->assertStatus(403);
         $this->withToken($playerToken)->getJson('/api/v1/admin/security/malware-scans')->assertStatus(403);
+        // Authorization happens before fetching an object or invoking a mutator.
+        $this->withToken($playerToken)->postJson('/api/v1/admin/security/ip-blocks/nonexistent/unblock')->assertStatus(403);
+        $this->withToken($playerToken)->postJson('/api/v1/admin/security/malware-scans/nonexistent/rescan')->assertStatus(403);
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($admin2Token)->getJson('/api/v1/admin/security/overview')->assertOk();
 
         // Maker-checker HTTP enforcement on /api/v1/admin/security/fraud-alerts/{id}/review
         $alert = FraudAlert::create([
@@ -155,6 +171,10 @@ final class RbacAndPolicyEnforcementTest extends TestCase
             'action' => 'REJECT_DENY',
             'decision_reason' => 'Independent compliance officer confirmed velocity anomaly',
         ])->assertOk()->assertJsonPath('data.status', 'RESOLVED_DENY');
+        $audit = \App\Models\AuditLog::query()->where('description', 'Fraud alert adjudicated by a separate reviewer.')->sole();
+        $this->assertNull($audit->auditable_id); // The numeric morph column must not impersonate a UUID.
+        $this->assertSame((string) $alert->id, $audit->metadata['alert_id']);
+        $this->assertSame(FraudAlert::class, $audit->metadata['subject_type']);
 
         // Terminal immutability -> 409 FRAUD_ALERT_ALREADY_RESOLVED
         $this->app['auth']->forgetGuards();

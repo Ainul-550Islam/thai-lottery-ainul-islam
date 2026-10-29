@@ -268,7 +268,7 @@ final class WithdrawalReconciliationService
 
     private function destinationDetails(Withdrawal $row): array
     {
-        $allowed = ['bank_name', 'bank_code', 'branch', 'branch_code', 'account_name', 'account_number',
+        $allowed = ['destination_type', 'bank_name', 'bank_code', 'branch', 'branch_code', 'account_name', 'account_number',
             'beneficiary_name', 'beneficiary_address', 'bank_address', 'iban', 'swift', 'bic', 'routing_number',
             'phone', 'mobile', 'wallet_number', 'address', 'crypto_address', 'network', 'country', 'currency',
             'stripe_account_id', 'recipient_id', 'sort_code', 'account_type', 'method'];
@@ -283,6 +283,8 @@ final class WithdrawalReconciliationService
         if (! is_array($details) || $details === [] || array_diff(array_keys($details), $allowed)
             || array_any($details, fn ($value) => ! is_string($value) || trim($value) === '' || strlen($value) > 500)
             || ! array_any($identifiers, fn ($key) => isset($details[$key]))
+            || (isset($details['destination_type'])
+                && ($row->method->value !== 'bank_transfer' || $details['destination_type'] !== 'bank_account'))
             || (isset($details['method']) && $this->gateway($details['method']) !== $this->gateway($row->method->value))) {
             throw new WithdrawalReconciliationException('payout_schema_requires_private_adapter_review');
         }

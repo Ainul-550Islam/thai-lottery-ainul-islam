@@ -7,6 +7,7 @@ namespace App\Services\Payment;
 use App\Exceptions\FinancialException;
 use App\Models\Payment;
 use App\Models\Withdrawal;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /** Shared SQL ownership for known withdrawal references, across all covered finalization lanes. */
@@ -52,10 +53,19 @@ final class WithdrawalProviderReferenceService
         }
         $this->assertHistoricalOwnership($row, $provider, $scope, $reference);
         $identity = hash('sha256', json_encode([$provider, $scope, $reference], JSON_THROW_ON_ERROR));
-        DB::table('withdrawal_provider_references')->insertOrIgnore([
-            'identity_key' => $identity, 'withdrawal_id' => $row->id, 'payment_id' => $payment?->id,
-            'provider' => $provider, 'account_scope' => $scope, 'reference_hash' => hash('sha256', $reference), 'created_at' => now(),
-        ]);
+        // Acquire the duplicate-key lock exclusively in one statement. An
+        // INSERT IGNORE followed by FOR UPDATE lets concurrent contenders hold
+        // shared locks and deadlock while both upgrade to exclusive ownership.
+        try {
+            DB::table('withdrawal_provider_references')->upsert([[
+                'identity_key' => $identity, 'withdrawal_id' => $row->id, 'payment_id' => $payment?->id,
+                'provider' => $provider, 'account_scope' => $scope, 'reference_hash' => hash('sha256', $reference), 'created_at' => now(),
+            ]], ['identity_key'], ['identity_key' => DB::raw('identity_key')]);
+        } catch (UniqueConstraintViolationException) {
+            // SQLite reports a separate per-withdrawal UNIQUE collision here;
+            // MySQL resolves it in the upsert and fails the owner check below.
+            throw $this->conflict();
+        }
         $owner = DB::table('withdrawal_provider_references')->where('identity_key', $identity)->lockForUpdate()->first();
         if (! $owner || (int) $owner->withdrawal_id !== (int) $row->id || $owner->provider !== $provider || $owner->account_scope !== $scope
             || $owner->reference_hash !== hash('sha256', $reference)
@@ -87,7 +97,14 @@ final class WithdrawalProviderReferenceService
         $scope = $this->accounts->stored($row);
         $reference = $row->provider_reference;
         $key = app(OutboundProviderReferenceService::class)->identity($provider, $scope, $reference);
-        $owner = DB::table('withdrawal_provider_references')->where('withdrawal_id', $row->id)->first();
+        $query = DB::table('withdrawal_provider_references')->where('withdrawal_id', $row->id);
+        // A replay may have established an older repeatable-read snapshot before
+        // waiting for the obligation's wallet. Under the caller's transaction,
+        // prove the current committed owner rather than an absent stale row.
+        if (DB::transactionLevel() > 0) {
+            $query->lockForUpdate();
+        }
+        $owner = $query->first();
         if (! $owner || $owner->identity_key !== $key || $owner->provider !== $provider || $owner->account_scope !== $scope
             || $owner->reference_hash !== hash('sha256', $reference)
             || ($payment === null ? $owner->payment_id !== null : (int) $owner->payment_id !== (int) $payment->id)) {

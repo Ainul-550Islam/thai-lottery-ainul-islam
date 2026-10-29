@@ -79,7 +79,7 @@ final class OwnedDrawCancellationServerRaceTest extends FinancialMasterTestCase
             ['action' => 'bet_cancel', 'user_id' => $f['user']->id, 'bet_id' => $f['bet']->id],
         ], 'wallets', $f['wallet']->id);
         $this->assertSame('draw_cancelled', $results[0]['outcome'], json_encode($results));
-        $this->assertContains($results[1]['outcome'], ['cancelled', 'replayed']);
+        $this->assertContains($results[1]['outcome'], ['cancelled', 'replayed'], json_encode($results, JSON_THROW_ON_ERROR));
         $this->assertSame([$results[1]['transaction_id']], $results[0]['transaction_ids']);
         $this->assertSame('100.00', $f['wallet']->fresh()->balance);
         $this->assertSame(1, DB::table('financial_transactions')->where('idempotency_key', app(BetCancellationService::class)->refundKeyFor($f['bet']->id))->count());

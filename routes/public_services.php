@@ -46,7 +46,7 @@ Route::get('/privacy/request/verify/{token}', PrivacyRequestVerificationControll
 | returns a file.
 |
 */
-Route::middleware(['auth', 'active', 'throttle:privacy-account'])->group(function (): void {
+Route::middleware(['auth', 'auth.session', 'active', 'throttle:privacy-account'])->group(function (): void {
     Route::get('/account/privacy-requests', [PrivacyRequestStatusController::class, 'index'])
         ->name('account.privacy-requests.index');
 

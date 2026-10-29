@@ -224,7 +224,42 @@ final class WalletLockService
             return $callback();
         }
 
-        return DB::transaction($callback);
+        $connection = DB::connection();
+        $pdo = $connection->getPdo();
+        $entryLevel = $connection->transactionLevel();
+
+        return $connection->transaction(function () use ($callback, $connection, $pdo, $entryLevel) {
+            try {
+                return $callback();
+            } catch (\Throwable $exception) {
+                // Laravel treats every nested concurrency error as an engine-wide
+                // deadlock and reduces its counter without rolling back the
+                // savepoint. A MySQL 1205 timeout can leave the transaction and
+                // all prior writes alive. Roll back THIS wrapper's surviving
+                // savepoint before Laravel propagates the error; never touch an
+                // engine-aborted 1213 root or a changed physical connection.
+                $detectorContract = \Illuminate\Contracts\Database\ConcurrencyErrorDetector::class;
+                $detector = app()->bound($detectorContract)
+                    ? app($detectorContract)
+                    : new \Illuminate\Database\ConcurrencyErrorDetector();
+                $nativeDeadlock = false;
+                for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) {
+                    if ($cause instanceof \Illuminate\Database\QueryException
+                        && in_array($connection->getDriverName(), ['mysql', 'mariadb'], true)
+                        && (string) ($cause->errorInfo[1] ?? '') === '1213') {
+                        $nativeDeadlock = true;
+                        break;
+                    }
+                }
+                if ($entryLevel > 0 && ! $nativeDeadlock && $detector->causedByConcurrencyError($exception)
+                    && $connection->transactionLevel() === $entryLevel + 1
+                    && $connection->getRawPdo() === $pdo && $pdo->inTransaction()
+                    && $connection->getQueryGrammar()->supportsSavepoints()) {
+                    $pdo->exec($connection->getQueryGrammar()->compileSavepointRollBack('trans'.($entryLevel + 1)));
+                }
+                throw $exception;
+            }
+        });
     }
 
     /**

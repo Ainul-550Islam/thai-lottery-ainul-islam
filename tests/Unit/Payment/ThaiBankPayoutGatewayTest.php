@@ -123,6 +123,35 @@ final class ThaiBankPayoutGatewayTest extends PaymentTestCase
         ];
     }
 
+    public static function ambiguousSettlementResponses(): array
+    {
+        return [
+            'unrelated amount' => ['{"other":{"amount":100.00},"data":{"status":"SETTLED","transactionId":"SCB-JSON-1","amount":1.23,"currency":"THB"}}'],
+            'exponential amount' => ['{"data":{"status":"SETTLED","transactionId":"SCB-JSON-1","amount":100.00e-2,"currency":"THB"}}'],
+            'duplicate status' => ['{"data":{"status":"SETTLED","st\\u0061tus":"REJECTED","transactionId":"SCB-JSON-1","amount":100.00,"currency":"THB"}}'],
+        ];
+    }
+
+    #[DataProvider('ambiguousSettlementResponses')]
+    public function test_ambiguous_initial_bank_response_preserves_the_hold(string $body): void
+    {
+        $withdrawal = $this->approvedWithdrawal();
+        Http::fake(['*' => Http::response($body, 200, ['Content-Type' => 'application/json'])]);
+
+        $response = $this->gateway()->initiateWithdrawal($withdrawal);
+
+        self::assertFalse($response->successful);
+        self::assertTrue($response->isPending);
+        self::assertTrue($response->outcomeUnknown);
+        self::assertSame(ThaiBankPayoutState::Uncertain, ThaiBankPayoutAttempt::query()->sole()->state);
+        self::assertSame('approved', $withdrawal->fresh()->status->value);
+        self::assertSame('100.00', (string) $withdrawal->wallet->fresh()->locked_balance);
+        self::assertSame('500.00', (string) $withdrawal->wallet->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 0);
+        self::assertDatabaseCount('ledger_entries', 0);
+        Http::assertSentCount(1);
+    }
+
     public function test_preexisting_prepared_attempt_is_not_dispatched_again(): void
     {
         $withdrawal = $this->approvedWithdrawal();

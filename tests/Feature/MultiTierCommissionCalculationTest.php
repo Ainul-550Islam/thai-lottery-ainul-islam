@@ -39,9 +39,7 @@ class MultiTierCommissionCalculationTest extends TestCase
         $masterAgent = Agent::create([
             'user_id' => $masterUser->id,
             'agent_code' => 'AGT-MASTER-01',
-            'tier_level' => 1,
-            'direct_commission_rate' => '10.00',
-            'status' => 'ACTIVE',
+            'status' => \App\Enums\AgentStatus::Active,
         ]);
         $masterWallet = new Wallet(['user_id' => $masterUser->id, 'type' => 'commission', 'currency' => 'THB']);
         $masterWallet->status = WalletStatus::Active;
@@ -51,13 +49,14 @@ class MultiTierCommissionCalculationTest extends TestCase
             'user_id' => $directUser->id,
             'agent_code' => 'AGT-DIRECT-01',
             'parent_agent_id' => $masterAgent->id,
-            'tier_level' => 2,
-            'direct_commission_rate' => '5.00',
-            'status' => 'ACTIVE',
+            'status' => \App\Enums\AgentStatus::Active,
         ]);
         $directWallet = new Wallet(['user_id' => $directUser->id, 'type' => 'commission', 'currency' => 'THB']);
         $directWallet->status = WalletStatus::Active;
         $directWallet->save();
+
+        $masterAgent->forceFill(['tier_level' => 1, 'direct_commission_rate' => '10.00'])->save();
+        $directAgent->forceFill(['tier_level' => 2, 'direct_commission_rate' => '5.00'])->save();
 
         // 2. Closure Table setup for hierarchy
         AgentHierarchy::create(['ancestor_id' => $directAgent->id, 'descendant_id' => $directAgent->id, 'depth' => 0]);

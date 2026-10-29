@@ -382,6 +382,7 @@ return array_replace($english, [
     'two_factor_back_to_security' => 'নিরাপত্তা সেটিংসে ফিরুন',
     'two_factor_back_to_status' => '2FA স্থিতিতে ফিরুন',
     'two_factor_setup_title' => '2FA সেটআপ করুন',
+    'two_factor_setup_expired' => 'সেটআপ সেশনের মেয়াদ শেষ হয়েছে, তাই কোনো পরিবর্তন হয়নি। নতুন গোপন কী পেতে আবার শুরু করুন।',
     'two_factor_setup_lead' => 'আপনার অথেনটিকেটর অ্যাপে QR কোড স্কैन করুন, তারপর ৬-অंকের কোড দিয়ে সক্রিয় করুন।',
     'two_factor_scan_qr' => 'QR কোড স্কैन করুন',
     'two_factor_qr_alt' => 'TOTP QR কোড',

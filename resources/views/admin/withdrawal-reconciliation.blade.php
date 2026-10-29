@@ -48,7 +48,7 @@
         <p>Use the original withdrawal reference. Money must be exact, for example 400.00, with the stored currency. Observation time must be RFC3339 with timezone, no earlier than the dispatch claim. No URL is fetched.</p>
         <form method="post" enctype="multipart/form-data" action="{{ route('admin.withdrawal-reconciliation.store') }}">
             @csrf
-            <label>Withdrawal ID<input name="withdrawal_id" type="number" min="1" required></label>
+            <label>Withdrawal ID<input name="withdrawal_id" type="number" min="1" value="{{ request()->integer('withdrawal_id') ?: '' }}" required></label>
             <label>Original internal reference<input name="internal_reference" maxlength="128" required></label>
             <label>Canonical provider (for example bank_transfer)<input name="provider" maxlength="40" required></label>
             <label>Final provider reference<input name="provider_reference" maxlength="128" required></label>

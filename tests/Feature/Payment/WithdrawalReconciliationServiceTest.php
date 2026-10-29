@@ -79,6 +79,20 @@ final class WithdrawalReconciliationServiceTest extends PaymentTestCase
         return app(WithdrawalReconciliationService::class)->decide($checker, $case, 'apply', 'Independently verified synthetic provider evidence.', true);
     }
 
+    public function test_conflicting_destination_type_cannot_be_reconciled_as_a_bank_account(): void
+    {
+        $fixture = $this->fixture(destination: ['destination_type' => 'crypto', 'account_number' => 'NOT-A-BANK-ACCOUNT']);
+        try {
+            $this->submit($fixture);
+            $this->fail('A conflicting destination type must require review.');
+        } catch (WithdrawalReconciliationException $exception) {
+            $this->assertSame('payout_schema_requires_private_adapter_review', $exception->reason);
+        }
+        $this->assertSame('1000.00', (string) $fixture[1]->fresh()->balance);
+        $this->assertSame('400.00', (string) $fixture[1]->fresh()->locked_balance);
+        $this->assertSame(0, FinancialTransaction::query()->count());
+    }
+
     public function test_submission_is_idempotent_and_does_not_change_money(): void
     {
         $f = $this->fixture();
@@ -119,6 +133,20 @@ final class WithdrawalReconciliationServiceTest extends PaymentTestCase
     public static function currencies(): array
     {
         return [['THB'], ['USD'], ['BDT']];
+    }
+
+    public function test_typed_reference_cannot_release_a_processing_hold_without_reviewed_evidence(): void
+    {
+        $fixture = $this->fixture();
+        try {
+            app(WithdrawalApprovalService::class)->markReconciledFailed($fixture[0], (int) $fixture[3]->id, 'UNVERIFIED-REFERENCE');
+        } catch (FinancialException $exception) {
+            $this->assertSame('withdrawal_reconciliation_requires_case', $exception->errorCode());
+        }
+        $this->assertSame('400.00', (string) $fixture[1]->fresh()->locked_balance);
+        $this->assertSame(WithdrawalStatus::Processing, $fixture[0]->fresh()->status);
+        $this->assertSame('1000.00', (string) $fixture[1]->fresh()->balance);
+        $this->assertSame(0, FinancialTransaction::query()->count());
     }
 
     public function test_definitive_rejection_releases_hold_without_refund_credit_or_resend(): void

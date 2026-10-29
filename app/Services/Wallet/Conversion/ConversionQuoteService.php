@@ -13,7 +13,6 @@ use App\Enums\WalletConversionDirection;
 use App\Enums\WalletConversionQuoteStatus;
 use App\Enums\WalletConversionRejectionReason;
 use App\Exceptions\Wallet\ConversionException;
-use App\Models\Wallet;
 use App\Models\WalletConversionQuote;
 use App\Repositories\Wallet\WalletConversionQuoteRepository;
 use App\ValueObjects\ConversionLimits;
@@ -34,31 +33,30 @@ final class ConversionQuoteService
 
     public function quote(ConversionRequestData $request): ConversionQuoteData
     {
-        $this->policy->assertAllowed($request);
-        $amount = bcadd($request->amount, '0', 2);
-        $fee = $this->fees->breakdownFor($request->direction, $amount, $request->currency->value);
-        if (! $fee->isEnforceable()) {
-            throw ConversionException::failure('feature_disabled', 'The published conversion fee rule is unavailable, so the conversion lane is disabled.');
-        }
-        if (bccomp($fee->netAmount, '0', 2) <= 0) {
-            throw ConversionException::failure('conversion_amount_too_small_after_fee', 'The amount must be greater than the fee.');
-        }
-        // Price only what the member can actually spend. A quote backed by locked money
-        // is a promise the execution cannot keep, and the member would find out at the
-        // worst moment — after choosing an amount and confirming it.
-        $this->assertAvailableBalance($request, $amount);
+        return DB::transaction(function () use ($request): ConversionQuoteData {
+            // Serialize the offer and its decisive eligibility/slot reads on the
+            // same owner mutex used by conversions. Do not consult a stale
+            // repeatable-read wallet or member snapshot before the lock.
+            DB::table('users')->where('id', $request->userId)->lockForUpdate()->first();
+            $this->policy->assertAllowed($request);
+            $amount = bcadd($request->amount, '0', 2);
+            $fee = $this->fees->breakdownFor($request->direction, $amount, $request->currency->value);
+            if (! $fee->isEnforceable()) {
+                throw ConversionException::failure('feature_disabled', 'The published conversion fee rule is unavailable, so the conversion lane is disabled.');
+            }
+            if (bccomp($fee->netAmount, '0', 2) <= 0) {
+                throw ConversionException::failure('conversion_amount_too_small_after_fee', 'The amount must be greater than the fee.');
+            }
+            // Second precision, deliberately. The cutoffs that decide whether a quote is
+            // still open are stored to the second, so the issued and expiry stamps are
+            // truncated here rather than being written with microseconds the comparisons
+            // do not see. Otherwise a quote issued at .900 and a cutoff at .000 disagree
+            // about whether the quote has expired by nine tenths of a second.
+            $now = CarbonImmutable::now()->startOfSecond();
+            $expires = $now->addSeconds(max(1, (int) $this->config->get('conversions.quotes.ttl_seconds', 120)));
+            $reference = 'WQ-'.strtoupper(Str::random(24));
+            $limits = ConversionLimits::fromConfig((array) $this->config->get('conversions.limits', []), $request->currency);
 
-        // Second precision, deliberately. The cutoffs that decide whether a quote is
-        // still open are stored to the second, so the issued and expiry stamps are
-        // truncated here rather than being written with microseconds the comparisons
-        // do not see. Otherwise a quote issued at .900 and a cutoff at .000 disagree
-        // about whether the quote has expired by nine tenths of a second.
-        $now = CarbonImmutable::now()->startOfSecond();
-        $expires = $now->addSeconds(max(1, (int) $this->config->get('conversions.quotes.ttl_seconds', 120)));
-        $reference = 'WQ-'.strtoupper(Str::random(24));
-        $limits = ConversionLimits::fromConfig((array) $this->config->get('conversions.limits', []), $request->currency);
-
-        return DB::transaction(function () use ($request, $amount, $fee, $now, $expires, $reference, $limits): ConversionQuoteData {
             // How many prices may one member be holding at once? A quote is not money,
             // but it is an offer, and an unbounded number of offers is both a way to
             // poll the tariff and a way to fill a table. The ceiling is enforced here,
@@ -284,31 +282,6 @@ final class ConversionQuoteService
         $wanted = $requested instanceof Currency ? $requested->value : (string) $requested;
 
         return strtoupper($value) === strtoupper($wanted);
-    }
-
-    /**
-     * The source wallet must be able to fund the conversion right now.
-     *
-     * Restricted to the configured currency: this is an eligibility fact about the
-     * member's own wallet, not an exchange rate, and quoting across currencies is
-     * somebody else's problem.
-     */
-    private function assertAvailableBalance(ConversionRequestData $request, string $amount): void
-    {
-        $currency = $request->currency instanceof Currency ? $request->currency->value : (string) $request->currency;
-
-        $wallet = Wallet::query()
-            ->where('user_id', $request->userId)
-            ->where('type', $request->fromWalletType()->value)
-            ->where('currency', $currency)
-            ->first();
-
-        if (! $wallet || bccomp($wallet->getAvailableBalance(), $amount, 2) < 0) {
-            throw ConversionException::failure(
-                WalletConversionRejectionReason::InsufficientBalance->value,
-                'The source wallet does not have enough available funds for this conversion.',
-            );
-        }
     }
 
     public function consume(WalletConversionQuote $quote, int $conversionId): void

@@ -758,7 +758,13 @@ final class LedgerPostingService
      */
     private function assertNotAlreadyPosted(int $transactionId): void
     {
-        if (LedgerEntry::query()->withTrashed()->where('financial_transaction_id', $transactionId)->exists()) {
+        // The caller's repeatable-read snapshot sees its own uncommitted rows,
+        // but can miss a posting committed while it waited on the transaction
+        // root. Observe committed rows through the verified independent writer
+        // only after acquiring that root lock; do not issue a locking journal-gap
+        // read that could deadlock two otherwise disjoint postings.
+        $ownPosting = LedgerEntry::query()->withTrashed()->where('financial_transaction_id', $transactionId)->exists();
+        if ($ownPosting || $this->hasCommittedPosting($transactionId)) {
             throw FinancialException::withCode(
                 'ledger_duplicate_posting',
                 sprintf(
@@ -769,6 +775,25 @@ final class LedgerPostingService
                 ['transaction_id' => $transactionId],
             );
         }
+    }
+
+    /** Observe committed journal rows without borrowing or changing the caller's transaction. */
+    private function hasCommittedPosting(int $transactionId): bool
+    {
+        $writer = DB::connection();
+        $driver = $writer->getDriverName();
+        if ($driver === 'sqlite') {
+            return false;
+        }
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            return app(LedgerPostingObserver::class)->hasPosting($writer, $transactionId);
+        }
+
+        throw FinancialException::withCode(
+            'ledger_posting_current_reader_invalid',
+            sprintf('Current journal observation is not certified for database driver "%s".', $driver),
+            ['driver' => $driver],
+        );
     }
 
     /**

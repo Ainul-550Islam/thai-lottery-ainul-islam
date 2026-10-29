@@ -10,11 +10,13 @@ use App\Enums\DrawType;
 use App\Models\Draw;
 use App\Models\User;
 use App\Services\Draw\DrawLifecycleService;
-use App\Services\Draw\DrawResultPublicationService;
+use App\Services\Draw\DrawResultConfirmationService;
+use App\Services\Draw\DrawResultIngestionService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -424,15 +426,15 @@ final class DrawAutomationTest extends TestCase
         // Publication is a TWO-operator act: one ingests the numbers, a
         // DIFFERENT operator confirms and publishes them. A single mistaken
         // CLI entry must never become the official result alone.
-        $ingester = User::factory()->create();
-        $confirmer = User::factory()->create();
+        $ingester = $this->drawOperator();
+        $confirmer = $this->drawOperator();
 
-        // The announced bottom two agrees with the first prize's last two
-        // digits (456123 -> 23): the announcement cannot say both.
+        // The independently drawn bottom prize need not match the final two
+        // digits of the six-digit first prize.
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '456123',
-            '--bottom-two' => '23',
+            '--bottom-two' => '45',
             '--operator-id' => (string) $ingester->id,
             '--yes' => true,
         ])->assertSuccessful();
@@ -443,7 +445,7 @@ final class DrawAutomationTest extends TestCase
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '456123',
-            '--bottom-two' => '23',
+            '--bottom-two' => '45',
             '--operator-id' => (string) $confirmer->id,
             '--confirm' => true,
             '--yes' => true,
@@ -458,13 +460,15 @@ final class DrawAutomationTest extends TestCase
     public function publication_refuses_numbers_the_validator_rejects_and_writes_nothing(): void
     {
         $draw = $this->pendingDraw();
+        $operator = $this->drawOperator();
 
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '12',
             '--bottom-two' => '45',
+            '--operator-id' => (string) $operator->id,
             '--yes' => true,
-        ])->assertFailed();
+        ])->expectsOutputToContain('must be exactly six digits')->assertFailed();
 
         $this->assertSame(0, DB::table('draw_results')->count());
         $this->assertSame(DrawStatus::Drawing, $draw->refresh()->status);
@@ -474,13 +478,15 @@ final class DrawAutomationTest extends TestCase
     public function publication_is_refused_for_a_draw_that_is_not_awaiting_its_result(): void
     {
         $draw = $this->draw(DrawStatus::Open, now()->addHour(), now()->subHour(), now()->addMinutes(55));
+        $operator = $this->drawOperator();
 
         $this->artisan('lottery:publish-result', [
             'draw' => (string) $draw->draw_number,
             '--first-prize' => '456123',
             '--bottom-two' => '45',
+            '--operator-id' => (string) $operator->id,
             '--yes' => true,
-        ])->assertFailed();
+        ])->expectsOutputToContain('ingested a result')->assertFailed();
 
         $this->assertSame(0, DB::table('draw_results')->count());
     }
@@ -489,7 +495,7 @@ final class DrawAutomationTest extends TestCase
     public function declining_the_acknowledgement_publishes_nothing(): void
     {
         $draw = $this->pendingDraw();
-        $operator = User::factory()->create();
+        $operator = $this->drawOperator();
 
         // Declining the acknowledgement prompt cancels the ingestion: no
         // draw result row is written and the draw keeps awaiting its result.
@@ -555,6 +561,16 @@ final class DrawAutomationTest extends TestCase
         return $draw;
     }
 
+    /** An actual draw-authorized identity for the console publication flow. */
+    private function drawOperator(): User
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $user = User::factory()->create();
+        $user->assignRole('super-admin');
+
+        return $user;
+    }
+
     /**
      * A draw parked in ResultPending, ready for publication.
      */
@@ -577,10 +593,13 @@ final class DrawAutomationTest extends TestCase
     {
         $draw = $this->pendingDraw();
 
-        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
-            'first_prize' => '456123',
-            'bottom_two' => '45',
-        ]);
+        // Exercise the real manual maker/checker path. Automation itself must
+        // never publish, even when the settlement fixture needs a published draw.
+        $card = ['first_prize' => '456123', 'bottom_two' => '45'];
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
+        app(DrawResultIngestionService::class)->ingest((int) $draw->getKey(), $card, 'internal', (int) $maker->getKey());
+        app(DrawResultConfirmationService::class)->confirm((int) $draw->getKey(), (int) $checker->getKey(), $card);
 
         $draw->refresh();
 

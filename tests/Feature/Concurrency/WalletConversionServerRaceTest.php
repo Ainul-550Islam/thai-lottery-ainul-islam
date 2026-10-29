@@ -160,7 +160,7 @@ final class WalletConversionServerRaceTest extends ConversionTestCase
         $this->assertSame('0.00', $this->balanceOf($f['cash']));
         $this->assertSame('99.00', $this->balanceOf($f['win']));
         $this->assertSingleMovement();
-        $this->assertSame($currency->value, WalletConversion::query()->firstOrFail()->currency);
+        $this->assertSame($currency, WalletConversion::query()->firstOrFail()->currency);
     }
 
     private function command(array $f, ?string $quote, string $key, Currency $currency = Currency::THB): array

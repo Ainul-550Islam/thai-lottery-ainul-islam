@@ -46,7 +46,8 @@ MONEY_CASES = {
 } | {
     ("Tests\\Feature\\Concurrency\\SettlementServerRaceTest", "test_concurrent_" + name)
     for name in (
-        "run_start_returns_one_durable_identity", "duplicate_checkpoint_credits_a_winner_only_once",
+        "run_start_returns_one_durable_identity", "chunked_start_and_inline_settlement_cannot_overlap",
+        "reopen_and_finalizer_cannot_restore_a_completed_run_to_open", "duplicate_checkpoint_credits_a_winner_only_once",
         "checkpoint_keeps_manual_approval_obligations_uncredited",
         "serialized_workers_consume_duplicate_envelopes_without_duplicate_payout",
     )
@@ -54,7 +55,7 @@ MONEY_CASES = {
 WEBHOOK_PATHS = ("tests/Feature/Concurrency/WebhookObligationServerRaceTest.php",)
 WEBHOOK_CASES = {
     ("Tests\\Feature\\Concurrency\\WebhookObligationServerRaceTest", "test_concurrent_" + name)
-    for name in ("deposit_success_credits_once", "withdrawal_success_debits_once",
+    for name in ("deposit_success_credits_once", "bkash_success_without_original_checkout_proof_cannot_credit", "withdrawal_success_debits_once",
                  "withdrawal_success_and_failure_preserve_one_terminal_state", "foreign_provider_cannot_race_a_valid_credit")
 }
 DISPATCH_PATHS = ("tests/Feature/Concurrency/WithdrawalDispatchServerRaceTest.php",)
@@ -99,7 +100,14 @@ def validate_witnesses(witnesses, expected):
     for item in witnesses:
         children = item.get("child_connections", [])
         reference_case = (item.get("class"), item.get("name")) in REFERENCE_CASES
-        allowed_tables = {"withdrawal_provider_references"} if reference_case else {"users", "draws", "wallets"}
+        settlement_case = item.get("class") == "Tests\\Feature\\Concurrency\\SettlementServerRaceTest"
+        settlement_draw_claim = settlement_case and item.get("name") in {
+            "test_concurrent_run_start_returns_one_durable_identity",
+            "test_concurrent_chunked_start_and_inline_settlement_cannot_overlap",
+        }
+        allowed_tables = ({"withdrawal_provider_references"} if reference_case else
+                          {"draws"} if settlement_draw_claim else
+                          {"settlement_runs"} if settlement_case else {"users", "draws", "wallets"})
         if reference_case:
             wallets = item.get("wallet_ids", [])
             if (len(wallets) != 2 or len(set(wallets)) != 2 or not all(isinstance(w, int) and w > 0 for w in wallets)
@@ -149,12 +157,22 @@ try {
         getenv('DB_USERNAME'), getenv('DB_PASSWORD'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     $tables = $pdo->query("SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA='thai_lottery_test'")->fetchAll(PDO::FETCH_KEY_PAIR);
     $introspection = false;
+    $version = (string) $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
     if (getenv('FINANCIAL_RACE_INTROSPECTION') === '1') {
-        $pdo->query('SELECT COUNT(*) FROM information_schema.INNODB_LOCK_WAITS')->fetchColumn();
+        if (stripos($version, 'mariadb') !== false) {
+            $pdo->query('SELECT COUNT(*) FROM information_schema.INNODB_LOCK_WAITS')->fetchColumn();
+            $pdo->query('SELECT COUNT(*) FROM information_schema.INNODB_TRX')->fetchColumn();
+            $pdo->query('SELECT COUNT(*) FROM information_schema.INNODB_LOCKS')->fetchColumn();
+        } else {
+            // MySQL 8 moved row-lock visibility to performance_schema.
+            foreach (['data_locks', 'data_lock_waits', 'threads'] as $table) {
+                $pdo->query('SELECT COUNT(*) FROM performance_schema.'.$table)->fetchColumn();
+            }
+        }
         $introspection = true;
     }
     echo json_encode(['lock_introspection' => $introspection, 'database' => $pdo->query('SELECT DATABASE()')->fetchColumn(),
-        'pdo_driver' => $pdo->getAttribute(PDO::ATTR_DRIVER_NAME), 'server_version' => $pdo->getAttribute(PDO::ATTR_SERVER_VERSION),
+        'pdo_driver' => $pdo->getAttribute(PDO::ATTR_DRIVER_NAME), 'server_version' => $version,
         'table_engines' => $tables]);
 } catch (Throwable $e) { fwrite(STDERR, 'Disposable server preflight failed. Check the local socket/account and prepared schema.'); exit(1); }
 '''

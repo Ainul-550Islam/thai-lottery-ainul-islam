@@ -7,6 +7,7 @@ namespace App\Services\Notification;
 use App\DTOs\Notification\NotificationPreferenceData;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationEventType;
+use App\Exceptions\NotificationPreferenceException;
 use App\Models\NotificationPreference;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,27 @@ final class NotificationPreferenceService
             $row->save();
 
             return $row;
+        });
+    }
+
+    /**
+     * Apply an entire player's matrix atomically and return the same committed
+     * transaction's snapshot. An error in any row rolls back every prior row.
+     *
+     * @param list<NotificationPreferenceData> $preferences
+     * @return Collection<int, NotificationPreference>
+     */
+    public function writeManyFor(int $userId, array $preferences): Collection
+    {
+        return DB::transaction(function () use ($userId, $preferences): Collection {
+            foreach ($preferences as $preference) {
+                if (! $preference instanceof NotificationPreferenceData || $preference->userId !== $userId) {
+                    throw NotificationPreferenceException::malformed('Every preference must belong to the same player');
+                }
+                $this->write($preference);
+            }
+
+            return $this->allFor($userId);
         });
     }
 

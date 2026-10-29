@@ -248,7 +248,12 @@ final class DepositCompletionService
     public function existingTransactionFor(Deposit $deposit): ?FinancialTransaction
     {
         if ($deposit->financial_transaction_id !== null) {
-            return FinancialTransaction::query()->whereKey($deposit->financial_transaction_id)->first();
+            $query = FinancialTransaction::query()->whereKey($deposit->financial_transaction_id);
+            if (DB::transactionLevel() > 0) {
+                $query->lockForUpdate();
+            }
+
+            return $query->first();
         }
 
         return $this->idempotency->existingFor($this->idempotencyKeyFor($deposit));
@@ -422,12 +427,30 @@ final class DepositCompletionService
             : null;
     }
 
+    /**
+     * Run one completion inside its OWN transaction boundary, always.
+     *
+     * This used to join the caller's transaction outright when one was already
+     * open, on the reasoning that nesting a transaction inside a transaction is
+     * pointless. It is not pointless, and skipping it leaked money-shaped state:
+     * a completion performs several writes in order — the provider reference
+     * owner, the wallet credit, the financial transaction, the ledger entries —
+     * and a fault part-way through (a ceiling, a database error, an accounting
+     * interruption) left everything written BEFORE the fault sitting in the
+     * caller's transaction. If the caller caught the exception and committed,
+     * which is exactly what a webhook or queue worker does, those partial writes
+     * became permanent: a reference owner bound to a deposit that was never
+     * credited.
+     *
+     * DB::transaction() is the right primitive because when a transaction is
+     * already open it creates a SAVEPOINT and rolls back only to that savepoint
+     * on a throwable, then rethrows. So a completion is now atomic on its own
+     * account — all of its writes or none — while the caller's transaction
+     * survives at the same depth, still committable, and still free to decide
+     * what to do about the failure it is handed.
+     */
     private function withinTransaction(\Closure $callback): mixed
     {
-        if (DB::transactionLevel() > 0) {
-            return $callback();
-        }
-
         return DB::transaction($callback);
     }
 }

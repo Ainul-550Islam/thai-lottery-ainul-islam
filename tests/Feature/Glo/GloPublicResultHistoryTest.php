@@ -11,6 +11,7 @@ use App\Models\DrawResult;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\Cache;
+use Tests\Feature\PublicSite\Concerns\PublishesProviderResults;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use Tests\TestCase;
 class GloPublicResultHistoryTest extends TestCase
 {
     use DatabaseTruncation;
+    use PublishesProviderResults;
 
     private Draw $published;
 
@@ -163,6 +165,15 @@ class GloPublicResultHistoryTest extends TestCase
             ]),
         ]);
 
+        // Merely relabelling a row is not official-source evidence.
+        $unproven = $this->getJson('/api/v1/glo/results/sheet')->json('data');
+        $this->assertSame('UNAVAILABLE', $unproven['source_state']);
+        $this->assertFalse($unproven['has_result']);
+
+        // Test-only synthetic import evidence, filed and manually confirmed by
+        // distinct operators through the real canonical publication workflow.
+        $officialDraw = Draw::factory()->closed()->create(['scheduled_at' => now()->subDay()]);
+        $this->publishProviderResult($officialDraw, provider: 'official', firstPrize: '000001');
         $sheet = $this->getJson('/api/v1/glo/results/sheet')->json('data');
         $this->assertSame('OFFICIAL_SOURCE_VERIFIED', $sheet['source_state']);
         $this->assertSame('GLO VERIFIED SOURCE', $sheet['source_badge']);

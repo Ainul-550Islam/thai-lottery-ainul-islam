@@ -106,13 +106,35 @@ final class PaymentWebhookBindingService
 
         if ($row instanceof Deposit) {
             try {
-                app(DepositIntegrityGuard::class)->assertTerms($row, $wallet);
-                $scope = app(DepositProviderAccountService::class)->assertActive($row);
-                if ($row->status === DepositStatus::Confirmed) {
-                    app(FinancialProviderReferenceService::class)->assertBound($row, $gateway, $scope, $payload->providerReference, $payment);
-                } else {
-                    app(FinancialProviderReferenceService::class)->bind($row, $gateway, $scope, $payload->providerReference, $payment);
-                }
+                // The primary paymentID and bKash transaction alias must either
+                // both bind, or neither bind. A savepoint prevents a refused
+                // alias from leaving a partial ownership record behind.
+                DB::transaction(function () use ($row, $wallet, $gateway, $payload, $payment): void {
+                    app(DepositIntegrityGuard::class)->assertTerms($row, $wallet);
+                    $scope = app(DepositProviderAccountService::class)->assertActive($row);
+                    $attempt = null;
+                    $transactionId = null;
+                    if ($gateway === 'bkash' && $payload->isSuccess) {
+                        [$original, , $originalPayment, $attempt, $reference] = app(DepositCheckoutService::class)->lockedBkashSettlement($row);
+                        $transactionId = $payload->metadata['trxID'] ?? null;
+                        if (! $payment || (int) $original->id !== (int) $row->id || (int) $originalPayment->id !== (int) $payment->id
+                            || $reference !== $payload->providerReference || ! is_string($transactionId) || $transactionId === ''
+                            || $payload->eventId !== FinancialProviderReferenceAliasService::bkashEventId($reference, $transactionId)) {
+                            throw FinancialException::withCode('bkash_settlement_original_unproven', 'The original bKash payment and transaction identities do not match.');
+                        }
+                    }
+                    if ($row->status === DepositStatus::Confirmed) {
+                        app(FinancialProviderReferenceService::class)->assertBound($row, $gateway, $scope, $payload->providerReference, $payment);
+                        if ($attempt !== null) {
+                            app(FinancialProviderReferenceAliasService::class)->assertBound($row, $payment, $attempt, $transactionId);
+                        }
+                    } else {
+                        app(FinancialProviderReferenceService::class)->bind($row, $gateway, $scope, $payload->providerReference, $payment);
+                        if ($attempt !== null) {
+                            app(FinancialProviderReferenceAliasService::class)->bind($row, $payment, $attempt, $transactionId);
+                        }
+                    }
+                });
             } catch (FinancialException) {
                 return null;
             }

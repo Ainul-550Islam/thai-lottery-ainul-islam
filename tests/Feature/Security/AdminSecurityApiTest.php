@@ -73,13 +73,15 @@ class AdminSecurityApiTest extends TestCase
 
     public function test_admin_can_review_fraud_alert(): void
     {
-        $admin = $this->actingAsSecurityAdmin();
+        $this->actingAsSecurityAdmin();
+        // The reviewer and the account under review must be different people.
+        $subject = User::factory()->create();
 
         $alert = FraudAlert::create([
             'id' => (string) Str::uuid(),
             'idempotency_event_key' => 'evt-test-123',
             'event_type' => 'WITHDRAWAL',
-            'user_id' => (string) $admin->id,
+            'user_id' => (string) $subject->id,
             'amount' => '50000.0000',
             'currency' => 'THB',
             'risk_score' => 85,

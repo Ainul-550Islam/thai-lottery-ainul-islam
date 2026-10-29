@@ -115,11 +115,10 @@ class HomePageDataService
     /**
      * Trust claims, and the only two sources one may come from.
      *
-     * An operator-configured bullet list always wins. When none is configured the
-     * section falls back to the platform's own documented, verifiable statements —
-     * every request is authorized server-side, and wallet credits are idempotent —
-     * rather than to an empty block or, worse, an invented audit badge. Nothing
-     * here names a certification the platform does not hold.
+     * An operator-configured bullet list always wins. With no configuration the
+     * section falls back to conservative descriptions of supported controls,
+     * not guarantees about every route, every provider or every possible replay.
+     * Nothing here names a certification the platform does not hold.
      *
      * @return list<string>
      */

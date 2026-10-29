@@ -11,24 +11,23 @@ use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
 use App\Enums\WebhookEventType;
 use App\Exceptions\FinancialException;
+use App\Exceptions\PaymentWebhookException;
 use App\Models\Deposit;
 use App\Models\Withdrawal;
 use App\Services\Payment\PaymentDecimalNormalizer;
+use App\Support\LosslessJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Real Nagad Payment Gateway & Webhook Driver.
+ * Legacy Nagad compatibility prototype, not a verified live integration.
  *
- * SPECIFICATION & OFFICIAL PROTOCOL
- * ---------------------------------
- * 1. Base URLs:
- *    Sandbox: http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs
- *    Live:    https://api.mynagad.com/api/dfs
- *
- * 2. Signature Verification:
- *    Header: `X-KM-Signature` or `X-Nagad-Signature` using HMAC-SHA256 with secret.
+ * The current local HMAC callback convention and single checkout request are
+ * not proved against the merchant's provider contract. Readiness and public,
+ * queued, and generic-envelope callback ingress remain closed until an actual
+ * Nagad checkout, authentication and authoritative verification flow is
+ * implemented and validated. Tests with local secrets are synthetic only.
  */
 class NagadGateway extends AbstractPaymentGateway
 {
@@ -44,7 +43,7 @@ class NagadGateway extends AbstractPaymentGateway
 
     public function status(): GatewayIntegrationStatus
     {
-        return GatewayIntegrationStatus::FullyImplemented;
+        return GatewayIntegrationStatus::PartiallyImplemented;
     }
 
     public function supportsCurrency(Currency $currency): bool
@@ -157,12 +156,25 @@ class NagadGateway extends AbstractPaymentGateway
 
     public function parseWebhook(Request $request): WebhookPayload
     {
-        $data = $request->json()->all();
+        try {
+            // Verify and parse the very same signed bytes. Ordinary JSON float
+            // decoding can round 400.00000000000000001 to 400.0 before the
+            // decimal validator sees it; duplicate keys can also select a
+            // different financial fact from the one actually signed.
+            $body = $request->getContent();
+            $exact = LosslessJson::decode($body);
+            $data = json_decode($body, true, 64, JSON_THROW_ON_ERROR);
+            if (! is_array($exact) || ! is_array($data) || ! str_starts_with(ltrim($body), '{')) {
+                throw new \JsonException('Webhook JSON must be an object.');
+            }
+        } catch (\JsonException) {
+            throw PaymentWebhookException::malformed('invalid or ambiguous JSON');
+        }
 
         $paymentRef = (string) ($data['payment_ref_id'] ?? $data['paymentReferenceId'] ?? '');
         $orderId = (string) ($data['order_id'] ?? $data['orderId'] ?? $data['reference'] ?? '');
         $status = strtoupper((string) ($data['status'] ?? $data['payment_status'] ?? ''));
-        $amountRaw = $data['amount'] ?? null;
+        $amountRaw = $exact['amount'] ?? null;
         try {
             $amount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($amountRaw, 2);
         } catch (\InvalidArgumentException) {

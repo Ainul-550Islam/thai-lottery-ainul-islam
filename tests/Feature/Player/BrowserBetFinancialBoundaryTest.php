@@ -9,9 +9,11 @@ use App\Enums\WalletType;
 use App\Models\Bet;
 use App\Models\FinancialTransaction;
 use App\Models\LedgerEntry;
+use App\Models\Payout;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Wallet;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Feature\Api\V1\ApiPurchaseTestCase;
 
@@ -43,6 +45,54 @@ final class BrowserBetFinancialBoundaryTest extends ApiPurchaseTestCase
         $response->assertViewHas('openDraw', null)->assertDontSee('data-bet-form', false);
         $eligible = $this->openDraw();
         $this->get(route('player.bet'))->assertOk()->assertViewHas('openDraw', fn ($shown): bool => $shown->is($eligible));
+    }
+
+    public static function terminalDrawColumns(): array
+    {
+        return [['closed_at'], ['drawn_at'], ['result_published_at'], ['completed_at']];
+    }
+
+    #[DataProvider('terminalDrawColumns')]
+    public function test_open_status_with_a_terminal_timestamp_does_not_offer_betting(string $column): void
+    {
+        $fixture = $this->fixture();
+        $fixture['draw']->forceFill([$column => now()])->save();
+        $this->actingAs($fixture['user'])->get(route('player.bet'))->assertOk()
+            ->assertViewHas('openDraw', null)->assertDontSee('data-bet-form', false);
+    }
+
+    public static function durableDrawHistory(): array
+    {
+        return [['cancellation'], ['settlement'], ['payout'], ['soft_deleted_payout']];
+    }
+
+    #[DataProvider('durableDrawHistory')]
+    public function test_draw_with_durable_terminal_history_does_not_offer_betting(string $history): void
+    {
+        $fixture = $this->fixture();
+        if ($history === 'cancellation') {
+            DB::table('draw_cancellation_ownerships')->insert([
+                'draw_id' => $fixture['draw']->id,
+                'actor_user_id' => $fixture['user']->id,
+                'previous_status' => 'open',
+                'reason' => 'Synthetic unresolved cancellation',
+                'participants' => '[]',
+                'terms_hash' => str_repeat('0', 64),
+                'state' => 'preparing',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } elseif ($history === 'settlement') {
+            DB::table('settlement_runs')->insert(['draw_id' => $fixture['draw']->id, 'status' => 'open', 'started_at' => now()]);
+        } else {
+            $payout = Payout::factory()->create(['draw_id' => $fixture['draw']->id, 'user_id' => $fixture['user']->id]);
+            if ($history === 'soft_deleted_payout') {
+                $payout->delete();
+            }
+        }
+
+        $this->actingAs($fixture['user'])->get(route('player.bet'))->assertOk()
+            ->assertViewHas('openDraw', null)->assertDontSee('data-bet-form', false);
     }
 
     public function test_page_item_ceiling_cannot_exceed_the_http_cap_but_can_be_lower(): void

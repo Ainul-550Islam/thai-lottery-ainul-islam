@@ -75,6 +75,14 @@ final class ReconcileTruemoneyRedemptionsCommand extends Command
                                     || $current->status !== TruemoneyRedemptionStatus::RedeemedUnconfirmed) {
                                     return;
                                 }
+                                // Evidence was inspected before the transaction;
+                                // prove it again under this receipt lock before a
+                                // wallet or deposit can be touched.
+                                $currentEvidence = $this->provenAmount($current);
+                                if ($currentEvidence === null || bccomp($currentEvidence, $evidence, 2) !== 0
+                                    || ! $this->withinDailyAttemptLimit($current)) {
+                                    throw FinancialException::withCode('truemoney_reconcile_evidence_mismatch', 'Stored voucher evidence changed during reconciliation.');
+                                }
                                 $user = $current->user()->firstOrFail();
                                 $wallet = $user->wallets()->where('currency', Currency::THB->value)->firstOrFail();
                                 $expectedReference = 'TMN-'.substr((string) $current->voucher_hash, 0, 16);
@@ -83,23 +91,11 @@ final class ReconcileTruemoneyRedemptionsCommand extends Command
                                     ->where('provider_reference', $expectedReference)
                                     ->first();
                                 if (! $deposit instanceof Deposit) {
-                                    $deposit = $deposits->request(
+                                    $deposit = $deposits->requestFromConfirmedTrueMoneyVoucher(
                                         wallet: $wallet,
                                         amount: Money::of($evidence, Currency::THB),
-                                        method: PaymentMethod::BankTransfer,
-                                        idempotencyKey: 'truemoney-'.$current->voucher_hash,
-                                        options: [
-                                            'provider' => PaymentMethod::BankTransfer->value,
-                                            'provider_reference' => $expectedReference,
-                                            'metadata' => [
-                                                'thai_rails' => [
-                                                    'provider_kind' => 'truemoney_voucher',
-                                                    'voucher_hash' => $current->voucher_hash,
-                                                    'voucher_last4' => $current->voucher_last4,
-                                                    'reconciled' => true,
-                                                ],
-                                            ],
-                                        ],
+                                        redemption: $current,
+                                        receiptMetadata: ['reconciled' => true],
                                     );
                                 }
                                 if ((int) $deposit->user_id !== (int) $current->user_id

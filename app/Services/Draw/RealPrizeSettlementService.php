@@ -287,15 +287,12 @@ class RealPrizeSettlementService
      * @throws DrawLifecycleException
      * @throws SettlementSimulationException
      */
-    public function assertChunkable(Draw $draw): DrawResultData
+    public function assertChunkable(Draw $draw, bool $participating = false): DrawResultData
     {
-        return DB::transaction(function () use ($draw): DrawResultData {
-            $drawId = (int) $draw->getKey();
-
-            if (DB::transactionLevel() > 1) {
-                throw SettlementSimulationException::alreadyRunning($drawId, DB::transactionLevel());
-            }
-
+        $drawId = (int) $draw->getKey();
+        $prove = function () use ($drawId): DrawResultData {
+            // Always obtain the current draw, even when the caller already holds
+            // it. The run claim must be inserted before this lock is released.
             $locked = $this->lifecycle->lockForUpdate($drawId);
             $state = $this->lifecycle->currentState($locked);
 
@@ -314,7 +311,21 @@ class RealPrizeSettlementService
             ]);
 
             return $this->publishedResultFor($locked);
-        });
+        };
+
+        if ($participating) {
+            if (DB::transactionLevel() !== 1 || ! DB::connection()->getPdo()->inTransaction()) {
+                throw SettlementSimulationException::alreadyRunning($drawId, DB::transactionLevel());
+            }
+
+            return $prove();
+        }
+
+        if (DB::transactionLevel() !== 0 || DB::connection()->getPdo()->inTransaction()) {
+            throw SettlementSimulationException::alreadyRunning($drawId, DB::transactionLevel());
+        }
+
+        return DB::transaction($prove);
     }
 
     /**

@@ -10,38 +10,35 @@ use Illuminate\Console\Command;
 
 class RunDailyBankReconciliationCommand extends Command
 {
-    protected $signature = 'ledger:reconcile-bank {date? : Date to reconcile in YYYY-MM-DD format (defaults to yesterday)}';
+    protected $signature = 'ledger:reconcile-bank
+        {date? : Date to inspect in YYYY-MM-DD format (defaults to yesterday)}
+        {--currency= : One supported ISO currency; defaults to the configured merchant currency}';
 
-    protected $description = 'Executes automated 3-way financial reconciliation between bank clearing, payouts, and double-entry ledger.';
+    protected $description = 'Compare legacy internal aggregates; external bank evidence is not available.';
 
     public function handle(AutomatedBankReconciliationService $reconciliationService): int
     {
         $dateStr = $this->argument('date');
         $date = $dateStr ? Carbon::parse($dateStr) : Carbon::yesterday();
+        $currency = $this->option('currency');
+        $result = $reconciliationService->reconcileDate($date, is_string($currency) ? $currency : null);
+        $unit = $result['currency'];
 
-        $this->info("Running Automated 3-Way Financial Reconciliation for [{$date->toDateString()}]...");
-
-        $res = $reconciliationService->reconcileDate($date);
-
-        $this->table(['Reconciliation Metric', 'Amount (THB)'], [
-            ['Reconciliation Date', $res['date']],
-            ['Bank Confirmed Deposits Total', $res['bank_deposits_total'].' THB'],
-            ['Double-Entry Ledger Deposits Total', $res['ledger_deposits_total'].' THB'],
-            ['Deposit Variance (Bank vs Ledger)', $res['deposits_variance'].' THB'],
-            ['Bank Confirmed Payouts Total', $res['bank_payouts_total'].' THB'],
-            ['Double-Entry Ledger Payouts Total', $res['ledger_payouts_total'].' THB'],
-            ['Payout Variance (Bank vs Ledger)', $res['payouts_variance'].' THB'],
-            ['Reconciliation Balance Status', $res['is_balanced'] ? 'PERFECTLY BALANCED (0 VARIANCE)' : 'MISMATCH DETECTED'],
+        $this->warn('Internal legacy aggregate comparison only; individual transactions are not matched.');
+        $this->table(['Internal metric', 'Amount'], [
+            ['Date', $result['date']],
+            ['Recorded deposits', $result['recorded_deposits_total'].' '.$unit],
+            ['Journal deposits', $result['ledger_deposits_total'].' '.$unit],
+            ['Deposit variance', $result['deposits_variance'].' '.$unit],
+            ['Recorded prize payouts', $result['recorded_payouts_total'].' '.$unit],
+            ['Journal prize payouts', $result['ledger_payouts_total'].' '.$unit],
+            ['Payout variance', $result['payouts_variance'].' '.$unit],
+            ['Internal aggregates', $result['internal_aggregate_balanced'] ? 'NUMERICALLY EQUAL' : 'MISMATCH'],
         ]);
+        $this->error('External bank evidence is not verified; bank reconciliation remains unverified.');
 
-        if ($res['is_balanced']) {
-            $this->info('✅ Financial reconciliation verified: ZERO discrepancy between bank clearing and double-entry ledger.');
-
-            return self::SUCCESS;
-        }
-
-        $this->error('❌ CRITICAL: Financial discrepancy detected during bank-to-ledger reconciliation.');
-
+        // No bank statement or authenticated provider evidence is supplied to
+        // this command. Even zero variance cannot produce a verified exit code.
         return self::FAILURE;
     }
 }

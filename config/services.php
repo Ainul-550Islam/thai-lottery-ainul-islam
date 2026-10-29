@@ -38,6 +38,12 @@ return [
         ],
     ],
 
+    // Existing active, draw-authorized maker used by the scheduled GLO intake.
+    // No default identity is fabricated; a different operator must confirm.
+    'system' => [
+        'automated_operator_id' => env('GLO_AUTOMATED_OPERATOR_ID'),
+    ],
+
     'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),

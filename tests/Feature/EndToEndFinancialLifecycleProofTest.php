@@ -62,9 +62,13 @@ class EndToEndFinancialLifecycleProofTest extends TestCase
         $directWallet->status = WalletStatus::Active;
         $directWallet->save();
 
-        $masterAgent = Agent::create(['user_id' => $masterUser->id, 'agent_code' => 'M-HQ', 'tier_level' => 1, 'direct_commission_rate' => '10.00', 'status' => 'ACTIVE']);
-        $superAgent = Agent::create(['user_id' => $superUser->id, 'agent_code' => 'S-BKK', 'parent_agent_id' => $masterAgent->id, 'tier_level' => 2, 'direct_commission_rate' => '8.00', 'status' => 'ACTIVE']);
-        $directAgent = Agent::create(['user_id' => $directUser->id, 'agent_code' => 'D-SHOP', 'parent_agent_id' => $superAgent->id, 'tier_level' => 3, 'direct_commission_rate' => '5.00', 'status' => 'ACTIVE']);
+        $masterAgent = Agent::create(['user_id' => $masterUser->id, 'agent_code' => 'M-HQ', 'status' => \App\Enums\AgentStatus::Active]);
+        $superAgent = Agent::create(['user_id' => $superUser->id, 'agent_code' => 'S-BKK', 'parent_agent_id' => $masterAgent->id, 'status' => \App\Enums\AgentStatus::Active]);
+        $directAgent = Agent::create(['user_id' => $directUser->id, 'agent_code' => 'D-SHOP', 'parent_agent_id' => $superAgent->id, 'status' => \App\Enums\AgentStatus::Active]);
+
+        $masterAgent->forceFill(['tier_level' => 1, 'direct_commission_rate' => '10.00'])->save();
+        $superAgent->forceFill(['tier_level' => 2, 'direct_commission_rate' => '8.00'])->save();
+        $directAgent->forceFill(['tier_level' => 3, 'direct_commission_rate' => '5.00'])->save();
 
         AgentHierarchy::create(['ancestor_id' => $directAgent->id, 'descendant_id' => $directAgent->id, 'depth' => 0]);
         AgentHierarchy::create(['ancestor_id' => $superAgent->id, 'descendant_id' => $directAgent->id, 'depth' => 1]);

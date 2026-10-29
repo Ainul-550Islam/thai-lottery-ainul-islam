@@ -102,12 +102,14 @@ class PaymentCallbackServiceTest extends TestCase
 
         $byDeposit = $service->browserReturnProjection(null, (string) $payment->metadata['deposit_reference'], null, (int) $user->id);
         $this->assertTrue($byDeposit['found']);
-        $this->assertTrue($byDeposit['paid']);
-        $this->assertSame('confirmed', $byDeposit['state']);
+        $this->assertFalse($byDeposit['paid']);
+        $this->assertSame('pending', $byDeposit['state']);
 
         $bySession = $service->browserReturnProjection(null, null, 'cs_test_LOOKUP', (int) $user->id);
         $this->assertTrue($bySession['found']);
-        $this->assertTrue($bySession['paid']);
+        $this->assertFalse($bySession['paid']);
+        $this->assertSame('1000.00', (string) $wallet->fresh()->balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
     }
 
     public function test_captured_is_the_only_state_reported_as_paid(): void

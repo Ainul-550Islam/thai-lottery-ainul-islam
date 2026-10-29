@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Enums\QueueName;
 use App\Enums\ComplianceCaseStatus;
 use App\Exceptions\ComplianceCaseException;
 use App\Models\ComplianceCase;
@@ -41,7 +42,7 @@ final class ReviewOpenComplianceCasesJob implements ShouldQueue
 
     public function __construct()
     {
-        $this->onQueue('finance-reconciliation');
+        $this->onQueue(QueueName::Reconciliation->value);
     }
 
     public function handle(ComplianceCaseService $cases): void

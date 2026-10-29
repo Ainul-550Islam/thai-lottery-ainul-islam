@@ -42,6 +42,8 @@ class RedactSensitiveData
     public const DEFAULT_KEYS = [
         'password',
         'passwd',
+        'pwd',
+        'credentials',
         'secret',
         'token',
         'authorization',
@@ -80,6 +82,15 @@ class RedactSensitiveData
             return;
         }
 
+        // A custom PSR logger may not be Monolog. The framework wrapper still
+        // redacts its incoming record before it reaches that destination.
+        if (method_exists($logger->getLogger(), 'pushProcessor')) {
+            $logger->pushProcessor(self::processor());
+        }
+    }
+
+    public static function processor(): RedactingProcessor
+    {
         $extraKeys = (array) config('logging.redaction.keys', []);
 
         $keys = array_values(array_unique(array_merge(
@@ -95,6 +106,6 @@ class RedactSensitiveData
 
         $mask = (string) config('logging.redaction.mask', '[REDACTED]');
 
-        $logger->pushProcessor(new RedactingProcessor($keys, array_diff($allowed, $keys), $mask));
+        return new RedactingProcessor($keys, array_diff($allowed, $keys), $mask);
     }
 }

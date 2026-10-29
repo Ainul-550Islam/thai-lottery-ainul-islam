@@ -100,6 +100,28 @@ final class RedactingProcessorTest extends TestCase
         $this->assertStringContainsString('[REDACTED]', $result->message);
     }
 
+    public function test_serialized_json_credentials_in_a_message_are_masked(): void
+    {
+        $processor = new RedactingProcessor;
+        $result = ($processor)($this->record(message: 'Payload: {"password":"json-secret with spaces", "nested":{"api_key":"json-api-secret"}, "token":"json-token-secret"}'));
+        foreach (['json-secret with spaces', 'json-api-secret', 'json-token-secret'] as $secret) {
+            self::assertStringNotContainsString($secret, $result->message);
+        }
+        self::assertStringContainsString('[REDACTED]', $result->message);
+    }
+
+    public function test_serialized_sensitive_objects_and_arrays_are_not_partially_logged(): void
+    {
+        $processor = new RedactingProcessor;
+        $message = 'payload {"password":{"raw":"nested-secret","other":"second-secret"}, '
+            .'"token":["first-secret",{"x":"third-secret"}], "amount":"12.50", "pwd":"fourth-secret"}';
+        $result = ($processor)($this->record(message: $message));
+        foreach (['nested-secret', 'second-secret', 'first-secret', 'third-secret', 'fourth-secret'] as $secret) {
+            self::assertStringNotContainsString($secret, $result->message);
+        }
+        self::assertStringContainsString('12.50', $result->message);
+    }
+
     public function test_a_data_source_name_in_a_connection_error_is_masked(): void
     {
         $processor = new RedactingProcessor;
@@ -139,6 +161,50 @@ final class RedactingProcessorTest extends TestCase
         $this->assertInstanceOf(\Throwable::class, $result->context['exception']);
         $this->assertStringNotContainsString('S3cretPw', $result->context['exception']->getMessage());
         $this->assertStringContainsString('[REDACTED]', $result->context['exception']->getMessage());
+    }
+
+    public function test_json_and_text_formatters_never_receive_unredacted_cause_chains(): void
+    {
+        foreach ([new \Monolog\Formatter\JsonFormatter, new \Monolog\Formatter\LineFormatter] as $formatter) {
+            $stream = fopen('php://memory', 'wb+');
+            $handler = new \Monolog\Handler\StreamHandler($stream, \Monolog\Level::Debug);
+            $handler->setFormatter($formatter);
+            $logger = new \Monolog\Logger('test', [$handler], [new RedactingProcessor]);
+
+            $inner = new \RuntimeException('password=inner-secret');
+            $outer = new \Error('Gateway token=outer-secret', 0, $inner);
+            $logger->error('request refused', ['exception' => $outer]);
+            $logger->error('another refusal', ['exception' => new \RuntimeException('Safe message', 0, $inner)]);
+
+            rewind($stream);
+            $output = (string) stream_get_contents($stream);
+            fclose($stream);
+            self::assertStringNotContainsString('outer-secret', $output);
+            self::assertStringNotContainsString('inner-secret', $output);
+            self::assertStringContainsString('[REDACTED]', $output);
+            self::assertStringContainsString('request refused', $output);
+        }
+    }
+
+    public function test_json_serializable_exceptions_cannot_smuggle_unredacted_properties(): void
+    {
+        $exception = new class('Safe message') extends \RuntimeException implements \JsonSerializable
+        {
+            public function jsonSerialize(): array
+            {
+                return ['password' => 'serialized-secret'];
+            }
+        };
+        $stream = fopen('php://memory', 'wb+');
+        $handler = new \Monolog\Handler\StreamHandler($stream, \Monolog\Level::Debug);
+        $handler->setFormatter(new \Monolog\Formatter\JsonFormatter);
+        $logger = new \Monolog\Logger('test', [$handler], [new RedactingProcessor]);
+        $logger->error('refused', ['exception' => $exception]);
+        rewind($stream);
+        $output = (string) stream_get_contents($stream);
+        fclose($stream);
+        self::assertStringNotContainsString('serialized-secret', $output);
+        self::assertStringContainsString('Safe message', $output);
     }
 
     public function test_deep_structures_are_truncated_rather_than_followed_forever(): void

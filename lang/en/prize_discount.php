@@ -118,7 +118,7 @@ return [
     'physical_note_barcode' => 'If the ticket carries a machine-readable code, a successful scan tells you the code could be decoded — it does not by itself prove the paper is genuine.',
     'physical_note_limits' => 'Only the issuing authority can rule on a disputed physical ticket. Keep the ticket undamaged and present it through the official claim process.',
 
-    'not_official_notice' => 'Independent platform lookup. This platform is not the Government Lottery Office, this page is not a government service, and nothing here is an authorised statement by that office.',
+    'not_official_notice' => 'Independent platform notice: This platform is not the Government Lottery Office, this page is not a government service, and nothing here is an authorised statement by that office.',
     'privacy_notice' => 'No ticket holder name, contact detail, payment detail, or account information is ever shown on this page.',
 
     // -- Discount page -----------------------------------------------------

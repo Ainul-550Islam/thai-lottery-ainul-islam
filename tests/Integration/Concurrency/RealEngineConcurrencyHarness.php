@@ -8,6 +8,7 @@ use App\Enums\UserStatus;
 use App\Models\User;
 use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -47,6 +48,16 @@ final class RealEngineConcurrencyHarness
      */
     public static function run(array $engine, int $loginWorkers = 4, int $changerRounds = 12, int $loginRounds = 40): array
     {
+        // This harness executes migrate:fresh. A DSN alone must never grant
+        // permission to destroy an arbitrary database. Use a locally exposed,
+        // separately provisioned schema and an account scoped to that schema.
+        $acknowledged = getenv('CONCURRENCY_TEST_ALLOW_DESTRUCTIVE') ?: ($_ENV['CONCURRENCY_TEST_ALLOW_DESTRUCTIVE'] ?? '');
+        if ($acknowledged !== '1'
+            || ($engine['database'] ?? '') !== 'thai_lottery_conc'
+            || ($engine['username'] ?? '') !== 'concurrency_test'
+            || ! in_array($engine['host'] ?? '', ['127.0.0.1', 'localhost', '::1'], true)) {
+            throw new \RuntimeException('Real-engine password races require explicit acknowledgement and the local, scoped concurrency_test user on disposable thai_lottery_conc.');
+        }
         $passwords = [
             'Concurrency-Alpha-1!',
             'Concurrency-Bravo-2!',
@@ -66,6 +77,8 @@ final class RealEngineConcurrencyHarness
 
         DB::purge($engine['connection']);
         app('session')->forgetDrivers();
+        app()->forgetInstance('session.store');
+        Auth::forgetGuards();
 
         Artisan::call('migrate:fresh', ['--force' => true, '--no-interaction' => true]);
         (new LedgerAccountSeeder)->run();
@@ -194,12 +207,18 @@ final class RealEngineConcurrencyHarness
                 continue;
             }
 
-            foreach ((array) ($result['changes'] ?? []) as $change) {
+            foreach ((array) ($result['changes'] ?? []) as $index => $change) {
                 $changes[] = $change;
+                if (isset($change['error'])) {
+                    $errors[] = ['worker' => $workerId, 'operation' => 'change', 'attempt' => $index] + (array) $change['error'];
+                }
             }
 
-            foreach ((array) ($result['logins'] ?? []) as $login) {
+            foreach ((array) ($result['logins'] ?? []) as $index => $login) {
                 $logins[] = $login;
+                if (isset($login['error'])) {
+                    $errors[] = ['worker' => $workerId, 'operation' => 'login', 'attempt' => $index] + (array) $login['error'];
+                }
             }
 
             foreach ((array) ($result['lockErrors'] ?? []) as $lockError) {

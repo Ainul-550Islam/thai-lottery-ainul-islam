@@ -20,7 +20,7 @@ use App\Exceptions\NotificationPreferenceException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -175,19 +175,17 @@ final class PlayerSettingsPortalController extends Controller
         }
 
         try {
-            $rows = DB::transaction(function () use ($user, $preferences): array {
-                foreach ($preferences as $preference) {
-                    $this->notificationPreferences->write(NotificationPreferenceData::fromInput([
-                        'user_id' => (int) $user->id,
-                        'event_type' => (string) $preference['event_type'],
-                        'channel' => (string) $preference['channel'],
-                        'enabled' => $preference['enabled'],
-                        'quiet_hours' => $preference['quiet_hours'],
-                    ]));
-                }
-
-                return $this->notificationMatrix((int) $user->id);
-            });
+            $writes = array_map(
+                static fn (array $preference): NotificationPreferenceData => NotificationPreferenceData::fromInput([
+                    'user_id' => (int) $user->id,
+                    'event_type' => (string) $preference['event_type'],
+                    'channel' => (string) $preference['channel'],
+                    'enabled' => $preference['enabled'],
+                    'quiet_hours' => $preference['quiet_hours'],
+                ]),
+                $preferences,
+            );
+            $rows = $this->notificationMatrix($this->notificationPreferences->writeManyFor((int) $user->id, $writes));
         } catch (NotificationPreferenceException $exception) {
             // A malformed combination that reached the DTO (an undecliverable
             // channel, a silenced mandatory notice, unusable quiet hours) is a
@@ -371,10 +369,9 @@ final class PlayerSettingsPortalController extends Controller
      *
      * @return list<array<string, mixed>>
      */
-    private function notificationMatrix(int $userId): array
+    private function notificationMatrix(Collection $rows): array
     {
-        return $this->notificationPreferences->allFor($userId)
-            ->map(static fn ($row): array => [
+        return $rows->map(static fn ($row): array => [
                 'event_type' => $row->event_type->value,
                 'channel' => $row->channel->value,
                 'enabled' => (bool) $row->enabled,

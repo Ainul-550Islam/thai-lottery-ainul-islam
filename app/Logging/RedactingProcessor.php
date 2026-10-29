@@ -52,7 +52,10 @@ final class RedactingProcessor
         $redacted = [];
 
         foreach ($values as $key => $value) {
-            if (is_string($key) && $this->isSensitiveKey($key)) {
+            // `tokens` is also used for a numeric count, but an array or text
+            // under that same key may contain actual bearer/refresh secrets.
+            if (is_string($key) && ($this->isSensitiveKey($key)
+                || (strtolower($key) === 'tokens' && ! is_int($value) && ! is_float($value)))) {
                 $redacted[$key] = $this->mask;
 
                 continue;
@@ -71,8 +74,8 @@ final class RedactingProcessor
             }
 
             if ($value instanceof Throwable) {
-                // Keep the exception object (its trace is what makes the log
-                // useful) but rewrite its message so a DSN cannot reach the sink.
+                // Replace the entire chain; forwarding the original lets a
+                // formatter inspect unredacted causes or serialized properties.
                 $redacted[$key] = $this->scrubThrowable($value);
 
                 continue;
@@ -94,6 +97,11 @@ final class RedactingProcessor
 
     public function redactString(string $value): string
     {
+        // Quoted JSON-like keys may own scalar values OR whole nested objects
+        // or arrays. Scan complete balanced values, not a regex prefix. This
+        // does not make unknown arbitrary prose safe to log.
+        $value = $this->redactQuotedPairs($value);
+
         // Authorization headers, in every form clients write them.
         $value = (string) preg_replace(
             '/\b(Bearer|Basic|Token)\s+[A-Za-z0-9\-._~+\/]{8,}=*/i',
@@ -102,9 +110,16 @@ final class RedactingProcessor
         );
 
         // key=value and key: value pairs embedded in a message.
-        $value = (string) preg_replace(
-            '/(?<![A-Za-z0-9_])(password|passwd|pwd|secret|token|api_key|apikey|authorization|signature)\s*[=:]\s*[^\s,;&\'"]+/i',
-            '$1='.$this->mask,
+        $value = (string) preg_replace_callback(
+            '/(?<![A-Za-z0-9_])(password|passwd|pwd|secret|tokens?|api_key|apikey|authorization|signature)\s*[=:]\s*([^\s,;&\'"]+)/i',
+            function (array $match): string {
+                if (strtolower($match[1]) === 'tokens' && preg_match('/\A-?\d+(?:\.\d+)?\z/D', $match[2]) === 1
+                    && ! $this->isSensitiveKey($match[1])) {
+                    return $match[0];
+                }
+
+                return $match[1].'='.$this->mask;
+            },
             $value,
         );
 
@@ -122,6 +137,119 @@ final class RedactingProcessor
             '$1://$2:'.$this->mask.'@',
             $value,
         );
+    }
+
+    /** Redact complete values in quoted key/value text without parsing unrelated numbers. */
+    private function redactQuotedPairs(string $input): string
+    {
+        $length = strlen($input);
+        $result = '';
+        $i = 0;
+        while ($i < $length) {
+            $quote = $input[$i];
+            if ($quote !== '"' && $quote !== "'") {
+                $result .= $quote;
+                $i++;
+                continue;
+            }
+            $end = $this->quotedEnd($input, $i);
+            if ($end === null) {
+                // Incomplete unknown text is not provably safe; leave it for
+                // the other known-shape rules rather than inventing a value.
+                $result .= substr($input, $i);
+                break;
+            }
+            $rawKey = substr($input, $i, $end - $i);
+            $key = $quote === '"' ? json_decode($rawKey, true) : stripcslashes(substr($rawKey, 1, -1));
+            $colon = $end;
+            while ($colon < $length && ctype_space($input[$colon])) {
+                $colon++;
+            }
+            $pluralTokens = is_string($key) && strtolower($key) === 'tokens';
+            $sensitive = is_string($key) && $this->isSensitiveKey($key);
+            if ((! $sensitive && ! $pluralTokens) || $colon >= $length || $input[$colon] !== ':') {
+                $result .= $rawKey;
+                $i = $end;
+                continue;
+            }
+            $start = $colon + 1;
+            while ($start < $length && ctype_space($input[$start])) {
+                $start++;
+            }
+            $valueEnd = $this->valueEnd($input, $start);
+            $rawValue = substr($input, $start, $valueEnd - $start);
+            if ($pluralTokens && ! $sensitive && preg_match('/\A-?\d+(?:\.\d+)?\z/D', $rawValue) === 1) {
+                $result .= substr($input, $i, $valueEnd - $i);
+            } else {
+                $result .= substr($input, $i, $start - $i).json_encode($this->mask, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            }
+            $i = $valueEnd;
+        }
+
+        return $result;
+    }
+
+    /** Return the byte after a quoted string, honoring escaped quotes. */
+    private function quotedEnd(string $input, int $start): ?int
+    {
+        $quote = $input[$start];
+        $length = strlen($input);
+        for ($i = $start + 1; $i < $length; $i++) {
+            if ($input[$i] === '\\') {
+                $i++;
+            } elseif ($input[$i] === $quote) {
+                return $i + 1;
+            }
+        }
+
+        return null;
+    }
+
+    /** Return the byte after the entire sensitive value; malformed composites fail closed. */
+    private function valueEnd(string $input, int $start): int
+    {
+        $length = strlen($input);
+        if ($start >= $length) {
+            return $length;
+        }
+        $first = $input[$start];
+        if ($first === '"' || $first === "'") {
+            return $this->quotedEnd($input, $start) ?? $length;
+        }
+        if ($first !== '{' && $first !== '[') {
+            $i = $start;
+            while ($i < $length && ! ctype_space($input[$i]) && ! str_contains(',;}&]', $input[$i])) {
+                $i++;
+            }
+
+            return $i;
+        }
+        $stack = [];
+        for ($i = $start; $i < $length; $i++) {
+            $char = $input[$i];
+            if ($char === '"' || $char === "'") {
+                $end = $this->quotedEnd($input, $i);
+                if ($end === null) {
+                    return $length;
+                }
+                $i = $end - 1;
+            } elseif ($char === '{' || $char === '[') {
+                $stack[] = $char;
+                if (count($stack) > 32) {
+                    return $length;
+                }
+            } elseif ($char === '}' || $char === ']') {
+                $open = array_pop($stack);
+                if (($char === '}' && $open !== '{') || ($char === ']' && $open !== '[')) {
+                    return $length;
+                }
+                if ($stack === []) {
+                    return $i + 1;
+                }
+            }
+        }
+
+        return $length;
     }
 
     public function isSensitiveKey(string $key): bool
@@ -142,28 +270,34 @@ final class RedactingProcessor
     }
 
     /**
-     * Clone the exception with a scrubbed message, preserving type and trace.
-     *
-     * `withMessage()` on a Throwable in PHP 8+ returns a new instance of the
-     * same class, keeping the trace — which is what we want: the trace is the
-     * useful part, the message is the part that leaks.
+     * Never hand a formatter the original Throwable: it may have a sensitive
+     * previous exception or a JsonSerializable payload even when its own
+     * message is harmless. Reconstruct a bounded, sanitized cause chain. We
+     * retain class, source location and file/line-only frames for diagnosis,
+     * not stack arguments or arbitrary exception properties.
      */
-    private function scrubThrowable(Throwable $throwable): Throwable
+    private function scrubThrowable(Throwable $throwable, int $depth = 0): Throwable
     {
-        $scrubbed = $this->redactString($throwable->getMessage());
-
-        if ($scrubbed === $throwable->getMessage()) {
-            return $throwable;
+        $class = explode("\0", $throwable::class, 2)[0];
+        $class = preg_replace('/[^A-Za-z0-9_\\\\@]/', '?', $class) ?? 'Throwable';
+        $location = $this->redactString(basename($throwable->getFile())).':'.$throwable->getLine();
+        $frames = [];
+        foreach (array_slice($throwable->getTrace(), 0, 16) as $frame) {
+            if (is_string($frame['file'] ?? null)) {
+                $frames[] = $this->redactString(basename($frame['file'])).':'.(int) ($frame['line'] ?? 0);
+            }
+        }
+        $message = '['.$class.' @ '.$location.'] '.$this->redactString($throwable->getMessage());
+        if ($frames !== []) {
+            $message .= ' [trace: '.implode(' ', $frames).']';
         }
 
-        try {
-            return $throwable::class === \Error::class
-                ? new \Error($scrubbed, $throwable->getCode(), $throwable)
-                : $throwable->withMessage($scrubbed);
-        } catch (Throwable) {
-            // If the class cannot be reconstructed, log the safe fallback rather
-            // than the unredacted original.
-            return new \RuntimeException($scrubbed, $throwable->getCode());
-        }
+        $previous = $throwable->getPrevious();
+        $safePrevious = $previous === null
+            ? null
+            : ($depth < 8 ? $this->scrubThrowable($previous, $depth + 1) : new \RuntimeException('[cause chain truncated]'));
+        $code = $throwable->getCode();
+
+        return new \RuntimeException($message, is_int($code) ? $code : 0, $safePrevious);
     }
 }

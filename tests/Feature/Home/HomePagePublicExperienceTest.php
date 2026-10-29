@@ -247,11 +247,14 @@ final class HomePagePublicExperienceTest extends TestCase
         config([
             'payment.deposit.enabled' => true,
             'payment.deposit.allowed_methods' => ['stripe'],
-            'payment.gateways.stripe' => [
-                'enabled' => true,
-                'key' => 'pk_test_placeholder',
-                'secret' => 'sk_test_never_rendered',
-            ],
+            // Preserve the driver's supported-currency and capability settings;
+            // a real deposit-ready Stripe configuration also needs its webhook.
+            'payment.gateways.stripe.enabled' => true,
+            'payment.gateways.stripe.key' => 'pk_test_placeholder',
+            'payment.gateways.stripe.secret' => 'sk_test_never_rendered',
+            'payment.gateways.stripe.webhook_secret' => 'whsec_test_never_rendered',
+            'payment.currency.default' => 'THB',
+            'payment.country' => 'TH',
         ]);
         Cache::flush();
 
@@ -259,6 +262,7 @@ final class HomePagePublicExperienceTest extends TestCase
         $this->assertStringContainsString('AVAILABLE', $content);
         $this->assertStringContainsString('Stripe', $content);
         $this->assertStringNotContainsString('sk_test_never_rendered', $content);
+        $this->assertStringNotContainsString('whsec_test_never_rendered', $content);
     }
 
     public function test_support_not_configured_does_not_invent_contact(): void
@@ -283,6 +287,10 @@ final class HomePagePublicExperienceTest extends TestCase
         $content = (string) $this->get('/')->assertOk()->getContent();
         $this->assertStringContainsString('Server-side authorization', $content);
         $this->assertStringContainsString('Idempotent wallet', $content);
+        // Broad claims must not promise every route or a perfect outcome when
+        // unverified legacy flows and provider contracts still exist.
+        $this->assertStringNotContainsString('authorization on every money and account action', $content);
+        $this->assertStringNotContainsString('a replayed callback never pays twice', $content);
         // No invented compliance badges.
         $this->assertStringNotContainsString('ISO 27001', $content);
         $this->assertStringNotContainsString('PCI-DSS certified', $content);

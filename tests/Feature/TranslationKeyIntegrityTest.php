@@ -93,10 +93,11 @@ class TranslationKeyIntegrityTest extends TestCase
         $out = [];
         foreach ($array as $key => $value) {
             $dotted = $prefix === '' ? (string) $key : $prefix.'.'.(string) $key;
+            // Laravel can resolve both a whole translation array and any
+            // child within it. Include the parent as well as every leaf.
+            $out[$dotted] = true;
             if (is_array($value)) {
                 $out += $this->flatten($value, $dotted);
-            } else {
-                $out[$dotted] = true;
             }
         }
 
@@ -112,6 +113,20 @@ class TranslationKeyIntegrityTest extends TestCase
         $loaded = is_file($path) ? include $path : [];
 
         return $this->flatten(is_array($loaded) ? $loaded : []);
+    }
+
+    public function test_array_translation_groups_and_their_children_are_both_valid_keys(): void
+    {
+        foreach (['en', 'th'] as $locale) {
+            $groups = $this->langKeys($locale, 'frontend_ops');
+            $this->assertArrayHasKey('notification_preferences', $groups);
+            $this->assertArrayHasKey('notification_preferences.title', $groups);
+            $this->assertIsArray(trans('frontend_ops.notification_preferences', [], $locale));
+            $home = $this->langKeys($locale, 'home');
+            $this->assertArrayHasKey('trust_bullets', $home);
+            $this->assertArrayHasKey('trust_bullets.0', $home);
+            $this->assertIsArray(trans('home.trust_bullets', [], $locale));
+        }
     }
 
     public function test_every_literal_translation_reference_resolves_in_both_locales(): void

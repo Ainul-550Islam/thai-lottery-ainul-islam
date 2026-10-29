@@ -50,15 +50,23 @@ Inspect failed jobs:
 ```bash
 php artisan queue:failed
 ```
-Retry a specific failed job:
-```bash
-php artisan queue:retry <uuid-or-id>
-```
-Retry all failed jobs:
-```bash
-php artisan queue:retry all
-```
-Flush failed jobs:
-```bash
-php artisan queue:flush
-```
+Preserve failed records and review each job's original transaction, provider
+outcome, and idempotency evidence before an authorized operator decides whether a
+specific retry is safe. Do not bulk-retry or flush financial jobs: doing so can
+hide unresolved obligations or repeat an external action.
+
+## 8. Legacy queue backlog before cutover
+
+Previously dispatched jobs may still reside on `finance-reconciliation` or
+`finance-webhooks`; changing the constructor of a job does not move a serialized
+job that is already queued. Before cutover, inventory both old queues and their
+failed-job records using the actual deployment backend, preserve the evidence,
+and reconcile each outstanding financial/provider obligation under an approved
+operator procedure. Do not automatically drain, delete, rename, or replay the
+backlog. In particular, bKash callback authenticity requires the merchant's
+verified integration contract; an old envelope is not proof of payment.
+
+New jobs use the five canonical queues above. If a deployment separately installs
+Horizon, its configuration includes those queues and preserves the older
+`settlement` and `payouts` lanes; actual Horizon installation and monitoring
+still require deployment verification.

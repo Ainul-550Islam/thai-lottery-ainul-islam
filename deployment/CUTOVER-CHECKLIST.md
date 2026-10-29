@@ -18,7 +18,7 @@
 | **Node.js & NPM Version** | `Node.js 20.x` / `NPM 10.x` | `[x] CODE VERIFIED` |
 | **Rust / Cargo Engine** | `Cargo 1.75+` (GLO verification engine) | `[ ] NOT VERIFIED — HOST ENVIRONMENT` |
 | **Database Engine & Version** | `MySQL 8.0.16+` / `MariaDB 10.6+` (InnoDB, strict mode) | `[x] CODE VERIFIED` |
-| **Queue Backend & Driver** | `Redis` / `database` (Supervisor workers: `high`, `default`, `low`) | `[x] CODE VERIFIED` |
+| **Queue Backend & Driver** | `Redis` / `database` (Supervisor workers: `financial-critical`, `webhooks`, `reconciliation`, `default`, `notifications`) | `[ ] NOT VERIFIED — DEPLOYMENT` |
 | **Cache Backend & Driver** | `Redis` (isolated database / prefix) | `[x] CODE VERIFIED` |
 | **Production APP_URL** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Live Domain DNS |
 | **Session Cookie Domain** | `NOT VERIFIED — OPERATOR INPUT REQUIRED` | `[ ]` Pending Live Domain DNS |

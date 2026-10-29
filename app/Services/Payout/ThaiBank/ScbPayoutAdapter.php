@@ -8,6 +8,7 @@ use App\DTOs\Payment\PayoutInstruction;
 use App\DTOs\Payment\PayoutOutcome;
 use App\Enums\ThaiBankPayoutState;
 use App\Exceptions\FinancialException;
+use App\Support\LosslessJson;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -120,10 +121,11 @@ final class ScbPayoutAdapter implements ThaiBankPayoutAdapterInterface
     {
         try {
             $payload = json_decode($rawBody, true, 64, JSON_THROW_ON_ERROR);
+            $exactPayload = LosslessJson::decode($rawBody);
         } catch (JsonException $exception) {
             throw FinancialException::withCode('payout_webhook_payload_invalid', 'The SCB payout callback payload is invalid.', [], $exception);
         }
-        if (! is_array($payload)) {
+        if (! is_array($payload) || ! is_array($exactPayload)) {
             throw FinancialException::withCode('payout_webhook_payload_invalid', 'The SCB payout callback payload is invalid.');
         }
         $reference = data_get($payload, 'reference', data_get($payload, 'clientReference', data_get($payload, 'requestUId',
@@ -145,7 +147,7 @@ final class ScbPayoutAdapter implements ThaiBankPayoutAdapterInterface
             'reference' => $reference,
             'state' => $state,
             'providerReference' => is_string($providerReference) && $providerReference !== '' ? $providerReference : null,
-            'amount' => $this->exactAmount($payload, $rawBody),
+            'amount' => $this->exactAmount($exactPayload),
             'currency' => is_string($currency) ? strtoupper($currency) : null,
         ];
     }
@@ -253,10 +255,11 @@ final class ScbPayoutAdapter implements ThaiBankPayoutAdapterInterface
         }
         try {
             $payload = json_decode($response->body(), true, 64, JSON_THROW_ON_ERROR);
+            $exactPayload = LosslessJson::decode($response->body());
         } catch (JsonException) {
             return PayoutOutcome::uncertain(rawSanitised: ['http_status' => $response->status(), 'response' => 'unreadable']);
         }
-        if (! is_array($payload)) {
+        if (! is_array($payload) || ! is_array($exactPayload)) {
             return PayoutOutcome::uncertain(rawSanitised: ['http_status' => $response->status(), 'response' => 'unreadable']);
         }
         $stateText = strtoupper((string) data_get($payload, 'data.status', data_get($payload, 'status', data_get($payload, 'data.state', ''))));
@@ -264,7 +267,7 @@ final class ScbPayoutAdapter implements ThaiBankPayoutAdapterInterface
         $providerReference = is_string($providerReference)
             && preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:\/-]{0,190}\z/D', $providerReference) === 1
             ? $providerReference : null;
-        $amount = $this->exactAmount($payload, $response->body());
+        $amount = $this->exactAmount($exactPayload);
         $currency = data_get($payload, 'data.currency', $payload['currency'] ?? null);
         $currency = is_string($currency) && strlen($currency) <= 8 && preg_match('/[\x00-\x1f\x7f]/', $currency) !== 1
             ? strtoupper($currency) : null;
@@ -288,14 +291,10 @@ final class ScbPayoutAdapter implements ThaiBankPayoutAdapterInterface
         };
     }
 
-    /** @param array<string, mixed> $payload */
-    private function exactAmount(array $payload, string $body): ?string
+    /** @param array<string, mixed> $payload Losslessly decoded provider JSON. */
+    private function exactAmount(array $payload): ?string
     {
-        $value = data_get($payload, 'data.amount', $payload['amount'] ?? null);
-        $amount = is_string($value) || is_int($value) ? (string) $value : null;
-        if ($amount === null && preg_match('/"amount"\s*:\s*(-?[0-9]+(?:\.[0-9]+)?)/', $body, $matches) === 1) {
-            $amount = $matches[1];
-        }
+        $amount = data_get($payload, 'data.amount', $payload['amount'] ?? null);
 
         return is_string($amount) && strlen($amount) <= 28
             && preg_match('/\A-?[0-9]{1,24}(?:\.[0-9]{1,2})?\z/D', $amount) === 1

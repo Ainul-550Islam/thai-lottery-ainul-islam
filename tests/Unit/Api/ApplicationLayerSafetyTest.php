@@ -200,6 +200,23 @@ final class ApplicationLayerSafetyTest extends TestCase
         ));
     }
 
+    private function prohibitedServicePattern(string $class): string
+    {
+        return '/(?<![A-Za-z0-9_])'.preg_quote($class, '/').'(?![A-Za-z0-9_])/';
+    }
+
+    #[Test]
+    public function money_service_guard_matches_real_class_names_but_not_longer_names(): void
+    {
+        foreach (['WalletService', 'LedgerService'] as $class) {
+            $pattern = $this->prohibitedServicePattern($class);
+            $this->assertMatchesRegularExpression($pattern, 'use App\\\\Services\\\\Finance\\\\'.$class.';');
+            $this->assertMatchesRegularExpression($pattern, '$dependency = app('.$class.'::class);');
+            $this->assertDoesNotMatchRegularExpression($pattern, 'TrueMoney'.$class);
+            $this->assertDoesNotMatchRegularExpression($pattern, 'BetPurchase'.$class);
+        }
+    }
+
     #[Test]
     public function the_controllers_never_mutate_a_wallet_balance(): void
     {
@@ -263,16 +280,21 @@ final class ApplicationLayerSafetyTest extends TestCase
                 sprintf('%s must not assign to a wallet balance column.', $name),
             );
 
-            // 3. Atomic counter mutations and the money services.
-            foreach ([
-                'increment(',
-                'decrement(',
-                'WalletService',
-                'LedgerService',
-            ] as $forbidden) {
+            // 3. Atomic counter mutations and exact money-service names.
+            foreach (['increment(', 'decrement('] as $forbidden) {
                 $this->assertStringNotContainsString(
                     $forbidden,
-                    str_replace(' ', '', $code),
+                    preg_replace('/\s+/', '', $code) ?? $code,
+                    sprintf('%s must not touch %s.', $name, $forbidden),
+                );
+            }
+            foreach (['WalletService', 'LedgerService'] as $forbidden) {
+                // Match an identifier, not a substring: the unrelated
+                // TrueMoneyWalletService and BetPurchaseWalletService must not
+                // be mistaken for the prohibited direct WalletService.
+                $this->assertDoesNotMatchRegularExpression(
+                    $this->prohibitedServicePattern($forbidden),
+                    $code,
                     sprintf('%s must not touch %s.', $name, $forbidden),
                 );
             }

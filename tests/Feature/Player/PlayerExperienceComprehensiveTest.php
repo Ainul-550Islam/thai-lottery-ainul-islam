@@ -37,7 +37,10 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WinningNumber;
 use App\Models\Withdrawal;
+use App\Services\Legal\AgeVerificationService;
+use App\Services\Legal\ConsentService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -68,7 +71,31 @@ final class PlayerExperienceComprehensiveTest extends TestCase
             'email' => 'somchai@example.com',
             'password' => Hash::make('Secret123!'),
             'status' => UserStatus::Active,
+            'date_of_birth' => now()->subYears(30)->toDateString(),
         ]);
+
+        // Reach protected actions as a real, onboarded member. The tests must
+        // exercise the actual age and current-document gates, not bypass them.
+        app(AgeVerificationService::class)->attest(
+            $this->player,
+            Request::create('/test', 'POST', ['age_attestation' => true]),
+            null,
+            'test',
+        );
+        $documents = collect(app(ConsentService::class)->currentDocuments())->keyBy('document_type');
+        app(ConsentService::class)->acceptCurrentDocuments(
+            $this->player,
+            Request::create('/test', 'POST', [
+                'terms' => true,
+                'privacy_notice' => true,
+                'terms_version' => $documents['terms']['version'],
+                'terms_hash' => $documents['terms']['content_hash'],
+                'privacy_version' => $documents['privacy']['version'],
+                'privacy_hash' => $documents['privacy']['content_hash'],
+            ]),
+            'api',
+        );
+        $this->player->refresh();
 
         $this->wallet = Wallet::factory()->create([
             'user_id' => $this->player->id,
@@ -422,7 +449,8 @@ final class PlayerExperienceComprehensiveTest extends TestCase
 
         $detailView = $this->get(route('player.draws.detail', $draw->id));
         $detailView->assertStatus(200)
-            ->assertSee('Draw #'.$draw->draw_number);
+            ->assertSee('id="draw-detail-heading"', false)
+            ->assertSee($draw->draw_number);
     }
 
     /*
@@ -768,7 +796,7 @@ final class PlayerExperienceComprehensiveTest extends TestCase
                 'data' => [
                     'wallet' => [
                         'balance' => '5000.00',
-                        'locked_balance' => '500.00',
+                        'reserved_balance' => '500.00',
                         'available_balance' => '4500.00',
                         'currency' => 'THB',
                     ],
@@ -850,7 +878,9 @@ final class PlayerExperienceComprehensiveTest extends TestCase
         // the provider enabled, and the provider call is faked here.
         config([
             'payment.gateways.stripe.enabled' => true,
-            'payment.gateways.stripe.secret' => 'sk_test_example',
+            'payment.gateways.stripe.key' => 'pk_test_synthetic_player_fixture',
+            'payment.gateways.stripe.secret' => 'sk_test_synthetic_player_fixture',
+            'payment.gateways.stripe.webhook_secret' => 'whsec_synthetic_player_fixture',
         ]);
 
         \Illuminate\Support\Facades\Http::fake([
@@ -865,6 +895,7 @@ final class PlayerExperienceComprehensiveTest extends TestCase
                 'amount' => '500.00',
                 'method' => 'stripe',
                 'currency' => 'THB',
+                'idempotency_key' => 'synthetic-player-deposit-30',
             ]);
 
         $response->assertStatus(201)
@@ -932,15 +963,30 @@ final class PlayerExperienceComprehensiveTest extends TestCase
             ]);
     }
 
+    private function configureThaiManualBankWithdrawal(): void
+    {
+        // A new withdrawal must be admitted by the actual capability/market
+        // gates. These are test-only bank settings, not proof of a paid transfer.
+        config([
+            'payment.country' => 'TH',
+            'payment.currency.default' => 'THB',
+            'payment.withdrawal.enabled' => true,
+            'payment.withdrawal.allowed_methods' => ['bank_transfer'],
+            'payment.gateways.bank_transfer.enabled' => true,
+        ]);
+    }
+
     public function test_33_player_can_request_withdrawal(): void
     {
+        $this->configureThaiManualBankWithdrawal();
         $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/withdrawals', [
                 'amount' => '1000.00',
                 'method' => 'bank_transfer',
                 'currency' => 'THB',
                 'payout_details' => [
-                    'bank_account' => '1234567890',
+                    'account_number' => '1234567890',
+                    'account_name' => 'Somchai Jaidee',
                     'bank_name' => 'Bangkok Bank',
                 ],
             ]);
@@ -964,6 +1010,7 @@ final class PlayerExperienceComprehensiveTest extends TestCase
 
     public function test_34_withdrawal_rejects_amount_exceeding_available_balance(): void
     {
+        $this->configureThaiManualBankWithdrawal();
         $this->wallet->balance = '100.00';
         $this->wallet->save();
 
@@ -972,9 +1019,16 @@ final class PlayerExperienceComprehensiveTest extends TestCase
                 'amount' => '500.00',
                 'method' => 'bank_transfer',
                 'currency' => 'THB',
+                'payout_details' => [
+                    'account_number' => '1234567890',
+                    'account_name' => 'Somchai Jaidee',
+                    'bank_name' => 'Bangkok Bank',
+                ],
             ]);
 
-        $response->assertStatus(422);
+        $response->assertStatus(422)->assertJsonPath('error.code', 'insufficient_balance');
+        $this->assertDatabaseCount('withdrawals', 0);
+        $this->assertSame('0.00', (string) $this->wallet->fresh()->locked_balance);
     }
 
     public function test_35_player_can_list_own_withdrawals(): void

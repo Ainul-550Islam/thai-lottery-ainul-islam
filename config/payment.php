@@ -170,11 +170,18 @@ return [
         'processing_hours' => (int) env('FINANCE_WITHDRAWAL_PROCESSING_HOURS', 24),
         'reference_prefix' => 'WD',
         'encrypt_payout_details' => true,
+        // PromptPay is deliberately NOT a withdrawal rail. It is a Thai deposit
+        // rail (a payer pushes money to a merchant proxy ID); the payout side of
+        // the Thai lane is `thai_bank` via THAI_PAYOUT_*, and
+        // PaymentGatewayManager::isWithdrawalCapable() maps promptpay onto that
+        // rail behind four thai_payout.promptpay.* flags that all default false.
+        // Listing it here advertised a payout method the site cannot actually
+        // disburse, which is exactly what the public withdrawal-methods contract
+        // test refuses to see.
         'allowed_methods' => [
             PaymentMethod::Bkash->value,
             PaymentMethod::Nagad->value,
             PaymentMethod::BankTransfer->value,
-            PaymentMethod::PromptPay->value,
         ],
     ],
 

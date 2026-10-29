@@ -70,9 +70,13 @@ class FraudAlertReviewService
                 userId: (int) $reviewerId,
                 action: 'fraud_alert_reviewed',
                 riskLevel: 'high',
-                auditable: $alert,
+                // audit_logs uses numeric morph IDs; this alert has a UUID.
+                // Preserve its real identity in metadata instead of casting it
+                // to zero or falsely attaching the audit to another model.
+                auditable: null,
                 description: 'Fraud alert adjudicated by a separate reviewer.',
                 metadata: [
+                    'subject_type' => FraudAlert::class,
                     'alert_id' => (string) $alert->id,
                     'action' => $action,
                     'resolved_status' => $resolvedStatus,

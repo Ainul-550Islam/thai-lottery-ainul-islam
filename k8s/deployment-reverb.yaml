@@ -15,14 +15,38 @@ spec:
       labels:
         app: fintech-reverb
     spec:
+      # Hardened to the contract deployment-scheduler.yaml and
+      # deployment-settlement-worker.yaml already meet and ManifestSanityTest
+      # enforces on every Deployment in this directory. This pod declared NO
+      # securityContext, so it ran as whatever user the image defines and with
+      # the kernel default seccomp policy instead of RuntimeDefault.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       terminationGracePeriodSeconds: 30
       containers:
         - name: reverb-server
-          image: ghcr.io/ainul-550islam/thai-lottery-app:latest
+          # Pinned to the build commit. The rest of this directory already
+          # deploys `sha-<commit>`; a mutable floating tag was the odd one out
+          # here, and it is not safe: which build a pod runs would depend on when
+          # the image was pulled rather than on what was released, two nodes in
+          # one rollout could end up running different code, there would be no way
+          # to roll back to the previous value of a moving tag, and
+          # `kubectl describe` could not tell an operator what is serving traffic.
+          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
           command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
           ports:
             - containerPort: 8080
               name: ws
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           resources:
             requests:
               cpu: "500m"
@@ -35,6 +59,37 @@ spec:
                 name: fintech-config
             - secretRef:
                 name: fintech-secrets
+          startupProbe:
+            tcpSocket:
+              port: ws
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            # A Reverb process that is up but not accepting connections would
+            # otherwise receive client traffic it cannot serve.
+            tcpSocket:
+              port: ws
+            periodSeconds: 30
+          livenessProbe:
+            tcpSocket:
+              port: ws
+            periodSeconds: 60
+          volumeMounts:
+            # readOnlyRootFilesystem above needs somewhere writable: /tmp for PHP
+            # scratch files and the shared storage tree for cache, logs and
+            # sessions. Same pair deployment-scheduler.yaml mounts.
+            - name: php-temp
+              mountPath: /tmp
+            - name: app-storage
+              mountPath: /var/www/html/storage
+      volumes:
+        - name: php-temp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: app-storage
+          persistentVolumeClaim:
+            claimName: fintech-app-storage
 ---
 apiVersion: v1
 kind: Service

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Lottery;
 
 use App\Enums\AuditAction;
+use App\Enums\DrawStatus;
 use App\Exceptions\DrawResultException;
 use App\Enums\ResultSourceType;
 use App\Enums\RiskLevel;
@@ -13,6 +14,7 @@ use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Models\GloResultImport;
 use App\Models\User;
+use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultIngestionService;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Str;
@@ -95,6 +97,7 @@ class GloResultImportService
         private readonly GloOfficialResultProvider $officialProvider,
         private readonly GloResultProviderChain $chain,
         private readonly DrawResultIngestionService $ingestion,
+        private readonly DrawLifecycleService $lifecycle,
     ) {}
 
     /**
@@ -143,6 +146,66 @@ class GloResultImportService
         $payload = $provider->fetch($drawNumber);
 
         return $this->persistPayload($draw, $provider, $payload, $actor);
+    }
+
+    /**
+     * Fetch a specific draw from the official provider without recording it.
+     * The command's dry run uses exactly the same validation as the live intake.
+     *
+     * @return array<string, mixed>
+     */
+    public function previewOfficialForDraw(Draw $draw): array
+    {
+        $number = trim((string) $draw->draw_number);
+        if ($number === '') {
+            return ['status' => 'failed', 'provider' => 'official', 'failure_reason' => 'The local draw has no provider identity.'];
+        }
+
+        $payload = $this->officialProvider->fetch($number);
+        if (($payload['status'] ?? null) === 'imported') {
+            $returned = $payload['draw_number'] ?? null;
+            $bottom = $payload['bottom_two'] ?? null;
+            if (! is_string($returned) || ! hash_equals($number, $returned)
+                || ! is_string($bottom) || preg_match('/\A\d{2}\z/D', $bottom) !== 1) {
+                $payload['status'] = 'failed';
+                $payload['failure_reason'] = 'The official response did not identify this draw and its independent bottom-two prize.';
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Official-only intake for the fetch command. It cannot publish: successful
+     * results use the same provenance/ingestion writer as every GLO import.
+     * A pending card is never silently replaced by an unattended fetch.
+     *
+     * @return array{import: GloResultImport, draw_result: DrawResult|null, payload: array<string, mixed>, ingestion: array<string, mixed>|null}
+     */
+    public function importOfficialForDraw(Draw $draw, User $actor): array
+    {
+        $payload = $this->previewOfficialForDraw($draw);
+
+        return $this->db->connection()->transaction(function () use ($draw, $actor, $payload): array {
+            $locked = Draw::query()->lockForUpdate()->findOrFail($draw->getKey());
+            if (! in_array($locked->status, [DrawStatus::Closed, DrawStatus::Drawing], true)
+                || $locked->scheduled_at === null || $locked->scheduled_at->isFuture()) {
+                throw new \RuntimeException('The draw is not eligible for result intake.');
+            }
+            if ($this->ingestion->pendingIngestion((int) $locked->getKey()) !== null) {
+                throw new \RuntimeException('A result is already awaiting review; automated fetch will not replace it.');
+            }
+
+            $outcome = $this->persistPayload($locked, $this->officialProvider, $payload, $actor);
+            if (($outcome['import']->status ?? null) === 'imported'
+                && is_array($outcome['ingestion'])
+                && ($outcome['ingestion']['status'] ?? null) === 'pending'
+                && $locked->status === DrawStatus::Closed) {
+                $this->lifecycle->markResultPending($locked->fresh());
+            }
+
+            return $outcome;
+        });
     }
 
     /**
@@ -260,16 +323,26 @@ class GloResultImportService
         //    result. It owns the row lock, the lifecycle guard, the canonical
         //    fingerprint and the Pending state. This file does not write
         //    draw_results, does not set published_at, and cannot publish.
+        $ingestionPayload = [
+            'first_prize' => (string) ($payload['first_prize'] ?? ''),
+            'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
+            'tiers' => (array) ($payload['tiers'] ?? []),
+            'n3' => (array) ($payload['n3'] ?? []),
+            'provider' => $this->sourceLabel($provider, $payload),
+            'provider_fingerprint' => $fingerprint,
+        ];
+        // Preserve all provider prize facts for validation and later review.
+        // Do not coerce malformed lists into arrays: ingestion must refuse them.
+        foreach (['second_prize', 'third_prize', 'consolation_prizes'] as $field) {
+            if (array_key_exists($field, $payload)) {
+                $ingestionPayload[$field] = $payload[$field];
+            }
+        }
+
         try {
             $ingestion = $this->ingestion->ingest(
                 $drawId,
-                [
-                    'first_prize' => (string) ($payload['first_prize'] ?? ''),
-                    'bottom_two' => (string) ($payload['bottom_two'] ?? ''),
-                    'tiers' => (array) ($payload['tiers'] ?? []),
-                    'n3' => (array) ($payload['n3'] ?? []),
-                    'provider_fingerprint' => $fingerprint,
-                ],
+                $ingestionPayload,
                 source: sprintf('glo_import:%s', $this->sourceLabel($provider, $payload)),
                 actorUserId: $actor?->getKey() === null ? null : (int) $actor->getKey(),
             );

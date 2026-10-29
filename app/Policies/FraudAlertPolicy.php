@@ -21,15 +21,13 @@ class FraudAlertPolicy
 
     public function review(?User $user, ?FraudAlert $alert = null): bool
     {
-        return $this->isComplianceOfficer($user);
+        return $this->isComplianceOfficer($user)
+            && ($alert === null || (string) $alert->user_id !== (string) $user->getKey());
     }
 
     private function isComplianceOfficer(?User $user): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        return (bool) ($user->is_admin ?? false) || in_array($user->role ?? '', ['admin', 'compliance_officer', 'risk_auditor'], true);
+        return $user !== null && $user->isActive()
+            && $user->hasAnyRole(['admin', 'super-admin', 'compliance_officer']);
     }
 }

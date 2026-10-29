@@ -25,6 +25,28 @@ final class PublicPaymentCapabilityParityTest extends PaymentTestCase
         $this->assertEmpty($result['methods']);
     }
 
+    public function test_launch_switch_hides_even_a_configured_method_without_changing_gateway_authority(): void
+    {
+        Config::set('payment.deposit.enabled', true);
+        Config::set('payment.deposit.allowed_methods', ['bank_transfer']);
+        Config::set('payment.gateways.bank_transfer.enabled', true);
+        Config::set('payment.gateways.bank_transfer.settlement', [
+            'bank_name' => 'Bangkok Bank', 'account_number' => '444-5-66677-8',
+            'account_name' => 'Operator Settlement Ltd',
+        ]);
+        $service = app(PublicPaymentMethodsService::class);
+        $manager = app(PaymentGatewayManager::class);
+        self::assertTrue($manager->isDepositCapable(PaymentMethod::BankTransfer));
+        self::assertSame('AVAILABLE', $service->publicMethods()['status']);
+        config(['real_money.enabled' => false]);
+        self::assertTrue($manager->isDepositCapable(PaymentMethod::BankTransfer), 'Provider capability must remain usable for historical obligations.');
+        $closed = $service->publicMethods();
+        self::assertSame('NOT_CONFIGURED', $closed['status']);
+        self::assertSame([], $closed['methods']);
+        config(['real_money.enabled' => true]);
+        self::assertSame('AVAILABLE', $service->publicMethods()['status']);
+    }
+
     public function test_unconfigured_gateway_is_not_advertised(): void
     {
         Config::set('payment.deposit.enabled', true);

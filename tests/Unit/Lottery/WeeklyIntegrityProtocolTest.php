@@ -165,4 +165,42 @@ final class WeeklyIntegrityProtocolTest extends TestCase
         config(['weekly_lottery.integrity.binary' => $path]);
         $this->assertFalse($this->service()->verify($this->fields())['acceptable']);
     }
+
+    public function test_optional_verifier_timeout_cannot_downgrade_a_signed_request(): void
+    {
+        $path = $this->directory.'/slow-verifier';
+        file_put_contents($path, '#!'.PHP_BINARY."\n<?php usleep(3000000);\n");
+        chmod($path, 0700);
+        config(['weekly_lottery.integrity.binary' => $path,
+            'weekly_lottery.integrity.timeout_seconds' => 1,
+            'weekly_lottery.integrity.required' => false,
+            'weekly_lottery.integrity.public_key_hex' => str_repeat('ab', 32)]);
+
+        $report = $this->service()->verify($this->fields(), str_repeat('cd', 64));
+        $this->assertFalse($report['acceptable']);
+        $this->assertSame('VERIFIER_UNAVAILABLE', $report['status']);
+        $this->assertSame('VERIFIER_EXECUTION_FAILED', $report['error_code']);
+    }
+
+    public function test_malformed_signature_is_never_treated_as_unsigned(): void
+    {
+        $this->reply();
+        foreach (['', 'abcd', str_repeat('z', 128)] as $signature) {
+            $report = $this->service()->verify($this->fields(), $signature);
+            $this->assertFalse($report['acceptable']);
+            $this->assertSame('SIGNATURE_INVALID', $report['status']);
+            $this->assertSame('INVALID_SIGNATURE_ENCODING', $report['error_code']);
+        }
+    }
+
+    public function test_exit_two_preserves_a_well_formed_native_signature_refusal(): void
+    {
+        $this->reply(['status' => 'SIGNATURE_INVALID', 'acceptable' => false,
+            'error_code' => 'SIGNATURE_MISMATCH'], 2);
+        config(['weekly_lottery.integrity.public_key_hex' => str_repeat('ab', 32)]);
+        $report = $this->service()->verify($this->fields(), str_repeat('cd', 64));
+        $this->assertTrue($report['native']);
+        $this->assertFalse($report['acceptable']);
+        $this->assertSame('SIGNATURE_INVALID', $report['status']);
+    }
 }

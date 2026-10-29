@@ -8,12 +8,17 @@ use App\Enums\Currency;
 use App\Enums\DepositStatus;
 use App\Enums\FinancialReferenceType;
 use App\Enums\PaymentMethod;
+use App\Enums\TruemoneyRedemptionStatus;
 use App\Exceptions\DepositException;
 use App\Exceptions\FinancialException;
 use App\Models\Deposit;
+use App\Models\TruemoneyVoucherRedemption;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Compliance\RealMoneyGate;
+use App\Services\Payment\DepositProviderAccountService;
 use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
+use App\Services\ResponsibleGaming\SelfExclusionReleaseGate;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -78,6 +83,78 @@ final class DepositService
         ?string $idempotencyKey = null,
         array $options = [],
     ): Deposit {
+        return $this->requestDeposit($wallet, $amount, $method, $idempotencyKey, $options, null);
+    }
+
+    /**
+     * Settle a voucher already consumed by the provider, without admitting a
+     * new provider call. Only a locked, persisted, successful and risk-cleared
+     * receipt belonging to this wallet and exact amount can cross a closed
+     * launch switch. Caller metadata is not evidence and cannot select the
+     * provider, reference, method or idempotency key.
+     *
+     * @param array<string, mixed> $receiptMetadata Non-authoritative annotation only.
+     */
+    public function requestFromConfirmedTrueMoneyVoucher(
+        Wallet $wallet,
+        Money $amount,
+        TruemoneyVoucherRedemption $redemption,
+        array $receiptMetadata = [],
+    ): Deposit {
+        if (DB::transactionLevel() < 1 || $redemption->getKey() === null) {
+            throw FinancialException::withCode('truemoney_receipt_unproven', 'A locked provider receipt is required for voucher reconciliation.');
+        }
+
+        // The two existing callers already lock this same row before reaching
+        // the wallet. Re-read it under lock so stale caller objects are no proof.
+        $receipt = TruemoneyVoucherRedemption::query()->lockForUpdate()->find($redemption->getKey());
+        $payload = $receipt instanceof TruemoneyVoucherRedemption && is_array($receipt->provider_payload)
+            ? $receipt->provider_payload : [];
+        $hash = $receipt instanceof TruemoneyVoucherRedemption ? (string) $receipt->voucher_hash : '';
+        $status = $receipt instanceof TruemoneyVoucherRedemption ? strtoupper(trim((string) $receipt->provider_status)) : '';
+        $payloadStatus = strtoupper(trim((string) ($payload['provider_status'] ?? '')));
+        $rawAmount = $payload['amount'] ?? null;
+        $validAmount = (is_string($rawAmount) || is_int($rawAmount))
+            && preg_match('/\A[0-9]+(?:\.[0-9]{1,2})?\z/D', (string) $rawAmount) === 1;
+        if (! $receipt instanceof TruemoneyVoucherRedemption
+            || $receipt->status !== TruemoneyRedemptionStatus::RedeemedUnconfirmed
+            || $receipt->deposit_id !== null
+            || (int) $receipt->user_id !== (int) $wallet->user_id
+            || $wallet->currency !== Currency::THB || $amount->currency() !== Currency::THB
+            || strtoupper((string) $receipt->currency) !== Currency::THB->value
+            || strtoupper((string) ($payload['currency'] ?? '')) !== Currency::THB->value
+            || preg_match('/\A[a-f0-9]{64}\z/D', $hash) !== 1
+            || ! in_array($status, ['SUCCESS', 'SUCCEEDED', '0000', '200'], true)
+            || ($payloadStatus !== '' && $payloadStatus !== $status)
+            || ! is_int($payload['http_status'] ?? null) || $payload['http_status'] < 200 || $payload['http_status'] >= 300
+            || strtolower((string) ($payload['risk_decision'] ?? '')) !== 'allow'
+            || ! $validAmount || bccomp((string) $rawAmount, $amount->toString(), 2) !== 0
+            || ($receipt->amount !== null && bccomp((string) $receipt->amount, $amount->toString(), 2) !== 0)) {
+            throw FinancialException::withCode('truemoney_receipt_unproven', 'Stored voucher evidence does not prove this deposit.');
+        }
+
+        $railMetadata = [
+            'provider_kind' => 'truemoney_voucher',
+            'voucher_hash' => $hash,
+            'voucher_last4' => (string) $receipt->voucher_last4,
+        ] + $receiptMetadata;
+
+        return $this->requestDeposit($wallet, $amount, PaymentMethod::BankTransfer, 'truemoney-'.$hash, [
+            'provider' => PaymentMethod::BankTransfer->value,
+            'provider_reference' => 'TMN-'.substr($hash, 0, 16),
+            'metadata' => ['thai_rails' => $railMetadata],
+        ], (int) $receipt->user_id);
+    }
+
+    /** @param array<string, mixed> $options */
+    private function requestDeposit(
+        Wallet $wallet,
+        Money $amount,
+        PaymentMethod $method,
+        ?string $idempotencyKey,
+        array $options,
+        ?int $confirmedVoucherUserId,
+    ): Deposit {
         $amount->assertPositive('deposit amount');
         Money::assertExactArithmeticIsAvailable();
 
@@ -85,30 +162,48 @@ final class DepositService
 
         $fee = $this->resolveFee($amount, $options);
         $netAmount = $this->resolveNetAmount($amount, $fee);
+        $scope = app(DepositProviderAccountService::class)->current($method->value);
 
-        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options): Deposit {
+        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $scope, $options, $confirmedVoucherUserId): Deposit {
             $lockedWallet = $this->locks->lock((int) $wallet->getKey());
 
+            if ($confirmedVoucherUserId !== null && ((int) $lockedWallet->user_id !== $confirmedVoucherUserId
+                || $lockedWallet->currency !== Currency::THB)) {
+                throw FinancialException::withCode('truemoney_receipt_unproven', 'The current wallet no longer matches the voucher receipt.');
+            }
             $this->assertWalletAcceptsDeposit($lockedWallet, $amount->currency());
             $this->assertAmountWithinLimits($amount);
+            app(DepositAdmission::class)->lockPlayer($lockedWallet);
 
             if ($normalisedKey !== null) {
-                $existing = $this->findByIdempotencyKey($normalisedKey);
+                $existing = $this->findByIdempotencyKey($normalisedKey, true);
 
                 if ($existing instanceof Deposit) {
                     app(DepositIntegrityGuard::class)->assertTerms($existing, $lockedWallet);
+                    if (app(DepositProviderAccountService::class)->stored($existing) !== $scope) {
+                        app(DepositIntegrityGuard::class)->refuse();
+                    }
                     $this->assertReplayMatches($existing, $lockedWallet, $amount, $fee, $method);
 
                     return $existing;
                 }
             }
 
+            // A proven replay is a read of the original obligation, not a new
+            // admission. The sole exception is settlement of an already consumed,
+            // locked and independently rechecked TrueMoney receipt above; it
+            // cannot dispatch the provider or be authorized by caller metadata.
+            if ($confirmedVoucherUserId === null) {
+                app(RealMoneyGate::class)->assertOpen('deposit');
+            }
             app(DepositAdmission::class)->assertAllowed($lockedWallet, $amount->toString());
+            app(SelfExclusionReleaseGate::class)->assertMayPlay((int) $lockedWallet->user_id);
 
-            $options['metadata'] = array_merge(
-                [\App\Services\Payment\DepositProviderAccountService::KEY => app(\App\Services\Payment\DepositProviderAccountService::class)->current($method->value)],
-                isset($options['metadata']) && is_array($options['metadata']) ? $options['metadata'] : [],
-            );
+            // Provider-account identity is owned by the server, not by
+            // customer-supplied metadata.
+            $options['metadata'] = isset($options['metadata']) && is_array($options['metadata'])
+                ? $options['metadata'] : [];
+            $options['metadata'][DepositProviderAccountService::KEY] = $scope;
 
             $deposit = new Deposit;
 
@@ -146,10 +241,13 @@ final class DepositService
             } catch (QueryException $exception) {
                 // Lost a race on the unique idempotency key: return the winner.
                 if ($normalisedKey !== null && $this->idempotency->isDuplicateKeyViolation($exception)) {
-                    $winner = $this->findByIdempotencyKey($normalisedKey);
+                    $winner = $this->findByIdempotencyKey($normalisedKey, true);
 
                     if ($winner instanceof Deposit) {
                         app(DepositIntegrityGuard::class)->assertTerms($winner, $lockedWallet);
+                        if (app(DepositProviderAccountService::class)->stored($winner) !== $scope) {
+                            app(DepositIntegrityGuard::class)->refuse();
+                        }
                         $this->assertReplayMatches($winner, $lockedWallet, $amount, $fee, $method);
 
                         return $winner;
@@ -225,11 +323,16 @@ final class DepositService
      * Soft-deleted rows are included because the unique index covers them: a key
      * belonging to a trashed row is still taken by the database.
      */
-    public function findByIdempotencyKey(string $key): ?Deposit
+    public function findByIdempotencyKey(string $key, bool $lock = false): ?Deposit
     {
-        return Deposit::withTrashed()
-            ->where('idempotency_key', $this->idempotency->normaliseKey($key))
-            ->first();
+        $query = Deposit::withTrashed()
+            ->where('idempotency_key', $this->idempotency->normaliseKey($key));
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->first();
     }
 
     public function findByReferenceNumber(string $referenceNumber): ?Deposit

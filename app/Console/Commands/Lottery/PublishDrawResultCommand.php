@@ -10,6 +10,7 @@ use App\Services\Draw\DrawResultConfirmationService;
 use App\Services\Draw\DrawResultIngestionService;
 use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\DrawScheduleService;
+use App\Support\Admin\AdminAccess;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -212,8 +213,10 @@ final class PublishDrawResultCommand extends Command
 
         $operatorId = (int) $candidate;
 
-        if (! User::query()->whereKey($operatorId)->exists()) {
-            $this->error(sprintf('Operator user %d does not exist.', $operatorId));
+        $operator = User::query()->find($operatorId);
+        if (! $operator instanceof User || ! $operator->isActive()
+            || ! AdminAccess::allows($operator, AdminAccess::MANAGE_DRAWS)) {
+            $this->error('An active operator with draw-management permission is required.');
 
             return null;
         }

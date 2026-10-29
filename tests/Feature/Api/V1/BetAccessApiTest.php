@@ -61,9 +61,10 @@ final class BetAccessApiTest extends ApiPurchaseTestCase
 
         $bet = Bet::query()->sole();
 
-        if ($bet->uuid === null) {
-            $this->markTestSkipped('This build does not assign bet uuids.');
-        }
+        // A genuine purchase assigns a server-generated UUID. If that invariant
+        // regresses, fail rather than silently skipping the IDOR check.
+        $this->assertNotNull($bet->uuid, 'The purchase pipeline must persist a bet UUID.');
+        $this->assertTrue(\Illuminate\Support\Str::isUuid($bet->uuid));
 
         $this->actingAs($owner['user'], 'sanctum')
             ->getJson('/api/v1/bets/'.$bet->uuid)

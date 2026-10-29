@@ -6,8 +6,13 @@ namespace App\Services\Payment;
 
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
+use App\Enums\PaymentDirection;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentMethodStatus;
+use App\Enums\PaymentProviderStatus;
 use App\Exceptions\FinancialException;
+use App\Models\PaymentMethodConfig;
+use App\Models\PaymentProvider;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payment\Drivers\BankTransferGateway;
 use App\Services\Payment\Drivers\BkashGateway;
@@ -17,6 +22,7 @@ use App\Services\Payment\Drivers\PromptPayGateway;
 use App\Services\Payment\Drivers\SandboxDeterministicGateway;
 use App\Services\Payment\Drivers\StripeGateway;
 use App\Services\Payment\Drivers\ThaiBankPayoutGateway;
+use App\Services\Operations\ProviderReadinessService;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
 
@@ -146,30 +152,36 @@ class PaymentGatewayManager
         return $driver->isEnabled() && $usableMaturity;
     }
 
-    public function isDepositCapable(string|PaymentMethod $name): bool
+    public function isDepositCapable(string|PaymentMethod $name, ?Currency $currency = null): bool
     {
         $key = $name instanceof PaymentMethod ? $name->value : strtolower(trim($name));
+        if (! (bool) $this->config->get('payment.deposit.enabled', false)
+            || ! in_array($key, (array) $this->config->get('payment.deposit.allowed_methods', []), true)) {
+            return false;
+        }
+        $currency ??= Currency::tryFromCode((string) $this->config->get('payment.currency.default', 'THB'));
         try {
             $driver = $this->driver($key);
-            $readiness = app(PaymentReadinessService::class)->evaluate($key, 'deposit');
+            $readiness = app(ProviderReadinessService::class)->gateway($key, 'deposit', $currency);
         } catch (\Throwable) {
             return false;
         }
-
-        $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
 
         return $currency !== null && $driver->supportsDeposit() && $driver->supportsCurrency($currency)
             && $this->isEnabled($key) && $readiness->ready && $this->matchesSiteMarket($key, $currency);
     }
 
-    public function isWithdrawalCapable(string|PaymentMethod $name): bool
+    public function isWithdrawalCapable(string|PaymentMethod $name, ?Currency $currency = null): bool
     {
+        if (! (bool) $this->config->get('payment.withdrawal.enabled', false)) {
+            return false;
+        }
         $key = $name instanceof PaymentMethod ? $name->value : strtolower(trim($name));
         $rail = $key === 'promptpay' ? 'thai_bank' : $key;
+        $currency ??= Currency::tryFromCode((string) $this->config->get('payment.currency.default', 'THB'));
         try {
             $driver = $this->driver($rail);
-            $readiness = app(PaymentReadinessService::class)->evaluate($rail, 'withdrawal');
-            $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
+            $readiness = app(ProviderReadinessService::class)->gateway($rail, 'withdrawal', $currency);
         } catch (\Throwable) {
             return false;
         }
@@ -181,8 +193,51 @@ class PaymentGatewayManager
                 && in_array('mobile', (array) config('thai_payout.promptpay.proxy_types', []), true)
                 && in_array('national_id', (array) config('thai_payout.promptpay.proxy_types', []), true));
 
-        return $currency !== null && ($driver->supportsWithdrawal() || $this->supportsManualDisbursement($key)) && $this->isEnabled($rail)
+        return $currency !== null && $driver->supportsCurrency($currency)
+            && ($driver->supportsWithdrawal() || $this->supportsManualDisbursement($key)) && $this->isEnabled($rail)
             && $readiness->ready && $this->matchesSiteMarket($key, $currency) && $promptPaySupported;
+    }
+
+    /**
+     * The legacy database registry is an inventory, not a second readiness
+     * authority. A row is offerable only when its canonical driver, configured
+     * merchant market, currency, direction and gateway manager all agree.
+     * The relation must be eager-loaded; missing evidence fails closed.
+     */
+    public function isRegistryOfferCapable(PaymentMethodConfig $offer, ?PaymentDirection $direction = null): bool
+    {
+        $method = strtolower(trim((string) $offer->method_code));
+        $gateway = match ($method) {
+            'stripe', 'card' => 'stripe',
+            'bkash' => 'bkash',
+            'nagad' => 'nagad',
+            'bank_transfer', 'manual' => 'bank_transfer',
+            'promptpay' => 'promptpay',
+            default => null,
+        };
+        $currency = Currency::tryFromCode((string) $offer->currency);
+        $provider = $offer->relationLoaded('provider') ? $offer->getRelation('provider') : null;
+        if ($gateway === null || $currency === null || ! $provider instanceof PaymentProvider
+            || $offer->status !== PaymentMethodStatus::Enabled || $provider->status !== PaymentProviderStatus::Active
+            || strtolower(trim((string) $provider->code)) !== $gateway
+            || strtolower(trim((string) $provider->driver)) !== $gateway) {
+            return false;
+        }
+        $providerCurrencies = array_map(
+            static fn (string $code): string => strtoupper(trim($code)),
+            array_filter((array) $provider->supported_currencies, 'is_string'),
+        );
+        if (! in_array($currency->value, $providerCurrencies, true)) {
+            return false;
+        }
+
+        $depositAllowed = in_array($gateway, (array) $this->config->get('payment.deposit.allowed_methods', []), true);
+        $withdrawalAllowed = in_array($gateway, (array) $this->config->get('payment.withdrawal.allowed_methods', []), true);
+
+        return (($direction === null || $direction === PaymentDirection::Deposit)
+                && $depositAllowed && $this->isDepositCapable($gateway, $currency))
+            || (($direction === null || $direction === PaymentDirection::Withdrawal)
+                && $withdrawalAllowed && $this->isWithdrawalCapable($gateway, $currency));
     }
 
     private function supportsManualDisbursement(string $key): bool
@@ -193,12 +248,18 @@ class PaymentGatewayManager
     private function matchesSiteMarket(string $key, Currency $currency): bool
     {
         $market = (array) $this->config->get('payment.markets.'.$key, []);
-        $currencies = (array) ($market['currencies'] ?? []);
-        $countries = (array) ($market['countries'] ?? []);
-        $siteCountry = strtoupper((string) $this->config->get('payment.country', 'TH'));
+        $currencies = array_map(
+            static fn (string $code): string => strtoupper(trim($code)),
+            array_filter((array) ($market['currencies'] ?? []), 'is_string'),
+        );
+        $countries = array_map(
+            static fn (string $code): string => strtoupper(trim($code)),
+            array_filter((array) ($market['countries'] ?? []), 'is_string'),
+        );
+        $siteCountry = strtoupper(trim((string) $this->config->get('payment.country', 'TH')));
 
         return in_array($currency->value, $currencies, true)
-            && in_array($siteCountry, array_map('strtoupper', $countries), true);
+            && in_array($siteCountry, $countries, true);
     }
 
     /**
@@ -209,7 +270,7 @@ class PaymentGatewayManager
      *
      * @throws FinancialException with a stable code per refusal reason
      */
-    public function depositDriver(PaymentMethod $method): PaymentGatewayInterface
+    public function depositDriver(PaymentMethod $method, ?Currency $currency = null): PaymentGatewayInterface
     {
         $driver = $this->driver($method);
 
@@ -221,8 +282,9 @@ class PaymentGatewayManager
             );
         }
 
-        $readiness = app(PaymentReadinessService::class)->evaluate($method->value, 'deposit');
-        if ($driver->status() === GatewayIntegrationStatus::Unsupported) {
+        $currency ??= Currency::tryFromCode((string) $this->config->get('payment.currency.default', 'THB'));
+        $readiness = app(ProviderReadinessService::class)->gateway($method->value, 'deposit', $currency);
+        if (! in_array($driver->status(), [GatewayIntegrationStatus::FullyImplemented, GatewayIntegrationStatus::ConfiguredOnly], true)) {
             throw FinancialException::withCode('payment_gateway_not_ready', trans('payment_ops.errors.payment_gateway_not_ready'), [
                 'gateway' => $method->value,
                 'issues' => $readiness->issues,
@@ -236,12 +298,17 @@ class PaymentGatewayManager
                 ['gateway' => $driver->name()],
             );
         }
+        if (! (bool) $this->config->get('payment.deposit.enabled', false)) {
+            throw FinancialException::withCode('deposits_disabled', 'Deposits are disabled on this deployment.');
+        }
+        if (! in_array($method->value, (array) $this->config->get('payment.deposit.allowed_methods', []), true)) {
+            throw FinancialException::withCode('payment_method_not_allowed', 'The payment method is not allowed for deposits.');
+        }
 
-        $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
         if ($currency === null || ! $driver->supportsCurrency($currency)) {
             throw FinancialException::withCode(
                 'unsupported_gateway_currency',
-                sprintf('Gateway [%s] does not support the configured site currency.', $driver->name()),
+                sprintf('Gateway [%s] does not support the requested currency.', $driver->name()),
                 ['gateway' => $driver->name(), 'currency' => $currency?->value],
             );
         }
@@ -261,7 +328,7 @@ class PaymentGatewayManager
      *
      * @throws FinancialException with a stable code per refusal reason
      */
-    public function withdrawalDriver(string|PaymentMethod $method): PaymentGatewayInterface
+    public function withdrawalDriver(string|PaymentMethod $method, ?Currency $currency = null): PaymentGatewayInterface
     {
         $key = $method instanceof PaymentMethod ? $method->value : strtolower(trim($method));
         $rail = $key === 'promptpay' ? 'thai_bank' : $key;
@@ -282,16 +349,16 @@ class PaymentGatewayManager
             );
         }
 
-        $currency = Currency::tryFrom((string) $this->config->get('payment.currency.default', 'THB'));
+        $currency ??= Currency::tryFromCode((string) $this->config->get('payment.currency.default', 'THB'));
         if ($currency === null || ! $driver->supportsCurrency($currency)) {
             throw FinancialException::withCode(
                 'unsupported_gateway_currency',
-                sprintf('Gateway [%s] does not support the configured site currency.', $driver->name()),
+                sprintf('Gateway [%s] does not support the requested currency.', $driver->name()),
                 ['gateway' => $key, 'currency' => $currency?->value],
             );
         }
 
-        $readiness = app(PaymentReadinessService::class)->evaluate($rail, 'withdrawal');
+        $readiness = app(ProviderReadinessService::class)->gateway($rail, 'withdrawal', $currency);
         if (! $readiness->ready || ! $this->matchesSiteMarket($key, $currency)) {
             throw FinancialException::withCode('payment_gateway_not_ready', trans('payment_ops.errors.payment_gateway_not_ready'), ['gateway' => $rail, 'issues' => $readiness->issues]);
         }

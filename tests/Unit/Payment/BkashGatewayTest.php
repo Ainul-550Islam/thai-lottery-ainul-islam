@@ -6,7 +6,7 @@ namespace Tests\Unit\Payment;
 
 use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
-use App\Enums\WebhookEventType;
+use App\Exceptions\FinancialException;
 use App\Models\Deposit;
 use App\Services\Payment\Drivers\BkashGateway;
 use Illuminate\Http\Request;
@@ -36,7 +36,7 @@ final class BkashGatewayTest extends TestCase
     {
         $this->assertSame('bkash', $this->gateway->name());
         $this->assertSame('bKash', $this->gateway->label());
-        $this->assertSame(GatewayIntegrationStatus::FullyImplemented, $this->gateway->status());
+        $this->assertSame(GatewayIntegrationStatus::PartiallyImplemented, $this->gateway->status());
         $this->assertTrue($this->gateway->supportsDeposit());
         $this->assertTrue($this->gateway->supportsWithdrawal());
         $this->assertTrue($this->gateway->supportsCurrency(Currency::BDT));
@@ -88,18 +88,20 @@ final class BkashGatewayTest extends TestCase
         $request = Request::create(
             uri: '/api/v1/payments/webhook/bkash',
             method: 'POST',
-            server: ['HTTP_X_BKASH_SIGNATURE' => $sig],
+            server: ['HTTP_X_BKASH_SIGNATURE' => $sig, 'CONTENT_TYPE' => 'application/json'],
             content: $json,
         );
 
+        // The local HMAC helper does not prove that bKash sent the callback,
+        // and parsing without an authenticated boundary must not call out.
         $this->assertTrue($this->gateway->verifyWebhookSignature($request));
-
-        $parsed = $this->gateway->parseWebhook($request);
-        $this->assertSame('bkash', $parsed->gateway);
-        $this->assertSame(WebhookEventType::DepositSuccess, $parsed->eventType);
-        $this->assertSame('DP-BKASH-REF-01', $parsed->internalReference);
-        $this->assertSame('350.00', $parsed->amount);
-        $this->assertSame(Currency::BDT, $parsed->currency);
-        $this->assertTrue($parsed->isSuccess);
+        Http::fake();
+        try {
+            $this->gateway->parseWebhook($request);
+            $this->fail('A raw callback cannot authorize a provider request.');
+        } catch (FinancialException $exception) {
+            $this->assertSame('bkash_payment_verification_failed', $exception->errorCode());
+        }
+        Http::assertNothingSent();
     }
 }

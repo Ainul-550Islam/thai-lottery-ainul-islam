@@ -126,8 +126,26 @@ class BetAmendmentService
         );
 
         // ---- One committed transaction: the report row, the refund, the attempt ----
-        [$amendment, $attemptId] = $this->database->transaction(function () use ($data, $bet, $proposal, $oldNumber, $oldStake, $newNumber, $newStake, $currency, $market, $replacementKey, $storedKey): array {
+        [$amendment, $attemptId, $replay] = $this->database->transaction(function () use ($data, $bet, $proposal, $oldNumber, $oldStake, $newNumber, $newStake, $currency, $market, $replacementKey, $storedKey): array {
             $wallet = app(WalletLockService::class)->lock($this->fundingWalletId($bet));
+
+            // A competing request may have committed while this request waited
+            // on the funding wallet. Re-read both request ownership and the bet
+            // under current locks before creating any amendment/refund.
+            $existing = BetAmendment::query()->where('idempotency_key', $storedKey)->lockForUpdate()->first();
+            if ($existing instanceof BetAmendment) {
+                return [$existing, null, true];
+            }
+            if (BetAmendment::query()->where('bet_id', $bet->getKey())->lockForUpdate()->exists()) {
+                throw BetAmendmentException::withCode('bet_amendment_request_conflict',
+                    'The original bet already has a different amendment; no second refund was authorized.');
+            }
+            $lockedBet = Bet::withTrashed()->whereKey($bet->getKey())->lockForUpdate()->first();
+            if (! $lockedBet instanceof Bet || $lockedBet->trashed() || (int) $lockedBet->user_id !== $data->userId) {
+                throw BetAmendmentException::betUnavailable($data->betIdentifier);
+            }
+            $this->assertAmendable($lockedBet);
+            $bet = $lockedBet;
 
             // The original claim is proved BEFORE the refund revokes it: afterwards its
             // state is 'cancelled' and it can no longer be read as the live owner.
@@ -203,8 +221,14 @@ class BetAmendmentService
             $insert['terms_hash'] = $this->ownership->termsHash($row, $amendment);
             $id = DB::table('bet_amendment_ownerships')->insertGetId($insert);
 
-            return [$amendment, (int) $id];
+            return [$amendment, (int) $id, false];
         }, 3);
+
+        if ($replay) {
+            // Replay after releasing the root claim transaction, with its normal
+            // original-specific proof; an in-flight attempt may safely refuse.
+            return $this->replay($amendment, $data);
+        }
 
         // ---- The replacement attempt ------------------------------------------------
         // Minted inside a transaction because minting asserts the claim is still fresh
@@ -288,13 +312,21 @@ class BetAmendmentService
     private function replay(BetAmendment $amendment, BetAmendmentData $data): BetAmendmentResult
     {
         return $this->database->transaction(function () use ($amendment, $data): BetAmendmentResult {
-            $attempt = DB::table('bet_amendment_ownerships')->where('amendment_id', (int) $amendment->getKey())->lockForUpdate()->first();
-
-            if (! $attempt) {
+            $hint = DB::table('bet_amendment_ownerships')->where('amendment_id', (int) $amendment->getKey())->first();
+            if (! $hint) {
                 $this->ownership->refuse();
             }
-
-            $wallet = app(WalletLockService::class)->lock((int) $attempt->wallet_id);
+            // Match the refund/replacement wallet-first order. The non-locking
+            // hint routes only; the locked row below must prove the same owner.
+            $wallet = app(WalletLockService::class)->lock((int) $hint->wallet_id);
+            $attempt = DB::table('bet_amendment_ownerships')->where('amendment_id', (int) $amendment->getKey())->lockForUpdate()->first();
+            if (! $attempt || (int) $attempt->wallet_id !== (int) $wallet->id) {
+                $this->ownership->refuse();
+            }
+            $amendment = $this->ownership->rows()->whereKey((int) $amendment->getKey())->lockForUpdate()->first();
+            if (! $amendment instanceof BetAmendment) {
+                $this->ownership->refuse();
+            }
             $bet = Bet::withTrashed()->whereKey((int) $amendment->bet_id)->lockForUpdate()->first();
 
             if (! $bet instanceof Bet || $bet->trashed()) {

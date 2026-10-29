@@ -49,7 +49,10 @@ final class SettlementQueuePipelineTest extends PaymentTestCase
 
     private function drain(): void
     {
-        for ($i = 0; $i < 12 && DB::table('jobs')->count() > 0; $i++) {
+        // Fixture purchases and result publication also enqueue notifications.
+        // Drain the actual standard priority list with a bounded loop and still
+        // require every job to be consumed, not merely the settlement jobs.
+        for ($i = 0; $i < 200 && DB::table('jobs')->count() > 0; $i++) {
             $this->workerOnce();
         }
         self::assertSame(0, DB::table('jobs')->count(), 'Every continuation must be consumed by the standard priority list.');
@@ -63,6 +66,82 @@ final class SettlementQueuePipelineTest extends PaymentTestCase
         $job->expects($this->never())->method('fail');
 
         return $job;
+    }
+
+    public function test_large_draw_selector_uses_a_durable_run_and_cursor_not_the_obsolete_batch_constructor(): void
+    {
+        Queue::fake();
+        config(['lottery.settlement.chunk_threshold' => 100, 'lottery.settlement.chunk_size' => 20]);
+        $losing = array_map(static fn (int $n): string => (string) $n, range(200, 299));
+        $f = $this->publishedDrawWithBets($losing, 'large-selector', '5000.00');
+        $o = app(ChunkedSettlementOrchestrator::class);
+        $drawId = (int) $f['draw']->id;
+
+        config(['queue.default' => 'sync']);
+        try {
+            $o->settle($drawId);
+            self::fail('A non-durable driver was allowed to own the settlement.');
+        } catch (RuntimeException $error) {
+            self::assertStringContainsString('durable queue', $error->getMessage());
+        }
+        self::assertSame(0, SettlementRun::query()->where('draw_id', $drawId)->count());
+        self::assertSame(0, Payout::query()->where('draw_id', $drawId)->count());
+
+        config(['queue.default' => 'database']);
+        $firstPlan = $o->settle($drawId);
+        $replayPlan = $o->settle($drawId);
+        $run = SettlementRun::query()->where('draw_id', $drawId)->sole();
+        self::assertSame($firstPlan, $replayPlan);
+        self::assertSame([
+            'mode' => 'chunked', 'draw_id' => $drawId, 'participants' => 101,
+            'chunks' => 6, 'batch_id' => null, 'run_id' => (int) $run->id,
+        ], $firstPlan);
+        self::assertSame(0, (int) $run->cursor_bet_id);
+        self::assertSame(0, (int) $run->bets_settled);
+        self::assertSame('3990.00', (string) $f['wallet']->fresh()->balance);
+        Queue::assertPushed(SettleDrawChunkJob::class, 2);
+        $first = Queue::pushed(SettleDrawChunkJob::class)->first();
+        self::assertSame($drawId, $first->drawId);
+        self::assertSame((int) $run->id, $first->runId);
+        self::assertSame(0, $first->expectedCursor);
+        self::assertSame(QueueName::FinancialCritical->value, $first->queue);
+
+        $first->handle($o);
+        $cursor = (int) $run->fresh()->cursor_bet_id;
+        $first->handle($o); // duplicate old envelope must not consume chunk two
+        self::assertSame($cursor, (int) $run->fresh()->cursor_bet_id);
+        self::assertSame(20, (int) $run->fresh()->bets_settled);
+        self::assertSame(1, Payout::query()->where('draw_id', $drawId)->count());
+        $completed = $o->resume($drawId);
+        self::assertTrue($completed->isComplete());
+        self::assertSame(101, (int) $completed->bets_settled);
+        self::assertSame(DrawStatus::Completed, $f['draw']->fresh()->status);
+        self::assertSame(1, Payout::query()->where('draw_id', $drawId)->count());
+        self::assertSame('3990.00', (string) $f['wallet']->fresh()->balance);
+    }
+
+    public function test_selector_respects_an_owned_cursor_and_never_reopens_an_aborted_run(): void
+    {
+        $f = $this->publishedDrawWithBets(['111', '222'], 'owned-selector');
+        $drawId = (int) $f['draw']->id;
+        $o = app(ChunkedSettlementOrchestrator::class);
+        $run = $o->start($drawId, 1);
+        $run = $o->runChunk($run, 0);
+        Queue::fake();
+        $plan = $o->settle($drawId);
+        self::assertSame('chunked', $plan['mode']);
+        self::assertSame((int) $run->id, $plan['run_id']);
+        Queue::assertPushed(SettleDrawChunkJob::class, fn (SettleDrawChunkJob $job): bool =>
+            $job->runId === (int) $run->id && $job->expectedCursor === (int) $run->cursor_bet_id);
+        $run->forceFill(['status' => SettlementRun::STATUS_ABORTED])->save();
+        try {
+            $o->settle($drawId);
+            self::fail('An aborted run was implicitly resumed.');
+        } catch (RuntimeException $error) {
+            self::assertStringContainsString('explicit recovery', $error->getMessage());
+        }
+        self::assertSame(SettlementRun::STATUS_ABORTED, $run->fresh()->status);
+        self::assertSame(1, (int) $run->fresh()->bets_settled);
     }
 
     public function test_standard_worker_consumes_serialized_entry_chunk_and_finalizer(): void
@@ -110,11 +189,12 @@ final class SettlementQueuePipelineTest extends PaymentTestCase
         $run = app(ChunkedSettlementOrchestrator::class)->start((int) $f['draw']->id, 1);
         $run->status = SettlementRun::STATUS_ABORTED;
         $run->save();
+        $queuedBefore = DB::table('jobs')->count();
         $job = new ProcessPrizeSettlementJob((int) $f['draw']->id);
         $job->setJob($this->queuedContext());
         self::assertNull($job->handle(app(RealPrizeSettlementService::class), app(DrawLifecycleService::class)));
         self::assertSame(SettlementRun::STATUS_ABORTED, $run->fresh()->status);
-        self::assertSame(0, DB::table('jobs')->count());
+        self::assertSame($queuedBefore, DB::table('jobs')->count());
         self::assertSame(0, Payout::query()->where('draw_id', $f['draw']->id)->count());
     }
 
@@ -214,14 +294,15 @@ final class SettlementQueuePipelineTest extends PaymentTestCase
     public function test_rollback_never_publishes_an_after_commit_settlement_envelope(): void
     {
         $f = $this->publishedDrawWithBets([], 'rollback');
+        $queuedBefore = DB::table('jobs')->count();
         DB::beginTransaction();
         try {
             ProcessPrizeSettlementJob::dispatch((int) $f['draw']->id);
-            self::assertSame(0, DB::table('jobs')->count());
+            self::assertSame($queuedBefore, DB::table('jobs')->count());
         } finally {
             DB::rollBack();
         }
-        self::assertSame(0, DB::table('jobs')->count());
+        self::assertSame($queuedBefore, DB::table('jobs')->count());
         self::assertSame(0, SettlementRun::query()->where('draw_id', $f['draw']->id)->count());
         self::assertSame('490.00', (string) $f['wallet']->fresh()->balance);
     }
@@ -229,11 +310,18 @@ final class SettlementQueuePipelineTest extends PaymentTestCase
     public function test_committed_after_commit_envelope_is_processed_by_the_real_worker(): void
     {
         $f = $this->publishedDrawWithBets([], 'commit');
+        $queuedBefore = DB::table('jobs')->count();
         DB::beginTransaction();
-        ProcessPrizeSettlementJob::dispatch((int) $f['draw']->id);
-        self::assertSame(0, DB::table('jobs')->count());
-        DB::commit();
-        self::assertSame(1, DB::table('jobs')->count());
+        try {
+            ProcessPrizeSettlementJob::dispatch((int) $f['draw']->id);
+            self::assertSame($queuedBefore, DB::table('jobs')->count());
+            DB::commit();
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+        }
+        self::assertSame($queuedBefore + 1, DB::table('jobs')->count());
         $this->drain();
         self::assertTrue(SettlementRun::query()->where('draw_id', $f['draw']->id)->sole()->isComplete());
         self::assertSame('490.00', (string) $f['wallet']->fresh()->balance);

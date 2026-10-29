@@ -258,9 +258,9 @@ In the reign of King Vajiravudh (Rama VI) in 1917 (B.E. 2460) the government rev
 In the reign of King Vajiravudh (Rama VI) in 1917 (B.E. 2460) the government revived the lottery to repay the loan taken from the United Kingdom to fund its spending in the First World War. The draw became an official instrument of national finance and continues as the government lottery issued every draw.',
   'trust_bullets' => 
   array (
-    0 => 'Server-side authorization on every money and account action',
-    1 => 'Idempotent wallet credits: a replayed callback never pays twice',
-    2 => 'Published results carry the source state that produced them',
-    3 => 'Self-exclusion and limits are enforced by the platform, not the browser',
+    0 => 'Server-side authorization is used for supported account and payment operations',
+    1 => 'Idempotent wallet-credit workflows help guard against repeated callbacks',
+    2 => 'Published result cards include source information when available',
+    3 => 'Account limits and self-exclusion use platform-side controls',
   ),
 );

@@ -74,6 +74,7 @@ final class ReportOperationsReadinessCommand extends Command
 
             if (in_array($lane['state'], [
                 ProviderReadinessService::ENABLED_WITHOUT_CREDENTIALS,
+                ProviderReadinessService::IMPLEMENTATION_INCOMPLETE,
                 ProviderReadinessService::LANE_NOT_DECLARED,
             ], true)) {
                 $act++;

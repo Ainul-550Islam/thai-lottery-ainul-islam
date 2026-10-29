@@ -237,6 +237,22 @@ final class RecordedSettlementSafetyTest extends PaymentTestCase
         $this->assertSame(0, Payout::query()->count());
     }
 
+    public function test_opening_a_run_refuses_nested_transaction_without_creating_a_claim(): void
+    {
+        $this->configureSafety('LIVE');
+        $f = $this->publishedDrawWithBets(['111'], 'nested-start');
+        $transactions = FinancialTransaction::query()->count();
+        $balance = (string) $f['wallet']->fresh()->balance;
+        DB::transaction(function () use ($f): void {
+            $this->refused(fn () => $this->service()->start((int) $f['draw']->id, 2));
+            $this->assertSame(1, DB::transactionLevel());
+            $this->assertSame(0, SettlementRun::query()->where('draw_id', $f['draw']->id)->count());
+        });
+        $this->assertSame($transactions, FinancialTransaction::query()->count());
+        $this->assertSame($balance, (string) $f['wallet']->fresh()->balance);
+        $this->assertSame(DrawStatus::ResultPublished, $f['draw']->fresh()->status);
+    }
+
     public function test_nested_transaction_is_refused_without_mutation(): void
     {
         $this->configureSafety('LIVE');

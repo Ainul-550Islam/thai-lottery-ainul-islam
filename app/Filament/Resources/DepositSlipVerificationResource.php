@@ -14,6 +14,7 @@ use App\Exceptions\FinancialException;
 use App\Filament\Resources\DepositSlipVerificationResource\Pages;
 use App\Models\Deposit;
 use App\Models\DepositSlipVerification;
+use App\Models\User;
 use App\Services\Audit\AuditLogService;
 use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
@@ -25,6 +26,7 @@ use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +48,9 @@ final class DepositSlipVerificationResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny([
+        $operator = AdminAccess::operator();
+
+        return AdminAccess::canAccessPanel($operator) && AdminAccess::allowsAny($operator, [
             AdminAccess::VIEW_TRANSACTION_HISTORY,
             AdminAccess::MANAGE_PAYOUTS,
         ]);
@@ -249,10 +253,14 @@ final class DepositSlipVerificationResource extends Resource
         if ($reviewerId < 1 || trim($note) === '' || strlen($note) > 120) {
             throw FinancialException::withCode('slip_review_note_required', 'A reviewer and a required approval note are needed.');
         }
+        $operator = AdminAccess::operator();
+        if (! AdminAccess::canAccessPanel($operator) || ! AdminAccess::allows($operator, AdminAccess::MANAGE_PAYOUTS)) {
+            throw new AuthorizationException;
+        }
         $verification = DepositSlipVerification::query()->findOrFail($verification->getKey());
         if ($verification->status === SlipVerificationStatus::Credited) {
             $operator = AdminAccess::operator();
-            if (! AdminAccess::current(AdminAccess::MANAGE_PAYOUTS) || ! $operator?->isActive()) {
+            if (! AdminAccess::current(AdminAccess::MANAGE_PAYOUTS) || ! AdminAccess::canAccessPanel($operator)) {
                 Gate::authorize('approve', $verification);
             }
             if (! ($operator instanceof User) || (int) $operator->getKey() !== $reviewerId) {
@@ -272,7 +280,7 @@ final class DepositSlipVerificationResource extends Resource
         }
         if ($verification->status !== SlipVerificationStatus::NeedsReview) {
             $operator = AdminAccess::operator();
-            if (! AdminAccess::current(AdminAccess::MANAGE_PAYOUTS) || ! $operator?->isActive()) {
+            if (! AdminAccess::current(AdminAccess::MANAGE_PAYOUTS) || ! AdminAccess::canAccessPanel($operator)) {
                 Gate::authorize('approve', $verification);
             }
             throw FinancialException::withCode('slip_review_state_conflict', 'This slip is no longer eligible for approval.');
@@ -393,8 +401,11 @@ final class DepositSlipVerificationResource extends Resource
         if ($reviewerId < 1 || trim($reason) === '' || strlen($reason) > 120) {
             throw FinancialException::withCode('slip_review_reason_required', 'A reviewer and a required rejection reason are needed.');
         }
-        Gate::authorize('reject', $verification);
         $operator = AdminAccess::operator();
+        if (! AdminAccess::canAccessPanel($operator) || ! AdminAccess::allows($operator, AdminAccess::MANAGE_PAYOUTS)) {
+            throw new AuthorizationException;
+        }
+        Gate::authorize('reject', $verification);
         if (! ($operator instanceof User) || (int) $operator->getKey() !== $reviewerId) {
             throw FinancialException::withCode('slip_review_actor_mismatch', 'The reviewer must be the authenticated finance operator.');
         }

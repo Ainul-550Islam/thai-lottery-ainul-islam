@@ -6,9 +6,9 @@
 
 @section('content')
 @php
-    $currency = \App\Enums\Currency::from((string) config('payment.currency.default'));
+    $currency = $bettingCurrency;
     $walletBalance = $wallet instanceof \App\Models\Wallet && $wallet->currency instanceof \App\Enums\Currency && $wallet->currency === $currency
-        ? \App\Services\Finance\Money::of((string) $wallet->balance, $currency)->format()
+        ? \App\Services\Finance\Money::of($wallet->getAvailableBalance(), $currency)->format()
         : null;
 @endphp
 
@@ -83,7 +83,7 @@
                 <div class="mt-5 rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-200" role="status" aria-live="polite" data-selection-status></div>
             </section>
 
-            <aside id="bet-slip-container" class="rounded-3xl border border-amber-500/25 bg-slate-900/95 p-6 shadow-2xl" aria-labelledby="slip-heading" data-max-items="{{ (int) config('lottery.bulk.max_items', 50) }}" data-draw-id="{{ $openDraw->id }}">
+            <aside id="bet-slip-container" class="rounded-3xl border border-amber-500/25 bg-slate-900/95 p-6 shadow-2xl" aria-labelledby="slip-heading" data-max-items="{{ min(50, max(1, (int) config('lottery.bulk.max_items', 50))) }}" data-draw-id="{{ $openDraw->id }}">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <h2 id="slip-heading" class="text-lg font-black text-white">{{ __('player.bet_slip_basket') }}</h2>
                     <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-300" data-slip-count>0</span>

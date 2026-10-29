@@ -42,7 +42,7 @@ final class RecordNotificationAudit
         $exists = AuditLog::query()
             ->where('auditable_type', Notification::class)
             ->where('created_at', '>=', now()->subHours(self::LOOKBACK_HOURS))
-            ->whereJsonContains('metadata->audit_anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
 
         if ($exists) {
@@ -62,7 +62,7 @@ final class RecordNotificationAudit
                 'channel' => $notification->channel->value,
                 'status' => $notification->status->value,
                 'attempts' => $notification->attempts,
-                'audit_anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'note' => $note,
             ],
         ]);

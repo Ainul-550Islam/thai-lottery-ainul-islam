@@ -33,23 +33,17 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
  * prepared once per PHPUnit process, BEFORE the traits run, so truncation and
  * every fixture find the tables they expect.
  *
- * WHAT IT WILL NOT DO
- * It never drops or recreates a database, and it never runs against a database
- * whose name is not an explicitly allow-listed test name. `migrate` is
- * idempotent, so on the developer's already-migrated MariaDB test database this
- * is a no-op ("Nothing to migrate") and the historical workflow is unchanged.
+ * SAFETY BOUNDARY
+ * Laravel's database traits can run migrate:fresh or truncate before a child
+ * test's setUp() guard runs. All configured trait connections must therefore be
+ * checked in createApplication, BEFORE either schema preparation or traits.
+ * A recognised name is only a guardrail, not proof that a server is disposable:
+ * use dedicated test-only credentials and an isolated database server as well.
  */
 abstract class TestCase extends BaseTestCase
 {
-    /**
-     * The database names this bootstrap is allowed to migrate, matched against
-     * the connection's database name and against its basename so that a
-     * file-backed SQLite path such as `database/thai_lottery_test` is accepted
-     * while a production database name never is.
-     *
-     * @var list<string>
-     */
-    private const MIGRATABLE_DATABASES = ['thai_lottery_test', ':memory:'];
+    /** Name of the explicitly disposable database for this test harness. */
+    private const TEST_DATABASE = 'thai_lottery_test';
 
     /**
      * Guarded per process, not per test: the schema survives the application
@@ -78,22 +72,52 @@ abstract class TestCase extends BaseTestCase
     {
         $app = parent::createApplication();
 
+        $this->assertDisposableTestConnections($app);
         $this->prepareTestSchema($app);
 
         return $app;
+    }
+
+    /** Refuse BEFORE Laravel's database traits can migrate, truncate or seed. */
+    private function assertDisposableTestConnections(Application $app, bool $requireTestingEnvironment = true): void
+    {
+        $names = [null];
+        foreach (['connectionsToTruncate', 'connectionsToTransact'] as $method) {
+            if (method_exists($this, $method)) {
+                $names = array_merge($names, (array) $this->{$method}());
+            }
+        }
+
+        foreach (array_unique($names, SORT_REGULAR) as $name) {
+            $connection = $app->make('db')->connection($name);
+            $database = (string) $connection->getDatabaseName();
+            $driver = $connection->getDriverName();
+            $isAllowed = $driver === 'sqlite'
+                ? ($database === ':memory:' || (basename($database) === self::TEST_DATABASE && ! is_link($database)))
+                : $database === self::TEST_DATABASE;
+
+            if (($requireTestingEnvironment && ! $app->environment('testing')) || ! $isAllowed) {
+                throw new \RuntimeException(sprintf(
+                    'ABORTED: tests may only use the disposable thai_lottery_test database or SQLite :memory: in the testing environment; connection "%s" is not allowed.',
+                    $name ?? 'default',
+                ));
+            }
+        }
+    }
+
+    protected function setUpTraits()
+    {
+        // Recheck after parallel-test setup callbacks and immediately before
+        // any trait issues migrate:fresh, starts transactions or truncates.
+        $this->assertDisposableTestConnections($this->app);
+
+        return parent::setUpTraits();
     }
 
     private function prepareTestSchema(Application $app): void
     {
         $connection = $app->make('db')->connection();
         $database = (string) $connection->getDatabaseName();
-
-        if (! in_array($database, self::MIGRATABLE_DATABASES, true)
-            && ! in_array(basename($database), self::MIGRATABLE_DATABASES, true)) {
-            // Not a recognised test database. Do nothing at all: the individual
-            // suites carry their own fail-safe guard and will abort themselves.
-            return;
-        }
 
         if ($database === ':memory:') {
             // A fresh in-memory database exists per connection, so the cached
@@ -162,14 +186,13 @@ abstract class TestCase extends BaseTestCase
         // so the last test in a DatabaseTruncation class would otherwise leave
         // its rows in a file-backed SQLite database for the next class.
         if (isset($this->app) && in_array(DatabaseTruncation::class, class_uses_recursive(static::class), true)) {
-            $connection = $this->app->make('db')->connection();
-            $database = (string) $connection->getDatabaseName();
-
-            if (in_array($database, self::MIGRATABLE_DATABASES, true)
-                || in_array(basename($database), self::MIGRATABLE_DATABASES, true)) {
-                $this->truncateTablesForAllConnections();
-                (new LedgerAccountSeeder)->run();
-            }
+            // A test may have reconfigured a connection after setUp. Check all
+            // target connections again before this manual teardown truncation.
+            // Some tests temporarily simulate production in the application;
+            // the initial guard already required a genuine testing bootstrap.
+            $this->assertDisposableTestConnections($this->app, false);
+            $this->truncateTablesForAllConnections();
+            (new LedgerAccountSeeder)->run();
         }
 
         parent::tearDown();

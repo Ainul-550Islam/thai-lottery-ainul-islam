@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use App\Enums\Currency;
 use App\Services\Finance\Money;
+use App\Support\LosslessJson;
 use JsonException;
 use Throwable;
 
@@ -143,8 +144,11 @@ final class EasySlipProvider implements SlipVerificationProviderInterface
 
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
         $rawSlip = is_array($data['rawSlip'] ?? null) ? $data['rawSlip'] : [];
+        if (array_key_exists('isDuplicate', $data) && ! is_bool($data['isDuplicate'])) {
+            throw FinancialException::withCode('slip_provider_error', 'EasySlip returned an ambiguous duplicate status.');
+        }
         $errorCode = strtoupper((string) data_get($payload, 'error.code', ''));
-        $duplicate = (bool) ($data['isDuplicate'] ?? false)
+        $duplicate = ($data['isDuplicate'] ?? false) === true
             || in_array($errorCode, ['DUPLICATE', 'DUPLICATE_SLIP', 'SLIP_ALREADY_VERIFIED'], true);
 
         if ($response->failed() && ! $duplicate) {
@@ -162,7 +166,7 @@ final class EasySlipProvider implements SlipVerificationProviderInterface
         }
 
         $transRef = (string) ($rawSlip['transRef'] ?? $data['transRef'] ?? '');
-        $amount = $this->exactAmount($rawSlip, $response->body());
+        $amount = $this->exactAmount($response->body());
         try {
             $amount = $amount !== null ? Money::of($amount, Currency::THB)->toString() : null;
         } catch (Throwable) {
@@ -197,7 +201,7 @@ final class EasySlipProvider implements SlipVerificationProviderInterface
             throw FinancialException::withCode('slip_provider_error', 'EasySlip returned an invalid transfer timestamp.', [], $exception);
         }
 
-        $masked = self::maskProviderAccount($receiverAccount);
+        $masked = ProviderAccountMask::lastFourIfExposed($receiverAccount);
 
         return new SlipVerificationResult(
             transRef: $transRef,
@@ -224,37 +228,21 @@ final class EasySlipProvider implements SlipVerificationProviderInterface
         );
     }
 
-    /**
-     * Provider v2 uses JSON numbers. Extract their lexical decimal spelling from
-     * the response bytes instead of converting a decoded float into money.
-     *
-     * @param array<string, mixed> $rawSlip
-     */
-    private function exactAmount(array $rawSlip, string $body): ?string
+    /** Read only the provider's actual amount field, retaining its JSON spelling. */
+    private function exactAmount(string $body): ?string
     {
-        $local = data_get($rawSlip, 'amount.local.amount');
-        if (is_string($local) || is_int($local)) {
-            return (string) $local;
+        try {
+            $payload = LosslessJson::decode($body);
+        } catch (JsonException) {
+            return null;
         }
-        if (preg_match('/"local"\s*:\s*\{\s*"amount"\s*:\s*(-?[0-9]+(?:\.[0-9]+)?)/s', $body, $matches) === 1) {
-            return $matches[1];
+        $local = data_get($payload, 'data.rawSlip.amount.local.amount');
+        if (is_string($local)) {
+            return $local;
         }
-        $amount = data_get($rawSlip, 'amount.amount');
-        if (is_string($amount) || is_int($amount)) {
-            return (string) $amount;
-        }
-        if (preg_match('/"amount"\s*:\s*\{\s*"amount"\s*:\s*(-?[0-9]+(?:\.[0-9]+)?)/s', $body, $matches) === 1) {
-            return $matches[1];
-        }
+        $amount = data_get($payload, 'data.rawSlip.amount.amount');
 
-        return null;
+        return is_string($amount) ? $amount : null;
     }
 
-    private static function maskProviderAccount(string $account): string
-    {
-        $digits = preg_replace('/\D+/', '', $account) ?? '';
-        $last = substr($digits, -4);
-
-        return $last === '' ? '' : '••••'.$last;
-    }
 }

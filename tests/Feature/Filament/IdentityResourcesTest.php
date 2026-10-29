@@ -261,23 +261,47 @@ final class IdentityResourcesTest extends TestCase
         $this->assertSame($originalHash, $subject->fresh()->password);
     }
 
-    public function test_setting_a_password_hashes_it_once_through_the_model_cast(): void
+    public function test_setting_a_password_hashes_it_once_and_preserves_the_other_profile_edits(): void
     {
         $subject = $this->subject();
+        $epoch = (int) $subject->credential_epoch;
+        $password = 'A-brand-new-password-482!';
 
         Livewire::actingAs($this->operator())
             ->test(EditUser::class, ['record' => $subject->getKey()])
-            ->fillForm(['password' => 'a-brand-new-password'])
+            ->fillForm([
+                'name' => 'New Name',
+                'username' => 'new_unique_username',
+                'email' => 'new-identity@example.test',
+                'phone' => '+8801700000002',
+                'password' => $password,
+            ])
             ->call('save')
             ->assertHasNoFormErrors();
 
-        $stored = $subject->fresh()->password;
+        $updated = $subject->fresh();
+        $stored = $updated->password;
+        $this->assertNotSame($password, $stored, 'The password must not be stored in plain text.');
+        $this->assertTrue(Hash::check($password, $stored), 'The new password must be hashed exactly once.');
+        $this->assertSame($epoch + 1, (int) $updated->credential_epoch, 'Existing sessions must be revoked.');
+        $this->assertSame('New Name', $updated->name);
+        $this->assertSame('new_unique_username', $updated->username);
+        $this->assertSame('new-identity@example.test', $updated->email);
+        $this->assertSame('+8801700000002', $updated->phone);
+    }
 
-        $this->assertNotSame('a-brand-new-password', $stored, 'The password must not be stored in plain text.');
-        $this->assertTrue(
-            Hash::check('a-brand-new-password', $stored),
-            'The password must be hashed exactly once — a double hash would lock the account out.',
-        );
+    public function test_rejected_weak_password_does_not_partially_save_profile_or_revoke_credentials(): void
+    {
+        $subject = $this->subject();
+        $before = $subject->only(['name', 'password', 'credential_epoch']);
+
+        Livewire::actingAs($this->operator())
+            ->test(EditUser::class, ['record' => $subject->getKey()])
+            ->fillForm(['name' => 'Must Not Save', 'password' => 'a-brand-new-password'])
+            ->call('save')
+            ->assertHasFormErrors(['password']);
+
+        $this->assertSame($before, $subject->fresh()->only(['name', 'password', 'credential_epoch']));
     }
 
     public function test_the_edit_form_offers_no_status_or_role_field(): void

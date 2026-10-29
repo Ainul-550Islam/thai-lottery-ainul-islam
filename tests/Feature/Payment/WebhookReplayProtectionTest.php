@@ -12,6 +12,8 @@ use App\Http\Middleware\VerifyWebhookSignature;
 use App\Models\PaymentWebhook;
 use App\Models\WebhookReplayGuard;
 use App\Services\Payment\PaymentWebhookVerificationService;
+use App\Services\Payment\WebhookReplayGuardService;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -282,21 +284,20 @@ final class WebhookReplayProtectionTest extends PaymentTestCase
             WebhookReplayGuard::query()->where('gateway', 'stripe')->count(),
         );
 
-        // The same payload bytes, signed independently with bKash's secret,
-        // occupy a separate gateway-scoped nonce space. The driver—not this
-        // middleware—decides whether the provider signature is valid.
+        // Simulate a historical bKash observation. It has a separate nonce,
+        // but an old local HMAC observation cannot reopen a closed ingress.
         $body = json_encode($delivery['payload'], JSON_THROW_ON_ERROR);
         $bkashSignature = hash_hmac('sha256', $body, self::BKASH_WEBHOOK_SECRET);
+        $historical = Request::create('/api/v1/payments/webhook/bkash', 'POST', server: [
+            'CONTENT_TYPE' => 'application/json', 'HTTP_X_BKASH_SIGNATURE' => $bkashSignature,
+        ], content: $body);
+        app(WebhookReplayGuardService::class)->rememberAccepted($historical, 'bkash');
+        $this->assertSame(1, WebhookReplayGuard::query()->where('gateway', 'bkash')->count());
 
         $this->withHeaders(['X-Bkash-Signature' => $bkashSignature])
             ->postJson('/api/v1/payments/webhook/bkash', $delivery['payload'])
-            ->assertStatus(200);
-
-        $this->assertSame(
-            1,
-            WebhookReplayGuard::query()->where('gateway', 'bkash')->count(),
-            'the second gateway must get its own guard row',
-        );
+            ->assertStatus(422)->assertJsonPath('success', false);
+        $this->assertSame(1, WebhookReplayGuard::query()->where('gateway', 'bkash')->sole()->deliveries);
     }
 
     #[Test]

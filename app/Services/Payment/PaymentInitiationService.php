@@ -48,7 +48,9 @@ final class PaymentInitiationService
             );
         }
 
-        $driver = $this->gateways->depositDriver($method);
+        // Check the actual wallet amount against the merchant-market allowlist,
+        // not only the site's display/default currency.
+        $driver = $this->gateways->depositDriver($method, $amount->currency());
 
         if (! $driver->supportsCurrency($amount->currency())) {
             throw FinancialException::withCode(

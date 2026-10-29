@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Ledger;
 
+use App\Enums\Currency;
 use App\Enums\LedgerAccountType;
 use App\Models\LedgerAccount;
 use App\Models\LedgerEntry;
 use App\Models\LedgerTransaction;
+use App\Services\Finance\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -40,16 +42,46 @@ class DoubleEntryLedgerService
         ?string $idempotencyKey = null,
         ?string $description = null
     ): LedgerTransaction {
-        if (empty($entries)) {
+        // This service is also called directly. A lockForUpdate outside an
+        // application transaction cannot protect the chain and a later failure
+        // must never leave a header, balance change or half of an entry pair.
+        // Laravel creates a savepoint when an outer caller already owns a transaction.
+        return DB::transaction(fn (): LedgerTransaction => $this->postWithinTransaction(
+            $referenceType, $referenceId, $currency, $entries, $idempotencyKey, $description,
+        ), 3);
+    }
+
+    /** @param array<int, array{account_id:int|string, direction:string, amount:string}> $entries */
+    private function postWithinTransaction(
+        string $referenceType,
+        string $referenceId,
+        string $currency,
+        array $entries,
+        ?string $idempotencyKey,
+        ?string $description,
+    ): LedgerTransaction {
+        if (count($entries) < 2) {
             throw new InvalidArgumentException('Ledger transaction must contain at least two entries.');
         }
+        $currencyValue = Currency::tryFromCode($currency);
+        if ($currencyValue === null) {
+            throw new InvalidArgumentException('Unsupported ledger transaction currency.');
+        }
+        $currency = $currencyValue->value;
 
         // 1. Enforce Debit == Credit invariant using BCMath
         $totalDebit = '0.0000';
         $totalCredit = '0.0000';
 
-        foreach ($entries as $entry) {
-            $amount = (string) $entry['amount'];
+        foreach ($entries as $index => $entry) {
+            $rawAmount = $entry['amount'] ?? null;
+            if (! is_string($rawAmount) && ! is_int($rawAmount)) {
+                throw new InvalidArgumentException('Entry amount must be an exact decimal string or integer.');
+            }
+            // Entries and account balances use two-decimal currency columns;
+            // reject nonzero extra digits rather than posting a truncated pair.
+            $amount = Money::of($rawAmount, $currencyValue)->toString();
+            $entries[$index]['amount'] = $amount;
             if (bccomp($amount, '0.0000', 4) <= 0) {
                 throw new InvalidArgumentException("Entry amount must be strictly positive: {$amount}");
             }
@@ -144,6 +176,9 @@ class DoubleEntryLedgerService
 
             if (! $account->is_active) {
                 throw new RuntimeException("Ledger account is inactive: {$account->code}");
+            }
+            if ($account->currency !== $currencyValue) {
+                throw new RuntimeException("Ledger account currency does not match transaction currency: {$account->code}");
             }
 
             $accountTypeValue = $account->type instanceof LedgerAccountType

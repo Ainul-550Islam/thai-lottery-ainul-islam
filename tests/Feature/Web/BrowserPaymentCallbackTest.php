@@ -120,7 +120,7 @@ class BrowserPaymentCallbackTest extends TestCase
         $this->assertStringNotContainsString('This payment is confirmed', $page);
     }
 
-    public function test_success_route_shows_confirmed_only_when_the_record_is_captured(): void
+    public function test_captured_marker_without_settlement_does_not_show_a_confirmed_deposit(): void
     {
         ['user' => $user, 'wallet' => $wallet] = $this->player();
         $payment = $this->makePayment($wallet, PaymentStatus::Captured);
@@ -130,8 +130,10 @@ class BrowserPaymentCallbackTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('Confirmed', $page);
-        $this->assertStringContainsString('This payment is confirmed', $page);
+        $this->assertStringContainsString('Pending confirmation', $page);
+        $this->assertStringNotContainsString('The platform records this payment as complete.', $page);
+        $this->assertSame('1000.00', (string) $wallet->fresh()->balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
     }
 
     public function test_forged_query_flags_cannot_manufacture_a_paid_state(): void

@@ -12,7 +12,7 @@ final class DepositSlipVerificationPolicy extends BasePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isActive() && AdminAccess::allowsAny($user, [
+        return AdminAccess::canAccessPanel($user) && AdminAccess::allowsAny($user, [
             AdminAccess::VIEW_TRANSACTION_HISTORY,
             AdminAccess::MANAGE_PAYOUTS,
         ]);
@@ -21,7 +21,7 @@ final class DepositSlipVerificationPolicy extends BasePolicy
     public function view(User $user, DepositSlipVerification $verification): bool
     {
         return ((int) $verification->user_id === (int) $user->getKey())
-            || ($user->isActive() && AdminAccess::allowsAny($user, [
+            || (AdminAccess::canAccessPanel($user) && AdminAccess::allowsAny($user, [
                 AdminAccess::VIEW_TRANSACTION_HISTORY,
                 AdminAccess::MANAGE_PAYOUTS,
             ]));
@@ -29,13 +29,13 @@ final class DepositSlipVerificationPolicy extends BasePolicy
 
     public function approve(User $user, DepositSlipVerification $verification): bool
     {
-        return $user->isActive() && $verification->status->value === 'needs_review'
+        return AdminAccess::canAccessPanel($user) && $verification->status->value === 'needs_review'
             && AdminAccess::allows($user, AdminAccess::MANAGE_PAYOUTS);
     }
 
     public function reject(User $user, DepositSlipVerification $verification): bool
     {
-        return $user->isActive() && $verification->status->value === 'needs_review'
+        return AdminAccess::canAccessPanel($user) && $verification->status->value === 'needs_review'
             && AdminAccess::allows($user, AdminAccess::MANAGE_PAYOUTS);
     }
 }

@@ -65,7 +65,12 @@ final class SessionGenerationRevocationService
             $epoch = $previous + 1;
 
             $locked->credential_epoch = $epoch;
-            $locked->save();
+            // Remember-me cookies bypass an old session row, so ending all
+            // sessions also invalidates the account's persistent recaller.
+            $locked->remember_token = null;
+            if (! $locked->save()) {
+                throw new \RuntimeException('Credential-generation revocation could not be persisted.');
+            }
 
             $databaseSessions = DB::table('sessions')
                 ->where('user_id', (int) $locked->getKey())

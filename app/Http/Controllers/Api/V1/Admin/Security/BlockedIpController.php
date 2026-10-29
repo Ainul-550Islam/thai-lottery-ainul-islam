@@ -22,6 +22,7 @@ class BlockedIpController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', BlockedIp::class);
         $query = BlockedIp::orderBy('created_at', 'desc');
 
         if ($request->has('active')) {
@@ -56,6 +57,9 @@ class BlockedIpController extends Controller
 
     public function unblock(Request $request, string $id): JsonResponse
     {
+        $this->authorize('viewAny', BlockedIp::class);
+        $blockedIp = BlockedIp::query()->findOrFail($id);
+        $this->authorize('update', $blockedIp);
         $actorId = (string) $request->user()?->id;
         $reason = (string) $request->input('reason', 'Administrative manual unblock.');
 

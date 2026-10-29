@@ -8,13 +8,16 @@ use App\DTOs\Payment\PaymentIntentData;
 use App\Enums\PaymentDirection;
 use App\Enums\PaymentMethodStatus;
 use App\Enums\PaymentProviderStatus;
+use App\Exceptions\FinancialException;
 use App\Exceptions\PaymentIntentException;
 use App\Exceptions\PaymentProviderException;
 use App\Http\Responses\ApiResponse;
 use App\Models\PaymentMethodConfig;
 use App\Models\PaymentProvider;
+use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\PaymentIntentService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -32,6 +35,7 @@ final class PaymentController
 {
     public function __construct(
         private readonly PaymentIntentService $intents,
+        private readonly PaymentGatewayManager $gateways,
     ) {
     }
 
@@ -42,19 +46,23 @@ final class PaymentController
      */
     public function providers(): JsonResponse
     {
-        $providers = PaymentProvider::query()
-            ->where('status', PaymentProviderStatus::Active->value)
-            ->get(['code', 'name', 'driver', 'supported_currencies']);
+        $providers = $this->offerableMethods()->groupBy('provider_id')->map(function (Collection $offers): array {
+            /** @var PaymentProvider $provider */
+            $provider = $offers->first()->getRelation('provider');
 
-        return ApiResponse::success(
-            data: $providers->map(fn (PaymentProvider $provider): array => [
+            return [
                 'code' => $provider->code,
                 'name' => $provider->name,
                 'driver' => $provider->driver,
-                'supported_currencies' => $provider->supported_currencies,
-            ])->values()->all(),
-            message: 'Active payment providers.',
-        );
+                // Do not advertise a registry currency for which there is no
+                // currently offerable, manager-verified method.
+                'supported_currencies' => $offers->pluck('currency')
+                    ->map(static fn ($currency): string => strtoupper(trim((string) $currency)))
+                    ->unique()->values()->all(),
+            ];
+        })->values()->all();
+
+        return ApiResponse::success(data: $providers, message: 'Active payment providers.');
     }
 
     /**
@@ -62,20 +70,28 @@ final class PaymentController
      */
     public function methods(): JsonResponse
     {
-        $methods = PaymentMethodConfig::query()
-            ->where('status', PaymentMethodStatus::Enabled->value)
-            ->whereHas('provider', fn ($q) => $q->where('status', PaymentProviderStatus::Active->value))
-            ->get(['method_code', 'currency', 'min_amount', 'max_amount', 'fee_bps', 'provider_id'])
-            ->map(fn (PaymentMethodConfig $method): array => [
-                'provider' => $method->provider->code,
-                'method' => $method->method_code,
-                'currency' => $method->currency,
-                'min_amount' => (string) $method->min_amount,
-                'max_amount' => (string) $method->max_amount,
-                'fee_bps' => (int) $method->fee_bps,
-            ])->values()->all();
+        $methods = $this->offerableMethods()->map(fn (PaymentMethodConfig $method): array => [
+            'provider' => $method->getRelation('provider')->code,
+            'method' => $method->method_code,
+            'currency' => $method->currency,
+            'min_amount' => (string) $method->min_amount,
+            'max_amount' => (string) $method->max_amount,
+            'fee_bps' => (int) $method->fee_bps,
+        ])->values()->all();
 
         return ApiResponse::success(data: $methods, message: 'Enabled payment methods.');
+    }
+
+    /** @return Collection<int, PaymentMethodConfig> */
+    private function offerableMethods(): Collection
+    {
+        return PaymentMethodConfig::query()->with('provider')
+            ->where('status', PaymentMethodStatus::Enabled->value)
+            ->whereHas('provider', fn ($q) => $q->where('status', PaymentProviderStatus::Active->value))
+            ->orderBy('id')
+            ->get(['id', 'method_code', 'currency', 'min_amount', 'max_amount', 'fee_bps', 'provider_id', 'status'])
+            ->filter(fn (PaymentMethodConfig $offer): bool => $this->gateways->isRegistryOfferCapable($offer))
+            ->values();
     }
 
     /**
@@ -99,8 +115,14 @@ final class PaymentController
 
             // Server-derive the caller's wallet (never accept a numeric
             // id from the body as authority).
+            // Currency is a selector only within this principal's primary
+            // wallets. It never authorizes a caller-supplied wallet identity.
+            $walletQuery = $user->wallet();
+            if (isset($validated['currency'])) {
+                $walletQuery->where('currency', strtoupper(trim($validated['currency'])));
+            }
             /** @var \App\Models\Wallet|null $wallet */
-            $wallet = $user->wallet()->first();
+            $wallet = $walletQuery->first();
 
             if ($wallet === null) {
                 return ApiResponse::error(code: 'wallet_not_found', message: 'No wallet is held by this account.', status: 404);
@@ -136,6 +158,12 @@ final class PaymentController
                 message: $replayed ? 'Payment intent replayed (same facts already exist).' : 'Payment intent created.',
                 status: $replayed ? 200 : 201,
             );
+        } catch (FinancialException $e) {
+            if ($e->errorCode() !== 'real_money_disabled') {
+                throw $e;
+            }
+
+            return ApiResponse::error('real_money_disabled', 'Real-money operations are currently unavailable.', 503);
         } catch (PaymentIntentException|PaymentProviderException $e) {
             return ApiResponse::error(
                 code: strtolower($e->errorCode()),

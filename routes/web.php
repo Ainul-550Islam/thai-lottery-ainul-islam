@@ -87,7 +87,7 @@ use Illuminate\Support\Facades\Route;
 | services back.
 */
 // P0: /metrics is operator-only telemetry — never financial-public.
-Route::middleware(['auth', 'can:access-metrics'])->group(function (): void {
+Route::middleware(['auth', 'auth.session', 'can:access-metrics'])->group(function (): void {
     Route::get('/metrics', [MetricsController::class, 'metrics'])->name('metrics');
 });
 Route::get('/up/health', [HealthController::class, 'health'])->name('health');
@@ -128,7 +128,7 @@ Route::middleware('guest')->group(function (): void {
         ->name('social.callback');
 });
 
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::post('/logout', [MemberAuthController::class, 'logout'])->name('logout');
 
     // Legal acknowledgement and age-attestation recovery routes are deliberately
@@ -231,7 +231,7 @@ Route::middleware('auth')->group(function (): void {
 | Ownership is always the session user. Rate limits: account-verification /
 | account-grade (registered in AppServiceProvider).
 */
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'auth.session'])->group(function (): void {
     // PROMPT 3: the member Account Verify page is served by the
     // Verification controller (policy-authorized, self-scoped, the
     // immutable submission aggregate behind it). The reviewer decision
@@ -279,15 +279,15 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 // routes. They do not render a second wallet, deposit, withdrawal or dashboard
 // implementation and therefore cannot expose presentation-only financial data.
 Route::get('/player/dashboard', fn () => redirect()->route('player.dashboard'))
-    ->middleware('auth')->name('player.dashboard.legacy');
+    ->middleware(['auth', 'auth.session'])->name('player.dashboard.legacy');
 Route::get('/player/wallet', fn () => redirect()->route('player.wallet'))
-    ->middleware('auth')->name('player.wallet.legacy');
+    ->middleware(['auth', 'auth.session'])->name('player.wallet.legacy');
 Route::get('/wallet/deposit', fn () => redirect()->route('player.deposit'))
-    ->middleware('auth')->name('wallet.deposit');
+    ->middleware(['auth', 'auth.session'])->name('wallet.deposit');
 Route::get('/withdrawal', fn () => redirect()->route('player.withdraw'))
-    ->middleware('auth')->name('withdrawal.index');
+    ->middleware(['auth', 'auth.session'])->name('withdrawal.index');
 Route::get('/wallet/withdrawal', fn () => redirect()->route('player.withdraw'))
-    ->middleware('auth')->name('wallet.withdrawal');
+    ->middleware(['auth', 'auth.session'])->name('wallet.withdrawal');
 Route::get('/betting', [ThaiLotteryBettingController::class, 'index'])->name('betting.index');
 // Legacy duplicate of the canonical /betting page. A 301 (not a 302) so search
 // engines consolidate the two URLs instead of indexing both, and the query string
@@ -332,7 +332,7 @@ Route::get('/results', [GloResultsPageController::class, 'index'])
 // Account and protection aliases are authenticated. They delegate to the
 // canonical player/profile, responsible-gaming and security architecture;
 // legacy guest pages are not allowed to invent account state.
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::get('/player/security', [PlayerSecuritySettingsController::class, 'index'])->name('player.security');
     Route::get('/player/settings', [PlayerSecuritySettingsController::class, 'index'])->name('player.settings');
     Route::get('/settings', [PlayerWebController::class, 'responsibleGaming'])->name('settings.index');
@@ -369,7 +369,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/member/profile', fn () => redirect()->route('player.profile'))->name('member.profile');
     Route::get('/player/profile-portal', fn () => redirect()->route('player.profile'))->name('player.profile.portal');
 });
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::get('/history', fn () => redirect()->route('player.bets'))->name('history.index');
     Route::get('/member/history', fn () => redirect()->route('player.bets'))->name('member.history');
     Route::get('/player/history-portal', fn () => redirect()->route('player.bets'))->name('player.history.portal');
@@ -921,7 +921,7 @@ Route::get('/sitemap.xml', SitemapController::class)
 |
 */
 
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'auth.session'])->group(function (): void {
     // The config values may be absolute URLs ("${APP_URL}/payment/success")
     // because the gateway drivers hand them to providers; route registration
     // only wants the path component, so normalize once here.
@@ -964,7 +964,7 @@ Route::post('/contact', [ContactController::class, 'submit'])
 | LOTTOFIN ADMIN & Operations Console Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'can:access-admin'])->group(function (): void {
+Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'auth.session', 'can:access-admin'])->group(function (): void {
     Route::get('/legacy', [LottoFinExecutiveDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [LottoFinExecutiveDashboardController::class, 'index'])->name('dashboard.index');
     Route::get('/api/analytics', [LottoFinExecutiveDashboardController::class, 'analyticsApi'])
@@ -1262,7 +1262,7 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'can:access-ad
 | Authenticated support and notification projections
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::get('/support', [SupportPortalController::class, 'index'])->name('support.index');
     Route::post('/support', [SupportPortalController::class, 'store'])
         ->middleware('throttle:contact-submit')
@@ -1282,7 +1282,7 @@ Route::middleware('auth')->group(function (): void {
 | Agent Portal Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('agent')->name('agent.')->middleware('auth')->group(function (): void {
+Route::prefix('agent')->name('agent.')->middleware(['auth', 'auth.session'])->group(function (): void {
     Route::get('/', [AgentPortalController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard', [AgentPortalController::class, 'dashboard'])->name('dashboard.index');
     Route::get('/commissions', [AgentPortalController::class, 'commissions'])->name('commissions');
@@ -1315,7 +1315,7 @@ Route::prefix('chat')->name('chat.')->middleware(EnsureChatGuestToken::class)->g
         ->name('attachments.download');
 });
 
-Route::prefix('operator/chat')->name('operator.chat.')->middleware(['auth', 'can:access-admin'])->group(function (): void {
+Route::prefix('operator/chat')->name('operator.chat.')->middleware(['auth', 'auth.session', 'can:access-admin'])->group(function (): void {
     Route::get('/', [ChatOperatorController::class, 'console'])->name('console');
     Route::get('/dashboard', [ChatOperatorController::class, 'dashboard'])->name('dashboard');
     Route::post('/take', [ChatOperatorController::class, 'takeNext'])->name('take');
@@ -1349,7 +1349,7 @@ Route::prefix('operator/chat')->name('operator.chat.')->middleware(['auth', 'can
     Route::get('/health', [ChatOperatorController::class, 'health'])->name('health');
 });
 
-Route::prefix('admin/chat/canned')->name('admin.chat.canned.')->middleware(['auth', 'can:access-admin'])->group(function (): void {
+Route::prefix('admin/chat/canned')->name('admin.chat.canned.')->middleware(['auth', 'auth.session', 'can:access-admin'])->group(function (): void {
     Route::get('/', [ChatAdminController::class, 'index'])->name('index');
     Route::post('/', [ChatAdminController::class, 'store'])->name('store');
     Route::put('/{cannedResponse}', [ChatAdminController::class, 'update'])

@@ -40,14 +40,18 @@ final class DurableDepositCheckoutTest extends PaymentTestCase
         return app(PaymentInitiationService::class)->initiateDeposit($f['wallet'], Money::of('100.00', Currency::THB), PaymentMethod::Stripe, $key, $options);
     }
 
-    private function fakeSuccess(?\Closure $before = null): void
+    private function fakeSuccess(?\Closure $before = null, mixed $paymentIntent = null): void
     {
-        Http::fake(['api.stripe.com/*' => function ($request) use ($before) {
+        Http::fake(['api.stripe.com/*' => function ($request) use ($before, $paymentIntent) {
             if ($before) {
                 $before($request);
             }
+            $body = ['id' => 'SYNTHETIC-CHECKOUT-RESPONSE', 'url' => 'https://example.invalid/checkout', 'private_test_secret' => 'SYNTHETIC-NOT-A-LIVE-SECRET'];
+            if ($paymentIntent !== null) {
+                $body['payment_intent'] = $paymentIntent;
+            }
 
-            return Http::response(['id' => 'SYNTHETIC-CHECKOUT-RESPONSE', 'url' => 'https://example.invalid/checkout', 'private_test_secret' => 'SYNTHETIC-NOT-A-LIVE-SECRET'], 200);
+            return Http::response($body, 200);
         }]);
     }
 
@@ -88,6 +92,103 @@ final class DurableDepositCheckoutTest extends PaymentTestCase
         Http::assertSentCount(1);
         $this->assertDatabaseCount('financial_transactions', 0);
         $this->assertSame('0.00', $f['wallet']->fresh()->balance);
+    }
+
+    public function test_projected_response_replay_ignores_only_json_object_key_order(): void
+    {
+        $f = $this->fixture();
+        $this->fakeSuccess();
+        $first = $this->runCheckout($f);
+        $payment = Payment::query()->sole();
+        $metadata = $payment->metadata;
+        $original = $metadata['original_initiation_response'];
+        $original['metadata'] = array_reverse($original['metadata'], true);
+        $metadata['original_initiation_response'] = array_reverse($original, true);
+        $payment->metadata = $metadata;
+        $payment->save();
+
+        $replay = app(DepositCheckoutService::class)->recover($first['deposit']);
+        $this->assertSame($first['gateway_response']->toArray(), $replay['gateway_response']->toArray());
+        $this->assertSame('projected', DB::table(DepositCheckoutService::TABLE)->sole()->state);
+        $this->assertSame('0.00', $f['wallet']->fresh()->balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
+        Http::assertSentCount(1);
+    }
+
+    public function test_projected_response_accepts_nested_object_key_reordering_only(): void
+    {
+        $f = $this->fixture();
+        $this->fakeSuccess(paymentIntent: ['z' => ['second' => 2, 'first' => 1], 'a' => 'synthetic']);
+        $first = $this->runCheckout($f);
+        $raw = DB::table('payments')->value('metadata');
+        $document = json_decode($raw, false, 64, JSON_THROW_ON_ERROR);
+        $intent = $document->original_initiation_response->metadata->payment_intent;
+        $intent->z = (object) array_reverse(get_object_vars($intent->z), true);
+        $document->original_initiation_response->metadata->payment_intent = (object) array_reverse(get_object_vars($intent), true);
+        DB::table('payments')->update(['metadata' => json_encode($document, JSON_THROW_ON_ERROR)]);
+
+        $replay = app(DepositCheckoutService::class)->recover($first['deposit']);
+        $this->assertSame($first['gateway_response']->toArray(), $replay['gateway_response']->toArray());
+        $this->assertDatabaseCount('financial_transactions', 0);
+        Http::assertSentCount(1);
+    }
+
+    public static function alteredJsonShapes(): array
+    {
+        return [
+            'empty list changed to object' => [[], (object) []],
+            'numeric object changed to list' => [[1 => 'b', 0 => 'a'], ['a', 'b']],
+            'list order changed' => [['first', 'second'], ['second', 'first']],
+        ];
+    }
+
+    #[DataProvider('alteredJsonShapes')]
+    public function test_projected_response_refuses_object_list_shape_and_list_order_changes(mixed $original, mixed $tampered): void
+    {
+        $f = $this->fixture();
+        $this->fakeSuccess(paymentIntent: $original);
+        $first = $this->runCheckout($f);
+        $cipherBefore = DB::table(DepositCheckoutService::TABLE)->value('response_cipher');
+        $document = json_decode(DB::table('payments')->value('metadata'), false, 64, JSON_THROW_ON_ERROR);
+        $document->original_initiation_response->metadata->payment_intent = $tampered;
+        DB::table('payments')->update(['metadata' => json_encode($document, JSON_THROW_ON_ERROR)]);
+
+        $this->refusal(fn () => app(DepositCheckoutService::class)->recover($first['deposit']), 'checkout_response_unproven');
+        $this->assertSame($cipherBefore, DB::table(DepositCheckoutService::TABLE)->value('response_cipher'));
+        $this->assertSame('0.00', $f['wallet']->fresh()->balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
+        Http::assertSentCount(1);
+    }
+
+    public static function alteredProjectedResponses(): array
+    {
+        return [['wrong_reference'], ['changed_nested_value'], ['coerced_boolean'], ['missing_null_field'], ['extra_field']];
+    }
+
+    #[DataProvider('alteredProjectedResponses')]
+    public function test_projected_response_replay_still_refuses_changed_values_types_and_field_sets(string $kind): void
+    {
+        $f = $this->fixture();
+        $this->fakeSuccess();
+        $first = $this->runCheckout($f);
+        $payment = Payment::query()->sole();
+        $metadata = $payment->metadata;
+        $proof = $metadata['original_initiation_response'];
+        match ($kind) {
+            'wrong_reference' => $proof['provider_reference'] = 'SYNTHETIC-OTHER',
+            'changed_nested_value' => $proof['metadata']['session_id'] = 'SYNTHETIC-OTHER',
+            'coerced_boolean' => $proof['successful'] = 1,
+            'missing_null_field' => $proof = array_diff_key($proof, ['client_secret' => true]),
+            'extra_field' => $proof['unexpected'] = null,
+        };
+        $metadata['original_initiation_response'] = $proof;
+        $payment->metadata = $metadata;
+        $payment->save();
+
+        $this->refusal(fn () => app(DepositCheckoutService::class)->recover($first['deposit']), 'checkout_response_unproven');
+        $this->assertSame('0.00', $f['wallet']->fresh()->balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
+        Http::assertSentCount(1);
     }
 
     public static function uncertainResponses(): array
@@ -160,6 +261,43 @@ final class DurableDepositCheckoutTest extends PaymentTestCase
                 DB::afterCommit(fn () => throw new \RuntimeException('SYNTHETIC PROCESS STOP AFTER COMMIT'));
             }
         });
+    }
+
+    public function test_closed_launch_switch_blocks_first_dispatch_of_a_prepared_checkout(): void
+    {
+        $f = $this->fixture();
+        $this->fakeSuccess();
+        $this->interruptAfterCommit('insert into');
+        try {
+            $this->runCheckout($f);
+            $this->fail('Committed prepare interruption did not fire.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('SYNTHETIC PROCESS STOP AFTER COMMIT', $e->getMessage());
+        }
+        self::assertSame('prepared', DB::table(DepositCheckoutService::TABLE)->sole()->state);
+        config(['real_money.enabled' => false]);
+        $this->refusal(fn () => $this->runCheckout($f), 'real_money_disabled');
+        self::assertSame('prepared', DB::table(DepositCheckoutService::TABLE)->sole()->state);
+        Http::assertNothingSent();
+        self::assertSame('0.00', (string) $f['wallet']->fresh()->balance);
+        config(['real_money.enabled' => true]);
+        $this->runCheckout($f);
+        Http::assertSentCount(1);
+    }
+
+    public function test_closed_launch_switch_preserves_already_custodied_checkout_replay(): void
+    {
+        $f = $this->fixture();
+        $this->fakeSuccess();
+        $first = $this->runCheckout($f);
+        config(['real_money.enabled' => false]);
+        $again = $this->runCheckout($f);
+        self::assertSame($first['deposit']->id, $again['deposit']->id);
+        self::assertSame($first['payment']->id, $again['payment']->id);
+        self::assertSame($first['gateway_response']->toArray(), $again['gateway_response']->toArray());
+        self::assertSame('projected', DB::table(DepositCheckoutService::TABLE)->sole()->state);
+        self::assertSame('0.00', (string) $f['wallet']->fresh()->balance);
+        Http::assertSentCount(1);
     }
 
     public function test_prepared_intent_can_resume_only_after_current_admission_and_recover_never_dispatches_it(): void
@@ -392,7 +530,12 @@ final class DurableDepositCheckoutTest extends PaymentTestCase
         });
         $out = $this->runCheckout($f);
         $this->assertSame('captured', $out['payment']->status->value);
-        $this->assertSame($evidence, $out['payment']->gateway_response);
+        // MySQL stores JSON object members in its own key order; still compare
+        // the exact key set, value types and values, not PHP insertion order.
+        $storedEvidence = $out['payment']->gateway_response;
+        ksort($evidence);
+        ksort($storedEvidence);
+        $this->assertSame($evidence, $storedEvidence);
         $this->assertSame('100.00', $f['wallet']->fresh()->balance);
         $this->assertDatabaseCount('financial_transactions', 1);
         $this->assertDatabaseCount('ledger_entries', 2);

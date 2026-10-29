@@ -18,11 +18,13 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * runs only when CONCURRENCY_TEST_DSN is set, so a normal `php artisan test`
  * run is unaffected and nothing here can reach a shared database by accident.
  *
- *   CONCURRENCY_TEST_DSN="mysql://user:pass@127.0.0.1:13306/thai_lottery_conc"
- *   CONCURRENCY_TEST_DSN="pgsql://user:pass@127.0.0.1:15432/thai_lottery_conc"
+ *   CONCURRENCY_TEST_ALLOW_DESTRUCTIVE=1
+ *   CONCURRENCY_TEST_DSN="mysql://concurrency_test:pass@127.0.0.1:13306/thai_lottery_conc"
+ *   CONCURRENCY_TEST_DSN="pgsql://concurrency_test:pass@127.0.0.1:15432/thai_lottery_conc"
  *
- * Several engines may be given comma-separated; each is rebuilt from scratch
- * (migrate:fresh) and driven independently. The database must be disposable.
+ * Several local engines may be given comma-separated; each is rebuilt from
+ * scratch (migrate:fresh). Provision a separate disposable schema and a
+ * test-only account with privileges limited to that schema.
  */
 final class PasswordLifecycleRealEngineTest extends TestCase
 {
@@ -103,8 +105,10 @@ final class PasswordLifecycleRealEngineTest extends TestCase
         self::assertSame([], $report['timedOut'], "workers timed out:\n{$context}");
         self::assertSame([], $report['missingResults'], "workers produced no result:\n".$context."\n".json_encode($report['missingResults']));
         self::assertSame([], $report['workerErrors'], "workers reported errors:\n{$context}\n".json_encode($report['workerErrors']));
-        self::assertGreaterThan(0, $report['loginAttempts'], "no login attempts ran:\n{$context}");
-        self::assertGreaterThan(0, $report['changesCommitted'], "no password change committed, so nothing was proven:\n{$context}");
+        self::assertSame(5, $report['workers'], "not every worker reported:\n{$context}");
+        self::assertSame(160, $report['loginAttempts'], "the full login workload did not run:\n{$context}");
+        self::assertSame(12, $report['changeAttempts'], "the full password-change workload did not run:\n{$context}");
+        self::assertSame(12, $report['changesCommitted'], "every sequential password change must commit:\n{$context}");
 
         // 1. No stale resurrection: the stored hash validates exactly one
         //    candidate, and it is the last password the changer committed.

@@ -7,6 +7,7 @@ namespace App\Services\Payment;
 use App\Models\Payment;
 use App\Models\Payout;
 use App\Models\Withdrawal;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /** One immutable SQL owner across covered prize/withdrawal lanes. No provider call, money write or historical backfill. */
@@ -52,10 +53,14 @@ final class OutboundProviderReferenceService
         }
         // A no-op upsert takes an exclusive duplicate-key lock directly; INSERT IGNORE
         // followed by FOR UPDATE can deadlock on two shared-to-exclusive upgrades.
-        DB::table('outbound_provider_references')->upsert([['identity_key' => $key,
-            'payout_id' => $row instanceof Payout ? $row->id : null, 'withdrawal_id' => $row instanceof Withdrawal ? $row->id : null,
-            'payment_id' => $payment?->id, 'provider' => $provider, 'account_scope' => $scope,
-            'reference_hash' => hash('sha256', $reference), 'created_at' => now()]], ['identity_key'], ['identity_key' => DB::raw('identity_key')]);
+        try {
+            DB::table('outbound_provider_references')->upsert([['identity_key' => $key,
+                'payout_id' => $row instanceof Payout ? $row->id : null, 'withdrawal_id' => $row instanceof Withdrawal ? $row->id : null,
+                'payment_id' => $payment?->id, 'provider' => $provider, 'account_scope' => $scope,
+                'reference_hash' => hash('sha256', $reference), 'created_at' => now()]], ['identity_key'], ['identity_key' => DB::raw('identity_key')]);
+        } catch (UniqueConstraintViolationException) {
+            $history->refuse();
+        }
         $owner = DB::table('outbound_provider_references')->where('identity_key', $key)->lockForUpdate()->first();
         $this->verify($owner, $row, $provider, $scope, $reference, $payment);
         // Ownership is decisive before scans; historical ambiguity rolls the whole caller transaction back.
@@ -72,7 +77,11 @@ final class OutboundProviderReferenceService
     public function assertBound(Payout|Withdrawal $row, string $provider, string $scope, string $reference, ?Payment $payment): void
     {
         $key = $this->identity($provider, $scope, $reference);
-        $owner = DB::table('outbound_provider_references')->where('identity_key', $key)->first();
+        $query = DB::table('outbound_provider_references')->where('identity_key', $key);
+        if (DB::transactionLevel() > 0) {
+            $query->lockForUpdate(); // current owner after any earlier snapshot/wallet wait
+        }
+        $owner = $query->first();
         $this->verify($owner, $row, app(WithdrawalProviderAccountService::class)->canonical($provider), $scope, $reference, $payment);
         app(FinancialProviderReferenceService::class)->assertBound($row, $provider, $scope, $reference, $payment);
         if ($payment && (int) $owner->payment_id !== (int) $payment->id) {

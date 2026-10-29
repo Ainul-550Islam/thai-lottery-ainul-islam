@@ -24,7 +24,7 @@ class UploadQuarantineScanTest extends TestCase
         Storage::fake('quarantine');
         Storage::fake('kyc_secure');
 
-        $uploadedFile = UploadedFile::fake()->create('id_card.pdf', 500, 'application/pdf');
+        $uploadedFile = UploadedFile::fake()->createWithContent('id_card.pdf', "%PDF-1.4\nsynthetic test ID\n%%EOF\n");
 
         $quarantineService = new UploadQuarantineService;
         $record = $quarantineService->quarantineUploadedFile($uploadedFile, 'user-789', 'KYC');
@@ -35,7 +35,7 @@ class UploadQuarantineScanTest extends TestCase
         $mockScanner = Mockery::mock(MalwareScanner::class);
         $mockScanner->shouldReceive('scanStream')
             ->once()
-            ->andReturn(MalwareScanResult::clean(10, 'ClamAV 1.0.0'));
+            ->andReturn(MalwareScanResult::clean(10, 'ClamAV 1.0.0', (string) $record->file_sha256, (int) $record->file_size_bytes));
 
         $scanService = new UploadScanService($quarantineService, $mockScanner);
         $result = $scanService->scanRecord($record->id);

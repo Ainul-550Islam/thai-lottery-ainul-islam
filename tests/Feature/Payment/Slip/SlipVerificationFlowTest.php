@@ -145,6 +145,26 @@ final class SlipVerificationFlowTest extends PaymentTestCase
         self::assertSame('0.00', $player['wallet']->fresh()->balance);
     }
 
+    public function test_a_provider_result_with_a_masked_final_digit_cannot_credit_a_matching_deposit(): void
+    {
+        config(['slip_verification.auto_credit' => true]);
+        $player = $this->createPlayer('0.00');
+        $deposit = app(DepositService::class)->request($player['wallet'], Money::of('121.25', Currency::THB), PaymentMethod::BankTransfer);
+        // The four visible digits are followed by a masked digit, so they do not
+        // prove the account ends in 1234 even if the bank and name match.
+        $result = $this->slipResult('SLIP-UNKNOWN-RECEIVER-SUFFIX', '121.25', receiverAccountMasked: 'xxx1234x');
+
+        $verification = $this->service($this->provider($result))
+            ->verify($player['user'], null, 'QR-VALID', '121.25', '203.0.113.27', $deposit);
+
+        self::assertSame(SlipVerificationStatus::Rejected, $verification->status);
+        self::assertSame('receiver_mismatch', $verification->review_reason);
+        self::assertSame('0.00', (string) $player['wallet']->fresh()->balance);
+        self::assertSame('pending', $deposit->fresh()->status->value);
+        self::assertDatabaseCount('financial_transactions', 0);
+        self::assertDatabaseCount('ledger_entries', 0);
+    }
+
     public function test_receiver_account_configuration_must_match_the_four_digits_exposed_by_provider_masks(): void
     {
         config(['slip_verification.receiving_accounts' => [[

@@ -11,13 +11,15 @@ use App\Enums\RiskLevel;
 use App\Models\Support\AbstractLotteryResultVersion;
 use App\Models\User;
 use App\Services\Audit\AuditLogService;
+use App\Services\Draw\AdminDrawResultWorkflow;
 use App\Services\Lottery\Support\AbstractLotteryImportService;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use InvalidArgumentException;
 
 /**
- * Manual result entry for the four sourced product lanes, with two-person
- * approval and an immutable published record.
+ * Operator result entry. Thai draw cards are delegated to the existing
+ * AdminDrawResultWorkflow; the separately stored sourced product lanes retain
+ * their own versioned import engines. Both require two-person review.
  *
  * ============================================================================
  * WHY THIS EXISTS
@@ -116,7 +118,20 @@ final class OperatorResultEntryService
     public function __construct(
         private readonly ConfigRepository $config,
         private readonly AuditLogService $audit,
+        private readonly AdminDrawResultWorkflow $drawWorkflow,
     ) {}
+
+    /** Stage a Thai draw result; actor, source and authorization are server-owned. */
+    public function ingestDraw(int $drawId, array $numbers): array
+    {
+        return $this->drawWorkflow->ingest($drawId, $numbers);
+    }
+
+    /** A different authorized operator confirms the exact, fingerprinted card. */
+    public function confirmDraw(int $drawId, array $numbers, string $notes, string $fingerprint): array
+    {
+        return $this->drawWorkflow->confirm($drawId, $numbers, $notes, $fingerprint);
+    }
 
     /**
      * Every lane this service supports, with its operator-provider state, for

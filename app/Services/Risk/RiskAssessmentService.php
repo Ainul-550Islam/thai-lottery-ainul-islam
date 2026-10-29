@@ -229,6 +229,12 @@ class RiskAssessmentService
         $currency = $this->resolver->currency();
         $released = [];
 
+        // Refuse a batch that names one canonical number twice BEFORE locking,
+        // for the same reason the reservation path does: $released is keyed by
+        // number, so a duplicate selection would release capacity twice while
+        // reporting it once.
+        $this->assertNoDuplicateSelections($drawId, $betType, $selections);
+
         // Lock in a deterministic order first, exactly as the reservation path does.
         $triples = [];
 
@@ -242,19 +248,62 @@ class RiskAssessmentService
 
         $this->locks->lockMany($triples);
 
-        foreach ($selections as $selection) {
-            $number = $this->numbers->normalize($selection['number'], $betType);
+        // Build the whole batch and hand it to the engine as ONE operation, the
+        // same way reserveBet() hands its batch to reserveMany(). Releasing the
+        // numbers one engine call at a time left the facade with no batch
+        // boundary: when a later number was refused, the earlier releases had
+        // already been committed to the caller's transaction and stayed there if
+        // the caller caught the exception and committed, so capacity came back
+        // for a release the batch reported as failed.
+        $entries = [];
 
-            $released[$number] = $this->engine->release(
-                $drawId,
-                $betType,
-                $number,
-                $this->money->money($selection['stake'], $currency),
-                $selection['multiplier'] ?? $this->multiplierFor($betType, $selection['market'] ?? null),
-            );
+        foreach ($selections as $selection) {
+            $entries[] = [
+                'number' => $this->numbers->normalize($selection['number'], $betType),
+                'stake' => $this->money->money($selection['stake'], $currency),
+                'multiplier' => $selection['multiplier'] ?? $this->multiplierFor($betType, $selection['market'] ?? null),
+            ];
         }
 
-        return $released;
+        return $this->engine->releaseMany($drawId, $betType, $entries);
+    }
+
+    /**
+     * Refuse a batch that names the same canonical number twice.
+     *
+     * The keyed write paths (reserveMany, releaseBet) report their work per
+     * number, so a duplicate collapses two mutations into one reported line and
+     * the batch silently under-reports what it did to capacity. Detection is on
+     * the NORMALISED number, because '007', '7' and ' 7 ' are one selection. It
+     * runs before any lock is taken, so a refused batch has touched nothing.
+     *
+     * The read-only assess() path does not use this: it keys verdicts by index
+     * and number, so duplicates survive in its report.
+     *
+     * @param  list<array<string, mixed>>  $selections
+     *
+     * @throws RiskException
+     */
+    private function assertNoDuplicateSelections(int $drawId, BetType $betType, array $selections): void
+    {
+        $seen = [];
+
+        foreach ($selections as $selection) {
+            $number = $this->numbers->normalize((string) ($selection['number'] ?? ''), $betType);
+
+            if (isset($seen[$number])) {
+                throw RiskException::withCode(
+                    'RISK_DUPLICATE_SELECTION',
+                    sprintf(
+                        'Batch names number [%s] more than once; a keyed report would under-report the mutation.',
+                        $number,
+                    ),
+                    ['draw_id' => $drawId, 'bet_type' => $betType->value, 'number' => $number],
+                );
+            }
+
+            $seen[$number] = true;
+        }
     }
 
     /**

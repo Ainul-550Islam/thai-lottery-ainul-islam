@@ -10,6 +10,7 @@ use App\Filament\Resources\AuditLogResource;
 use App\Jobs\Notification\SendFinancialAlertJob;
 use App\Listeners\RecordPrizeDisbursementAudit;
 use App\Models\AuditLog;
+use App\Models\Payout;
 use App\Models\User;
 use App\Services\Audit\AuditLogService;
 use FilesystemIterator;
@@ -385,6 +386,22 @@ final class AuditSubjectTruthTest extends TestCase
             AuditLog::query()->where('metadata->lane', 'prize-disbursement')->count(),
             'the dedupe branch has to run to work: before, it raised an unknown-column error instead'
         );
+    }
+
+    #[Test]
+    public function a_disbursement_without_its_own_id_names_the_real_payout(): void
+    {
+        $payout = Payout::factory()->create();
+        $scribe = app(RecordPrizeDisbursementAudit::class);
+        $scribe->from($payout, 'reserved', '12.00', hash('sha256', 'payout-proof'), 'review');
+        $scribe->from($payout, 'reserved', '12.00', hash('sha256', 'payout-proof'), 'review');
+
+        $rows = AuditLog::query()->where('metadata->lane', 'prize-disbursement')->get();
+        $this->assertCount(1, $rows);
+        $this->assertSame(Payout::class, $rows[0]->auditable_type);
+        $this->assertSame((int) $payout->getKey(), $rows[0]->auditable_id);
+        $this->assertInstanceOf(Payout::class, $rows[0]->auditable);
+        $this->assertNotEmpty($rows[0]->metadata[AuditLog::ANCHOR_KEY] ?? null);
     }
 
     #[Test]

@@ -42,17 +42,51 @@ final class CssJsParityTest extends TestCase
         $this->assertStringContainsString('prefers-reduced-motion', $css, 'Reduced motion must be preserved');
     }
 
-    public function test_live_draw_js_has_autoplay(): void
+    /**
+     * The live-draw enhancement must not take over playback.
+     *
+     * This used to grep the module for the STRINGS 'autoplay', 'mute' and the
+     * function name 'ensureAutoplay', which asserted an implementation instead of
+     * a behaviour — and the implementation it demanded was the wrong one. The
+     * module forced `autoplay=1&mute=1` onto the server-rendered iframe and added
+     * `allow="autoplay"` itself, so a stream the operator had stored with
+     * `autoplay=0` started playing on a public page nobody asked to start one on.
+     * home.blade.php already renders both the embed URL and the full allow list
+     * ("autoplay; encrypted-media; picture-in-picture; fullscreen"), so playback
+     * permissions are the server's to grant, not this script's.
+     *
+     * Asserting the absence of a rewrite is also what tests/js/home-live-draw.test.mjs
+     * does behaviourally, by running the module against a fake DOM and comparing
+     * the resulting src byte for byte. The two suites disagreed, and the grep won
+     * only because nothing read the rendered URL. This now checks the same
+     * contract from the PHP side.
+     */
+    public function test_live_draw_js_never_rewrites_the_server_rendered_player(): void
     {
         $js = (string) file_get_contents(base_path('resources/js/home/live-draw.js'));
 
-        $this->assertStringContainsString('autoplay', $js, 'Missing autoplay in live-draw.js');
-        $this->assertStringContainsString('mute', $js, 'Missing mute in live-draw.js');
-        $this->assertStringContainsString('ensureAutoplay', $js, 'Missing ensureAutoplay function');
-        $this->assertStringContainsString('youtube.com', $js, 'Missing youtube.com check');
-        $this->assertStringContainsString('youtu.be', $js, 'Missing youtu.be check');
-        // Must not invent media — check it guards with iframe existence
-        $this->assertStringContainsString('iframe', $js);
+        // Assertions about what CODE does must not read the comments. The module
+        // carries a docblock explaining exactly why it no longer forces autoplay,
+        // and grepping the raw file made that explanation fail the very check it
+        // documents. Comments are stripped first, so every assertion below is
+        // about executable source only.
+        $code = (string) preg_replace('~/\*.*?\*/|//[^\n]*~s', '', $js);
+
+        // It is a disenhancement: the only DOM removal it may perform is of media
+        // the server did not vouch for.
+        $this->assertStringContainsString('removeMedia', $code, 'the module must still strip unvouched media');
+        $this->assertStringContainsString('iframe', $code, 'the module must still work on rendered media elements');
+
+        // It must not write a src or widen a permission attribute.
+        $this->assertStringNotContainsString("setAttribute('src'", $code, 'the rendered embed URL must not be rewritten');
+        $this->assertStringNotContainsString('setAttribute("src"', $code, 'the rendered embed URL must not be rewritten');
+        $this->assertStringNotContainsString("setAttribute('allow'", $code, 'playback permissions belong to the server-rendered markup');
+        $this->assertStringNotContainsString('setAttribute("allow"', $code, 'playback permissions belong to the server-rendered markup');
+
+        // And it must not force the parameters that made the old behaviour wrong.
+        $this->assertStringNotContainsString('autoplay=1', $code, 'the module must not force autoplay on a stream the operator configured');
+        $this->assertStringNotContainsString('mute=1', $code, 'the module must not force mute on a stream the operator configured');
+        $this->assertStringNotContainsString('autoplay', $code, 'the module must not touch the autoplay parameter at all');
     }
 
     public function test_brand_png_assets_exist(): void

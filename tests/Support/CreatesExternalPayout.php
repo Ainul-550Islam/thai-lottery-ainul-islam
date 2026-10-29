@@ -225,6 +225,11 @@ PHP;
             $this->assertNotSame(...$connections);
             $parent = (int) $db->selectOne('SELECT CONNECTION_ID() AS id')->id;
             $db->beginTransaction();
+            // Primary and alias references now share an earlier identity
+            // mutex; contend on that actual decisive row rather than the
+            // downstream owner row, which only the first child can reach.
+            $lockTable = $table === 'financial_provider_reference_owners'
+                ? 'financial_provider_reference_locks' : $table;
             $primary = $table === 'wallets' || ($commands[0]['action'] ?? null) === 'route'
                 || str_starts_with($commands[0]['action'] ?? '', 'claim_');
             if ($primary) {
@@ -234,19 +239,15 @@ PHP;
                 $this->assertNotNull($db->table($table)->where('reference_number', $reference)->lockForUpdate()->first());
             } else {
                 $key = $db->table($table)->where('id', $id)->value('identity_key');
-                $this->assertNotNull($db->table($table)->where('identity_key', $key)->lockForUpdate()->first());
+                $this->assertNotNull($db->table($lockTable)->where('identity_key', $key)->lockForUpdate()->first());
             }
             file_put_contents($directory.'/go', 'go');
             $waiting = 0;
             $deadline = microtime(true) + 10;
-            $index = $primary ? 'PRIMARY' : ($table === 'payouts' ? 'reference_number' : 'identity_key');
+            $index = ($primary || $lockTable === 'financial_provider_reference_locks')
+                ? 'PRIMARY' : ($table === 'payouts' ? 'reference_number' : 'identity_key');
             while ($waiting !== 2 && microtime(true) < $deadline) {
-                $waiting = (int) $db->selectOne('SELECT COUNT(DISTINCT t.trx_mysql_thread_id) AS n FROM information_schema.INNODB_LOCK_WAITS w '
-                    .'JOIN information_schema.INNODB_TRX t ON t.trx_id=w.requesting_trx_id '
-                    .'JOIN information_schema.INNODB_TRX b ON b.trx_id=w.blocking_trx_id '
-                    .'JOIN information_schema.INNODB_LOCKS l ON l.lock_id=w.requested_lock_id '
-                    .'WHERE t.trx_mysql_thread_id IN (?, ?) AND b.trx_mysql_thread_id=? AND l.lock_table LIKE ? AND l.lock_index LIKE ?',
-                    [...$connections, $parent, '%'.$table.'%', '%'.$index.'%'])->n;
+                $waiting = InnoDbLockWitness::waiting($db, $connections, $parent, $lockTable, $index);
                 if ($waiting !== 2) {
                     usleep(200000);
                 }
@@ -262,7 +263,7 @@ PHP;
             }
             $witness = getenv('FINANCIAL_PAYOUT_WITNESS');
             if (is_string($witness) && str_starts_with($witness, sys_get_temp_dir().'/payout-races-')) {
-                file_put_contents($witness, json_encode(['case' => $this->name(), 'table' => $table, 'lock_index' => $index,
+                file_put_contents($witness, json_encode(['case' => $this->name(), 'table' => $lockTable, 'owner_table' => $table, 'lock_index' => $index,
                     'blocker_row_id' => $id, 'parent_blocker' => $parent, 'child_connections' => $connections,
                     'waiting_children' => $waiting, 'payout_ids' => array_column($commands, 'payout_id'), 'outcomes' => $outcomes], JSON_THROW_ON_ERROR)."\n", FILE_APPEND | LOCK_EX);
             }

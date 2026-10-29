@@ -14,6 +14,7 @@ use App\Services\Draw\DrawLifecycleService;
 use App\Services\Draw\DrawResultConfirmationService;
 use App\Services\Draw\DrawResultIngestionService;
 use App\Services\Lottery\GloPublicResultService;
+use App\Services\Lottery\PrizeVerificationService;
 use App\Services\PublicPages\PublishedResultSourceResolver;
 use DOMDocument;
 use DOMXPath;
@@ -94,6 +95,36 @@ final class PublicResultEvidenceTest extends TestCase
         self::assertSame(GloSourceState::OfficialSourceVerified, app(PublishedResultSourceResolver::class)->resolve($result, $draw->fresh()));
         $this->get('/results')->assertOk()->assertSee('data-source-state="OFFICIAL_SOURCE_VERIFIED"', false);
         $this->getJson('/api/v1/glo/results/sheet?draw='.$draw->draw_number)->assertOk()->assertJsonPath('data.source_state', 'OFFICIAL_SOURCE_VERIFIED');
+        self::assertSame($before, $this->moneyCounts());
+    }
+
+    public function test_prize_orchestrator_compares_only_while_full_persisted_provenance_is_valid(): void
+    {
+        $draw = $this->heldDraw();
+        // Synthetic import, but real ingestion, distinct maker/checker and
+        // publication evidence; it is not a live provider-authenticity claim.
+        $this->publishProviderResult($draw, 'official', '000007', '58');
+        $before = $this->moneyCounts();
+        $service = app(PrizeVerificationService::class);
+
+        $winning = $service->verify('number', '000007', drawRef: $draw->draw_number);
+        self::assertSame(PrizeVerificationService::WINNING, $winning['status']);
+        self::assertNotEmpty($winning['prize']['matches']);
+        self::assertNotNull($winning['prize']['amount']);
+        self::assertFalse($winning['fixture']);
+        // A source-verified result is not an official ticket-verification service.
+        self::assertFalse($winning['official_source']);
+        $losing = $service->verify('number', '111114', drawRef: $draw->draw_number);
+        self::assertSame(PrizeVerificationService::FOUND_NOT_WINNING, $losing['status']);
+
+        GloResultImport::query()->where('draw_id', $draw->getKey())->update(['status' => 'failed']);
+        foreach (['000007', '111114'] as $number) {
+            $answer = $service->verify('number', $number, drawRef: $draw->draw_number);
+            self::assertSame(PrizeVerificationService::UNAVAILABLE, $answer['status']);
+            self::assertSame('RESULT_UNAVAILABLE', $answer['reason']);
+            self::assertSame([], $answer['prize']['matches']);
+            self::assertNull($answer['prize']['amount']);
+        }
         self::assertSame($before, $this->moneyCounts());
     }
 

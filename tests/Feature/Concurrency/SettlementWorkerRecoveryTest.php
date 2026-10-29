@@ -6,7 +6,9 @@ namespace Tests\Feature\Concurrency;
 
 use App\Enums\DrawStatus;
 use App\Enums\PayoutStatus;
+use App\Enums\QueueName;
 use App\Jobs\Draw\FinalizeDrawSettlementJob;
+use App\Jobs\Notification\SendFinancialAlertJob;
 use App\Jobs\Draw\ProcessPrizeSettlementJob;
 use App\Jobs\Draw\SettleDrawChunkJob;
 use App\Models\FinancialTransaction;
@@ -93,7 +95,7 @@ final class SettlementWorkerRecoveryTest extends PaymentTestCase
         [$process] = $this->probe($seconds);
         try {
             $process->wait();
-            $this->assertSame(0, $process->getExitCode(), 'Fresh Artisan worker refused its safe input.');
+            $this->assertSame(0, $process->getExitCode(), 'Fresh Artisan worker refused its safe input: '.$process->getOutput().' '.$process->getErrorOutput());
             $this->assertSame('', $process->getErrorOutput());
             $out = json_decode($process->getOutput(), true, 16, JSON_THROW_ON_ERROR);
             $this->assertTrue($out['worked']);
@@ -115,7 +117,7 @@ final class SettlementWorkerRecoveryTest extends PaymentTestCase
             while (! is_file($file.'.paused') && microtime(true) < $deadline && $process->isRunning()) {
                 usleep(10000);
             }
-            $this->assertFileExists($file.'.paused', 'Fault point must execute in the real worker.');
+            $this->assertFileExists($file.'.paused', 'Fault point must execute in the real worker: '.$process->getOutput().' '.$process->getErrorOutput());
             $marker = json_decode(file_get_contents($file.'.paused'), true, 16, JSON_THROW_ON_ERROR);
             $this->assertSame($phase, $marker['phase']);
             $this->assertSame('database', $marker['cache']);
@@ -154,13 +156,21 @@ final class SettlementWorkerRecoveryTest extends PaymentTestCase
         }
     }
 
+    private function financialJobs(): \Illuminate\Database\Query\Builder
+    {
+        return DB::table('jobs')->where('queue', QueueName::FinancialCritical->value);
+    }
+
     private function drain(int $start): void
     {
-        for ($i = 0; $i < 20 && DB::table('jobs')->count() > 0; $i++) {
+        // The fixture also schedules real notification jobs. They have a
+        // different lane; this recovery probe drains and verifies the money
+        // lane without deleting or treating those deliveries as settlement.
+        for ($i = 0; $i < 20 && $this->financialJobs()->count() > 0; $i++) {
             $this->workerAt($start + $i * 10);
             $this->assertSame(0, DB::table('failed_jobs')->count(), 'Overlap releases must not consume the recovery budget before lock expiry.');
         }
-        $this->assertSame(0, DB::table('jobs')->count());
+        $this->assertSame(0, $this->financialJobs()->count());
     }
 
     private function finished(array $f, SettlementRun $run, int $finance, int $entries, bool $pending = false): void
@@ -204,9 +214,9 @@ final class SettlementWorkerRecoveryTest extends PaymentTestCase
             while ($o->hasMoreWork($run)) {
                 $run = $o->runChunk($run);
             }
-            Queue::connection('database')->push(new FinalizeDrawSettlementJob((int) $run->draw_id, (int) $run->id));
+            Queue::connection('database')->push(new FinalizeDrawSettlementJob((int) $run->draw_id, (int) $run->id), '', QueueName::FinancialCritical->value);
         } else {
-            Queue::connection('database')->push(new SettleDrawChunkJob((int) $run->draw_id, (int) $run->id, 0));
+            Queue::connection('database')->push(new SettleDrawChunkJob((int) $run->draw_id, (int) $run->id, 0), '', QueueName::FinancialCritical->value);
         }
         $marker = $this->killAt($phase, (int) $f['draw']->id, $lag);
         $this->assertSame($phase === 'money' ? 0 : 1, Payout::query()->count());
@@ -218,9 +228,10 @@ final class SettlementWorkerRecoveryTest extends PaymentTestCase
         }
         if ($phase !== 'enqueued') {
             $this->workerAt(299); // Reservation is not visible early, even after worker death.
-            $this->assertSame(1, DB::table('jobs')->count());
+            $this->assertSame(1, $this->financialJobs()->count());
+            $this->assertSame(1, $this->financialJobs()->whereNotNull('reserved_at')->count());
         } else {
-            $this->assertSame(2, DB::table('jobs')->count(), 'Continuation and unacknowledged original both persist.');
+            $this->assertSame(2, $this->financialJobs()->count(), 'Continuation and unacknowledged original both persist.');
         }
         $this->drain($lag === 0 ? 301 : 300);
         $this->finished($f, $run, $finance, $entries, $pending);
@@ -262,7 +273,7 @@ final class SettlementWorkerRecoveryTest extends PaymentTestCase
         $f = $this->publishedDrawWithBets(['111', '222'], 'recovery-entry');
         $finance = FinancialTransaction::query()->count();
         $entries = LedgerEntry::query()->count();
-        Queue::connection('database')->push(new ProcessPrizeSettlementJob((int) $f['draw']->id));
+        Queue::connection('database')->push(new ProcessPrizeSettlementJob((int) $f['draw']->id), '', QueueName::FinancialCritical->value);
         $marker = $this->killAt('started', (int) $f['draw']->id, 25);
         $run = app(ChunkedSettlementOrchestrator::class)->runFor((int) $f['draw']->id);
         $this->assertNotNull($run);
@@ -284,11 +295,11 @@ final class SettlementWorkerRecoveryTest extends PaymentTestCase
     {
         $f = $this->publishedDrawWithBets(['111', '222'], 'recovery-deadline');
         $run = app(ChunkedSettlementOrchestrator::class)->start((int) $f['draw']->id, 1);
-        Queue::connection('database')->push(new SettleDrawChunkJob((int) $run->draw_id, (int) $run->id, 0));
-        $payload = json_decode(DB::table('jobs')->sole()->payload, true, 32, JSON_THROW_ON_ERROR);
+        Queue::connection('database')->push(new SettleDrawChunkJob((int) $run->draw_id, (int) $run->id, 0), '', QueueName::FinancialCritical->value);
+        $payload = json_decode($this->financialJobs()->sole()->payload, true, 32, JSON_THROW_ON_ERROR);
         $this->assertSame($this->epoch + 1800, $payload['retryUntil']);
         $this->workerAt(1801);
-        $this->assertSame(0, DB::table('jobs')->count());
+        $this->assertSame(0, $this->financialJobs()->count());
         $this->assertSame(1, DB::table('failed_jobs')->count());
         $this->assertSame(0, Payout::query()->count());
         $this->assertSame(0, $run->fresh()->bets_settled);
@@ -299,12 +310,16 @@ final class SettlementWorkerRecoveryTest extends PaymentTestCase
     {
         $f = $this->publishedDrawWithBets(['111', '222'], 'recovery-exceptions');
         $run = app(ChunkedSettlementOrchestrator::class)->start((int) $f['draw']->id, 1);
-        Queue::connection('database')->push(new SettleDrawChunkJob((int) $run->draw_id, (int) $run->id + 99999, 0));
+        Queue::connection('database')->push(new SettleDrawChunkJob((int) $run->draw_id, (int) $run->id + 99999, 0), '', QueueName::FinancialCritical->value);
         foreach ([0, 60, 120] as $index => $time) {
             $this->workerAt($time);
             $this->assertSame($index === 2 ? 1 : 0, DB::table('failed_jobs')->count());
         }
-        $this->assertSame(0, DB::table('jobs')->count());
+        $this->assertSame(0, $this->financialJobs()->count());
+        $alertQueued = DB::table('jobs')->where('queue', QueueName::Notifications->value)->get(['payload'])
+            ->contains(fn ($job) => data_get(json_decode($job->payload, true), 'displayName') === SendFinancialAlertJob::class
+                && str_contains($job->payload, 'Queue job failed'));
+        $this->assertTrue($alertQueued, 'A permanently failed money job must enqueue a real operational alert.');
         $this->assertSame(0, Payout::query()->count());
         $this->assertSame(0, $run->fresh()->bets_settled);
     }

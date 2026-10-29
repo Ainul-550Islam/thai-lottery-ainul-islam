@@ -68,12 +68,14 @@ class WalletMutationService
 
         $finance = $this->canonicalWallets();
         $currencyEnum = Currency::from(strtoupper($currency));
-        $scaledAmount = bcadd($amount, '0', 2);
+        // Validate the original amount, not a truncated copy: the wallet and
+        // legacy ledger must never disagree over fractional currency units.
+        $money = Money::of($amount, $currencyEnum);
 
         try {
             $finance->applyDebit(
                 $wallet,
-                Money::of($scaledAmount, $currencyEnum),
+                $money,
                 FinancialTransactionType::Transfer,
             );
         } catch (InsufficientBalanceException) {
@@ -158,19 +160,13 @@ class WalletMutationService
 
         $finance = $this->canonicalWallets();
         $currencyEnum = Currency::from(strtoupper($currency));
-        $scaledAmount = bcadd($amount, '0', 2);
-
-        $previousMaxBalance = config('finance.wallet.max_balance');
-        config(['finance.wallet.max_balance' => null]);
-        try {
-            $finance->applyCredit(
-                $wallet,
-                Money::of($scaledAmount, $currencyEnum),
-                FinancialTransactionType::Transfer,
-            );
-        } finally {
-            config(['finance.wallet.max_balance' => $previousMaxBalance]);
-        }
+        // Preserve the canonical maximum-balance guard and reject precision
+        // that would otherwise be truncated before the ledger is posted.
+        $finance->applyCredit(
+            $wallet,
+            Money::of($amount, $currencyEnum),
+            FinancialTransactionType::Transfer,
+        );
 
         $wallet->refresh();
 

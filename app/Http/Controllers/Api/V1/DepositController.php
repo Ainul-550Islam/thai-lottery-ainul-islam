@@ -9,6 +9,7 @@ use App\Enums\PaymentMethod;
 use App\Exceptions\FinancialException;
 use App\Http\Requests\Payment\DepositRequest;
 use App\Http\Responses\ApiResponse;
+use App\Http\Controllers\Payment\DepositMethodsPageController;
 use App\Models\Deposit;
 use App\Models\Wallet;
 use App\Services\Finance\Money;
@@ -28,22 +29,12 @@ final class DepositController
     /**
      * List payment methods available for deposits.
      */
-    public function methods(): JsonResponse
+    public function methods(Request $request, DepositMethodsPageController $catalogue): JsonResponse
     {
-        $methods = array_map(fn (PaymentMethod $m): array => [
-            'id' => $m->value,
-            'name' => $m->name,
-            'label' => $m->label(),
-        ], PaymentMethod::cases());
-
-        return ApiResponse::success(
-            data: [
-                'methods' => $methods,
-                'default_currency' => 'THB',
-                'currencies' => ['THB', 'USD', 'BDT'],
-            ],
-            message: 'Payment methods retrieved.',
-        );
+        // Both API URLs must project the same manager-backed catalogue. An
+        // enum inventory advertised disabled/unsupported rails, including
+        // crypto, and could not represent the deployment's actual currency.
+        return $catalogue->getDepositMethodsApi($request);
     }
 
     /**
@@ -92,9 +83,12 @@ final class DepositController
         $validated = $request->validated();
 
         $user = $request->user();
-        $currency = isset($validated['currency'])
-            ? Currency::from(strtoupper($validated['currency']))
-            : Currency::THB;
+        $currency = Currency::tryFromCode(isset($validated['currency'])
+            ? $validated['currency']
+            : (string) config('payment.currency.default', 'THB'));
+        if ($currency === null) {
+            return ApiResponse::error('site_currency_unsupported', 'The configured deposit currency is unavailable.', 503);
+        }
 
         $wallet = Wallet::query()
             ->where('user_id', $user->id)
@@ -125,7 +119,7 @@ final class DepositController
             $code = $exception->errorCode() ?? 'deposit_request_refused';
 
             $details = [];
-            $status = in_array($code, ['payment_gateway_disabled', 'payment_gateway_unavailable'], true) ? 503 : 422;
+            $status = in_array($code, ['payment_gateway_disabled', 'payment_gateway_unavailable', 'real_money_disabled'], true) ? 503 : 422;
             if ($code === 'checkout_outcome_unknown') {
                 // Project only the caller's original, keyed obligation. Never expose
                 // provider payloads, encrypted custody, dispatch keys or SQL fences.

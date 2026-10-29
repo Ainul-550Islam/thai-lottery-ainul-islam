@@ -351,6 +351,40 @@ final class KycGateAgreementTest extends TestCase
             'The old wording blamed a summary column this gate never reads.');
     }
 
+    #[Test]
+    public function malformed_thresholds_fail_closed_in_both_lanes(): void
+    {
+        $player = $this->player(KycStatus::Unverified);
+        $withdrawal = $this->withdrawalFor($player, self::BELOW);
+
+        foreach ([null, '', '1e6', '-1.00', '5.001', [], 42.5] as $invalid) {
+            config(['finance.withdrawal.kyc_gate_threshold' => $invalid]);
+            $this->assertSame('0.00', $this->requestGate()->threshold());
+            $this->assertFalse($this->requestGate()->mayWithdraw($player, self::BELOW, Currency::THB));
+            $this->assertTrue($this->approvalGate()->isMandatoryFor($withdrawal));
+        }
+    }
+
+    #[Test]
+    public function an_expired_timestamp_cannot_be_hidden_by_a_verified_status(): void
+    {
+        $player = $this->player(KycStatus::Verified);
+        $this->document($player, KycStatus::Verified, expiresAt: now()->subDay());
+
+        $this->assertSame('expired', $this->approvalGate()->kycStandingFor((int) $player->getKey())['state']);
+        $this->assertFalse($this->requestGate()->mayWithdraw($player, self::ABOVE, Currency::THB));
+    }
+
+    #[Test]
+    public function a_review_timestamp_does_not_turn_pending_evidence_into_a_verification(): void
+    {
+        $player = $this->player(KycStatus::Verified);
+        $this->document($player, KycStatus::Pending, reviewed: true);
+
+        $this->assertSame('unverified', $this->approvalGate()->kycStandingFor((int) $player->getKey())['state']);
+        $this->assertFalse($this->requestGate()->mayWithdraw($player, self::ABOVE, Currency::THB));
+    }
+
     // ------------------------------------------------------------------
     // Fixture
     // ------------------------------------------------------------------

@@ -86,6 +86,7 @@ final class DepositSlipVerificationResourceTest extends PaymentTestCase
 
         $this->actingAs($unprivileged);
         self::assertFalse(DepositSlipVerificationResource::canViewAny());
+        self::assertFalse(Gate::allows('view', $verification), 'A player may not inspect another player’s slip.');
         self::assertFalse(Gate::allows('approve', $verification));
         $this->get(DepositSlipVerificationResource::getUrl('index'))->assertForbidden();
         try {
@@ -120,9 +121,9 @@ final class DepositSlipVerificationResourceTest extends PaymentTestCase
     {
         $player = $this->createPlayer('0.00');
         $deposit = app(DepositService::class)->request(
-            $player['wallet'], Money::of('44.00', Currency::THB), PaymentMethod::BankTransfer,
+            $player['wallet'], Money::of('64.00', Currency::THB), PaymentMethod::BankTransfer,
         );
-        $verification = $this->verification($player['user']->getKey(), $deposit->getKey(), 'SLIP-FRAUD-UNKNOWN-001', '44.00');
+        $verification = $this->verification($player['user']->getKey(), $deposit->getKey(), 'SLIP-FRAUD-UNKNOWN-001', '64.00');
         $payload = $verification->provider_payload;
         $staff = $this->operator('admin');
         $this->actingAs($staff);

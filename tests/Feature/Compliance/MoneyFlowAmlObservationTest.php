@@ -48,7 +48,9 @@ final class MoneyFlowAmlObservationTest extends TestCase
     {
         parent::setUp();
         $this->seed(LedgerAccountSeeder::class);
-        config(['aml.freshness_seconds' => 0]);
+        // This suite exercises AML on a real withdrawal; open the independent
+        // launch gate explicitly, as the shared application test base does.
+        config(['aml.freshness_seconds' => 0, 'real_money.enabled' => true]);
     }
 
     private function account(): User

@@ -36,6 +36,14 @@ final class VerifyWebhookSignature
             return $next($request);
         }
 
+        // Historical local HMAC observations are not proof of the actual
+        // bKash or Nagad provider IPN contracts. Let each closed controller
+        // return its refusal rather than turning an old acceptance into a
+        // successful replay after the provider lane has been disabled.
+        if (in_array($resolvedGateway, ['bkash', 'nagad'], true)) {
+            return $next($request);
+        }
+
         if ($this->replayGuard->recordReplayIfAccepted($request, $resolvedGateway)) {
             return response()->json([
                 'success' => true,

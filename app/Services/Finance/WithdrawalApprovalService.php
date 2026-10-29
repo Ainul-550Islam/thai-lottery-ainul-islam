@@ -306,11 +306,12 @@ final class WithdrawalApprovalService
     }
 
     /**
-     * Finalize a not-paid outcome after a second operator records provider evidence.
+     * Legacy reference-only route is retained as a fail-closed compatibility
+     * boundary. A typed string, even from a second operator, cannot prove that
+     * an uncertain transfer was not paid. Use the existing maker/checker
+     * WithdrawalReconciliationService and its archived evidence instead.
      *
      * @return array{withdrawal: Withdrawal, wallet: Wallet, hold_released: bool}
-     *
-     * @throws WithdrawalException
      * @throws FinancialException
      */
     public function markReconciledFailed(
@@ -318,31 +319,10 @@ final class WithdrawalApprovalService
         int $operatorUserId,
         string $providerEvidenceReference,
     ): array {
-        $evidenceReference = trim($providerEvidenceReference);
-
-        if ($operatorUserId < 1
-            || strlen($evidenceReference) > 191
-            || preg_match('/\A[A-Za-z0-9][A-Za-z0-9._:-]{0,190}\z/D', $evidenceReference) !== 1) {
-            throw FinancialException::withCode(
-                'withdrawal_reconciliation_evidence_invalid',
-                'A valid operator and provider confirmation reference are required to reconcile a payout.',
-                ['withdrawal_id' => (int) $withdrawal->getKey()],
-            );
-        }
-
-        return $this->failWithdrawal(
-            $withdrawal,
-            'The payout provider confirmed that no payout was made.',
-            [
-                'reconciliation_required' => false,
-                'disbursement_outcome' => 'confirmed_not_paid',
-                'failure_source' => 'operator_reconciliation',
-                'provider_confirmation_reference' => $evidenceReference,
-                'reconciled_by' => $operatorUserId,
-                'reconciled_at' => Carbon::now()->toIso8601String(),
-            ],
-            true,
-            $operatorUserId,
+        throw FinancialException::withCode(
+            'withdrawal_reconciliation_requires_case',
+            'A reviewed withdrawal reconciliation case is required; a reference alone cannot release this hold.',
+            ['withdrawal_id' => (int) $withdrawal->getKey()],
         );
     }
 

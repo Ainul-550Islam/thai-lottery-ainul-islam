@@ -111,7 +111,7 @@ final class RedisSettlementRecoveryTest extends PaymentTestCase
                 $process->signal(SIGKILL);
                 $process->wait();
             }
-            $this->fail('Redis worker did not reach the exact real fault boundary.');
+            $this->fail('Redis worker did not reach the exact real fault boundary: '.$process->getOutput().' '.$process->getErrorOutput());
         }
         $marker = json_decode(file_get_contents($file.'.paused'), true, 16, JSON_THROW_ON_ERROR);
         $this->assertSame($phase, $marker['phase']);
@@ -125,7 +125,7 @@ final class RedisSettlementRecoveryTest extends PaymentTestCase
     private function finishWorker(Process $process): void
     {
         $process->wait();
-        $this->assertSame(0, $process->getExitCode(), 'Actual Redis worker must exit cleanly.');
+        $this->assertSame(0, $process->getExitCode(), 'Actual Redis worker must exit cleanly: '.$process->getOutput().' '.$process->getErrorOutput());
         $this->assertSame('', $process->getErrorOutput());
         $out = json_decode($process->getOutput(), true, 16, JSON_THROW_ON_ERROR);
         $this->assertTrue($out['worked']);

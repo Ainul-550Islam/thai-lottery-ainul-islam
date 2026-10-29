@@ -57,6 +57,10 @@ final class DepositCallbackOriginalProofTest extends PaymentTestCase
         $this->assertDatabaseCount('ledger_entries', 2);
         $this->assertFalse($service->browserReturnProjection($f['payment']->reference_number, null, null, null)['found']);
         $this->assertTrue($service->browserReturnProjection($f['payment']->reference_number, null, null, $f['user']->id)['paid']);
+        $this->actingAs($f['user'])->get('/payment/success?payment='.$f['payment']->reference_number)
+            ->assertOk()->assertSee('Confirmed')->assertSee('The platform records this payment as complete.');
+        $this->assertSame('590.00', $f['wallet']->fresh()->balance);
+        $this->assertDatabaseCount('financial_transactions', 1);
     }
 
     public static function refusedPaymentFacts(): array

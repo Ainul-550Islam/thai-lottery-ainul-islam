@@ -14,6 +14,7 @@ use App\Exceptions\RiskConfigurationException;
 use App\Models\NumberLimit;
 use App\Services\Finance\Money;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The pre-bet number limit engine: assesses capacity, and atomically reserves it.
@@ -76,6 +77,7 @@ class NumberLimitEngine
         private readonly HotNumberService $hotNumbers,
         private readonly RiskAlertService $alerts,
         private readonly \App\Services\Risk\BetRiskOwnershipFloor $floor,
+        private readonly \App\Services\Risk\DrawRiskAdmission $admission,
     ) {
     }
 
@@ -225,36 +227,40 @@ class NumberLimitEngine
     }
 
     /**
-     * Atomically reserve capacity for one candidate liability.
+     * Run one WRITE OPERATION inside its own savepoint.
      *
-     * MUST be called inside a transaction the caller opened. Locks the row, re-reads
-     * the counters from the locked row, enforces every ceiling exactly, then writes
-     * the new counters. On success the capacity is held until the caller commits; if
-     * the caller rolls back, the reservation disappears with it, which is precisely
-     * why this method must not manage the transaction itself.
+     * Every method below is called inside a transaction the CALLER opened, and
+     * every one of them performs several SQL writes (a locked read, counter
+     * updates, movement rows, alerts). If a fault lands part-way through — a
+     * ceiling refusal after the counters moved, a database error after one write
+     * of several — and the caller catches it and commits, then without a
+     * savepoint the caller commits the operation's PARTIAL writes. The counters
+     * end up changed by an operation that reported failure, which is exactly the
+     * silent drift this lane exists to prevent.
      *
-     * @return array{
-     *     reserved: true,
-     *     number_limit_id: int,
-     *     draw_id: int,
-     *     bet_type: string,
-     *     number: string,
-     *     stake: string,
-     *     multiplier: string,
-     *     potential_payout: string,
-     *     status_before: string,
-     *     status_after: string,
-     *     exposures: array<string, array{before: string, reserved: string, after: string, ceiling: string, ceiling_source: string, remaining_after: string}>,
-     *     level: string,
-     *     capacity_consumed: bool,
-     *     alerts: list<array<string, mixed>>
-     * }
+     * DB::transaction() is the right primitive here rather than hand-rolled
+     * savepoint calls: when a transaction is already open it creates a SAVEPOINT
+     * and rolls back only to that savepoint on a throwable, then rethrows. So the
+     * caller's transaction survives at the same depth, still committable, with
+     * none of this operation's writes in it, and the caller still sees the
+     * exception and decides what to do about it.
      *
-     * @throws \App\Exceptions\RiskException when called outside a transaction
-     * @throws RiskConfigurationException when the number, amount, limit or configuration is invalid
-     * @throws \App\Exceptions\HotNumberException when the number must not sell
-     * @throws NumberLimitExceededException when a ceiling would be breached
+     * Nesting is what makes a bulk batch atomic too. reserveMany() wraps the
+     * whole batch, and each per-entry reserve() wraps itself inside that, so an
+     * entry that fails part-way rolls back its own savepoint and then the batch's
+     * savepoint — every earlier entry in the same batch goes with it instead of
+     * staying reserved. Locks taken inside a rolled-back savepoint are
+     * deliberately NOT released; that is standard savepoint behaviour, and
+     * holding them is the safe direction, because rows this transaction has
+     * already touched stay hidden from other writers until it ends.
      */
+    private function atomic(string $operation, callable $work): array
+    {
+        unset($operation);
+
+        return DB::transaction(static fn (): array => $work());
+    }
+
     public function reserve(
         int $drawId,
         BetType $betType,
@@ -262,7 +268,37 @@ class NumberLimitEngine
         Money $stake,
         string|int $multiplier,
     ): array {
+        // Asserted BEFORE atomic() opens anything: the caller must already be in
+        // a transaction, otherwise this operation would silently open one of its
+        // own and admit risk that nobody is able to roll back.
         $this->locks->assertInsideTransaction('reserve number limit capacity');
+
+        return $this->atomic('reserve', fn (): array => $this->reserveInternal(
+            $drawId, $betType, $rawNumber, $stake, $multiplier,
+        ));
+    }
+
+    private function reserveInternal(
+        int $drawId,
+        BetType $betType,
+        string $rawNumber,
+        Money $stake,
+        string|int $multiplier,
+    ): array {
+        // DRAW-FIRST ADMISSION. This is a write ingress, so the CURRENT locked
+        // draw decides whether any new risk may be taken at all — before a
+        // number-limit row is locked, before a ceiling is read and before any
+        // counter moves. DrawRiskAdmission refuses a draw that is not open for
+        // betting right now (status, betting window, closed/drawn/published/
+        // completed timestamps) and refuses permanently on a durable
+        // cancellation or settlement history. It is deliberately NOT gated on
+        // config('lottery.betting.require_open_draw'): that flag governs the
+        // validation/preview lane, and letting it disable admission here would
+        // let a configuration change sell tickets into a closed, cancelled or
+        // already-settled draw. The draw lock is also taken before every
+        // number-limit lock, which is the lock order the rest of the lane
+        // assumes; taking the number locks first would invert it and deadlock.
+        $this->admission->lock($drawId);
 
         $this->numbers->assertBetTypeEnabled($betType);
         $this->numbers->assertBetTypeDigitsAgreeWithConfig($betType);
@@ -288,9 +324,11 @@ class NumberLimitEngine
         // Before this reservation adds to the counters, they must already cover every
         // live purchase claim on this number. Otherwise a new sale would top the counter
         // up over an existing deficit and make a shortfall look healthy, hiding a
-        // reconciliation problem behind fresh turnover. The floor also receives the
-        // amount about to be added, so it cannot pass on an increment alone.
-        $this->floor->assertCovered($limit, $stake->amount(), $potentialPayout->amount());
+        // reconciliation problem behind fresh turnover. The floor is invoked BEFORE the
+        // increments below are applied, which is what makes the check a pre-increment
+        // one; passing the increment into it would only invite comparing a new sale
+        // against everything already sold, which is not a coverage question.
+        $this->floor->assertCovered($limit);
 
         $increments = [
             ExposureType::Stake->value => $stake,
@@ -391,8 +429,23 @@ class NumberLimitEngine
         Money $stake,
         string|int $multiplier,
     ): array {
+        // Asserted BEFORE atomic() opens anything, for the same reason reserve()
+        // does: releasing capacity outside a caller's transaction would be a
+        // write nobody can roll back.
         $this->locks->assertInsideTransaction('release number limit capacity');
 
+        return $this->atomic('release', fn (): array => $this->releaseInternal(
+            $drawId, $betType, $rawNumber, $stake, $multiplier,
+        ));
+    }
+
+    private function releaseInternal(
+        int $drawId,
+        BetType $betType,
+        string $rawNumber,
+        Money $stake,
+        string|int $multiplier,
+    ): array {
         $number = $this->numbers->normalize($rawNumber, $betType);
         $stake->assertNotNegative('stake');
         $potentialPayout = $this->money->potentialPayout($stake, $multiplier);
@@ -482,9 +535,92 @@ class NumberLimitEngine
      * @throws RiskConfigurationException
      * @throws NumberLimitExceededException
      */
+    /**
+     * Release capacity for a whole batch, atomically.
+     *
+     * The mirror of reserveMany(). A batch release is ONE operation even though
+     * it moves several numbers, so it has to fail as one: if a later entry is
+     * refused — an owned risk floor still covering it, a ceiling, a database
+     * fault — the earlier entries' releases must go back too. Releasing them one
+     * at a time inside the caller's transaction instead let the first release
+     * survive the later refusal once the caller caught the exception and
+     * committed, so capacity was handed back for a release the batch reported as
+     * failed.
+     *
+     * Every row is locked first, in ascending primary-key order, exactly as the
+     * reservation batch does, so concurrent batches queue instead of
+     * deadlocking. Deliberately does NOT take draw admission: giving capacity
+     * back is not new risk, and a closed draw must still be able to release
+     * (see the anonymous-surplus release test).
+     *
+     * @param  list<array{number: string, stake: Money, multiplier: string|int}>  $entries
+     * @return array<string, array<string, mixed>>  keyed by the canonical number
+     */
+    public function releaseMany(int $drawId, BetType $betType, array $entries): array
+    {
+        // Asserted BEFORE atomic() opens anything, so a bulk release cannot
+        // invent its own transaction either.
+        $this->locks->assertInsideTransaction('release number limit capacity in bulk');
+
+        return $this->atomic('release_many', fn (): array => $this->releaseManyInternal($drawId, $betType, $entries));
+    }
+
+    private function releaseManyInternal(int $drawId, BetType $betType, array $entries): array
+    {
+        // Refuse a batch that names one canonical number twice BEFORE locking:
+        // $released is keyed by number, so a duplicate would release capacity
+        // twice while reporting it once.
+        $this->assertNoDuplicateSelections($drawId, $betType, $entries);
+
+        $triples = [];
+
+        foreach ($entries as $entry) {
+            $triples[] = [
+                'draw_id' => $drawId,
+                'bet_type' => $betType,
+                'number' => $this->numbers->normalize((string) $entry['number'], $betType),
+            ];
+        }
+
+        // Take every lock first, in id order, before moving any counter.
+        $this->locks->lockMany($triples);
+
+        $released = [];
+
+        foreach ($entries as $entry) {
+            $number = $this->numbers->normalize((string) $entry['number'], $betType);
+            $released[$number] = $this->release(
+                $drawId,
+                $betType,
+                $number,
+                $entry['stake'],
+                $entry['multiplier'],
+            );
+        }
+
+        return $released;
+    }
+
     public function reserveMany(int $drawId, BetType $betType, array $entries): array
     {
+        // Asserted BEFORE atomic() opens anything, so a bulk reservation cannot
+        // invent its own transaction either.
         $this->locks->assertInsideTransaction('reserve number limit capacity in bulk');
+
+        return $this->atomic('reserve_many', fn (): array => $this->reserveManyInternal($drawId, $betType, $entries));
+    }
+
+    private function reserveManyInternal(int $drawId, BetType $betType, array $entries): array
+    {
+        // Same draw-first admission as reserve(), and it must happen HERE rather
+        // than only inside the per-entry reserve() calls below: this method takes
+        // every number-limit lock up front via lockMany(), and the draw lock has
+        // to be the first lock in the transaction. Admitting after lockMany()
+        // would invert the lock order for the bulk path only, which is exactly
+        // the shape that deadlocks under concurrency. The per-entry reserve()
+        // calls re-admit the same draw; that is a repeated lockForUpdate on a row
+        // this transaction already holds, so it is cheap and idempotent.
+        $this->admission->lock($drawId);
 
         $triples = [];
 
@@ -495,6 +631,11 @@ class NumberLimitEngine
                 'number' => $this->numbers->normalize($entry['number'], $betType),
             ];
         }
+
+        // Refuse a batch that names one canonical number twice BEFORE locking:
+        // $results is keyed by number, so a duplicate would be reported once
+        // while capacity moved twice.
+        $this->assertNoDuplicateSelections($drawId, $betType, $entries);
 
         // Take every lock first, in id order, before evaluating any ceiling.
         $this->locks->lockMany($triples);
@@ -520,6 +661,52 @@ class NumberLimitEngine
      *
      * @param  array<string, array<string, mixed>>  $assessments
      */
+    /**
+     * Refuse a batch that names the same canonical number twice.
+     *
+     * Both write paths below report their work keyed by number
+     * ($results[$number] = ...), so two selections that normalise to the same
+     * number collapse into ONE reported line while the engine has already moved
+     * capacity TWICE. The batch then under-reports its own mutation: the caller
+     * is told about one reservation, the counters hold two, and nothing in the
+     * response reveals the second. That is not a harmless convenience, it is a
+     * reconciliation hole, so the batch is refused instead.
+     *
+     * Detection is on the NORMALISED number, not the raw string, because
+     * '007', '7' and ' 7 ' are the same selection and must not be let through as
+     * distinct. It runs before any lock is taken, so a refused batch has touched
+     * nothing and the caller's rollback is a no-op.
+     *
+     * The read-only assess() path deliberately does NOT use this: it keys its
+     * verdicts by index and number, so duplicates survive in the report and no
+     * mutation is under-reported.
+     *
+     * @param  list<array<string, mixed>>  $entries
+     *
+     * @throws \App\Exceptions\RiskException
+     */
+    private function assertNoDuplicateSelections(int $drawId, BetType $betType, array $entries): void
+    {
+        $seen = [];
+
+        foreach ($entries as $entry) {
+            $number = $this->numbers->normalize((string) ($entry['number'] ?? ''), $betType);
+
+            if (isset($seen[$number])) {
+                throw \App\Exceptions\RiskException::withCode(
+                    'RISK_DUPLICATE_SELECTION',
+                    sprintf(
+                        'Batch names number [%s] more than once; a keyed report would under-report the mutation.',
+                        $number,
+                    ),
+                    ['draw_id' => $drawId, 'bet_type' => $betType->value, 'number' => $number],
+                );
+            }
+
+            $seen[$number] = true;
+        }
+    }
+
     private function allFit(array $assessments): bool
     {
         foreach ($assessments as $assessment) {

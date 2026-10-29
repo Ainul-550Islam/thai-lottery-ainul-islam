@@ -29,7 +29,9 @@ return new class extends Migration
             $table->string('review_reason', 120)->nullable();
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
-            $table->string('upload_scan_record_id', 36)->nullable();
+            // Match the referenced UUID column on every supported grammar.
+            // MariaDB's native UUID type is not FK-compatible with VARCHAR(36).
+            $table->uuid('upload_scan_record_id')->nullable();
             $table->foreign('upload_scan_record_id', 'slip_verify_scan_record_fk')
                 ->references('id')->on('upload_scan_records')->nullOnDelete();
             $table->json('provider_payload')->nullable();

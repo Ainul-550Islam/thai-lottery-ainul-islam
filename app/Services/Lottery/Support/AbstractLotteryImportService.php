@@ -1248,10 +1248,18 @@ abstract class AbstractLotteryImportService
             ? mb_substr(trim($payload['source_identifier']), 0, 191)
             : null;
 
-        $signature = isset($payload['signature_hex']) && is_string($payload['signature_hex'])
-            && preg_match('/^[0-9a-fA-F]{128}$/', $payload['signature_hex']) === 1
-                ? strtolower($payload['signature_hex'])
-                : null;
+        // An absent/null signature means unsigned; supplied malformed material
+        // is not an unsigned payload. Silently dropping it would turn a failed
+        // signing attempt into a hash-only import when no key is configured.
+        $signature = null;
+        if (isset($payload['signature_hex'])) {
+            if (! is_string($payload['signature_hex'])
+                || preg_match('/^[0-9a-fA-F]{128}$/D', $payload['signature_hex']) !== 1) {
+                $errors[] = 'INVALID_SIGNATURE_ENCODING';
+            } else {
+                $signature = strtolower($payload['signature_hex']);
+            }
+        }
 
         return [
             'errors' => array_values(array_unique($errors)),

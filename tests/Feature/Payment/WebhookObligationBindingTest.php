@@ -10,6 +10,7 @@ use App\Enums\DepositStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\WebhookEventType;
 use App\Enums\WithdrawalStatus;
+use App\Exceptions\FinancialException;
 use App\Models\Deposit;
 use App\Models\FinancialTransaction;
 use App\Models\LedgerEntry;
@@ -22,6 +23,7 @@ use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalCompletionService;
 use App\Services\Finance\WithdrawalService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /** Signed provider facts are not authority over another provider's obligation. */
@@ -156,8 +158,10 @@ final class WebhookObligationBindingTest extends PaymentTestCase
 
     public static function currencies(): array
     {
-        return ['THB' => [Currency::THB, PaymentMethod::Stripe], 'USD' => [Currency::USD, PaymentMethod::Crypto],
-            'BDT' => [Currency::BDT, PaymentMethod::Bkash]];
+        // USD remains covered through Stripe; unsupported crypto cannot supply
+        // settlement evidence merely to stand in for a currency test.
+        return ['THB' => [Currency::THB, PaymentMethod::Stripe], 'USD' => [Currency::USD, PaymentMethod::Stripe],
+            'BDT' => [Currency::BDT, PaymentMethod::Nagad]];
     }
 
     #[DataProvider('currencies')]
@@ -175,6 +179,35 @@ final class WebhookObligationBindingTest extends PaymentTestCase
         $this->assertTrue($this->webhookService()->processWebhookPayload($this->payload($row->fresh()))->success);
         $this->assertSame(1, FinancialTransaction::query()->count());
         $this->assertSame('500.00', (string) $player['wallet']->fresh()->balance);
+    }
+
+    public function test_confirmed_deposit_replay_refuses_corrupted_original_ledger_without_new_credit(): void
+    {
+        $player = $this->createPlayer('100.00', Currency::BDT);
+        $row = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Nagad);
+        $this->assertTrue($this->webhookService()->processWebhookPayload($this->payload($row))->success);
+        // Simulate a historical accounting contradiction, not a provider fact.
+        $entry = LedgerEntry::query()->firstOrFail();
+        DB::table('ledger_entries')->where('id', $entry->id)->update(['amount' => '399.00']);
+        $before = $this->snapshot($row, $player['wallet']);
+        try {
+            $this->webhookService()->processWebhookPayload($this->payload($row->fresh()));
+            $this->fail('A confirmed label cannot replace the original balanced-ledger proof.');
+        } catch (FinancialException $exception) {
+            $this->assertNotSame('', $exception->errorCode());
+        }
+        $this->assertSame($before, $this->snapshot($row, $player['wallet']));
+        $this->assertSame('500.00', (string) $player['wallet']->fresh()->balance);
+        $this->assertSame(1, FinancialTransaction::query()->count());
+    }
+
+    public function test_bare_bkash_deposit_without_original_checkout_cannot_be_credited(): void
+    {
+        $player = $this->createPlayer('100.00', Currency::BDT);
+        $row = $this->createPendingDeposit($player['wallet'], '400.00', PaymentMethod::Bkash);
+        $this->refuse($row, $player['wallet'], []);
+        $this->assertSame('100.00', (string) $player['wallet']->fresh()->balance);
+        $this->assertSame(DepositStatus::Pending, $row->fresh()->status);
     }
 
     public function test_valid_withdrawal_success_and_later_distinct_event_do_not_double_debit(): void

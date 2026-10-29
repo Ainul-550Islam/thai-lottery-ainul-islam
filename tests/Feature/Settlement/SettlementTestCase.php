@@ -15,16 +15,22 @@ use App\Enums\DrawStatus;
 use App\Enums\DrawType;
 use App\Enums\LimitStatus;
 use App\Models\Draw;
+use App\Models\DrawResult;
+use App\Models\GloResultImport;
 use App\Models\LedgerAccount;
 use App\Models\NumberLimit;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Betting\BetPurchaseService;
 use App\Services\Draw\DrawLifecycleService;
+use App\Services\Draw\DrawResultConfirmationService;
+use App\Services\Draw\DrawResultIngestionService;
 use App\Services\Draw\DrawResultPublicationService;
+use App\Services\Draw\DrawResultValidator;
 use App\Services\Draw\DrawSettlementSimulationService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
+use Tests\Feature\PublicSite\Concerns\PublishesProviderResults;
 use Tests\TestCase;
 
 /**
@@ -55,6 +61,7 @@ use Tests\TestCase;
 abstract class SettlementTestCase extends TestCase
 {
     use DatabaseTruncation;
+    use PublishesProviderResults;
 
     /**
      * The only database names this suite will touch.
@@ -212,17 +219,85 @@ abstract class SettlementTestCase extends TestCase
         string $firstPrize = self::FIRST_PRIZE,
         string $bottomTwo = self::BOTTOM_TWO,
     ): array {
+        // Publication is not a step a caller may take on its own. This helper used
+        // to call DrawResultPublicationService::publish() directly, which skipped
+        // result ingestion and the four-eyes confirmation entirely, so publish()
+        // refused at its own admission guard and every settlement test built on
+        // this fixture died with `DrawResultException: The result of draw #N is
+        // missing; only a confirmed result may be published to players`. That
+        // refusal is the manual-publication contract working as intended: a result
+        // reaches players only after it has been ingested and a SECOND operator has
+        // confirmed it. So the fixture now walks the real path.
+        //
+        // The lifecycle step stays on this base class rather than delegating to the
+        // PublishesProviderResults helper, because that helper only calls
+        // markResultPending() and assumes its draw is already closed. Draws here
+        // start open, and the lifecycle machine allows Open -> Closed -> ResultPending
+        // but not Open -> ResultPending, so reusing the helper verbatim died in
+        // DrawLifecycleService before publication was ever reached.
         $draw = $this->advanceToResultPending($draw);
 
-        $published = $this->publication()->publish((int) $draw->getKey(), [
-            'first_prize' => $firstPrize,
-            'bottom_two' => $bottomTwo,
+        // Two DISTINCT operators: confirmation's four-eyes control refuses a
+        // confirmer who is also the ingester, which is the whole point of the check.
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
+
+        $fingerprint = hash('sha256', json_encode([
+            (string) $draw->draw_number, $firstPrize, [], [], [], [],
+        ], JSON_THROW_ON_ERROR));
+
+        GloResultImport::query()->create([
+            'draw_id' => $draw->getKey(),
+            'provider' => 'fixture',
+            'mode' => 'fixture',
+            'endpoint' => 'synthetic-test-only',
+            'upstream_draw_id' => $draw->draw_number,
+            'status' => 'imported',
+            'result_fingerprint' => $fingerprint,
+            'payload_summary' => ['first_prize' => $firstPrize, 'bottom_two' => $bottomTwo],
+            'import_reference' => 'synthetic-'.bin2hex(random_bytes(10)),
+            'imported_by' => $maker->getKey(),
+            'imported_at' => now(),
         ]);
 
+        $payload = [
+            'first_prize' => $firstPrize,
+            'bottom_two' => $bottomTwo,
+            'second_prize' => [],
+            'third_prize' => [],
+            'tiers' => [],
+            'provider' => 'fixture',
+            'provider_fingerprint' => $fingerprint,
+            'upstream_draw_id' => $draw->draw_number,
+        ];
+
+        app(DrawResultIngestionService::class)->ingest(
+            (int) $draw->getKey(), $payload, 'glo_import:fixture', (int) $maker->getKey(),
+        );
+
+        // Confirmation is what publishes, so publication is never called here.
+        app(DrawResultConfirmationService::class)->confirm(
+            (int) $draw->getKey(),
+            (int) $checker->getKey(),
+            ['first_prize' => $firstPrize, 'bottom_two' => $bottomTwo],
+            'Synthetic settlement fixture confirmation',
+        );
+
+        $result = DrawResult::query()
+            ->where('draw_id', $draw->getKey())
+            ->firstOrFail();
+
+        // The return contract is unchanged: callers still receive the published
+        // draw, its result row and the validated DTO. The DTO is rebuilt through
+        // the same validator publication uses, so it keeps the production shape
+        // instead of something the test assembled by hand.
         return [
-            'draw' => $published['draw'],
-            'result' => $published['result'],
-            'data' => $published['data'],
+            'draw' => $draw->fresh() ?? $draw,
+            'result' => $result,
+            'data' => app(DrawResultValidator::class)->validate([
+                'first_prize' => $firstPrize,
+                'bottom_two' => $bottomTwo,
+            ]),
         ];
     }
 

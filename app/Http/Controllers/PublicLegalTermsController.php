@@ -9,6 +9,7 @@ use App\Exceptions\Legal\LegalPdfNotAvailableException;
 use App\Services\Legal\LegalDocumentService;
 use App\Services\PublicPages\LegalPdfExportService;
 use App\Services\PublicPages\PublicPageDataService;
+use App\Support\PublicPages\DownloadLanguage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -184,20 +185,7 @@ final class PublicLegalTermsController extends Controller
      */
     private function downloadLocale(Request $request): ?string
     {
-        $supported = $this->pdfExports->supportedLocales();
-        $requested = strtolower(trim((string) $request->query('locale', '')));
-
-        if ($requested !== '') {
-            return in_array($requested, $supported, true) ? $requested : null;
-        }
-
-        $negotiated = strtolower((string) app()->getLocale());
-
-        if (in_array($negotiated, $supported, true)) {
-            return $negotiated;
-        }
-
-        return in_array('en', $supported, true) ? 'en' : null;
+        return app(DownloadLanguage::class)->resolve($request, $this->pdfExports->supportedLocales());
     }
 
     /**

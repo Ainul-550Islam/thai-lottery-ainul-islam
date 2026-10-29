@@ -32,7 +32,7 @@ final class RecordRetailTicketAllocationAudit
             ->where('auditable_type', TicketAllocation::class)
             ->where('auditable_id', (int) $allocation->getKey())
             ->where('action', AuditAction::Update->value)
-            ->where('metadata->anchor', self::anchorFor($allocation, $action))
+            ->anchoredBy(self::anchorFor($allocation, $action))
             ->exists();
     }
 
@@ -79,7 +79,7 @@ final class RecordRetailTicketAllocationAudit
                 $event->vendorCode,
             ),
             'metadata' => [
-                'anchor' => self::anchorFor($allocation, 'allocated'),
+                AuditLog::ANCHOR_KEY => self::anchorFor($allocation, 'allocated'),
                 'ticket_allocation_id' => (int) $allocation->getKey(),
                 'allocation_key' => substr($event->allocationKey, 0, 12),
                 'vendor_id' => $event->vendorId,

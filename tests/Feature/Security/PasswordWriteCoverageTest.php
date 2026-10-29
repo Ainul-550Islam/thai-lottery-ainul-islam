@@ -49,17 +49,9 @@ final class PasswordWriteCoverageTest extends TestCase
         );
         $this->assertNotEmpty($report['covered']);
 
-        // The one site that is not inside an owning service is named, with its
-        // reason, in the service itself. Pinning the exact list means a new
-        // exception cannot be added quietly.
-        $this->assertSame(
-            ['app/Http/Controllers/Web/AuthController.php'],
-            array_keys(app(PasswordWriteCoverageService::class)->knownExceptions()),
-        );
-        $this->assertSame(
-            ['app/Http/Controllers/Web/AuthController.php:92'],
-            $report['known_exceptions'],
-        );
+        // No legacy exception may quietly reintroduce an unowned hash writer.
+        $this->assertSame([], app(PasswordWriteCoverageService::class)->knownExceptions());
+        $this->assertSame([], $report['known_exceptions']);
     }
 
     #[Test]
@@ -79,10 +71,10 @@ final class PasswordWriteCoverageTest extends TestCase
             base_path('app/Http/Controllers/Web/AuthController.php'),
         );
 
-        $this->assertStringContainsString('new StrongPasswordRule', $source);
+        $this->assertStringContainsString('abort(404)', $source);
+        $this->assertStringNotContainsString('Hash::make(', $source);
 
-        // A comment in that file quotes the old rule on purpose, so the check is
-        // on the validation array itself, not on the file's text.
+        // The closed legacy method must not retain a weaker validation array.
         $this->assertSame(
             0,
             preg_match("/['\"]password['\"]\\s*=>\\s*\\[[^\\]]*Password::/", $source),

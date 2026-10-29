@@ -15,6 +15,8 @@ use App\Exceptions\WithdrawalException;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
+use App\Services\Compliance\MoneyFlowAmlObservationService;
+use App\Services\Compliance\RealMoneyGate;
 use App\Services\Compliance\WithdrawalKycGateService as ComplianceKycGate;
 use App\Services\Payment\WithdrawalProviderAccountService;
 use App\Services\ResponsibleGaming\ResponsibleGamingEnforcementService;
@@ -109,7 +111,7 @@ final class WithdrawalService
                 ->assertCanWithdraw($rgUser, $amount->toString(), $amount->currency());
         }
 
-        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options, $initialHoldRequired): Withdrawal {
+        return $this->withinTransaction(function () use ($wallet, $amount, $fee, $netAmount, $method, $normalisedKey, $options, $initialHoldRequired, $rgUser): Withdrawal {
             $lockedWallet = $this->locks->lock((int) $wallet->getKey());
 
             $this->assertWalletAllowsWithdrawal($lockedWallet, $amount->currency());
@@ -126,6 +128,10 @@ final class WithdrawalService
                 }
             }
 
+            // Closing admission must not strand an existing request or make
+            // its exact retry reserve a second hold. Only the proven replay
+            // above may cross the switch; every fresh intent is refused.
+            app(RealMoneyGate::class)->assertOpen('withdrawal');
             app(StripeRefundWithdrawalGuard::class)->assertAllowed($lockedWallet);
 
             // Read-only sufficiency check. No hold is taken here.
@@ -137,6 +143,16 @@ final class WithdrawalService
                     $amount->toString(),
                     $available->toString(),
                     $lockedWallet->currency,
+                );
+            }
+
+            // Observe only new requests, after replay and balance checks. In
+            // enforce mode a refusal aborts the same transaction as the intent.
+            if ($rgUser instanceof User) {
+                app(MoneyFlowAmlObservationService::class)->observe(
+                    $rgUser,
+                    MoneyFlowAmlObservationService::FLOW_WITHDRAWAL,
+                    ['amount' => $amount->toString(), 'currency' => $amount->currency()->value],
                 );
             }
 

@@ -9,6 +9,7 @@ use App\Enums\BetStatus;
 use App\Enums\Currency;
 use App\Enums\DrawStatus;
 use App\Enums\PaymentMethod;
+use App\Exceptions\BetPurchaseException;
 use App\Exceptions\FinancialException;
 use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\WithdrawalException;
@@ -25,6 +26,10 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Rules\StrongPasswordRule;
+use App\Services\Auth\PasswordChangeService;
+use App\Services\Betting\BetAmountService;
+use App\Services\Betting\BetPurchaseWalletService;
+use App\Services\Compliance\RealMoneyGate;
 use App\Services\Compliance\SelfExclusionService;
 use App\Services\Finance\Money;
 use App\Services\Finance\WithdrawalService;
@@ -35,7 +40,6 @@ use App\Services\Transfer\TransferPanelService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -93,6 +97,9 @@ final class PlayerWebController
      */
     private function availableDepositMethods(): array
     {
+        if (! app(RealMoneyGate::class)->isOpen()) {
+            return [];
+        }
         $allowed = (array) config('payment.deposit.allowed_methods', []);
         $manager = $this->gatewayManager ?? app(PaymentGatewayManager::class);
 
@@ -115,6 +122,9 @@ final class PlayerWebController
      */
     private function availableWithdrawalMethods(): array
     {
+        if (! app(RealMoneyGate::class)->isOpen()) {
+            return [];
+        }
         $allowed = (array) config('payment.withdrawal.allowed_methods', []);
         $manager = $this->gatewayManager ?? app(PaymentGatewayManager::class);
 
@@ -257,12 +267,34 @@ final class PlayerWebController
         /** @var User $user */
         $user = Auth::user();
 
-        $wallet = Wallet::query()
-            ->where('user_id', $user->id)
-            ->first();
+        // Mirror the purchase resolver instead of presenting a different wallet
+        // or currency as spendable. This is advisory: the real purchase locks and
+        // rechecks it, including wallet type, before any debit.
+        $bettingCurrency = app(BetAmountService::class)->currency();
+        $wallets = app(BetPurchaseWalletService::class);
+        try {
+            $wallet = $wallets->resolveWallet($user, $bettingCurrency);
+            $wallets->assertBettingWallet($wallet);
+        } catch (BetPurchaseException) {
+            $wallet = null;
+        }
 
+        // This is only a read-only presentation filter: admission is rechecked
+        // under the draw lock by the purchase service. Never show a draw as
+        // sellable solely because its mutable status still says "open".
+        $clock = now();
         $openDraw = Draw::query()
             ->where('status', DrawStatus::Open)
+            ->where('betting_open_at', '<=', $clock)
+            ->where('betting_close_at', '>', $clock)
+            ->whereNull('closed_at')
+            ->whereNull('drawn_at')
+            ->whereNull('result_published_at')
+            ->whereNull('completed_at')
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('draw_cancellation_ownerships')->whereColumn('draw_id', 'draws.id'))
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('payouts')->whereColumn('draw_id', 'draws.id'))
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('settlement_runs')->whereColumn('draw_id', 'draws.id'))
+            ->orderBy('betting_close_at')->orderBy('id')
             ->first();
 
         $marketOptions = [];
@@ -290,6 +322,7 @@ final class PlayerWebController
             'wallet' => $wallet,
             'openDraw' => $openDraw,
             'marketOptions' => $marketOptions,
+            'bettingCurrency' => $bettingCurrency,
         ]);
     }
 
@@ -688,23 +721,26 @@ final class PlayerWebController
     /**
      * Update password.
      */
-    public function updatePassword(Request $request): RedirectResponse
+    public function updatePassword(Request $request, PasswordChangeService $passwords): RedirectResponse
     {
         /** @var User $user */
         $user = Auth::user();
 
-        $request->validate([
-            'current_password' => ['required', 'current_password'],
-            // Audit S2: the SAME centralised rule registration and reset
-            // use — no weaker local policy on the profile surface.
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            // The same policy registration and reset use.
             'new_password' => ['required', 'string', new StrongPasswordRule],
         ]);
 
-        $user->update([
-            'password' => Hash::make($request->string('new_password')->value()),
-        ]);
+        $passwords->change($user, $validated['current_password'], $validated['new_password']);
 
-        return redirect()->route('player.profile')->with('success', 'Password updated successfully.');
+        // Prevent the still-in-memory request session being re-saved after its
+        // database row was revoked. Require a fresh sign-in with the new secret.
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with('status', 'Password updated. Please sign in again.');
     }
 
     /**

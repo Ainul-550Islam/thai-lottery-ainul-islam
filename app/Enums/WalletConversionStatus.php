@@ -80,11 +80,16 @@ enum WalletConversionStatus: string
     {
         return match ($this) {
             self::Quoted => [self::Pending, self::Processing, self::Failed],
-            self::Pending => [self::Processing, self::Completed, self::Failed],
+            self::Pending => [self::Processing, self::Failed],
             self::Processing => [self::Completed, self::Failed],
             self::Completed => [self::Reversed],
             self::Reversed, self::Failed => [],
         };
+    }
+
+    public function canTransitionTo(self $target): bool
+    {
+        return in_array($target, $this->allowedTransitions(), true);
     }
 
     /**

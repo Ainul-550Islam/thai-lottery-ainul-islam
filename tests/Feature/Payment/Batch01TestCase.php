@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Artisan;
 
 abstract class Batch01TestCase extends LaravelTestCase
 {
+    /** Original process and superglobal values, restored after each test. */
+    private array $originalEnvironment = [];
+
     protected function setUp(): void
     {
         $this->setEnvironment('APP_ENV', 'testing');
@@ -46,8 +49,43 @@ abstract class Batch01TestCase extends LaravelTestCase
         }
     }
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            foreach ($this->originalEnvironment as $key => $original) {
+                if ($original['process'] === false) {
+                    putenv($key);
+                } else {
+                    putenv($key.'='.$original['process']);
+                }
+                if ($original['env_present']) {
+                    $_ENV[$key] = $original['env'];
+                } else {
+                    unset($_ENV[$key]);
+                }
+                if ($original['server_present']) {
+                    $_SERVER[$key] = $original['server'];
+                } else {
+                    unset($_SERVER[$key]);
+                }
+            }
+            $this->originalEnvironment = [];
+        }
+    }
+
     private function setEnvironment(string $key, string $value): void
     {
+        if (! array_key_exists($key, $this->originalEnvironment)) {
+            $this->originalEnvironment[$key] = [
+                'process' => getenv($key),
+                'env_present' => array_key_exists($key, $_ENV),
+                'env' => $_ENV[$key] ?? null,
+                'server_present' => array_key_exists($key, $_SERVER),
+                'server' => $_SERVER[$key] ?? null,
+            ];
+        }
         putenv($key.'='.$value);
         $_ENV[$key] = $value;
         $_SERVER[$key] = $value;

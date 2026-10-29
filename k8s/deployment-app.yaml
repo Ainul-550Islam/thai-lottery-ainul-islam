@@ -20,11 +20,36 @@ spec:
       labels:
         app: fintech-api
     spec:
+      # Hardened to the same contract deployment-scheduler.yaml and
+      # deployment-settlement-worker.yaml already meet, and which
+      # ManifestSanityTest enforces on every Deployment and Job in this
+      # directory. This pod had NO securityContext at all, so it ran as whatever
+      # user the image happened to define - root, unless the image says otherwise
+      # - with the kernel's default seccomp policy rather than RuntimeDefault.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       terminationGracePeriodSeconds: 60
       containers:
         - name: php-fpm
-          image: ghcr.io/ainul-550islam/thai-lottery-app:latest
+          # Pinned to the build commit. The rest of this directory already
+          # deploys `sha-<commit>`; a mutable floating tag was the odd one out
+          # here, and it is not safe: which build a pod runs would depend on when
+          # the image was pulled rather than on what was released, two nodes in
+          # one rollout could end up running different code, there would be no way
+          # to roll back to the previous value of a moving tag, and
+          # `kubectl describe` could not tell an operator what is serving traffic.
+          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           resources:
             requests:
               cpu: "1000m"
@@ -32,6 +57,15 @@ spec:
             limits:
               cpu: "2000m"
               memory: "2Gi"
+          startupProbe:
+            # Same endpoint as readiness, but allowed to fail for longer: a cold
+            # container that is still booting must not be killed by the liveness
+            # probe before it has had the chance to become ready.
+            httpGet:
+              path: /api/v1/health
+              port: 80
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /api/v1/health
@@ -49,6 +83,23 @@ spec:
                 name: fintech-config
             - secretRef:
                 name: fintech-secrets
+          volumeMounts:
+            # readOnlyRootFilesystem above is only survivable because these two
+            # mounts give PHP somewhere writable: /tmp for its own scratch files
+            # and the storage tree for cache, sessions, logs and uploads. This is
+            # the same pair deployment-scheduler.yaml mounts.
+            - name: php-temp
+              mountPath: /tmp
+            - name: app-storage
+              mountPath: /var/www/html/storage
+      volumes:
+        - name: php-temp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: app-storage
+          persistentVolumeClaim:
+            claimName: fintech-app-storage
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

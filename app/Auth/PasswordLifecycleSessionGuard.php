@@ -315,6 +315,7 @@ class PasswordLifecycleSessionGuard extends SessionGuard
     {
         /** @var Model|null $fresh */
         $fresh = $user->newQuery()
+            ->useWritePdo()
             ->where($user->getKeyName(), $user->getKey())
             ->first();
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Chat;
 
 use App\DTOs\Chat\ChatStartData;
+use App\Exceptions\ChatException;
 use App\Models\Chat\ChatConversation;
 use App\Models\Chat\ChatMessage;
 use App\Models\User;
@@ -13,6 +14,7 @@ use App\Services\Chat\ChatIdentityService;
 use App\Services\Chat\ChatMessageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -72,6 +74,18 @@ final class ChatVisitorApiTest extends TestCase
         // so the RAW token goes in here and arrives at the middleware in the
         // same form a browser's HttpOnly cookie would.
         return [[ChatIdentityService::COOKIE_NAME => $token], $conversation];
+    }
+
+    public function test_http_handler_preserves_chat_refusal_and_retry_after_for_non_api_requests(): void
+    {
+        Route::get('/chat-test-refusal', static function () {
+            throw ChatException::rateLimited('message', 7);
+        });
+
+        $this->get('/chat-test-refusal')->assertStatus(429)
+            ->assertHeader('Retry-After', '7')
+            ->assertJsonPath('status', 'CHAT_REFUSED')
+            ->assertJsonPath('code', 'chat_rate_limited');
     }
 
     public function test_availability_is_public_and_honest(): void

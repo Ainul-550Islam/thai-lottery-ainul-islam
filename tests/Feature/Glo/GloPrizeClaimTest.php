@@ -404,6 +404,19 @@ class GloPrizeClaimTest extends TestCase
         $this->postJson('/api/v1/glo/claims', [])->assertStatus(401);
 
         $claimantToken = $this->claimant->createToken('api')->plainTextToken;
+        // The financial HTTP route requires the claimant's current, actual
+        // Terms and Privacy acknowledgements; do not bypass its middleware.
+        $consents = app(\App\Services\Legal\ConsentService::class);
+        $documents = collect($consents->currentDocuments())->keyBy('document_type');
+        $this->assertSame('AVAILABLE', $documents->get('terms')['status']);
+        $this->assertSame('AVAILABLE', $documents->get('privacy')['status']);
+        $consents->acceptCurrentDocuments($this->claimant, \Illuminate\Http\Request::create('/test', 'POST', [
+            'terms' => true, 'privacy_notice' => true,
+            'terms_version' => $documents->get('terms')['version'],
+            'terms_hash' => $documents->get('terms')['content_hash'],
+            'privacy_version' => $documents->get('privacy')['version'],
+            'privacy_hash' => $documents->get('privacy')['content_hash'],
+        ]), 'api');
 
         $submit = $this->apiAs($claimantToken, 'POST', '/api/v1/glo/claims', [
             'ticket_id' => $this->ticket->id,

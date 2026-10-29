@@ -176,6 +176,27 @@ final class QueueRoutingContractTest extends TestCase
     }
 
     #[Test]
+    public function each_horizon_environment_covers_the_canonical_queues_and_legacy_payout_lanes(): void
+    {
+        $horizon = config('horizon');
+        $this->assertIsArray($horizon);
+        foreach ($horizon['environments'] as $environment => $supervisors) {
+            $queues = [];
+            foreach ($supervisors as $name => $overrides) {
+                $this->assertArrayHasKey($name, $horizon['defaults'], "Unknown Horizon supervisor in {$environment}.");
+                $queues = array_merge($queues, $overrides['queue'] ?? $horizon['defaults'][$name]['queue']);
+            }
+            foreach (QueueName::cases() as $queue) {
+                $this->assertContains($queue->value, $queues, "Horizon {$environment} does not consume {$queue->value}.");
+            }
+            // Do not strand envelopes already on the historic settlement and
+            // payout lanes while moving new work to financial-critical.
+            $this->assertContains('settlement', $queues);
+            $this->assertContains('payouts', $queues);
+        }
+    }
+
+    #[Test]
     public function the_enum_helper_and_its_cases_cannot_drift_apart_when_a_queue_is_added(): void
     {
         $cases = array_map(static fn (QueueName $queue): string => $queue->value, QueueName::cases());

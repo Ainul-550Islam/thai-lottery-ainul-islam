@@ -128,6 +128,22 @@ final class BetPurchaseWalletService
     }
 
     /**
+     * Apply only to NEW wager debits, never to historical replay or payout
+     * destination resolution. The shared resolver is also used by settlement.
+     */
+    public function assertBettingWallet(Wallet $wallet): void
+    {
+        if (! $wallet->type->canBet()) {
+            throw BetPurchaseException::walletUnavailable(
+                (int) $wallet->user_id,
+                $wallet->currency,
+                'the resolved wallet type is not permitted for new wagers',
+                ['wallet_id' => (int) $wallet->getKey(), 'wallet_type' => $wallet->type->value],
+            );
+        }
+    }
+
+    /**
      * Take the wallet row lock. This is the FIRST lock every purchase path acquires.
      *
      * Delegated to Phase 2.1's WalletLockService, which issues SELECT ... FOR UPDATE

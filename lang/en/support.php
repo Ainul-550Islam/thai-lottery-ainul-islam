@@ -44,6 +44,10 @@ return [
     'priority_low' => 'Low',
     'priority_normal' => 'Normal',
     'priority_high' => 'High',
+    'status_open' => 'Open',
+    'status_in_progress' => 'In progress',
+    'status_resolved' => 'Resolved',
+    'status_closed' => 'Closed',
 
     // Batch 02: keys referenced by the shipped views but never defined.
     'unknown_value' => 'Not recorded',

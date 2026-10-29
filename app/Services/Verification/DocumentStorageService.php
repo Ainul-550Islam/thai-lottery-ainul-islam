@@ -122,6 +122,16 @@ final class DocumentStorageService
             'kyc_document',
         );
 
+        // The digest is of the actual INSTREAM chunks, not a second read of
+        // the upload path. A size/MIME check alone accepts substituted bytes.
+        $scannedDigest = $scan['sha256'] ?? null;
+        if (! is_string($scannedDigest)
+            || preg_match('/\A[a-f0-9]{64}\z/', $scannedDigest) !== 1
+            || ! is_int($scan['bytes'] ?? null)
+            || $scan['bytes'] !== $size) {
+            throw new InvalidArgumentException('Document failed the scan integrity check.');
+        }
+
         $diskName = (string) config('account_verification.storage.disk', 'local');
         $prefix = trim((string) config('account_verification.storage.path_prefix', 'kyc_documents'), '/');
 
@@ -140,15 +150,21 @@ final class DocumentStorageService
             throw new InvalidArgumentException('Uploaded file could not be read.');
         }
 
-        $disk->put($path, $stream);
-        fclose($stream);
+        try {
+            $written = $disk->put($path, $stream);
+        } finally {
+            fclose($stream);
+        }
 
-        // Read-back verification: the stored bytes carry the same
-        // content type we accepted.
-        $stored = $disk->get($path);
+        // Read-back verifies the exact bytes sent to the scanner, not merely
+        // that the stored object still looks like a PDF/image. No digest is
+        // logged or persisted as a stable fingerprint of the KYC document.
+        $stored = $written ? $disk->get($path) : null;
 
-        if ($stored === null
-            || $this->sniffContentOfBytes((string) $stored) !== $contentMime) {
+        if (! is_string($stored)
+            || strlen($stored) !== $size
+            || $this->sniffContentOfBytes($stored) !== $contentMime
+            || ! hash_equals($scannedDigest, hash('sha256', $stored))) {
             $disk->delete($path);
 
             throw new InvalidArgumentException('Document failed the storage integrity check.');

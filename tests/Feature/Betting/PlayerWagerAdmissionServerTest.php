@@ -152,6 +152,13 @@ final class PlayerWagerAdmissionServerTest extends FinancialMasterTestCase
                 $reader->table('self_exclusions')->count(), $reader->table('financial_transactions')->count()];
             DB::setDefaultConnection($peerName);
             try {
+                // Re-query on the peer writer. fresh() on the original model
+                // remains bound to the reader and must not cross the financial
+                // model routing boundary just because the default was changed.
+                $peerWallet = $policy === 'daily_loss' ? Wallet::query()->findOrFail($other->id) : null;
+                if ($peerWallet !== null) {
+                    $this->assertSame($peerName, $peerWallet->getConnectionName());
+                }
                 match ($policy) {
                     'account' => $peer->table('users')->where('id', $f['user']->id)->update(['status' => 'banned']),
                     'legacy', 'cool' => ResponsibleGamingLimit::query()->create(['user_id' => $f['user']->id,
@@ -160,7 +167,7 @@ final class PlayerWagerAdmissionServerTest extends FinancialMasterTestCase
                         new SelfExclusionData(userId: $f['user']->id, durationDays: 7, reason: 'protection'))),
                     'single_bet' => $this->limit($f, ResponsibleGamingLimitType::SingleBet, '5.00'),
                     'daily_wagering' => $this->limit($f, ResponsibleGamingLimitType::DailyWagering, '15.00'),
-                    'daily_loss' => app(WalletService::class)->debit($other->fresh(), Money::of('12.00', Currency::THB),
+                    'daily_loss' => app(WalletService::class)->debit($peerWallet, Money::of('12.00', Currency::THB),
                         FinancialTransactionType::BetDebit, idempotencyKey: 'peer-second-wallet-loss'),
                 };
             } finally {

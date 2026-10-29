@@ -7,6 +7,7 @@ namespace App\Services\Payment;
 use App\Exceptions\FinancialException;
 use App\Models\Payment;
 use App\Models\Payout;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /** Retained prize-local binding followed by common cross-domain ownership in the same transaction. */
@@ -63,9 +64,15 @@ final class PayoutTransferReferenceService
             }
         }
         $key = hash('sha256', json_encode([$gateway, $scope, $reference], JSON_THROW_ON_ERROR));
-        DB::table('payout_transfer_references')->insertOrIgnore(['identity_key' => $key, 'payout_id' => $row->id,
-            'payment_id' => $payment->id, 'gateway' => $gateway, 'account_scope' => $scope,
-            'reference_hash' => hash('sha256', $reference), 'created_at' => now()]);
+        // A single exclusive duplicate-key operation prevents shared-to-
+        // exclusive lock-upgrade deadlocks when two contenders arrive together.
+        try {
+            DB::table('payout_transfer_references')->upsert([['identity_key' => $key, 'payout_id' => $row->id,
+                'payment_id' => $payment->id, 'gateway' => $gateway, 'account_scope' => $scope,
+                'reference_hash' => hash('sha256', $reference), 'created_at' => now()]], ['identity_key'], ['identity_key' => DB::raw('identity_key')]);
+        } catch (UniqueConstraintViolationException) {
+            $guard->refuse($row);
+        }
         $owner = DB::table('payout_transfer_references')->where('identity_key', $key)->lockForUpdate()->first();
         if (! $owner || (int) $owner->payout_id !== (int) $row->id || (int) $owner->payment_id !== (int) $payment->id
             || $owner->gateway !== $gateway || $owner->account_scope !== $scope || $owner->reference_hash !== hash('sha256', $reference)) {

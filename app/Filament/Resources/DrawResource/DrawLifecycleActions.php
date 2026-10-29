@@ -9,7 +9,8 @@ use App\Enums\DrawStatus;
 use App\Models\Draw;
 use App\Services\Draw\DrawCancellationService;
 use App\Services\Draw\DrawLifecycleService;
-use App\Services\Draw\DrawResultPublicationService;
+use App\Services\Draw\AdminDrawResultWorkflow;
+use App\Services\Lottery\OperatorResultEntryService;
 use App\Services\Draw\DrawSettlementSimulationService;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
@@ -152,13 +153,13 @@ final class DrawLifecycleActions
                 },
             ],
             [
-                'name' => 'publish',
-                'label' => 'Publish official numbers',
-                'icon' => 'heroicon-o-megaphone',
+                'name' => 'ingestResult',
+                'label' => 'Stage result for review',
+                'icon' => 'heroicon-o-pencil-square',
                 'color' => 'primary',
-                'heading' => 'Publish the official result',
-                'description' => 'Enter the numbers exactly as announced by the Thai Government Lottery Office. This is not reversible: there is no unpublish, and a published draw can no longer be cancelled.',
-                'submitLabel' => 'Publish — this cannot be undone',
+                'heading' => 'Stage the announced numbers',
+                'description' => 'The numbers remain unpublished until a different authorized operator reviews and confirms them.',
+                'submitLabel' => 'Stage for review',
                 'form' => [
                     Forms\Components\TextInput::make('first_prize')
                         ->label('First prize')
@@ -166,7 +167,6 @@ final class DrawLifecycleActions
                         ->rule('regex:/^\d{6}$/')
                         ->validationMessages(['regex' => 'The first prize is exactly 6 digits.'])
                         ->helperText('6 digits. Leading zeros are significant and are kept.'),
-
                     Forms\Components\TextInput::make('bottom_two')
                         ->label('Bottom two')
                         ->required()
@@ -174,28 +174,45 @@ final class DrawLifecycleActions
                         ->validationMessages(['regex' => 'The bottom two is exactly 2 digits.']),
                 ],
                 'visible' => static fn (Draw $record): bool => AdminAccess::current(AdminAccess::MANAGE_DRAWS)
-                    && $record->status === DrawStatus::Drawing,
+                    && app(AdminDrawResultWorkflow::class)->canIngest($record),
                 'action' => static function (Draw $record, array $data): void {
-                    self::run(static function () use ($record, $data): void {
-                        $outcome = app(DrawResultPublicationService::class)->publish((int) $record->getKey(), [
-                            'first_prize' => (string) $data['first_prize'],
-                            'bottom_two' => (string) $data['bottom_two'],
-                        ]);
-
-                        $rows = is_array($outcome['winning_numbers'] ?? null) ? count($outcome['winning_numbers']) : 0;
-
-                        Notification::make()
-                            ->success()
-                            ->title('Result published')
-                            ->body(sprintf(
-                                '%s: %s / %s — %d winning number row(s) written. Settlement runs automatically after the configured delay.',
-                                $record->draw_number,
-                                $data['first_prize'],
-                                $data['bottom_two'],
-                                $rows,
-                            ))
-                            ->send();
-                    });
+                    self::run(
+                        static fn () => app(OperatorResultEntryService::class)->ingestDraw((int) $record->getKey(), $data),
+                        'Result staged; a different operator must confirm it.',
+                    );
+                },
+            ],
+            [
+                'name' => 'confirmResult',
+                'label' => 'Review and confirm result',
+                'icon' => 'heroicon-o-check-badge',
+                'color' => 'success',
+                'heading' => 'Confirm the staged result',
+                'description' => 'Re-enter the reviewed numbers and explain the review. This publishes the exact staged card and cannot be undone.',
+                'submitLabel' => 'Confirm and publish',
+                'form' => [
+                    Forms\Components\TextInput::make('first_prize')
+                        ->label('Reviewed first prize')->required()->rule('regex:/^\d{6}$/'),
+                    Forms\Components\TextInput::make('bottom_two')
+                        ->label('Reviewed bottom two')->required()->rule('regex:/^\d{2}$/'),
+                    Forms\Components\Textarea::make('notes')
+                        ->label('Review notes')->required()->minLength(5)->maxLength(500),
+                    Forms\Components\Hidden::make('fingerprint')
+                        ->required()
+                        ->default(static fn (Draw $record): ?string => app(AdminDrawResultWorkflow::class)->pendingFingerprint($record)),
+                ],
+                'visible' => static fn (Draw $record): bool => AdminAccess::current(AdminAccess::MANAGE_DRAWS)
+                    && app(AdminDrawResultWorkflow::class)->canConfirm($record),
+                'action' => static function (Draw $record, array $data): void {
+                    self::run(
+                        static fn () => app(OperatorResultEntryService::class)->confirmDraw(
+                            (int) $record->getKey(),
+                            ['first_prize' => $data['first_prize'], 'bottom_two' => $data['bottom_two']],
+                            (string) $data['notes'],
+                            (string) $data['fingerprint'],
+                        ),
+                        'The reviewed result was confirmed and published.',
+                    );
                 },
             ],
             [

@@ -63,7 +63,9 @@ class ConcurrencyRunnerGuards(unittest.TestCase):
         self.assertFalse(runner.DISPATCH_CASES & (runner.MONEY_CASES | runner.WEBHOOK_CASES))
 
     def test_webhook_profile_is_exact_and_included_in_all(self):
-        self.assertEqual(4, len(runner.WEBHOOK_CASES))
+        self.assertEqual(5, len(runner.WEBHOOK_CASES))
+        self.assertIn(("Tests\\Feature\\Concurrency\\WebhookObligationServerRaceTest",
+                       "test_concurrent_bkash_success_without_original_checkout_proof_cannot_credit"), runner.WEBHOOK_CASES)
         self.assertEqual(runner.WEBHOOK_CASES, runner.SUITES["webhooks"][1])
         self.assertTrue(runner.WEBHOOK_CASES <= runner.SUITES["all"][1])
         self.assertFalse(runner.WEBHOOK_CASES & runner.MONEY_CASES)
@@ -127,14 +129,18 @@ class RaceEvidenceGuards(unittest.TestCase):
         return [ET.Element("testcase", {"class": cls, "name": name}) for cls, name in sorted(selected)]
 
     def witnesses(self):
-        return [{"class": cls, "name": name, "table": "users", "waiting_children": 2,
-                 "child_connections": [11, 12], "parent_blocker": 10} for cls, name in sorted(runner.MONEY_CASES)]
+        return [{"class": cls, "name": name,
+                 "table": ("draws" if name in {"test_concurrent_run_start_returns_one_durable_identity",
+                                              "test_concurrent_chunked_start_and_inline_settlement_cannot_overlap"}
+                           else "settlement_runs") if cls.endswith("SettlementServerRaceTest") else "users",
+                 "waiting_children": 2, "child_connections": [11, 12], "parent_blocker": 10}
+                for cls, name in sorted(runner.MONEY_CASES)]
 
     def test_suite_inventory_is_exact_and_disjoint(self):
         self.assertEqual(len(runner.LEGACY_CASES), 4)
-        self.assertEqual(len(runner.MONEY_CASES), 13)
+        self.assertEqual(len(runner.MONEY_CASES), 15)
         self.assertFalse(runner.LEGACY_CASES & runner.MONEY_CASES)
-        self.assertEqual(len(runner.SUITES["all"][1]), 27)
+        self.assertEqual(len(runner.SUITES["all"][1]), 30)
 
     def test_all_exact_cases_are_required(self):
         expected = runner.SUITES["all"][1]
@@ -161,6 +167,19 @@ class RaceEvidenceGuards(unittest.TestCase):
         self.assertFalse(runner.validate_witnesses(witnesses[:-1], runner.MONEY_CASES))
         self.assertFalse(runner.validate_witnesses(witnesses + witnesses[:1], runner.MONEY_CASES))
         self.assertTrue(runner.validate_witnesses([], set()))
+
+    def test_checkpoint_witness_must_use_the_locked_settlement_run(self):
+        witnesses = self.witnesses()
+        checkpoint = next(w for w in witnesses if w['table'] == 'settlement_runs')
+        checkpoint['table'] = 'draws'
+        self.assertFalse(runner.validate_witnesses(witnesses, runner.MONEY_CASES))
+
+    def test_each_settlement_start_witness_must_use_the_draw_lock(self):
+        witnesses = self.witnesses()
+        for witness in (w for w in witnesses if w['class'].endswith('SettlementServerRaceTest') and w['table'] == 'draws'):
+            wrong = [dict(item) for item in witnesses]
+            next(item for item in wrong if item['name'] == witness['name'])['table'] = 'wallets'
+            self.assertFalse(runner.validate_witnesses(wrong, runner.MONEY_CASES))
 
     def test_wrong_lock_count_same_connection_and_parent_alias_are_refused(self):
         for changed in [{"waiting_children": 1}, {"child_connections": [11, 11]},

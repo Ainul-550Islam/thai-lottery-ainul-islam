@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Payment;
 
 use App\Enums\PaymentMethod;
+use App\Http\Controllers\Api\V1\Payment\PromptPayController;
 use App\Models\AgeVerification;
 use App\Models\Deposit;
 use App\Models\User;
@@ -80,6 +81,41 @@ final class DepositMethodsCompatRouteTest extends PaymentTestCase
             'idempotency_key' => 'compat-promptpay-anonymous',
         ])->assertUnauthorized();
         $this->assertSame(0, Deposit::query()->count());
+    }
+
+    public function test_client_cannot_choose_a_promptpay_recipient_for_a_checkout(): void
+    {
+        config(['payment.gateways.promptpay.enabled' => true, 'payment.gateways.promptpay.merchant_id' => '0812345678']);
+        $player = $this->createPlayer('0.00');
+        $this->onboard($player['user']);
+        Sanctum::actingAs($player['user']);
+
+        $this->postJson('/api/v1/deposit/promptpay/generate', [
+            'amount' => '125.00', 'idempotency_key' => 'promptpay-no-client-recipient',
+            'recipient_id' => '0899999999',
+        ])->assertUnprocessable()
+            ->assertJsonPath('error.code', 'validation_failed')
+            ->assertJsonStructure(['error' => ['details' => ['fields' => ['recipient_id']]]]);
+        $this->assertDatabaseCount('deposits', 0);
+    }
+
+    public function test_unregistered_legacy_promptpay_adapter_still_requires_a_real_actor(): void
+    {
+        $request = Request::create('/synthetic-legacy-promptpay', 'POST', ['amount' => '125.00']);
+        $request->setUserResolver(fn () => null);
+        $response = app(PromptPayController::class)->generate($request);
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringNotContainsString('0812345678', $response->getContent());
+        $this->assertDatabaseCount('deposits', 0);
+    }
+
+    public function test_environment_templates_do_not_supply_a_default_promptpay_recipient(): void
+    {
+        foreach (['.env.example', '.env.ci', '.env.production.example'] as $file) {
+            $contents = file_get_contents(base_path($file));
+            $this->assertIsString($contents);
+            $this->assertMatchesRegularExpression('/^PROMPTPAY_DEFAULT_MERCHANT_ID=\\s*$/m', $contents);
+        }
     }
 
     private function onboard(User $user): void

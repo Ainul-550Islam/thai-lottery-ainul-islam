@@ -6,6 +6,7 @@ use App\Providers\BotServiceProvider;
 use App\Providers\EventServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\ProductionSafetyServiceProvider;
+use App\Providers\PaymentOpsServiceProvider;
 use App\Providers\QueueServiceProvider;
 use App\Providers\ThaiRailsServiceProvider;
 use App\Providers\WalletConversionServiceProvider;
@@ -21,6 +22,8 @@ return [
     EventServiceProvider::class,
     QueueServiceProvider::class,
     ThaiRailsServiceProvider::class,
+    // The existing ops provider owns payment readiness boot refusal and routes.
+    PaymentOpsServiceProvider::class,
     WalletConversionServiceProvider::class,
     AdminPanelProvider::class,
     FrontendOpsServiceProvider::class,

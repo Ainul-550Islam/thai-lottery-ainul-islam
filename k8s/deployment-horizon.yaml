@@ -15,11 +15,35 @@ spec:
       labels:
         app: fintech-horizon
     spec:
+      # Hardened to the contract deployment-scheduler.yaml and
+      # deployment-settlement-worker.yaml already meet and ManifestSanityTest
+      # enforces on every Deployment in this directory. This pod declared NO
+      # securityContext, so it ran as whatever user the image defines and with
+      # the kernel default seccomp policy instead of RuntimeDefault.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       terminationGracePeriodSeconds: 120
       containers:
         - name: horizon-worker
-          image: ghcr.io/ainul-550islam/thai-lottery-app:latest
+          # Pinned to the build commit. The rest of this directory already
+          # deploys `sha-<commit>`; a mutable floating tag was the odd one out
+          # here, and it is not safe: which build a pod runs would depend on when
+          # the image was pulled rather than on what was released, two nodes in
+          # one rollout could end up running different code, there would be no way
+          # to roll back to the previous value of a moving tag, and
+          # `kubectl describe` could not tell an operator what is serving traffic.
+          image: ghcr.io/ainul-550islam/thai-lottery-app:sha-ad253c07957e3cc0df59c28526e478affff9d7c2
           command: ["php", "artisan", "horizon"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           resources:
             requests:
               cpu: "1000m"
@@ -32,3 +56,37 @@ spec:
                 name: fintech-config
             - secretRef:
                 name: fintech-secrets
+          startupProbe:
+            # A worker that is still connecting to Redis and registering its
+            # supervisors must not be killed by liveness before it is up.
+            exec:
+              command: ["php", "artisan", "horizon:status"]
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            # Until Horizon reports itself running, the pod must not be counted as
+            # capacity: a worker that cannot reach its queue would otherwise look
+            # healthy to the rollout and jobs would pile up behind it.
+            exec:
+              command: ["php", "artisan", "horizon:status"]
+            periodSeconds: 30
+          livenessProbe:
+            exec:
+              command: ["php", "artisan", "horizon:status"]
+            periodSeconds: 60
+          volumeMounts:
+            # readOnlyRootFilesystem above needs somewhere writable: /tmp for PHP
+            # scratch files and the shared storage tree for cache, logs and
+            # sessions. Same pair deployment-scheduler.yaml mounts.
+            - name: php-temp
+              mountPath: /tmp
+            - name: app-storage
+              mountPath: /var/www/html/storage
+      volumes:
+        - name: php-temp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: app-storage
+          persistentVolumeClaim:
+            claimName: fintech-app-storage

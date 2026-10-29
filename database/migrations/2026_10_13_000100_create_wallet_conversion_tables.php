@@ -99,6 +99,18 @@ return new class extends Migration
             $table->string('user_agent', 512)->nullable();
             $table->string('request_id', 128)->nullable();
             $table->timestamp('recorded_at');
+            // The model is a plain Eloquent Model and does not opt out of
+            // timestamps, so every insert carries created_at/updated_at. Without
+            // these two columns every audit write dies with
+            // "table wallet_conversion_audits has no column named updated_at" -
+            // which took out the whole wallet-conversion lane at once.
+            //
+            // This migration is the one that actually builds the table: the two
+            // later create_wallet_conversion_tables migrations both guard on
+            // `if (! Schema::hasTable(...))`, so on a fresh database they are
+            // skipped and never reshape anything. Declaring the columns here is
+            // therefore the only fix that reaches a real build.
+            $table->timestamps();
             $table->index(['reference', 'recorded_at'], 'waudit_reference_time');
             $table->index(['user_id', 'recorded_at'], 'waudit_owner_time');
             $table->index(['error_code', 'recorded_at'], 'waudit_error_time');

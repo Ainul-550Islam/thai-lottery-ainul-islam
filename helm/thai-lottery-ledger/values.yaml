@@ -1,58 +1,134 @@
-replicaCount: 10
+replicaCount: 3
 
 image:
-  repository: 123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/thai-lottery-app
+  repository: ghcr.io/ainul-550islam/thai-lottery-app
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: ""
 
 service:
   type: ClusterIP
-  port: 80
+  port: 9000
+
+storage:
+  className: ""
+  size: ""
+  accessModes:
+    - ReadWriteMany
+
+nginx:
+  image: nginxinc/nginx-unprivileged:1.27-alpine
+  replicaCount: 2
+  port: 8080
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
 
 ingress:
   enabled: true
-  className: "alb"
+  className: nginx
+  host: ""
+  tlsSecretName: thai-lottery-tls
   annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:123456789012:certificate/abc-123
-  hosts:
-    - host: api.thai-lottery.internal
-      paths:
-        - path: /
-          pathType: Prefix
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+    nginx.ingress.kubernetes.io/enable-websocket: "true"
+  slipUploadBodySize: 12m
+
+securityContext:
+  pod:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  container:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
 
 resources:
   limits:
-    cpu: 2000m
-    memory: 4096Mi
+    cpu: "2"
+    memory: 2Gi
   requests:
-    cpu: 1000m
-    memory: 2048Mi
+    cpu: 500m
+    memory: 768Mi
+
+probes:
+  startup:
+    periodSeconds: 5
+    failureThreshold: 30
+  readiness:
+    periodSeconds: 10
+    failureThreshold: 3
+  liveness:
+    periodSeconds: 20
+    failureThreshold: 3
 
 autoscaling:
   enabled: true
-  minReplicas: 10
-  maxReplicas: 100
+  minReplicas: 3
+  maxReplicas: 12
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 
 horizon:
   enabled: true
-  replicaCount: 5
+  replicaCount: 2
   resources:
     limits:
-      cpu: 2000m
-      memory: 4096Mi
+      cpu: "4"
+      memory: 4Gi
     requests:
-      cpu: 1000m
-      memory: 2048Mi
+      cpu: 500m
+      memory: 1Gi
 
 reverb:
   enabled: true
-  replicaCount: 4
+  replicaCount: 2
   port: 8080
+  resources:
+    limits:
+      cpu: "2"
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+scheduler:
+  enabled: true
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+settlementWorker:
+  enabled: true
+  replicaCount: 2
+  port: 9101
+  image:
+    repository: ghcr.io/ainul-550islam/thai-lottery-settlement-worker
+    tag: ""
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: "2"
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 128Mi
 
 clamav:
   enabled: true
@@ -61,18 +137,66 @@ clamav:
   port: 3310
   resources:
     limits:
-      cpu: 2000m
-      memory: 4096Mi
+      cpu: "2"
+      memory: 4Gi
     requests:
-      cpu: 1000m
-      memory: 2048Mi
+      cpu: 500m
+      memory: 1Gi
+
+externalSecretStoreName: ""
+
+migration:
+  enabled: true
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+
+networkPolicy:
+  enabled: true
+  databaseCidrs: []
+  redisCidrs: []
+  providerCidrs: []
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
 
 env:
   APP_ENV: production
-  APP_DEBUG: false
-  DB_CONNECTION: pgsql
-  CACHE_DRIVER: redis
+  APP_DEBUG: "false"
+  LOG_CHANNEL: stderr
+  APP_TIMEZONE: Asia/Bangkok
+  APP_LOCALE: en
+  APP_FALLBACK_LOCALE: en
+  DB_CONNECTION: mysql
+  DB_PORT: "3306"
+  DB_DATABASE: lottery_ledger
+  CACHE_STORE: redis
   SESSION_DRIVER: redis
+  SESSION_SECURE_COOKIE: "true"
+  SESSION_ENCRYPT: "true"
   QUEUE_CONNECTION: redis
+  BROADCAST_CONNECTION: reverb
+  REVERB_SERVER_HOST: 0.0.0.0
+  REVERB_SERVER_PORT: "8080"
+  FILESYSTEM_DISK: local
+  PAYMENT_DEFAULT_GATEWAY: ""
+  BANK_TRANSFER_ENABLED: "false"
+  BKASH_ENABLED: "false"
+  NAGAD_ENABLED: "false"
+  CRYPTO_ENABLED: "false"
+  STRIPE_ENABLED: "false"
+  PROMPTPAY_ENABLED: "false"
+  FINANCE_DEPOSIT_AUTO_CONFIRM: "false"
+  TRUEMONEY_ENABLED: "false"
+  SLIP_VERIFICATION_ENABLED: "false"
+  SLIP_VERIFICATION_AUTO_CREDIT: "false"
+  THAI_PAYOUT_ENABLED: "false"
+  THAI_PAYOUT_SCB_ENABLED: "false"
+  THAI_PAYOUT_KBANK_ENABLED: "false"
+  REALTIME_ENABLED: "false"
+  LEGAL_PDF_ENABLED: "false"
+  PAYOUT_ILLUSTRATION_ENABLED: "false"
+  PRIVACY_REQUESTS_ENABLED: "false"
+  SUPPORT_TICKET_STATUS_ENABLED: "false"
   BOT_DETECTION_MODE: enforce
   FRAUD_DETECTION_MODE: enforce

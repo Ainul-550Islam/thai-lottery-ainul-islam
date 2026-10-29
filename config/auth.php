@@ -11,7 +11,7 @@ return [
 
     'guards' => [
         'web' => [
-            'driver' => 'session',
+            'driver' => 'password-lifecycle',
             'provider' => 'users',
         ],
         'api' => [

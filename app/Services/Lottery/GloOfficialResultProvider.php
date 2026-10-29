@@ -28,14 +28,10 @@ use Throwable;
  *    implementation hardcoded the two paths as argument defaults, which meant a
  *    changed upstream path silently stopped working while looking configured.
  *
- * 2. THE FIXTURE LANE CANNOT ANSWER FROM HERE, EVER, AND THE CHECK IS PER CALL.
- *    `isConfigured()` and `fetch()` both consult {@see fixtureRefused()}, which
- *    is true in production regardless of what the mode string says. That matters
- *    because the boot check in ProductionSafetyServiceProvider runs once, while
- *    a queue worker started before a config change keeps its own copy of the
- *    world. There is no code path below that returns synthesized digits: on
- *    every failure this provider returns a structured NOT_CONFIGURED or failed
- *    payload with an honest `failure_reason`.
+ * 2. THE FIXTURE LANE CANNOT ANSWER FROM HERE. Both methods reject a fixture
+ *    mode in production; an actual configured official mode remains usable.
+ *    The separate fixture provider independently refuses production on every
+ *    call. This provider never synthesizes digits on failure.
  *
  * 3. A CHANGED SCHEMA IS A FAILURE, NOT AN EMPTY RESULT. {@see mapDocumentedPayload()}
  *    validates the six-digit first prize and the two-digit tail and returns null
@@ -166,27 +162,13 @@ class GloOfficialResultProvider implements GloResultProvider
         }
     }
 
-    /**
-     * Whether the fixture lane is refused in the CURRENT environment.
-     *
-     * Two independent reasons, either sufficient:
-     *   - the environment is production (never negotiable);
-     *   - the operator switched on the explicit guard.
-     */
+    /** Whether a non-official mode is being refused in production. */
     public function fixtureRefused(): bool
     {
-        // The environment check is unconditional and comes first: no
-        // configurable value can make a production process accept fixture
-        // digits, so there is no switch to get wrong and no runtime override
-        // that re-opens the lane.
-        if ($this->app->environment('production')) {
-            return true;
-        }
-
-        // Outside production the operator may still choose to refuse the
-        // fixture lane (staging that mirrors production, for example). The
-        // flag can only ever ADD a refusal; it can never remove the one above.
-        return false;
+        // Production must never answer from a fixture, but that must not
+        // accidentally disable the configured official provider as well.
+        return $this->app->environment('production')
+            && (string) $this->config->get('glo.official_source.mode', '') !== 'official';
     }
 
     /**
@@ -318,8 +300,13 @@ class GloOfficialResultProvider implements GloResultProvider
         $lastTwo = $this->digitList($node['last_two'] ?? $node['two_digit_back'] ?? [], 2);
         $bottomTwo = count($lastTwo) === 1 ? $lastTwo[0] : null;
 
-        $draw = $node['draw'] ?? $node['drawNumber'] ?? $drawNumber;
-        $draw = $draw === null ? null : trim((string) $draw);
+        // Never fill a missing upstream identity with the requested one: that
+        // would attach an unverified latest result to an arbitrary local draw.
+        $draw = $node['draw'] ?? $node['draw_number'] ?? $node['drawNumber'] ?? null;
+        $draw = is_string($draw) || is_int($draw) ? trim((string) $draw) : null;
+        if ($drawNumber !== null && ($draw === null || $draw === '' || ! hash_equals($drawNumber, $draw))) {
+            return null;
+        }
 
         $fingerprint = hash('sha256', json_encode([
             $draw,
@@ -351,19 +338,14 @@ class GloOfficialResultProvider implements GloResultProvider
         ];
     }
 
-    /**
-     * Accepts an integer and zero-pads it to the declared width (that is a
-     * transcription of the number the upstream sent), and accepts a string only
-     * when it is ALREADY exactly that width. A short string is not padded: it is
-     * a different number and padding would silently change it.
-     */
+    /** Exact-width digits only: never guess leading zeros lost in a number. */
     private function digitString(mixed $value, int $digits): ?string
     {
-        if ($value === null) {
+        if (! is_string($value) && ! is_int($value)) {
             return null;
         }
 
-        $asString = is_int($value) ? sprintf('%0'.$digits.'d', $value) : trim((string) $value);
+        $asString = trim((string) $value);
 
         if (preg_match('/^\d{'.$digits.'}$/', $asString) !== 1) {
             return null;

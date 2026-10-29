@@ -121,7 +121,7 @@ final class ConversionLimitService
     public function assertAllowed(int $userId, string $amount, ?Currency $currency = null): void
     {
         $this->assertNoOrphanedFrameworkCounter();
-        $this->assertWithinCeilings($userId, $amount, $currency);
+        $this->assertWithinCeilings($userId, $amount, $currency, false);
     }
 
     /**
@@ -145,7 +145,13 @@ final class ConversionLimitService
             );
         }
 
-        $this->assertWithinCeilings($userId, $amount, $currency);
+        // Every conversion and quote for a member serializes on this same
+        // owner row before reading the rolling allowance or its journal rows.
+        $owner = DB::table('users')->where('id', $userId)->lockForUpdate()->first(['id']);
+        if ($owner === null) {
+            throw ConversionException::failure('conversion_limits_unproven', 'The conversion owner could not be verified.');
+        }
+        $this->assertWithinCeilings($userId, $amount, $currency, true);
     }
 
     /**
@@ -174,7 +180,7 @@ final class ConversionLimitService
      * number support needs to see. The daily ceiling is checked first so a
      * member who has breached both is told the tighter, sooner-resetting limit.
      */
-    private function assertWithinCeilings(int $userId, string $amount, ?Currency $currency): void
+    private function assertWithinCeilings(int $userId, string $amount, ?Currency $currency, bool $current): void
     {
         if ($userId <= 0 || preg_match('/^\d{1,18}(\.\d{1,2})?$/', $amount) !== 1 || bccomp($amount, '0', 2) <= 0) {
             throw ConversionException::failure(
@@ -187,8 +193,9 @@ final class ConversionLimitService
         $currency ??= ConversionCurrency::configured();
         $limits = $this->limits($currency);
 
-        $daily = $this->dailyTotal($userId, $currency);
-        $monthly = $this->monthlyTotal($userId, $currency);
+        $now = CarbonImmutable::now();
+        $daily = $this->windowTotal($userId, $currency, $now->subHours(self::DAILY_WINDOW_HOURS), $now, $current);
+        $monthly = $this->windowTotal($userId, $currency, $now->subDays(self::MONTHLY_WINDOW_DAYS), $now, $current);
 
         if ($limits->enforcesDailyLimit() && bccomp(bcadd($daily, $amount, 2), (string) $limits->dailyLimit(), 2) === 1) {
             throw ConversionLimitExceededException::forDailyWindow(
@@ -216,6 +223,7 @@ final class ConversionLimitService
         ?Currency $currency,
         CarbonImmutable $from,
         CarbonImmutable $to,
+        bool $current = false,
     ): string {
         // The denomination is not optional. A total is a number of something, and
         // comparing a THB total against a configured USD ceiling would admit or
@@ -230,7 +238,7 @@ final class ConversionLimitService
             );
         }
 
-        $rows = DB::table('wallet_conversions')
+        $query = DB::table('wallet_conversions')
             ->where('user_id', $userId)
             ->where('currency', $currency->value)
             ->whereIn('status', self::SETTLED_STATUSES)
@@ -239,8 +247,10 @@ final class ConversionLimitService
             ->where('completed_at', '>=', $from->startOfSecond()->toDateTimeString())
             ->where('completed_at', '<=', $to->startOfSecond()->toDateTimeString())
             ->orderBy('id')
-            ->select(['id', 'amount_in'])
-            ->get();
+            ->select(['id', 'amount_in']);
+        // A plain SELECT under repeatable read can see an old empty allowance
+        // after waiting for the owner's lock. A decisive read must be current.
+        $rows = ($current ? $query->lockForUpdate() : $query)->get();
 
         $total = '0.00';
 

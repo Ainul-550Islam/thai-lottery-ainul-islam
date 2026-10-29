@@ -51,9 +51,23 @@ class PaymentGatewayManagerTest extends TestCase
         $this->assertFalse($manager->isDepositCapable('stripe'));
         $this->assertFalse($manager->isWithdrawalCapable('stripe'));
 
-        config(['payment.gateways.stripe.enabled' => true]);
+        config([
+            'payment.gateways.stripe.enabled' => true,
+            'payment.gateways.stripe.key' => null,
+            'payment.gateways.stripe.secret' => null,
+            'payment.gateways.stripe.webhook_secret' => null,
+        ]);
 
         $this->assertTrue($manager->isEnabled('stripe'));
+        $this->assertFalse($manager->isDepositCapable('stripe'), 'The enable flag is not provider readiness.');
+
+        config([
+            'payment.gateways.stripe.key' => 'pk_test_fixture',
+            'payment.gateways.stripe.secret' => 'sk_test_fixture',
+            'payment.gateways.stripe.webhook_secret' => 'whsec_test_fixture',
+            'payment.currency.default' => 'THB',
+            'payment.country' => 'TH',
+        ]);
         $this->assertTrue($manager->isDepositCapable('stripe'));
 
         // Withdrawal capability is opt-in per driver (supports_withdrawal).
@@ -113,6 +127,11 @@ class PaymentGatewayManagerTest extends TestCase
         config([
             'payment.gateways.stripe.enabled' => true,
             'payment.gateways.stripe.supports_deposit' => true,
+            'payment.gateways.stripe.key' => 'pk_test_fixture',
+            'payment.gateways.stripe.secret' => 'sk_test_fixture',
+            'payment.gateways.stripe.webhook_secret' => 'whsec_test_fixture',
+            'payment.currency.default' => 'THB',
+            'payment.country' => 'TH',
         ]);
 
         $driver = $this->app->make(PaymentGatewayManager::class)->depositDriver(PaymentMethod::Stripe);

@@ -28,63 +28,6 @@
     <header class="next-page-header"><div class="next-shell next-page-header__inner"><a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('discounts_page.home_aria') }}"><span class="next-brand__mark">TL</span><span>{{ config('app.name') }}<small>{{ trans('discounts_page.brand') }}</small></span></a><nav class="next-nav" aria-label="{{ trans('discounts_page.nav_aria') }}"><a href="{{ route('home') }}">{{ trans('discounts_page.nav_home') }}</a><a href="{{ route('results.index') }}">{{ trans('discounts_page.nav_results') }}</a><a class="is-active" href="{{ route('discounts') }}" aria-current="page">{{ trans('discounts_page.nav_discounts') }}</a><a href="{{ route('fees') }}">{{ trans('discounts_page.nav_fees') }}</a><a href="{{ route('contact') }}">{{ trans('discounts_page.nav_contact') }}</a></nav>@guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('discounts_page.nav_login') }}</a>@else<a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">{{ trans('discounts_page.nav_dashboard') }}</a>@endguest</div></header>
     <main id="discount-main" class="next-shell next-content" tabindex="-1">
         <section class="next-hero" aria-labelledby="discount-title"><div><p class="next-eyebrow">{{ trans('discounts_page.eyebrow') }}</p><h1 id="discount-title">{{ trans('prize_discount.discount_heading') }}</h1><p>{{ $discounts['meta_description'] ?? trans('discounts_page.note') }}</p><p class="next-note">{{ trans('discounts_page.note') }}</p></div><div class="next-hero-object next-hero-object--discount" aria-hidden="true"><span>%</span></div></section>
-        {{-- Historical discount parity reference. The label is assembled
-             from two fragments so the competitor domain literal never appears
-             in source (a production-source scan forbids it), while the rendered
-             page still shows the full heading verbatim. Every rate below is
-             server-calculated reference data; browsers cannot supply rates. --}}
-        <section id="thai-lottery-discounts" class="next-section" data-content-section aria-labelledby="thai-lottery-discounts-title">
-            <div class="next-section__heading">
-                <span class="next-section__number">TH</span>
-                <div>
-                    <p class="next-eyebrow">{{ 'THAILOTTO' . '.CLUB PARITY' }}</p>
-                    <h2 id="thai-lottery-discounts-title">National Lottery Discount Parity</h2>
-                </div>
-            </div>
-            <p class="next-muted">Reference discount and payout rates for the National Lottery and Bangkok Weekly markets, kept for parity with the published reference sheet.</p>
-            <div id="LottoDiscountCalculator" class="next-table-wrap" data-calculator="LottoDiscountCalculator" data-rates-source="server-calculated">
-                <table class="next-table">
-                    <caption class="sr-only">National Lottery discount parity rates</caption>
-                    <thead>
-                        <tr>
-                            <th scope="col">Market</th>
-                            <th scope="col">Entry</th>
-                            <th scope="col">Payout</th>
-                            <th scope="col">Discount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <th scope="row">National Lottery &middot; Six Digit</th>
-                            <td>D-$1 and R-$1</td>
-                            <td>&times; 3000 direct and &times; 500 reverse</td>
-                            <td>35%</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">National Lottery &middot; 3 Up</th>
-                            <td>D-$1 and R-$1</td>
-                            <td>&times; 500 direct and &times; 100 reverse</td>
-                            <td>30%</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Bangkok Weekly &middot; 6 Ball</th>
-                            <td>6 Ball entry</td>
-                            <td>Per the published weekly schedule</td>
-                            <td>30%</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Affiliate Programme</th>
-                            <td>Affiliate Commission</td>
-                            <td>Paid on qualifying activity</td>
-                            <td>2%</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <p class="next-note" role="note">
-                These figures are server-calculated reference rates. The browser cannot supply or override a rate, discount, multiplier, or payout; every live calculation is resolved by the server-side pricing service.
-            </p>
-        </section>
         <section class="next-meta-strip" aria-label="{{ trans('discounts_page.metadata') }}"><div><span>{{ trans('discounts_page.catalogue_version') }}</span><strong>{{ $catalogue['catalogue_version'] ?? 'NOT_CONFIGURED' }}</strong></div><div><span>{{ trans('discounts_page.currency') }}</span><strong>{{ $catalogue['currency'] ?? 'NOT_CONFIGURED' }}</strong></div><div><span>{{ trans('discounts_page.products') }}</span><strong>{{ count($products) }}</strong></div><div><span>{{ trans('discounts_page.generated') }}</span><strong>{{ $catalogue['generated_at'] ?? 'NOT_CONFIGURED' }}</strong></div></section>
         <div class="next-layout"><aside class="next-sidebar" aria-label="{{ trans('discounts_page.contents_aria') }}"><p class="next-eyebrow">{{ trans('discounts_page.catalogue_map') }}</p>@foreach ($products as $product)<a href="#discount-{{ $product['product'] ?? $loop->iteration }}" data-content-link="discount-{{ $product['product'] ?? $loop->iteration }}">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }} · {{ $product['product'] ?? trans('discounts_page.product_fallback') }}</a>@endforeach<a href="#discount-matrix" data-content-link="discount-matrix">{{ trans('discounts_page.matrix') }}</a><a href="#affiliate-commissions" data-content-link="affiliate-commissions">{{ trans('prize_discount.affiliate_heading') }}</a><a href="#discount-immutable" data-content-link="discount-immutable">{{ trans('discounts_page.fixed_items') }}</a></aside><div>
             <div class="next-search" role="search"><label for="discount-search">{{ trans('discounts_page.search_label') }}</label><div class="next-search__row"><input id="discount-search" type="search" data-local-search placeholder="{{ trans('discounts_page.search_placeholder') }}" autocomplete="off"><button class="next-button" type="button" data-clear-search>{{ trans('discounts_page.clear') }}</button></div><p class="next-search__status" data-search-status aria-live="polite">{{ trans('discounts_page.showing_all') }}</p></div>
@@ -94,7 +37,29 @@
             @empty
                 <section class="next-panel" role="status"><h2>{{ trans('discounts_page.empty_title') }}</h2><p>{{ trans('discounts_page.empty_body') }}</p></section>
             @endforelse
-            <section class="next-section" id="discount-matrix" data-content-section aria-labelledby="discount-matrix-title"><div class="next-section__heading"><span class="next-section__number">Σ</span><div><p class="next-eyebrow">{{ trans('discounts_page.matrix') }}</p><h2 id="discount-matrix-title">{{ trans('prize_discount.matrix_col_discount') }}</h2></div></div>@if ($matrixLotteries === [])<p class="next-empty">NOT_CONFIGURED</p>@else<div class="next-table-wrap"><table class="next-table"><thead><tr><th>{{ trans('discounts_page.lottery') }}</th><th>{{ trans('prize_discount.matrix_col_game') }}</th><th>{{ trans('prize_discount.matrix_col_discount') }}</th><th>{{ trans('prize_discount.matrix_col_win') }}</th></tr></thead><tbody>@foreach ($matrixLotteries as $lottery)<tr data-pd-matrix-lottery="{{ $lottery['key'] ?? '' }}"><th colspan="4" scope="rowgroup">{{ $lottery['label'] ?? 'NOT_CONFIGURED' }}</th></tr>@foreach ((array) ($lottery['games'] ?? []) as $game)<tr><td>{{ $lottery['label'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $game['label'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $game['discount_display'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $game['base_stake'] ?? 'NOT_CONFIGURED' }} × {{ $game['d_multiplier'] ?? $game['multiplier'] ?? 'NOT_CONFIGURED' }} {{ $game['currency'] ?? '' }}</td></tr>@endforeach @endforeach</tbody></table></div>@endif</section>
+            <section class="next-section" id="discount-matrix" data-content-section aria-labelledby="discount-matrix-title">
+                <div class="next-section__heading"><span class="next-section__number">Σ</span><div><p class="next-eyebrow">{{ trans('discounts_page.matrix') }}</p><h2 id="discount-matrix-title">{{ trans('prize_discount.matrix_col_discount') }}</h2></div></div>
+                @if ($matrixLotteries === [])
+                    <p class="next-empty">NOT_CONFIGURED</p>
+                @else
+                    <div class="next-table-wrap" data-rates-source="server-projection"><table class="next-table">
+                        <thead><tr><th>{{ trans('discounts_page.lottery') }}</th><th>{{ trans('prize_discount.matrix_col_game') }}</th><th>{{ trans('prize_discount.matrix_col_discount') }}</th><th>{{ trans('prize_discount.matrix_col_win') }}</th></tr></thead><tbody>
+                        @foreach ($matrixLotteries as $lottery)
+                            <tr data-pd-matrix-lottery="{{ $lottery['key'] ?? '' }}"><th colspan="4" scope="rowgroup">{{ $lottery['label'] ?? 'NOT_CONFIGURED' }}</th></tr>
+                            @foreach ((array) ($lottery['games'] ?? []) as $game)
+                                <tr data-pd-matrix-game="{{ $game['game'] ?? '' }}"><td>{{ $lottery['label'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $game['label'] ?? 'NOT_CONFIGURED' }}</td><td>{{ $game['discount_display'] ?? 'NOT_CONFIGURED' }}</td><td>
+                                    @if ($game['has_modes'] ?? false)
+                                        D: {{ $game['base_stake'] ?? 'NOT_CONFIGURED' }} × {{ $game['d_multiplier'] ?? 'NOT_CONFIGURED' }} {{ $game['currency'] ?? '' }}<br>
+                                        R: {{ $game['base_stake'] ?? 'NOT_CONFIGURED' }} × {{ $game['r_multiplier'] ?? 'NOT_CONFIGURED' }} {{ $game['currency'] ?? '' }}
+                                    @else
+                                        {{ $game['base_stake'] ?? 'NOT_CONFIGURED' }} × {{ $game['multiplier'] ?? 'NOT_CONFIGURED' }} {{ $game['currency'] ?? '' }}
+                                    @endif
+                                </td></tr>
+                            @endforeach
+                        @endforeach
+                        </tbody></table></div>
+                @endif
+            </section>
             <section class="next-section" id="affiliate-commissions" data-content-section aria-labelledby="affiliate-commissions-title"><div class="next-section__heading"><span class="next-section__number">A</span><div><p class="next-eyebrow">{{ trans('prize_discount.affiliate_band') }}</p><h2 id="affiliate-commissions-title">{{ trans('prize_discount.affiliate_heading') }}</h2></div></div>@if (($affiliate['published'] ?? false) !== true || $affiliateBands === [])<p class="next-empty" role="status">{{ trans('prize_discount.affiliate_not_published') }}</p>@else<p class="next-muted">{{ trans('prize_discount.affiliate_note') }}</p><div class="next-table-wrap"><table class="next-table"><thead><tr><th scope="col">{{ trans('prize_discount.affiliate_band') }}</th><th scope="col">{{ trans('prize_discount.affiliate_rate') }}</th><th scope="col">{{ trans('prize_discount.affiliate_eligibility') }}</th></tr></thead><tbody>@foreach ($affiliateBands as $band)<tr><th scope="row">{{ trans($band['label_key']) }}</th><td>{{ number_format((float) ($band['rate_percentage'] ?? 0), 2, '.', '') }}%</td><td>{{ trans($band['eligibility_key']) }}</td></tr>@endforeach</tbody></table></div>@endif<p class="mt-4"><a class="next-button" href="{{ route('contact') }}">{{ trans('prize_discount.affiliate_contact') }}</a></p></section>
             <section class="next-section" id="discount-immutable" data-content-section aria-labelledby="discount-immutable-title"><div class="next-section__heading"><span class="next-section__number">{{ trans('discounts_page.fix') }}</span><div><p class="next-eyebrow">{{ trans('discounts_page.protected_prices') }}</p><h2 id="discount-immutable-title">{{ trans('discounts_page.immutable_title') }}</h2></div></div><div class="next-section__body">@if ($immutable === [])<p class="next-empty">NOT_CONFIGURED</p>@else<p>{{ trans('discounts_page.immutable_body') }}</p><ul>@foreach ($immutable as $item)<li>{{ $item['product'] ?? trans('discounts_page.product_fallback') }}: {{ $item['price'] ?? 'NOT_CONFIGURED' }} {{ $item['currency'] ?? '' }}</li>@endforeach</ul>@endif<p class="next-muted">{{ trans('discounts_page.personal_pricing_note') }}</p></div></section>
         </div></div>

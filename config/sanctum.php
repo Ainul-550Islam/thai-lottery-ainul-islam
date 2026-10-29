@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Middleware\AuthenticateBoundSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
-use Laravel\Sanctum\Http\Middleware\AuthenticateSession;
 use Laravel\Sanctum\Sanctum;
 
 return [
@@ -20,7 +20,9 @@ return [
     'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
 
     'middleware' => [
-        'authenticate_session' => AuthenticateSession::class,
+        // The same epoch/hash binding used by authenticated web routes must
+        // also guard first-party API cookies; bearer tokens stay stateless.
+        'authenticate_session' => AuthenticateBoundSession::class,
         'encrypt_cookies' => EncryptCookies::class,
         'validate_csrf_token' => ValidateCsrfToken::class,
     ],

@@ -70,7 +70,7 @@ final class RecordPrizeDisbursementAudit
                 substr($event->resultFingerprint, 0, 12),
             ),
             'metadata' => [
-                'anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'match_key' => substr($event->matchKey, 0, 12),
                 'draw_id' => $this->cleanId($event->drawId),
                 'bet_id' => $this->cleanId($event->betId),
@@ -107,19 +107,26 @@ final class RecordPrizeDisbursementAudit
             $act,
         );
 
-        $type = PrizeDisbursement::class;
-        $id = $disbursementId ?? 0;
+        $payoutId = $payout instanceof Payout && $payout->exists ? (int) $payout->getKey() : 0;
+        $subjectType = null;
+        $subjectId = null;
+        if ($disbursementId !== null && $disbursementId > 0) {
+            $subjectType = PrizeDisbursement::class;
+            $subjectId = $disbursementId;
+        } elseif ($payoutId > 0) {
+            $subjectType = Payout::class;
+            $subjectId = $payoutId;
+        }
 
-        $exists = $id > 0
-            ? AuditLog::query()
-                ->where('auditable_type', $type)
-                ->where('auditable_id', $id)
-                ->where('metadata->anchor', $anchor)
-                ->exists()
-            : AuditLog::query()
-                ->where('metadata->anchor', $anchor)
-                ->where('lane', 'prize-disbursement')
-                ->exists();
+        // Both the canonical and legacy anchors remain searchable. The lane is
+        // in metadata, not a column on the audit table.
+        $query = AuditLog::query()->anchoredBy($anchor)->where('metadata->lane', 'prize-disbursement');
+        if ($subjectType !== null) {
+            $query->where('auditable_type', $subjectType)->where('auditable_id', $subjectId);
+        } else {
+            $query->whereNull('auditable_type')->whereNull('auditable_id');
+        }
+        $exists = $query->exists();
 
         if ($exists) {
             return;
@@ -130,8 +137,8 @@ final class RecordPrizeDisbursementAudit
             'user_id' => null,
             'action' => AuditAction::Update,
             'risk_level' => RiskLevel::Critical,
-            'auditable_type' => $type,
-            'auditable_id' => $id > 0 ? $id : ($payout?->getKey() ?? 0),
+            'auditable_type' => $subjectType,
+            'auditable_id' => $subjectId,
             'description' => sprintf(
                 'Settlement act [%s] on payout #%d: %s (fingerprint %s...)',
                 $act,
@@ -140,7 +147,7 @@ final class RecordPrizeDisbursementAudit
                 substr($fingerprint, 0, 12),
             ),
             'metadata' => [
-                'anchor' => $anchor,
+                AuditLog::ANCHOR_KEY => $anchor,
                 'payout_id' => $payout?->getKey(),
                 'disbursement_id' => $disbursementId,
                 'act' => $act,
@@ -168,7 +175,7 @@ final class RecordPrizeDisbursementAudit
         return AuditLog::query()
             ->where('auditable_type', $class)
             ->where('auditable_id', $id)
-            ->where('metadata->anchor', $anchor)
+            ->anchoredBy($anchor)
             ->exists();
     }
 

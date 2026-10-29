@@ -96,6 +96,28 @@ final class DepositMethodsCompatCapabilityTest extends PaymentTestCase
         }
     }
 
+    public function test_closed_launch_switch_marks_configured_deposit_methods_unavailable(): void
+    {
+        config([
+            'payment.gateways.promptpay.enabled' => true,
+            'payment.gateways.promptpay.merchant_id' => '0812345678',
+        ]);
+        $player = $this->createPlayer('0.00');
+        Sanctum::actingAs($player['user']);
+        $before = collect($this->getJson('/api/v1/deposit/methods')->assertOk()->json('data.methods'))->keyBy('id');
+        self::assertTrue($before->get('promptpay')['enabled']);
+        config(['real_money.enabled' => false]);
+        $closed = collect($this->getJson('/api/v1/deposit/methods')->assertOk()->json('data.methods'))->keyBy('id');
+        foreach ($closed as $rail) {
+            self::assertFalse($rail['enabled']);
+            self::assertSame('NOT_CONFIGURED', $rail['state']);
+            self::assertNotEmpty($rail['reason']);
+        }
+        config(['real_money.enabled' => true]);
+        $reopened = collect($this->getJson('/api/v1/deposit/methods')->assertOk()->json('data.methods'))->keyBy('id');
+        self::assertTrue($reopened->get('promptpay')['enabled']);
+    }
+
     public function test_the_listing_requires_authentication(): void
     {
         $this->getJson('/api/v1/deposit/methods')->assertUnauthorized();
@@ -285,6 +307,30 @@ final class DepositMethodsCompatCapabilityTest extends PaymentTestCase
         $this->assertNull($rails->get('bank_transfer')['reason']);
     }
 
+    public function test_closed_launch_switch_marks_configured_withdrawal_methods_unavailable(): void
+    {
+        config([
+            'payment.gateways.bank_transfer.enabled' => true,
+            'payment.gateways.bank_transfer.settlement.bank_name' => 'Siam Commercial Bank',
+            'payment.gateways.bank_transfer.settlement.account_number' => '1234567890',
+            'payment.gateways.bank_transfer.settlement.account_name' => 'Operator Account',
+        ]);
+        $player = $this->createPlayer('0.00');
+        Sanctum::actingAs($player['user']);
+        $before = collect($this->getJson('/api/v1/withdrawal/methods')->assertOk()->json('data.methods'))->keyBy('id');
+        self::assertTrue($before->get('bank_transfer')['enabled']);
+        config(['real_money.enabled' => false]);
+        $closed = collect($this->getJson('/api/v1/withdrawal/methods')->assertOk()->json('data.methods'))->keyBy('id');
+        foreach ($closed as $rail) {
+            self::assertFalse($rail['enabled']);
+            self::assertSame('NOT_CONFIGURED', $rail['state']);
+            self::assertNotEmpty($rail['reason']);
+        }
+        config(['real_money.enabled' => true]);
+        $reopened = collect($this->getJson('/api/v1/withdrawal/methods')->assertOk()->json('data.methods'))->keyBy('id');
+        self::assertTrue($reopened->get('bank_transfer')['enabled']);
+    }
+
     public function test_the_withdrawal_listing_never_offers_the_internal_payout_rail(): void
     {
         config(['thai_payout.enabled' => true]);
@@ -298,7 +344,8 @@ final class DepositMethodsCompatCapabilityTest extends PaymentTestCase
         $ids = collect($response->json('data.methods'))->pluck('id');
 
         $this->assertNotContains('thai_bank', $ids->all(), 'The automated payout rail is routed, never chosen.');
-        $this->assertTrue($response->json('data.routing.automated_thai_bank'));
+        $this->assertFalse($response->json('data.routing.automated_thai_bank'),
+            'Turning on a switch alone is not proof the bank adapter is configured.');
     }
 
     public function test_the_withdrawal_listing_requires_authentication(): void

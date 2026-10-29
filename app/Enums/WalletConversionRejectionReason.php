@@ -78,7 +78,7 @@ enum WalletConversionRejectionReason: string
             // A lane with no valid currency, or no valid price, is a service that is
             // down, not a request the member got wrong.
             self::CurrencyNotConfigured,
-            self::FeeRuleInvalid,
+            self::FeeRuleInvalid => 503,
             self::AccountSuspended,
             self::SelfExclusionActive,
             self::WalletLocked,

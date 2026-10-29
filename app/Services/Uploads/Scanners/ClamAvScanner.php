@@ -7,6 +7,8 @@ namespace App\Services\Uploads\Scanners;
 use App\Contracts\Security\MalwareScanner;
 use App\DTOs\Security\MalwareScanResult;
 use App\Enums\MalwareScanStatus;
+use App\Exceptions\AntimalwareException;
+use App\Services\Antimalware\ScannerInterface;
 use RuntimeException;
 use Throwable;
 
@@ -80,10 +82,13 @@ use Throwable;
  *     ClamAvScanner::scanStream()` and the malware gate never ran. It is
  *     implemented here and declared on the contract.
  */
-class ClamAvScanner implements MalwareScanner
+class ClamAvScanner implements MalwareScanner, ScannerInterface
 {
     /** The engine label persisted on every verdict. */
     public const ENGINE = 'ClamAV';
+
+    /** Driver identifier used by the existing antimalware manager. */
+    public const DRIVER = 'clamav';
 
     /** Longest signature name we will carry into a database column. */
     private const MAX_SIGNATURE_LENGTH = 120;
@@ -108,6 +113,55 @@ class ClamAvScanner implements MalwareScanner
         $this->timeoutSeconds = max(1, min(120, (int) config('antimalware.timeout_seconds', 15)));
         $this->chunkBytes = max(1024, min(1_048_576, (int) config('antimalware.clamav.chunk_bytes', 8192)));
         $this->maxFileSizeBytes = max(1, (int) config('antimalware.max_file_size_bytes', 10_485_760));
+    }
+
+    public function name(): string
+    {
+        return self::DRIVER;
+    }
+
+    /**
+     * Adapt the existing quarantine verdict to the manager's fail-closed API.
+     * Only an explicit CLEAN result is returned; infections and all scanner
+     * errors are exceptions. The actual INSTREAM client remains this class.
+     *
+     * @return array{driver: string, verdict: string, signature: null, bytes: int, duration_ms: int, sha256: string}
+     */
+    public function scan(string $path): array
+    {
+        $result = $this->scanFile($path);
+        $context = ['basename' => basename($path)];
+
+        if ($result->status === MalwareScanStatus::INFECTED) {
+            throw AntimalwareException::infected($result->threatName ?: 'unnamed_detection', $context + [
+                'bytes' => $result->fileSizeBytes,
+                'duration_ms' => (int) round($result->scanDurationMs),
+            ]);
+        }
+
+        if ($result->status !== MalwareScanStatus::CLEAN) {
+            $reason = (string) $result->threatName;
+            if (str_starts_with($reason, 'FILE_TOO_LARGE')) {
+                throw AntimalwareException::tooLarge($result->fileSizeBytes, $this->maxFileSizeBytes, $context);
+            }
+            if ($reason === 'FILE_NOT_FOUND' || $reason === 'FILE_NOT_READABLE') {
+                throw AntimalwareException::unavailable('file_not_readable', $context);
+            }
+
+            // Keep addresses and arbitrary daemon replies out of exceptions.
+            throw AntimalwareException::unavailable('scanner_error', $context);
+        }
+
+        return [
+            'driver' => self::DRIVER,
+            'verdict' => 'clean',
+            'signature' => null,
+            'bytes' => $result->fileSizeBytes,
+            'duration_ms' => (int) round($result->scanDurationMs),
+            // Hash of the very same chunks sent over INSTREAM, not a second
+            // read of a path that could have changed after the daemon reply.
+            'sha256' => $result->fileSha256,
+        ];
     }
 
     /**
@@ -268,6 +322,9 @@ class ClamAvScanner implements MalwareScanner
                     // class exists to prevent.
                     if (($meta['timed_out'] ?? false) === true) {
                         return $this->refusal('FILE_READ_TIMEOUT', $started, hash_final($hash), $sent);
+                    }
+                    if (! feof($handle)) {
+                        return $this->refusal('FILE_READ_INCOMPLETE', $started, hash_final($hash), $sent);
                     }
 
                     break;

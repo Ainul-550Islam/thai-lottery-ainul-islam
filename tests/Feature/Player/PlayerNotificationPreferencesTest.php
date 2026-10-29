@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Player;
 
+use App\DTOs\Notification\NotificationPreferenceData;
 use App\Enums\AuditAction;
+use App\Exceptions\NotificationPreferenceException;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationEventType;
 use App\Models\AuditLog;
@@ -93,16 +95,42 @@ final class PlayerNotificationPreferencesTest extends TestCase
             NotificationChannel::Sms,
         ));
 
-        $this->assertSame(
-            ['start' => '22:00', 'end' => '07:00'],
-            $service->quietHoursFor(
-                (int) $this->player->id,
-                NotificationEventType::DepositConfirmed,
-                NotificationChannel::Sms,
-            ),
+        // JSON objects have no key-order guarantee: MySQL's native JSON may
+        // return these keys in a different order than SQLite. Require the
+        // exact keys and values without making their serialization order a rule.
+        $quietHours = $service->quietHoursFor(
+            (int) $this->player->id,
+            NotificationEventType::DepositConfirmed,
+            NotificationChannel::Sms,
         );
+        $this->assertIsArray($quietHours);
+        $this->assertCount(2, $quietHours);
+        $this->assertArrayHasKey('start', $quietHours);
+        $this->assertArrayHasKey('end', $quietHours);
+        $this->assertSame('22:00', $quietHours['start']);
+        $this->assertSame('07:00', $quietHours['end']);
 
         $this->assertSame(2, NotificationPreference::query()->where('user_id', $this->player->id)->count());
+    }
+
+    public function test_service_rolls_back_every_write_when_a_later_row_belongs_to_another_player(): void
+    {
+        $other = User::factory()->create();
+        $first = NotificationPreferenceData::fromInput([
+            'user_id' => (int) $this->player->id, 'event_type' => NotificationEventType::BetWon,
+            'channel' => NotificationChannel::Email, 'enabled' => false,
+        ]);
+        $second = NotificationPreferenceData::fromInput([
+            'user_id' => (int) $other->id, 'event_type' => NotificationEventType::BetPlaced,
+            'channel' => NotificationChannel::Email, 'enabled' => false,
+        ]);
+        try {
+            app(NotificationPreferenceService::class)->writeManyFor((int) $this->player->id, [$first, $second]);
+            self::fail('A mixed-owner matrix was accepted.');
+        } catch (NotificationPreferenceException $exception) {
+            self::assertSame(NotificationPreferenceException::MALFORMED, $exception->errorCode());
+        }
+        self::assertSame(0, NotificationPreference::query()->count());
     }
 
     public function test_writing_the_same_combination_twice_updates_rather_than_duplicates(): void

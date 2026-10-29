@@ -44,6 +44,20 @@ final class PaymentWebhookVerificationService
      */
     public function verify(PaymentWebhookData $envelope, bool $allowStale = false): void
     {
+        // This generic HMAC envelope has no bKash-specific authoritative
+        // query or original-checkout binding. It must not become a bypass
+        // around the provider adapter, even for previously queued envelopes.
+        if (in_array($envelope->providerCode, ['bkash', 'nagad'], true)) {
+            throw PaymentWebhookException::malformed('Payment evidence requires the provider-specific verified checkout flow.');
+        }
+        // A configured shared secret and an invented canonical HMAC do not
+        // establish a crypto provider, blockchain confirmation, or settlement.
+        // This also prevents the generic persisted-envelope lane from bypassing
+        // the intentionally unsupported CryptoGateway.
+        if ($envelope->providerCode === 'crypto') {
+            throw PaymentWebhookException::malformed('Crypto evidence requires a verified provider-specific settlement contract.');
+        }
+
         $secret = $this->secretFor($envelope->providerCode);
 
         // FAIL-CLOSED by construction.

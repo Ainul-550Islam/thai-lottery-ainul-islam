@@ -161,6 +161,40 @@ class BetCancellationService
 
             $drawCancellationId = $dispatch?->assertBetPermit($bet, $data);
 
+            // The bet was read before taking its original wallet lock. Another
+            // cancellation can commit while this caller waits, so inspect the
+            // current bet under the same wallet-first ordering before deciding
+            // whether to refund or to prove the already-recorded refund.
+            $route = DB::table('bet_purchase_ownerships')->where('bet_id', (int) $bet->getKey())->first();
+            if (! $route) {
+                $this->proof->refuse();
+            }
+            $wallet = app(WalletLockService::class)->lockForCredit((int) $route->wallet_id);
+            // Draw coordinators already hold this lock; player cancellation
+            // takes it before the bet so closing/cancelling the draw cannot
+            // race a stale pre-wallet sales-window decision.
+            if ($dispatch === null) {
+                Draw::query()->whereKey((int) $bet->draw_id)->lockForUpdate()->firstOrFail();
+            }
+            $current = Bet::withTrashed()->whereKey((int) $bet->getKey())->lockForUpdate()->first();
+            if (! $current instanceof Bet || $current->trashed() || (int) $current->user_id !== $data->userId
+                || $current->currency !== $currency) {
+                $this->proof->refuse();
+            }
+            $bet = $current;
+            if ($bet->status === BetStatus::Cancelled) {
+                $result = $this->proveReplay($bet, $currency, $wallet);
+
+                return;
+            }
+            $this->assertNotSettled($bet);
+            $this->assertCancellableStatus($bet);
+            if ($dispatch === null) {
+                $this->assertWithinWindow($bet);
+                $this->assertDrawAcceptsCancellation($bet);
+            }
+            $items = $bet->items()->lockForUpdate()->get()->all();
+
             // 0. Prove that this bet really was bought, paid for and still owns the
             //    capacity being released. Everything below moves money, so the proof
             //    comes first and any inconsistency aborts before a single row changes:
@@ -318,7 +352,11 @@ class BetCancellationService
     private function assertDrawAcceptsCancellation(Bet $bet): void
     {
         /** @var Draw $draw */
-        $draw = $bet->draw()->firstOrFail();
+        $query = $bet->draw();
+        if (DB::transactionLevel() > 0) {
+            $query->lockForUpdate();
+        }
+        $draw = $query->firstOrFail();
 
         if (! $draw->canAcceptBets()) {
             throw BetCancellationException::drawUnavailable((int) $draw->getKey(), 'the draw no longer accepts changes');
@@ -609,6 +647,12 @@ class BetCancellationService
         $wallet = $lockedWallet instanceof Wallet
             ? $lockedWallet
             : app(WalletLockService::class)->lockForCredit((int) $route->wallet_id);
+        $current = Bet::withTrashed()->whereKey((int) $bet->getKey())->lockForUpdate()->first();
+        if (! $current instanceof Bet || $current->trashed() || $current->status !== BetStatus::Cancelled
+            || (int) $current->user_id !== (int) $bet->user_id || $current->currency !== $currency) {
+            $this->proof->refuse();
+        }
+        $bet = $current;
         $claim = $this->ownership->locked($bet, $wallet);
 
         if ($claim->state !== 'cancelled' || $claim->refund_transaction_id === null || ! $claim->refund_hash
@@ -625,8 +669,10 @@ class BetCancellationService
             $this->proof->refuse();
         }
 
-        $original = FinancialTransaction::withTrashed()->whereKey((int) $claim->original_transaction_id)->first();
-        $refund = FinancialTransaction::withTrashed()->whereKey((int) $claim->refund_transaction_id)->first();
+        // The refund may have committed while this transaction was waiting
+        // after establishing an older snapshot. Prove current transaction rows.
+        $original = FinancialTransaction::withTrashed()->whereKey((int) $claim->original_transaction_id)->lockForUpdate()->first();
+        $refund = FinancialTransaction::withTrashed()->whereKey((int) $claim->refund_transaction_id)->lockForUpdate()->first();
 
         if (! $original instanceof FinancialTransaction || ! $refund instanceof FinancialTransaction) {
             $this->proof->refuse();

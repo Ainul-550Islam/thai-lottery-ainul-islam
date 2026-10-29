@@ -62,7 +62,7 @@ final class PlayerProfilePortalController extends Controller
             ]);
         }
 
-        return app(CanonicalProfileController::class)->updatePassword($request);
+        return app(CanonicalProfileController::class)->updatePassword($request, app(\App\Services\Auth\PasswordChangeService::class));
     }
 
     public function setSecurityPinApi(Request $request): JsonResponse

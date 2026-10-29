@@ -34,6 +34,13 @@ final class ConversionPolicy implements ConversionPolicyContract
 
     public function evaluate(ConversionRequestData $request): ConversionPolicyDecisionData
     {
+        // A preview never reserves wallet or member facts, even when invoked by
+        // a caller that already has an unrelated transaction.
+        return $this->evaluatePolicy($request, false);
+    }
+
+    private function evaluatePolicy(ConversionRequestData $request, bool $decisive): ConversionPolicyDecisionData
+    {
         $checks = [];
 
         // 0. The lane must know what currency it is denominated in, and the request
@@ -99,7 +106,11 @@ final class ConversionPolicy implements ConversionPolicyContract
         $checks['monthly_limit'] = true;
 
         try {
-            $this->limits->assertAllowed($request->userId, $request->amount, $request->currency);
+            if ($decisive) {
+                $this->limits->assertAllowedForExecution($request->userId, $request->amount, $request->currency);
+            } else {
+                $this->limits->assertAllowed($request->userId, $request->amount, $request->currency);
+            }
         } catch (ConversionLimitExceededException $breached) {
             $reason = $breached->rejectionReason() ?? WalletConversionRejectionReason::DailyLimitExceeded;
             $checks[$reason === WalletConversionRejectionReason::MonthlyLimitExceeded ? 'monthly_limit' : 'daily_limit'] = false;
@@ -131,7 +142,11 @@ final class ConversionPolicy implements ConversionPolicyContract
         // `users.status` survive a mid-request suspension.
         $checks['member_eligible'] = true;
         try {
-            $this->members->assertAllowed($request->userId);
+            if ($decisive) {
+                $this->members->assertAllowedForExecution($request->userId);
+            } else {
+                $this->members->assertAdvisoryAllowed($request->userId);
+            }
         } catch (ConversionException $refusal) {
             $checks['member_eligible'] = false;
             $reason = $refusal->rejectionReason();
@@ -164,7 +179,11 @@ final class ConversionPolicy implements ConversionPolicyContract
         // a decision. Two copies of "is this wallet usable" is how the page came to
         // invite members into a form the engine would refuse.
         try {
-            $this->wallets->assertAdvisoryAllowed($request);
+            if ($decisive) {
+                $this->wallets->pairForExecution($request);
+            } else {
+                $this->wallets->assertAdvisoryAllowed($request);
+            }
             $checks['wallet_eligible'] = true;
         } catch (ConversionException $refusal) {
             $checks['wallet_eligible'] = false;
@@ -180,7 +199,7 @@ final class ConversionPolicy implements ConversionPolicyContract
 
     public function assertAllowed(ConversionRequestData $request): void
     {
-        $decision = $this->evaluate($request);
+        $decision = $this->evaluatePolicy($request, \Illuminate\Support\Facades\DB::transactionLevel() > 0);
 
         if ($decision->isAllowed()) {
             return;

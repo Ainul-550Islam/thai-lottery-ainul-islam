@@ -251,7 +251,8 @@ final class DrawCancellationService
         $participants = $this->decode($owner->participants);
         $current = $this->membership((int) $draw->id, true);
         $this->assertMembership($current);
-        if ($current !== array_map(fn ($p): array => array_diff_key($p, array_flip(['initial_state', 'initial_refund_id'])), $participants)
+        $originalMembers = array_map(fn ($p): array => array_diff_key($p, array_flip(['initial_state', 'initial_refund_id'])), $participants);
+        if ($this->canonical($current) !== $this->canonical($originalMembers)
             || $this->walletIds($current, true) !== array_keys($locked)) {
             $this->refuse('draw_cancellation_membership_changed');
         }
@@ -284,22 +285,31 @@ final class DrawCancellationService
         return $outcomes;
     }
 
-    private function termsHash(object $owner, Draw $draw): string
+    private function termsHash(object $owner, Draw $draw, bool $canonical = true): string
     {
-        return $this->hash(['owned-draw-cancellation-v1', (int) $draw->id, $draw->uuid, $draw->draw_number, $draw->currency->value,
-            (int) $owner->actor_user_id, $owner->previous_status, $owner->reason, $this->decode($owner->participants)]);
+        $participants = $this->decode($owner->participants);
+
+        return $this->hash([$canonical ? 'owned-draw-cancellation-v2' : 'owned-draw-cancellation-v1',
+            (int) $draw->id, $draw->uuid, $draw->draw_number, $draw->currency->value,
+            (int) $owner->actor_user_id, $owner->previous_status, $owner->reason,
+            $canonical ? $this->canonical($participants) : $participants]);
     }
 
     private function assertTerms(object $owner, Draw $draw): void
     {
-        if (! hash_equals($owner->terms_hash, $this->termsHash($owner, $draw))) {
+        // MySQL's native JSON storage can reorder object keys. New v2 receipts
+        // seal the same recursively sorted objects on every supported engine;
+        // existing v1 receipts remain replayable only when their exact old seal
+        // still verifies. A failed legacy seal is never silently repaired.
+        if (! hash_equals($owner->terms_hash, $this->termsHash($owner, $draw))
+            && ! hash_equals($owner->terms_hash, $this->termsHash($owner, $draw, false))) {
             $this->refuse('draw_cancellation_terms_unproven');
         }
     }
 
     private function assertOutcomeSeal(object $owner, array $outcomes): void
     {
-        if (! is_string($owner->outcome_hash) || $this->decode($owner->outcomes) !== $outcomes
+        if (! is_string($owner->outcome_hash) || $this->canonical($this->decode($owner->outcomes)) !== $this->canonical($outcomes)
             || ! hash_equals($owner->outcome_hash, $this->hash([$owner->terms_hash, $outcomes, $owner->completed_at]))) {
             $this->refuse('draw_cancellation_outcome_unproven');
         }
@@ -339,6 +349,22 @@ final class DrawCancellationService
         }
         if (! is_array($value) || ! array_is_list($value)) {
             $this->refuse('draw_cancellation_record_unproven');
+        }
+
+        return $value;
+    }
+
+    /** Normalize JSON object key order without changing list order or value types. */
+    private function canonical(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+        if (! array_is_list($value)) {
+            ksort($value, SORT_STRING);
+        }
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->canonical($item);
         }
 
         return $value;

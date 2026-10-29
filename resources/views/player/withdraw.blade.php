@@ -4,6 +4,8 @@
 
 @section('content')
 @php
+    $formattedMinimum = \App\Services\Finance\Money::of((string) $limits['min'], $currency)->format();
+    $formattedMaximum = \App\Services\Finance\Money::of((string) $limits['max'], $currency)->format();
     $requestedMethod = (string) old('method', '');
     $selectedMethod = array_key_exists($requestedMethod, $methods)
         ? $requestedMethod
@@ -19,7 +21,7 @@
         @if ($availableBalance !== null)
             <p class="mt-4 text-sm text-slate-200">{{ __('player.available_to_withdraw') }}: <span class="font-semibold">{{ $availableBalance }} {{ $currency->value }}</span></p>
         @endif
-        <p class="mt-2 text-sm text-slate-400">{{ __('player.min_withdrawal') }} {{ $limits['min'] }} {{ $currency->value }} · {{ __('player.max_withdrawal') }} {{ $limits['max'] }} {{ $currency->value }} · {{ __('player.processing_time') }} {{ __('player.within_hours', ['hours' => $limits['processing_hours']]) }}</p>
+        <p class="mt-2 text-sm text-slate-400">{{ __('player.min_withdrawal') }} {{ $formattedMinimum }} {{ $currency->value }} · {{ __('player.max_withdrawal') }} {{ $formattedMaximum }} {{ $currency->value }} · {{ __('player.processing_time') }} {{ __('player.within_hours', ['hours' => $limits['processing_hours']]) }}</p>
     </header>
 
     @if (session('success'))

@@ -7,10 +7,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Responses\ApiResponse;
 use App\Rules\StrongPasswordRule;
 use App\Models\User;
+use App\Services\Auth\PasswordChangeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Player Profile and Account Settings API Controller.
@@ -97,7 +98,7 @@ final class ProfileController
     /**
      * Update authenticated player's password with current password verification.
      */
-    public function updatePassword(Request $request): JsonResponse
+    public function updatePassword(Request $request, PasswordChangeService $passwords): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -109,7 +110,13 @@ final class ProfileController
             'password' => ['required', 'string', new StrongPasswordRule(), 'confirmed'],
         ]);
 
-        if (! Hash::check($validated['current_password'], (string) $user->password)) {
+        try {
+            $passwords->change($user, $validated['current_password'], $validated['password']);
+        } catch (ValidationException $exception) {
+            if (! array_key_exists('current_password', $exception->errors())) {
+                throw $exception;
+            }
+
             return ApiResponse::error(
                 code: 'invalid_current_password',
                 message: (string) trans('player.current_password_invalid'),
@@ -117,8 +124,14 @@ final class ProfileController
             );
         }
 
-        $user->password = Hash::make($validated['password']);
-        $user->save();
+        // Sanctum can also authenticate a first-party browser session. Do not
+        // let that in-memory session be written back after revocation.
+        $webUser = $request->hasSession() ? Auth::guard('web')->user() : null;
+        if ($webUser instanceof User && $webUser->is($user)) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return ApiResponse::success(
             data: [],

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Exceptions;
 
-use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
 /**
@@ -52,16 +51,6 @@ final class ChatException extends RuntimeException
             'code' => $this->machineCode,
             'message' => $this->getMessage(),
         ];
-    }
-
-    public function render(): JsonResponse
-    {
-        $headers = [];
-        if (isset($this->context['retry_after']) && is_int($this->context['retry_after']) && $this->context['retry_after'] > 0) {
-            $headers['Retry-After'] = (string) $this->context['retry_after'];
-        }
-
-        return response()->json($this->toArray(), $this->httpStatus, $headers);
     }
 
     public static function featureDisabled(): self

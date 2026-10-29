@@ -176,6 +176,47 @@ final class ThaiBankPayoutWebhookTest extends PaymentTestCase
         self::assertGreaterThan(0, \App\Models\AuditLog::query()->count());
     }
 
+    public function test_duplicate_signed_status_fields_cannot_release_or_settle_the_hold(): void
+    {
+        [$withdrawal, $attempt, $wallet] = $this->fixture();
+        $body = '{"reference":"'.$withdrawal->reference_number.'","state":"SETTLED","st\\u0061te":"REJECTED",'
+            .'"providerReference":"'.$attempt->provider_reference.'","amount":"100.00","currency":"THB"}';
+        $result = app(ThaiBankPayoutWebhookService::class)->processCallback('scb', $body, $this->signedHeaders($body));
+
+        self::assertFalse($result['accepted']);
+        self::assertTrue($result['signature_verified']);
+        self::assertSame(ThaiBankPayoutState::Accepted, $attempt->fresh()->state);
+        self::assertSame(WithdrawalStatus::Approved, $withdrawal->fresh()->status);
+        self::assertSame('100.00', (string) $wallet->fresh()->locked_balance);
+        self::assertSame('500.00', (string) $wallet->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 0);
+        self::assertDatabaseCount('ledger_entries', 0);
+        self::assertDatabaseHas('audit_logs', ['description' => 'Signed Thai bank payout callback contained invalid or incomplete facts.']);
+    }
+
+    public function test_a_decoy_amount_cannot_make_a_mismatched_signed_callback_settle(): void
+    {
+        [$withdrawal, $attempt, $wallet] = $this->fixture();
+        $body = json_encode([
+            'reference' => $withdrawal->reference_number,
+            'state' => 'SETTLED',
+            'providerReference' => (string) $attempt->provider_reference,
+            'other' => ['amount' => 100.00],
+            'data' => ['amount' => 1.23, 'currency' => 'THB'],
+        ], JSON_THROW_ON_ERROR);
+        $result = app(ThaiBankPayoutWebhookService::class)->processCallback('scb', $body, $this->signedHeaders($body));
+
+        self::assertTrue($result['accepted']);
+        self::assertTrue($result['signature_verified']);
+        self::assertSame(ThaiBankPayoutState::Uncertain, $attempt->fresh()->state);
+        self::assertTrue((bool) $attempt->fresh()->outcome_unknown);
+        self::assertSame(WithdrawalStatus::Approved, $withdrawal->fresh()->status);
+        self::assertSame('100.00', (string) $wallet->fresh()->locked_balance);
+        self::assertSame('500.00', (string) $wallet->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 0);
+        self::assertDatabaseCount('ledger_entries', 0);
+    }
+
     public function test_callback_from_another_bank_cannot_mutate_the_matched_attempt(): void
     {
         [$withdrawal, $attempt, $wallet] = $this->fixture();

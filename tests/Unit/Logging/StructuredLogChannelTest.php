@@ -125,6 +125,50 @@ final class StructuredLogChannelTest extends TestCase
         }
     }
 
+    public function test_single_channel_redacts_before_placeholder_interpolation(): void
+    {
+        $this->channels();
+        $path = tempnam(sys_get_temp_dir(), 'logging-single-');
+        self::assertIsString($path);
+
+        try {
+            $this->app['config']->set('logging.channels.single.path', $path);
+            $this->app['log']->forgetChannel('single');
+            $this->app['log']->channel('single')->warning('Rejected credential {password}', [
+                'password' => 'secret-in-placeholder',
+            ]);
+            $line = (string) file_get_contents($path);
+            self::assertStringNotContainsString('secret-in-placeholder', $line);
+            self::assertStringContainsString('[REDACTED]', $line);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function test_the_resolved_stderr_channel_applies_json_and_redaction_together(): void
+    {
+        $this->channels('json');
+        $path = tempnam(sys_get_temp_dir(), 'logging-channel-');
+        self::assertIsString($path);
+
+        try {
+            $this->app['config']->set('logging.channels.stderr.with.stream', $path);
+            $this->app['log']->forgetChannel('stderr');
+            $this->app['log']->channel('stderr')->info('checkout checked', [
+                'password' => 'secret-in-channel', 'amount' => 12.5,
+            ]);
+
+            $line = trim((string) file_get_contents($path));
+            self::assertStringNotContainsString('secret-in-channel', $line);
+            $record = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame('checkout checked', $record['message']);
+            self::assertSame('[REDACTED]', $record['context']['password']);
+            self::assertSame(12.5, $record['context']['amount']);
+        } finally {
+            @unlink($path);
+        }
+    }
+
     public function test_a_record_written_through_the_stderr_channel_is_json_and_redacted(): void
     {
         $channel = $this->channels('json')['stderr'];

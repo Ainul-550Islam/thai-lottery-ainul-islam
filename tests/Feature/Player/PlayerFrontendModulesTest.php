@@ -169,10 +169,7 @@ final class PlayerFrontendModulesTest extends TestCase
 
     public function test_bet_page_offers_only_market_keys_the_api_accepts(): void
     {
-        $content = (string) $this->actingAs($this->player)
-            ->get(route('player.bet'))
-            ->assertOk()
-            ->getContent();
+        $content = $this->renderOpenBetPage();
 
         preg_match_all('/<option value="([^"]+)"/', $content, $matches);
 
@@ -192,10 +189,7 @@ final class PlayerFrontendModulesTest extends TestCase
 
     public function test_bet_page_publishes_the_configured_digits_and_multipliers(): void
     {
-        $content = (string) $this->actingAs($this->player)
-            ->get(route('player.bet'))
-            ->assertOk()
-            ->getContent();
+        $content = $this->renderOpenBetPage();
 
         /** @var array<string, array{digits?: int, payout_multiplier?: int|float, enabled?: bool}> $markets */
         $markets = config('lottery.markets', []);
@@ -222,10 +216,7 @@ final class PlayerFrontendModulesTest extends TestCase
 
     public function test_bet_slip_container_mirrors_the_server_side_item_ceiling(): void
     {
-        $content = (string) $this->actingAs($this->player)
-            ->get(route('player.bet'))
-            ->assertOk()
-            ->getContent();
+        $content = $this->renderOpenBetPage();
 
         $request = (string) file_get_contents(base_path('app/Http/Requests/Api/V1/BulkBetRequest.php'));
 
@@ -237,28 +228,30 @@ final class PlayerFrontendModulesTest extends TestCase
         );
     }
 
-    public function test_the_slip_is_not_given_a_purchase_credential_it_cannot_have(): void
+    public function test_open_bet_slip_posts_the_csrf_protected_web_form_without_exposing_api_tokens(): void
     {
-        // POST /api/v1/bets/purchase-bulk is behind auth:sanctum and this
-        // application does not call statefulApi(), so a session cookie cannot
-        // authenticate. The page must therefore NOT advertise a purchase
-        // endpoint or embed a token: bet-slip.js stays inert and explains why,
-        // instead of firing a request that can only 401.
-        $content = (string) $this->actingAs($this->player)
+        $content = $this->renderOpenBetPage();
+        $this->assertStringContainsString('action="'.route('player.bets.purchase').'"', $content);
+        $this->assertStringContainsString('name="_token"', $content);
+        $this->assertStringNotContainsString('data-purchase-endpoint', $content);
+        $this->assertStringNotContainsString('data-api-token', $content);
+    }
+
+    public function test_no_open_draw_does_not_present_a_sale_form(): void
+    {
+        $this->actingAs($this->player)->get(route('player.bet'))->assertOk()
+            ->assertDontSee('data-bet-form', false)
+            ->assertSee(__('player.no_open_draw'));
+    }
+
+    private function renderOpenBetPage(): string
+    {
+        Draw::factory()->open()->create();
+
+        return (string) $this->actingAs($this->player)
             ->get(route('player.bet'))
             ->assertOk()
             ->getContent();
-
-        $this->assertStringNotContainsString('data-purchase-endpoint', $content);
-        $this->assertStringNotContainsString('data-api-token', $content);
-
-        $bootstrap = (string) file_get_contents(base_path('bootstrap/app.php'));
-        $this->assertStringNotContainsString(
-            'statefulApi',
-            $bootstrap,
-            'Sanctum stateful frontend requests are now enabled; revisit the bet slip, '
-                .'which is deliberately inert because they were not.',
-        );
     }
 
     public function test_dashboard_countdown_target_is_a_server_rendered_instant(): void

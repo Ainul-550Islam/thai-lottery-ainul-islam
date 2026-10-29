@@ -107,6 +107,10 @@ final class BetPurchaseService implements BetAmendmentReplacement
             return $this->replay->forBet($replay);
         }
 
+        // Historical receipts above remain replayable, but a fresh wager is
+        // unavailable while the deployment-wide launch gate is closed.
+        app(\App\Services\Compliance\RealMoneyGate::class)->assertOpen('bet');
+
         // RESPONSIBLE GAMING (batch-14): the single fail-closed facade,
         // consumed here before any validation or money movement — the
         // desk's named refusals (SE_ACTIVE_EXCLUSION, RGL_*) surface

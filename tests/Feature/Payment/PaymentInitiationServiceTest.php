@@ -81,7 +81,10 @@ class PaymentInitiationServiceTest extends TestCase
         config([
             'payment.deposit.allowed_methods' => ['stripe', 'bkash', 'nagad', 'crypto'],
             'payment.gateways.stripe.enabled' => true,
+            // These are synthetic fixtures for Http::fake(), not provider credentials.
+            'payment.gateways.stripe.key' => 'pk_test_example',
             'payment.gateways.stripe.secret' => 'sk_test_example',
+            'payment.gateways.stripe.webhook_secret' => 'whsec_test_example',
             'payment.gateways.stripe.supported_currencies' => ['THB', 'USD'],
         ]);
     }

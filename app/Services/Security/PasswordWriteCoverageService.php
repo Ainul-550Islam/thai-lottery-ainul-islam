@@ -17,13 +17,9 @@ use Symfony\Component\Finder\Finder;
  * `$user->password = Hash::make($input)` compiles, passes review by eye, and
  * silently skips all of it.
  *
- * A concrete instance was found while writing this: `app/Http/Controllers/Web/
- * AuthController.php` holds a whole registration implementation that no route
- * maps to, which wrote the hash itself and validated the password with
- * `Password::min(8)->letters()->numbers()` instead of the centralised
- * `StrongPasswordRule` that every routed registration form uses. Unrouted today,
- * but it was one `Route::post` away from being a weak door that also ignored
- * `config('auth_security.passwords.*')`.
+ * The former unrouted legacy registration implementation wrote the hash
+ * itself and bypassed canonical registration checks. Its mutation entry point
+ * now refuses requests rather than depending on an exception to this scanner.
  *
  * WHAT IT REPORTS
  *  - every `Hash::make(` call site under app/, classified against an allowlist
@@ -60,14 +56,9 @@ final class PasswordWriteCoverageService
      *
      * @var array<string, string>
      */
-    private const KNOWN_EXCEPTIONS = [
-        // Part 68: a complete registration implementation that nothing routes to
-        // (the live door is MemberAuthController::register). Deleting it is a
-        // consolidation decision that needs sign-off, so it stays — with the
-        // centralised password rule, and with this entry recording why it is
-        // allowed to write a hash at all.
-        'app/Http/Controllers/Web/AuthController.php' => 'legacy unrouted registration body; kept pending a deletion decision, password rule centralised in Part 68',
-    ];
+    // The former unrouted legacy registration body is now closed rather than
+    // being exempted from the canonical registration and password policy.
+    private const KNOWN_EXCEPTIONS = [];
 
     /**
      * The needle is assembled so this file does not match itself.

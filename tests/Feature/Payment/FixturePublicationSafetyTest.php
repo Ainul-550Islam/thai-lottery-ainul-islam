@@ -19,10 +19,38 @@ final class FixturePublicationSafetyTest extends TestCase
 {
     public function test_fixture_sources_default_to_disabled_in_configuration(): void
     {
-        $this->assertFalse((bool) config('national_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('weekly_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('bingo_lottery.sources.fixture.enabled', true));
-        $this->assertFalse((bool) config('pcso_lottery.sources.fixture.enabled', true));
+        // phpunit.xml deliberately enables these providers for public-page tests.
+        // Inspect the actual configuration defaults with those overrides absent,
+        // rather than confusing the current test environment with the default.
+        $lanes = ['national', 'weekly', 'bingo', 'pcso'];
+        $previous = [];
+
+        try {
+            foreach ($lanes as $lane) {
+                $key = strtoupper($lane).'_LOTTERY_FIXTURE_ENABLED';
+                $previous[$key] = [getenv($key), $_ENV[$key] ?? null, $_SERVER[$key] ?? null];
+                putenv($key);
+                unset($_ENV[$key], $_SERVER[$key]);
+            }
+
+            foreach ($lanes as $lane) {
+                $configuration = require config_path($lane.'_lottery.php');
+                $this->assertFalse(
+                    (bool) ($configuration['sources']['fixture']['enabled'] ?? true),
+                    "{$lane} fixture source must be disabled by default."
+                );
+            }
+        } finally {
+            foreach ($previous as $key => [$processValue, $envValue, $serverValue]) {
+                $processValue === false ? putenv($key) : putenv($key.'='.$processValue);
+                if ($envValue !== null) {
+                    $_ENV[$key] = $envValue;
+                }
+                if ($serverValue !== null) {
+                    $_SERVER[$key] = $serverValue;
+                }
+            }
+        }
     }
 
     public function test_fixture_provider_never_evaluates_to_official_source(): void

@@ -127,8 +127,9 @@ return [
         'expiry_minutes' => (int) env('AUTH_PASSWORD_RESET_EXPIRY_MINUTES', 60),
         // Requests per identifier+IP per minute for the recovery form.
         'max_requests_per_minute' => (int) env('AUTH_PASSWORD_RESET_MAX_PER_MINUTE', 5),
-        // Revoke database sessions + remember-device tokens of the user
-        // after a successful reset.
+        // Deprecated compatibility value only. Password recovery always
+        // revokes credential generations, sessions, API tokens and TOTP proofs;
+        // setting this historical flag false cannot disable that protection.
         'revoke_sessions' => (bool) env('AUTH_PASSWORD_RESET_REVOKE_SESSIONS', true),
     ],
 

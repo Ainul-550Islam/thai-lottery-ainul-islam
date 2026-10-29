@@ -109,6 +109,27 @@ final class SupportCaseOwnerIsolationTest extends TestCase
         self::assertArrayNotHasKey('internal', $array);
     }
 
+    public function test_every_supported_case_vocabulary_has_a_translation_in_each_locale(): void
+    {
+        $families = [
+            'status' => ['open', 'in_progress', 'resolved', 'closed'],
+            'priority' => ['low', 'normal', 'high'],
+            'category' => ['account', 'payment', 'withdrawal', 'bet', 'lottery', 'security', 'other'],
+        ];
+        foreach (['en', 'th', 'bn'] as $locale) {
+            foreach ($families as $family => $values) {
+                foreach ($values as $value) {
+                    $key = 'support.'.$family.'_'.$value;
+                    $this->assertTrue(trans()->hasForLocale($key, $locale), "Missing $key for $locale.");
+                    $label = trans($key, [], $locale);
+                    $this->assertIsString($label);
+                    $this->assertNotSame('', trim($label));
+                    $this->assertNotSame($key, $label);
+                }
+            }
+        }
+    }
+
     public function test_support_case_state_labels_are_localized_in_thai_and_bangla(): void
     {
         $owner = User::factory()->create();

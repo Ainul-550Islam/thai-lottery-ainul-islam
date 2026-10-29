@@ -5,37 +5,22 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Payment;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Payment\GeneratePromptPayQrRequest;
-use App\Services\Payment\PromptPayQrGeneratorService;
+use App\Http\Controllers\Payment\DepositMethodsPageController;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\Request;
 
+/**
+ * Legacy adapter: never manufacture a QR or accept a client-owned recipient.
+ * The canonical controller derives the wallet and merchant from the actor and
+ * PaymentGatewayManager, and creates the durable checkout. Any route using this
+ * adapter must apply the same auth, age and legal middleware as that endpoint.
+ */
 class PromptPayController extends Controller
 {
-    public function __construct(
-        private readonly PromptPayQrGeneratorService $qrGenerator
-    ) {}
+    public function __construct(private readonly DepositMethodsPageController $deposits) {}
 
-    public function generate(GeneratePromptPayQrRequest $request): JsonResponse
+    public function generate(Request $request): JsonResponse
     {
-        $rawAmount = trim((string) $request->input('amount'));
-        $amount = bcadd($rawAmount !== '' ? $rawAmount : '0', '0', 2);
-        $recipientId = (string) $request->input('recipient_id', env('PROMPTPAY_DEFAULT_MERCHANT_ID', '0812345678'));
-
-        $qrPayload = $this->qrGenerator->generatePayload($recipientId, $amount);
-        $referenceId = 'PP-' . strtoupper(Str::random(12));
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'reference_id' => $referenceId,
-                'recipient_id' => $recipientId,
-                'amount' => $amount,
-                'currency' => 'THB',
-                'qr_raw_payload' => $qrPayload,
-                'expires_at' => now()->addMinutes(15)->toIso8601String(),
-            ],
-        ], Response::HTTP_OK);
+        return $this->deposits->generatePromptPayApi($request);
     }
 }

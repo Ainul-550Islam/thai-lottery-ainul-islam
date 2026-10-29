@@ -69,7 +69,9 @@ class GloWriteBoundaryTest extends TestCase
         // would fail the second half of every test here. ResultPending is the
         // real state a GLO result is processed in.
         $this->draw = Draw::factory()->create([
-            'draw_number' => 'GLO-WRITE-BOUNDARY',
+            // The fixture provider verifies draw identity; use the draw carried
+            // by the checked-in synthetic announcement rather than a fake id.
+            'draw_number' => 'GLO-2026-09-16',
             'status' => DrawStatus::Drawing,
             'scheduled_at' => now()->subDays(1),
         ]);
@@ -200,6 +202,9 @@ class GloWriteBoundaryTest extends TestCase
         $this->assertSame(DrawConfirmationStatus::Pending->value, $stored['status'] ?? null);
         $this->assertArrayNotHasKey('confirmed_by', $stored);
         $this->assertArrayNotHasKey('draw_result_id', $stored);
+        $this->assertSame('fixture', $stored['payload']['source_lane']['import_provider'] ?? null);
+        $this->assertCount(5, $stored['payload']['second_prize'] ?? []);
+        $this->assertCount(10, $stored['payload']['third_prize'] ?? []);
     }
 
     /**
@@ -274,6 +279,11 @@ class GloWriteBoundaryTest extends TestCase
         $this->assertSame('fixture', $lane['import_provider'] ?? null);
         $this->assertNotEmpty($lane['import_fingerprint'] ?? '');
         $this->assertSame($checker->getKey(), $lane['lane_confirmed_by'] ?? null);
+        $this->assertCount(5, $result->second_prize);
+        $this->assertCount(10, $result->third_prize);
+        $provenance = app(\App\Services\Draw\DrawResultPublicationService::class)
+            ->verifiedProvenanceFor($this->draw->fresh(), $result);
+        $this->assertSame('fixture', $provenance['trust']);
 
         // Publication's own metadata survived the merge — MarketResultResolver
         // reads this key and dropping it would break every market lookup.

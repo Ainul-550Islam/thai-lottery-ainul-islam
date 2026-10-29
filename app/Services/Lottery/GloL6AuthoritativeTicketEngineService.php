@@ -239,6 +239,10 @@ class GloL6AuthoritativeTicketEngineService
      */
     public function purchaseL6Ticket(User $buyer, Draw $draw, array $ticketData, string $clientKey): GloTicket
     {
+        // This legacy writer is not licensed by the launch switch merely by
+        // being callable. Its historical owner-only return is not a proven
+        // canonical replay, so it is not exempt from the closed switch.
+        app(\App\Services\Compliance\RealMoneyGate::class)->assertOpen('bet');
         if (! $draw->isOpen()) {
             throw new RuntimeException('Draw is not open for ticket sales.');
         }

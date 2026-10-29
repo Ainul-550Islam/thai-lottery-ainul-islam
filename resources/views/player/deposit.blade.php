@@ -3,11 +3,17 @@
 @section('title', __('player.deposit_title'))
 
 @section('content')
+@php
+    // Amounts are formatted using the selected currency and exact decimal
+    // arithmetic; the ISO code also removes any ambiguity between symbols.
+    $formattedMinimum = \App\Services\Finance\Money::of((string) $limits['min'], $currency)->format();
+    $formattedMaximum = \App\Services\Finance\Money::of((string) $limits['max'], $currency)->format();
+@endphp
 <div class="mx-auto max-w-4xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
     <header class="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
         <h1 class="text-2xl font-bold text-white">{{ __('player.deposit_title') }}</h1>
         <p class="mt-2 text-sm text-slate-300">{{ __('player.deposit_lead') }}</p>
-        <p class="mt-3 text-sm text-slate-400">{{ __('player.deposit_limits_note', ['min' => $limits['min'], 'max' => $limits['max']]) }}</p>
+        <p class="mt-3 text-sm text-slate-400">{{ __('player.deposit_limits_note', ['min' => $formattedMinimum, 'max' => $formattedMaximum]) }} ({{ $currency->value }})</p>
     </header>
 
     @if (session('success'))
@@ -51,7 +57,7 @@
             <div>
                 <label for="amount" class="mb-1 block text-sm font-medium text-slate-200">{{ __('player.deposit_amount_label') }} ({{ $currency->value }})</label>
                 <input id="amount" name="amount" type="text" inputmode="decimal" autocomplete="off" required value="{{ old('amount') }}" aria-describedby="deposit-limits" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <p id="deposit-limits" class="mt-1 text-xs text-slate-400">{{ __('player.deposit_limits_note', ['min' => $limits['min'], 'max' => $limits['max']]) }}</p>
+                <p id="deposit-limits" class="mt-1 text-xs text-slate-400">{{ __('player.deposit_limits_note', ['min' => $formattedMinimum, 'max' => $formattedMaximum]) }} ({{ $currency->value }})</p>
                 @error('amount')<p class="mt-1 text-sm text-rose-300">{{ $message }}</p>@enderror
             </div>
             <button type="submit" class="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900">{{ __('player.submit_deposit') }}</button>

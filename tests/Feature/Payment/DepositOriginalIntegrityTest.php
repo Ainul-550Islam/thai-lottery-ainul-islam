@@ -16,6 +16,7 @@ use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
 use App\Services\Finance\DepositService;
 use App\Services\Finance\Money;
+use App\Services\Payment\DepositProviderAccountService;
 use App\Services\Payment\FinancialProviderReferenceService;
 use App\Services\Payment\PaymentVerificationService;
 use Illuminate\Support\Facades\DB;
@@ -142,6 +143,32 @@ final class DepositOriginalIntegrityTest extends PaymentTestCase
             $this->assertDatabaseCount('financial_transactions', 0);
             $this->assertSame('100.00', $f['wallet']->fresh()->balance);
             $this->assertSame(DepositStatus::Approved, $f['row']->fresh()->status);
+        }
+    }
+
+    public function test_server_owns_provider_account_metadata_and_replay_refuses_account_rotation(): void
+    {
+        config(['payment.deposit_reference_accounts.bank_transfer' => 'APPROVED-ACCOUNT']);
+        $owner = $this->createPlayer('100.00');
+        $service = app(DepositService::class);
+        $amount = Money::of('400.00', Currency::THB);
+        $row = $service->request($owner['wallet'], $amount, PaymentMethod::BankTransfer, 'account-scope-proof', [
+            'metadata' => [DepositProviderAccountService::KEY => 'CALLER-OVERRIDE', 'note' => 'retained'],
+        ]);
+        $this->assertSame('APPROVED-ACCOUNT', $row->metadata[DepositProviderAccountService::KEY]);
+        $this->assertSame('retained', $row->metadata['note']);
+        $this->assertSame($row->getKey(), $service->request(
+            $owner['wallet'], $amount, PaymentMethod::BankTransfer, 'account-scope-proof',
+        )->getKey());
+
+        config(['payment.deposit_reference_accounts.bank_transfer' => 'ROTATED-ACCOUNT']);
+        try {
+            $service->request($owner['wallet'], $amount, PaymentMethod::BankTransfer, 'account-scope-proof');
+            $this->fail('A replay must never be reinterpreted under a different provider account.');
+        } catch (FinancialException) {
+            $this->assertSame('100.00', $owner['wallet']->fresh()->balance);
+            $this->assertDatabaseCount('deposits', 1);
+            $this->assertDatabaseCount('financial_transactions', 0);
         }
     }
 

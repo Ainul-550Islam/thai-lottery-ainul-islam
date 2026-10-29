@@ -100,12 +100,32 @@ module "eks" {
   }
 }
 
-# --- Aurora PostgreSQL 16 Multi-AZ Cluster ---
-resource "aws_rds_cluster" "aurora_postgres" {
+# --- Aurora MySQL 8.0 Multi-AZ Cluster ---
+#
+# This cluster was declared with a database engine the application does not use:
+# .env.production.example ships DB_CONNECTION=mysql and DB_PORT=3306,
+# every migration is MySQL DDL, phpunit.mysql.xml and the financial-concurrency
+# lane test against MySQL/MariaDB, and app/Services/Concerns/GuardsGroupConcat.php
+# branches on MySQL's GROUP_CONCAT/STRING_AGG behaviour. Terraform would have
+# provisioned a database the application cannot talk to, and it would have done so
+# successfully - the failure would surface at the first connection from a
+# production pod, not at plan time.
+#
+# Aurora MySQL 3.x, not 2.x: 3.x is the MySQL 8.0-compatible line, and STRING_AGG
+# only exists from MySQL 8.0.31. The parameter group family is what pins that.
+resource "aws_db_cluster_parameter_group" "aurora_mysql" {
+  name        = "thai-lottery-aurora-mysql-${var.environment}"
+  family      = "aurora-mysql8.0"
+  description = "Aurora MySQL 8.0 cluster parameters for the Thai Lottery ledger"
+}
+
+resource "aws_rds_cluster" "aurora_mysql" {
   cluster_identifier      = "thai-lottery-db-cluster-${var.environment}"
-  engine                  = "aurora-postgresql"
-  engine_version          = "16.1"
+  engine                  = "aurora-mysql"
+  engine_version          = "8.0.mysql_aurora.3.08.1"
   database_name           = "lottery_ledger"
+  db_cluster_parameter_group_name = aws_db_cluster_parameter_group.aurora_mysql.name
+  port                    = 3306
   master_username         = var.db_master_username
   master_password         = var.db_master_password
   db_subnet_group_name    = module.vpc.database_subnet_group_name
@@ -122,10 +142,10 @@ resource "aws_rds_cluster" "aurora_postgres" {
 resource "aws_rds_cluster_instance" "aurora_instances" {
   count              = 3
   identifier         = "thai-lottery-db-instance-${var.environment}-${count.index}"
-  cluster_identifier = aws_rds_cluster.aurora_postgres.id
+  cluster_identifier = aws_rds_cluster.aurora_mysql.id
   instance_class     = "db.r6g.2xlarge"
-  engine             = aws_rds_cluster.aurora_postgres.engine
-  engine_version     = aws_rds_cluster.aurora_postgres.engine_version
+  engine             = aws_rds_cluster.aurora_mysql.engine
+  engine_version     = aws_rds_cluster.aurora_mysql.engine_version
 }
 
 # --- Redis Cluster for Redlock & Cache ---
@@ -196,12 +216,12 @@ resource "aws_kms_key" "s3_key" {
 # --- Security Groups ---
 resource "aws_security_group" "rds_sg" {
   name        = "thai-lottery-rds-sg-${var.environment}"
-  description = "Allow inbound postgres traffic from EKS node groups only"
+  description = "Allow inbound MySQL traffic from EKS node groups only"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    from_port       = 5432
-    to_port         = 5432
+    from_port       = 3306
+    to_port         = 3306
     protocol        = "tcp"
     security_groups = [module.eks.node_security_group_id]
   }

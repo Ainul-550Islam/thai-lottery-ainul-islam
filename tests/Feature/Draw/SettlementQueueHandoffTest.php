@@ -52,8 +52,11 @@ final class SettlementQueueHandoffTest extends PaymentTestCase
     #[DataProvider('refusedDrivers')]
     public function test_queue_flag_refuses_non_durable_driver_before_opening_run(string $driver): void
     {
-        config(['queue.default' => 'handoff-test', 'queue.connections.handoff-test.driver' => $driver]);
+        // Build and publish the fixture before introducing the deliberately
+        // invalid driver: purchase broadcasts are unrelated to handoff.
+        config(['queue.default' => 'sync']);
         $f = $this->publishedDrawWithBets(['111', '222'], 'handoff-driver');
+        config(['queue.default' => 'handoff-test', 'queue.connections.handoff-test.driver' => $driver]);
         $finance = FinancialTransaction::query()->count();
         $entries = LedgerEntry::query()->count();
         $this->refused(['--draw' => (string) $f['draw']->id, '--queue' => true]);
@@ -66,9 +69,10 @@ final class SettlementQueueHandoffTest extends PaymentTestCase
 
     public function test_paused_run_without_resume_is_not_reported_as_dispatched(): void
     {
+        config(['queue.default' => 'sync']);
+        $f = $this->publishedDrawWithBets(['111', '222'], 'handoff-paused');
         config(['queue.default' => 'database']);
         Queue::fake();
-        $f = $this->publishedDrawWithBets(['111', '222'], 'handoff-paused');
         $run = app(ChunkedSettlementOrchestrator::class)->start((int) $f['draw']->id, 1);
         $run->update(['status' => SettlementRun::STATUS_ABORTED, 'failure_reason' => 'operator review']);
         $this->refused(['--draw' => (string) $f['draw']->id, '--queue' => true]);
@@ -106,8 +110,9 @@ final class SettlementQueueHandoffTest extends PaymentTestCase
 
     public function test_actual_database_handoff_preserves_cursor_and_defers_all_money(): void
     {
-        config(['queue.default' => 'database']);
+        config(['queue.default' => 'sync']);
         $f = $this->publishedDrawWithBets(['111', '222'], 'handoff-durable');
+        config(['queue.default' => 'database']);
         $this->assertSame(0, Artisan::call('lottery:settle-draw-chunked', [
             '--draw' => (string) $f['draw']->id, '--queue' => true, '--chunk' => '1',
         ]));

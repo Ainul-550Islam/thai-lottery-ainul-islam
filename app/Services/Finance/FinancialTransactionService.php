@@ -43,11 +43,10 @@ use Throwable;
  *
  * DEADLOCK RETRY
  * MySQL/MariaDB may pick a transaction as a deadlock victim (1213) or time out
- * waiting for a lock (1205). Both roll the whole transaction back, so nothing was
- * applied and retrying is safe. It is also safe with respect to duplication:
- * the retry reuses the same idempotency key, so even if the first attempt had
- * partially committed - which it cannot - the unique index would refuse a second
- * transaction for that key.
+ * waiting for a lock (1205). A timeout can abort only the statement, so retry
+ * is permitted only when this service owned the root and its complete rollback
+ * is confirmed on the unchanged connection. A caller-owned savepoint is never
+ * retried; stable idempotency keys remain a separate duplicate defence.
  */
 final class FinancialTransactionService
 {
@@ -150,6 +149,33 @@ final class FinancialTransactionService
      */
     public function executeWithDeadlockRetry(\Closure $work): mixed
     {
+        // ADMIT THE BOUNDARY BEFORE DOING ANY WORK. This is a money boundary, so
+        // it uses the shared admission primitive every other one uses. A caller
+        // can arrive with the framework transaction counter and the physical PDO
+        // transaction disagreeing — a raw beginTransaction() the counter never
+        // saw, or a counter left set after the PDO transaction was committed or
+        // rolled back underneath it. In either state a retry is meaningless and
+        // dangerous: this method's whole contract is that a retryable lock
+        // failure rolled the transaction back, so no partial effect survives and
+        // re-running the work cannot duplicate money. That guarantee is only true
+        // if the framework actually owns the transaction it is about to retry
+        // inside. With a divergent boundary it does not, so re-running could
+        // replay a movement whose first attempt already committed.
+        //
+        // The guard issues no SQL and never opens, adopts, commits, rolls back or
+        // repairs anything, so refusing here leaves the caller's state exactly as
+        // it was found and runs none of the work.
+        $this->locks->assertConsistentTransactionState('deadlock_retry_entry');
+
+        // Retry ownership is decided at entry, not after an exception. A nested
+        // savepoint never owns the caller's transaction even if the engine later
+        // aborts that root. Retrying is allowed only from a clean, unchanged root
+        // on the exact same connection and physical PDO.
+        $connectionName = DB::getDefaultConnection();
+        $connection = DB::connection();
+        $pdo = $connection->getPdo();
+        $ownsRoot = $connection->transactionLevel() === 0 && ! $pdo->inTransaction();
+
         $maxAttempts = max(1, (int) config('finance.locking.max_retries', 3));
         $delayMilliseconds = max(0, (int) config('finance.locking.retry_delay_milliseconds', 150));
 
@@ -160,13 +186,23 @@ final class FinancialTransactionService
 
             try {
                 return $work();
-            } catch (QueryException $exception) {
-                if (! $this->isRetryableLockFailure($exception) || $attempt >= $maxAttempts) {
+            } catch (QueryException|\Illuminate\Database\DeadlockException $exception) {
+                $cause = $exception;
+                while ($cause instanceof \Illuminate\Database\DeadlockException && $cause->getPrevious() !== null) {
+                    $cause = $cause->getPrevious();
+                }
+                // A timeout may abort just a statement; it is not proof that a
+                // surrounding transaction was rolled back. Never adopt a changed
+                // connection, an open transaction or work owned by a caller.
+                $sameConnection = DB::getDefaultConnection() === $connectionName
+                    && (DB::getConnections()[$connectionName] ?? null) === $connection
+                    && $connection->getRawPdo() === $pdo;
+                if (! $ownsRoot || ! $sameConnection || $connection->transactionLevel() !== 0
+                    || $pdo->inTransaction() || ! $cause instanceof QueryException
+                    || ! $this->isRetryableLockFailure($cause) || $attempt >= $maxAttempts) {
                     throw $exception;
                 }
 
-                // The whole transaction was rolled back by the database, so no
-                // partial effect survives and retrying cannot duplicate money.
                 if ($delayMilliseconds > 0) {
                     usleep($delayMilliseconds * 1000 * $attempt);
                 }
@@ -535,17 +571,35 @@ final class FinancialTransactionService
     /**
      * Deadlocks and lock-wait timeouts are transient; everything else is not.
      */
+    /**
+     * Whether a failure is one of the two NATIVE lock codes this retry owns.
+     *
+     * 1213 (deadlock) and 1205 (lock wait timeout) are MySQL/MariaDB codes, so
+     * the driver is checked first: on any other engine those numbers mean
+     * something else entirely, and treating them as "the database rolled the
+     * whole transaction back for me" would re-run a money movement whose first
+     * attempt may well have committed. On SQLite in particular nothing rolls the
+     * transaction back, so a retry there is never safe and never happens.
+     *
+     * The code is normalised to a string before comparing because PDO reports the
+     * driver code as an int on some drivers and as a numeric string on others.
+     * The old version only recognised the int form and fell back to matching
+     * MySQL's error TEXT for everything else, which meant the same deadlock was
+     * retryable or not depending on how the driver happened to type it — and that
+     * the message of an unrelated error could authorise a retry on its own.
+     */
     private function isRetryableLockFailure(QueryException $exception): bool
     {
-        $driverCode = $exception->errorInfo[1] ?? null;
-
-        if (is_int($driverCode)) {
-            return in_array($driverCode, [self::ERROR_DEADLOCK, self::ERROR_LOCK_WAIT_TIMEOUT], true);
+        if (! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            return false;
         }
 
-        $message = strtolower($exception->getMessage());
+        $driverCode = $exception->errorInfo[1] ?? null;
 
-        return str_contains($message, 'deadlock found')
-            || str_contains($message, 'lock wait timeout exceeded');
+        if ($driverCode === null) {
+            return false;
+        }
+
+        return in_array((string) $driverCode, [(string) self::ERROR_DEADLOCK, (string) self::ERROR_LOCK_WAIT_TIMEOUT], true);
     }
 }

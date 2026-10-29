@@ -38,9 +38,9 @@ trait BuildsConfirmedSettlementDraws
      * @param  list<string>  $losingNumbers
      * @return array{draw: Draw, wallet: Wallet, user: User}
      */
-    protected function publishedDrawWithBets(array $losingNumbers, string $suffix): array
+    protected function publishedDrawWithBets(array $losingNumbers, string $suffix, string $balance = '500.00'): array
     {
-        $player = $this->createPlayer('500.00', Currency::THB);
+        $player = $this->createPlayer($balance, Currency::THB);
 
         $draw = Draw::factory()->create(['type' => DrawType::ThreeD]);
         $draw->status = DrawStatus::Open;

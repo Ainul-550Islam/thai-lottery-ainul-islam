@@ -152,11 +152,20 @@ final class DepositDecisionActions
                 'heading' => 'Credit this deposit to the wallet',
                 'description' => 'This is the step that moves money: the wallet balance rises and a balanced double entry is posted to the ledger. It is idempotent, so a retry after a timeout cannot credit twice — but it cannot be undone from this panel either.',
                 'submitLabel' => 'Credit the wallet',
+                'form' => [
+                    Forms\Components\TextInput::make('provider_reference')
+                        ->label('Verified provider or statement reference')
+                        ->required()
+                        ->maxLength(255)
+                        ->default(static fn (Deposit $record): ?string => $record->provider_reference)
+                        ->helperText('Use the reference on the independently verified payment; a reference already attached to this deposit cannot be changed.'),
+                ],
                 'visible' => static fn (Deposit $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
                     && app(DepositCompletionService::class)->canComplete($record),
-                'action' => static function (Deposit $record): void {
-                    OperatorActionFactory::run(static function () use ($record): void {
+                'action' => static function (Deposit $record, array $data): void {
+                    OperatorActionFactory::run(static function () use ($record, $data): void {
                         $outcome = app(DepositCompletionService::class)->complete($record, null, [
+                            'provider_reference' => (string) $data['provider_reference'],
                             'description' => 'Deposit credited from the admin panel',
                             'metadata' => ['completed_by' => AdminAccess::operator()?->getKey()],
                         ]);

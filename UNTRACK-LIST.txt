@@ -1,0 +1,7 @@
+images/
+artifacts/
+design-previews/
+qa-fixes/
+files/
+evidence/
+uploads/SECURITY_MASTER_PROMPT_01-05.md

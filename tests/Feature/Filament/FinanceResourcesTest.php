@@ -159,6 +159,9 @@ final class FinanceResourcesTest extends TestCase
             $this->money($amount),
             PaymentMethod::Manual,
             'panel-test-deposit-'.uniqid('', true),
+            // A synthetic, unique statement reference lets the real completion
+            // service bind the same provider evidence it requires in production.
+            ['provider_reference' => 'panel-statement-'.uniqid('', true)],
         );
     }
 
@@ -327,7 +330,7 @@ final class FinanceResourcesTest extends TestCase
 
         Livewire::actingAs($this->operator())
             ->test(ViewDeposit::class, ['record' => $deposit->getKey()])
-            ->callAction('complete')
+            ->callAction('complete', data: ['provider_reference' => $deposit->provider_reference])
             ->assertHasNoActionErrors();
 
         $fresh = $deposit->fresh();
@@ -335,6 +338,24 @@ final class FinanceResourcesTest extends TestCase
         $this->assertSame(DepositStatus::Confirmed, $fresh->status);
         $this->assertNotNull($fresh->financial_transaction_id, 'Completion posted no financial transaction.');
         $this->assertSame('500.00', (string) $wallet->fresh()->balance);
+    }
+
+    public function test_panel_requires_a_statement_reference_before_crediting(): void
+    {
+        $wallet = $this->wallet('0.00');
+        $pending = app(DepositService::class)->request(
+            $wallet, $this->money('500.00'), PaymentMethod::Manual, 'panel-no-reference-'.uniqid('', true),
+        );
+        $deposit = app(DepositApprovalService::class)->approve($pending, null, 'fixture')['deposit'];
+
+        Livewire::actingAs($this->operator())
+            ->test(ViewDeposit::class, ['record' => $deposit->getKey()])
+            ->callAction('complete', data: ['provider_reference' => ''])
+            ->assertHasActionErrors(['provider_reference']);
+
+        $this->assertSame(DepositStatus::Approved, $deposit->fresh()->status);
+        $this->assertSame('0.00', (string) $wallet->fresh()->balance);
+        $this->assertSame(0, FinancialTransaction::query()->where('wallet_id', $wallet->getKey())->count());
     }
 
     public function test_approving_an_already_approved_deposit_surfaces_the_refusal_not_a_500(): void
@@ -369,7 +390,7 @@ final class FinanceResourcesTest extends TestCase
 
         app(DepositCompletionService::class)->complete($deposit->fresh());
 
-        $page->callAction('complete')
+        $page->callAction('complete', data: ['provider_reference' => $deposit->provider_reference])
             ->assertHasNoActionErrors()
             ->assertNotified();
 
@@ -489,6 +510,29 @@ final class FinanceResourcesTest extends TestCase
             ->assertTableActionVisible('complete', record: $approved);
     }
 
+    public function test_processing_action_creates_the_canonical_manual_dispatch_and_reconciliation_task(): void
+    {
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
+        config(['payment.gateways.bank_transfer.enabled' => true, 'thai_payout.enabled' => false]);
+        $wallet = $this->wallet('1000.00');
+        $withdrawal = app(WithdrawalService::class)->request($wallet, $this->money('200.00'), PaymentMethod::BankTransfer,
+            'panel-manual-dispatch-'.uniqid('', true), options: ['payout_details' => [
+                'destination_type' => 'bank_account', 'bank_code' => '014', 'account_number' => '1234567890', 'account_name' => 'Test Recipient',
+            ]]);
+        app(WithdrawalApprovalService::class)->approve($withdrawal);
+        Livewire::actingAs($this->operator())
+            ->test(ViewWithdrawal::class, ['record' => $withdrawal->getKey()])
+            ->callAction('markProcessing')
+            ->assertHasNoActionErrors();
+        $this->assertSame(WithdrawalStatus::Processing, $withdrawal->fresh()->status);
+        $this->assertSame('200.00', (string) $wallet->fresh()->locked_balance);
+        $this->assertSame('1000.00', (string) $wallet->fresh()->balance);
+        $this->assertDatabaseHas('payments', ['payable_type' => Withdrawal::class, 'payable_id' => $withdrawal->id, 'status' => 'pending']);
+        $this->assertDatabaseHas('manual_disbursement_tasks', ['withdrawal_id' => $withdrawal->id, 'status' => 'pending']);
+        $this->assertSame('reconciliation_required', $withdrawal->fresh()->metadata['outbound_dispatch']['state']);
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+    }
+
     public function test_approving_a_withdrawal_reserves_the_funds_through_the_service(): void
     {
         $wallet = $this->wallet('1000.00');
@@ -536,7 +580,20 @@ final class FinanceResourcesTest extends TestCase
         $this->assertSame('0.00', (string) $wallet->fresh()->locked_balance);
     }
 
-    public function test_completing_a_withdrawal_debits_the_wallet_through_the_service(): void
+    public function test_admin_completion_button_cannot_debit_an_unverified_withdrawal(): void
+    {
+        $wallet = $this->wallet('1000.00');
+        $withdrawal = $this->approvedWithdrawal($wallet);
+        Livewire::actingAs($this->operator())
+            ->test(ViewWithdrawal::class, ['record' => $withdrawal->getKey()])
+            ->callAction('complete');
+        $this->assertSame('1000.00', (string) $wallet->fresh()->balance);
+        $this->assertSame('200.00', (string) $wallet->fresh()->locked_balance);
+        $this->assertSame(WithdrawalStatus::Approved, $withdrawal->fresh()->status);
+        $this->assertNull($withdrawal->fresh()->financial_transaction_id);
+    }
+
+    public function test_completion_action_routes_to_independent_review_without_debiting(): void
     {
         $wallet = $this->wallet('1000.00');
         $withdrawal = $this->approvedWithdrawal($wallet);
@@ -544,13 +601,14 @@ final class FinanceResourcesTest extends TestCase
         Livewire::actingAs($this->operator())
             ->test(ViewWithdrawal::class, ['record' => $withdrawal->getKey()])
             ->callAction('complete')
-            ->assertHasNoActionErrors();
+            ->assertHasNoActionErrors()
+            ->assertRedirect(route('admin.withdrawal-reconciliation.index', ['withdrawal_id' => $withdrawal->id]));
 
         $fresh = $withdrawal->fresh();
-
-        $this->assertSame(WithdrawalStatus::Completed, $fresh->status);
-        $this->assertNotNull($fresh->financial_transaction_id);
-        $this->assertSame('800.00', (string) $wallet->fresh()->balance);
+        $this->assertSame(WithdrawalStatus::Approved, $fresh->status);
+        $this->assertNull($fresh->financial_transaction_id);
+        $this->assertSame('1000.00', (string) $wallet->fresh()->balance);
+        $this->assertSame('200.00', (string) $wallet->fresh()->locked_balance);
     }
 
     public function test_marking_a_withdrawal_failed_requires_a_reason_and_releases_the_hold(): void
@@ -981,10 +1039,11 @@ final class FinanceResourcesTest extends TestCase
 
         LedgerAccountResource::forgetEntrySums();
 
-        $queries = 0;
-        \DB::listen(function ($query) use (&$queries): void {
-            if (str_contains(strtolower($query->sql), 'from "ledger_entries"')) {
-                $queries++;
+        $queries = [];
+        $table = strtolower(\DB::connection()->getQueryGrammar()->wrapTable('ledger_entries'));
+        \DB::listen(function ($query) use (&$queries, $table): void {
+            if (str_contains(strtolower($query->sql), 'from '.$table)) {
+                $queries[] = strtolower($query->sql);
             }
         });
 
@@ -992,20 +1051,24 @@ final class FinanceResourcesTest extends TestCase
             LedgerAccountResource::computedBalance($account);
         }
 
-        $this->assertSame(1, $queries, 'Balances were computed with more than one ledger query.');
+        $this->assertCount(1, $queries, 'The whole page must use exactly one ledger-entry query.');
+        $this->assertStringContainsString('sum(', $queries[0]);
+        $this->assertStringContainsString('group by', $queries[0]);
     }
 
-    public function test_reconcile_failed_action_is_declared_for_processing_payouts(): void
+    public function test_uncertain_payout_action_opens_independent_review_without_releasing_hold(): void
     {
-        $specs = collect(\App\Filament\Resources\WithdrawalResource\WithdrawalDecisionActions::specs())
-            ->keyBy('name');
-
-        $this->assertTrue($specs->has('reconcileFailed'));
-        $this->assertSame('evidence', array_key_first(
-            collect($specs['reconcileFailed']['form'])
-                ->mapWithKeys(static fn ($field): array => [$field->getName() => true])
-                ->all(),
-        ));
+        $wallet = $this->wallet('1000.00');
+        $withdrawal = $this->approvedWithdrawal($wallet);
+        app(WithdrawalApprovalService::class)->markProcessing($withdrawal);
+        Livewire::actingAs($this->operator())
+            ->test(ViewWithdrawal::class, ['record' => $withdrawal->getKey()])
+            ->assertActionHidden('markFailed')
+            ->callAction('reconcileFailed')
+            ->assertRedirect(route('admin.withdrawal-reconciliation.index', ['withdrawal_id' => $withdrawal->id]));
+        $this->assertSame(WithdrawalStatus::Processing, $withdrawal->fresh()->status);
+        $this->assertSame('200.00', (string) $wallet->fresh()->locked_balance);
+        $this->assertSame('1000.00', (string) $wallet->fresh()->balance);
     }
 
     public function test_no_route_reaches_the_removed_unconsented_web_registration_controller(): void

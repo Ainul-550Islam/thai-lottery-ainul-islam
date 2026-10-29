@@ -63,7 +63,7 @@ final class ChatOperatorController extends Controller
      */
     public function console(Request $request): \Illuminate\View\View
     {
-        $this->authorize($request, 'view');
+        $this->authorizeChatAbility($request, 'view');
 
         return view('chat.operator');
     }
@@ -77,7 +77,7 @@ final class ChatOperatorController extends Controller
      */
     public function dashboard(Request $request): JsonResponse
     {
-        $this->authorize($request, 'view');
+        $this->authorizeChatAbility($request, 'view');
 
         $user = $this->operator($request);
         $this->presence->heartbeat((int) $user->getAuthIdentifier());
@@ -103,7 +103,7 @@ final class ChatOperatorController extends Controller
      */
     public function poll(Request $request, int $conversationId): JsonResponse
     {
-        $this->authorize($request, 'view');
+        $this->authorizeChatAbility($request, 'view');
         $this->rateLimits->ensurePollAllowed($request->ip() ?? 'unknown');
 
         $user = $this->operator($request);
@@ -128,7 +128,7 @@ final class ChatOperatorController extends Controller
      */
     public function takeNext(Request $request): JsonResponse
     {
-        $this->authorize($request, 'claim');
+        $this->authorizeChatAbility($request, 'claim');
         $this->operatorAction($request);
 
         $user = $this->operator($request);
@@ -153,7 +153,7 @@ final class ChatOperatorController extends Controller
      */
     public function takeSpecific(Request $request, int $conversationId): JsonResponse
     {
-        $this->authorize($request, 'claim');
+        $this->authorizeChatAbility($request, 'claim');
         $this->operatorAction($request);
 
         $user = $this->operator($request);
@@ -318,7 +318,7 @@ final class ChatOperatorController extends Controller
      */
     public function cannedIndex(Request $request): JsonResponse
     {
-        $this->authorize($request, 'view');
+        $this->authorizeChatAbility($request, 'view');
 
         return response()->json([
             'status' => 'OK',
@@ -335,7 +335,7 @@ final class ChatOperatorController extends Controller
      */
     public function pause(Request $request): JsonResponse
     {
-        $this->authorize($request, 'view');
+        $this->authorizeChatAbility($request, 'view');
 
         $user = $this->operator($request);
         $this->presence->signOff((int) $user->getAuthIdentifier(), pause: true);
@@ -348,7 +348,7 @@ final class ChatOperatorController extends Controller
      */
     public function resume(Request $request): JsonResponse
     {
-        $this->authorize($request, 'view');
+        $this->authorizeChatAbility($request, 'view');
 
         $user = $this->operator($request);
         $this->presence->resumeIntake((int) $user->getAuthIdentifier());
@@ -361,7 +361,7 @@ final class ChatOperatorController extends Controller
      */
     public function health(Request $request): JsonResponse
     {
-        $this->authorize($request, 'view');
+        $this->authorizeChatAbility($request, 'view');
 
         return response()->json([
             'status' => 'OK',
@@ -392,7 +392,7 @@ final class ChatOperatorController extends Controller
      *
      * @param  'view'|'claim'|'manage_canned'  $ability
      */
-    private function authorize(Request $request, string $ability): void
+    private function authorizeChatAbility(Request $request, string $ability): void
     {
         $user = $request->user();
 

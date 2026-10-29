@@ -14,6 +14,7 @@ use App\Exceptions\Wallet\ConversionException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * One movement between the Cash and Win wallets.
@@ -212,12 +213,16 @@ class WalletConversion extends Model
 
     public function isInsideReversalWindow(int $windowHours): bool
     {
-        $reference = $this->completed_at ?? $this->created_at;
-
-        if ($reference === null) {
+        $completed = $this->completed_at;
+        if ($windowHours <= 0 || $completed === null) {
             return false;
         }
 
-        return $reference->diffInMinutes(now()) <= ($windowHours * 60);
+        $now = Carbon::now();
+
+        // A future completion is not evidence that money already moved; the
+        // exact expiry instant is outside the window, as with quote expiry.
+        return $completed->lessThanOrEqualTo($now)
+            && $completed->greaterThan($now->copy()->subHours($windowHours));
     }
 }

@@ -66,6 +66,9 @@ final class HomePageTest extends TestCase
 
     public function test_home_page_includes_3d_glass_stylesheet_and_scripts(): void
     {
+        // The base feature fixture disables Vite. This test verifies real built
+        // asset tags and therefore explicitly restores the real Vite resolver.
+        $this->withVite();
         $content = (string) $this->get('/')->assertOk()->getContent();
 
         // The assets the page actually loads, resolved through the build.

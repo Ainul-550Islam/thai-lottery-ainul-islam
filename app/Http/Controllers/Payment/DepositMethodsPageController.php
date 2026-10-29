@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Payment\SlipVerificationController;
 use App\Http\Requests\Payment\VerifySlipRequest;
 use App\Http\Responses\ApiResponse;
 use App\Models\Wallet;
+use App\Services\Compliance\RealMoneyGate;
 use App\Services\Finance\Money;
 use App\Services\Payment\PaymentGatewayManager;
 use App\Services\Payment\PaymentInitiationService;
@@ -64,20 +65,39 @@ final class DepositMethodsPageController extends Controller
             return $this->authenticationRequired();
         }
 
+        $defaultCurrency = Currency::tryFromCode((string) config('payment.currency.default', 'THB'));
+        if ($defaultCurrency === null) {
+            return $this->notConfigured('The configured site currency is unsupported.');
+        }
+        $currency = $defaultCurrency;
+        if ($request->query->has('currency')) {
+            $selected = $request->query('currency');
+            $currency = is_string($selected) ? Currency::tryFromCode($selected) : null;
+            if ($currency === null) {
+                return ApiResponse::error('unsupported_currency', 'The requested currency is unavailable.', 422);
+            }
+            // A selector is never an authority to inspect another user's wallet.
+            if (! Wallet::query()->where('user_id', $request->user()->id)->where('currency', $currency->value)->exists()) {
+                return ApiResponse::error('wallet_not_found', 'No wallet is held for this currency.', 404);
+            }
+        }
+
         $manager = app(PaymentGatewayManager::class);
 
         $rails = [
-            $this->rail($manager, PaymentMethod::Stripe, 'api.v1.payments.intents.create'),
-            $this->rail($manager, PaymentMethod::Bkash, 'api.v1.payments.intents.create'),
-            $this->rail($manager, PaymentMethod::Nagad, 'api.v1.payments.intents.create'),
-            $this->rail($manager, PaymentMethod::PromptPay, 'api.v1.deposit.promptpay.generate'),
-            $this->rail($manager, PaymentMethod::BankTransfer, 'api.v1.deposit.bank-transfer.intent'),
+            $this->rail($manager, PaymentMethod::Stripe, 'api.v1.deposits.store', $currency),
+            $this->rail($manager, PaymentMethod::Bkash, 'api.v1.deposits.store', $currency),
+            $this->rail($manager, PaymentMethod::Nagad, 'api.v1.deposits.store', $currency),
+            $this->rail($manager, PaymentMethod::PromptPay, 'api.v1.deposit.promptpay.generate', $currency),
+            $this->rail($manager, PaymentMethod::BankTransfer,
+                $currency === Currency::THB ? 'api.v1.deposit.bank-transfer.intent' : 'api.v1.deposits.store', $currency),
         ];
 
         return ApiResponse::success([
             'methods' => $rails,
-            'default_currency' => Currency::THB->value,
-            'currencies' => ['THB', 'USD', 'BDT'],
+            'default_currency' => $defaultCurrency->value,
+            'selected_currency' => $currency->value,
+            'currencies' => Currency::codes(),
         ], 'Deposit methods retrieved.');
     }
 
@@ -86,7 +106,7 @@ final class DepositMethodsPageController extends Controller
         if ($request->user() === null) {
             return $this->authenticationRequired();
         }
-        if (! app(PaymentGatewayManager::class)->isDepositCapable(PaymentMethod::PromptPay)) {
+        if (! app(PaymentGatewayManager::class)->isDepositCapable(PaymentMethod::PromptPay, Currency::THB)) {
             return $this->notConfigured('PromptPay is disabled or its merchant identity is not configured.');
         }
 
@@ -168,6 +188,13 @@ final class DepositMethodsPageController extends Controller
     {
         if ($request->user() === null) {
             return $this->authenticationRequired();
+        }
+
+        // This compatibility endpoint returns Thai slip accounts and always
+        // creates a THB intent. Other markets must use the canonical deposit
+        // endpoint rather than accidentally receiving Thai instructions.
+        if (! app(PaymentGatewayManager::class)->isDepositCapable(PaymentMethod::BankTransfer, Currency::THB)) {
+            return $this->notConfigured('Thai bank-transfer deposit intents are unavailable in this market.');
         }
 
         $receivingAccounts = $this->receivingAccounts();
@@ -278,14 +305,19 @@ final class DepositMethodsPageController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function rail(PaymentGatewayManager $manager, PaymentMethod $method, string $initiateRoute): array
+    private function rail(PaymentGatewayManager $manager, PaymentMethod $method, string $initiateRoute, Currency $currency): array
     {
-        $enabled = $manager->isDepositCapable($method);
-        $reason = null;
+        // Gateway capability remains the single rail authority. The launch
+        // switch is an additional presentation constraint, not a change to the
+        // manager that could block replay or settlement of old obligations.
+        $launchOpen = app(RealMoneyGate::class)->isOpen();
+        $enabled = $manager->isDepositCapable($method, $currency) && $launchOpen;
+        $reason = $launchOpen ? null : 'Real-money deposits are temporarily unavailable.';
 
-        if ($method === PaymentMethod::BankTransfer && $this->receivingAccounts() === []) {
+        if ($method === PaymentMethod::BankTransfer && $currency === Currency::THB
+            && $this->receivingAccounts() === []) {
             $enabled = false;
-            $reason = 'No bank-transfer receiving account is configured for this deployment.';
+            $reason ??= 'No bank-transfer receiving account is configured for this deployment.';
         }
 
         return [
@@ -297,7 +329,7 @@ final class DepositMethodsPageController extends Controller
             'reason' => $reason ?? ($enabled ? null : 'This deposit rail is disabled or not configured on this deployment.'),
             'min_amount' => (string) config('payment.deposit.'.$method->value.'.min_amount', (string) config('payment.deposit.min', '50.00')),
             'max_amount' => (string) config('payment.deposit.'.$method->value.'.max_amount', (string) config('payment.deposit.max', '500000.00')),
-            'currency' => Currency::THB->value,
+            'currency' => $currency->value,
             'initiate_route' => route($initiateRoute),
         ];
     }

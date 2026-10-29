@@ -28,7 +28,7 @@ trait RunsServerFinancialRaces
     protected function serverRace(array $commands, string $table, int $id, array $config = [], ?\Closure $afterWalletLock = null, ?\Closure $afterChildren = null, ?\Closure $afterPolicyLock = null, ?\Closure $afterLifecycleLock = null): array
     {
         $this->assertCount(2, $commands);
-        $this->assertContains($table, ['users', 'draws', 'wallets', 'withdrawal_provider_references', 'stripe_deposit_followup_inbox', 'stripe_followup_sweep_work', 'deposits', 'withdrawals', 'financial_transactions']);
+        $this->assertContains($table, ['users', 'draws', 'wallets', 'settlement_runs', 'withdrawal_provider_references', 'stripe_deposit_followup_inbox', 'stripe_followup_sweep_work', 'deposits', 'withdrawals', 'financial_transactions']);
         $walletIds = [];
         if ($table === 'withdrawal_provider_references') {
             foreach ($commands as $command) {
@@ -63,7 +63,17 @@ trait RunsServerFinancialRaces
                     'DB_SOCKET' => (string) DB::connection()->getConfig('unix_socket'),
                     'DB_USERNAME' => (string) DB::connection()->getConfig('username'),
                     'DB_PASSWORD' => (string) DB::connection()->getConfig('password'), 'DB_URL' => '',
-                    'APP_KEY' => config('app.key'), 'CACHE_STORE' => 'array',
+                    'APP_KEY' => config('app.key'), 'APP_URL' => (string) config('app.url'), 'CACHE_STORE' => 'array',
+                    // Parent and child must use the same synthetic gateway facts:
+                    // checkout custody fingerprints the entire configuration.
+                    // These are fixture values inside the guarded local test process,
+                    // never a reason to weaken the original-intent proof.
+                    'APP_COUNTRY' => (string) config('payment.country'),
+                    'FINANCE_DEFAULT_CURRENCY' => (string) config('payment.gateways.stripe.currency'),
+                    'STRIPE_ENABLED' => config('payment.gateways.stripe.enabled') ? 'true' : 'false',
+                    'STRIPE_KEY' => (string) config('payment.gateways.stripe.key'),
+                    'STRIPE_SECRET' => (string) config('payment.gateways.stripe.secret'),
+                    'STRIPE_WEBHOOK_SECRET' => (string) config('payment.gateways.stripe.webhook_secret'),
                     'REAL_MONEY_ENABLED' => config('real_money.enabled', false) ? 'true' : 'false', 'QUEUE_CONNECTION' => 'database',
                 ]);
                 $process->setTimeout(30);
@@ -161,12 +171,7 @@ trait RunsServerFinancialRaces
             $deadline = microtime(true) + 10;
             $waiting = 0;
             while ($waiting !== 2 && microtime(true) < $deadline) {
-                $waiting = (int) DB::selectOne(
-                    'SELECT COUNT(DISTINCT t.trx_mysql_thread_id) AS n FROM information_schema.INNODB_LOCK_WAITS w '
-                    .'JOIN information_schema.INNODB_TRX t ON t.trx_id = w.requesting_trx_id '
-                    .'JOIN information_schema.INNODB_TRX b ON b.trx_id = w.blocking_trx_id '
-                    .'WHERE t.trx_mysql_thread_id IN (?, ?) AND b.trx_mysql_thread_id = ?', [...$ids, $blockerId],
-                )->n;
+                $waiting = InnoDbLockWitness::waiting(DB::connection(), $ids, $blockerId);
                 if ($waiting !== 2) {
                     // InnoDB information_schema snapshots are cached: allow
                     // more than 100ms between reads so live waits become visible.

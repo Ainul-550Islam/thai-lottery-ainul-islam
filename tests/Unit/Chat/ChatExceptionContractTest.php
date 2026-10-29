@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Chat;
 
 use App\Exceptions\ChatException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -52,9 +53,7 @@ final class ChatExceptionContractTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider refusalProvider
-     */
+    #[DataProvider('refusalProvider')]
     public function test_machine_code_and_status_are_the_contract(
         ChatException $exception,
         string $expectedCode,
@@ -64,9 +63,7 @@ final class ChatExceptionContractTest extends TestCase
         $this->assertSame($expectedStatus, $exception->httpStatus());
     }
 
-    /**
-     * @dataProvider refusalProvider
-     */
+    #[DataProvider('refusalProvider')]
     public function test_wire_envelope_is_stable(
         ChatException $exception,
         string $expectedCode,

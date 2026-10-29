@@ -8,6 +8,7 @@ use App\Enums\Currency;
 use App\Enums\GatewayIntegrationStatus;
 use App\Enums\WebhookEventType;
 use App\Models\Deposit;
+use App\Models\Withdrawal;
 use App\Services\Payment\Drivers\CryptoGateway;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -31,10 +32,14 @@ final class CryptoGatewayTest extends TestCase
     {
         $this->assertSame('crypto', $this->gateway->name());
         $this->assertSame('Cryptocurrency', $this->gateway->label());
-        $this->assertSame(GatewayIntegrationStatus::FullyImplemented, $this->gateway->status());
-        $this->assertTrue($this->gateway->supportsDeposit());
-        $this->assertTrue($this->gateway->supportsWithdrawal());
-        $this->assertTrue($this->gateway->supportsCurrency(Currency::USD));
+        // The correction requires crypto to stay invisible. A config flag or
+        // locally invented secret cannot create a real provider integration.
+        $this->assertSame(GatewayIntegrationStatus::Unsupported, $this->gateway->status());
+        $this->assertFalse($this->gateway->isEnabled());
+        $this->assertFalse($this->gateway->supportsDeposit());
+        $this->assertFalse($this->gateway->supportsWithdrawal());
+        $this->assertFalse($this->gateway->supportsWebhook());
+        $this->assertFalse($this->gateway->supportsCurrency(Currency::USD));
         $this->assertFalse($this->gateway->supportsCurrency(Currency::THB));
     }
 
@@ -52,9 +57,20 @@ final class CryptoGatewayTest extends TestCase
 
         $response = $this->gateway->initiateDeposit($deposit);
 
-        $this->assertTrue($response->successful);
-        $this->assertNotNull($response->providerReference);
-        $this->assertStringContainsString('invoice=', $response->redirectUrl);
+        $this->assertFalse($response->successful);
+        $this->assertNull($response->providerReference);
+        $this->assertNull($response->redirectUrl);
+        $this->assertNull($response->clientSecret);
+        $this->assertSame('unsupported', $response->metadata['state']);
+    }
+
+    public function test_crypto_cannot_fabricate_a_withdrawal_or_provider_reference(): void
+    {
+        $response = $this->gateway->initiateWithdrawal(new Withdrawal);
+
+        $this->assertFalse($response->successful);
+        $this->assertFalse($response->isPending);
+        $this->assertNull($response->providerReference);
     }
 
     public function test_crypto_signature_and_webhook_parsing(): void
@@ -78,7 +94,9 @@ final class CryptoGatewayTest extends TestCase
             content: $json,
         );
 
-        $this->assertTrue($this->gateway->verifyWebhookSignature($request));
+        // Parsing is only a compatibility projection; this local HMAC is not
+        // provider authentication and must never authorize settlement.
+        $this->assertFalse($this->gateway->verifyWebhookSignature($request));
 
         $parsed = $this->gateway->parseWebhook($request);
         $this->assertSame('crypto', $parsed->gateway);

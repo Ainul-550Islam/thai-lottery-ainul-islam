@@ -45,7 +45,7 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
     }
 
     #[Test]
-    public function bkash_webhook_signature_is_verified_correctly(): void
+    public function bkash_local_hmac_is_not_accepted_as_proof_of_the_provider_callback_contract(): void
     {
         $player = $this->createPlayer('0.00', Currency::BDT);
         $deposit = $this->createPendingDeposit($player['wallet'], '500.00', PaymentMethod::Bkash);
@@ -66,9 +66,12 @@ final class PaymentWebhookSignatureVerificationTest extends PaymentTestCase
             'X-Bkash-Signature' => $signature,
         ])->postJson('/api/v1/payments/webhook/bkash', $payload);
 
-        $response->assertStatus(200);
-        $response->assertJsonPath('success', true);
-        $response->assertJsonPath('data.action_taken', 'credited');
+        $response->assertStatus(422);
+        $response->assertJsonPath('success', false);
+        $this->assertSame(\App\Enums\DepositStatus::Pending, $deposit->fresh()->status);
+        $this->assertSame('0.00', (string) $player['wallet']->fresh()->balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
+        $this->assertDatabaseCount('ledger_entries', 0);
     }
 
     #[Test]

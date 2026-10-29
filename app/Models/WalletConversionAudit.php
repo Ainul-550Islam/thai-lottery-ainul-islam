@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\WalletConversionChannel;
+use DomainException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -22,8 +24,13 @@ class WalletConversionAudit extends Model
     protected $fillable = [
         'wallet_conversion_id',
         'reference',
+        'user_id',
         'event',
+        'direction',
         'error_code',
+        'message',
+        'checks',
+        'metadata',
         'channel',
         'actor_user_id',
         'ip_address',
@@ -33,6 +40,19 @@ class WalletConversionAudit extends Model
         'recorded_at',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(static function (self $audit): void {
+            $audit->recorded_at ??= Carbon::now();
+        });
+        static::updating(static function (): void {
+            throw new DomainException('Conversion audit entries are append-only.');
+        });
+        static::deleting(static function (): void {
+            throw new DomainException('Conversion audit entries are append-only.');
+        });
+    }
+
     /**
      * @return array<string, string>
      */
@@ -40,6 +60,8 @@ class WalletConversionAudit extends Model
     {
         return [
             'channel' => WalletConversionChannel::class,
+            'checks' => 'array',
+            'metadata' => 'array',
             'context' => 'array',
             'recorded_at' => 'datetime',
         ];
@@ -53,6 +75,11 @@ class WalletConversionAudit extends Model
     public function scopeForReference(Builder $query, string $reference): Builder
     {
         return $query->where('reference', $reference);
+    }
+
+    public function scopeBetween(Builder $query, Carbon $from, Carbon $to): Builder
+    {
+        return $query->whereBetween('recorded_at', [$from, $to]);
     }
 
     public function conversion(): BelongsTo

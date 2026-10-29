@@ -102,7 +102,8 @@ return [
     'defaults' => [
         'supervisor-default' => [
             'connection' => 'redis',
-            'queue' => ['default'],
+            // Match the canonical worker vocabulary; keep the general queue.
+            'queue' => ['reconciliation', 'default'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => (int) env('HORIZON_DEFAULT_MAX_PROCESSES', 6),
@@ -117,7 +118,9 @@ return [
         // ── MONEY LANE: draw settlement ───────────────────────────────────
         'supervisor-settlement' => [
             'connection' => 'redis',
-            'queue' => ['settlement'],
+            // Existing settlement jobs retain their old lane while newly
+            // dispatched critical jobs use the canonical financial lane.
+            'queue' => ['financial-critical', 'settlement'],
             'balance' => 'simple',
             'processes' => (int) env('HORIZON_SETTLEMENT_PROCESSES', 4),
             'maxTime' => 0,
@@ -208,6 +211,9 @@ return [
             ],
             'supervisor-payouts' => [
                 'processes' => 1,
+            ],
+            'supervisor-webhooks' => [
+                'maxProcesses' => 2,
             ],
             'supervisor-notifications' => [
                 'maxProcesses' => 2,

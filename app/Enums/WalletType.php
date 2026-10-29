@@ -22,7 +22,8 @@ enum WalletType: string
 
     public function canWithdraw(): bool
     {
-        return in_array($this, [self::Primary, self::Main, self::Win, self::Commission], true);
+        // Winnings must first use the audited Win-to-Cash conversion lane.
+        return in_array($this, [self::Primary, self::Main, self::Commission], true);
     }
 
     public function canDeposit(): bool

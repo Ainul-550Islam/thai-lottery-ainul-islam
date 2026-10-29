@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -56,6 +57,20 @@ class PlayerWalletWiringTest extends TestCase
         return ['user' => $user, 'wallet' => $wallet];
     }
 
+    private function configureReadySyntheticStripe(): void
+    {
+        config([
+            'payment.country' => 'TH',
+            'payment.currency.default' => 'THB',
+            'payment.deposit.enabled' => true,
+            'payment.deposit.allowed_methods' => ['stripe'],
+            'payment.gateways.stripe.enabled' => true,
+            'payment.gateways.stripe.key' => 'pk_test_mock_publishable_key_12345',
+            'payment.gateways.stripe.secret' => 'sk_test_mock_secret_key_12345',
+            'payment.gateways.stripe.webhook_secret' => 'whsec_mock_stripe_webhook_secret_67890',
+        ]);
+    }
+
     // ------------------------------------------------------------------
     // W3/W7/W8: the pages render the canonical config, nothing else.
     // ------------------------------------------------------------------
@@ -64,9 +79,9 @@ class PlayerWalletWiringTest extends TestCase
     {
         // Pin the runtime config so the assertion is about the WIRING
         // (page follows config), not about any particular environment's
-        // env overrides. The gateways the page may advertise must also be
-        // ENABLED — the page never advertises a disabled rail, which is the
-        // same capability gate the initiation path applies.
+        // env overrides. The gateways the page may advertise must be ready
+        // for the selected merchant market and currency, not merely enabled.
+        $this->configureReadySyntheticStripe();
         config([
             'payment.deposit.min' => '50.00',
             'payment.deposit.max' => '500000.00',
@@ -85,13 +100,14 @@ class PlayerWalletWiringTest extends TestCase
         $this->assertStringContainsString('฿50.00', $page);
         $this->assertStringContainsString('฿500,000.00', $page);
 
-        // The closed deposit method list from config — the enum vocabulary. Crypto
-        // is configured but has no deposit capability (CryptoGateway::supportsDeposit
-        // is false until a provider protocol is reviewed), so the page must not offer it.
-        foreach (['Stripe', 'bKash', 'Nagad'] as $label) {
-            $this->assertStringContainsString($label, $page);
+        // Stripe is ready for this THB/TH merchant. bKash and Nagad are BDT
+        // rails whose provider authentication is not yet verified; enabling
+        // them alone must never make them appear as THB methods. Crypto is
+        // invisible even when enabled.
+        $this->assertStringContainsString('Stripe', $page);
+        foreach (['bKash', 'Nagad', 'Cryptocurrency'] as $label) {
+            $this->assertStringNotContainsString($label, $page);
         }
-        $this->assertStringNotContainsString('Cryptocurrency', $page);
 
         // The legacy marketing gateways that exist nowhere in the payment
         // model must not be advertised.
@@ -99,9 +115,65 @@ class PlayerWalletWiringTest extends TestCase
         $this->assertStringNotContainsString('PromptPay', $page);
     }
 
+    /** @return array<string, array{string, string, string}> */
+    public static function currenciesForDisplayedLimits(): array
+    {
+        return [
+            'Thai baht' => ['THB', 'TH', '฿'],
+            'US dollar' => ['USD', 'US', '$'],
+            'Bangladeshi taka' => ['BDT', 'BD', '৳'],
+        ];
+    }
+
+    #[DataProvider('currenciesForDisplayedLimits')]
+    public function test_wallet_limits_identify_and_format_the_configured_currency(string $currency, string $country, string $symbol): void
+    {
+        config([
+            'payment.currency.default' => $currency, 'payment.country' => $country,
+            'payment.deposit.min' => '50.00', 'payment.deposit.max' => '500000.00',
+            'payment.withdrawal.min' => '100.00', 'payment.withdrawal.max' => '500000.00',
+        ]);
+        ['user' => $user, 'wallet' => $wallet] = $this->player();
+        $wallet->currency = \App\Enums\Currency::from($currency);
+        $wallet->save();
+        $deposit = (string) $this->actingAs($user)->get(route('player.deposit'))->assertOk()->getContent();
+        $withdraw = (string) $this->actingAs($user)->get(route('player.withdraw'))->assertOk()->getContent();
+        $this->assertStringContainsString($symbol.'50.00', $deposit);
+        $this->assertStringContainsString($symbol.'500,000.00', $deposit);
+        $this->assertStringContainsString($currency, $deposit);
+        $this->assertStringContainsString($symbol.'100.00', $withdraw);
+        $this->assertStringContainsString($symbol.'500,000.00', $withdraw);
+        $this->assertStringContainsString($currency, $withdraw);
+    }
+
+    public function test_player_forms_hide_configured_methods_while_the_launch_switch_is_closed(): void
+    {
+        config([
+            'payment.deposit.enabled' => true, 'payment.withdrawal.enabled' => true,
+            'payment.deposit.allowed_methods' => ['bank_transfer'],
+            'payment.withdrawal.allowed_methods' => ['bank_transfer'],
+            'payment.gateways.bank_transfer.enabled' => true,
+            'payment.gateways.bank_transfer.settlement' => [
+                'bank_name' => 'Operator Bank PLC', 'account_number' => '888-999-000',
+                'account_name' => 'Operator Holdings Ltd',
+            ],
+        ]);
+        ['user' => $user] = $this->player();
+        $this->actingAs($user)->get(route('player.deposit'))->assertOk()
+            ->assertViewHas('methods', fn ($methods) => array_key_exists('bank_transfer', $methods));
+        $this->actingAs($user)->get(route('player.withdraw'))->assertOk()
+            ->assertViewHas('methods', fn ($methods) => array_key_exists('bank_transfer', $methods));
+        config(['real_money.enabled' => false]);
+        $this->actingAs($user)->get(route('player.deposit'))->assertOk()->assertViewHas('methods', []);
+        $this->actingAs($user)->get(route('player.withdraw'))->assertOk()->assertViewHas('methods', []);
+    }
+
     public function test_withdraw_page_renders_configured_limits_and_methods(): void
     {
         config([
+            'payment.country' => 'TH',
+            'payment.currency.default' => 'THB',
+            'payment.withdrawal.enabled' => true,
             'payment.withdrawal.min' => '100.00',
             'payment.withdrawal.max' => '500000.00',
             'payment.withdrawal.processing_hours' => 24,
@@ -130,9 +202,12 @@ class PlayerWalletWiringTest extends TestCase
         $this->assertStringContainsString('฿500,000.00', $page);
         $this->assertStringContainsString('within 24 hours', $page);
 
-        // Configured payout methods.
+        // The configured Thai bank rail may appear, but BDT-only or
+        // unverified gateways and crypto may not be offered for this wallet.
         $this->assertStringContainsString('Bank transfer', $page);
-        $this->assertStringContainsString('bKash', $page);
+        $this->assertStringNotContainsString('bKash', $page);
+        $this->assertStringNotContainsString('Nagad', $page);
+        $this->assertStringNotContainsString('Cryptocurrency', $page);
 
         // The invented "5-15 mins" promise must be gone.
         $this->assertStringNotContainsString('5-15', $page);
@@ -146,10 +221,8 @@ class PlayerWalletWiringTest extends TestCase
     {
         ['user' => $user] = $this->player();
 
-        config([
-            'payment.gateways.stripe.enabled' => true,
-            'payment.gateways.stripe.secret' => 'sk_test_example',
-        ]);
+        $this->configureReadySyntheticStripe();
+        Http::preventStrayRequests();
 
         // FINAL AUDIT #1: the form drives the orchestrated initiation —
         // capability gate, deposit intent, REAL gateway session, Payment
@@ -193,16 +266,17 @@ class PlayerWalletWiringTest extends TestCase
             ->first();
         $this->assertNotNull($payment);
         $this->assertSame('cs_test_WIRING1', (string) $payment->gateway_reference);
+        Http::assertSentCount(1);
+        $this->assertSame('1000.00', (string) $user->wallets()->where('currency', 'THB')->firstOrFail()->balance);
+        $this->assertDatabaseCount('financial_transactions', 0);
     }
 
     public function test_store_deposit_is_idempotent_on_form_replay(): void
     {
         ['user' => $user] = $this->player();
 
-        config([
-            'payment.gateways.stripe.enabled' => true,
-            'payment.gateways.stripe.secret' => 'sk_test_example',
-        ]);
+        $this->configureReadySyntheticStripe();
+        Http::preventStrayRequests();
 
         Http::fake([
             'api.stripe.com/*' => Http::response([
@@ -214,11 +288,15 @@ class PlayerWalletWiringTest extends TestCase
         $key = (string) Str::uuid();
         $payload = ['amount' => '250', 'method' => 'stripe', 'idempotency_key' => $key];
 
-        $this->actingAs($user)->post(route('player.deposit.store'), $payload);
-        $this->actingAs($user)->post(route('player.deposit.store'), $payload);
+        $this->actingAs($user)->post(route('player.deposit.store'), $payload)
+            ->assertRedirect('https://checkout.stripe.com/pay/cs_test_WIRING2');
+        $this->actingAs($user)->post(route('player.deposit.store'), $payload)
+            ->assertRedirect('https://checkout.stripe.com/pay/cs_test_WIRING2');
 
         $this->assertDatabaseCount('deposits', 1);
         $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseCount('financial_transactions', 0);
+        Http::assertSentCount(1);
     }
 
     public function test_store_deposit_shows_operator_bank_transfer_instructions_when_configured(): void

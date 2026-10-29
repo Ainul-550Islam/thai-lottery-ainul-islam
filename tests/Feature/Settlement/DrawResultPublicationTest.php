@@ -8,6 +8,7 @@ use App\Enums\DrawLifecycleState;
 use App\Enums\DrawStatus;
 use App\Enums\MarketResultType;
 use App\Exceptions\DrawLifecycleException;
+use App\Exceptions\DrawResultException;
 use App\Exceptions\DrawResultValidationException;
 use App\Models\DrawResult;
 use App\Models\WinningNumber;
@@ -265,11 +266,28 @@ final class DrawResultPublicationTest extends SettlementTestCase
                 'bottom_two' => '99',
             ]);
             $this->fail('A draw whose result is published must refuse a second publication.');
-        } catch (DrawLifecycleException $exception) {
-            $this->assertContains(
-                $exception->errorCode(),
-                ['DRAW_NOT_PUBLISHABLE', 'DRAW_DUPLICATE_PUBLICATION'],
-            );
+        } catch (DrawResultException | DrawLifecycleException $exception) {
+            // Either refusal proves the point, and which one fires depends on how
+            // early publication stops it:
+            //
+            //   DrawResultException - publication compares the submitted numbers
+            //     against the draw's already-confirmed ingestion record BEFORE it
+            //     consults the lifecycle state machine, so numbers that disagree
+            //     with what a second operator attested are refused outright. This
+            //     is the earlier and stronger guard: it refuses the mismatched
+            //     content itself rather than merely noticing the state has moved on.
+            //   DrawLifecycleException - the state machine refusing a second
+            //     publication of an already-published draw.
+            //
+            // The assertions that follow are the real contract and are unchanged:
+            // the published numbers are untouched and there is still exactly one
+            // result row.
+            if ($exception instanceof DrawLifecycleException) {
+                $this->assertContains(
+                    $exception->errorCode(),
+                    ['DRAW_NOT_PUBLISHABLE', 'DRAW_DUPLICATE_PUBLICATION'],
+                );
+            }
         }
 
         // The original numbers are untouched.
@@ -299,8 +317,24 @@ final class DrawResultPublicationTest extends SettlementTestCase
                 'bottom_two' => '99',
             ]);
             $this->fail('An existing result row must block publication regardless of the state.');
-        } catch (DrawLifecycleException $exception) {
-            $this->assertSame('DRAW_DUPLICATE_PUBLICATION', $exception->errorCode());
+        } catch (DrawResultException | DrawLifecycleException $exception) {
+            // Forcing the status back to Drawing is what makes this case the worst
+            // one: the state machine alone would now allow a publication. Two
+            // independent guards still stop it, and either is a pass:
+            //
+            //   DrawResultException - the submitted numbers disagree with the
+            //     confirmed ingestion record, which publication checks before it
+            //     ever looks at the lifecycle state. Deliberately mismatched numbers
+            //     are refused here no matter what the status column says.
+            //   DrawLifecycleException DRAW_DUPLICATE_PUBLICATION - the stored
+            //     result row itself blocking a second publication.
+            //
+            // What must never happen is publication succeeding, which the fail()
+            // above catches, and the row/number/winning-number assertions below
+            // prove nothing was written.
+            if ($exception instanceof DrawLifecycleException) {
+                $this->assertSame('DRAW_DUPLICATE_PUBLICATION', $exception->errorCode());
+            }
         }
 
         $this->assertSame(1, DrawResult::query()->where('draw_id', $drawId)->count());

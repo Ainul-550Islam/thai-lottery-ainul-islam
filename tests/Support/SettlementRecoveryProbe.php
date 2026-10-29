@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\QueueName;
+use App\Jobs\Draw\SettleDrawChunkJob;
 use App\Models\SettlementRun;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Events\QueryExecuted;
@@ -79,8 +80,15 @@ try {
             $checkpoint = true;
             $finalized = in_array(SettlementRun::STATUS_COMPLETED, $event->bindings, true);
         }
-        if ($checkpoint && str_starts_with($sql, 'insert') && str_contains($sql, '`jobs`') && $payload['phase'] === 'enqueued') {
-            $pause('enqueued');
+        if ($checkpoint && str_starts_with($sql, 'insert') && str_contains($sql, '`jobs`')
+            && $payload['phase'] === 'enqueued' && in_array(QueueName::FinancialCritical->value, $event->bindings, true)) {
+            foreach ($event->bindings as $binding) {
+                $queued = is_string($binding) ? json_decode($binding, true) : null;
+                if (is_array($queued) && ($queued['displayName'] ?? null) === SettleDrawChunkJob::class) {
+                    $pause('enqueued');
+                    break;
+                }
+            }
         }
     });
     Event::listen(TransactionCommitted::class, static function () use (&$checkpoint, &$created, &$finalized, $payload, $pause): void {
@@ -100,6 +108,7 @@ try {
     ], new BufferedOutput);
     echo json_encode(['worked' => true, 'worker_exit' => $exit, 'connection' => $connection], JSON_THROW_ON_ERROR);
 } catch (Throwable $exception) {
-    echo json_encode(['worked' => false, 'exception' => $exception::class], JSON_THROW_ON_ERROR);
+    echo json_encode(['worked' => false, 'exception' => $exception::class,
+        'location' => basename($exception->getFile()).':'.$exception->getLine()], JSON_THROW_ON_ERROR);
     exit(1);
 }

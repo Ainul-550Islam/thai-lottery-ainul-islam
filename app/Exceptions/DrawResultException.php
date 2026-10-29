@@ -38,7 +38,11 @@ class DrawResultException extends RuntimeException
 
     public const CODE_PUBLISH_REQUIRES_CONFIRMED = 'RESULT_PUBLISH_REQUIRES_CONFIRMED';
 
+    public const CODE_CONFIRMATION_POLICY_DISABLED = 'RESULT_CONFIRMATION_POLICY_DISABLED';
+
     public const CODE_MISMATCH_CONFIRMED = 'RESULT_MISMATCH_CONFIRMED';
+
+    public const CODE_PROVENANCE_FORBIDDEN = 'RESULT_PROVENANCE_FORBIDDEN';
 
     /**
      * @param  array<string, scalar|null>  $context
@@ -67,8 +71,9 @@ class DrawResultException extends RuntimeException
     }
 
     /**
-     * The ingested payload violates the result format contract (six-digit
-     * first prize, two-digit bottom-two agreeing with the first prize).
+     * The ingested payload violates the result format contract: the first
+     * prize and the independently drawn bottom-two must both be present and
+     * must have their respective six- and two-digit formats.
      *
      * @param  array<string, scalar|null>  $context
      */
@@ -161,6 +166,16 @@ class DrawResultException extends RuntimeException
         );
     }
 
+    /** Publication is manual-only; a disabled review policy is an invalid configuration. */
+    public static function confirmationPolicyDisabled(int $drawId): self
+    {
+        return new self(
+            'Draw result publication is disabled until lottery.results.require_admin_confirmation is enabled.',
+            self::CODE_CONFIRMATION_POLICY_DISABLED,
+            ['draw_id' => $drawId],
+        );
+    }
+
     /**
      * A confirmation attempt compared the row against values that disagree —
      * the confirming operator was shown numbers different from what the
@@ -184,6 +199,22 @@ class DrawResultException extends RuntimeException
                 'field' => $field,
                 'stored_value' => $stored,
                 'claimed_value' => $driven,
+            ],
+        );
+    }
+
+    public static function provenanceForbidden(
+        int $drawId,
+        string $provenance,
+        string $reason,
+        array $context = [],
+    ): self {
+        return new self(
+            sprintf('The result for draw #%d cannot be published: %s.', $drawId, $reason),
+            self::CODE_PROVENANCE_FORBIDDEN,
+            $context + [
+                'draw_id' => $drawId,
+                'provenance' => $provenance,
             ],
         );
     }

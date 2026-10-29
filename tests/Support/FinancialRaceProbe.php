@@ -24,6 +24,7 @@ use App\Exceptions\FinancialException;
 use App\Exceptions\ResponsibleGamingLimitException;
 use App\Exceptions\RiskException;
 use App\Exceptions\SelfExclusionException;
+use App\Exceptions\SettlementSimulationException;
 use App\Exceptions\Wallet\ConversionLimitExceededException;
 use App\Models\Agent;
 use App\Models\Deposit;
@@ -46,6 +47,7 @@ use App\Services\Betting\BetPurchaseTransactionService;
 use App\Services\Betting\BetPurchaseValidator;
 use App\Services\Draw\ChunkedSettlementOrchestrator;
 use App\Services\Draw\DrawCancellationService;
+use App\Services\Draw\RealPrizeSettlementService;
 use App\Services\Finance\DepositCompletionService;
 use App\Services\Finance\DepositService;
 use App\Services\Finance\FinancialReversalService;
@@ -769,7 +771,8 @@ try {
                     isSuccess: $facts['success'],
                 ),
             );
-            $answer = ['outcome' => $result->actionTaken, 'success' => $result->success, 'replayed' => $result->replayed];
+            $answer = ['outcome' => $result->actionTaken, 'success' => $result->success, 'replayed' => $result->replayed,
+                'message' => $result->message, 'code' => $result->metadata['error_code'] ?? null];
             break;
         case 'conversion_wallet_snapshot':
         case 'conversion_member_snapshot':
@@ -815,6 +818,18 @@ try {
             $run = $orchestrator->runChunk($run, (int) $payload['cursor']);
             $answer = ['outcome' => 'chunked', 'run_id' => (int) $run->id, 'bets_settled' => (int) $run->bets_settled];
             break;
+        case 'inline_settlement':
+            $app->make(RealPrizeSettlementService::class)->settle((int) $payload['draw_id']);
+            $answer = ['outcome' => 'inline_settled'];
+            break;
+        case 'settlement_reopen':
+            $run = $orchestrator->reopen(SettlementRun::query()->findOrFail((int) $payload['run_id']));
+            $answer = ['outcome' => 'reopened_or_read', 'status' => (string) $run->status];
+            break;
+        case 'settlement_finalize':
+            $run = $orchestrator->finalize(SettlementRun::query()->findOrFail((int) $payload['run_id']));
+            $answer = ['outcome' => 'finalized', 'status' => (string) $run->status];
+            break;
         case 'worker':
             $app->make('queue.worker')->runNextJob('database', QueueName::workerQueueString(),
                 new WorkerOptions(sleep: 0, maxTries: 2, timeout: 180));
@@ -829,7 +844,7 @@ try {
         $db->rollBack();
     }
     // Do not print SQL, keys, exception context or arbitrary exception messages.
-    echo json_encode(['outcome' => 'refused', 'code' => $exception instanceof ResponsibleGamingLimitException || $exception instanceof SelfExclusionException || $exception instanceof FinancialException || $exception instanceof BetDomainException || $exception instanceof DrawLifecycleException || $exception instanceof RiskException
+    echo json_encode(['outcome' => 'refused', 'code' => $exception instanceof ResponsibleGamingLimitException || $exception instanceof SelfExclusionException || $exception instanceof FinancialException || $exception instanceof BetDomainException || $exception instanceof DrawLifecycleException || $exception instanceof RiskException || $exception instanceof SettlementSimulationException
         ? $exception->errorCode() : null, 'attempted' => $exception instanceof ConversionLimitExceededException ? $exception->attempted() : null, 'exception' => $exception::class, 'sqlstate' => $exception instanceof QueryException ? ($exception->errorInfo[0] ?? null) : null,
         'table' => $exception instanceof QueryException ? (preg_match('/from `?(wallets|withdrawals|deposits|payments)`?/', $exception->getSql(), $diagnostic) ? $diagnostic[1] : null) : null,
         'statement' => $exception instanceof QueryException ? strtok($exception->getSql(), ' ') : null,

@@ -309,6 +309,7 @@ return [
     'register_wechat_id' => 'Wechat ID',
     'register_ic_no' => 'IC / Passport No.',
     'social_invalid_provider' => 'Unsupported social provider.',
+    'social_unavailable_until_link_verified' => 'Social sign-in is unavailable until account linking can be verified. Please sign in with your existing credentials.',
     'social_invalid_state' => 'Invalid social login state. Please try again.',
     'social_cancelled' => 'Social login was cancelled.',
     'social_missing_code' => 'Social provider did not return a code.',

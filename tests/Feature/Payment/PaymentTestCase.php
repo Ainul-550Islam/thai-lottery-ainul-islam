@@ -25,6 +25,7 @@ abstract class PaymentTestCase extends TestCase
 
     protected const ALLOWED_DATABASES = ['thai_lottery_test', ':memory:'];
 
+    protected const STRIPE_KEY = 'pk_test_mock_publishable_key_12345';
     protected const STRIPE_SECRET = 'sk_test_mock_secret_key_12345';
     protected const STRIPE_WEBHOOK_SECRET = 'whsec_mock_stripe_webhook_secret_67890';
     protected const BKASH_WEBHOOK_SECRET = 'mock_bkash_webhook_secret_12345';
@@ -51,6 +52,13 @@ abstract class PaymentTestCase extends TestCase
         Config::set('payment.webhook.max_age_seconds', 300);
 
         Config::set('payment.gateways.stripe.enabled', true);
+        // ProviderReadinessService::REQUIRED['stripe'] is [key, secret,
+        // webhook_secret]. Without the publishable `key` the rail reports
+        // `missing_key`, so it is never `ready`, and every deposit through
+        // PaymentGatewayManager::depositDriver() dies with
+        // "This payment method is not ready for the configured site market."
+        // That single omission took down the whole payment test surface.
+        Config::set('payment.gateways.stripe.key', self::STRIPE_KEY);
         Config::set('payment.gateways.stripe.secret', self::STRIPE_SECRET);
         Config::set('payment.gateways.stripe.webhook_secret', self::STRIPE_WEBHOOK_SECRET);
 

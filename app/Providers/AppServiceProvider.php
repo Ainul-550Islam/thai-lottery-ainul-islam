@@ -19,11 +19,31 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Framework emergency, on-demand and MessageLogged paths bypass the
+        // configured Monolog taps. Wrap the manager while retaining registered
+        // custom creators and shared context; never edit the framework vendor.
+        $this->app->extend('log', static function ($manager, $app) {
+            return $manager instanceof \App\Logging\RedactingLogManager
+                ? $manager
+                : \App\Logging\RedactingLogManager::replacing($manager, $app);
+        });
+        \Illuminate\Support\Facades\Facade::clearResolvedInstance('log');
+
         // NOTE (Payment phase): the PaymentGatewayInterface binding lives here
         // once App\Services\Payment\Gateway\* classes are implemented. It is
         // intentionally not registered yet so the container stays resolvable.
 
         $this->app->register(\App\Providers\PublicServicesServiceProvider::class);
+
+        // The original repository exposed this manual-queue service in two
+        // namespaces. Keep one implementation under Payment while preserving
+        // container/direct class references made by an older deployment.
+        if (! class_exists(\App\Services\Withdrawal\ManualDisbursementQueueService::class, false)) {
+            class_alias(
+                \App\Services\Payment\ManualDisbursementQueueService::class,
+                \App\Services\Withdrawal\ManualDisbursementQueueService::class,
+            );
+        }
 
         // PROMPT 4: the Data Matrix reader is consumed through its interface by
         // App\Services\Lottery\TicketBarcodeService, so the public verification
@@ -38,6 +58,12 @@ class AppServiceProvider extends ServiceProvider
         // overrides a developer default for an unbound class. Without this
         // binding the versioned pronouncements would silently never happen.
         $this->app->bind(ResponsibleGamingLimitService::class);
+
+        // LicenseService deliberately takes an explicit configuration snapshot;
+        // primitive arrays cannot be autowired by Laravel's container.
+        $this->app->bind(\App\Services\License\LicenseService::class, fn ($app) =>
+            new \App\Services\License\LicenseService((array) $app['config']->get('real_money', []))
+        );
 
         // The amendment replacement leg is an ordinary purchase with a permit attached.
         // It is bound to the interface so the purchase pipeline is the only writer: a

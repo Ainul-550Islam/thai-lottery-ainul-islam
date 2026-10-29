@@ -574,6 +574,15 @@ final class BetPurchaseErrorMapper
      */
     private function financial(FinancialException $exception): array
     {
+        if ($exception->errorCode() === 'real_money_disabled') {
+            return [
+                'code' => 'real_money_disabled',
+                'status' => 503,
+                'message' => 'Real-money operations are currently unavailable.',
+                'details' => [],
+            ];
+        }
+
         return $this->transactionFailed();
     }
 

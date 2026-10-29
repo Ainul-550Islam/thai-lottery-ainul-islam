@@ -80,6 +80,7 @@ try {
         '--stop-when-empty' => true, '--max-jobs' => 1, '--no-interaction' => true], new BufferedOutput);
     echo json_encode(['worked' => true, 'worker_exit' => $exit], JSON_THROW_ON_ERROR);
 } catch (Throwable $exception) {
-    echo json_encode(['worked' => false, 'exception' => $exception::class], JSON_THROW_ON_ERROR);
+    echo json_encode(['worked' => false, 'exception' => $exception::class,
+        'location' => basename($exception->getFile()).':'.$exception->getLine()], JSON_THROW_ON_ERROR);
     exit(1);
 }

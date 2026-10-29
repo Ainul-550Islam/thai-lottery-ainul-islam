@@ -4,74 +4,65 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Home;
 
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/**
- * FIX B — Discount Parity (P1).
- *
- * thailotto.club/discount.php live rates:
- *   National Lottery Affiliate Commission 2%
- *   Six Digit D-$1 × 3000 & R-$1 × 500 Discount 35%
- *   3Up D-$1 × 500 & R-$1 × 100 Discount 30%
- *
- * Our discounts/index.blade.php must render the TH parity section.
- */
+/** Public pricing must reflect our own canonical matrix, not a static reference sheet. */
 final class DiscountParityTest extends TestCase
 {
     use RefreshDatabase;
 
     public function test_discounts_page_is_accessible(): void
     {
-        $response = $this->get('/discounts');
-        $response->assertOk();
+        $this->get('/discounts')->assertOk();
     }
 
-    public function test_discounts_page_contains_thailotto_parity_section(): void
+    public function test_discounts_page_displays_both_canonical_lottery_families(): void
     {
-        $content = (string) $this->get('/discounts')->assertOk()->getContent();
-
-        // TH parity section must exist
-        $this->assertStringContainsString('id="thai-lottery-discounts"', $content, 'Missing TH parity section #thai-lottery-discounts');
-        $this->assertStringContainsString('THAILOTTO.CLUB PARITY', $content);
-        $this->assertStringContainsString('National Lottery', $content);
+        $body = (string) $this->get('/discounts')->assertOk()->getContent();
+        $this->assertStringContainsString('id="discount-matrix"', $body);
+        $this->assertStringContainsString('data-pd-matrix-lottery="national"', $body);
+        $this->assertStringContainsString('data-pd-matrix-lottery="bangkok_weekly"', $body);
+        $this->assertStringNotContainsString('THAILOTTO.CLUB', strtoupper($body));
     }
 
-    public function test_discounts_page_shows_correct_rates(): void
+    public function test_discounts_page_projects_configured_rates_and_both_modes(): void
     {
-        $content = (string) $this->get('/discounts')->assertOk()->getContent();
+        // Deliberately differ from the default headline rates: static copied
+        // numbers must not satisfy this check when the operator changes config.
+        config([
+            'lotto_discount_matrix.lotteries.national.games.national_six_digit.discount' => '41.00',
+            'lotto_discount_matrix.lotteries.national.games.national_six_digit.modes.D' => '2345',
+            'lotto_discount_matrix.lotteries.national.games.national_six_digit.modes.R' => '321',
+        ]);
 
-        // Six Digit Direct/Reverse 35%
-        $this->assertStringContainsString('35%', $content, 'Missing Six Digit 35% discount');
-        $this->assertStringContainsString('D-$1', $content, 'Missing D-$1 notation');
-        $this->assertStringContainsString('R-$1', $content, 'Missing R-$1 notation');
-        $this->assertStringContainsString('3000', $content, 'Missing ×3000 payout');
-
-        // 3Up Direct/Reverse 30%
-        $this->assertStringContainsString('30%', $content, 'Missing 3Up 30% discount');
-        $this->assertStringContainsString('3 Up', $content, 'Missing 3 Up label');
-        $this->assertStringContainsString('500', $content, 'Missing ×500 payout');
-
-        // Affiliate Commission 2%
-        $this->assertStringContainsString('2%', $content, 'Missing Affiliate 2%');
-        $this->assertStringContainsString('Affiliate', $content);
-        $this->assertStringContainsString('Commission', $content);
+        $body = (string) $this->get('/discounts')->assertOk()->getContent();
+        $dom = new DOMDocument();
+        @$dom->loadHTML('<?xml encoding="utf-8"?>'.$body);
+        $rows = (new DOMXPath($dom))->query('//tr[@data-pd-matrix-game="national_six_digit"]');
+        $this->assertNotFalse($rows);
+        $this->assertSame(1, $rows->length);
+        $row = $rows->item(0)->textContent;
+        $this->assertStringContainsString('41.00%', $row);
+        $this->assertStringContainsString('2345', $row);
+        $this->assertStringContainsString('321', $row);
+        $this->assertStringContainsString('THB', $row);
+        $this->assertStringNotContainsString('$', $body);
     }
 
     public function test_discounts_page_contains_bangkok_weekly(): void
     {
-        $content = (string) $this->get('/discounts')->assertOk()->getContent();
-
-        $this->assertStringContainsString('Bangkok Weekly', $content, 'Missing Bangkok Weekly Lottery');
-        $this->assertStringContainsString('6 Ball', $content);
+        $body = (string) $this->get('/discounts')->assertOk()->getContent();
+        $this->assertStringContainsString(trans('prize_discount.matrix_lottery_bangkok_weekly'), $body);
+        $this->assertStringContainsString('data-pd-matrix-game="weekly_6_ball"', $body);
     }
 
-    public function test_discounts_page_has_safe_calculation_note(): void
+    public function test_discounts_page_uses_a_server_projected_matrix(): void
     {
-        $content = (string) $this->get('/discounts')->assertOk()->getContent();
-
-        $this->assertStringContainsString('server-calculated', strtolower($content).' server-authoritative', 'Missing server-authoritative safety note');
-        // The TH table must warn that browser cannot supply rates
-        $this->assertStringContainsString('LottoDiscountCalculator', $content);
+        $body = (string) $this->get('/discounts')->assertOk()->getContent();
+        $this->assertStringContainsString('data-rates-source="server-projection"', $body);
+        $this->assertStringContainsString('NOT_CONFIGURED', $body);
     }
 }

@@ -22,10 +22,10 @@ use App\Models\Wallet;
 use App\Services\Betting\BetPurchaseService;
 use App\Services\Draw\ChunkedSettlementOrchestrator;
 use App\Services\Draw\DrawLifecycleService;
-use App\Services\Draw\DrawResultPublicationService;
 use App\Services\Draw\RealPrizeSettlementService;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Feature\Payment\PaymentTestCase;
+use Tests\Feature\PublicSite\Concerns\PublishesProviderResults;
 
 /**
  * Chunked real-money settlement.
@@ -54,6 +54,8 @@ use Tests\Feature\Payment\PaymentTestCase;
  */
 final class ChunkedSettlementTest extends PaymentTestCase
 {
+    use PublishesProviderResults;
+
     private function configureSafety(string $mode = 'LIVE', string $autoApproveBelow = '1000000.00'): void
     {
         config([
@@ -106,12 +108,28 @@ final class ChunkedSettlementTest extends PaymentTestCase
 
         $lifecycle = app(DrawLifecycleService::class);
         $draw = $lifecycle->close($draw);
-        $draw = $lifecycle->markResultPending($draw);
 
-        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
-            'first_prize' => '456123',
-            'bottom_two' => '45',
-        ]);
+        // Publication is NOT a step a caller may take on its own. This fixture
+        // used to mark the result pending and then call
+        // DrawResultPublicationService::publish() directly, which skipped result
+        // ingestion and the four-eyes confirmation entirely - so every test built
+        // on it died in publish()'s own admission guard with
+        // `DrawResultException: The result of draw #N is missing; only a confirmed
+        // result may be published to players`. That refusal is correct and is the
+        // point of the manual-publication contract: a result reaches players only
+        // after it has been ingested and a SECOND operator has confirmed it.
+        //
+        // So the fixture goes through the real path instead, via the same helper
+        // PublicResultEvidenceTest and PublicResultsAnonymousTest use: it marks the
+        // result pending, ingests it, and confirms it with a different operator,
+        // and confirmation is what publishes. Settlement therefore runs against a
+        // genuinely confirmed-and-published draw rather than a state no production
+        // code path could ever produce.
+        $this->publishProviderResult(
+            $draw,
+            firstPrize: '456123',
+            bottomTwo: '45',
+        );
 
         return [
             'draw' => $draw->refresh(),

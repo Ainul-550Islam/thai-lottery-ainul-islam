@@ -93,16 +93,11 @@ final class PaymentCallbackService
             return ['found' => false, 'reason' => 'reference_not_found'];
         }
 
-        $provenPaid = false;
-        if ($payment->status === PaymentStatus::Captured) {
-            $payable = $payment->payable;
-            $hasBareDepositFixture = $payable instanceof Deposit
-                && (! is_array($payable->metadata) || ! array_key_exists(DepositIntegrityGuard::TERMS_KEY, $payable->metadata))
-                && $payable->financial_transaction_id === null
-                && $payable->status === DepositStatus::Pending;
-
-            $provenPaid = $hasBareDepositFixture || $this->hasCanonicalSettlementProof($payment);
-        }
+        // A captured marker alone is not settlement. In particular, a pending
+        // deposit without original terms or a financial transaction must never
+        // be promoted to paid merely because it resembles a test fixture.
+        $provenPaid = $payment->status === PaymentStatus::Captured
+            && $this->hasCanonicalSettlementProof($payment);
 
         $state = match (true) {
             $provenPaid => 'confirmed',

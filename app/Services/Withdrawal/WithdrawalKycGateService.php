@@ -81,13 +81,11 @@ class WithdrawalKycGateService
             return false;
         }
 
-        $threshold = config('finance.withdrawal.kyc_gate_threshold');
+        // The request and approval lanes use the same fail-closed decimal
+        // parser, including for malformed or absent configuration.
+        $threshold = app(\App\Services\Compliance\WithdrawalKycGateService::class)->threshold();
 
-        if (! is_string($threshold) && ! is_numeric($threshold)) {
-            return true; // unconfigured floor: treat as zero — always mandatory
-        }
-
-        return bccomp(bcadd((string) $withdrawal->amount, '0.00', 2), bcadd((string) $threshold, '0.00', 2), 2) >= 0;
+        return bccomp(bcadd((string) $withdrawal->amount, '0.00', 2), $threshold, 2) >= 0;
     }
 
     /**
@@ -332,6 +330,7 @@ class WithdrawalKycGateService
             ->where('user_id', $userId)
             ->whereNotNull('verified_at')
             ->orderByDesc('verified_at')
+            ->orderByDesc('id')
             ->first();
 
         if ($verifiedDoc instanceof KycDocument) {
@@ -339,7 +338,11 @@ class WithdrawalKycGateService
                 ? $verifiedDoc->status
                 : (string) ($verifiedDoc->status->value ?? '');
 
-            if ($docStatus !== KycStatus::Expired->value && $docStatus !== KycStatus::Rejected->value) {
+            if ($docStatus === KycStatus::Verified->value) {
+                if ($verifiedDoc->expires_at !== null && $verifiedDoc->expires_at->lte(now())) {
+                    return ['state' => 'expired', 'document' => $verifiedDoc, 'document_status' => $docStatus];
+                }
+
                 return ['state' => 'verified', 'document' => $verifiedDoc, 'document_status' => $docStatus];
             }
         }

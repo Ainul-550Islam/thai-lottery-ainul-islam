@@ -22,6 +22,7 @@ use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
 use App\Services\Finance\Money;
 use App\Services\Fraud\FraudDetectionService;
+use App\Services\Payment\Slip\ProviderAccountMask;
 use App\Services\Payment\Slip\SlipVerificationProviderInterface;
 use App\Services\Uploads\UploadQuarantineService;
 use App\Services\Uploads\UploadScanService;
@@ -121,16 +122,22 @@ final class BankSlipVerificationService
                 ? $this->provider()->verifyQr($qrPayload)
                 : $this->provider()->verifyImage($providerImagePath ?? throw FinancialException::withCode('slip_upload_rejected', 'A clean quarantined slip image is required.'));
         } catch (FinancialException $exception) {
+            $duplicate = $exception->errorCode() === 'slip_duplicate';
+            $reason = $duplicate ? 'provider_duplicate' : $this->safeReasonCode($exception->errorCode());
             $verification = $this->makeNonProviderRecord(
                 $user,
                 $claimed->toString(),
-                $this->safeReasonCode($exception->errorCode()),
-                SlipVerificationStatus::NeedsReview,
+                $reason,
+                $duplicate ? SlipVerificationStatus::Duplicate : SlipVerificationStatus::NeedsReview,
                 $scanRecordId,
             );
-            $this->audit($verification, AuditAction::Reconcile, RiskLevel::Medium, 'Slip verification needs manual review after a provider error.', [
-                'reason' => $this->safeReasonCode($exception->errorCode()),
-            ]);
+            $this->audit(
+                $verification,
+                $duplicate ? AuditAction::SecurityAlert : AuditAction::Reconcile,
+                $duplicate ? RiskLevel::High : RiskLevel::Medium,
+                $duplicate ? 'Slip provider reported a duplicate transfer.' : 'Slip verification needs manual review after a provider error.',
+                ['reason' => $reason],
+            );
 
             return $verification;
         } catch (Throwable $exception) {
@@ -444,9 +451,10 @@ final class BankSlipVerificationService
             return false;
         }
         $actualBank = self::normaliseBank($result->receivingBank);
-        $actualSuffix = preg_replace('/\D+/', '', $result->receiverAccountMasked) ?? '';
+        $maskedSuffix = ProviderAccountMask::lastFourIfExposed($result->receiverAccountMasked);
+        $actualSuffix = $maskedSuffix === '' ? '' : substr($maskedSuffix, -4);
         $actualName = self::normaliseName($result->receiverName);
-        if ($actualBank === '' || strlen($actualSuffix) < 2 || $actualName === '') {
+        if ($actualBank === '' || strlen($actualSuffix) !== 4 || $actualName === '') {
             return false;
         }
         foreach ($accounts as $account) {

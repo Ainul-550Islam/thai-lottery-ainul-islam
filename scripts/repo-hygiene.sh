@@ -51,6 +51,8 @@
 #   scripts/repo-hygiene.sh            clean, then verify
 #   scripts/repo-hygiene.sh --dry-run  report what would happen
 #   scripts/repo-hygiene.sh --verify   verification only, change nothing
+#   scripts/repo-hygiene.sh --quick    same as --verify; the read-only pass
+#                                      `npm run hygiene:quick` asks for
 #
 # Exit status is 0 only when the tree is clean AND the verification passes.
 #
@@ -62,6 +64,10 @@ mode="clean"
 case "${1:-}" in
     --dry-run) mode="dry" ;;
     --verify) mode="verify" ;;
+    # `npm run hygiene:quick` has always passed --quick, and this case did not
+    # exist, so the documented quick lane exited 2 with "unknown option" on every
+    # run. It means the read-only pass: report, change nothing.
+    --quick) mode="verify" ;;
     "") mode="clean" ;;
     *) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
 esac
@@ -258,16 +264,24 @@ for junk in ".sudo_as_admin_successful" ".profile"; do
     fi
 done
 
-shopt -s nullglob
-ts_leftovers=(resources/js/**/*.ts resources/js/**/*.tsx)
-shopt -u nullglob
+# `find`, not a `**` glob. The glob this replaces was
+# `resources/js/**/*.ts`, and without `shopt -s globstar` bash reads `**` as a
+# single `*`, so it matched ONE directory level only: it caught
+# resources/js/components/*.tsx and silently missed resources/js/_unused/
+# components/*.tsx sitting right beside them. A hygiene check that only inspects
+# part of the tree reports "clean" over a tree that is not, which is worse than
+# no check at all because it is trusted. `find` has no such switch to forget.
+ts_leftovers=()
+while IFS= read -r f; do
+    ts_leftovers+=("$f")
+done < <(find resources/js -type f \( -name '*.ts' -o -name '*.tsx' \) 2>/dev/null | sort)
 
 if [ "${#ts_leftovers[@]}" -gt 0 ]; then
     for f in "${ts_leftovers[@]}"; do
         fail_with "a TypeScript file remains and cannot be built: $f"
     done
 else
-    ok "no TypeScript or TSX files under resources/js"
+    ok "no TypeScript or TSX files under resources/js, at any depth"
 fi
 
 if grep -q "resources/js/components/" vite.config.js; then

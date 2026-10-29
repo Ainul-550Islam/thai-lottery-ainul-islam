@@ -11,7 +11,7 @@ class StoreBlockedIpRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('create', BlockedIp::class) ?? true;
+        return $this->user()?->can('create', BlockedIp::class) ?? false;
     }
 
     public function rules(): array

@@ -4,100 +4,80 @@ declare(strict_types=1);
 
 namespace App\Services\Security;
 
+use App\Models\TotpActionProof;
+use App\Models\TotpCredential;
+use App\Models\TotpPendingEnrollment;
 use App\Models\User;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Revocation of outstanding TOTP action proofs.
+ * Durable, transaction-coupled revocation of TOTP action proofs.
  *
- * An action proof (TotpActionProofData) says "this member recently proved
- * possession of their authenticator for THIS sensitive action". A proof is
- * delivered ephemerally and is never persisted by the DTO itself, so the
- * revocation side needs its own durable marker: a per-member generation
- * counter in the cache. `invalidate()` bumps the generation and stamps the
- * reason and time; any proof minted under an older generation is dead on
- * arrival wherever it is presented.
- *
- * WHY PASSWORD CHANGE INVALIDATES EVERYTHING
- * A password change — above all a password RESET — is the moment an account
- * may have changed hands. Every outstanding proof was minted under the old
- * credential; letting one survive would let a pre-reset proof authorise a
- * post-reset action, which is precisely the session the reset exists to kill.
- * PasswordResetService therefore calls invalidate() inside the same
- * transaction boundary as the credential write and the session revocation.
- *
- * The cache is the right store for this: proofs are short-lived by design,
- * so their revocation marker only has to outlive the longest proof TTL,
- * not the account.
+ * The authoritative proofs are SQL rows, not cache entries. Writers and
+ * invalidators acquire the user row before the TOTP credential row; password
+ * writers invoke this inside the same SQL transaction as their credential and
+ * session revocation. A rollback therefore restores both the password and its
+ * proofs, and losing cache cannot resurrect either a proof or its generation.
  */
 final class TotpActionProofInvalidationService
 {
-    /** Reason recorded when a password change/reset kills every proof. */
     public const PASSWORD_CHANGED = 'password_changed';
 
-    /** Reason recorded when the member's authenticator itself changes. */
     public const TOTP_CHANGED = 'totp_changed';
 
-    /** Reason recorded for an operator-forced revocation. */
     public const OPERATOR_REVOCATION = 'operator_revocation';
 
-    /** How long a revocation marker is retained (seconds): 24 hours. */
-    private const MARKER_TTL_SECONDS = 86400;
-
-    public function __construct(private readonly CacheRepository $cache) {}
-
-    /**
-     * Kill every outstanding action proof for the member and record why.
-     */
     public function invalidate(User $user, string $reason = self::PASSWORD_CHANGED): void
     {
-        $id = (int) $user->getKey();
+        if (! in_array($reason, [self::PASSWORD_CHANGED, self::TOTP_CHANGED, self::OPERATOR_REVOCATION], true)) {
+            throw new \InvalidArgumentException('Unknown TOTP proof invalidation reason.');
+        }
 
-        $this->cache->put($this->generationKey($id), $this->generation($user) + 1, self::MARKER_TTL_SECONDS);
-        $this->cache->put($this->markerKey($id), [
-            'reason' => $reason,
-            'invalidated_at' => now()->getTimestamp(),
-        ], self::MARKER_TTL_SECONDS);
+        DB::transaction(function () use ($user, $reason): void {
+            $locked = User::query()->useWritePdo()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $credential = TotpCredential::query()->where('user_id', $locked->getKey())->lockForUpdate()->first();
+            if ($credential instanceof TotpCredential) {
+                TotpActionProof::query()->where('totp_credential_id', $credential->getKey())->delete();
+            }
+            // An unconfirmed enrollment initiated under an old password must
+            // not be completable after an account recovery or password change.
+            if ($reason === self::PASSWORD_CHANGED) {
+                TotpPendingEnrollment::query()->where('user_id', $locked->getKey())->delete();
+            }
+            $locked->forceFill([
+                'totp_proof_epoch' => (int) $locked->totp_proof_epoch + 1,
+                'totp_proof_invalidated_at' => now()->getTimestamp(),
+                'totp_proof_invalidation_reason' => $reason,
+            ]);
+            if (! $locked->save()) {
+                throw new \RuntimeException('TOTP proof revocation could not be persisted.');
+            }
+        });
     }
 
-    /**
-     * The member's current proof generation. A proof carries the generation
-     * it was minted under; anything below this value has been revoked.
-     */
+    /** The current durable revocation generation; never fall back to cache. */
     public function generation(User $user): int
     {
-        $value = $this->cache->get($this->generationKey((int) $user->getKey()), 0);
-
-        return is_int($value) ? $value : (is_numeric($value) ? (int) $value : 0);
+        return (int) User::query()->useWritePdo()->whereKey($user->getKey())->firstOrFail()->totp_proof_epoch;
     }
 
-    /**
-     * Whether a proof minted at $mintedGeneration is still acceptable.
-     */
+    /** A caller must prove the exact current generation, not a future value. */
     public function accepts(User $user, int $mintedGeneration): bool
     {
-        return $mintedGeneration >= $this->generation($user);
+        return $mintedGeneration >= 0 && $mintedGeneration === $this->generation($user);
     }
 
-    /**
-     * The last invalidation marker, if any: {reason, invalidated_at}.
-     *
-     * @return array{reason: string, invalidated_at: int}|null
-     */
+    /** @return array{reason: string, invalidated_at: int}|null */
     public function lastInvalidation(User $user): ?array
     {
-        $marker = $this->cache->get($this->markerKey((int) $user->getKey()));
+        $locked = User::query()->useWritePdo()->whereKey($user->getKey())->firstOrFail();
+        if ($locked->totp_proof_invalidation_reason === null || $locked->totp_proof_invalidated_at === null) {
+            return null;
+        }
 
-        return is_array($marker) && isset($marker['reason'], $marker['invalidated_at']) ? $marker : null;
-    }
-
-    private function generationKey(int $userId): string
-    {
-        return 'security.totp_action_proofs.generation.'.$userId;
-    }
-
-    private function markerKey(int $userId): string
-    {
-        return 'security.totp_action_proofs.invalidated.'.$userId;
+        return [
+            'reason' => (string) $locked->totp_proof_invalidation_reason,
+            'invalidated_at' => (int) $locked->totp_proof_invalidated_at,
+        ];
     }
 }

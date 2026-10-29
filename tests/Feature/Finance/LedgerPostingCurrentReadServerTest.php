@@ -10,6 +10,7 @@ use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
+use Tests\Support\InnoDbLockWitness;
 use Tests\Support\RunsServerFinancialRaces;
 
 final class LedgerPostingCurrentReadServerTest extends FinancialMasterTestCase
@@ -77,13 +78,7 @@ final class LedgerPostingCurrentReadServerTest extends FinancialMasterTestCase
             $deadline = microtime(true) + 5;
             $waiting = 0;
             do {
-                $waiting = (int) DB::selectOne('SELECT COUNT(DISTINCT t.trx_mysql_thread_id) AS n '
-                    .'FROM information_schema.INNODB_LOCK_WAITS w '
-                    .'JOIN information_schema.INNODB_TRX t ON t.trx_id = w.requesting_trx_id '
-                    .'JOIN information_schema.INNODB_TRX b ON b.trx_id = w.blocking_trx_id '
-                    .'JOIN information_schema.INNODB_LOCKS l ON l.lock_id = w.requested_lock_id '
-                    .'WHERE t.trx_mysql_thread_id IN (?, ?) AND b.trx_mysql_thread_id = ? '
-                    .'AND l.lock_table = ? AND l.lock_index = ?', [...$ids, $parent, '`thai_lottery_test`.`financial_transactions`', 'PRIMARY'])->n;
+                $waiting = InnoDbLockWitness::waiting(DB::connection(), $ids, $parent, 'financial_transactions', 'PRIMARY');
                 if ($waiting !== 2) {
                     usleep(200000);
                 }

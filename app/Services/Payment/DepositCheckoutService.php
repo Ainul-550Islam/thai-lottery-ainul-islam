@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Payment;
 
 use App\DTOs\Payment\GatewayDepositResponse;
+use App\Enums\Currency;
 use App\Enums\DepositStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -237,6 +238,10 @@ final class DepositCheckoutService
             if ($row->status !== DepositStatus::Pending || $row->financial_transaction_id !== null) {
                 $this->refuse('checkout_request_conflict', 'The deposit is no longer eligible for first checkout dispatch.');
             }
+            // A prepared checkout has not reached the provider yet. Recheck
+            // the launch switch at its durable dispatch fence; a previously
+            // custodied response above remains available for recovery.
+            app(\App\Services\Compliance\RealMoneyGate::class)->assertOpen('deposit');
             app(DepositService::class)->assertWalletAcceptsDeposit($wallet, $row->currency);
             app(DepositAdmission::class)->assertAllowed($wallet, (string) $row->amount, (int) $row->id);
             try {
@@ -326,6 +331,12 @@ final class DepositCheckoutService
                 $this->refuse('checkout_response_unproven', 'The original provider reference conflicts with current paper.');
             }
             if ($attempt->state === 'projected') {
+                // Inspect the raw JSON BEFORE any migration through Eloquent's
+                // array cast: associative decoding conflates {} with [].
+                if ($payment->gateway_reference !== $response->providerReference || $row->provider_reference !== $response->providerReference
+                    || ! $this->projectedResponseMatches($payment, $response->toArray())) {
+                    $this->refuse('checkout_response_unproven', 'The original projected response no longer matches.');
+                }
                 $pMeta = is_array($payment->metadata) ? $payment->metadata : [];
                 if (array_key_exists('redirect_url', $pMeta)) {
                     if (is_string($pMeta['redirect_url']) && $pMeta['redirect_url'] !== '' && empty($pMeta['redirect_url_encrypted'])) {
@@ -334,10 +345,6 @@ final class DepositCheckoutService
                     unset($pMeta['redirect_url']);
                     $payment->metadata = $pMeta;
                     $payment->save();
-                }
-                if ($payment->gateway_reference !== $response->providerReference || $row->provider_reference !== $response->providerReference
-                    || data_get($payment->metadata, 'original_initiation_response') !== $response->toArray()) {
-                    $this->refuse('checkout_response_unproven', 'The original projected response no longer matches.');
                 }
             } else {
                 // Preserve any independently proved callback capture/credit; checkout response is NOT settlement authority.
@@ -404,6 +411,26 @@ final class DepositCheckoutService
         $reference = $this->custody($attempt)['response']['provider_reference'];
         if ($row->provider_reference !== $reference || $payment->gateway_reference !== $reference) {
             $this->refuse('stripe_settlement_original_unproven', 'The projected original session reference differs.');
+        }
+
+        return [$row, $wallet, $payment, $attempt, $reference];
+    }
+
+    /** The original bKash checkout must be proved before dispatch and again at settlement. */
+    public function lockedBkashSettlement(Deposit $route): array
+    {
+        if (DB::transactionLevel() < 1) {
+            $this->refuse('bkash_settlement_transaction_required', 'Original settlement validation requires its SQL root.');
+        }
+        [$row, $wallet, $payment, $attempt] = $this->locked($route);
+        if (! $attempt || $attempt->provider !== 'bkash' || $attempt->state !== 'projected') {
+            $this->refuse('bkash_settlement_original_unproven', 'Recover the owned original bKash checkout before settlement.');
+        }
+        $this->assertOriginal($row, $payment, $attempt, 'bkash');
+        $reference = $this->custody($attempt)['response']['provider_reference'];
+        if ($row->provider_reference !== $reference || $payment->gateway_reference !== $reference
+            || $row->method !== PaymentMethod::Bkash || $row->currency !== Currency::BDT) {
+            $this->refuse('bkash_settlement_original_unproven', 'The projected original bKash checkout differs.');
         }
 
         return [$row, $wallet, $payment, $attempt, $reference];
@@ -506,6 +533,61 @@ final class DepositCheckoutService
 
         return new GatewayDepositResponse(successful: true, redirectUrl: $s['redirect_url'], providerReference: $s['provider_reference'],
             clientSecret: $s['client_secret'], rawResponse: $raw, metadata: $s['metadata']);
+    }
+
+    /** Compare the stored raw JSON to the reconstructed original response. */
+    private function projectedResponseMatches(Payment $payment, array $expected): bool
+    {
+        try {
+            $raw = $payment->getRawOriginal('metadata');
+            if (! is_string($raw)) {
+                return false;
+            }
+            // Decode objects as objects, not associative arrays: PHP's array
+            // cast otherwise makes an empty JSON object indistinguishable from
+            // an empty list, and can turn numeric object keys into list keys.
+            $document = json_decode($raw, false, 64, JSON_THROW_ON_ERROR);
+            $original = json_decode(json_encode($expected, JSON_THROW_ON_ERROR), false, 64, JSON_THROW_ON_ERROR);
+            if (! $document instanceof \stdClass || ! property_exists($document, 'original_initiation_response')) {
+                return false;
+            }
+
+            return $this->sameJsonValue($document->original_initiation_response, $original);
+        } catch (\JsonException) {
+            return false;
+        }
+    }
+
+    /**
+     * MySQL may reorder JSON object keys. Ignore only that order, never object
+     * versus list, list order, field sets or scalar types and values. The
+     * separately encrypted response remains protected by its byte-exact hash.
+     */
+    private function sameJsonValue(mixed $left, mixed $right): bool
+    {
+        if ($left instanceof \stdClass || $right instanceof \stdClass) {
+            if (! $left instanceof \stdClass || ! $right instanceof \stdClass) {
+                return false;
+            }
+            $left = get_object_vars($left);
+            $right = get_object_vars($right);
+        } elseif (is_array($left) || is_array($right)) {
+            if (! is_array($left) || ! is_array($right)) {
+                return false;
+            }
+        } else {
+            return $left === $right;
+        }
+        if (count($left) !== count($right)) {
+            return false;
+        }
+        foreach ($left as $key => $value) {
+            if (! array_key_exists($key, $right) || ! $this->sameJsonValue($value, $right[$key])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function optionsHash(array $options): string

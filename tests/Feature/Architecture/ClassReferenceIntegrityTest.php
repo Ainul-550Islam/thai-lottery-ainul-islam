@@ -23,11 +23,11 @@ use Tests\TestCase;
  * arbitrary code loader and producing warnings for classes whose dependencies
  * are not bootstrapped in the test process.
  *
- * Namespace-prefix imports are the one deliberate exception: code may import
- * a namespace itself (`use App\\Filament\\Resources\\XResource\\Pages;` followed
- * by Pages\\ListX, or `use App\\ValueObjects;` followed by ValueObjects\\BetAmount),
- * so a reference whose PSR-4 path is a real directory resolves just as a class
- * file does. A reference backed by neither file nor directory fails.
+ * Namespace-prefix imports may resolve to a real directory. A deliberately
+ * registered compatibility alias may also resolve, but only when it is already
+ * loaded without autoloading and reflection points to the canonical App class's
+ * actual PSR-4 file. Any other reference backed by neither a file nor a
+ * directory fails.
  */
 final class ClassReferenceIntegrityTest extends TestCase
 {
@@ -118,17 +118,39 @@ final class ClassReferenceIntegrityTest extends TestCase
         return $references;
     }
 
-    /**
-     * A reference resolves when its PSR-4 class file exists, or when it names
-     * a real namespace directory that is imported as a prefix (for example
-     * `use App\\Filament\\Resources\\DrawResource\\Pages;` followed by
-     * Pages\\ListDraws, or `use App\\ValueObjects;` followed by
-     * ValueObjects\\BetAmount). A reference backed by nothing at all is the
-     * dangling reference this guard exists to catch.
-     */
+    /** A real file/directory or an already-loaded alias to its canonical file. */
     private function referenceResolves(string $reference): bool
     {
-        return is_file($this->expectedPath($reference)) || is_dir($this->expectedDirectory($reference));
+        if (is_file($this->expectedPath($reference)) || is_dir($this->expectedDirectory($reference))) {
+            return true;
+        }
+
+        // The false flag is important: do not autoload arbitrary references
+        // while scanning source. Only a registered alias can resolve this way.
+        if (! class_exists($reference, false)) {
+            return false;
+        }
+        $reflection = new \ReflectionClass($reference);
+        $canonical = $reflection->getName();
+        $file = $reflection->getFileName();
+
+        return strcasecmp($canonical, $reference) !== 0
+            && str_starts_with($canonical, 'App\\')
+            && is_string($file)
+            && is_file($this->expectedPath($canonical))
+            && realpath($file) === realpath($this->expectedPath($canonical));
+    }
+
+    public function test_a_loaded_compatibility_alias_resolves_to_its_real_canonical_file(): void
+    {
+        $legacy = 'App\\Services\\Withdrawal\\ManualDisbursementQueueService';
+        self::assertTrue(class_exists($legacy, false));
+        self::assertTrue($this->referenceResolves($legacy));
+        self::assertSame(
+            'App\\Services\\Payment\\ManualDisbursementQueueService',
+            (new \ReflectionClass($legacy))->getName(),
+        );
+        self::assertFalse($this->referenceResolves('App\\Services\\Withdrawal\\DefinitelyMissingService'));
     }
 
     private function expectedPath(string $reference): string

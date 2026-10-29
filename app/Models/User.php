@@ -110,6 +110,10 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     {
         return [
             'password' => 'hashed',
+            // The lifecycle guard stamps this generation onto each new session.
+            'credential_epoch' => 'integer',
+            'totp_proof_epoch' => 'integer',
+            'totp_proof_invalidated_at' => 'integer',
             'status' => UserStatus::class,
             'kyc_status' => KycStatus::class,
             'date_of_birth' => 'date',

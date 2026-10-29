@@ -63,7 +63,7 @@ final class ConversionQuoteSlotServerTest extends ConversionTestCase
         $this->assertSame($profile === 'parent-consumes' ? 1 : 0, DB::table('financial_transactions')->count());
         if ($previous !== null) {
             $this->assertSame($profile === 'parent-consumes' ? 'consumed' : 'open',
-                WalletConversionQuote::query()->where('reference', $previous->reference)->value('status'));
+                WalletConversionQuote::query()->where('reference', $previous->reference)->firstOrFail()->getRawOriginal('status'));
         }
     }
 }

@@ -8,34 +8,30 @@ use App\DTOs\Payment\GatewayDepositResponse;
 use App\DTOs\Payment\GatewayWithdrawalResponse;
 use App\DTOs\Payment\WebhookPayload;
 use App\Enums\Currency;
+use App\Enums\DepositStatus;
 use App\Enums\GatewayIntegrationStatus;
 use App\Enums\WebhookEventType;
 use App\Exceptions\FinancialException;
 use App\Models\Deposit;
 use App\Models\Withdrawal;
+use App\Services\Payment\DepositCheckoutService;
+use App\Services\Payment\FinancialProviderReferenceAliasService;
 use App\Services\Payment\PaymentDecimalNormalizer;
+use App\Support\LosslessJson;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Real bKash Tokenized Checkout & Webhook Gateway Driver.
+ * bKash tokenized checkout adapter. Its execute/query facts must match the
+ * original locally owned checkout; a callback body is never settlement proof.
  *
- * SPECIFICATION & OFFICIAL PROTOCOL
- * ---------------------------------
- * 1. Base URLs:
- *    Sandbox: https://tokenized.sandbox.bka.sh/v1.2.0-beta
- *    Live:    https://tokenized.pay.bka.sh/v1.2.0-beta
- *
- * 2. Token Grant & Create Payment:
- *    POST /tokenized/checkout/create with `mode: '0011'`, `payerReference`,
- *    `merchantInvoiceNumber`, `amount`, `currency: 'BDT'`, `intent: 'sale'`.
- *
- * 3. Webhook / Callback Signature Verification:
- *    Header: `X-Bkash-Signature` / HMAC-SHA256 with `webhook_secret` / `app_secret`.
- *
- * 4. Payout / Disbursement:
- *    bKash B2C API for automated wallet-to-wallet disbursements.
+ * The existing HMAC callback adapter is a local compatibility convention, not
+ * evidence of bKash's published IPN authentication protocol. The merchant's
+ * actual delivery/authentication contract and production credentials must be
+ * verified before this integration is advertised as production-ready. Payouts
+ * remain manual; no B2C transfer is implemented here.
  */
 class BkashGateway extends AbstractPaymentGateway
 {
@@ -51,7 +47,9 @@ class BkashGateway extends AbstractPaymentGateway
 
     public function status(): GatewayIntegrationStatus
     {
-        return GatewayIntegrationStatus::FullyImplemented;
+        // The merchant's actual callback authentication contract is not yet
+        // implemented/verified. Credentials alone cannot make this complete.
+        return GatewayIntegrationStatus::PartiallyImplemented;
     }
 
     public function supportsCurrency(Currency $currency): bool
@@ -150,10 +148,12 @@ class BkashGateway extends AbstractPaymentGateway
 
     public function verifyWebhookSignature(Request $request): bool
     {
-        $secret = $this->webhookSecret() ?? $this->appSecret();
+        // This is a legacy compatibility check, not bKash SNS verification.
+        // Never reuse the merchant API credential as a webhook secret.
+        $secret = $this->webhookSecret();
 
         if (empty($secret)) {
-            Log::warning('bKash webhook rejected: webhook_secret / app_secret is not configured.');
+            Log::warning('bKash compatibility callback rejected: webhook_secret is not configured.');
 
             return false;
         }
@@ -171,12 +171,27 @@ class BkashGateway extends AbstractPaymentGateway
 
     public function parseWebhook(Request $request): WebhookPayload
     {
-        $data = $request->json()->all();
+        try {
+            $body = $request->getContent();
+            $exact = LosslessJson::decode($body);
+            $data = json_decode($body, true, 64, JSON_THROW_ON_ERROR);
+            if (! is_array($exact) || ! is_array($data) || ! str_starts_with(ltrim($body), '{')) {
+                throw new \JsonException('bKash callback JSON must be an object.');
+            }
+        } catch (\JsonException $exception) {
+            // The public bKash ingress remains closed. Even in the isolated
+            // prototype, duplicate identities or statuses must not trigger a
+            // credential-bearing provider query.
+            throw FinancialException::withCode('bkash_payment_verification_failed', trans('payment_ops.errors.bkash_payment_verification_failed'), ['reason' => 'invalid_callback_json'], $exception);
+        }
 
-        $paymentId = (string) ($data['paymentID'] ?? $data['payment_id'] ?? '');
-        $trxId = (string) ($data['trxID'] ?? $data['transaction_id'] ?? '');
-        $invoice = (string) ($data['merchantInvoiceNumber'] ?? $data['invoice_number'] ?? $data['reference'] ?? '');
-        $amountRaw = $data['amount'] ?? null;
+        $paymentValue = $data['paymentID'] ?? $data['payment_id'] ?? null;
+        $transactionValue = $data['trxID'] ?? $data['transaction_id'] ?? null;
+        $invoiceValue = $data['merchantInvoiceNumber'] ?? $data['invoice_number'] ?? $data['reference'] ?? null;
+        $paymentId = is_string($paymentValue) ? $paymentValue : '';
+        $trxId = is_string($transactionValue) ? $transactionValue : '';
+        $invoice = is_string($invoiceValue) ? $invoiceValue : '';
+        $amountRaw = $exact['amount'] ?? null;
         try {
             $amount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($amountRaw, 2);
         } catch (\InvalidArgumentException) {
@@ -191,10 +206,23 @@ class BkashGateway extends AbstractPaymentGateway
                     ['reason' => 'missing_callback_identity'],
                 );
             }
-            $verified = $this->executeAndQueryPayment($paymentId, $invoice);
+            // A valid-looking callback must not execute any provider payment
+            // until it is tied to this application's original checkout. Release
+            // the SQL locks before network I/O; the binding service rechecks
+            // the same proof under lock before wallet credit.
+            if ($request->attributes->get('webhook.signature_verified') !== true) {
+                throw FinancialException::withCode(
+                    'bkash_payment_verification_failed',
+                    trans('payment_ops.errors.bkash_payment_verification_failed'),
+                    ['reason' => 'callback_authentication_missing'],
+                );
+            }
+            $expectedAmount = $this->preflightOriginalCheckout($paymentId, $invoice);
+            $verified = $this->executeAndQueryPayment($paymentId, $invoice, $expectedAmount);
             $data = array_merge($data, $verified);
-            $trxId = (string) ($verified['trxID'] ?? $verified['transactionId'] ?? $trxId);
-            $amountRaw = $verified['amount'];
+            $trxId = $verified['trxID'];
+            // The provider query, not the callback, is authoritative.
+            $amount = $verified['amount'];
             $currencyRaw = $verified['currency'];
             $status = strtoupper((string) ($verified['transactionStatus'] ?? $verified['status'] ?? ''));
         } else {
@@ -211,13 +239,17 @@ class BkashGateway extends AbstractPaymentGateway
             default => WebhookEventType::Unknown,
         };
 
-        $eventId = ! empty($trxId) ? 'bkash_trx_'.$trxId : 'bkash_evt_'.bin2hex(random_bytes(8));
+        $eventId = $paymentId !== '' && $trxId !== ''
+            ? FinancialProviderReferenceAliasService::bkashEventId($paymentId, $trxId)
+            : 'bkash_evt_'.bin2hex(random_bytes(8));
 
         return new WebhookPayload(
             gateway: $this->name(),
             eventId: $eventId,
             eventType: $eventType,
-            providerReference: ! empty($trxId) ? $trxId : $paymentId,
+            // paymentID owns the original checkout; trxID is a separately
+            // reserved transaction alias, not a replacement for that ID.
+            providerReference: $paymentId !== '' ? $paymentId : null,
             internalReference: ! empty($invoice) ? $invoice : null,
             amount: $amount,
             currency: $currency,
@@ -231,15 +263,41 @@ class BkashGateway extends AbstractPaymentGateway
         );
     }
 
+    /** Prove the original local obligation before any credential-bearing request. */
+    private function preflightOriginalCheckout(string $paymentId, string $invoice): string
+    {
+        $checkout = app(DepositCheckoutService::class);
+        $checkout->assertTopLevel();
+        if (strlen($paymentId) > 255 || strlen($invoice) > 255
+            || trim($paymentId) !== $paymentId || trim($invoice) !== $invoice
+            || preg_match('/[\x00-\x1f\x7f]/', $paymentId.$invoice)) {
+            throw FinancialException::withCode('bkash_payment_verification_failed', trans('payment_ops.errors.bkash_payment_verification_failed'), ['reason' => 'invalid_callback_identity']);
+        }
+
+        return DB::transaction(function () use ($checkout, $paymentId, $invoice): string {
+            $candidate = Deposit::query()->where('reference_number', $invoice)->first();
+            if (! $candidate) {
+                throw FinancialException::withCode('bkash_payment_verification_failed', trans('payment_ops.errors.bkash_payment_verification_failed'), ['reason' => 'original_checkout_not_found']);
+            }
+            [$row, , , , $originalReference] = $checkout->lockedBkashSettlement($candidate);
+            if (! hash_equals($originalReference, $paymentId)
+                || ! hash_equals((string) $row->reference_number, $invoice)
+                || ! in_array($row->status, [DepositStatus::Pending, DepositStatus::Approved, DepositStatus::Processing, DepositStatus::Confirmed], true)) {
+                throw FinancialException::withCode('bkash_payment_verification_failed', trans('payment_ops.errors.bkash_payment_verification_failed'), ['reason' => 'original_checkout_mismatch']);
+            }
+
+            return (string) $row->amount;
+        });
+    }
+
     /**
-     * bKash callback bodies are evidence of a notification, not settlement.
-     * Execute an unfinished checkout and then query the provider's authoritative
-     * state; only a completed query with the expected invoice, amount and BDT
-     * currency can be normalized into a successful webhook.
+     * Callback bodies are not settlement. Each status response must match the
+     * original paymentID, invoice, amount and currency before an execute is
+     * considered, and a completed query must also carry its own trxID.
      *
      * @return array<string, mixed>
      */
-    private function executeAndQueryPayment(string $paymentId, string $expectedInvoice): array
+    private function executeAndQueryPayment(string $paymentId, string $expectedInvoice, string $expectedAmount): array
     {
         $token = $this->grantToken();
         $appKey = $this->appKey();
@@ -265,18 +323,34 @@ class BkashGateway extends AbstractPaymentGateway
             if (! $statusResponse->successful()) {
                 throw new \RuntimeException('bKash status query was not successful.');
             }
-            $statusData = $statusResponse->json();
-            if (! is_array($statusData)) {
-                throw new \RuntimeException('bKash status response was malformed.');
-            }
+            $statusData = $this->statusResponseFacts($statusResponse);
+            $statusData = $this->validateProviderFacts($statusData, $paymentId, $expectedInvoice, $expectedAmount);
             if (! $this->isCompletedProviderStatus($statusData)) {
+                // Absence or disagreement of customer-verification facts is
+                // not proof of authorization. This deliberately fails closed
+                // until the merchant's actual provider contract is verified.
+                $verificationFacts = [];
+                foreach (['verificationStatus', 'userVerificationStatus'] as $key) {
+                    if (array_key_exists($key, $statusData)) {
+                        $verificationFacts[] = $statusData[$key];
+                    }
+                }
+                if (! in_array($statusData['transactionStatus'], ['INITIATED', 'AUTHORIZED'], true)
+                    || $verificationFacts === []) {
+                    throw new \RuntimeException('bKash checkout is not eligible for execution.');
+                }
+                foreach ($verificationFacts as $verification) {
+                    if (! is_string($verification) || ! in_array(strtoupper($verification), ['COMPLETE', 'COMPLETED'], true)) {
+                        throw new \RuntimeException('bKash customer verification is not proved.');
+                    }
+                }
                 $executeResponse = Http::withHeaders($headers)
                     ->acceptJson()
                     ->asJson()
                     ->timeout(15)
                     ->retry(0)
                     ->withOptions(['allow_redirects' => false])
-                    ->post($this->baseUrl().'/tokenized/checkout/execute/'.rawurlencode($paymentId));
+                    ->post($this->baseUrl().'/tokenized/checkout/execute', ['paymentID' => $paymentId]);
                 // An execute response can be lost or report that the checkout
                 // was already executed. The subsequent query, never this response,
                 // is the sole authority for whether the deposit can be credited.
@@ -289,10 +363,8 @@ class BkashGateway extends AbstractPaymentGateway
                 if (! $statusResponse->successful()) {
                     throw new \RuntimeException('bKash final status query was not successful.');
                 }
-                $statusData = $statusResponse->json();
-                if (! is_array($statusData)) {
-                    throw new \RuntimeException('bKash final status response was malformed.');
-                }
+                $statusData = $this->statusResponseFacts($statusResponse);
+                $statusData = $this->validateProviderFacts($statusData, $paymentId, $expectedInvoice, $expectedAmount);
             }
         } catch (\Throwable $exception) {
             Log::warning('bKash payment verification did not complete', [
@@ -307,23 +379,10 @@ class BkashGateway extends AbstractPaymentGateway
             );
         }
 
-        $actualInvoice = $statusData['merchantInvoiceNumber'] ?? $statusData['invoice_number'] ?? null;
-        $actualAmount = $statusData['amount'] ?? null;
-        $actualCurrency = $statusData['currency'] ?? null;
-        $actualStatus = strtoupper((string) ($statusData['transactionStatus'] ?? $statusData['status'] ?? ''));
-        try {
-            $normalizedAmount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($actualAmount, 2);
-        } catch (\InvalidArgumentException $exception) {
-            throw FinancialException::withCode(
-                'bkash_payment_verification_failed',
-                trans('payment_ops.errors.bkash_payment_verification_failed'),
-                ['reason' => 'invalid_provider_amount'],
-                $exception,
-            );
-        }
-        if (! is_string($actualInvoice) || ! hash_equals($expectedInvoice, $actualInvoice)
-            || strtoupper((string) $actualCurrency) !== Currency::BDT->value
-            || ! $this->isCompletedProviderStatus($statusData)) {
+        $transactionId = $statusData['trxID'] ?? null;
+        if (! $this->isCompletedProviderStatus($statusData) || ! is_string($transactionId)
+            || $transactionId === '' || strlen($transactionId) > 245 || trim($transactionId) !== $transactionId
+            || preg_match('/[\x00-\x1f\x7f]/', $transactionId)) {
             throw FinancialException::withCode(
                 'bkash_payment_verification_failed',
                 trans('payment_ops.errors.bkash_payment_verification_failed'),
@@ -331,22 +390,64 @@ class BkashGateway extends AbstractPaymentGateway
             );
         }
 
-        $statusData['merchantInvoiceNumber'] = $actualInvoice;
-        $statusData['amount'] = $normalizedAmount;
-        $statusData['currency'] = Currency::BDT->value;
-        $statusData['transactionStatus'] = $actualStatus;
-
         return $statusData;
+    }
+
+    /**
+     * Preserve the authoritative status query's exact amount lexeme and reject
+     * duplicate JSON keys before looking at any settlement facts. The ordinary
+     * decode is kept for all other type checks; it must not supply money.
+     *
+     * @return array<string, mixed>
+     */
+    private function statusResponseFacts(\Illuminate\Http\Client\Response $response): array
+    {
+        $body = $response->body();
+        $exact = LosslessJson::decode($body);
+        $data = json_decode($body, true, 64, JSON_THROW_ON_ERROR);
+        if (! is_array($exact) || ! is_array($data) || ! str_starts_with(ltrim($body), '{')) {
+            throw new \RuntimeException('bKash status response was malformed.');
+        }
+        $data['amount'] = $exact['amount'] ?? null;
+
+        return $data;
+    }
+
+    /** @param array<string, mixed> $data @return array<string, mixed> */
+    private function validateProviderFacts(array $data, string $paymentId, string $expectedInvoice, string $expectedAmount): array
+    {
+        // Query Payment returns merchantInvoice; create/execute return
+        // merchantInvoiceNumber. If both are present they must agree.
+        $invoice = $data['merchantInvoice'] ?? $data['merchantInvoiceNumber'] ?? null;
+        $otherInvoice = $data['merchantInvoiceNumber'] ?? $invoice;
+        $providerPaymentId = $data['paymentID'] ?? null;
+        $currency = $data['currency'] ?? null;
+        $status = $data['transactionStatus'] ?? null;
+        try {
+            $amount = PaymentDecimalNormalizer::normalizeInboundWebhookPositive($data['amount'] ?? null, 2);
+        } catch (\InvalidArgumentException $exception) {
+            throw FinancialException::withCode('bkash_payment_verification_failed', trans('payment_ops.errors.bkash_payment_verification_failed'), ['reason' => 'invalid_provider_amount'], $exception);
+        }
+        if (($data['statusCode'] ?? null) !== '0000' || ! is_string($providerPaymentId) || ! hash_equals($paymentId, $providerPaymentId)
+            || ! is_string($invoice) || ! is_string($otherInvoice) || ! hash_equals($expectedInvoice, $invoice)
+            || ! hash_equals($invoice, $otherInvoice) || ! is_string($currency) || strtoupper($currency) !== Currency::BDT->value
+            || ! is_string($status) || bccomp($amount, $expectedAmount, 2) !== 0) {
+            throw FinancialException::withCode('bkash_payment_verification_failed', trans('payment_ops.errors.bkash_payment_verification_failed'), ['reason' => 'provider_facts_mismatch']);
+        }
+
+        $data['merchantInvoiceNumber'] = $invoice;
+        $data['amount'] = $amount;
+        $data['currency'] = Currency::BDT->value;
+        $data['transactionStatus'] = strtoupper($status);
+
+        return $data;
     }
 
     /** @param array<string, mixed> $data */
     private function isCompletedProviderStatus(array $data): bool
     {
-        $status = strtoupper((string) ($data['transactionStatus'] ?? $data['status'] ?? ''));
-        $statusCode = (string) ($data['statusCode'] ?? '0000');
-
-        return in_array($status, ['COMPLETED', 'SUCCESS', 'SUCCESSFUL'], true)
-            && in_array($statusCode, ['0000', '0'], true);
+        return ($data['statusCode'] ?? null) === '0000'
+            && ($data['transactionStatus'] ?? null) === 'COMPLETED';
     }
 
     private function grantToken(): ?string

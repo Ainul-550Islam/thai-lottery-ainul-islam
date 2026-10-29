@@ -65,9 +65,12 @@ final class WithdrawalController
         $validated = $request->validated();
 
         $user = $request->user();
-        $currency = isset($validated['currency']) && is_string($validated['currency'])
-            ? Currency::from(strtoupper($validated['currency']))
-            : Currency::THB;
+        $currency = Currency::tryFromCode(isset($validated['currency']) && is_string($validated['currency'])
+            ? $validated['currency']
+            : (string) config('payment.currency.default', 'THB'));
+        if ($currency === null) {
+            return ApiResponse::error('site_currency_unsupported', 'The configured withdrawal currency is unavailable.', 503);
+        }
 
         $wallet = Wallet::query()
             ->where('user_id', $user->id)

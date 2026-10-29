@@ -33,6 +33,12 @@ final class ConversionMemberEligibility
         $this->check($userId, false);
     }
 
+    /** A policy preview remains advisory even when its caller has a transaction. */
+    public function assertAdvisoryAllowed(int $userId): void
+    {
+        $this->check($userId, false);
+    }
+
     /** Retain the owner and fact locks until the caller commits the money/quote. */
     public function assertAllowedForExecution(int $userId): void
     {

@@ -53,14 +53,13 @@ return [
     | Empty array = no country authorised = real money blocked.
     |----------------------------------------------------------------------
     */
-    'authorized_countries' => function (): array {
-        $raw = (string) env('REAL_MONEY_LICENSE_COUNTRIES', '');
-        if ($raw === '') {
-            return [];
-        }
-
-        return array_unique(array_map('strtoupper', array_filter(array_map('trim', explode(',', $raw)))));
-    },
+    // Resolve during configuration loading: consumers need an array and Laravel
+    // cannot serialize a Closure when `config:cache` builds a release artifact.
+    'authorized_countries' => array_values(array_unique(array_map(
+        'strtoupper',
+        array_filter(array_map('trim', explode(',', (string) env('REAL_MONEY_LICENSE_COUNTRIES', ''))),
+            static fn (string $country): bool => $country !== ''),
+    ))),
 
     /*
     |----------------------------------------------------------------------

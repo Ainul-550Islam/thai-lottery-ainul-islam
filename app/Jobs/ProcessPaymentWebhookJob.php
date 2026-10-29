@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Enums\QueueName;
 use App\Exceptions\PaymentWebhookException;
 use App\Models\PaymentWebhook;
 use App\Services\Payment\PaymentWebhookService;
@@ -37,7 +38,7 @@ final class ProcessPaymentWebhookJob implements ShouldQueue
     public function __construct(
         public readonly int $paymentWebhookId,
     ) {
-        $this->onQueue('finance-webhooks');
+        $this->onQueue(QueueName::Webhooks->value);
         $this->afterCommit();
     }
 

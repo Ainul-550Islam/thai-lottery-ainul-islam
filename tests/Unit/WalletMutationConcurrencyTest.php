@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use App\Exceptions\FinancialException;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Wallet\WalletMutationService;
@@ -82,6 +83,49 @@ class WalletMutationConcurrencyTest extends TestCase
                 currency: 'THB'
             );
         });
+    }
+
+    public function test_legacy_credit_cannot_bypass_the_configured_wallet_cap(): void
+    {
+        $user = User::factory()->create();
+        $wallet = Wallet::create(['user_id' => $user->id, 'type' => 'main', 'currency' => 'THB']);
+        $wallet->forceFill(['status' => 'active', 'balance' => '100.00'])->save();
+        config(['finance.wallet.max_balance' => '100.50']);
+        $before = DB::table('ledger_transactions')->count();
+
+        try {
+            DB::transaction(fn () => $this->walletService->credit(
+                (string) $user->id, '0.51', 'TEST_CAP', 'CAP-01', 'THB',
+            ));
+            $this->fail('A credit exceeding the configured cap must be refused.');
+        } catch (FinancialException $exception) {
+            $this->assertSame('wallet_maximum_balance_exceeded', $exception->errorCode());
+        }
+
+        $this->assertSame('100.00', (string) $wallet->fresh()->balance);
+        $this->assertSame('100.50', config('finance.wallet.max_balance'));
+        $this->assertSame($before, DB::table('ledger_transactions')->count());
+    }
+
+    public function test_fractional_minor_units_cannot_diverge_the_wallet_and_ledger(): void
+    {
+        $user = User::factory()->create();
+        $wallet = Wallet::create(['user_id' => $user->id, 'type' => 'main', 'currency' => 'THB']);
+        $wallet->forceFill(['status' => 'active', 'balance' => '100.00'])->save();
+        $before = DB::table('ledger_transactions')->count();
+
+        foreach (['credit', 'debit'] as $method) {
+            try {
+                DB::transaction(fn () => $this->walletService->{$method}(
+                    (string) $user->id, '0.0199', 'TEST_PRECISION', 'PRECISION-'.$method, 'THB',
+                ));
+                $this->fail('A nonzero fractional minor unit must be refused.');
+            } catch (FinancialException $exception) {
+                $this->assertSame('money_precision_loss', $exception->errorCode());
+            }
+            $this->assertSame('100.00', (string) $wallet->fresh()->balance);
+            $this->assertSame($before, DB::table('ledger_transactions')->count());
+        }
     }
 
     public function test_mutations_outside_transaction_throw_exception(): void

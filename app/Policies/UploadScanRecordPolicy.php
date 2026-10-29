@@ -21,10 +21,7 @@ class UploadScanRecordPolicy
 
     private function isSecurityAdmin(?User $user): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        return (bool) ($user->is_admin ?? false) || in_array($user->role ?? '', ['admin', 'super_admin', 'security_officer'], true);
+        return $user !== null && $user->isActive()
+            && $user->hasAnyRole(['admin', 'super-admin', 'security_officer']);
     }
 }

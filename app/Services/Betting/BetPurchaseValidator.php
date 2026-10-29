@@ -153,6 +153,7 @@ final class BetPurchaseValidator
         $draw = $this->resolveDraw($data->drawId);
         $currency = $stake->currency();
         $wallet = $this->wallets->resolveWallet($user, $currency);
+        $this->wallets->assertBettingWallet($wallet);
 
         $riskPreview = $this->risk->preview(
             drawId: $data->drawId,

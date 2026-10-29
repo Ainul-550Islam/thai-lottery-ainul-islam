@@ -1,3 +1,4 @@
+{{- if .Values.clamav.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,15 +15,65 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Release.Name }}-clamav
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: clamav
-          image: "{{ .Values.clamav.image }}"
+          image: {{ .Values.clamav.image | quote }}
+          imagePullPolicy: IfNotPresent
           ports:
             - name: clamd
               containerPort: {{ .Values.clamav.port }}
               protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          startupProbe:
+            exec:
+              command: ["clamdscan", "--ping=1"]
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["clamdscan", "--ping=1"]
+            periodSeconds: 15
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["clamdscan", "--ping=1"]
+            periodSeconds: 30
+            failureThreshold: 3
           resources:
             {{- toYaml .Values.clamav.resources | nindent 12 }}
+          volumeMounts:
+            - name: definitions
+              mountPath: /var/lib/clamav
+            - name: logs
+              mountPath: /var/log/clamav
+            - name: runtime
+              mountPath: /run/clamav
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: definitions
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: logs
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: runtime
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
 ---
 apiVersion: v1
 kind: Service
@@ -31,9 +82,10 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 3310
+    - port: {{ .Values.clamav.port }}
       targetPort: clamd
       protocol: TCP
       name: clamd
   selector:
     app.kubernetes.io/name: {{ .Release.Name }}-clamav
+{{- end }}

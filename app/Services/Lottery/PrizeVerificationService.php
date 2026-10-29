@@ -6,6 +6,7 @@ namespace App\Services\Lottery;
 
 use App\Enums\GloClaimStatus;
 use App\Enums\GloPublicStatus;
+use App\Enums\GloSourceState;
 use App\Exceptions\GloDealerException;
 use App\Models\GloPrizeClaim;
 use App\Models\GloTicket;
@@ -236,14 +237,22 @@ final class PrizeVerificationService
 
         $authenticity = $this->authenticity->forGloTicket($ticket);
 
-        $status = $won ? self::WINNING : self::FOUND_NOT_WINNING;
+        $source = $check['source_state'] ?? null;
+        $comparable = in_array($source, [
+            GloSourceState::OfficialSourceVerified->value,
+            GloSourceState::InternalReconciled->value,
+            GloSourceState::FixtureOnly->value,
+        ], true);
 
-        if (($check['source_state'] ?? null) === 'not_configured' && $matches === []) {
-            // No published result to compare against: do not imply a loss.
-            $status = self::UNAVAILABLE;
+        // A missing, unverified or unknown source cannot prove either a loss or
+        // a win. A claim/hold marker must not upgrade that missing result proof.
+        if (! $comparable) {
+            $won = false;
+            $matches = [];
         }
+        $status = ! $comparable ? self::UNAVAILABLE : ($won ? self::WINNING : self::FOUND_NOT_WINNING);
 
-        if ($ticket !== null) {
+        if ($ticket !== null && $comparable && $won) {
             $status = $this->applyHoldAndClaimState($ticket, $status);
         }
 
@@ -264,7 +273,8 @@ final class PrizeVerificationService
             ],
             authenticity: $authenticity,
             barcode: $barcodeRead,
-            fixture: (bool) ($barcodeRead['fixture'] ?? false),
+            fixture: (bool) ($barcodeRead['fixture'] ?? false) || $source === GloSourceState::FixtureOnly->value,
+            reason: $comparable ? null : 'RESULT_UNAVAILABLE',
         );
     }
 

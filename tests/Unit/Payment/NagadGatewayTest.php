@@ -34,7 +34,8 @@ final class NagadGatewayTest extends TestCase
     {
         $this->assertSame('nagad', $this->gateway->name());
         $this->assertSame('Nagad', $this->gateway->label());
-        $this->assertSame(GatewayIntegrationStatus::FullyImplemented, $this->gateway->status());
+        // This is a compatibility prototype, not a verified provider contract.
+        $this->assertSame(GatewayIntegrationStatus::PartiallyImplemented, $this->gateway->status());
         $this->assertTrue($this->gateway->supportsDeposit());
         $this->assertTrue($this->gateway->supportsWithdrawal());
         $this->assertTrue($this->gateway->supportsCurrency(Currency::BDT));

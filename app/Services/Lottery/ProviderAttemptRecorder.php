@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Lottery;
 
+use App\Models\AuditLog;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Facades\Facade;
 use Throwable;
@@ -154,6 +155,7 @@ final class ProviderAttemptRecorder
 
         try {
             $context = [
+                AuditLog::ANCHOR_KEY => 'glo-attempt:'.$source.':'.($drawNumber ?? 'none'),
                 'source' => $source,
                 'draw_number' => $drawNumber,
                 'outcome' => $outcome,

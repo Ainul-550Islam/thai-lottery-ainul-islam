@@ -77,6 +77,15 @@ class ProcessPaymentWebhookJob implements ShouldBeUnique, ShouldQueue
      */
     public function handle(PaymentWebhookService $webhookService): PaymentProcessingResult
     {
+        // Previously queued DTOs do not retain independently verified bKash
+        // or Nagad provider evidence and cannot bypass their closed ingress.
+        $gateway = strtolower(trim($this->payload->gateway));
+        if (in_array($gateway, ['bkash', 'nagad'], true)) {
+            return PaymentProcessingResult::failed($gateway, 'Provider callback authentication is not ready.', metadata: [
+                'error_code' => $gateway.'_callback_authentication_unverified',
+            ]);
+        }
+
         try {
             return $webhookService->processWebhookPayload($this->payload);
         } catch (FinancialException $e) {

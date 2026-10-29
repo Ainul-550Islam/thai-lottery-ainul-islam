@@ -139,6 +139,7 @@ final class DrawResultController
                 (int) $draw->getKey(),
                 (int) $user->getAuthIdentifier(),
                 $request->claimedResult(),
+                (string) $request->validated('notes'),
             );
         } catch (DrawResultException $e) {
             return ApiResponse::error(

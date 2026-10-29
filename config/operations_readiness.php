@@ -32,7 +32,25 @@ return [
                 'payment.gateways.bkash.enabled',
                 'payment.gateways.bkash.app_key',
             ],
-            'note' => 'bKash deposits and withdrawals. The switch is off until the sandbox or live credentials are provisioned.',
+            'note' => 'bKash callback authentication is not implemented for the provider IPN. Credentials alone do not make this lane ready.',
+        ],
+        'payment.nagad' => [
+            'switch' => 'payment.gateways.nagad.enabled',
+            'credentials' => [
+                'payment.gateways.nagad.merchant_id',
+                'payment.gateways.nagad.merchant_number',
+                'payment.gateways.nagad.app_key',
+                'payment.gateways.nagad.app_secret',
+                'payment.gateways.nagad.public_key',
+                'payment.gateways.nagad.private_key',
+                'payment.gateways.nagad.base_url',
+                'payment.gateways.nagad.webhook_secret',
+            ],
+            'declared' => [
+                'payment.gateways.nagad.enabled',
+                'payment.gateways.nagad.merchant_id',
+            ],
+            'note' => 'Nagad callback authentication and authoritative settlement are not verified. Credentials alone do not make this lane ready.',
         ],
         'payment.promptpay' => [
             'switch' => 'payment.gateways.promptpay.enabled',

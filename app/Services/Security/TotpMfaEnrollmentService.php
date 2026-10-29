@@ -77,18 +77,18 @@ final class TotpMfaEnrollmentService
     {
         $userId = (int) $user->getKey();
 
-        if (TotpCredential::query()->where('user_id', $userId)->exists()) {
-            throw ValidationException::withMessages([
-                'mfa' => ['TOTP multi-factor authentication is already enabled for this account.'],
-            ]);
-        }
-
         $secret = $this->verifier->generateSecret();
         $reference = bin2hex(random_bytes(16));
         $issuedAt = now()->getTimestamp();
         $expiresAt = $issuedAt + self::ENROLLMENT_TTL_SECONDS;
 
-        DB::transaction(function () use ($userId, $reference, $secret, $issuedAt, $expiresAt): void {
+        DB::transaction(function () use ($user, $userId, $reference, $secret, $issuedAt, $expiresAt): void {
+            $this->lockCurrentUser($user);
+            if (TotpCredential::query()->where('user_id', $userId)->lockForUpdate()->first()) {
+                throw ValidationException::withMessages([
+                    'mfa' => ['TOTP multi-factor authentication is already enabled for this account.'],
+                ]);
+            }
             TotpPendingEnrollment::query()->where('user_id', $userId)->delete();
 
             $pending = new TotpPendingEnrollment;
@@ -122,7 +122,8 @@ final class TotpMfaEnrollmentService
         $userId = (int) $user->getKey();
         $nowEpoch = now()->getTimestamp();
 
-        return DB::transaction(function () use ($user, $userId, $code, $nowEpoch): array {
+        $result = DB::transaction(function () use ($user, $userId, $code, $nowEpoch): array {
+            $lockedUser = $this->lockCurrentUser($user);
             /** @var TotpPendingEnrollment|null $pending */
             $pending = TotpPendingEnrollment::query()
                 ->where('user_id', $userId)
@@ -134,17 +135,13 @@ final class TotpMfaEnrollmentService
                     $pending->delete();
                 }
 
-                throw ValidationException::withMessages([
-                    'code' => ['No active TOTP enrollment found or enrollment has expired.'],
-                ]);
+                return ['_error' => 'No active TOTP enrollment found or enrollment has expired.'];
             }
 
             if ((int) $pending->confirmation_attempts >= self::MAX_CONFIRMATION_ATTEMPTS) {
                 $pending->delete();
 
-                throw ValidationException::withMessages([
-                    'code' => ['Maximum confirmation attempts exceeded. Start a new enrollment.'],
-                ]);
+                return ['_error' => 'Maximum confirmation attempts exceeded. Start a new enrollment.'];
             }
 
             $matchedStep = $this->verifier->matchingTimeStep((string) $pending->secret, $code);
@@ -153,9 +150,9 @@ final class TotpMfaEnrollmentService
                     'confirmation_attempts' => (int) $pending->confirmation_attempts + 1,
                 ])->save();
 
-                throw ValidationException::withMessages([
-                    'code' => ['Invalid TOTP verification code.'],
-                ]);
+                // Returning the failure allows the attempt counter to commit;
+                // throwing here would roll the counter back on every guess.
+                return ['_error' => 'Invalid TOTP verification code.'];
             }
 
             $credential = new TotpCredential;
@@ -171,7 +168,7 @@ final class TotpMfaEnrollmentService
 
             $recoveryCodes = $this->issueRecoveryCodes($credential, $nowEpoch);
 
-            $user->forceFill([
+            $lockedUser->forceFill([
                 'two_factor_enabled' => true,
                 'two_factor_secret' => (string) $credential->secret,
             ])->save();
@@ -182,6 +179,12 @@ final class TotpMfaEnrollmentService
                 'recovery_codes' => $recoveryCodes,
             ];
         });
+
+        if (isset($result['_error'])) {
+            throw ValidationException::withMessages(['code' => [$result['_error']]]);
+        }
+
+        return $result;
     }
 
     /**
@@ -192,7 +195,8 @@ final class TotpMfaEnrollmentService
         $userId = (int) $user->getKey();
         $nowEpoch = now()->getTimestamp();
 
-        return DB::transaction(function () use ($userId, $code, $sessionId, $action, $nowEpoch): array {
+        return DB::transaction(function () use ($user, $userId, $code, $sessionId, $action, $nowEpoch): array {
+            $this->lockCurrentUser($user);
             /** @var TotpCredential|null $credential */
             $credential = TotpCredential::query()
                 ->where('user_id', $userId)
@@ -237,7 +241,8 @@ final class TotpMfaEnrollmentService
         $normalizedCode = strtoupper(trim($recoveryCode));
         $codeHash = hash('sha256', $normalizedCode);
 
-        return DB::transaction(function () use ($userId, $codeHash, $sessionId, $action, $nowEpoch): array {
+        return DB::transaction(function () use ($user, $userId, $codeHash, $sessionId, $action, $nowEpoch): array {
+            $this->lockCurrentUser($user);
             /** @var TotpCredential|null $credential */
             $credential = TotpCredential::query()
                 ->where('user_id', $userId)
@@ -290,6 +295,7 @@ final class TotpMfaEnrollmentService
         $userId = (int) $user->getKey();
 
         DB::transaction(function () use ($user, $userId, $code): void {
+            $lockedUser = $this->lockCurrentUser($user);
             /** @var TotpCredential|null $credential */
             $credential = TotpCredential::query()
                 ->where('user_id', $userId)
@@ -313,14 +319,29 @@ final class TotpMfaEnrollmentService
             TotpRecoveryCode::query()->where('totp_credential_id', $credential->getKey())->delete();
             $credential->delete();
 
-            $user->forceFill([
+            $lockedUser->forceFill([
                 'two_factor_enabled' => false,
                 'two_factor_secret' => null,
             ])->save();
 
             ($this->invalidation ?? app(TotpActionProofInvalidationService::class))
-                ->invalidate($user, TotpActionProofInvalidationService::TOTP_CHANGED);
+                ->invalidate($lockedUser, TotpActionProofInvalidationService::TOTP_CHANGED);
         });
+    }
+
+    /** Lock in user -> credential order and reject an in-flight stale session. */
+    private function lockCurrentUser(User $snapshot): User
+    {
+        $current = User::query()->useWritePdo()->whereKey($snapshot->getKey())->lockForUpdate()->firstOrFail();
+        if ((int) $current->credential_epoch !== (int) $snapshot->credential_epoch
+            || (int) $current->totp_proof_epoch !== (int) $snapshot->totp_proof_epoch
+            || ! hash_equals((string) $current->password, (string) $snapshot->password)) {
+            throw ValidationException::withMessages([
+                'mfa' => ['The account credentials changed. Sign in again before verifying an action.'],
+            ]);
+        }
+
+        return $current;
     }
 
     /**

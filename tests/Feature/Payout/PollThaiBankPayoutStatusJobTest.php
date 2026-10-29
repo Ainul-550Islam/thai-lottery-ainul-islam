@@ -93,6 +93,30 @@ final class PollThaiBankPayoutStatusJobTest extends PaymentTestCase
         ];
     }
 
+    public function test_poll_status_decoy_amount_cannot_settle_a_mismatched_transfer(): void
+    {
+        [$withdrawal, $attempt, $wallet] = $this->fixture(ThaiBankPayoutState::Accepted);
+        $body = '{"other":{"amount":100.00},"data":{"status":"SETTLED",'
+            .'"transactionId":"SCB-POLL-ACCEPTED-001","amount":1.23,"currency":"THB"}}';
+        Http::fake(['*' => Http::response($body, 200, ['Content-Type' => 'application/json'])]);
+
+        (new PollThaiBankPayoutStatusJob((int) $attempt->getKey()))->handle(
+            app(DistributedLockService::class),
+            app(ThaiBankPayoutWebhookService::class),
+            app(AuditLogService::class),
+        );
+
+        self::assertSame(ThaiBankPayoutState::Uncertain, $attempt->fresh()->state);
+        self::assertTrue((bool) $attempt->fresh()->outcome_unknown);
+        self::assertSame(WithdrawalStatus::Approved, $withdrawal->fresh()->status);
+        self::assertSame('100.00', (string) $wallet->fresh()->locked_balance);
+        self::assertSame('500.00', (string) $wallet->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 0);
+        self::assertDatabaseCount('ledger_entries', 0);
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request): bool => $request->method() === 'GET');
+    }
+
     public function test_confirmed_rejection_is_finalized_locally_without_a_status_or_transfer_call(): void
     {
         [$withdrawal, $attempt, $wallet] = $this->fixture(ThaiBankPayoutState::Rejected);

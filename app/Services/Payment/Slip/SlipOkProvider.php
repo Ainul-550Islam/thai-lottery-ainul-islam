@@ -8,6 +8,7 @@ use App\DTOs\Payment\SlipVerificationResult;
 use App\Enums\Currency;
 use App\Exceptions\FinancialException;
 use App\Services\Finance\Money;
+use App\Support\LosslessJson;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\UploadedFile;
@@ -37,7 +38,8 @@ final class SlipOkProvider implements SlipVerificationProviderInterface
                 ->timeout(max(1, (int) config('slip_verification.providers.slipok.timeout', 12)))
                 ->retry(0)
                 ->withOptions(['allow_redirects' => false])
-                ->post($this->url(), ['data' => $payload, 'log' => false]);
+                // SlipOK checks its branch's duplicate history only when log is enabled.
+                ->post($this->url(), ['data' => $payload, 'log' => true]);
         } catch (Throwable $exception) {
             throw FinancialException::withCode('slip_provider_unreachable', 'The slip verification provider could not be reached.', [], $exception);
         }
@@ -71,7 +73,8 @@ final class SlipOkProvider implements SlipVerificationProviderInterface
                 ->retry(0)
                 ->withOptions(['allow_redirects' => false])
                 ->attach('files', $bytes, $filename, ['Content-Type' => $mime])
-                ->post($this->url(), ['log' => 'false']);
+                // Multipart encodes true as 1, matching SlipOK's PHP example.
+                ->post($this->url(), ['log' => true]);
         } catch (Throwable $exception) {
             throw FinancialException::withCode('slip_provider_unreachable', 'The slip verification provider could not be reached.', [], $exception);
         }
@@ -147,9 +150,12 @@ final class SlipOkProvider implements SlipVerificationProviderInterface
         }
 
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+        if (array_key_exists('isDuplicate', $data) && ! is_bool($data['isDuplicate'])) {
+            throw FinancialException::withCode('slip_provider_error', 'SlipOK returned an ambiguous duplicate status.');
+        }
         $code = strtoupper((string) ($payload['code'] ?? $data['code'] ?? ''));
         $duplicate = in_array($code, ['1012', 'DUPLICATE', 'DUPLICATE_SLIP'], true)
-            || (bool) ($data['isDuplicate'] ?? false);
+            || ($data['isDuplicate'] ?? false) === true;
         if ($response->failed() && ! $duplicate) {
             if (in_array($response->status(), [400, 404, 422], true)
                 || in_array($code, ['1005', '1006', '1007', '1008', '1011'], true)) {
@@ -157,16 +163,24 @@ final class SlipOkProvider implements SlipVerificationProviderInterface
             }
             throw FinancialException::withCode('slip_provider_error', 'SlipOK refused the verification request.');
         }
-        $valid = (bool) ($data['success'] ?? $payload['success'] ?? false);
+        // SlipOK documents two mandatory boolean flags: request success and
+        // QR validity. Neither a truthy string/number nor one true flag can
+        // override a false or missing flag on the other level.
+        $outerSuccess = $payload['success'] ?? null;
+        $innerSuccess = $data['success'] ?? null;
+        $valid = $outerSuccess === true && $innerSuccess === true;
         if (! $valid && ! $duplicate) {
             if (in_array($code, ['1009', '1010'], true)) {
                 throw FinancialException::withCode('slip_provider_unreachable', 'SlipOK cannot confirm this transfer at this time.');
             }
-            throw FinancialException::withCode('slip_invalid', 'The slip could not be verified as a valid transfer.');
+            if ($outerSuccess === false || $innerSuccess === false) {
+                throw FinancialException::withCode('slip_invalid', 'The slip could not be verified as a valid transfer.');
+            }
+            throw FinancialException::withCode('slip_provider_error', 'SlipOK returned incomplete or malformed verification status.');
         }
 
         $transRef = (string) ($data['transRef'] ?? $data['trans_ref'] ?? '');
-        $amount = $this->exactAmount($data, $response->body());
+        $amount = $this->exactAmount($response->body());
         try {
             $amount = $amount !== null ? Money::of($amount, Currency::THB)->toString() : null;
         } catch (Throwable) {
@@ -194,6 +208,10 @@ final class SlipOkProvider implements SlipVerificationProviderInterface
 
         if (preg_match('~\A[A-Za-z0-9][A-Za-z0-9._:/-]{0,190}\z~D', $transRef) !== 1
             || $amount === null || $timestamp === '') {
+            if ($duplicate) {
+                // A 1012 duplicate response need not include the original slip facts.
+                throw FinancialException::withCode('slip_duplicate', 'SlipOK reported that this slip was already submitted.');
+            }
             throw FinancialException::withCode('slip_provider_error', 'SlipOK did not return complete, usable transfer facts.');
         }
         try {
@@ -202,7 +220,7 @@ final class SlipOkProvider implements SlipVerificationProviderInterface
             throw FinancialException::withCode('slip_provider_error', 'SlipOK returned an invalid transfer timestamp.', [], $exception);
         }
 
-        $masked = self::maskProviderAccount($receiverAccount);
+        $masked = ProviderAccountMask::lastFourIfExposed($receiverAccount);
 
         return new SlipVerificationResult(
             transRef: $transRef,
@@ -229,25 +247,16 @@ final class SlipOkProvider implements SlipVerificationProviderInterface
         );
     }
 
-    /** @param array<string, mixed> $data */
-    private function exactAmount(array $data, string $body): ?string
+    private function exactAmount(string $body): ?string
     {
-        $amount = $data['amount'] ?? null;
-        if (is_string($amount) || is_int($amount)) {
-            return (string) $amount;
+        try {
+            $payload = LosslessJson::decode($body);
+        } catch (JsonException) {
+            return null;
         }
-        if (preg_match('/"transRef"\s*:\s*"[^"]+".*?"amount"\s*:\s*(-?[0-9]+(?:\.[0-9]+)?)/s', $body, $matches) === 1) {
-            return $matches[1];
-        }
+        $amount = data_get($payload, 'data.amount');
 
-        return null;
+        return is_string($amount) ? $amount : null;
     }
 
-    private static function maskProviderAccount(string $account): string
-    {
-        $digits = preg_replace('/\D+/', '', $account) ?? '';
-        $last = substr($digits, -4);
-
-        return $last === '' ? '' : '••••'.$last;
-    }
 }

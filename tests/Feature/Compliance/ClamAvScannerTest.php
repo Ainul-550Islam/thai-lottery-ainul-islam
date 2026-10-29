@@ -6,8 +6,8 @@ namespace Tests\Feature\Compliance;
 
 use App\Exceptions\AntimalwareException;
 use App\Services\Antimalware\AntimalwareManager;
-use App\Services\Antimalware\ClamAvScanner;
 use App\Services\Antimalware\NullScanner;
+use App\Services\Uploads\Scanners\ClamAvScanner;
 use Tests\TestCase;
 
 /**

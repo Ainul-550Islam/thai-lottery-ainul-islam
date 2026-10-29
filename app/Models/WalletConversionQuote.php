@@ -8,6 +8,7 @@ use App\Enums\ConversionFeeBearer;
 use App\Enums\Currency;
 use App\Enums\WalletConversionDirection;
 use App\Enums\WalletConversionQuoteStatus;
+use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -52,6 +53,56 @@ class WalletConversionQuote extends Model
         'consumed_at',
         'expires_at',
     ];
+
+    /**
+     * Model-instance writes protect the offer the member was shown. Bulk SQL
+     * is deliberately outside this boundary; execution still locks and proves
+     * the current row before it moves money.
+     */
+    protected static function booted(): void
+    {
+        static::creating(static function (self $quote): void {
+            $quote->status ??= WalletConversionQuoteStatus::Open;
+            if ($quote->status !== WalletConversionQuoteStatus::Open
+                || $quote->converted_id !== null || $quote->consumed_at !== null) {
+                throw new DomainException('A new conversion quote must be open and unspent.');
+            }
+        });
+
+        static::updating(static function (self $quote): void {
+            $immutable = [
+                'reference', 'user_id', 'direction', 'currency', 'amount_in',
+                'fee_amount', 'amount_out', 'rate', 'fee_rate', 'fee_bearer',
+                'fee_rule_key', 'fee_rule_version', 'channel', 'request_fingerprint',
+                'limits', 'issued_at', 'expires_at', 'description', 'idempotency_key',
+            ];
+            if ($quote->isDirty($immutable)) {
+                throw new DomainException('A conversion quote cannot change its identity or price.');
+            }
+
+            $old = WalletConversionQuoteStatus::tryFrom((string) $quote->getRawOriginal('status'));
+            $new = $quote->status;
+            if (! $old || ! $new instanceof WalletConversionQuoteStatus) {
+                throw new DomainException('Invalid conversion quote status.');
+            }
+            if ($old !== $new && ! in_array($new, $old->allowedTransitions(), true)) {
+                throw new DomainException('A closed conversion quote cannot be reopened.');
+            }
+            if ($new === WalletConversionQuoteStatus::Consumed) {
+                if ($old !== WalletConversionQuoteStatus::Open || $quote->getRawOriginal('converted_id') !== null
+                    || $quote->getRawOriginal('consumed_at') !== null || $quote->isExpired()
+                    || $quote->expires_at === null || (int) $quote->converted_id < 1 || $quote->consumed_at === null) {
+                    throw new DomainException('Only an unexpired unspent quote may be consumed once.');
+                }
+            } elseif ($quote->converted_id !== null || $quote->consumed_at !== null) {
+                throw new DomainException('An unspent quote cannot carry consumption markers.');
+            }
+        });
+
+        static::deleting(static function (): void {
+            throw new DomainException('Conversion quotes cannot be deleted.');
+        });
+    }
 
     /**
      * @return array<string, string>
@@ -125,6 +176,8 @@ class WalletConversionQuote extends Model
             return false;
         }
 
-        return $this->expires_at->isPast();
+        // The expiry instant itself is no longer executable, matching the
+        // locked execution and repository cutoff.
+        return ! $this->expires_at->isFuture();
     }
 }

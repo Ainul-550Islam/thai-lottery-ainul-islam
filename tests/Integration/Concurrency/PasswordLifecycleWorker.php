@@ -85,6 +85,10 @@ config()->set('database.default', $config['connection']);
 config()->set('session.driver', 'database');
 config()->set('session.connection', null);
 app('session')->forgetDrivers();
+// The session.store singleton may already have been resolved during app
+// bootstrap. The guard and this worker must share the same configured store.
+$app->forgetInstance('session.store');
+Auth::forgetGuards();
 DB::purge($config['connection']);
 
 $role = (string) $config['role'];
@@ -101,7 +105,7 @@ while (microtime(true) < $startAt) {
     usleep(2000);
 }
 
-$session = app('session')->driver();
+$session = app('session.store');
 $session->start();
 
 $result = [
@@ -160,7 +164,8 @@ try {
             $attempt = ['from' => $from, 'to' => $to, 'startedAt' => microtime(true)];
 
             try {
-                $attempt['succeeded'] = app(PasswordChangeService::class)->change($user, $from, $to);
+                $changed = app(PasswordChangeService::class)->change($user, $from, $to);
+                $attempt['succeeded'] = $changed instanceof User;
             } catch (Throwable $exception) {
                 $attempt['succeeded'] = false;
                 $attempt['error'] = $describeThrowable($exception);
@@ -209,6 +214,9 @@ try {
             $session->save();
             $session->migrate(false);
             $session->flush();
+            // Each iteration models a fresh browser; a cached guard user from
+            // a previous successful attempt must not leak into the next one.
+            Auth::forgetGuards();
         }
     }
 } catch (Throwable $exception) {

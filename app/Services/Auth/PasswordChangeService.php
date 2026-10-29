@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Auth;
 
 use App\Models\User;
+use App\Rules\StrongPasswordRule;
 use App\Services\Security\TotpActionProofInvalidationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use SensitiveParameter;
 
@@ -28,8 +30,8 @@ use SensitiveParameter;
  *   5. invalidate every outstanding TOTP action proof, which was minted
  *      under the old credential.
  *
- * Callers validate the new password's strength (StrongPasswordRule) before
- * calling; this service owns the credential mechanics, not the policy text.
+ * The service also enforces the centralized password-strength policy, so a
+ * future caller cannot bypass it by omitting request validation.
  */
 final class PasswordChangeService
 {
@@ -46,7 +48,9 @@ final class PasswordChangeService
         #[SensitiveParameter] string $currentPassword,
         #[SensitiveParameter] string $newPassword,
     ): User {
-        $updated = DB::transaction(function () use ($user, $currentPassword, $newPassword): User {
+        Validator::make(['password' => $newPassword], ['password' => ['required', 'string', new StrongPasswordRule]])->validate();
+
+        return DB::transaction(function () use ($user, $currentPassword, $newPassword): User {
             $locked = User::query()->lockForUpdate()->find((int) $user->getKey());
 
             if (! $locked instanceof User) {
@@ -61,14 +65,14 @@ final class PasswordChangeService
 
             $locked->password = Hash::make($newPassword);
             $locked->remember_token = null;
-            $locked->save();
+            if (! $locked->save()) {
+                throw new \RuntimeException('Password change persistence was refused.');
+            }
 
-            return $locked;
+            $this->revocations->revoke($locked, $locked, SessionGenerationRevocationService::REASON_PASSWORD_CHANGE);
+            $this->proofs->invalidate($locked, TotpActionProofInvalidationService::PASSWORD_CHANGED);
+
+            return $locked->refresh();
         });
-
-        $this->revocations->revoke($updated, $updated, SessionGenerationRevocationService::REASON_PASSWORD_CHANGE);
-        $this->proofs->invalidate($updated, TotpActionProofInvalidationService::PASSWORD_CHANGED);
-
-        return $updated->refresh();
     }
 }

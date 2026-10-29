@@ -81,7 +81,7 @@ final class OperationsReadinessReportTest extends TestCase
     }
 
     #[Test]
-    public function a_switch_on_with_every_credential_present_is_configured(): void
+    public function credentials_cannot_make_an_unverified_bkash_callback_implementation_ready(): void
     {
         config([
             'payment.gateways.bkash.enabled' => true,
@@ -94,9 +94,10 @@ final class OperationsReadinessReportTest extends TestCase
 
         $lane = $this->readiness()->lane('payment.bkash');
 
-        $this->assertSame(ProviderReadinessService::CONFIGURED, $lane['state']);
+        $this->assertSame(ProviderReadinessService::IMPLEMENTATION_INCOMPLETE, $lane['state']);
         $this->assertSame([], $lane['missing']);
-        $this->assertArrayNotHasKey('payment.bkash', $this->readiness()->findings());
+        $this->assertArrayHasKey('payment.bkash', $this->readiness()->findings());
+        $this->assertStringContainsString('callback authentication', $lane['note']);
     }
 
     #[Test]

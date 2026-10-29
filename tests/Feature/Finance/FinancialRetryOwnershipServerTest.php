@@ -10,6 +10,7 @@ use App\Services\Finance\LedgerBalanceValidator;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
+use Tests\Support\InnoDbLockWitness;
 use Tests\Support\RunsServerFinancialRaces;
 
 final class FinancialRetryOwnershipServerTest extends FinancialMasterTestCase
@@ -85,7 +86,7 @@ final class FinancialRetryOwnershipServerTest extends FinancialMasterTestCase
                 $parent = (int) DB::selectOne('SELECT CONNECTION_ID() AS id')->id;
                 $deadline = microtime(true) + 3;
                 do {
-                    $waiting = (int) DB::selectOne('SELECT COUNT(DISTINCT t.trx_mysql_thread_id) AS n FROM information_schema.INNODB_LOCK_WAITS w JOIN information_schema.INNODB_TRX t ON t.trx_id = w.requesting_trx_id JOIN information_schema.INNODB_TRX b ON b.trx_id = w.blocking_trx_id WHERE t.trx_mysql_thread_id IN (?, ?) AND b.trx_mysql_thread_id = ?', [...$ids, $parent])->n;
+                    $waiting = InnoDbLockWitness::waiting(DB::connection(), $ids, $parent);
                     if ($waiting !== 2) {
                         usleep(150000);
                     }

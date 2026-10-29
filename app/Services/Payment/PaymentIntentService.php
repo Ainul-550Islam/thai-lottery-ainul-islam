@@ -46,6 +46,7 @@ final class PaymentIntentService
 
     public function __construct(
         private readonly PaymentProviderRegistry $registry,
+        private readonly PaymentGatewayManager $gateways,
     ) {}
 
     /* ------------------------------------------------------ create --- */
@@ -71,6 +72,14 @@ final class PaymentIntentService
      */
     private function createWithin(PaymentIntentData $data): array
     {
+        // Registry records are not provider credentials or integration proof.
+        // Check the canonical gateway for this exact currency and direction on
+        // every create/replay; historical intents remain retrievable/cancellable.
+        $offer = $this->registry->resolveOffer($this->providerFor($data->methodCode), $data->methodCode, $data->currency);
+        if (! $this->gateways->isRegistryOfferCapable($offer, $data->direction)) {
+            throw PaymentProviderException::unavailable($data->methodCode, 'gateway is not available for this market and direction');
+        }
+
         $existing = PaymentIntent::query()
             ->lockForUpdate()
             ->where('idempotency_key', $data->idempotencyKey)
@@ -91,6 +100,11 @@ final class PaymentIntentService
             return ['intent' => $existing, 'replayed' => true];
         }
 
+        // Exact proven replays above do not open a new financial obligation.
+        // Direct service callers cannot mint a fresh intent while the deployment
+        // launch switch is closed, in either direction.
+        app(\App\Services\Compliance\RealMoneyGate::class)->assertOpen($data->direction->value);
+
         /** @var Wallet|null $wallet */
         $wallet = Wallet::query()->lockForUpdate()->find($data->walletId);
 
@@ -110,9 +124,7 @@ final class PaymentIntentService
             throw PaymentIntentException::currencyMismatch($data->intentKey(), $walletCurrency, $data->currency);
         }
 
-        // The registry speaks truth on offers and bounds.
-        $offer = $this->registry->resolveOffer($this->providerFor($data->methodCode), $data->methodCode, $data->currency);
-
+        // The enabled registry offer supplies bounds after gateway readiness.
         if (! PaymentProviderRegistry::amountWithin($offer, $data->amount)) {
             throw PaymentIntentException::amountMismatch(
                 $data->intentKey(),

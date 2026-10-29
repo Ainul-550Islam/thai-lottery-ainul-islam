@@ -7,10 +7,10 @@ namespace Tests\Feature\Payment;
 use App\Enums\Currency;
 use App\Exceptions\FinancialException;
 use App\Models\Deposit;
+use App\Services\Operations\ProviderReadinessService;
 use App\Services\Payment\Drivers\BkashGateway;
 use App\Services\Payment\Drivers\NagadGateway;
 use App\Services\Payment\PaymentGatewayManager;
-use Illuminate\Http\Client\Request as OutboundRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -53,64 +53,59 @@ final class BdtGatewayCurrencyGuardTest extends Batch01TestCase
         ]);
         $gateways = app(PaymentGatewayManager::class);
 
-        self::assertTrue($gateways->isDepositCapable('bkash'));
-        self::assertTrue($gateways->isDepositCapable('nagad'));
-        self::assertTrue($gateways->isWithdrawalCapable('bkash'));
-        self::assertTrue($gateways->isWithdrawalCapable('nagad'));
-
-        config(['payment.currency.default' => 'THB', 'payment.country' => 'TH']);
+        // Neither a local HMAC nor filled-in keys authenticate the providers'
+        // actual contracts. Both remain closed for now, including in-market.
         self::assertFalse($gateways->isDepositCapable('bkash'));
         self::assertFalse($gateways->isDepositCapable('nagad'));
         self::assertFalse($gateways->isWithdrawalCapable('bkash'));
         self::assertFalse($gateways->isWithdrawalCapable('nagad'));
+        foreach (['bkash', 'nagad'] as $gateway) {
+            $issues = app(ProviderReadinessService::class)->gateway($gateway)->issues;
+            self::assertContains($gateway.'_callback_authentication_unverified', $issues);
+            self::assertNotContains('bdt_market_refused', $issues);
+        }
+
+        // Even an accidentally broadened allowlist must not convert a BDT-only
+        // provider into a THB or non-Bangladesh merchant-market rail.
+        config([
+            'payment.markets.bkash' => ['currencies' => ['BDT', 'THB'], 'countries' => ['BD', 'TH']],
+            'payment.markets.nagad' => ['currencies' => ['BDT', 'THB'], 'countries' => ['BD', 'TH']],
+        ]);
+        foreach ([['THB', 'TH'], ['THB', 'BD'], ['BDT', 'TH']] as [$currency, $country]) {
+            config(['payment.currency.default' => $currency, 'payment.country' => $country]);
+            self::assertFalse($gateways->isDepositCapable('bkash'));
+            self::assertFalse($gateways->isDepositCapable('nagad'));
+            self::assertFalse($gateways->isWithdrawalCapable('bkash'));
+            self::assertFalse($gateways->isWithdrawalCapable('nagad'));
+            // A closed authentication lane alone must not mask a broken market
+            // guard; assert the independent refusal reason as well.
+            foreach (['bkash', 'nagad'] as $gateway) {
+                self::assertContains('bdt_market_refused', app(ProviderReadinessService::class)->gateway($gateway)->issues);
+            }
+        }
     }
 
-    public function test_bkash_success_notification_is_executed_and_queried_before_it_becomes_a_success_payload(): void
+    public function test_raw_success_notification_without_authenticated_boundary_never_calls_provider(): void
     {
         config([
-            'payment.gateways.bkash' => [
-                'enabled' => true, 'app_key' => 'test-app-key', 'app_secret' => 'test-app-secret',
-                'username' => 'test-user', 'password' => 'test-password',
-                'base_url' => 'https://bkash.example.test', 'webhook_secret' => 'test-webhook-secret',
-            ],
+            'payment.gateways.bkash.app_key' => 'test-app-key',
+            'payment.gateways.bkash.app_secret' => 'test-app-secret',
+            'payment.gateways.bkash.username' => 'test-user',
+            'payment.gateways.bkash.password' => 'test-password',
+            'payment.gateways.bkash.base_url' => 'https://bkash.example.test',
         ]);
-        $statusQueries = 0;
-        Http::fake(static function (OutboundRequest $request) use (&$statusQueries) {
-            if (str_ends_with($request->url(), '/tokenized/checkout/token/grant')) {
-                return Http::response(['id_token' => 'test-access-token'], 200);
-            }
-            if (str_ends_with($request->url(), '/tokenized/checkout/payment/status')) {
-                $statusQueries++;
-                if ($statusQueries === 1) {
-                    return Http::response(['transactionStatus' => 'Initiated', 'statusCode' => '0000'], 200);
-                }
-
-                return Http::response([
-                    'transactionStatus' => 'Completed', 'statusCode' => '0000',
-                    'merchantInvoiceNumber' => 'DP-BKASH-VERIFY-01', 'amount' => '250.00',
-                    'currency' => 'BDT', 'trxID' => 'BKASH-TRX-001',
-                ], 200);
-            }
-            if (str_contains($request->url(), '/tokenized/checkout/execute/')) {
-                return Http::response(['transactionStatus' => 'Completed', 'statusCode' => '0000'], 200);
-            }
-
-            return Http::response([], 404);
-        });
-        $callback = json_encode([
+        Http::fake();
+        $body = json_encode([
             'paymentID' => 'BKASH-PAYMENT-001', 'merchantInvoiceNumber' => 'DP-BKASH-VERIFY-01',
             'transactionStatus' => 'SUCCESS', 'amount' => '250.00', 'currency' => 'BDT',
         ], JSON_THROW_ON_ERROR);
-        $request = Request::create('/webhooks/bkash', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], $callback);
-
-        $payload = app(BkashGateway::class)->parseWebhook($request);
-
-        self::assertSame('deposit.success', $payload->eventType->value);
-        self::assertSame('250.00', $payload->amount);
-        self::assertSame(Currency::BDT, $payload->currency);
-        self::assertSame('BKASH-TRX-001', $payload->providerReference);
-        self::assertSame('DP-BKASH-VERIFY-01', $payload->internalReference);
-        self::assertSame(2, $statusQueries);
-        Http::assertSentCount(4);
+        $request = Request::create('/webhooks/bkash', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], $body);
+        try {
+            app(BkashGateway::class)->parseWebhook($request);
+            self::fail('A callback cannot authorize a provider call without an authenticated boundary.');
+        } catch (FinancialException $exception) {
+            self::assertSame('bkash_payment_verification_failed', $exception->errorCode());
+        }
+        Http::assertNothingSent();
     }
 }

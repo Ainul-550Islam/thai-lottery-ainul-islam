@@ -6,6 +6,7 @@ namespace App\Services\Auth;
 
 use App\Enums\AuthLoginIdentifier;
 use App\Models\User;
+use App\Rules\StrongPasswordRule;
 use App\Services\Security\TotpActionProofInvalidationService;
 use Illuminate\Auth\Passwords\DatabaseTokenRepository;
 use Illuminate\Auth\Passwords\PasswordBroker;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use SensitiveParameter;
 
@@ -43,6 +45,7 @@ final class PasswordResetService
     public function __construct(
         private readonly CaptchaService $captcha,
         private readonly TotpActionProofInvalidationService $proofs,
+        private readonly SessionGenerationRevocationService $revocations,
     ) {}
 
     /**
@@ -100,6 +103,10 @@ final class PasswordResetService
             'password_confirmation' => is_string($input['password_confirmation'] ?? null) ? $input['password_confirmation'] : '',
         ];
 
+        Validator::make($credentials, [
+            'password' => ['required', 'string', new StrongPasswordRule, 'confirmed'],
+        ])->validate();
+
         $broker = Password::broker();
         // Atomic reset-token consumption requires the actual resolved repository,
         // not just config that may differ from a cached broker instance.
@@ -122,12 +129,13 @@ final class PasswordResetService
                         throw new \RuntimeException('Password reset account binding is invalid.');
                     }
                     $owner->password = Hash::make($password);
-                    // Drop remember-device credentials even when session deletion is disabled.
                     $owner->remember_token = null;
                     if (! $owner->save()) {
                         throw new \RuntimeException('Password reset persistence was refused.');
                     }
-                    $this->revokeOtherSessions($owner);
+                    // A reset may follow account compromise: revocation is
+                    // mandatory and atomic, not an optional cache side effect.
+                    $this->revocations->revoke($owner, $owner, SessionGenerationRevocationService::REASON_PASSWORD_CHANGE);
                     $this->proofs->invalidate($owner, TotpActionProofInvalidationService::PASSWORD_CHANGED);
                 },
             );
@@ -171,21 +179,4 @@ final class PasswordResetService
         return $user;
     }
 
-    /**
-     * Delete configured default-database session rows and clear remember tokens.
-     * This is not revocation of Sanctum tokens, SecuritySession records or
-     * sessions held in other stores. Reset itself never auto-logs the user in.
-     */
-    private function revokeOtherSessions(User $user): void
-    {
-        if (! (bool) config('auth_security.password_reset.revoke_sessions', true)) {
-            return;
-        }
-
-        DB::table('sessions')->where('user_id', $user->id)->delete();
-
-        if (! $user->forceFill(['remember_token' => null])->save()) {
-            throw new \RuntimeException('Password reset persistence was refused.');
-        }
-    }
 }

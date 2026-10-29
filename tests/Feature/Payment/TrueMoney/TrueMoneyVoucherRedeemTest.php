@@ -24,6 +24,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Feature\Payment\PaymentTestCase;
 
 final class TrueMoneyVoucherRedeemTest extends PaymentTestCase
@@ -74,6 +75,72 @@ final class TrueMoneyVoucherRedeemTest extends PaymentTestCase
         self::assertDatabaseCount('truemoney_voucher_redemptions', 0);
     }
 
+    public function test_closed_launch_switch_never_redeems_a_new_voucher(): void
+    {
+        $player = $this->createPlayer('0.00');
+        $this->allowFraud();
+        Http::fake(['*' => Http::response($this->successfulPayload('50.00'), 200)]);
+        config(['real_money.enabled' => false]);
+        $caught = null;
+        try {
+            $this->service()->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+        } catch (FinancialException $exception) {
+            $caught = $exception;
+        }
+        self::assertSame(['provider_requests' => 0, 'redemptions' => 0, 'balance' => '0.00'], [
+            'provider_requests' => Http::recorded()->count(),
+            'redemptions' => TruemoneyVoucherRedemption::query()->count(),
+            'balance' => (string) $player['wallet']->fresh()->balance,
+        ], 'The closed switch must refuse before consuming the bearer voucher.');
+        self::assertInstanceOf(FinancialException::class, $caught);
+        self::assertSame('real_money_disabled', $caught->errorCode());
+    }
+
+    public function test_switch_closing_during_voucher_preflight_stops_dispatch_and_marks_local_reservation(): void
+    {
+        $player = $this->createPlayer('0.00');
+        $fraud = Mockery::mock(FraudDetectionService::class);
+        $fraud->shouldReceive('evaluateTransactionRisk')->once()->andReturnUsing(static function (): FraudDecisionData {
+            config(['real_money.enabled' => false]);
+
+            return new FraudDecisionData(0, FraudDecision::ALLOW, []);
+        });
+        $this->instance(FraudDetectionService::class, $fraud);
+        Http::fake(['*' => Http::response($this->successfulPayload('50.00'), 200)]);
+        $caught = null;
+        try {
+            $this->service()->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+        } catch (FinancialException $exception) {
+            $caught = $exception;
+        }
+        Http::assertNothingSent();
+        self::assertSame('0.00', (string) $player['wallet']->fresh()->balance);
+        $redemption = TruemoneyVoucherRedemption::query()->sole();
+        self::assertSame(TruemoneyRedemptionStatus::Rejected, $redemption->status);
+        self::assertSame('real_money_disabled', $redemption->failure_code);
+        self::assertSame('not_called', $redemption->provider_status);
+        self::assertInstanceOf(FinancialException::class, $caught);
+        self::assertSame('real_money_disabled', $caught->errorCode());
+    }
+
+    public function test_switch_closing_after_a_proven_provider_redemption_does_not_strand_the_voucher(): void
+    {
+        $player = $this->createPlayer('0.00');
+        $this->allowFraud();
+        Http::fake(['*' => function () {
+            config(['real_money.enabled' => false]);
+
+            return Http::response($this->successfulPayload('50.00'), 200);
+        }]);
+        $result = $this->service()->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+        self::assertSame('50.00', $result['amount']);
+        self::assertSame('50.00', (string) $player['wallet']->fresh()->balance);
+        self::assertSame(TruemoneyRedemptionStatus::Credited, TruemoneyVoucherRedemption::query()->sole()->status);
+        self::assertDatabaseCount('financial_transactions', 1);
+        self::assertDatabaseCount('ledger_entries', 2);
+        Http::assertSentCount(1);
+    }
+
     public function test_success_credits_only_provider_derived_amount_once_and_keeps_ledger_balanced(): void
     {
         Log::spy();
@@ -120,6 +187,118 @@ final class TrueMoneyVoucherRedeemTest extends PaymentTestCase
         )->once();
     }
 
+    public function test_numeric_amount_is_read_from_the_voucher_not_an_unrelated_decoy(): void
+    {
+        $player = $this->createPlayer('0.00');
+        $this->allowFraud();
+        $body = '{"other":{"amount_baht":138.27},"status":{"code":"SUCCESS"},'
+            .'"data":{"voucher":{"amount_baht":50.25,"currency":"THB"}}}';
+        Http::fake(['*' => Http::response($body, 200, ['Content-Type' => 'application/json'])]);
+
+        $result = $this->service()->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+
+        self::assertSame('50.25', $result['amount']);
+        self::assertSame('50.25', (string) $player['wallet']->fresh()->balance);
+        self::assertSame(TruemoneyRedemptionStatus::Credited, TruemoneyVoucherRedemption::query()->sole()->status);
+        self::assertDatabaseCount('financial_transactions', 1);
+        self::assertDatabaseCount('ledger_entries', 2);
+        Http::assertSentCount(1);
+    }
+
+    public function test_multiple_consistent_amount_fields_are_compared_at_satang_precision(): void
+    {
+        $player = $this->createPlayer('0.00');
+        $this->allowFraud();
+        $body = '{"status":{"code":"SUCCESS"},"data":{"amount_baht":"50.20",'
+            .'"currency":"THB","voucher":{"amount_baht":50.2,"redeemed_amount_baht":"50.20","currency":"THB"}}}';
+        Http::fake(['*' => Http::response($body, 200, ['Content-Type' => 'application/json'])]);
+
+        $result = $this->service()->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+        self::assertSame('50.20', $result['amount']);
+        self::assertSame('50.20', (string) $player['wallet']->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 1);
+        self::assertDatabaseCount('ledger_entries', 2);
+        Http::assertSentCount(1);
+    }
+
+    public function test_consistent_success_aliases_and_neutral_error_code_still_credit_once(): void
+    {
+        $player = $this->createPlayer('0.00');
+        $this->allowFraud();
+        $body = '{"success":true,"code":200,"error_code":0,"status":{"code":"SUCCESS","success":true},'
+            .'"data":{"status":"SUCCEEDED","success":true,"voucher":{"amount_baht":"50.25","currency":"THB"}}}';
+        Http::fake(['*' => Http::response($body, 200, ['Content-Type' => 'application/json'])]);
+
+        $result = $this->service()->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+
+        self::assertSame('50.25', $result['amount']);
+        self::assertSame('50.25', (string) $player['wallet']->fresh()->balance);
+        self::assertSame(TruemoneyRedemptionStatus::Credited, TruemoneyVoucherRedemption::query()->sole()->status);
+        self::assertDatabaseCount('financial_transactions', 1);
+        self::assertDatabaseCount('ledger_entries', 2);
+        Http::assertSentCount(1);
+    }
+
+    public static function ambiguousProviderResponses(): array
+    {
+        return [
+            'exponent cannot be truncated' => ['{"status":{"code":"SUCCESS"},"data":{"voucher":{"amount_baht":138.27e-2,"currency":"THB"}}}'],
+            'conflicting voucher amounts' => ['{"status":{"code":"SUCCESS"},"data":{"voucher":{"amount_baht":"138.27","redeemed_amount_baht":"50.25","currency":"THB"}}}'],
+            'malformed preferred amount cannot use fallback' => ['{"status":{"code":"SUCCESS"},"data":{"amount_baht":"138.27","voucher":{"amount_baht":50.251,"currency":"THB"}}}'],
+            'null preferred amount cannot use fallback' => ['{"status":{"code":"SUCCESS"},"data":{"amount_baht":"138.27","voucher":{"amount_baht":null,"currency":"THB"}}}'],
+            'explicit null currency is not assumed THB' => ['{"status":{"code":"SUCCESS"},"data":{"voucher":{"amount_baht":"138.27","currency":null}}}'],
+            'conflicting currencies' => ['{"status":{"code":"SUCCESS"},"data":{"currency":"THB","voucher":{"amount_baht":"138.27","currency":"USD"}}}'],
+            'duplicate escaped status field' => ['{"status":{"code":"FAILED","co\\u0064e":"SUCCESS"},"data":{"voucher":{"amount_baht":"138.27","currency":"THB"}}}'],
+            'success and nested error code conflict' => ['{"status":{"code":"SUCCESS","error_code":"INVALID_VOUCHER"},"data":{"voucher":{"amount_baht":"50.25","currency":"THB"}}}'],
+            'success and top-level error code conflict' => ['{"status":{"code":"SUCCESS"},"error_code":"VOUCHER_EXPIRED","data":{"voucher":{"amount_baht":"50.25","currency":"THB"}}}'],
+            'success and data status conflict' => ['{"status":{"code":"SUCCESS"},"data":{"status":"FAILED","voucher":{"amount_baht":"50.25","currency":"THB"}}}'],
+            'success and top-level code conflict' => ['{"status":{"code":"SUCCESS"},"code":"ALREADY_REDEEMED","data":{"voucher":{"amount_baht":"50.25","currency":"THB"}}}'],
+            'success and explicit false flag conflict' => ['{"success":false,"status":{"code":"SUCCESS"},"data":{"voucher":{"amount_baht":"50.25","currency":"THB"}}}'],
+            'success and non-boolean flag are ambiguous' => ['{"success":"false","status":{"code":"SUCCESS"},"data":{"voucher":{"amount_baht":"50.25","currency":"THB"}}}'],
+            'success and non-final data status conflict' => ['{"status":{"code":"SUCCESS"},"data":{"status":"PENDING","voucher":{"amount_baht":"50.25","currency":"THB"}}}'],
+            'failure and nested success conflict even on HTTP error' => ['{"status":{"code":"INVALID_VOUCHER"},"data":{"status":"SUCCESS","voucher":{"amount_baht":"50.25","currency":"THB"}}}', 400],
+            'failure and true flag conflict even on HTTP error' => ['{"success":true,"status":{"code":"INVALID_VOUCHER"},"data":{"voucher":{"amount_baht":"50.25","currency":"THB"}}}', 400],
+        ];
+    }
+
+    #[DataProvider('ambiguousProviderResponses')]
+    public function test_ambiguous_provider_evidence_cannot_credit_or_be_retried(string $body, int $httpStatus = 200): void
+    {
+        $player = $this->createPlayer('0.00');
+        $this->allowFraud();
+        Http::fake(['*' => Http::response($body, $httpStatus, ['Content-Type' => 'application/json'])]);
+        $service = $this->service();
+        try {
+            $service->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+            self::fail('Ambiguous voucher evidence must not credit.');
+        } catch (FinancialException $exception) {
+            self::assertSame('truemoney_outcome_unknown', $exception->errorCode());
+        }
+        $redemption = TruemoneyVoucherRedemption::query()->sole();
+        self::assertSame(TruemoneyRedemptionStatus::RedeemedUnconfirmed, $redemption->status);
+        self::assertNull($redemption->deposit_id);
+        self::assertSame('0.00', (string) $player['wallet']->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 0);
+        self::assertDatabaseCount('ledger_entries', 0);
+        try {
+            $service->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+            self::fail('An uncertain voucher must remain reserved.');
+        } catch (FinancialException $exception) {
+            self::assertSame('truemoney_voucher_already_processed', $exception->errorCode());
+        }
+        Http::assertSentCount(1);
+
+        // Even the normal reconciliation command must not turn uncertain or
+        // contradictory provider evidence into a later automatic credit.
+        $this->artisan('truemoney:reconcile')->assertExitCode(0);
+        self::assertSame(TruemoneyRedemptionStatus::RedeemedUnconfirmed, $redemption->fresh()->status);
+        self::assertNull($redemption->fresh()->deposit_id);
+        self::assertSame('0.00', (string) $player['wallet']->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 0);
+        self::assertDatabaseCount('ledger_entries', 0);
+        Http::assertSentCount(1);
+    }
+
     public function test_same_voucher_is_refused_without_a_second_provider_call(): void
     {
         $player = $this->createPlayer('0.00');
@@ -138,6 +317,29 @@ final class TrueMoneyVoucherRedeemTest extends PaymentTestCase
         self::assertSame(1, Http::recorded()->count());
         self::assertSame('50.00', $player['wallet']->fresh()->balance);
         self::assertDatabaseCount('financial_transactions', 1);
+    }
+
+    public function test_consistent_failure_flags_remain_a_definite_rejection(): void
+    {
+        $player = $this->createPlayer('0.00');
+        $this->allowFraud();
+        Http::fake(['*' => Http::response([
+            'success' => false,
+            'status' => ['code' => 'INVALID_VOUCHER', 'error_code' => 'INVALID_VOUCHER'],
+            'data' => ['status' => 'REJECTED', 'success' => false],
+        ], 400)]);
+
+        try {
+            $this->service()->redeemVoucher($player['user'], self::VOUCHER, '203.0.113.12');
+            self::fail('A consistently rejected voucher must not credit.');
+        } catch (FinancialException $exception) {
+            self::assertSame('truemoney_voucher_rejected', $exception->errorCode());
+        }
+        self::assertSame(TruemoneyRedemptionStatus::Rejected, TruemoneyVoucherRedemption::query()->sole()->status);
+        self::assertSame('0.00', (string) $player['wallet']->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 0);
+        self::assertDatabaseCount('ledger_entries', 0);
+        Http::assertSentCount(1);
     }
 
     public function test_provider_rejection_does_not_credit_the_wallet(): void

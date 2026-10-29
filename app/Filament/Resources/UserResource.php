@@ -8,6 +8,7 @@ use App\Enums\UserStatus;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\UserAccountActions;
 use App\Models\User;
+use App\Rules\StrongPasswordRule;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms;
@@ -164,11 +165,17 @@ class UserResource extends Resource
                         ->revealable()
                         ->minLength(8)
                         ->maxLength(255)
+                        // Validate on the form state path as well as in the service,
+                        // so a rejected password is shown next to the input.
+                        ->rules([new StrongPasswordRule])
                         // Hashing is User::casts()['password' => 'hashed']. Calling
                         // Hash::make here as well would hash the hash.
                         ->dehydrated(fn (?string $state): bool => filled($state))
                         ->autocomplete('new-password')
-                        ->helperText('Minimum 8 characters. The account holder is not notified — tell them out of band.'),
+                        ->helperText(fn (): string => sprintf(
+                            'At least %d characters with letters and numbers. The account holder is not notified — tell them out of band.',
+                            max(8, (int) config('auth_security.passwords.min_length', 8)),
+                        )),
                 ]),
         ]);
     }

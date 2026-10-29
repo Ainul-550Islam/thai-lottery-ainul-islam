@@ -110,10 +110,10 @@ class GloConsoleCommandsTest extends TestCase
         // written over a draw that already published (or settled) it. The
         // importer now honours that guard instead of writing draw_results
         // directly, so the draw is moved to the state a real import happens in.
-        $this->draw->update([
-            'status' => DrawStatus::Drawing,
-            'result_published_at' => null,
-        ]);
+        // Lifecycle-owned fields are intentionally not mass assignable.
+        $this->draw->status = DrawStatus::Drawing;
+        $this->draw->result_published_at = null;
+        $this->draw->save();
 
         $this->artisan('glo:import-result', [
             '--draw' => 'GLO-2026-09-16',
@@ -147,10 +147,17 @@ class GloConsoleCommandsTest extends TestCase
 
     public function test_import_result_latest_fixture(): void
     {
+        // The matching fixture draw must be awaiting a result; a published draw
+        // is intentionally not a legal target for a fresh ingestion.
+        $this->draw->status = DrawStatus::Drawing;
+        $this->draw->result_published_at = null;
+        $this->draw->save();
         $this->artisan('glo:import-result', [
             '--latest' => true,
             '--json' => true,
         ])->assertExitCode(0);
+        $this->assertDatabaseCount('draw_results', 0);
+        $this->assertSame('pending', $this->draw->fresh()->metadata['result_ingestion']['status'] ?? null);
     }
 
     public function test_reconcile_sales_requires_draw(): void

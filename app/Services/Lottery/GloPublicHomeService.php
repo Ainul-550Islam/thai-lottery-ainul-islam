@@ -35,7 +35,7 @@ class GloPublicHomeService
     }
 
     /**
-     * thailotto.club names the result tiers 3Up / 2Up / 2Down. The card carries
+     * The result tiers also have 3Up / 2Up / 2Down aliases. The card carries
      * both vocabularies: the Thai aliases are derived from the canonical tier,
      * never stored, so they cannot disagree with it.
      *

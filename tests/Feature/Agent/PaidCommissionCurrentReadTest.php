@@ -52,7 +52,11 @@ final class PaidCommissionCurrentReadTest extends FinancialMasterTestCase
             $this->assertSame($operation === 'new_payout' ? 0 : 2, DB::table('agent_commission_payouts')->count());
             DB::setDefaultConnection($peer);
             switch ($operation) {
-                case 'spent': $this->debitFixture($f['agentWallet']->fresh(), '0.50', 'Synthetic paid commission spent by committed peer');
+                // A model created on the reader remains bound to that named
+                // connection even after switching the default. Requery through
+                // the peer so the committed debit is really a peer write and
+                // satisfies the canonical-writer guard.
+                case 'spent': $this->debitFixture(Wallet::query()->findOrFail($f['agentWallet']->id), '0.50', 'Synthetic paid commission spent by committed peer');
                     break;
                 case 'hold': app(FinancialHoldService::class)->place(FinancialHoldData::fromInput($f['agentWallet']->id, '0.50', 'THB', 'Synthetic peer owned hold', 'synthetic-peer-commission-hold'));
                     break;

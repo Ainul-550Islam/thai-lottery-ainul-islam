@@ -40,6 +40,19 @@ final class BulkBetPlacementTest extends ApiPurchaseTestCase
             'currency' => Currency::THB,
         ]);
 
+        // This draw is built raw rather than through Draw::factory()->open(), so it
+        // has to carry its betting window itself — and the window is set by direct
+        // assignment because betting_open_at / betting_close_at are not fillable on
+        // Draw (the same idiom ApiPurchaseTestCase::openDraw() uses).
+        // DrawRiskAdmission fails closed on a missing window: a draw whose
+        // betting_open_at/betting_close_at was never written is a draw nobody can
+        // prove is currently taking bets, and the bulk slip path reserves capacity
+        // through the same engine as every other purchase, so it is refused.
+        $draw->betting_open_at = Carbon::now()->subHour();
+        $draw->betting_close_at = Carbon::now()->addHour();
+        $draw->opened_at = Carbon::now()->subHour();
+        $draw->save();
+
         $walletService->credit($wallet, '500.00', 'deposit', 'phase-test-'.bin2hex(random_bytes(8)), 'Seed');
 
         // Each bet number needs a risk limit row on this draw.
@@ -84,6 +97,19 @@ final class BulkBetPlacementTest extends ApiPurchaseTestCase
             'status' => DrawStatus::OPEN,
             'currency' => Currency::THB,
         ]);
+
+        // This draw is built raw rather than through Draw::factory()->open(), so it
+        // has to carry its betting window itself — and the window is set by direct
+        // assignment because betting_open_at / betting_close_at are not fillable on
+        // Draw (the same idiom ApiPurchaseTestCase::openDraw() uses).
+        // DrawRiskAdmission fails closed on a missing window: a draw whose
+        // betting_open_at/betting_close_at was never written is a draw nobody can
+        // prove is currently taking bets, and the bulk slip path reserves capacity
+        // through the same engine as every other purchase, so it is refused.
+        $draw->betting_open_at = Carbon::now()->subHour();
+        $draw->betting_close_at = Carbon::now()->addHour();
+        $draw->opened_at = Carbon::now()->subHour();
+        $draw->save();
 
         // Each bet number needs a risk limit row on this draw.
         NumberLimit::query()->create([

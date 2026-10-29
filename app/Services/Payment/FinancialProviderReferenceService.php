@@ -8,6 +8,7 @@ use App\Models\Deposit;
 use App\Models\Payment;
 use App\Models\Payout;
 use App\Models\Withdrawal;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /** Conservative single owner across covered inbound/outbound lanes. No guessing of provider-specific direction namespaces. */
@@ -32,11 +33,20 @@ final class FinancialProviderReferenceService
         return DB::transaction(function () use ($row, $provider, $scope, $reference, $payment): int {
             $key = app(OutboundProviderReferenceService::class)->identity($provider, $scope, $reference);
             $provider = app(WithdrawalProviderAccountService::class)->canonical($provider);
-            DB::table(self::TABLE)->upsert([['identity_key' => $key, 'deposit_id' => $row instanceof Deposit ? $row->id : null,
-                'withdrawal_id' => $row instanceof Withdrawal ? $row->id : null, 'payout_id' => $row instanceof Payout ? $row->id : null,
-                'payment_id' => $payment?->id, 'provider' => $provider, 'account_scope' => $scope,
-                'reference_hash' => hash('sha256', $reference), 'facts_hash' => $this->fingerprint($row), 'created_at' => now()]],
-                ['identity_key'], ['identity_key' => DB::raw('identity_key')]);
+            // Primary references and transaction aliases share one namespace.
+            // The common identity lock closes the cross-table insert race.
+            $aliases = app(FinancialProviderReferenceAliasService::class);
+            $aliases->lockIdentity($key);
+            $aliases->assertPrimaryCompatible($key, $row, $payment);
+            try {
+                DB::table(self::TABLE)->upsert([['identity_key' => $key, 'deposit_id' => $row instanceof Deposit ? $row->id : null,
+                    'withdrawal_id' => $row instanceof Withdrawal ? $row->id : null, 'payout_id' => $row instanceof Payout ? $row->id : null,
+                    'payment_id' => $payment?->id, 'provider' => $provider, 'account_scope' => $scope,
+                    'reference_hash' => hash('sha256', $reference), 'facts_hash' => $this->fingerprint($row), 'created_at' => now()]],
+                    ['identity_key'], ['identity_key' => DB::raw('identity_key')]);
+            } catch (UniqueConstraintViolationException) {
+                $this->refuse();
+            }
             $owner = DB::table(self::TABLE)->where('identity_key', $key)->lockForUpdate()->first();
             $this->verify($owner, $row, $provider, $scope, $reference, $payment);
             app(OutboundReferenceHistoryService::class)->assertAvailable($row, $provider, $scope, $reference, $payment);
@@ -52,7 +62,11 @@ final class FinancialProviderReferenceService
     public function assertBound(Deposit|Payout|Withdrawal $row, string $provider, string $scope, string $reference, ?Payment $payment): void
     {
         $key = app(OutboundProviderReferenceService::class)->identity($provider, $scope, $reference);
-        $owner = DB::table(self::TABLE)->where('identity_key', $key)->first();
+        $query = DB::table(self::TABLE)->where('identity_key', $key);
+        if (DB::transactionLevel() > 0) {
+            $query->lockForUpdate(); // replay requires the current durable identity
+        }
+        $owner = $query->first();
         $this->verify($owner, $row, app(WithdrawalProviderAccountService::class)->canonical($provider), $scope, $reference, $payment);
         if (($owner->payment_id === null) !== ($payment === null)) {
             $this->refuse();

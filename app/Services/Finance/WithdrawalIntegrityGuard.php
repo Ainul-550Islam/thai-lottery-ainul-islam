@@ -15,6 +15,7 @@ use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Services\Payment\WithdrawalProviderAccountService;
 use App\Services\Payment\WithdrawalProviderReferenceService;
+use Illuminate\Support\Facades\DB;
 
 /** Original local obligation and accounting proof; never provider authentication. */
 final class WithdrawalIntegrityGuard
@@ -50,7 +51,11 @@ final class WithdrawalIntegrityGuard
     /** A Payment label is not proof, but a contradictory original Payment blocks finality. */
     public function assertPayment(Withdrawal $row): void
     {
-        $payments = Payment::withTrashed()->where('payable_type', Withdrawal::class)->where('payable_id', $row->id)->limit(2)->get();
+        $paymentsQuery = Payment::withTrashed()->where('payable_type', Withdrawal::class)->where('payable_id', $row->id)->limit(2);
+        if (DB::transactionLevel() > 0) {
+            $paymentsQuery->lockForUpdate();
+        }
+        $payments = $paymentsQuery->get();
         $accounts = app(WithdrawalProviderAccountService::class);
         $provider = $accounts->canonical($row->method->value);
         if ($row->provider !== null && $accounts->canonical($row->provider) !== $provider) {
@@ -80,8 +85,12 @@ final class WithdrawalIntegrityGuard
             || bccomp((string) $tx->amount, (string) $row->amount, 2) !== 0 || bccomp((string) $tx->fee, (string) $row->fee, 2) !== 0) {
             $this->refuse();
         }
-        app(LedgerBalanceValidator::class)->assertTransactionBalanced($tx);
-        $entries = $tx->ledgerEntries()->withTrashed()->with('ledgerAccount')->get();
+        app(LedgerBalanceValidator::class)->assertTransactionBalanced($tx, currentRead: DB::transactionLevel() > 0);
+        $entriesQuery = $tx->ledgerEntries()->withTrashed()->with('ledgerAccount');
+        if (DB::transactionLevel() > 0) {
+            $entriesQuery->lockForUpdate();
+        }
+        $entries = $entriesQuery->get();
         $debits = $entries->filter(fn ($e) => $e->type === LedgerEntryType::Debit);
         $credits = $entries->filter(fn ($e) => $e->type === LedgerEntryType::Credit);
         if ($entries->count() !== 2 || $debits->count() !== 1 || $credits->count() !== 1

@@ -11,41 +11,51 @@ class VerifyLedgerIntegrityCommand extends Command
 {
     protected $signature = 'ledger:audit-integrity';
 
-    protected $description = 'Runs a full mathematical and cryptographic audit across the double-entry general ledger.';
+    protected $description = 'Run scoped internal ledger arithmetic, wallet and hash-chain checks.';
 
     public function handle(LedgerReconciliationService $reconciliationService): int
     {
-        $this->info('Starting System Financial Reconciliation & Hash Chain Verification...');
-
+        $this->info('Starting scoped internal ledger and hash-chain checks...');
         $report = $reconciliationService->auditSystemIntegrity();
-
         $this->table(['Metric', 'Value'], [
-            ['Audit Status', $report['status']],
-            ['Total Debits', $report['total_debits'].' THB'],
-            ['Total Credits', $report['total_credits'].' THB'],
-            ['Ledger Delta', $report['ledger_balance_delta'].' THB'],
-            ['Reconciled User Accounts', (string) $report['reconciled_accounts_count']],
-            ['Wallet Discrepancies Count', (string) count($report['wallet_discrepancies'])],
-            ['Tampered Transactions Count', (string) count($report['tampered_transactions'])],
+            ['Internal check status', $report['status']],
+            ['Reconciled user accounts', (string) $report['reconciled_accounts_count']],
+            ['User accounts without a wallet', (string) count($report['unmatched_user_accounts'])],
+            ['Wallet discrepancies', (string) count($report['wallet_discrepancies'])],
+            ['Currency or entry identity issues', (string) count($report['currency_identity_issues'])],
+            ['Unbalanced transaction/currency pairs', (string) count($report['transaction_balance_issues'])],
+            ['Hash-chain issues', (string) count($report['tampered_transactions'])],
         ]);
+        $currencyRows = [];
+        foreach ($report['by_currency'] as $currency => $totals) {
+            $currencyRows[] = [$currency, $totals['debits'], $totals['credits'], $totals['delta']];
+        }
+        if ($currencyRows !== []) {
+            $this->table(['Currency', 'Debits', 'Credits', 'Delta'], $currencyRows);
+        }
 
         if ($report['status'] !== 'HEALTHY') {
-            $this->error('🚨 CRITICAL FINANCIAL INTEGRITY FAILURE DETECTED!');
-
-            if (! empty($report['wallet_discrepancies'])) {
-                $this->warn('Wallet Discrepancies Found:');
-                $this->table(['User ID', 'Wallet Balance', 'Ledger Derived', 'Difference'], $report['wallet_discrepancies']);
+            $this->error('Internal financial integrity discrepancy detected.');
+            if ($report['wallet_discrepancies'] !== []) {
+                $this->table(['User ID', 'Currency', 'Wallet balance', 'Ledger derived', 'Difference'], $report['wallet_discrepancies']);
             }
-
-            if (! empty($report['tampered_transactions'])) {
-                $this->error('Tampered Ledger Transactions Detected:');
-                $this->table(['TX ID', 'TX Number', 'Issue', 'Expected', 'Actual'], $report['tampered_transactions']);
+            if ($report['unmatched_user_accounts'] !== []) {
+                $this->table(['Account ID', 'User ID', 'Currency'], $report['unmatched_user_accounts']);
+            }
+            if ($report['currency_identity_issues'] !== []) {
+                $this->table(['Entry ID', 'Issue'], $report['currency_identity_issues']);
+            }
+            if ($report['transaction_balance_issues'] !== []) {
+                $this->table(['Financial transaction ID', 'Currency', 'Delta'], $report['transaction_balance_issues']);
+            }
+            if ($report['tampered_transactions'] !== []) {
+                $this->warn('Hash-chain issues: '.count($report['tampered_transactions']));
             }
 
             return self::FAILURE;
         }
 
-        $this->info('✅ All financial accounts balanced perfectly. Cryptographic chain verified intact.');
+        $this->info('Scoped internal checks passed; external bank evidence and overall obligation completeness were not verified.');
 
         return self::SUCCESS;
     }

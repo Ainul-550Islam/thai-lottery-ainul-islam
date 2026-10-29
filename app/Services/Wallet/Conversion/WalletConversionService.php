@@ -90,6 +90,11 @@ final class WalletConversionService implements WalletConversionServiceContract
     private function convertInTransaction(ConversionRequestData $request, string $key): ConversionResultData
     {
         return DB::transaction(function () use ($request, $key): ConversionResultData {
+            // The owner is the shared mutex for quote issuance, new movements,
+            // exact replay and other owner-serialized money admissions. Taking it
+            // before the idempotency lookup avoids stale or competing history.
+            DB::table('users')->where('id', $request->userId)->lockForUpdate()->first();
+
             $prior = WalletConversion::query()->where('user_id', $request->userId)
                 ->where('channel', $request->channel->value)->where('idempotency_key', $key)
                 ->lockForUpdate()->first();
@@ -330,7 +335,9 @@ final class WalletConversionService implements WalletConversionServiceContract
                 JSON_THROW_ON_ERROR,
             ));
 
-            $child = WalletConversion::query()->where('reversal_of_id', $original->getKey())->orderBy('id')->first();
+            // A pre-existing repeatable-read snapshot may predate a committed
+            // reversal. Read the child as current while the original is locked.
+            $child = WalletConversion::query()->where('reversal_of_id', $original->getKey())->orderBy('id')->lockForUpdate()->first();
 
             if ($child) {
                 // A reversal already exists, so this call is a replay of it. Replaying is
@@ -374,7 +381,7 @@ final class WalletConversionService implements WalletConversionServiceContract
             // the completion stamp itself is missing or wrong, the truthful refusal is
             // that the original cannot be verified, not that time ran out.
             $window = max(1, (int) $this->config->get('conversions.reversal.window_hours', 24));
-            if ($original->completed_at === null || $original->completed_at->lt(now()->subHours($window))) {
+            if (! $original->isInsideReversalWindow($window)) {
                 throw ConversionException::failure('conversion_reversal_window_expired', 'The conversion is outside the reversal window.');
             }
 

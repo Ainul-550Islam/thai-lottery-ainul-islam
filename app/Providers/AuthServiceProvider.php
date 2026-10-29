@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Auth\PasswordLifecycleSessionGuard;
 use App\Models\AccountGradeSnapshot;
 use App\Models\AccountVerification;
 use App\Models\Agent;
 use App\Models\Bet;
 use App\Models\Draw;
+use App\Models\FraudAlert;
 use App\Models\GloL6TicketReservation;
 use App\Models\GloPrizeClaim;
 use App\Models\GloTicket;
@@ -29,6 +31,7 @@ use App\Policies\PaymentPolicy;
 use App\Policies\TicketPolicy;
 use App\Policies\WalletPolicy;
 use App\Support\Admin\AdminAccess;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -62,12 +65,55 @@ class AuthServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // First-party browser API calls use Sanctum's cookie/CSRF pipeline.
+        // Its authenticate_session is the same epoch-bound middleware as web.
+        // Bearer clients without a first-party Origin/Referer stay stateless.
+        $this->app->make(\Illuminate\Contracts\Http\Kernel::class)
+            ->prependMiddlewareToGroup('api', \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class);
+
+        // Preserve the framework session driver's wiring while replacing its
+        // stale-password rehash/login race with the existing lifecycle guard.
+        Auth::extend('password-lifecycle', function ($app, string $name, array $config): PasswordLifecycleSessionGuard {
+            $guard = new PasswordLifecycleSessionGuard(
+                $name,
+                $app['auth']->createUserProvider($config['provider'] ?? null),
+                $app['session.store'],
+                rehashOnLogin: (bool) $app['config']->get('hashing.rehash_on_login', true),
+                timeboxDuration: (int) $app['config']->get('auth.timebox_duration', 200000),
+                hashKey: $app['config']->get('app.key'),
+            );
+            $guard->setCookieJar($app['cookie']);
+            $guard->setDispatcher($app['events']);
+            $guard->setRequest($app->refresh('request', $guard, 'setRequest'));
+            if (isset($config['remember'])) {
+                $guard->setRememberDuration($config['remember']);
+            }
+
+            return $guard;
+        });
+
         foreach ($this->policies as $model => $policy) {
             Gate::policy($model, $policy);
         }
 
-        Gate::before(function ($user, $ability) {
-            return $user->hasRole('super-admin') ? true : null;
+        Gate::before(function ($user, $ability, array $arguments) {
+            if (! $user->hasRole('super-admin')) {
+                return null;
+            }
+
+            if (! $user->isActive()) {
+                return false;
+            }
+
+            // A privileged role is not a waiver of object-level separation of
+            // duties or a licence to consume another member's reservation.
+            $subject = $arguments[0] ?? null;
+            if (($ability === 'review' && $subject instanceof FraudAlert)
+                || ($ability === 'confirm' && $subject instanceof GloL6TicketReservation)) {
+                return null;
+            }
+
+            return true;
         });
 
         // /metrics operator gate: staff-or-higher only (super-admin short-circuits above).

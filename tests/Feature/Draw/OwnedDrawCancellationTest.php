@@ -128,6 +128,60 @@ final class OwnedDrawCancellationTest extends FinancialMasterTestCase
         $this->assertSame($before, $this->state());
     }
 
+    public function test_json_object_key_order_does_not_change_a_seal_but_changed_terms_are_refused(): void
+    {
+        $f = $this->purchaseFixture();
+        $actor = $this->operator();
+        $result = $this->cancel($actor, $f['draw']);
+        $header = DB::table('draw_cancellation_ownerships')->where('id', $result['ownership_id']);
+        $saved = $header->first();
+        $participants = json_decode($saved->participants, true, 512, JSON_THROW_ON_ERROR);
+        $outcomes = json_decode($saved->outcomes, true, 512, JSON_THROW_ON_ERROR);
+        $participants = array_map(fn (array $item): array => array_reverse($item, true), $participants);
+        $outcomes = array_map(fn (array $item): array => array_reverse($item, true), $outcomes);
+        $header->update([
+            'participants' => json_encode($participants, JSON_THROW_ON_ERROR),
+            'outcomes' => json_encode($outcomes, JSON_THROW_ON_ERROR),
+        ]);
+
+        $before = $this->state();
+        $this->assertTrue($this->cancel($actor, $f['draw'])['replayed']);
+        $this->assertSame($before, $this->state());
+
+        $participants[0]['wallet_id']++;
+        $header->update(['participants' => json_encode($participants, JSON_THROW_ON_ERROR)]);
+        $this->refusesWithoutWrites(fn () => $this->cancel($actor, $f['draw']), 'draw_cancellation_terms_unproven');
+    }
+
+    public function test_exactly_valid_legacy_v1_seals_replay_without_being_rewritten(): void
+    {
+        $f = $this->purchaseFixture();
+        $actor = $this->operator();
+        $result = $this->cancel($actor, $f['draw']);
+        $header = DB::table('draw_cancellation_ownerships')->where('id', $result['ownership_id']);
+        $saved = $header->first();
+        $participants = json_decode($saved->participants, true, 512, JSON_THROW_ON_ERROR);
+        $outcomes = json_decode($saved->outcomes, true, 512, JSON_THROW_ON_ERROR);
+        // Reconstruct the old pre-v2 receipt format exactly, including its
+        // original explicitly ordered outcome fields, not an unverified bypass.
+        $draw = $f['draw']->fresh();
+        $terms = hash('sha256', json_encode(['owned-draw-cancellation-v1', (int) $draw->id,
+            $draw->uuid, $draw->draw_number, $draw->currency->value,
+            (int) $saved->actor_user_id, $saved->previous_status, $saved->reason, $participants], JSON_THROW_ON_ERROR));
+        $outcomes = array_map(fn (array $item): array => [
+            'bet_id' => $item['bet_id'], 'ownership_id' => $item['ownership_id'],
+            'refund_transaction_id' => $item['refund_transaction_id'], 'refund_hash' => $item['refund_hash'],
+        ], $outcomes);
+        $seal = hash('sha256', json_encode([$terms, $outcomes, $saved->completed_at], JSON_THROW_ON_ERROR));
+        $header->update(['terms_hash' => $terms, 'outcome_hash' => $seal]);
+
+        $before = $this->state();
+        $this->assertTrue($this->cancel($actor, $f['draw'])['replayed']);
+        $this->assertSame($before, $this->state());
+        $header->update(['reason' => 'Different legacy reason']);
+        $this->refusesWithoutWrites(fn () => $this->cancel($actor, $f['draw']), 'draw_cancellation_terms_unproven');
+    }
+
     public function test_closed_draw_and_disabled_player_cancellation_do_not_block_authorized_operator_refunds(): void
     {
         $f = $this->purchaseFixture();

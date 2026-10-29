@@ -109,6 +109,38 @@ final class SettlementConfirmationBoundaryTest extends SettlementTestCase
         $this->assertFinanceUnchanged($before, 'unregistered provenance cannot be published');
     }
 
+    public function test_fixture_provenance_is_refused_if_config_marks_the_app_as_production(): void
+    {
+        $f = $this->pendingCard('glo_import:fixture');
+        $before = $this->financeSnapshot();
+        config(['app.env' => 'production']);
+
+        $this->refusal(fn () => app(DrawResultConfirmationService::class)->confirm(
+            (int) $f['draw']->id, (int) $f['checker']->id, $f['card'],
+        ), DrawResultException::CODE_PROVENANCE_FORBIDDEN);
+        $this->assertStillPending($f);
+        $this->assertFinanceUnchanged($before, 'fixture provenance cannot publish in production');
+    }
+
+    public function test_disabling_the_manual_confirmation_policy_cannot_enable_publication(): void
+    {
+        $f = $this->pendingCard();
+        $before = $this->financeSnapshot();
+        config(['lottery.results.require_admin_confirmation' => false]);
+
+        $this->refusal(fn () => app(DrawResultConfirmationService::class)->confirm(
+            (int) $f['draw']->id, (int) $f['checker']->id, $f['card'],
+        ), DrawResultException::CODE_CONFIRMATION_POLICY_DISABLED);
+        $this->assertStillPending($f);
+        $this->assertFinanceUnchanged($before, 'disabled confirmation policy must never permit publication');
+
+        config(['lottery.results.require_admin_confirmation' => true]);
+        $confirmed = app(DrawResultConfirmationService::class)->confirm(
+            (int) $f['draw']->id, (int) $f['checker']->id, $f['card'],
+        );
+        $this->assertTrue($confirmed['published']);
+    }
+
     public function test_confirmation_audit_failure_rolls_back_publication_and_confirmation_stamp(): void
     {
         $f = $this->pendingCard();

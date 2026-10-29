@@ -359,7 +359,12 @@ class GloResultFallbackTest extends TestCase
     #[Test]
     public function when_every_source_fails_the_answer_contains_no_numbers(): void
     {
-        config(['glo.sources.priority' => ['official', 'fixture']]);
+        // This case asserts both failures, so explicitly allow the test-only
+        // fixture fallthrough; separate tests prove it is off by default.
+        config([
+            'glo.sources.priority' => ['official', 'fixture'],
+            'glo.sources.fall_through_to_fixture' => true,
+        ]);
 
         $this->mock(GloOfficialResultProvider::class, function ($mock): void {
             $mock->shouldReceive('name')->andReturn('official');

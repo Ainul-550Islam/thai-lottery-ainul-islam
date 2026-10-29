@@ -62,6 +62,24 @@ final class TrueMoneyReconcileCommandTest extends PaymentTestCase
         self::assertDatabaseCount('ledger_entries', 2);
     }
 
+    public function test_closed_launch_switch_does_not_strand_a_previously_consumed_proven_voucher(): void
+    {
+        $player = $this->createPlayer('0.00', Currency::THB);
+        $redemption = $this->eligibleRedemption($player['user']->getKey(), hash('sha256', 'prior-consumed-voucher'), '42.37');
+        Http::fake();
+        config(['real_money.enabled' => false]);
+        $this->artisan('truemoney:reconcile')->assertExitCode(0);
+        self::assertSame(TruemoneyRedemptionStatus::Credited, $redemption->fresh()->status);
+        self::assertNotNull($redemption->fresh()->deposit_id);
+        self::assertSame('42.37', (string) $player['wallet']->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 1);
+        self::assertDatabaseCount('ledger_entries', 2);
+        Http::assertNothingSent();
+        $this->artisan('truemoney:reconcile')->assertExitCode(0);
+        self::assertSame('42.37', (string) $player['wallet']->fresh()->balance);
+        self::assertDatabaseCount('financial_transactions', 1);
+    }
+
     public function test_rows_without_proving_evidence_and_rows_over_the_daily_attempt_limit_remain_uncredited(): void
     {
         $player = $this->createPlayer('0.00', Currency::THB);

@@ -202,21 +202,39 @@ final class Batch7ApiSurfaceTest extends TestCase
 
     public function test_withdrawal_create_uses_request_validation_and_kyc_lane(): void
     {
-        // Client-asserted balance/KYC facts are refused loudly.
-        $this->apiAs($this->token, 'POST', '/api/v1/withdrawals', [
-                'amount' => '500.00', 'method' => 'bank_transfer', 'balance' => '999999.00',
-            ])
-            ->assertStatus(422);
+        config([
+            'payment.country' => 'TH', 'payment.currency.default' => 'THB',
+            'payment.withdrawal.enabled' => true,
+            'payment.withdrawal.allowed_methods' => ['bank_transfer'],
+            'payment.gateways.bank_transfer.enabled' => true,
+        ]);
+        $destination = [
+            'account_number' => '1234567890', 'account_name' => 'Somchai Jaidee', 'bank_name' => 'Bangkok Bank',
+        ];
+
+        // Supply otherwise valid terms so the rejected balance is the actual
+        // validation reason, rather than an unrelated missing destination.
+        $invalid = $this->apiAs($this->token, 'POST', '/api/v1/withdrawals', [
+                'amount' => '500.00', 'method' => 'bank_transfer', 'currency' => 'THB',
+                'payout_details' => $destination, 'balance' => '999999.00',
+            ]);
+        $invalid->assertStatus(422)
+            ->assertJsonPath('error.code', 'validation_failed')
+            ->assertJsonPath('error.details.fields.balance.0', 'The client may not assert its own balance; it is derived server-side.');
+        $this->assertDatabaseCount('withdrawals', 0);
+        $this->assertSame('0.00', (string) $this->wallet->fresh()->locked_balance);
 
         $created = $this->apiAs($this->token, 'POST', '/api/v1/withdrawals', [
                 'amount' => '500.00',
                 'method' => 'bank_transfer',
                 'currency' => 'THB',
+                'payout_details' => $destination,
             ]);
 
         $created->assertStatus(201)
             ->assertJsonPath('data.withdrawal.status', 'pending');
-        $this->assertEquals('500.00', (string) $this->wallet->fresh()->locked_balance);
+        $this->assertDatabaseCount('withdrawals', 1);
+        $this->assertSame('500.00', (string) $this->wallet->fresh()->locked_balance);
     }
 
     public function test_withdrawal_cancel_pending_releases_and_completed_refuses(): void
@@ -303,7 +321,9 @@ final class Batch7ApiSurfaceTest extends TestCase
         $published->assertStatus(200)
             ->assertJsonPath('data.published.first_prize', '123456');
 
-        $this->assertInstanceOf(DrawResult::class, DrawResult::query()->where('draw_id', $draw->id)->first());
+        $result = DrawResult::query()->where('draw_id', $draw->id)->first();
+        $this->assertInstanceOf(DrawResult::class, $result);
+        $this->assertSame('Verified against the physical announcement sheet.', $result->metadata['four_eyes']['notes']);
 
         // Public shape on show.
         $shown = $this->apiAs($this->token, 'GET', '/api/v1/draws/'.$draw->id.'/result');

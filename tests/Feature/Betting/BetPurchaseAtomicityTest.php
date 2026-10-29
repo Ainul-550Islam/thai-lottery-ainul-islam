@@ -84,6 +84,85 @@ final class BetPurchaseAtomicityTest extends TestCase
     // -----------------------------------------------------------------------------
 
     #[Test]
+    public function closed_real_money_switch_must_not_create_a_new_bet_or_debit(): void
+    {
+        $fixture = $this->fixture();
+        $this->ensureLimit($fixture['draw'], '3d_direct', '123');
+        config(['real_money.enabled' => false]);
+        $caught = null;
+        try {
+            $this->purchase($fixture, '3d_direct', '123', '10.00');
+        } catch (\App\Exceptions\FinancialException $exception) {
+            $caught = $exception;
+        }
+        self::assertSame('1000.00', (string) $fixture['wallet']->fresh()->balance, 'The closed launch switch must not debit the wallet.');
+        self::assertSame(0, Bet::query()->count());
+        self::assertSame(0, FinancialTransaction::query()->count());
+        self::assertInstanceOf(\App\Exceptions\FinancialException::class, $caught);
+        self::assertSame('real_money_disabled', $caught->errorCode());
+    }
+
+    #[Test]
+    public function closed_launch_switch_refuses_a_legacy_glo_ticket_debit(): void
+    {
+        $fixture = $this->fixture();
+        config(['real_money.enabled' => false]);
+        $caught = null;
+        try {
+            app(\App\Services\Lottery\GloL6AuthoritativeTicketEngineService::class)->purchaseL6Ticket(
+                $fixture['user'], $fixture['draw'], ['ticket_number' => '123456', 'set_series' => 1], 'closed-glo-switch',
+            );
+        } catch (\App\Exceptions\FinancialException $exception) {
+            $caught = $exception;
+        }
+        self::assertSame('1000.00', (string) $fixture['wallet']->fresh()->balance);
+        self::assertSame(0, \App\Models\GloTicket::query()->count());
+        self::assertSame(0, FinancialTransaction::query()->count());
+        self::assertInstanceOf(\App\Exceptions\FinancialException::class, $caught);
+        self::assertSame('real_money_disabled', $caught->errorCode());
+    }
+
+    #[Test]
+    public function closed_launch_switch_still_permits_an_exact_proven_bet_replay(): void
+    {
+        $fixture = $this->fixture();
+        $key = 'closed-switch-proven-bet-replay';
+        $first = $this->purchase($fixture, '3d_direct', '123', '10.00', $key);
+        config(['real_money.enabled' => false]);
+        $replay = $this->purchase($fixture, '3d_direct', '123', '10.00', $key);
+        self::assertSame(BetPurchaseStatus::Replayed, $replay->status);
+        self::assertSame($first->betId(), $replay->betId());
+        self::assertSame('990.00', (string) $fixture['wallet']->fresh()->balance);
+        self::assertSame(1, Bet::query()->count());
+        self::assertSame(1, FinancialTransaction::query()->count());
+    }
+
+    #[Test]
+    public function closed_launch_switch_is_enforced_even_for_a_prevalidated_transaction_context(): void
+    {
+        $fixture = $this->fixture();
+        $this->ensureLimit($fixture['draw'], '3d_direct', '123');
+        $data = new BetPurchaseData(
+            userId: (int) $fixture['user']->getKey(), drawId: (int) $fixture['draw']->getKey(),
+            marketKey: '3d_direct', rawNumber: '123', rawStake: '10.00',
+            idempotencyKey: 'closed-switch-direct-context',
+        );
+        $context = app(\App\Services\Betting\BetPurchaseValidator::class)->validate($data);
+        config(['real_money.enabled' => false]);
+        $caught = null;
+        try {
+            app(\App\Services\Betting\BetPurchaseTransactionService::class)->execute($context);
+        } catch (\App\Exceptions\FinancialException $exception) {
+            $caught = $exception;
+        }
+        self::assertSame('1000.00', (string) $fixture['wallet']->fresh()->balance);
+        self::assertSame(0, Bet::query()->count());
+        self::assertSame(0, FinancialTransaction::query()->count());
+        self::assertInstanceOf(\App\Exceptions\FinancialException::class, $caught);
+        self::assertSame('real_money_disabled', $caught->errorCode());
+    }
+
+    #[Test]
     public function a_purchases_a_valid_three_digit_direct_bet(): void
     {
         $result = $this->buy('3d_direct', '123', '10.00');
@@ -1165,6 +1244,15 @@ final class BetPurchaseAtomicityTest extends TestCase
             }
 
             $this->assertNotNull($caught, sprintf('A failure inserting into %s must abort the purchase.', $table));
+            // A refusal before the configured database trigger is not evidence of
+            // transaction rollback. Preserve wrapped exceptions and demand the
+            // actual injected database error before checking the durable state.
+            $causes = '';
+            for ($cause = $caught; $cause !== null; $cause = $cause->getPrevious()) {
+                $causes .= $cause->getMessage()."\n";
+            }
+            $this->assertStringContainsString('phase 4.3 injected failure', $causes,
+                sprintf('The %s database trigger must be the cause, not an earlier refusal.', $table));
             $this->assertNothingWasPersisted();
             $this->assertSame(
                 '100.00',
@@ -1307,6 +1395,14 @@ PROBE;
         $barrier = storage_path('framework/testing/phase43-barrier-'.bin2hex(random_bytes(6)));
         @unlink($barrier);
 
+        // Match the parent test's real launch-switch setting in each genuine
+        // child process. phpunit.mysql.xml defaults the environment to closed,
+        // while TestCase deliberately opens it for ordinary purchase tests.
+        // Without this explicit propagation the workers exercise refusal, not
+        // the race the test claims to measure.
+        $environment = getenv();
+        $environment['REAL_MONEY_ENABLED'] = config('real_money.enabled') === true ? 'true' : 'false';
+
         foreach ($commands as $index => $command) {
             $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
             $process = proc_open(
@@ -1314,6 +1410,7 @@ PROBE;
                 $descriptors,
                 $processPipes,
                 base_path(),
+                $environment,
             );
 
             if (! is_resource($process)) {

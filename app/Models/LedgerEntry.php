@@ -107,6 +107,12 @@ class LedgerEntry extends Model
         return $this->belongsTo(FinancialTransaction::class);
     }
 
+    /** The optional legacy hash-chain journal header, distinct from financialTransaction. */
+    public function transaction(): BelongsTo
+    {
+        return $this->belongsTo(LedgerTransaction::class, 'ledger_transaction_id');
+    }
+
     /**
      * @return BelongsTo<Wallet, self>
      */

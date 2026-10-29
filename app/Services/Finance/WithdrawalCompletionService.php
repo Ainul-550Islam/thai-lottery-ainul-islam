@@ -241,7 +241,14 @@ final class WithdrawalCompletionService
     public function existingTransactionFor(Withdrawal $withdrawal): ?FinancialTransaction
     {
         if ($withdrawal->financial_transaction_id !== null) {
-            return FinancialTransaction::query()->whereKey($withdrawal->financial_transaction_id)->first();
+            $query = FinancialTransaction::query()->whereKey($withdrawal->financial_transaction_id);
+            // An earlier candidate read may have opened an old repeatable-read
+            // snapshot before the wallet wait; completed replay needs current proof.
+            if (DB::transactionLevel() > 0) {
+                $query->lockForUpdate();
+            }
+
+            return $query->first();
         }
 
         return $this->idempotency->existingFor($this->idempotencyKeyFor($withdrawal));

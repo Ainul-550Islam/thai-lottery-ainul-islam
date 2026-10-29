@@ -101,8 +101,12 @@ final class DepositIntegrityGuard
             || bccomp((string) $tx->amount, (string) $row->net_amount, 2) !== 0) {
             $this->refuse();
         }
-        app(LedgerBalanceValidator::class)->assertTransactionBalanced($tx);
-        $entries = $tx->ledgerEntries()->withTrashed()->with('ledgerAccount')->get();
+        app(LedgerBalanceValidator::class)->assertTransactionBalanced($tx, currentRead: DB::transactionLevel() > 0);
+        $entriesQuery = $tx->ledgerEntries()->withTrashed()->with('ledgerAccount');
+        if (DB::transactionLevel() > 0) {
+            $entriesQuery->lockForUpdate();
+        }
+        $entries = $entriesQuery->get();
         $debits = $entries->filter(fn ($e) => $e->type === LedgerEntryType::Debit);
         $credits = $entries->filter(fn ($e) => $e->type === LedgerEntryType::Credit);
         if ($entries->count() !== 2 || $debits->count() !== 1 || $credits->count() !== 1

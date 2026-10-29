@@ -22,6 +22,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\PrizeDisbursementStatus;
 use App\Enums\SelfExclusionStatus;
 use App\Enums\TransactionStatus;
+use App\Enums\FinancialTransactionType;
 use App\Enums\WithdrawalStatus;
 use App\Models\Agent;
 use App\Models\AgentCommission;
@@ -51,17 +52,15 @@ use App\Services\Payment\WithdrawalDisbursementService;
 use App\Services\Privacy\PrivacyPolicyService;
 use App\Services\PublicPages\TermsPageService;
 use App\Services\ResponsibleGaming\ResponsibleGamingLimitService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Tests\TestCase;
+use Tests\Feature\Agent\AgentTestCase;
 
 /**
  * Final Master Production Readiness Test Suite (Prompt 4 Acceptance Gate).
  */
-class FinalProductionReadinessTest extends TestCase
+class FinalProductionReadinessTest extends AgentTestCase
 {
-    use RefreshDatabase;
 
     /**
      * 1. Public Routes Availability & Multi-Locale Rendering.
@@ -165,8 +164,8 @@ class FinalProductionReadinessTest extends TestCase
         $w1Thb = $walletService->getOrCreateWallet($user1->id, Currency::THB->value);
         $w2Thb = $walletService->getOrCreateWallet($user2->id, Currency::THB->value);
 
-        $walletService->credit($w1Thb->id, '1000.00', 'Credit User 1');
-        $walletService->credit($w2Thb->id, '200.00', 'Credit User 2');
+        $walletService->credit($w1Thb, '1000.00', FinancialTransactionType::Deposit, 'readiness-credit-user-1', ['description' => 'Credit User 1']);
+        $walletService->credit($w2Thb, '200.00', FinancialTransactionType::Deposit, 'readiness-credit-user-2', ['description' => 'Credit User 2']);
 
         $this->assertEquals('1000.00', (string) $w1Thb->fresh()->balance);
         $this->assertEquals('200.00', (string) $w2Thb->fresh()->balance);
@@ -237,15 +236,15 @@ class FinalProductionReadinessTest extends TestCase
         $bulkBetService = app(BulkBetService::class);
 
         $wallet = $walletService->getOrCreateWallet($user->id, Currency::THB->value);
-        $walletService->credit($wallet->id, '1000.00', 'Initial balance');
+        $walletService->credit($wallet, '1000.00', FinancialTransactionType::Deposit, 'readiness-bulk-seed', ['description' => 'Initial balance']);
 
-        $draw = Draw::factory()->create([
-            'status' => DrawStatus::Open->value,
-            'betting_close_at' => Carbon::now()->addHours(2),
-        ]);
+        // Purchase and commission writers own their transactions; the shared
+        // fixture supplies a real open window and the decisive number limit.
+        $draw = $this->createOpenDraw();
+        $this->ensureLimit($draw, '3d_direct', '789');
 
         $selections = [
-            new BulkBetSelectionData(marketKey: 'top_3', number: '789', stake: '100.00'),
+            new BulkBetSelectionData(marketKey: '3d_direct', number: '789', stake: '100.00'),
         ];
 
         $clientKey = 'SLIP-RELEASE-' . uniqid();
@@ -306,37 +305,22 @@ class FinalProductionReadinessTest extends TestCase
      */
     public function test_agent_commission_settlement(): void
     {
-        $agentUser = User::factory()->create();
-        $walletService = app(WalletService::class);
-        $walletService->getOrCreateWallet($agentUser->id, Currency::THB->value);
-
-        $agent = Agent::create([
-            'user_id' => $agentUser->id,
-            'agent_code' => 'AGT999',
-            'status' => AgentStatus::Active->value,
-            'currency' => Currency::THB->value,
-            'commission_rate' => '0.0500',
-        ]);
-
-        $draw = Draw::factory()->create();
-
-        $commission = AgentCommission::create([
-            'agent_id' => $agent->id,
-            'draw_id' => $draw->id,
-            'bet_id' => 1,
-            'stake_amount' => '1000.00',
-            'commission_amount' => '50.00',
-            'currency' => Currency::THB->value,
-            'status' => CommissionStatus::Accrued->value,
-            'reference_number' => 'COMM-REL-' . uniqid(),
-        ]);
+        // Accrue from a real owned wager; invented commission rows have no
+        // immutable source evidence and must not be paid by the domain.
+        $agent = $this->createAgent('0.0500', AgentStatus::Active);
+        $player = $this->createPlayer('1500.00', $agent);
+        $draw = $this->createOpenDraw();
+        $bet = $this->purchaseBet($player['user'], $draw, '3d_direct', '123', '1000.00');
+        $commission = AgentCommission::query()->where('bet_id', $bet->bet->id)->sole();
 
         $settlementService = app(AgentSettlementService::class);
         $result = $settlementService->settleForDraw((int) $draw->id);
 
-        $this->assertEquals(1, $result->commissionsSettled);
-        $this->assertEquals('50.00', $result->totalCommissionPaid);
-        $this->assertEquals(CommissionStatus::Paid->value, $commission->fresh()->status);
+        $this->assertSame(1, $result->commissionsSettled);
+        $this->assertSame('50.00', $result->totalCommissionPaid);
+        $this->assertSame(CommissionStatus::Paid, $commission->fresh()->status);
+        $this->assertNotNull($commission->fresh()->financial_transaction_id);
+        $this->assertTrue($settlementService->settleForDraw((int) $draw->id)->alreadySettled);
     }
 
     /**
@@ -365,7 +349,7 @@ class FinalProductionReadinessTest extends TestCase
         $healthService = app(HealthCheckService::class);
 
         $live = $healthService->isLive();
-        $this->assertEquals('UP', $live['status']);
+        $this->assertSame('healthy', $live['status']);
 
         $ready = $healthService->isReady();
         $this->assertTrue($ready['ready']);

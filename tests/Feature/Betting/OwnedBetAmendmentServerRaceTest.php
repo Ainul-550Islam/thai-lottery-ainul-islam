@@ -32,13 +32,15 @@ final class OwnedBetAmendmentServerRaceTest extends FinancialMasterTestCase
         if ($different) {
             $other['key'] = 'different-owned-amendment-command';
         }
-        $results = $this->serverRace([$command, $other], 'wallets', $paid ? $f['agentWallet']->id : $f['wallet']->id,
+        // The amendment root locks the original funding wallet before any
+        // commission wallet; both children must wait there directly.
+        $results = $this->serverRace([$command, $other], 'wallets', $f['wallet']->id,
             ['agent.commission.paid_cancellation.enabled' => $paid, 'agent.commission.paid_cancellation.policy_reference' => 'synthetic-local-agent-contract-v1']);
         $this->assertContains('applied', array_column($results, 'outcome'), json_encode($results, JSON_THROW_ON_ERROR));
         foreach ($results as $result) {
             $this->assertContains($result['outcome'], ['applied', 'refused']);
             if ($result['outcome'] === 'refused') {
-                $this->assertContains($result['code'], ['bet_amendment_request_conflict', 'bet_amendment_outcome_unresolved']);
+                $this->assertContains($result['code'], ['bet_amendment_request_conflict', 'bet_amendment_outcome_unresolved'], json_encode($results, JSON_THROW_ON_ERROR));
             }
         }
         $this->assertSame(1, DB::table('bet_amendments')->count());

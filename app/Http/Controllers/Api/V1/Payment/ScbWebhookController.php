@@ -29,9 +29,18 @@ class ScbWebhookController extends Controller
                 $request->header('X-SCB-Timestamp') ?? $request->header('X-Timestamp'),
             );
             $request->attributes->set('webhook.signature_verified', true);
-            if (in_array((string) ($result['result'] ?? ''), ['needs_review', 'unmatched'], true)) {
-                return response()->json(['status' => 'ERROR', 'message' => trans('payment_ops.webhook_match_failed')], Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
+            // A REVIEW-ONLY OUTCOME IS STILL A SUCCESSFULLY PROCESSED
+            // NOTIFICATION. `needs_review` and `unmatched` mean the bank's
+            // signature was valid and the payload was understood, but no deposit
+            // could be credited from it, so the honest answer is HTTP 200 with
+            // `credited: false` and the operator-facing `result` left intact for
+            // the reconciliation queue. Answering 422 here (as this controller
+            // briefly did) tells the bank the notification itself was bad: it
+            // hides a valid webhook behind an error status, makes the provider
+            // retry a notification that was already accepted, and breaks every
+            // caller that reads `result`/`credited` off a 200. Only a thrown
+            // exception — an unverifiable signature or an unreadable payload —
+            // is a rejection, and that is the 400 branch below.
 
             return response()->json([
                 'resCode' => '00',

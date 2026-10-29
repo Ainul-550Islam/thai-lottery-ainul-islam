@@ -7,7 +7,7 @@ namespace App\Filament\Resources\WithdrawalResource;
 use App\Enums\WithdrawalStatus;
 use App\Models\Withdrawal;
 use App\Services\Finance\WithdrawalApprovalService;
-use App\Services\Finance\WithdrawalCompletionService;
+use App\Services\Payment\WithdrawalDisbursementService;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
 use App\Support\Admin\OperatorActionFactory;
@@ -23,14 +23,14 @@ use Filament\Notifications\Notification;
  * of its transitions means something different to the player's balance:
  *
  *   approve        reserves the amount (available balance falls, total does not)
- *   markProcessing hands it to the payout channel, reservation must still be intact
- *   complete       debits the wallet and posts the double entry — the money is gone
- *   reject         releases any reservation, nothing ever left
- *   markFailed     the payout attempt failed; the reservation goes back to available
+ *   markProcessing starts the existing one-time dispatch, after approval and a confirmation
+ *   complete       opens independent evidence review; it does not directly debit a wallet
+ *   reject         releases any pre-dispatch reservation; nothing has left
+ *   markFailed     records a pre-dispatch failure; processing requires reconciliation
  *
- * None of that arithmetic happens here. Every button calls WithdrawalApprovalService or
- * WithdrawalCompletionService, whose refusal is shown verbatim, so the panel cannot invent
- * a state in which reserved funds are not accounted for.
+ * This panel never turns a typed reference into external payout evidence. The
+ * existing maker/checker reconciliation or authenticated provider path owns
+ * any final financial settlement.
  *
  * WHAT IS DELIBERATELY NOT DONE
  * - No un-complete. Once the debit is posted, reversing it is FinancialReversalService's
@@ -131,81 +131,51 @@ final class WithdrawalDecisionActions
             ],
             [
                 'name' => 'markProcessing',
-                'label' => 'Mark processing',
+                'label' => 'Start payout dispatch',
                 'icon' => 'heroicon-o-arrow-path',
                 'color' => 'warning',
                 'confirm' => true,
-                'heading' => 'Hand this withdrawal to the payout channel',
-                'description' => 'Records that a payout attempt is under way. The service refuses unless the reservation taken at approval is still intact, so this can never dispatch a payout against money that is no longer set aside.',
+                'heading' => 'Start a one-time payout dispatch',
+                'description' => 'This may contact the configured payout provider. The existing dispatch service checks the reservation and records a durable claim. Unknown outcomes keep the hold for reconciliation; do not resend.',
                 'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
                     && $record->status === WithdrawalStatus::Approved,
                 'action' => static function (Withdrawal $record): void {
-                    OperatorActionFactory::run(
-                        static fn () => app(WithdrawalApprovalService::class)->markProcessing($record),
-                        $record->reference_number.' is marked processing.',
-                    );
-                },
-            ],
-            [
-                'name' => 'complete',
-                'label' => 'Complete — debit the wallet',
-                'icon' => 'heroicon-o-banknotes',
-                'color' => 'primary',
-                'confirm' => true,
-                'heading' => 'Settle this payout',
-                'description' => 'This is the step where money leaves: the reservation is consumed, the wallet is debited and a balanced double entry is posted. It is idempotent against a retry, but it cannot be undone from this panel.',
-                'submitLabel' => 'Debit the wallet',
-                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
-                    && app(WithdrawalCompletionService::class)->canComplete($record),
-                'action' => static function (Withdrawal $record): void {
                     OperatorActionFactory::run(static function () use ($record): void {
-                        $outcome = app(WithdrawalCompletionService::class)->complete($record, null, [
-                            'description' => 'Withdrawal settled from the admin panel',
-                            'metadata' => ['completed_by' => AdminAccess::operator()?->getKey()],
-                        ]);
-
-                        $replayed = ($outcome['replayed'] ?? false) === true;
-
-                        Notification::make()
-                            ->success()
-                            ->title($replayed ? 'Already settled — nothing was written' : 'Payout settled')
-                            ->body(sprintf(
-                                '%s: %s debited. Transaction %s.',
-                                $record->reference_number,
-                                AdminFormat::money($outcome['amount'] ?? null, $record->currency->value),
-                                (string) ($outcome['transaction']->reference_number ?? '—'),
-                            ))
-                            ->send();
+                        $outcome = app(WithdrawalDisbursementService::class)->disburse($record);
+                        if ($outcome->isPending) {
+                            Notification::make()->warning()->title('Payout requires confirmation')
+                                ->body('The hold remains in place. Review the recorded provider outcome and reconcile before any retry.')->send();
+                        } elseif ($outcome->successful) {
+                            Notification::make()->success()->title('Payout settled')
+                                ->body('The confirmed provider outcome was applied through the finance service.')->send();
+                        } else {
+                            Notification::make()->warning()->title('Payout was not completed')
+                                ->body('Inspect the withdrawal and provider outcome before further action.')->send();
+                        }
                     });
                 },
             ],
             [
-                'name' => 'reconcileFailed',
-                'label' => 'Reconcile — confirmed not paid',
+                'name' => 'complete',
+                'label' => 'Review payout evidence',
                 'icon' => 'heroicon-o-shield-check',
-                'color' => 'danger',
-                'heading' => 'Reconcile an unknown payout outcome',
-                'description' => 'Use only after checking the payout provider directly and confirming that no payout was made. The reservation is released and the withdrawal is failed. A different operator from the approver must perform this step, and the provider confirmation reference is stored on the withdrawal.',
-                'submitLabel' => 'Confirm not paid and release the funds',
-                'form' => [
-                    Forms\Components\TextInput::make('evidence')
-                        ->label('Provider confirmation reference (required)')
-                        ->required()
-                        ->maxLength(191)
-                        ->regex('/\A[A-Za-z0-9][A-Za-z0-9._:-]{0,190}\z/D'),
-                ],
+                'color' => 'primary',
+                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                    && in_array($record->status, [WithdrawalStatus::Approved, WithdrawalStatus::Processing], true),
+                'action' => static fn (Withdrawal $record) => redirect()->route('admin.withdrawal-reconciliation.index', [
+                    'withdrawal_id' => $record->getKey(),
+                ]),
+            ],
+            [
+                'name' => 'reconcileFailed',
+                'label' => 'Review uncertain payout',
+                'icon' => 'heroicon-o-shield-check',
+                'color' => 'warning',
                 'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
                     && $record->status === WithdrawalStatus::Processing,
-                'action' => static function (Withdrawal $record, array $data): void {
-                    OperatorActionFactory::run(
-                        static fn () => app(WithdrawalApprovalService::class)->markReconciledFailed(
-                            $record,
-                            (int) self::operatorId(),
-                            (string) $data['evidence'],
-                        ),
-                        $record->reference_number.' is reconciled as not paid and any reservation is released.',
-                    );
-                },
+                'action' => static fn (Withdrawal $record) => redirect()->route('admin.withdrawal-reconciliation.index', [
+                    'withdrawal_id' => $record->getKey(),
+                ]),
             ],
             [
                 'name' => 'markFailed',
@@ -223,6 +193,7 @@ final class WithdrawalDecisionActions
                         ->maxLength(500),
                 ],
                 'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                    && $record->status !== WithdrawalStatus::Processing
                     && $record->status->canTransitionTo(WithdrawalStatus::Failed),
                 'action' => static function (Withdrawal $record, array $data): void {
                     OperatorActionFactory::run(

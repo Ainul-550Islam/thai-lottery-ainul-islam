@@ -24,8 +24,10 @@ use App\Services\Finance\DepositService;
 use App\Services\Finance\Money;
 use App\Services\Fraud\FraudDetectionService;
 use App\Services\Lock\DistributedLockService;
+use App\Support\LosslessJson;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -46,6 +48,12 @@ use Throwable;
 final class TrueMoneyWalletService
 {
     private const DEFAULT_VOUCHER_HOST = 'gift.truemoney.com';
+
+    private const PROVIDER_SUCCESS_CODES = ['SUCCESS', 'SUCCEEDED', '0000', '200'];
+
+    private const PROVIDER_REJECTION_CODES = [
+        'VOUCHER_NOT_FOUND', 'INVALID_VOUCHER', 'ALREADY_REDEEMED', 'VOUCHER_EXPIRED', 'INSUFFICIENT_BALANCE',
+    ];
 
     public function __construct(
         private readonly DepositProcessingService $legacyDepositProcessingService,
@@ -68,6 +76,9 @@ final class TrueMoneyWalletService
      */
     public function redeemVoucher(User|int|string $user, string $voucherUrl, string $clientIp): array
     {
+        // Redeeming a bearer voucher can irreversibly consume the player's
+        // value. Refuse before reservation or provider transport when closed.
+        app(\App\Services\Compliance\RealMoneyGate::class)->assertOpen('deposit');
         if (! (bool) config('truemoney.enabled', false)) {
             throw FinancialException::withCode('truemoney_not_configured', 'TrueMoney voucher redemption is not configured.');
         }
@@ -197,6 +208,19 @@ final class TrueMoneyWalletService
             throw FinancialException::withCode('truemoney_fraud_denied', 'Voucher redemption was refused by risk controls.');
         }
 
+        // The gate may have closed during risk preflight. Do not consume the
+        // voucher, and keep a durable local explanation for the reserved code.
+        try {
+            app(\App\Services\Compliance\RealMoneyGate::class)->assertOpen('deposit');
+        } catch (FinancialException $exception) {
+            $this->updateRedemption($redemption, [
+                'status' => TruemoneyRedemptionStatus::Rejected,
+                'failure_code' => 'real_money_disabled',
+                'provider_status' => 'not_called',
+            ]);
+            throw $exception;
+        }
+
         // Persist the at-most-once dispatch marker before the network call. A process
         // death at any point from here leaves an uncertain row and cannot authorize
         // another provider invocation.
@@ -297,23 +321,13 @@ final class TrueMoneyWalletService
                     throw FinancialException::withCode('truemoney_state_conflict', 'Voucher redemption state requires manual reconciliation.');
                 }
 
-                $deposit = $this->depositService()->request(
+                $deposit = $this->depositService()->requestFromConfirmedTrueMoneyVoucher(
                     wallet: $user->wallets()->where('currency', Currency::THB->value)->firstOrFail(),
                     amount: Money::of($amount, Currency::THB),
-                    method: PaymentMethod::BankTransfer,
-                    idempotencyKey: 'truemoney-'.$voucherHash,
-                    options: [
-                        'provider' => PaymentMethod::BankTransfer->value,
-                        'provider_reference' => 'TMN-'.substr($voucherHash, 0, 16),
-                        'metadata' => [
-                            'thai_rails' => [
-                                'provider_kind' => 'truemoney_voucher',
-                                'voucher_hash' => $voucherHash,
-                                'voucher_last4' => $voucherLast4,
-                                'provider_status' => $providerResult['status'],
-                                'evidence_hash' => hash('sha256', json_encode($providerResult['safe_payload'], JSON_THROW_ON_ERROR)),
-                            ],
-                        ],
+                    redemption: $current,
+                    receiptMetadata: [
+                        'provider_status' => $providerResult['status'],
+                        'evidence_hash' => hash('sha256', json_encode($providerResult['safe_payload'], JSON_THROW_ON_ERROR)),
                     ],
                 );
                 if ($deposit->status === DepositStatus::Pending) {
@@ -517,20 +531,26 @@ final class TrueMoneyWalletService
         }
         try {
             $payload = json_decode($response->body(), true, 64, JSON_THROW_ON_ERROR);
+            $exactPayload = LosslessJson::decode($response->body());
         } catch (JsonException) {
             return ['kind' => 'unknown', 'amount' => null, 'status' => 'unreadable_response', 'failure_code' => null, 'safe_payload' => ['http_status' => $response->status(), 'response' => 'unreadable']];
         }
-        if (! is_array($payload)) {
+        if (! is_array($payload) || ! is_array($exactPayload)) {
             return ['kind' => 'unknown', 'amount' => null, 'status' => 'unreadable_response', 'failure_code' => null, 'safe_payload' => ['http_status' => $response->status(), 'response' => 'unreadable']];
         }
-        $status = strtoupper((string) data_get($payload, 'status.code', data_get($payload, 'status', data_get($payload, 'data.status', data_get($payload, 'code', '')))));
-        $failure = strtoupper((string) data_get($payload, 'status.error_code', data_get($payload, 'error_code', data_get($payload, 'code', data_get($payload, 'status.code', '')))));
-        $success = $response->successful() && in_array($status, ['SUCCESS', 'SUCCEEDED', '0000', '200'], true);
-        $amount = $this->providerAmount($payload, $response->body());
-        $currency = strtoupper((string) data_get($payload, 'data.currency', data_get($payload, 'data.voucher.currency', '')));
-        if ($currency === '' && (data_get($payload, 'data.voucher.amount_baht') !== null || data_get($payload, 'data.amount_baht') !== null)) {
-            $currency = 'THB';
+        // A preferred SUCCESS field must not override another explicit failure,
+        // pending state or malformed success flag (and vice versa). Contradictory
+        // provider evidence is neither a rejection nor proof of redemption: the
+        // dispatch already happened, so keep the voucher reserved for review.
+        if (! $this->providerStatesAreConsistent($payload)) {
+            return ['kind' => 'unknown', 'amount' => null, 'status' => 'conflicting_provider_status', 'failure_code' => null,
+                'safe_payload' => ['http_status' => $response->status(), 'response' => 'conflicting_provider_status']];
         }
+        $status = self::providerCode(data_get($payload, 'status.code', data_get($payload, 'status', data_get($payload, 'data.status', data_get($payload, 'code', '')))));
+        $failure = self::providerCode(data_get($payload, 'status.error_code', data_get($payload, 'error_code', data_get($payload, 'code', data_get($payload, 'status.code', '')))));
+        $success = $response->successful() && in_array($status, self::PROVIDER_SUCCESS_CODES, true);
+        $amount = $this->providerAmount($exactPayload);
+        $currency = $this->providerCurrency($payload);
         $safe = [
             'http_status' => $response->status(),
             'provider_status' => $status !== '' ? substr($status, 0, 40) : 'unknown',
@@ -539,7 +559,7 @@ final class TrueMoneyWalletService
             'currency' => $currency !== '' ? $currency : null,
         ];
         if (! $success) {
-            if (in_array($failure, ['VOUCHER_NOT_FOUND', 'INVALID_VOUCHER', 'ALREADY_REDEEMED', 'VOUCHER_EXPIRED', 'INSUFFICIENT_BALANCE'], true)) {
+            if (in_array($failure, self::PROVIDER_REJECTION_CODES, true)) {
                 return ['kind' => 'rejected', 'amount' => null, 'status' => $status !== '' ? $status : 'rejected', 'failure_code' => $failure, 'safe_payload' => array_filter($safe, static fn ($value): bool => $value !== null)];
             }
 
@@ -565,26 +585,132 @@ final class TrueMoneyWalletService
         return ['kind' => 'redeemed', 'amount' => $money->toString(), 'status' => $status, 'failure_code' => null, 'safe_payload' => array_filter($safe, static fn ($value): bool => $value !== null)];
     }
 
-    /** @param array<string, mixed> $payload */
-    private function providerAmount(array $payload, string $body): ?string
+    /** @param array<string, mixed> $payload Losslessly decoded provider JSON. */
+    private function providerAmount(array $payload): ?string
     {
+        $amount = null;
         foreach ([
             'data.voucher.amount_baht', 'data.voucher.redeemed_amount_baht', 'data.amount_baht',
             'data.voucher.amount', 'data.amount', 'voucher.amount_baht', 'amount_baht',
         ] as $key) {
-            $value = data_get($payload, $key);
-            if (is_string($value) || is_int($value)) {
-                $value = trim((string) $value);
-                if (preg_match('/\A[0-9]{1,12}(?:\.[0-9]{1,2})?\z/D', $value) === 1) {
-                    return $value;
-                }
+            if (! Arr::has($payload, $key)) {
+                continue;
             }
-        }
-        if (preg_match('/"(?:amount_baht|redeemed_amount_baht)"\s*:\s*([0-9]{1,12}(?:\.[0-9]{1,2})?)/', $body, $matches) === 1) {
-            return $matches[1];
+            $value = data_get($payload, $key);
+            if (! is_string($value)) {
+                return null;
+            }
+            $value = trim($value);
+            if (preg_match('/\A[0-9]{1,12}(?:\.[0-9]{1,2})?\z/D', $value) !== 1) {
+                return null;
+            }
+            $normalised = Money::of($value, Currency::THB)->toString();
+            if ($amount !== null && ! hash_equals($amount, $normalised)) {
+                return null;
+            }
+            $amount = $normalised;
         }
 
-        return null;
+        return $amount;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function providerCurrency(array $payload): string
+    {
+        $currency = null;
+        foreach (['data.currency', 'data.voucher.currency'] as $key) {
+            if (! Arr::has($payload, $key)) {
+                continue;
+            }
+            $value = data_get($payload, $key);
+            if (! is_string($value) || trim($value) === '') {
+                return '';
+            }
+            $value = strtoupper(trim($value));
+            if ($currency !== null && ! hash_equals($currency, $value)) {
+                return '';
+            }
+            $currency = $value;
+        }
+        if ($currency === null && (data_get($payload, 'data.voucher.amount_baht') !== null || data_get($payload, 'data.amount_baht') !== null)) {
+            return 'THB';
+        }
+
+        return $currency ?? '';
+    }
+
+    /**
+     * The unofficial provider has used several status aliases. Treat every
+     * recognized alias that is actually present as evidence, rather than
+     * silently preferring the first one. Unknown/malformed states are not
+     * evidence of either a successful redemption or a definitive rejection.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function providerStatesAreConsistent(array $payload): bool
+    {
+        $success = false;
+        $failure = false;
+        $negativeCodes = [...self::PROVIDER_REJECTION_CODES, 'FAILED', 'FAILURE', 'ERROR', 'REJECTED', 'DECLINED'];
+        $statePaths = ['status.code', 'data.status', 'code'];
+        if (Arr::has($payload, 'status') && ! is_array($payload['status'])) {
+            $statePaths[] = 'status';
+        }
+        foreach ($statePaths as $path) {
+            if (! Arr::has($payload, $path)) {
+                continue;
+            }
+            $value = data_get($payload, $path);
+            if (! is_string($value) && ! is_int($value)) {
+                return false;
+            }
+            $code = self::providerCode($value);
+            if (in_array($code, self::PROVIDER_SUCCESS_CODES, true)) {
+                $success = true;
+            } elseif (in_array($code, $negativeCodes, true)) {
+                $failure = true;
+            } else {
+                return false;
+            }
+        }
+        foreach (['status.error_code', 'error_code'] as $path) {
+            if (! Arr::has($payload, $path)) {
+                continue;
+            }
+            $value = data_get($payload, $path);
+            if ($value === null) {
+                continue;
+            }
+            if (! is_string($value) && ! is_int($value)) {
+                return false;
+            }
+            $code = self::providerCode($value);
+            if (in_array($code, ['', '0', '00', '0000', '200', 'SUCCESS', 'NONE', 'NO_ERROR'], true)) {
+                continue;
+            }
+            if (! in_array($code, $negativeCodes, true)) {
+                return false;
+            }
+            $failure = true;
+        }
+        foreach (['success', 'status.success', 'data.success'] as $path) {
+            if (! Arr::has($payload, $path)) {
+                continue;
+            }
+            $value = data_get($payload, $path);
+            if (! is_bool($value)) {
+                return false;
+            }
+            $success = $success || $value;
+            $failure = $failure || ! $value;
+        }
+
+        return ! ($success && $failure);
+    }
+
+    private static function providerCode(mixed $value): string
+    {
+        return is_string($value) || is_int($value) ? strtoupper(trim((string) $value)) : '';
     }
 
     private function markRedeemedUnconfirmed(TruemoneyVoucherRedemption $redemption, string $voucherLast4, string $providerStatus, array $safePayload, string $reason): void

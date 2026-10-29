@@ -9,6 +9,7 @@ use App\Enums\BetPurchaseStatus;
 use App\Enums\Currency;
 use App\Exceptions\BetDomainException;
 use App\Exceptions\BetPurchaseException;
+use App\Exceptions\FinancialException;
 use App\Models\Draw;
 use App\Models\User;
 
@@ -154,6 +155,13 @@ class BulkBetService
             } catch (BetDomainException | BetPurchaseException $e) {
                 $refused++;
                 $record['reason'] = $e->getMessage();
+            } catch (FinancialException $e) {
+                if ($e->errorCode() !== 'real_money_disabled') {
+                    report($e);
+                    throw $e;
+                }
+                $refused++;
+                $record['reason'] = 'Real-money operations are currently unavailable.';
             } catch (\Throwable $e) {
                 // Infrastructure faults are not item-level refusals. Propagate them
                 // to the HTTP exception handler so raw database/provider messages
@@ -248,6 +256,13 @@ class BulkBetService
             } catch (BetDomainException | BetPurchaseException $e) {
                 $refused++;
                 $record['reason'] = $e->getMessage();
+            } catch (FinancialException $e) {
+                if ($e->errorCode() !== 'real_money_disabled') {
+                    report($e);
+                    throw $e;
+                }
+                $refused++;
+                $record['reason'] = 'Real-money operations are currently unavailable.';
             } catch (\Throwable $e) {
                 // Infrastructure faults are not item-level refusals: report and rethrow so
                 // raw driver/provider text never reaches a player-facing slip report.

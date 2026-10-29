@@ -81,6 +81,16 @@ class PaymentWebhookService
     {
         $driver = $this->gateways->driver($gatewayName);
 
+        // The inherited HMAC conventions are not proved provider IPN
+        // authentication. Until each merchant contract is implemented, neither
+        // public callback can execute a checkout or authorize wallet mutation.
+        $gatewayKey = strtolower(trim($gatewayName));
+        if (in_array($gatewayKey, ['bkash', 'nagad'], true)) {
+            return PaymentProcessingResult::failed($gatewayKey, 'Provider callback authentication is not ready.', metadata: [
+                'error_code' => $gatewayKey.'_callback_authentication_unverified',
+            ]);
+        }
+
         // 1. Provider-specific signature verification. The route middleware is
         //    only a durable replay guard; it deliberately leaves missing and
         //    invalid-signature decisions to this driver.
@@ -98,8 +108,16 @@ class PaymentWebhookService
             $request->attributes->set('webhook.gateway', strtolower($gatewayName));
         }
 
-        // 2. Parse Payload
-        $payload = $driver->parseWebhook($request);
+        // 2. Parse only authenticated, unambiguous provider evidence. A
+        // malformed signed envelope is an explicit refusal, not a successful
+        // ignored event that might suppress a corrected retry.
+        try {
+            $payload = $driver->parseWebhook($request);
+        } catch (PaymentWebhookException $exception) {
+            return PaymentProcessingResult::failed($gatewayName, 'Webhook evidence is malformed or ambiguous.', metadata: [
+                'error_code' => $exception->errorCode(),
+            ]);
+        }
 
         // 3. Process normalized payload
         return $this->processWebhookPayload($payload);
@@ -114,6 +132,15 @@ class PaymentWebhookService
     {
         $gateway = $payload->gateway;
         $eventId = $payload->eventId;
+
+        // Crypto has no provider-specific authentication or settlement
+        // contract. Refuse even previously queued normalized DTOs; their mere
+        // existence cannot prove that any cryptocurrency was received.
+        if (strtolower(trim($gateway)) === 'crypto') {
+            return PaymentProcessingResult::failed('crypto', 'Crypto provider evidence is not configured.', metadata: [
+                'error_code' => 'crypto_provider_authentication_unverified',
+            ]);
+        }
 
         // Replay Protection Cache Check
         $cacheKey = (string) $this->config->get('payment.webhook.replay_cache_prefix', 'payment:webhook:seen:')
@@ -315,12 +342,18 @@ class PaymentWebhookService
 
         // Replay check: already confirmed deposit
         if ($deposit->status === DepositStatus::Confirmed && $deposit->financial_transaction_id !== null) {
-            $existingTx = FinancialTransaction::query()->find($deposit->financial_transaction_id);
+            // A status label alone is not settlement proof. Recheck the original
+            // credit and balanced ledger while the obligation locks are held.
+            $this->depositCompletion->verifySettled($deposit);
+            $existingTx = $this->depositCompletion->existingTransactionFor($deposit);
+            if (! $existingTx instanceof FinancialTransaction) {
+                app(\App\Services\Finance\DepositIntegrityGuard::class)->refuse();
+            }
 
             return PaymentProcessingResult::completed(
                 gateway: $gateway,
                 payment: $payment,
-                transaction: $existingTx ?? new FinancialTransaction,
+                transaction: $existingTx,
                 actionTaken: 'replayed',
                 replayed: true,
                 metadata: ['already_settled' => true],
@@ -652,6 +685,7 @@ class PaymentWebhookService
         $payment = Payment::query()
             ->where('payable_type', Deposit::class)
             ->where('payable_id', $deposit->getKey())
+            ->lockForUpdate()
             ->first();
 
         if (! $payment instanceof Payment) {
@@ -675,7 +709,9 @@ class PaymentWebhookService
                 ],
             ]);
             try {
-                $payment->save();
+                // A uniqueness conflict must roll back to a savepoint before
+                // the winner can be inspected (notably on PostgreSQL).
+                DB::transaction(fn () => $payment->save());
             } catch (QueryException $exception) {
                 if (! $this->isPaymentPayableIdentityViolation($exception)) {
                     throw $exception;
@@ -688,10 +724,16 @@ class PaymentWebhookService
                 $winner = Payment::query()
                     ->where('payable_type', Deposit::class)
                     ->where('payable_id', $deposit->getKey())
+                    ->lockForUpdate()
                     ->first();
 
                 if (! $winner instanceof Payment) {
                     throw $exception;
+                }
+                $rechecked = $this->resolveDeposit($payload);
+                if (! $rechecked instanceof Deposit || (int) $rechecked->id !== (int) $deposit->id) {
+                    throw FinancialException::withCode('webhook_payment_ownership_conflict',
+                        'The concurrent payment does not prove the original deposit obligation.');
                 }
 
                 return $winner;
@@ -852,7 +894,25 @@ class PaymentWebhookService
                         ],
                     );
 
-                    $this->paymentCallbacks->apply($callback);
+                    // Applying the facts can be refused by CURRENT deposit
+                    // admission — the player was banned or closed since the
+                    // receipt was issued, or the responsible-gaming ceiling now
+                    // refuses the amount. That is NOT a bad envelope: the
+                    // signature was proved and the receipt is genuine, so the
+                    // envelope is kept as Verified, the refusal is recorded as
+                    // the status_reason, and the credit is held for an explicit
+                    // persisted retry once the barrier is lifted. Throwing here
+                    // instead lost the receipt entirely, which is the one outcome
+                    // a custody record must never have.
+                    //
+                    // The apply runs inside its own savepoint so a refusal takes
+                    // its partial writes with it: DepositCallbackApplicationService
+                    // binds a provider reference, approves the row and captures the
+                    // payment before it reaches the admission that can refuse, and
+                    // without this boundary those writes would survive into the
+                    // outer webhook transaction and be committed by the status_reason
+                    // save below.
+                    DB::transaction(fn (): mixed => $this->paymentCallbacks->apply($callback));
 
                     $row->status = PaymentWebhookStatus::Applied;
                     $row->applied_at = now();
@@ -874,6 +934,21 @@ class PaymentWebhookService
                         $row,
                         PaymentWebhookStatus::Verified,
                         'verified; application deferred ('.$applicationRefusal->errorCode().')',
+                    );
+                } catch (\App\Exceptions\DepositException | \App\Exceptions\ResponsibleGamingLimitException $heldCredit) {
+                    // Same custody outcome, different refusers: DepositAdmission
+                    // (deposit_player_unavailable) and the responsible-gaming
+                    // enforcement service (RGL_INVALID_AMOUNT). Both already carry
+                    // the stable machine-readable code the operator screen and the
+                    // persisted-retry path read, so the reason is stored verbatim.
+                    $row->status_reason = $heldCredit->errorCode();
+                    $row->last_error_at = now();
+                    $row->save();
+
+                    RecordPaymentWebhookAudit::from(
+                        $row,
+                        PaymentWebhookStatus::Verified,
+                        'verified; credit held ('.$heldCredit->errorCode().')',
                     );
                 }
             }

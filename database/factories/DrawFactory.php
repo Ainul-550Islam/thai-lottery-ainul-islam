@@ -28,9 +28,20 @@ class DrawFactory extends Factory
 
     public function open(): static
     {
+        // A draw that is OPEN FOR BETTING has to carry its betting window.
+        // DrawRiskAdmission — the authority every write ingress consults before
+        // it accepts new risk — fails closed on a missing betting_open_at or
+        // betting_close_at, on the reasoning that a draw whose window was never
+        // written is a draw nobody can prove is currently taking bets. An open()
+        // state that set only the status therefore produced a draw that looked
+        // open to assertions about status while being un-sellable in practice,
+        // and every purchase test built on it failed admission. The window here
+        // is the honest shape of the state: opened an hour ago, closing in an hour.
         return $this->state(fn (array $attributes) => [
             'status' => DrawStatus::Open,
             'opened_at' => now(),
+            'betting_open_at' => now()->subHour(),
+            'betting_close_at' => now()->addHour(),
         ]);
     }
 

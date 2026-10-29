@@ -92,6 +92,9 @@ final class PrizeVerificationAndDiscountTest extends TestCase
             'draw_id' => $draw->getKey(),
             'first_prize' => $firstPrize,
             'published_at' => now()->subMinutes(30),
+            // Synthetic examples are explicitly labelled; they are never
+            // evidence that an official source published these numbers.
+            'metadata' => ['provenance' => 'fixture'],
         ]);
 
         return $draw;
@@ -331,6 +334,44 @@ final class PrizeVerificationAndDiscountTest extends TestCase
         $this->assertSame(PrizeVerificationService::WINNING, $result['status']);
         $this->assertNotNull($result['prize']['amount']);
         $this->assertNotEmpty($result['prize']['matches']);
+        $this->assertTrue($result['fixture']);
+        $this->assertFalse($result['official_source']);
+    }
+
+    public function test_missing_result_is_unavailable_even_if_a_claim_marker_says_paid(): void
+    {
+        $draw = Draw::factory()->create(['status' => DrawStatus::ResultPublished, 'scheduled_at' => now()->subHour()]);
+        $ticket = $this->gloTicket($draw, self::WINNING_NUMBER);
+        $this->recordClaim($draw, $ticket, GloClaimStatus::Paid);
+
+        $result = $this->verifier()->verify('number', self::WINNING_NUMBER);
+        $this->assertSame(PrizeVerificationService::UNAVAILABLE, $result['status']);
+        $this->assertSame('RESULT_UNAVAILABLE', $result['reason']);
+        $this->assertNull($result['prize']['amount']);
+        $this->assertSame([], $result['prize']['matches']);
+    }
+
+    public function test_unverified_result_cannot_prove_a_loss_or_win(): void
+    {
+        $draw = Draw::factory()->create(['status' => DrawStatus::ResultPublished, 'scheduled_at' => now()->subHour()]);
+        DrawResult::factory()->create(['draw_id' => $draw->id, 'first_prize' => self::WINNING_NUMBER,
+            'published_at' => now(), 'metadata' => []]);
+
+        foreach ([self::WINNING_NUMBER, self::LOSING_NUMBER] as $number) {
+            $result = $this->verifier()->verify('number', $number);
+            $this->assertSame(PrizeVerificationService::UNAVAILABLE, $result['status']);
+            $this->assertNull($result['prize']['amount']);
+            $this->assertSame([], $result['prize']['matches']);
+        }
+    }
+
+    public function test_fixture_result_is_never_comparable_in_production(): void
+    {
+        $this->publishedDraw();
+        config(['app.env' => 'production']);
+        $result = $this->verifier()->verify('number', self::WINNING_NUMBER);
+        $this->assertSame(PrizeVerificationService::UNAVAILABLE, $result['status']);
+        $this->assertNull($result['prize']['amount']);
     }
 
     /** 14 */

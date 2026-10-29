@@ -7,6 +7,7 @@ namespace App\Services\Agent;
 use App\Models\Agent;
 use App\Models\LotteryEntry;
 use App\Services\Commission\MultiTierCommissionDistributionService;
+use App\Services\Compliance\RealMoneyGate;
 use App\Services\Ledger\DoubleEntryLedgerService;
 use App\Services\Lock\DistributedLockService;
 use App\Services\Wallet\WalletMutationService;
@@ -43,6 +44,9 @@ class AgentPosTicketIssuanceService
         array $entries,
         string $clientIp
     ): array {
+        // This dormant legacy entry point must not bypass closed admission if it
+        // is invoked directly or wired to a route in a later deployment.
+        app(RealMoneyGate::class)->assertOpen('bet');
         if (empty($entries)) {
             throw new InvalidArgumentException('Entries list cannot be empty.');
         }
