@@ -1,0 +1,40 @@
+name: lock-refresh (one-shot, delete after use)
+on:
+  push:
+    branches: [ci/php84-node24-gate]
+    paths: ['.github/workflows/lock-refresh.yml']
+permissions:
+  contents: write
+concurrency:
+  group: lock-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/php84-node24-gate
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd
+          coverage: none
+      - name: Update symfony/mime only
+        run: composer update symfony/mime --with-dependencies --no-interaction --no-progress --no-scripts
+      - name: Show lock diff
+        run: git diff --stat composer.lock
+      - name: Audit must pass before anything is committed
+        run: composer audit --no-interaction
+      - name: Commit refreshed lock (rebase-safe)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add composer.lock
+          if git diff --cached --quiet; then
+            echo "composer.lock already up to date"
+            exit 0
+          fi
+          git commit -m "chore(deps): bump symfony/mime to patched release (CVE-2026-45070)"
+          git pull --rebase origin ci/php84-node24-gate
+          git push origin HEAD:ci/php84-node24-gate
