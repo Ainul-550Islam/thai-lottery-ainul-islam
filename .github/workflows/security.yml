@@ -33,15 +33,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
 
       - name: Audit NPM Packages
         run: |
           set -euo pipefail
-          npm audit --audit-level=high
+          npm run test:dependencies
+          npm run security:dependencies
 
   secret-scan:
     name: Secrets & Credentials Leak Detection
