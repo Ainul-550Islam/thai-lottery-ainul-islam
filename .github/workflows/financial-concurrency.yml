@@ -132,7 +132,7 @@ jobs:
           import json, xml.etree.ElementTree as E
           from pathlib import Path
           cases = list(E.parse('evidence/checkout-custody-ci.xml').getroot().iter('testcase'))
-          assert len(cases) == 32 and not any(c.find(k) is not None for c in cases for k in ['error', 'failure', 'skipped'])
+          assert len(cases) == 44 and not any(c.find(k) is not None for c in cases for k in ['error', 'failure', 'skipped'])
           waits = [json.loads(x) for x in Path('evidence/checkout-custody-ci-witness.jsonl').read_text().splitlines()]
           assert len(waits) == 3 and all(w['waiting_children'] == 2 and len(set(w['child_connections'])) == 2 and w['parent_blocker'] not in w['child_connections'] for w in waits)
           PY

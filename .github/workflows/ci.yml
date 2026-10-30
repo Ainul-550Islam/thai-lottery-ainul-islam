@@ -565,7 +565,7 @@ jobs:
       - name: Controlled schema, seed, and migration gates
         run: |
           set -euo pipefail
-          php artisan migrate:status
+          php artisan migrate:status || echo "no migrations table yet (fresh database)"
           php artisan migrate:fresh --force
           php artisan db:seed --force
           php artisan migrate:status
