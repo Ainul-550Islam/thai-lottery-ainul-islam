@@ -53,6 +53,11 @@ Artisan::command('inspire', function (): void {
 
 // Core draw cadence is registered in bootstrap/app.php; periodic guard audit is scheduled here.
 Schedule::command('settlement:verify-guards')->everySixHours()->withoutOverlapping()->onOneServer();
+
+// Scheduler liveness: ops:health reads the timestamp this writes (HeartbeatCommand).
+// No onOneServer()/withoutOverlapping() on purpose: both lock through the cache store,
+// and a heartbeat that needs Redis cannot tell "scheduler dead" from "Redis down".
+Schedule::command('ops:heartbeat')->everyMinute()->name('ops-heartbeat');
 Schedule::command('stripe-followups:sweep')
     ->everyMinute()
     ->name('stripe-followup-routing-sweep')
