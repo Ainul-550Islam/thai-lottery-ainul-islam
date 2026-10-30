@@ -171,7 +171,11 @@ jobs:
           test -f bootstrap/cache/config.php
 
       - name: Migrate fresh with seed
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/database/ci-migrate.sqlite
         run: |
+          touch "$DB_DATABASE"
           php artisan migrate:fresh --force --seed
 
       - name: Route list (contract smoke)
