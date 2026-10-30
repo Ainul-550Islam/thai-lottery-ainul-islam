@@ -571,6 +571,11 @@ jobs:
           php artisan db:seed --force
           php artisan migrate:status
 
+      - name: Install Redis client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq redis-tools
+
       - name: Controlled queue and scheduler gates
         run: |
           set -euo pipefail
