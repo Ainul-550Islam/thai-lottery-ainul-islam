@@ -38,6 +38,9 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
+      - name: Activate pinned npm 11.21.1
+        run: npm install --global npm@11.21.1
+
       - name: Audit NPM Packages
         run: |
           set -euo pipefail
