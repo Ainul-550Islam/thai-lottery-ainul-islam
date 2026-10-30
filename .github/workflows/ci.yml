@@ -21,7 +21,7 @@ jobs:
           # requirement) and by the Filament resource render assertions. It is
           # already present on the runner image; naming it here makes that a
           # declared dependency rather than a lucky default.
-          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd
           coverage: none
 
       - name: Setup Node
@@ -393,7 +393,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd
           coverage: none
 
       - name: Setup Node
@@ -487,7 +487,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, dom, fileinfo, mysqlnd, pdo_mysql, bcmath, sodium, zip, intl, redis
+          extensions: mbstring, dom, fileinfo, mysqlnd, pdo_mysql, bcmath, sodium, zip, intl, redis, gd
           coverage: none
 
       - name: Setup Node
