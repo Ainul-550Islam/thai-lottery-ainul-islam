@@ -61,8 +61,10 @@ jobs:
         run: |
           set -euo pipefail
           echo "Scanning for accidental secret leaks, private keys, and hardcoded tokens..."
-          # Reject committed private keys
-          if grep -rn "BEGIN RSA PRIVATE KEY" --exclude-dir={.git,node_modules,vendor,storage} .; then
+          # Reject committed private keys. The needle is the armoured PEM header
+          # (five dashes either side). Writing the bare words here would make
+          # this file, and every note that quotes them, match its own scan.
+          if grep -rIn -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' --exclude-dir={.git,node_modules,vendor,storage} .; then
             echo "::error::Private key found in repository source!"
             exit 1
           fi

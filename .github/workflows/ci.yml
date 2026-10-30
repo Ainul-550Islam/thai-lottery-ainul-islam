@@ -148,6 +148,12 @@ jobs:
           fail=0
           while IFS= read -r -d '' model; do
             name="$(basename "$model" .php)"
+            # An abstract model cannot be instantiated, so it can have no factory
+            # of its own (app/Models/Support/Abstract*). Its concrete subclasses
+            # are the ones that need one.
+            if grep -qE '^[[:space:]]*abstract[[:space:]]+class[[:space:]]' "$model"; then
+              continue
+            fi
             if grep -q 'HasFactory' "$model" && [ ! -f "database/factories/${name}Factory.php" ]; then
               echo "::error file=$model::model declares HasFactory but database/factories/${name}Factory.php is missing"
               fail=1
@@ -263,7 +269,12 @@ jobs:
           # audit notes and prompts. They must never appear in anything that
           # ships. Scoped to production source so a research note in a report
           # file does not fail the build.
-          if grep -rniE "thailotto" \
+          #
+          # "thailotto" alone cannot be the needle: it is this product's own
+          # brand (manifest short_name, thailotto-theme.css, lang/*/home.php,
+          # ...), so that check could never pass. The needles are the
+          # third-party identifiers instead.
+          if grep -rniE "glothai\.com|myaccount\.thailotto" \
                app config routes lang public database \
                resources/views resources/css resources/js \
                2>/dev/null | grep -v "^resources/views/vendor/"; then
@@ -272,8 +283,10 @@ jobs:
           fi
 
           echo "--- guest navigation links both public lanes ---"
+          # layouts/app.blade.php only renders <x-navigation.main-nav />; the
+          # links themselves live in that component.
           for name in national-lottery.index weekly-lottery.index bingo-lottery.index pcso-lottery.index contact; do
-            grep -q "route('${name}')" resources/views/layouts/app.blade.php \
+            grep -q "route('${name}')" resources/views/components/navigation/main-nav.blade.php \
               || { echo "::error::guest navigation has no link to ${name}"; exit 1; }
           done
 
@@ -510,12 +523,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes mysql-client
 
-      - name: Prepare controlled Laravel environment
-        run: |
-          set -euo pipefail
-          cp .env.example .env
-          php artisan key:generate --force
-
       - name: Install and verify Composer dependencies
         run: |
           set -euo pipefail
@@ -524,6 +531,14 @@ jobs:
           composer check-platform-reqs
           composer audit --no-interaction
           composer dump-autoload --optimize
+
+      # After composer install on purpose: artisan loads vendor/autoload.php,
+      # so key:generate before the install dies with exit 255.
+      - name: Prepare controlled Laravel environment
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          php artisan key:generate --force
 
       - name: Install, audit, and build frontend
         run: |
