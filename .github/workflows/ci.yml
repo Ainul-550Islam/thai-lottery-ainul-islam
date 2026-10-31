@@ -460,7 +460,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: ci_root_password
-          MYSQL_DATABASE: thailotto_test
+          MYSQL_DATABASE: thai_lottery_test
           MYSQL_USER: thailotto_ci
           MYSQL_PASSWORD: ci_database_password
         ports:
@@ -486,7 +486,7 @@ jobs:
       DB_CONNECTION: mysql
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
-      DB_DATABASE: thailotto_test
+      DB_DATABASE: thai_lottery_test
       DB_USERNAME: thailotto_ci
       DB_PASSWORD: ci_database_password
       REDIS_HOST: 127.0.0.1
@@ -604,7 +604,7 @@ jobs:
           MYSQL_PWD: ci_database_password
         run: |
           set -euo pipefail
-          mysqldump --host=127.0.0.1 --port=3306 --user=thailotto_ci thailotto_test > /tmp/thailotto-test.sql
+          mysqldump --host=127.0.0.1 --port=3306 --user=thailotto_ci thai_lottery_test > /tmp/thailotto-test.sql
           sha256sum /tmp/thailotto-test.sql | tee /tmp/thailotto-test.sql.sha256
           mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci -e "CREATE DATABASE thailotto_restore"
           mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci thailotto_restore < /tmp/thailotto-test.sql
