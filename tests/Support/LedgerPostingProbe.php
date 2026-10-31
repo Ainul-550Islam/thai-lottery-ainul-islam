@@ -20,7 +20,7 @@ try {
     $file = realpath($argv[1] ?? '');
     $base = realpath(storage_path('framework/testing/ledger-current'));
     if (! $file || ! $base || ! str_starts_with($file, $base.DIRECTORY_SEPARATOR)
-        || ! app()->environment('testing') || DB::connection()->getDriverName() !== 'mysql'
+        || ! app()->environment('testing') || ! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)
         || DB::connection()->getDatabaseName() !== 'thai_lottery_test'
         || ! is_string($socket = DB::connection()->getConfig('unix_socket')) || ! str_starts_with($socket, '/') || filetype($socket) !== 'socket') {
         throw new RuntimeException('Unacknowledged ledger probe context.');

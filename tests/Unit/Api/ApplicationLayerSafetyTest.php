@@ -74,7 +74,7 @@ final class ApplicationLayerSafetyTest extends TestCase
     {
         return array_values(array_filter(
             $this->applicationLayerFiles(),
-            static fn (string $path): bool => str_contains($path, '/Controllers/'),
+            static fn (string $path): bool => str_contains(str_replace('\\', '/', $path), '/Controllers/'),
         ));
     }
 

@@ -23,7 +23,7 @@ class ThaiRevenueDepartmentTaxReportServiceTest extends TestCase
         $winner = User::factory()->create();
         $draw = Draw::factory()->create();
 
-        Payout::create([
+        Payout::factory()->create([
             'payout_number' => 'PO-20261015-0001',
             'lottery_entry_id' => 'entry-1',
             'user_id' => $winner->getKey(),
