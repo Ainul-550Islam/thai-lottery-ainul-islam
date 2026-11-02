@@ -66,7 +66,7 @@ final class Pages150To250StaticContractTest extends TestCase
             "Route::get('/regulatory-exports'",
             "Route::get('/compliance-audit'",
             'ReleaseOperationsController::class',
-            "->middleware(['admin.auth', 'can:access-admin'])",
+            "->middleware(['admin.auth', 'auth.session', 'can:access-admin'])",
         ] as $contract) {
             self::assertStringContainsString($contract, $routes);
         }
@@ -116,20 +116,20 @@ final class Pages150To250StaticContractTest extends TestCase
         self::assertStringContainsString("Route::get('/ledger'", $routes);
         self::assertStringContainsString("Route::get('/draw-lifecycle'", $routes);
         self::assertStringContainsString('FinancialReconciliationService', $controller);
-        self::assertStringContainsString('GloResultImportService', $controller);
+        self::assertStringContainsString('GloPrizeClaim', $controller);
         self::assertStringContainsString('single JSON document from stdin', $rust);
         self::assertStringContainsString('synthetic', $rustTests);
     }
 
     public function test_release_audit_contains_pages_150_through_250(): void
     {
-        $audit = file_get_contents(base_path('audit.md'));
+        $audit = file_get_contents(base_path('docs/audit-reports/audit.md'));
 
         self::assertIsString($audit);
         for ($page = 150; $page <= 250; $page++) {
             self::assertMatchesRegularExpression('/\| '.$page.' \|/', $audit);
         }
-        self::assertStringContainsString('NOT VERIFIED — RUNTIME UNAVAILABLE', $audit);
+        self::assertStringContainsString('STATIC_ONLY. Runtime, production, live payments and official-source authenticity are NOT_VERIFIED.', $audit);
     }
 
     /**

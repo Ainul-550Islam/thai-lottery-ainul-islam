@@ -71,30 +71,43 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
         $this->assertSame(0, Withdrawal::query()->count());
     }
 
-    public function test_bkash_requires_mobile_format_and_prohibits_bank_name(): void
+    public function test_bkash_withdrawal_fails_closed_until_callback_authentication_is_verified(): void
     {
-        $player = $this->createAdmittedPlayer('5000.00');
-
-        // Valid bKash
-        $valid = $this->actingAs($player['user'])->post('/withdraw', [
-            'amount' => '300.00',
-            'method' => 'bkash',
-            'account_number' => '01712345678',
-            'account_name' => 'Rahim Ahmed',
-            'idempotency_key' => 'wd-test-bkash-valid',
+        config([
+            'payment.withdrawal.enabled' => true,
+            'payment.withdrawal.allowed_methods' => ['bkash'],
+            'payment.currency.default' => 'BDT',
+            'payment.country' => 'BD',
+            'payment.markets.bkash' => ['currencies' => ['BDT'], 'countries' => ['BD']],
+            'payment.gateways.bkash' => [
+                'enabled' => true,
+                'supports_deposit' => true,
+                'supports_withdrawal' => true,
+                'supported_currencies' => ['BDT'],
+                'app_key' => 'test-key',
+                'app_secret' => 'test-secret',
+                'username' => 'test-username',
+                'password' => 'test-password',
+                'base_url' => 'https://bkash.example.test',
+                'webhook_secret' => 'test-webhook-secret',
+            ],
         ]);
-        $valid->assertSessionHasNoErrors();
-
-        // Incompatible bank_name supplied to bKash rail
-        $invalid = $this->actingAs($player['user'])->post('/withdraw', [
-            'amount' => '300.00',
-            'method' => 'bkash',
-            'bank_name' => 'KBANK',
-            'account_number' => '01712345678',
-            'account_name' => 'Rahim Ahmed',
-            'idempotency_key' => 'wd-test-bkash-incompat',
-        ]);
-        $invalid->assertSessionHasErrors(['bank_name']);
+        $player = $this->createAdmittedPlayer('5000.00', \App\Enums\Currency::BDT);
+        foreach (['wd-test-bkash-valid' => null, 'wd-test-bkash-incompat' => 'KBANK'] as $key => $bank) {
+            $payload = [
+                'amount' => '300.00',
+                'method' => 'bkash',
+                'account_number' => '01712345678',
+                'account_name' => 'Rahim Ahmed',
+                'idempotency_key' => $key,
+            ];
+            if ($bank !== null) {
+                $payload['bank_name'] = $bank;
+            }
+            $this->actingAs($player['user'])->post('/withdraw', $payload)
+                ->assertSessionHasErrors(['method']);
+        }
+        $this->assertDatabaseCount('withdrawals', 0);
     }
 
     public function test_crypto_requires_valid_address_and_prohibits_bank_name(): void
@@ -125,6 +138,7 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
             'account_name' => 'USDT',
             'idempotency_key' => 'wd-test-crypto-invalid',
         ]);
-        $invalid->assertSessionHasErrors(['account_number']);
+        $invalid->assertSessionHasErrors(['method']);
+        $this->assertDatabaseCount('withdrawals', 0);
     }
 }

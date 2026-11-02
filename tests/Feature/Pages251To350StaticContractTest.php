@@ -52,10 +52,10 @@ final class Pages251To350StaticContractTest extends TestCase
 
     public function test_pages_251_through_350_audit_rows_and_required_reports_exist(): void
     {
-        $audit = file_get_contents(base_path('audit.md'));
-        $runtimeReport = file_get_contents(base_path('RUNTIME-VERIFICATION-REPORT.md'));
-        $financialReport = file_get_contents(base_path('FINANCIAL-INTEGRITY-REPORT.md'));
-        $rustReport = file_get_contents(base_path('RUST-RUNTIME-REPORT.md'));
+        $audit = file_get_contents(base_path('docs/audit-reports/audit.md'));
+        $runtimeReport = file_get_contents(base_path('docs/audit-reports/RUNTIME-VERIFICATION-REPORT.md'));
+        $financialReport = file_get_contents(base_path('docs/audit-reports/FINANCIAL-INTEGRITY-REPORT.md'));
+        $rustReport = file_get_contents(base_path('docs/audit-reports/RUST-RUNTIME-REPORT.md'));
 
         self::assertIsString($audit);
         self::assertIsString($runtimeReport);
@@ -64,7 +64,7 @@ final class Pages251To350StaticContractTest extends TestCase
         for ($page = 251; $page <= 350; $page++) {
             self::assertMatchesRegularExpression('/\| '.$page.' \|/', $audit);
         }
-        self::assertStringContainsString('BLOCKED — REQUIRED RUNTIME COMPONENT UNAVAILABLE', $audit);
+        self::assertStringContainsString('STATIC_ONLY. Runtime, production, live payments and official-source authenticity are NOT_VERIFIED.', $audit);
         self::assertStringContainsString('NOT_CONFIGURED', $audit);
         self::assertStringContainsString('RUNTIME', $runtimeReport);
         self::assertStringContainsString('Financial integrity', $financialReport);
