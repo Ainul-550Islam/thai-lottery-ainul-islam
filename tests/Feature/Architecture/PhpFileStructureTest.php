@@ -49,7 +49,7 @@ final class PhpFileStructureTest extends TestCase
                 continue;
             }
 
-            $relative = substr($file->getRealPath(), strlen($root) + 1);
+            $relative = str_replace('\\', '/', substr($file->getRealPath(), strlen($root) + 1));
 
             if (! \in_array(explode('/', $relative)[0], self::ROOTS, true)) {
                 continue;

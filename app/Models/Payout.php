@@ -81,6 +81,7 @@ class Payout extends Model
             'multiplier' => 'decimal:4',
             'processed_at' => 'datetime',
             'failed_at' => 'datetime',
+            'paid_at' => 'datetime',
             'metadata' => 'array',
         ];
     }
