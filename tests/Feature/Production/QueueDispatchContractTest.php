@@ -54,6 +54,8 @@ final class QueueDispatchContractTest extends TestCase
      * @var array<string, string>
      */
     private const DEFERRED = [
+        'ChunkedSettlementJob' => 'Retired legacy shape. handle() throws LegacyLotteryEntryException; kept only so previously queued payloads deserialize and fail closed.',
+        'ProcessWinningEntryPayoutJob' => 'Retired legacy shape kept so previously queued payloads fail closed. A queued user, amount or tier is never proof of a prize; existing LotteryEntry claims require reconciliation.',
         // ── Phase 5.2: real-money disbursement ──────────────────────────
         'DisburseApprovedPrizeJob' => 'Phase 5.2 real-money payout. Gated behind PRIZE_PAYOUT_SAFETY_MODE=LIVE, which is DISABLED by default and asserted by ProductionConfigSafetyTest.',
         'DisburseWithdrawalJob' => 'Phase 5.2. Withdrawal disbursement shares the payout rails.',

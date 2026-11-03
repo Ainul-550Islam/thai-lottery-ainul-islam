@@ -4,63 +4,74 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Security;
 
-use App\Events\BotBlocked;
-use App\Events\BotSuspected;
 use App\Http\Middleware\BotDetectionMiddleware;
-use App\Services\Bot\BotDetectionService;
-use App\Services\Bot\BotScoreCalculator;
-use App\Services\Bot\Signals\UserAgentSignal;
-use App\Services\Network\IpCidrMatcher;
-use App\Services\Network\TrustedClientIpResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Config\Repository;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Event;
+use Psr\Log\NullLogger;
 use Tests\TestCase;
 
-class BotDetectionMiddlewareTest extends TestCase
+final class BotDetectionMiddlewareTest extends TestCase
 {
-    use RefreshDatabase;
-
-    public function test_logs_bot_telemetry_in_log_only_mode_without_blocking(): void
+    /** @param array<string, mixed> $bot */
+    private function middleware(array $bot): BotDetectionMiddleware
     {
-        Event::fake([BotSuspected::class, BotBlocked::class]);
-        config(['bot.mode' => 'log_only']);
+        return new BotDetectionMiddleware(new Repository(['bot' => $bot]), app(), new NullLogger);
+    }
 
-        $botService = new BotDetectionService([new UserAgentSignal], new BotScoreCalculator);
-        $middleware = new BotDetectionMiddleware($botService, new TrustedClientIpResolver(new IpCidrMatcher));
-
-        $request = Request::create('/api/v1/auth/login', 'POST', [], [], [], [
+    private function botPost(): Request
+    {
+        return Request::create('/api/v1/auth/login', 'POST', [], [], [], [
             'HTTP_USER_AGENT' => 'curl/7.88.1',
             'REMOTE_ADDR' => '198.51.100.1',
         ]);
-
-        $response = $middleware->handle($request, fn () => new Response('PASS', 200));
-
-        $this->assertSame(200, $response->getStatusCode());
-        Event::assertDispatched(BotSuspected::class);
-        Event::assertNotDispatched(BotBlocked::class);
     }
 
-    public function test_blocks_aggressive_bot_in_enforce_mode(): void
+    public function test_observation_is_off_by_default_and_never_blocks(): void
     {
-        Event::fake([BotBlocked::class]);
-        config(['bot.mode' => 'enforce']);
-        config(['bot.block_threshold' => 20]); // low threshold for test
+        $request = $this->botPost();
+        $response = $this->middleware([])->handle($request, fn () => new Response('PASS', 200));
 
-        $botService = new BotDetectionService([new UserAgentSignal], new BotScoreCalculator);
-        $middleware = new BotDetectionMiddleware($botService, new TrustedClientIpResolver(new IpCidrMatcher));
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('disabled', $request->attributes->get('bot.observation_status'));
+    }
 
-        $request = Request::create('/api/v1/auth/login', 'POST', [], [], [], [
-            'HTTP_USER_AGENT' => 'sqlmap/1.6.12',
-            'REMOTE_ADDR' => '198.51.100.2',
-        ]);
+    public function test_non_post_requests_are_skipped(): void
+    {
+        $request = Request::create('/api/v1/auth/login', 'GET');
+        $response = $this->middleware(['enabled' => true, 'http_observation' => ['enabled' => true]])
+            ->handle($request, fn () => new Response('PASS', 200));
 
-        $response = $middleware->handle($request, fn () => new Response('PASS', 200));
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('skipped_method', $request->attributes->get('bot.observation_status'));
+    }
 
-        $this->assertSame(403, $response->getStatusCode());
-        $data = json_decode((string) $response->getContent(), true);
-        $this->assertSame('AUTOMATED_REQUEST_BLOCKED', $data['error_code']);
-        Event::assertDispatched(BotBlocked::class);
+    public function test_enforcement_mode_is_refused_not_silently_allowed(): void
+    {
+        $called = false;
+        $request = $this->botPost();
+        $response = $this->middleware([
+            'enabled' => true,
+            'mode' => 'enforce',
+            'http_observation' => ['enabled' => true],
+        ])->handle($request, function () use (&$called) {
+            $called = true;
+
+            return new Response('PASS', 200);
+        });
+
+        $this->assertFalse($called);
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertSame('configuration_error', $request->attributes->get('bot.observation_status'));
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertSame('bot_observation_configuration_error', $body['error']['code']);
+    }
+
+    public function test_non_boolean_switch_is_a_configuration_error(): void
+    {
+        $response = $this->middleware(['http_observation' => ['enabled' => 'yes']])
+            ->handle($this->botPost(), fn () => new Response('PASS', 200));
+
+        $this->assertSame(503, $response->getStatusCode());
     }
 }
