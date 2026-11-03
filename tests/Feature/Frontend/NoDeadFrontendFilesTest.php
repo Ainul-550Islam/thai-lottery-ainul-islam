@@ -40,7 +40,7 @@ final class NoDeadFrontendFilesTest extends TestCase
             if (! str_ends_with($file->getFilename(), '.js')) {
                 continue;
             }
-            $files[] = str_replace('\\', '/', str_replace(base_path().'/', '', $file->getPathname()));
+            $files[] = ltrim(str_replace(str_replace(DIRECTORY_SEPARATOR, '/', base_path()), '', str_replace(DIRECTORY_SEPARATOR, '/', $file->getPathname())), '/');
         }
 
         sort($files);
