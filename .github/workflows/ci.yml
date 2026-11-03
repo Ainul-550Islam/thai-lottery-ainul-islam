@@ -36,17 +36,30 @@ jobs:
       - name: Activate pinned npm 11.21.1
         run: npm install --global npm@11.21.1
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
       - name: Validate composer.json
         run: composer validate --no-check-publish
 
       - name: Copy controlled CI environment
         run: cp .env.ci .env
 
+      - name: Check the PHP test runtime (extensions and JPEG encoder)
+        run: php scripts/check-test-runtime.php
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Install front-end dependencies
-        run: npm ci
+      - name: Install and audit front-end dependencies
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run test:dependencies
+          npm run security:dependencies
 
       - name: Build front-end assets
         run: npm run build
@@ -191,18 +204,48 @@ jobs:
           php artisan route:list --path=/
           php artisan route:list --path=results
 
-      - name: Run test suite
+      # ManifestSanityTest renders the Helm chart, so the lane needs a real helm
+      # binary. The tarball is verified against a pinned SHA-256 before it is
+      # unpacked; a mismatch fails the job instead of running an unknown binary.
+      - name: Install checksum-verified Helm v3.19.4
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            --output /tmp/helm-v3.19.4-linux-amd64.tar.gz \
+            https://get.helm.sh/helm-v3.19.4-linux-amd64.tar.gz
+          echo "759c656fbd9c11e6a47784ecbeac6ad1eb16a9e76d202e51163ab78504848862  /tmp/helm-v3.19.4-linux-amd64.tar.gz" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/helm"
+          tar -xzf /tmp/helm-v3.19.4-linux-amd64.tar.gz -C "$RUNNER_TEMP/helm" --strip-components=1 linux-amd64/helm
+          echo "$RUNNER_TEMP/helm" >> "$GITHUB_PATH"
+
+      # WeeklyNativeVerifierRuntimeTest asserts the real executable exists; it
+      # must be built before the suite, never skipped when it is missing.
+      - name: Build the native Weekly integrity verifier
+        run: bash scripts/build-weekly-native-verifier.sh
+
+      - name: Run the SQLite PHP lane (every case routed, none skipped)
         env:
           APP_ENV: testing
         run: |
+          set -euo pipefail
           # A cached config file wins over phpunit.xml's <env> overrides, which
           # points the suite at the development database and connection instead
           # of the in-memory test one. The cache is proven above and discarded
           # here, before the suite runs.
           php artisan config:clear
           test ! -f bootstrap/cache/config.php
-          # Tests must never be skipped to go green: suite exit code is authoritative
-          php artisan test
+          # Skips, risky tests, incomplete tests and an empty suite are failures,
+          # and the lane runner reconciles JUnit against its own discovery plan.
+          python3 scripts/run_php_test_lane.py --lane sqlite --output evidence/php-suite/sqlite
+
+      - name: Upload SQLite PHP case census
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-case-census-sqlite
+          path: evidence/php-suite/sqlite
+          if-no-files-found: error
+          retention-days: 14
 
       # ---------------------------------------------------------------------
       # PROMPT 7: the seams between a result lane and the rest of the repo.
@@ -434,6 +477,10 @@ jobs:
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
         with:
           toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Copy controlled CI environment
+        run: cp .env.ci .env
 
       - name: Validate Composer platform and dependencies
         run: |
@@ -441,7 +488,11 @@ jobs:
           composer validate --no-check-publish
           composer install --prefer-dist --no-interaction --no-progress
           composer check-platform-reqs
-          composer audit --no-interaction
+          composer audit --locked --abandoned=fail --no-interaction
+
+      # After composer install on purpose: artisan loads vendor/autoload.php.
+      - name: Generate the CI application key
+        run: php artisan key:generate --force
 
       - name: Install and audit frontend dependencies
         run: |
@@ -458,6 +509,19 @@ jobs:
           cargo check --locked
           cargo test --locked
           cargo build --release --locked
+
+      - name: Build the native Weekly integrity verifier
+        run: bash scripts/build-weekly-native-verifier.sh
+
+      # The PHP side is exercised against the real executable built above, with
+      # no skip guard and no faked process.
+      - name: Native verifier PHP-to-Rust contract
+        run: |
+          set -euo pipefail
+          php artisan test \
+            tests/Feature/WeeklyLottery/WeeklyNativeVerifierRuntimeTest.php \
+            tests/Feature/WeeklyLottery/WeeklyLotteryPublicPageTest.php \
+            --fail-on-skipped --fail-on-incomplete --fail-on-empty-test-suite
 
   full-runtime-release:
     name: Full runtime release candidate
@@ -503,6 +567,12 @@ jobs:
       SESSION_DRIVER: array
       MAIL_MAILER: log
       PAGES_451_550_DESTRUCTIVE_TESTS: '1'
+      # The MySQL lane runs the live settlement worker fixture and the
+      # independent-engine concurrency fixture; neither may be skipped.
+      SETTLEMENT_WORKER_LIVE_TEST: '1'
+      SETTLEMENT_WORKER_LIVE_URL: http://127.0.0.1:9101
+      CONCURRENCY_TEST_ALLOW_DESTRUCTIVE: '1'
+      CONCURRENCY_TEST_DSN: mysql://concurrency_test:ci_concurrency_password@127.0.0.1:3306/thai_lottery_conc
 
     steps:
       - name: Checkout
@@ -512,7 +582,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, dom, fileinfo, mysqlnd, pdo_mysql, bcmath, sodium, zip, intl, redis, gd
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, mysqlnd, pdo_mysql, bcmath, sodium, zip, intl, redis, gd
           coverage: none
 
       - name: Setup Node
@@ -528,13 +598,13 @@ jobs:
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
         with:
           toolchain: stable
-          components: rustfmt
+          components: rustfmt, clippy
 
-      - name: Install database client
+      - name: Install database client and socket proxy
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes mysql-client
+          sudo apt-get install --yes mysql-client socat
 
       - name: Copy controlled CI environment
         run: cp .env.ci .env
@@ -545,7 +615,7 @@ jobs:
           composer validate --no-check-publish
           composer install --prefer-dist --no-interaction --no-progress
           composer check-platform-reqs
-          composer audit --no-interaction
+          composer audit --locked --abandoned=fail --no-interaction
           composer dump-autoload --optimize
 
       # After composer install on purpose: artisan loads vendor/autoload.php,
@@ -593,11 +663,90 @@ jobs:
           php artisan queue:failed
           php artisan schedule:list
 
-      - name: Full PHP test suite
+      # WeeklyNativeVerifierRuntimeTest asserts the real executable exists.
+      - name: Build the native Weekly integrity verifier
+        run: bash scripts/build-weekly-native-verifier.sh
+
+      # Trigger and routine creation under binary logging needs SUPER unless the
+      # server trusts function creators. Setting the global flag as root keeps
+      # SUPER off the application user, and the read-back proves it took effect.
+      - name: Allow real failure injection without granting SUPER
         run: |
           set -euo pipefail
-          php artisan config:clear
-          php artisan test
+          docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root -e "SET GLOBAL log_bin_trust_function_creators=1"
+          value="$(docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root --batch --skip-column-names \
+            -e "SELECT @@GLOBAL.log_bin_trust_function_creators")"
+          test "$value" = 1
+
+      # The row-lock tests observe real InnoDB locks, which needs read access to
+      # the lock tables and PROCESS. Nothing broader is granted.
+      - name: Grant scoped lock-observation privileges
+        run: |
+          set -euo pipefail
+          docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root -e "GRANT SELECT ON performance_schema.data_locks TO 'thailotto_ci'@'%'; GRANT SELECT ON performance_schema.data_lock_waits TO 'thailotto_ci'@'%'; GRANT SELECT ON performance_schema.threads TO 'thailotto_ci'@'%'; GRANT PROCESS ON *.* TO 'thailotto_ci'@'%';"
+
+      # The lane runner refuses to start without a LOCAL SERVER SOCKET. The
+      # service container only publishes TCP, so a local socat listener forwards
+      # a unix socket to it, and the step proves a client can use that socket.
+      - name: Provision the local MySQL test-server socket
+        run: |
+          set -euo pipefail
+          socket="$RUNNER_TEMP/mysql-test/mysqld.sock"
+          mkdir -p "$(dirname "$socket")"
+          nohup socat "UNIX-LISTEN:$socket,fork,reuseaddr,unlink-early,mode=0600" TCP:127.0.0.1:3306 >/tmp/mysql-socket-proxy.log 2>&1 &
+          for _ in $(seq 1 30); do
+            test -S "$socket" && break
+            sleep 1
+          done
+          test -S "$socket"
+          MYSQL_PWD=ci_database_password mysql --protocol=SOCKET --socket="$socket" --user=thailotto_ci -e "SELECT 1" thai_lottery_test
+          echo "DB_SOCKET=$socket" >> "$GITHUB_ENV"
+
+      # Disposable schemas and scoped users for the two destructive fixtures. The
+      # worker user may only read thai_lottery_test; each fixture user owns
+      # exactly one throwaway schema.
+      - name: Build and start the live settlement worker
+        run: |
+          set -euo pipefail
+          docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root -e "CREATE DATABASE settlement_worker_destructive_test; CREATE USER 'settlement_worker_test'@'%' IDENTIFIED BY 'ci_settlement_worker_password'; GRANT ALL PRIVILEGES ON settlement_worker_destructive_test.* TO 'settlement_worker_test'@'%'; GRANT SELECT ON thai_lottery_test.* TO 'settlement_worker_test'@'%'; CREATE DATABASE thai_lottery_conc; CREATE USER 'concurrency_test'@'%' IDENTIFIED BY 'ci_concurrency_password'; GRANT ALL PRIVILEGES ON thai_lottery_conc.* TO 'concurrency_test'@'%';"
+
+          # Every ignored (real-database) worker test runs; a skipped one fails.
+          MYSQL_TEST_ALLOW_DESTRUCTIVE=1 \
+          MYSQL_TEST_URL=mysql://settlement_worker_test:ci_settlement_worker_password@127.0.0.1:3306/settlement_worker_destructive_test \
+            cargo test --locked --manifest-path runtime/settlement-worker/Cargo.toml -- --include-ignored 2>&1 | tee /tmp/settlement-worker-cargo-test.log
+          grep -F '0 failed; 0 ignored;' /tmp/settlement-worker-cargo-test.log
+
+          cargo build --locked --release --manifest-path runtime/settlement-worker/Cargo.toml
+          worker=runtime/settlement-worker/target/release/settlement-worker
+          DATABASE_URL=mysql://settlement_worker_test:ci_settlement_worker_password@127.0.0.1:3306/thai_lottery_test \
+          SETTLEMENT_WORKER_HMAC_SECRET=live-settlement-worker-integration-secret-32 \
+          WORKER_BIND=127.0.0.1:9101 \
+            nohup "$worker" >/tmp/settlement-worker.log 2>&1 &
+          for _ in $(seq 1 30); do
+            WORKER_BIND=127.0.0.1:9101 "$worker" --healthcheck && break
+            sleep 1
+          done
+          WORKER_BIND=127.0.0.1:9101 runtime/settlement-worker/target/release/settlement-worker --healthcheck
+
+      - name: Run the MySQL PHP lane (native, live-worker and real-engine cases)
+        run: |
+          set -euo pipefail
+          # Cached config/routes/views from the boot gates must not leak into the suite.
+          php artisan optimize:clear
+          python3 scripts/run_php_test_lane.py --lane mysql --output evidence/php-suite/mysql
+
+      - name: Upload MySQL PHP case census
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-case-census-mysql
+          path: evidence/php-suite/mysql
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Start application and run public browser smoke tests
         run: |
@@ -614,12 +763,30 @@ jobs:
           MYSQL_PWD: ci_database_password
         run: |
           set -euo pipefail
-          mysqldump --host=127.0.0.1 --port=3306 --user=thailotto_ci thai_lottery_test > /tmp/thailotto-test.sql
+          # The restore database is created and granted by root; the application
+          # user never gets CREATE on the server.
+          docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root -e "CREATE DATABASE thailotto_restore; GRANT ALL PRIVILEGES ON thailotto_restore.* TO 'thailotto_ci'@'%';"
+
+          mysqldump --host=127.0.0.1 --port=3306 --user=thailotto_ci \
+            --no-tablespaces --single-transaction --routines --events \
+            thai_lottery_test > /tmp/thailotto-test.sql
           sha256sum /tmp/thailotto-test.sql | tee /tmp/thailotto-test.sql.sha256
-          mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci -e "CREATE DATABASE thailotto_restore"
+          test -s /tmp/thailotto-test.sql
           mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci thailotto_restore < /tmp/thailotto-test.sql
           DB_DATABASE=thailotto_restore php artisan migrate:status
-          test -s /tmp/thailotto-test.sql
+
+          # Data bytes: ordered, data-only dumps of both databases must be identical.
+          for database in thai_lottery_test thailotto_restore; do
+            mysqldump --host=127.0.0.1 --port=3306 --user=thailotto_ci \
+              --no-tablespaces --single-transaction --no-create-info --skip-triggers \
+              --skip-comments --hex-blob --order-by-primary \
+              "$database" > "/tmp/${database}.rows.sql"
+            mysql --host=127.0.0.1 --port=3306 --user=thailotto_ci --batch --raw --skip-column-names \
+              "$database" < scripts/mysql-roundtrip-fingerprint.sql > "/tmp/${database}.schema.txt"
+          done
+          cmp /tmp/thai_lottery_test.rows.sql /tmp/thailotto_restore.rows.sql
+          cmp /tmp/thai_lottery_test.schema.txt /tmp/thailotto_restore.schema.txt
 
       - name: Rust integrity gates
         working-directory: security/weekly-result-integrity
@@ -634,3 +801,41 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check
+
+  # ---------------------------------------------------------------------------
+  # Every PHPUnit case is routed to exactly one lane (SQLite or MySQL). Neither
+  # job can pass by quietly dropping the cases that belong to the other, so this
+  # job reconciles both discovery plans and both JUnit sets from the same commit.
+  # ---------------------------------------------------------------------------
+  php-case-census:
+    name: PHP case census
+    runs-on: ubuntu-latest
+    needs: [test, full-runtime-release]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download SQLite lane census
+        uses: actions/download-artifact@v4
+        with:
+          name: php-case-census-sqlite
+          path: evidence/php-suite/sqlite
+
+      - name: Download MySQL lane census
+        uses: actions/download-artifact@v4
+        with:
+          name: php-case-census-mysql
+          path: evidence/php-suite/mysql
+
+      - name: Reconcile the lanes
+        run: python3 scripts/run_php_test_lane.py --reconcile evidence/php-suite/sqlite evidence/php-suite/mysql
+
+      - name: Require both lane jobs to have passed
+        env:
+          SQLITE_JOB_RESULT: ${{ needs.test.result }}
+          MYSQL_JOB_RESULT: ${{ needs.full-runtime-release.result }}
+        run: |
+          set -euo pipefail
+          test "$SQLITE_JOB_RESULT" = success
+          test "$MYSQL_JOB_RESULT" = success

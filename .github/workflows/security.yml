@@ -28,7 +28,7 @@ jobs:
       - name: Audit PHP Dependencies
         run: |
           set -euo pipefail
-          composer audit --no-interaction
+          composer audit --locked --abandoned=fail --no-interaction
 
   npm-audit:
     name: Node NPM Security Audit
