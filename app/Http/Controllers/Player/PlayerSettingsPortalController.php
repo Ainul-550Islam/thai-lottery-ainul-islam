@@ -10,13 +10,14 @@ use App\Enums\AuditAction;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationEventType;
 use App\Enums\RiskLevel;
+use App\Exceptions\NotificationPreferenceException;
 use App\Http\Controllers\Controller;
 use App\Models\ResponsibleGamingLimit;
 use App\Services\Audit\AuditLogService;
 use App\Services\Compliance\SelfExclusionService;
 use App\Services\Notification\NotificationPreferenceService;
 use App\Services\Security\ResponsibleGamingService;
-use App\Exceptions\NotificationPreferenceException;
+use App\Support\ResponsibleGaming\SelfExclusionDuration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -272,9 +273,9 @@ final class PlayerSettingsPortalController extends Controller
         }
 
         $validated = $request->validate([
-            'duration' => ['required', 'string', Rule::in(['24h', '7d', '30d', '365d'])],
+            'duration' => ['required', 'string', Rule::in(SelfExclusionDuration::keys())],
         ]);
-        $days = ['24h' => 1, '7d' => 7, '30d' => 30, '365d' => 365][(string) $validated['duration']];
+        $days = SelfExclusionDuration::days((string) $validated['duration']);
         $requestData = SelfExclusionData::fromInput([
             'user_id' => (int) $user->id,
             'effective_at' => now(),
@@ -372,12 +373,12 @@ final class PlayerSettingsPortalController extends Controller
     private function notificationMatrix(Collection $rows): array
     {
         return $rows->map(static fn ($row): array => [
-                'event_type' => $row->event_type->value,
-                'channel' => $row->channel->value,
-                'enabled' => (bool) $row->enabled,
-                'quiet_hours' => $row->quiet_hours,
-                'mandatory' => $row->event_type->isMandatory(),
-            ])
+            'event_type' => $row->event_type->value,
+            'channel' => $row->channel->value,
+            'enabled' => (bool) $row->enabled,
+            'quiet_hours' => $row->quiet_hours,
+            'mandatory' => $row->event_type->isMandatory(),
+        ])
             ->values()
             ->all();
     }

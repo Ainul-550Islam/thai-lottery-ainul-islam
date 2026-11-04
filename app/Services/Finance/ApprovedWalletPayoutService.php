@@ -12,6 +12,7 @@ use App\Events\PrizePayoutCompleted;
 use App\Models\Payment;
 use App\Models\Payout;
 use App\Services\Observability\CorrelationContext;
+use App\Services\Prize\PrizeClaimCompletionService;
 use Illuminate\Support\Facades\DB;
 
 /** Wallet-only canonical executor. Uncertain/unauthorized work is held, never stamped as a final failure. */
@@ -19,7 +20,7 @@ final class ApprovedWalletPayoutService
 {
     public function execute(int $payoutId): array
     {
-        if (config('finance.prize_payout.safety_mode') !== 'LIVE') {
+        if (strtoupper((string) config('finance.prize_payout.safety_mode', 'DISABLED')) !== 'LIVE') {
             app(PayoutBatchMembershipService::class)->refuse();
         }
         $route = Payout::query()->findOrFail($payoutId);
@@ -54,7 +55,7 @@ final class ApprovedWalletPayoutService
             $row->processed_at = now();
             $row->save();
             app(PayoutApprovalService::class)->complete($row);
-            app(\App\Services\Prize\PrizeClaimCompletionService::class)->complete($row);
+            app(PrizeClaimCompletionService::class)->complete($row);
             event(new PrizePayoutCompleted($row, $row->user, CorrelationContext::get()));
 
             return ['result' => 'paid', 'amount' => (string) $row->amount];

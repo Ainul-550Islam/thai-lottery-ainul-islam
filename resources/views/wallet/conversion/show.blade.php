@@ -159,7 +159,7 @@
                 @foreach ($timeline as $entry)
                     <li class="wc-timeline__item @if (! empty($entry['error_code'])) wc-timeline__item--error @endif">
                         <span class="wc-timeline__event">
-                            {{ \Illuminate\Support\Facades\Lang::has('wallet_conversion.event_'.$entry['event']) ? __('wallet_conversion.event_'.$entry['event']) : $entry['event'] }}
+                            {{ \Illuminate\Support\Facades\Lang::has('wallet_conversion.event_'.str($entry['event'])->after('conversion_')) ? __('wallet_conversion.event_'.str($entry['event'])->after('conversion_')) : $entry['event'] }}
                         </span>
                         <span class="wc-timeline__status">
                             {{ $entry['status_from'] ?? '—' }}

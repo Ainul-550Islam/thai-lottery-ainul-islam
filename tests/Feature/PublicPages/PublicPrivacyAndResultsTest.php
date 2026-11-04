@@ -8,9 +8,11 @@ use App\Enums\DrawStatus;
 use App\Enums\GloSourceState;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Models\User;
 use App\Services\PublicPages\ResultsPageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Tests\Feature\Glo\Concerns\CreatesTrustedGloResult;
 use Tests\TestCase;
 
 /**
@@ -21,6 +23,7 @@ use Tests\TestCase;
  */
 final class PublicPrivacyAndResultsTest extends TestCase
 {
+    use CreatesTrustedGloResult;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -70,16 +73,24 @@ final class PublicPrivacyAndResultsTest extends TestCase
             'scheduled_at' => now()->subDays(10),
         ]);
 
-        DrawResult::factory()->create([
+        $maker = User::factory()->create();
+        $checker = User::factory()->create();
+
+        $result1 = DrawResult::factory()->create([
             'draw_id' => $draw1->id,
             'first_prize' => '123456',
-            'metadata' => [
-                'glo' => [
-                    'import_provider' => 'official_api',
-                    'import_fingerprint' => 'glo-fp-001',
-                ],
-            ],
+            'published_at' => now()->subDays(9),
+            'metadata' => $this->trustedFixtureResultMetadata(
+                $draw1,
+                $maker,
+                $checker,
+                '123456',
+                '45',
+                provider: 'official',
+                mode: 'official',
+            ),
         ]);
+        $this->linkTrustedDrawResult($draw1->refresh(), $result1);
 
         $draw2 = Draw::factory()->create([
             'status' => DrawStatus::Completed,

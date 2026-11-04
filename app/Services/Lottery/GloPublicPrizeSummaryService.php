@@ -8,6 +8,7 @@ use App\Enums\DrawStatus;
 use App\Enums\GloSourceState;
 use App\Models\Draw;
 use App\Models\DrawResult;
+use App\Services\PublicPages\PublishedResultSourceResolver;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -20,7 +21,10 @@ use Illuminate\Support\Facades\Cache;
  */
 class GloPublicPrizeSummaryService
 {
-    public function __construct(private readonly GloPrizeCatalogue $catalogue) {}
+    public function __construct(
+        private readonly GloPrizeCatalogue $catalogue,
+        private readonly PublishedResultSourceResolver $resolver,
+    ) {}
 
     /**
      * @return array{
@@ -69,42 +73,31 @@ class GloPublicPrizeSummaryService
                 $first = $this->firstPrizeEntry();
 
                 if ($result === null || $first === null) {
-                    return [
-                        'status' => 'UNAVAILABLE',
-                        'tier' => null,
-                        'label' => null,
-                        'amount' => null,
-                        'draw_number' => $draw->draw_number,
-                        'draw_date' => $draw->scheduled_at?->toDateString(),
-                        'source_state' => GloSourceState::Unavailable->value,
-                        'fixture_sample' => false,
-                        'message' => 'No verified prize summary for the current draw.',
-                    ];
+                    return $this->unavailableForDraw($draw);
                 }
 
-                $meta = is_array($result->metadata) ? $result->metadata : [];
-                $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
-                $provider = (string) ($lane['import_provider'] ?? '');
-                $fixture = $provider === 'fixture';
-                $source = $fixture
-                    ? GloSourceState::FixtureOnly
-                    : GloSourceState::OfficialSourceVerified;
+                // Source disclosure only. In production a declared fixture
+                // resolves to Unavailable, so demo data can never reach this
+                // card; outside production it resolves to FixtureOnly.
+                $source = $this->resolver->resolve($draw, $result);
 
+                if ($source === GloSourceState::Unavailable) {
+                    return $this->unavailableForDraw($draw);
+                }
                 return [
-                    'status' => 'VERIFIED',
+                    'status' => $source === GloSourceState::OfficialSourceVerified ? 'VERIFIED' : 'AVAILABLE',
                     'tier' => $first['tier'],
                     'label' => $first['label'],
                     'amount' => $first['amount'],
                     'draw_number' => (string) $draw->draw_number,
                     'draw_date' => $draw->scheduled_at?->toDateString(),
                     'source_state' => $source->value,
-                    'fixture_sample' => $fixture,
+                    'fixture_sample' => $source === GloSourceState::FixtureOnly,
                     'message' => null,
                 ];
             });
         } catch (\Throwable $e) {
             report($e);
-
             return [
                 'status' => 'UNAVAILABLE',
                 'tier' => null,
@@ -118,12 +111,40 @@ class GloPublicPrizeSummaryService
             ];
         }
     }
-
     public function flush(): void
     {
         Cache::forget('home.prize-summary');
     }
-
+    /**
+     * The one "no verified summary for this draw" payload, shared by the
+     * missing-result and unresolvable-source branches so they cannot drift.
+     *
+     * @return array{
+     *     status: string,
+     *     tier: null,
+     *     label: null,
+     *     amount: null,
+     *     draw_number: mixed,
+     *     draw_date: string|null,
+     *     source_state: string,
+     *     fixture_sample: false,
+     *     message: string,
+     * }
+     */
+    private function unavailableForDraw(Draw $draw): array
+    {
+        return [
+            'status' => 'UNAVAILABLE',
+            'tier' => null,
+            'label' => null,
+            'amount' => null,
+            'draw_number' => $draw->draw_number,
+            'draw_date' => $draw->scheduled_at?->toDateString(),
+            'source_state' => GloSourceState::Unavailable->value,
+            'fixture_sample' => false,
+            'message' => 'No verified prize summary for the current draw.',
+        ];
+    }
     /**
      * @return array{tier: string, label: string, amount: string}|null
      */
@@ -138,7 +159,6 @@ class GloPublicPrizeSummaryService
                 ];
             }
         }
-
         return null;
     }
 }

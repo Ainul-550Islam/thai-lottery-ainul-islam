@@ -54,6 +54,8 @@ final class QueueDispatchContractTest extends TestCase
      * @var array<string, string>
      */
     private const DEFERRED = [
+        'BuildPersonalDataExportJob' => 'No producer yet: the operator Build export action in the privacy-request panel does not dispatch this job. Building and releasing an archive are separate by design (see class docblock).',
+        'DistributeAgentCommissionsJob' => 'No producer remains. The docblock ties it to legacy lottery-entry placement (lotteryEntryId), whose sales are closed by LegacyLotteryEntryException.',
         'ChunkedSettlementJob' => 'Retired legacy shape. handle() throws LegacyLotteryEntryException; kept only so previously queued payloads deserialize and fail closed.',
         'ProcessWinningEntryPayoutJob' => 'Retired legacy shape kept so previously queued payloads fail closed. A queued user, amount or tier is never proof of a prize; existing LotteryEntry claims require reconciliation.',
         // ── Phase 5.2: real-money disbursement ──────────────────────────
