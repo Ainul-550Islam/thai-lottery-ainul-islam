@@ -274,7 +274,7 @@ final class NoUnconditionalSkipTest extends TestCase
 
     private function relative(string $absolute): string
     {
-        return ltrim(str_replace(base_path(), '', $absolute), '/');
+        return ltrim(str_starts_with($absolute, base_path()) ? substr($absolute, strlen(base_path())) : $absolute, '/'); // prefix only: str_replace() would also strip "/app" from app/Services when base_path() is /app
     }
 
     /**

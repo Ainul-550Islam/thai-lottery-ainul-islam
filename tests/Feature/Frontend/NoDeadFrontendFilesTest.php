@@ -40,7 +40,7 @@ final class NoDeadFrontendFilesTest extends TestCase
             if (! str_ends_with($file->getFilename(), '.js')) {
                 continue;
             }
-            $files[] = ltrim(str_replace(str_replace(DIRECTORY_SEPARATOR, '/', base_path()), '', str_replace(DIRECTORY_SEPARATOR, '/', $file->getPathname())), '/');
+            $files[] = ltrim(substr(str_replace(DIRECTORY_SEPARATOR, '/', $file->getPathname()), strlen(str_replace(DIRECTORY_SEPARATOR, '/', base_path()))), '/'); // prefix only: str_replace() would also strip "/app" from js/app.js when base_path() is /app
         }
 
         sort($files);
