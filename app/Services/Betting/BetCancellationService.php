@@ -169,6 +169,16 @@ class BetCancellationService
             if (! $route) {
                 $this->proof->refuse();
             }
+            // One global lock order: the paying member wallet and every agent wallet
+            // named by this bet's commission payout receipts are locked together in
+            // ascending id order. Taking the member wallet first and the agent wallets
+            // later would invert the order used by commission settlement and deadlock.
+            $payoutWalletIds = DB::table('agent_commission_payouts')
+                ->whereIn('commission_id', DB::table('agent_commissions')->where('bet_id', (int) $bet->getKey())->select('id'))
+                ->pluck('wallet_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            app(WalletLockService::class)->lockMany([(int) $route->wallet_id, ...$payoutWalletIds]);
             $wallet = app(WalletLockService::class)->lockForCredit((int) $route->wallet_id);
             // Draw coordinators already hold this lock; player cancellation
             // takes it before the bet so closing/cancelling the draw cannot
@@ -699,6 +709,14 @@ class BetCancellationService
         // cancellation over an open - or a corrupt - agent book. This runs on the
         // replay path too, not only for a coordinator: an ordinary repeated cancel()
         // must prove the same closure as the draw-level coordinator.
+        // The route row read above had no lock and, after an older repeatable-read
+        // snapshot, can predate a cancellation that committed while this caller waited.
+        // Re-read it with a current (locking) read so the commission recovery proof
+        // compares against the committed row, not the stale one.
+        $route = DB::table('bet_purchase_ownerships')->where('bet_id', (int) $bet->getKey())->lockForUpdate()->first();
+        if (! $route) {
+            $this->proof->refuse();
+        }
         if ($route->commission_snapshot_hash !== null) {
             app(BetCommissionCancellation::class)->assertRecoveryClosed($bet, $route);
         }

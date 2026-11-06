@@ -112,6 +112,26 @@ class DoubleEntryLedgerService
             })
             ->lockForUpdate()
             ->first();
+        // A locking scan follows primary-key order. A writer that waited on the old
+        // tip can resume after a peer committed a successor whose key sorts before the
+        // scan cursor: that successor is never visited, the old tip stops qualifying
+        // under the refreshed view, and the query returns null although the chain is
+        // not empty. Run the same statement again with the lock held and the view
+        // fixed. Posting with the genesis hash is never an acceptable guess, so a tip
+        // that is still missing on a non-empty ledger aborts the posting.
+        if ($latestTx === null) {
+            $latestTx = LedgerTransaction::query()
+                ->whereNotExists(static function ($query): void {
+                    $query->selectRaw('1')
+                        ->from('ledger_transactions as child')
+                        ->whereColumn('child.previous_hash', 'ledger_transactions.hash');
+                })
+                ->lockForUpdate()
+                ->first();
+        }
+        if ($latestTx === null && LedgerTransaction::query()->lockForUpdate()->first() !== null) {
+            throw new RuntimeException('Ledger chain tip could not be located on a non-empty ledger.');
+        }
         // The anti-join above reads child rows from the transaction snapshot, so a
         // writer queued behind the tip lock can still see the pre-commit tip.
         // Locking reads see the latest committed rows: walk forward to the real tip.

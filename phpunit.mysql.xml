@@ -12,6 +12,18 @@
             <!-- Explicit file membership prevents overlapping directory suffixes from
                  adding ServerRaceTest files twice and makes suite discovery auditable. -->
             <file>tests/Feature/Betting/OwnedBetAmendmentServerRaceTest.php</file>
+            <file>tests/Feature/Agent/CommissionCancellationCurrentReadTest.php</file>
+            <file>tests/Feature/Agent/CommissionPayoutCurrentReadTest.php</file>
+            <file>tests/Feature/Agent/PaidCommissionCurrentReadTest.php</file>
+            <file>tests/Feature/Betting/BetCancellationCurrentReadTest.php</file>
+            <file>tests/Feature/Payment/DurableDepositCheckoutTest.php</file>
+            <file>tests/Feature/Payment/FinancialHoldCurrentReadTest.php</file>
+            <file>tests/Feature/Payment/PayoutBatchProjectionTest.php</file>
+            <file>tests/Feature/Payment/PayoutTransferReferenceTest.php</file>
+            <file>tests/Feature/Finance/LedgerPostingBalanceProjectionTest.php</file>
+            <file>tests/Feature/Finance/LedgerPostingEntryMoneyTest.php</file>
+            <file>tests/Feature/Finance/LedgerPostingObserverOwnershipTest.php</file>
+            <file>tests/Feature/Settlement/SettlementSimulationTest.php</file>
             <file>tests/Feature/Betting/OwnedPurchaseReplayServerRaceTest.php</file>
             <file>tests/Feature/Betting/PlayerWagerAdmissionServerTest.php</file>
             <file>tests/Feature/Betting/StripeRefundWagerGuardServerTest.php</file>

@@ -80,7 +80,7 @@ try {
         // A duplicate must be an actual MySQL/MariaDB unique-key violation,
         // not a connection, deadlock, foreign-key or fixture failure.
         if ((int) ($exception->errorInfo[1] ?? 0) !== 1062) { throw $exception; }
-        echo json_encode(['outcome' => 'duplicate'], JSON_THROW_ON_ERROR);
+        echo json_encode(['outcome' => 'duplicate', 'message' => $exception->getMessage()], JSON_THROW_ON_ERROR);
     }
 } catch (Throwable $exception) {
     fwrite(STDERR, get_class($exception).': '.$exception->getMessage());
@@ -147,7 +147,7 @@ PHP;
             }
             $outcomes = array_column($results, 'outcome');
             sort($outcomes);
-            self::assertSame($sameKey ? ['duplicate', 'posted'] : ['posted', 'posted'], $outcomes);
+            self::assertSame($sameKey ? ['duplicate', 'posted'] : ['posted', 'posted'], $outcomes, json_encode($results, JSON_THROW_ON_ERROR));
             $posted = array_values(array_filter($results, fn (array $result): bool => $result['outcome'] === 'posted'));
             $count = $sameKey ? 1 : 2;
             self::assertCount($count, $posted);
