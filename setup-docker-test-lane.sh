@@ -204,9 +204,10 @@ lane_races() {
   ( set -e
     mysql_env
     php artisan migrate:fresh --force --no-interaction
+    mkdir -p evidence
     python3 scripts/run_financial_concurrency.py --suite all --database thai_lottery_test --connection mysql \
       --socket "$SOCK" --username lotto --acknowledge-disposable-database --repeats 1 \
-      --json "$OUT/races.json" 2>&1 | tee "$OUT/races.log" ) || echo "lane races aborted"
+      --json evidence/docker-races.json 2>&1 | tee "$OUT/races.log"; cp evidence/docker-races.json "$OUT/races.json" 2>/dev/null || true ) || echo "lane races aborted"
 }
 
 case "$LANE" in
