@@ -112,6 +112,16 @@ class DoubleEntryLedgerService
             })
             ->lockForUpdate()
             ->first();
+        // The anti-join above reads child rows from the transaction snapshot, so a
+        // writer queued behind the tip lock can still see the pre-commit tip.
+        // Locking reads see the latest committed rows: walk forward to the real tip.
+        while ($latestTx !== null) {
+            $successor = LedgerTransaction::query()->where('previous_hash', $latestTx->hash)->lockForUpdate()->first();
+            if ($successor === null) {
+                break;
+            }
+            $latestTx = $successor;
+        }
         $previousHash = $latestTx?->hash ?? str_repeat('0', 64);
 
         $txUuid = Str::uuid()->toString();
