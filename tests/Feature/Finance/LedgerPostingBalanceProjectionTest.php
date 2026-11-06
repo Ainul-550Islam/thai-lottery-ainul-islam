@@ -174,7 +174,7 @@ final class LedgerPostingBalanceProjectionTest extends FinancialMasterTestCase
     #[DataProvider('nativeBoundaries')]
     public function test_native_decimal_store_commits_exact_inclusive_signed_boundary(bool $negative): void
     {
-        if (DB::getDriverName() !== 'mysql') {
+        if (! in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
             $this->markTestSkipped('Exact 22-integer-digit DECIMAL persistence requires the native database, not SQLite numeric affinity.');
         }
         [$tx, $pairs] = LedgerPostingCurrentReadTest::bookFixture();
