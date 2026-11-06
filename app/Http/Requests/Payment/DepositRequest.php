@@ -61,7 +61,7 @@ final class DepositRequest extends FormRequest
         return [
             'amount' => ['required', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
             'method' => ['required', 'string', 'not_in:thai_bank', 'in:'.implode(',', array_column(PaymentMethod::cases(), 'value'))],
-            'currency' => ['nullable', 'string', 'in:THB,USD,BDT'],
+            'currency' => ['nullable', 'string', 'in:'.implode(',', (array) config('finance.currency.player_currencies', ['BDT']))],
             'idempotency_key' => ['required', 'string', 'min:8', 'max:128', 'regex:/^[A-Za-z0-9._:-]+$/'],
             'user_id' => ['prohibited'],
             'wallet_id' => ['prohibited'],

@@ -142,8 +142,8 @@ return [
 
     'deposit' => [
         'enabled' => true,
-        'min' => (string) env('FINANCE_MIN_DEPOSIT', '50.00'),
-        'max' => (string) env('FINANCE_MAX_DEPOSIT', '500000.00'),
+        'min' => (string) env('FINANCE_MIN_DEPOSIT', '300.00'),
+        'max' => (string) env('FINANCE_MAX_DEPOSIT', '40000.00'),
         'auto_confirm' => (bool) env('FINANCE_DEPOSIT_AUTO_CONFIRM', false),
         'reference_prefix' => 'DP',
         'expire_unpaid_after_minutes' => 30,
@@ -164,8 +164,8 @@ return [
 
     'withdrawal' => [
         'enabled' => true,
-        'min' => (string) env('FINANCE_MIN_WITHDRAWAL', '100.00'),
-        'max' => (string) env('FINANCE_MAX_WITHDRAWAL', '500000.00'),
+        'min' => (string) env('FINANCE_MIN_WITHDRAWAL', '1000.00'),
+        'max' => (string) env('FINANCE_MAX_WITHDRAWAL', '40000.00'),
         'require_manual_approval' => true,
         'processing_hours' => (int) env('FINANCE_WITHDRAWAL_PROCESSING_HOURS', 24),
         'reference_prefix' => 'WD',
@@ -205,7 +205,7 @@ return [
     */
 
     'withdrawal_routing' => [
-        'prefer_automated_payout' => (bool) env('PAYMENT_WITHDRAWAL_ROUTING_PREFER_AUTOMATED', true),
+        'prefer_automated_payout' => (bool) env('PAYMENT_WITHDRAWAL_ROUTING_PREFER_AUTOMATED', false),
         'min_amount' => env('PAYMENT_WITHDRAWAL_ROUTING_MIN_AMOUNT'),
         'max_amount' => env('PAYMENT_WITHDRAWAL_ROUTING_MAX_AMOUNT'),
     ],

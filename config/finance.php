@@ -33,6 +33,7 @@ return [
 
     'currency' => [
         'default' => env('FINANCE_DEFAULT_CURRENCY', 'THB'),
+        'player_currencies' => array_values(array_filter(array_map('trim', explode(',', (string) env('FINANCE_PLAYER_CURRENCIES', 'BDT'))))),
         'supported' => ['THB', 'USD', 'BDT'],
         'conversion_enabled' => false,
     ],
@@ -178,8 +179,8 @@ return [
     */
 
     'deposit' => [
-        'min' => (string) env('FINANCE_MIN_DEPOSIT', '50.00'),
-        'max' => (string) env('FINANCE_MAX_DEPOSIT', '500000.00'),
+        'min' => (string) env('FINANCE_MIN_DEPOSIT', '300.00'),
+        'max' => (string) env('FINANCE_MAX_DEPOSIT', '40000.00'),
         'auto_confirm' => (bool) env('FINANCE_DEPOSIT_AUTO_CONFIRM', false),
         // CANONICAL LIVE RULE (whole-percent decimal string: '2.50' = 2.50%).
         // DepositService::resolveFee() consumes exactly this value, exactly
@@ -197,8 +198,8 @@ return [
     */
 
     'withdrawal' => [
-        'min' => (string) env('FINANCE_MIN_WITHDRAWAL', '100.00'),
-        'max' => (string) env('FINANCE_MAX_WITHDRAWAL', '500000.00'),
+        'min' => (string) env('FINANCE_MIN_WITHDRAWAL', '1000.00'),
+        'max' => (string) env('FINANCE_MAX_WITHDRAWAL', '40000.00'),
         'processing_hours' => (int) env('FINANCE_WITHDRAWAL_PROCESSING_HOURS', 24),
         // CANONICAL LIVE RULE (whole-percent decimal string: '8.00' = 8.00%).
         // WithdrawalService::resolveFee() consumes exactly this value, exactly

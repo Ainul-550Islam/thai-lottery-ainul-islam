@@ -53,7 +53,7 @@ final class CreateWithdrawalRequest extends FormRequest
 
             // Optional currency override; the default stays server-side
             // (THB, the GLO operating currency), not client-side.
-            'currency' => ['nullable', 'string', 'in:THB,USD,BDT'],
+            'currency' => ['nullable', 'string', 'in:'.implode(',', (array) config('finance.currency.player_currencies', ['BDT']))],
 
             // Destination details are a free-form label blob at this layer;
             // the operator's disbursement court re-checks them. Tighten only

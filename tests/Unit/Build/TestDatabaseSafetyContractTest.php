@@ -96,7 +96,17 @@ final class TestDatabaseSafetyContractTest extends TestCase
             $pdo->exec("INSERT INTO safety_marker VALUES ('do not delete')");
             $pdo = null;
             if ($symlink) {
-                self::assertTrue(symlink($database, $connectionPath));
+                
+$linked = @symlink($database, $connectionPath);
+
+                if (! $linked && PHP_OS_FAMILY === 'Windows') {
+
+                    self::markTestSkipped('symlink() needs Developer Mode or admin on Windows; this case runs on Linux CI.');
+
+                }
+
+                self::assertTrue($linked);
+
             }
 
             $process = new Process([

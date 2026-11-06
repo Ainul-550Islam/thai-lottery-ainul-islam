@@ -94,6 +94,9 @@ final class ManifestSanityTest extends TestCase
 
     public function test_helm_chart_renders_valid_hardened_workloads_when_helm_is_installed(): void
     {
+        if ((new \Symfony\Component\Process\ExecutableFinder())->find('helm') === null) {
+            $this->markTestSkipped('helm is not installed.');
+        }
         $process = new Process([
             'helm', 'template', 'sanity', base_path('helm/thai-lottery-ledger'),
             '--set', 'ingress.host=unit-test.invalid',

@@ -145,7 +145,7 @@ trait CreatesTrustedGloResult
         $gloLane['lane_confirmed_by'] = (int) $checker->getKey();
 
         return [
-            'provenance' => $provider === 'official' && $mode === 'official' ? 'source-verified' : 'fixture',
+            'provenance' => 'glo_import:'.$provider,
             'provenance_reference' => $importReference,
             'four_eyes' => [
                 'ingested_by' => (int) $maker->getKey(),

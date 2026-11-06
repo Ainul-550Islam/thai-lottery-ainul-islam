@@ -99,7 +99,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
     private function createInstantDisbursementService(): WithdrawalDisbursementService
     {
         $mockGateway = $this->createMock(PaymentGatewayInterface::class);
-        $mockGateway->method('name')->willReturn('mock_instant');
+        $mockGateway->method('name')->willReturn('bank_transfer');
         $mockGateway->method('supportsCurrency')->willReturn(true);
         $mockGateway->method('initiateWithdrawal')->willReturn(
             GatewayWithdrawalResponse::completed('INSTANT-TX-'.bin2hex(random_bytes(4)), ['instant' => true]),
@@ -214,7 +214,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         $sensitiveProviderMessage = 'private-provider-token-must-not-be-persisted';
         $mockGateway = $this->createMock(PaymentGatewayInterface::class);
-        $mockGateway->method('name')->willReturn('mock_ambiguous');
+        $mockGateway->method('name')->willReturn('bank_transfer');
         $mockGateway->method('supportsCurrency')->willReturn(true);
         $mockGateway->expects($this->once())
             ->method('initiateWithdrawal')
@@ -223,7 +223,17 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $service = $this->createDisbursementServiceForGateway($mockGateway);
         $firstResult = $service->disburse($withdrawal);
 
-        $this->assertTrue($firstResult->successful);
+        
+// An unknown outcome is NOT reported as success: the service returns
+
+        // GatewayWithdrawalResponse::uncertain(). The hold and duplicate-block
+
+        // assertions below are what protect the money.
+
+        $this->assertFalse($firstResult->successful);
+
+        $this->assertTrue($firstResult->outcomeUnknown);
+
         $this->assertTrue($firstResult->isPending);
         $this->assertTrue($firstResult->metadata['reconciliation_required']);
 
@@ -241,7 +251,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
             ->firstOrFail();
         $this->assertSame(PaymentStatus::Pending, $payment->status);
         $this->assertSame([
-            'gateway' => 'mock_ambiguous',
+            'gateway' => 'bank_transfer',
             'outcome' => 'pending',
             'provider_reference' => null,
             'state' => 'outcome_unknown',
@@ -250,7 +260,13 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         // A duplicate execution must not transmit the transfer a second time.
         $secondResult = $service->disburse($withdrawal);
-        $this->assertTrue($secondResult->successful);
+        
+// A duplicate attempt is reported as uncertain (successful=false), never as success;
+
+        // the mock's expects($this->once()) is what proves nothing was transmitted twice.
+
+        $this->assertFalse($secondResult->successful);
+
         $this->assertTrue($secondResult->isPending);
         $this->assertSame('already_in_flight', $secondResult->metadata['state']);
 
@@ -405,14 +421,85 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
             idempotencyKey: 'prize-job-bet-07',
         ));
 
-        // Publish Result
+        
+// Publish through the real path: ingestion, then a SECOND operator confirms.
+
         $lifecycle = app(DrawLifecycleService::class);
+
         $draw = $lifecycle->close($draw);
+
         $draw = $lifecycle->markResultPending($draw);
-        app(DrawResultPublicationService::class)->publish((int) $draw->getKey(), [
-            'first_prize' => '456123',
-            'bottom_two' => '45',
+
+
+
+        $maker = \App\Models\User::factory()->create();
+
+        $checker = \App\Models\User::factory()->create();
+
+        $fingerprint = hash('sha256', json_encode([(string) $draw->draw_number, '456123', [], [], [], []], JSON_THROW_ON_ERROR));
+
+        \App\Models\GloResultImport::query()->create([
+
+            'draw_id' => $draw->getKey(),
+
+            'provider' => 'fixture',
+
+            'mode' => 'fixture',
+
+            'endpoint' => 'synthetic-test-only',
+
+            'upstream_draw_id' => $draw->draw_number,
+
+            'status' => 'imported',
+
+            'result_fingerprint' => $fingerprint,
+
+            'payload_summary' => ['first_prize' => '456123', 'bottom_two' => '45'],
+
+            'import_reference' => 'synthetic-'.bin2hex(random_bytes(10)),
+
+            'imported_by' => $maker->getKey(),
+
+            'imported_at' => now(),
+
         ]);
+
+        app(\App\Services\Draw\DrawResultIngestionService::class)->ingest(
+
+            (int) $draw->getKey(),
+
+            [
+
+                'first_prize' => '456123', 'bottom_two' => '45',
+
+                'second_prize' => [], 'third_prize' => [], 'tiers' => [],
+
+                'provider' => 'fixture', 'provider_fingerprint' => $fingerprint,
+
+                'upstream_draw_id' => $draw->draw_number,
+
+            ],
+
+            'glo_import:fixture',
+
+            (int) $maker->getKey(),
+
+        );
+
+        app(\App\Services\Draw\DrawResultConfirmationService::class)->confirm(
+
+            (int) $draw->getKey(),
+
+            (int) $checker->getKey(),
+
+            ['first_prize' => '456123', 'bottom_two' => '45'],
+
+            'Synthetic fixture confirmation',
+
+        );
+
+        $draw = $draw->fresh() ?? $draw;
+
 
         $job = new ProcessPrizeSettlementJob((int) $draw->getKey());
 
@@ -438,35 +525,121 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
     // -------------------------------------------------------------------------
 
     #[Test]
-    public function test_08_duplicate_webhook_job_creates_exactly_one_wallet_mutation(): void
+    
+public function test_08_duplicate_webhook_job_creates_exactly_one_wallet_mutation(): void
+
     {
+
         $player = $this->createPlayer('0.00', Currency::THB);
-        $deposit = $this->createPendingDeposit($player['wallet'], '300.00', PaymentMethod::Bkash);
+
+        $deposit = $this->createPendingDeposit($player['wallet'], '300.00', PaymentMethod::Stripe);
+
+
 
         $payload = new WebhookPayload(
-            gateway: 'bkash',
+
+            gateway: 'stripe',
+
             eventId: 'evt_job_dup_08',
+
             eventType: WebhookEventType::DepositSuccess,
-            providerReference: 'BKASH-JOB-TRX-08',
+
+            providerReference: 'cs_test_job_trx_08',
+
             internalReference: $deposit->reference_number,
+
             amount: '300.00',
+
             currency: Currency::THB,
+
             isSuccess: true,
+
         );
 
+
+
         $job1 = new ProcessPaymentWebhookJob($payload);
+
         $job1->handle($this->webhookService);
 
+
+
         $player['wallet']->refresh();
+
         $this->assertSame('300.00', (string) $player['wallet']->balance);
+
+
 
         // 2nd Duplicate Webhook Job
+
         $job2 = new ProcessPaymentWebhookJob($payload);
+
         $job2->handle($this->webhookService);
 
+
+
         $player['wallet']->refresh();
+
         $this->assertSame('300.00', (string) $player['wallet']->balance);
+
     }
+
+
+
+    #[Test]
+
+    public function test_08b_bkash_and_nagad_queued_webhook_dtos_are_refused_and_credit_nothing(): void
+
+    {
+
+        // ProcessPaymentWebhookJob deliberately refuses bKash/Nagad DTOs: a queued DTO
+
+        // carries no independently verified provider evidence and must not credit money.
+
+        foreach (['bkash' => PaymentMethod::Bkash, 'nagad' => PaymentMethod::Nagad] as $gateway => $method) {
+
+            $player = $this->createPlayer('0.00', Currency::BDT);
+
+            $deposit = $this->createPendingDeposit($player['wallet'], '300.00', $method);
+
+
+
+            $payload = new WebhookPayload(
+
+                gateway: $gateway,
+
+                eventId: 'evt_job_closed_'.$gateway,
+
+                eventType: WebhookEventType::DepositSuccess,
+
+                providerReference: strtoupper($gateway).'-JOB-TRX-08B',
+
+                internalReference: $deposit->reference_number,
+
+                amount: '300.00',
+
+                currency: Currency::BDT,
+
+                isSuccess: true,
+
+            );
+
+
+
+            (new ProcessPaymentWebhookJob($payload))->handle($this->webhookService);
+
+
+
+            $this->assertSame('0.00', (string) $player['wallet']->refresh()->balance);
+
+            $this->assertSame(\App\Enums\DepositStatus::Pending, $deposit->fresh()->status);
+
+        }
+
+    }
+
+
+
 
     // -------------------------------------------------------------------------
     // 9. Failed Job Persistence
@@ -634,7 +807,15 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
 
         $withdrawal->refresh();
         $this->assertSame(WithdrawalStatus::Processing, $withdrawal->status);
-        $this->assertNotNull($withdrawal->provider_reference);
+        
+// BankTransferGateway is a manual wire rail: pending, NO provider reference,
+
+        // flagged for manual reconciliation.
+
+        $this->assertNull($withdrawal->provider_reference);
+
+        $this->assertTrue((bool) ($withdrawal->metadata['reconciliation_required'] ?? false));
+
 
         // Hold remains active during pending asynchronous disbursement
         $player['wallet']->refresh();
@@ -805,7 +986,7 @@ final class ProductionQueueComprehensiveTest extends PaymentTestCase
         $job->handle();
 
         $audit = AuditLog::query()
-            ->where('auditable_type', AuditLog::class)
+            ->where('action', \App\Enums\AuditAction::SecurityAlert->value)
             ->latest('id')
             ->first();
 

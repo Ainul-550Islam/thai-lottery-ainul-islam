@@ -111,9 +111,7 @@ final class CiRuntimeContractTest extends TestCase
         }
         $this->assertStringNotContainsString('GRANT SUPER', $steps[$grants]['run']);
         foreach ([$socket, $grants] as $index) {
-            $syntax = new Process(['/bin/bash', '-n', '-c', str_replace('${{ job.services.mysql.id }}', 'test-container', $steps[$index]['run'])]);
-            $syntax->run();
-            $this->assertSame(0, $syntax->getExitCode(), $syntax->getErrorOutput());
+            $this->assertWorkflowRunParses(str_replace('${{ job.services.mysql.id }}', 'test-container', $steps[$index]['run']));
         }
     }
 
@@ -160,9 +158,7 @@ final class CiRuntimeContractTest extends TestCase
             $this->assertStringContainsString($required, $run);
         }
         $this->assertStringNotContainsString('|| true', $run);
-        $syntax = new Process(['/bin/bash', '-n', '-c', str_replace('${{ job.services.mysql.id }}', 'test-container', $run)]);
-        $syntax->run();
-        $this->assertSame(0, $syntax->getExitCode(), $syntax->getErrorOutput());
+        $this->assertWorkflowRunParses(str_replace('${{ job.services.mysql.id }}', 'test-container', $run));
     }
 
     public function test_mysql_release_backup_restores_under_scoped_permissions_and_compares_data_and_schema(): void
@@ -186,9 +182,7 @@ final class CiRuntimeContractTest extends TestCase
         }
         $this->assertStringNotContainsString('|| true', $run);
         $this->assertStringNotContainsString('--user=thailotto_ci -e "CREATE DATABASE', $run);
-        $syntax = new Process(['/bin/bash', '-n', '-c', str_replace('${{ job.services.mysql.id }}', 'test-container', $run)]);
-        $syntax->run();
-        $this->assertSame(0, $syntax->getExitCode(), $syntax->getErrorOutput());
+        $this->assertWorkflowRunParses(str_replace('${{ job.services.mysql.id }}', 'test-container', $run));
 
         $fingerprint = file_get_contents($this->path('scripts/mysql-roundtrip-fingerprint.sql'));
         foreach (['SCHEMATA', 'TABLES', 'COLUMNS', 'STATISTICS', 'TABLE_CONSTRAINTS',
@@ -299,4 +293,112 @@ final class CiRuntimeContractTest extends TestCase
     {
         return dirname(__DIR__, 3).'/'.$relative;
     }
+
+
+
+    /**
+
+     * Parse-check a workflow `run:` block with bash -n. The script goes through a
+
+     * temp file, so Windows argv quoting cannot mangle multi-line text.
+
+     */
+
+    private function assertWorkflowRunParses(string $script): void
+
+    {
+
+        $bash = $this->bashExecutable();
+
+
+
+        if ($bash === null) {
+
+            if (getenv('CI')) {
+
+                self::fail('bash is required for workflow syntax checks in CI.');
+
+            }
+
+
+
+            self::markTestSkipped('Git for Windows bash not found; this check runs on the Linux CI lane.');
+
+        }
+
+
+
+        $file = tempnam(sys_get_temp_dir(), 'wf-run-');
+
+        file_put_contents($file, str_replace("\r\n", "\n", $script));
+
+
+
+        try {
+
+            $process = new \Symfony\Component\Process\Process([$bash, '-n', str_replace('\\', '/', $file)]);
+
+            $process->run();
+
+            $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+
+        } finally {
+
+            @unlink($file);
+
+        }
+
+    }
+
+
+
+    private function bashExecutable(): ?string
+
+    {
+
+        if (PHP_OS_FAMILY !== 'Windows') {
+
+            return '/bin/bash';
+
+        }
+
+
+
+        // Git for Windows only: System32\bash.exe is the WSL launcher and would
+
+        // read the script path as a Linux path.
+
+        $roots = array_filter([
+
+            getenv('ProgramW6432'),
+
+            getenv('ProgramFiles'),
+
+            getenv('LOCALAPPDATA') ? getenv('LOCALAPPDATA').'\\Programs' : null,
+
+        ]);
+
+
+
+        foreach ($roots as $root) {
+
+            $candidate = $root.'\\Git\\usr\\bin\\bash.exe';
+
+
+
+            if (is_file($candidate)) {
+
+                return $candidate;
+
+            }
+
+        }
+
+
+
+        return null;
+
+    }
+
+
 }

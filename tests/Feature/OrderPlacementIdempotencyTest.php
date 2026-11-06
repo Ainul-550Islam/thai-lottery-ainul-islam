@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\WalletStatus;
+use App\Exceptions\LegacyLotteryEntryException;
 use App\Models\Draw;
 use App\Models\LotteryEntry;
 use App\Models\User;
@@ -14,6 +15,15 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
+/**
+ * OrderPlacementService is retained only for old callers and queue payloads.
+ * Legacy lottery-entry sales are refused until an audited migration and
+ * settlement path exists, so an idempotency key must never let an order
+ * through, create an entry, or move wallet money.
+ *
+ * Idempotent purchases now belong to the canonical purchase services, which
+ * have their own tests (see tests/Feature/Betting).
+ */
 class OrderPlacementIdempotencyTest extends TestCase
 {
     use RefreshDatabase;
@@ -26,7 +36,7 @@ class OrderPlacementIdempotencyTest extends TestCase
         $this->orderService = app(OrderPlacementService::class);
     }
 
-    public function test_duplicate_order_placement_with_same_idempotency_key_is_deduplicated(): void
+    public function test_legacy_order_placement_with_idempotency_key_is_refused_without_side_effects(): void
     {
         $user = User::factory()->create();
 
@@ -52,30 +62,34 @@ class OrderPlacementIdempotencyTest extends TestCase
 
         $idempotencyKey = 'IDEM-ORDER-TEST-UNIQUE-KEY-001';
 
-        // 1st Attempt: Places Order and deducts 100 THB
-        $entry1 = $this->orderService->placeOrder(
-            userId: $user->id,
-            drawId: $draw->id,
-            ticketNumber: '592314',
-            betType: 'DIRECT_6D',
-            stakeAmount: '100.0000',
-            idempotencyKey: $idempotencyKey
-        );
+        // 1st attempt: refused
+        $this->assertPlacementRefused($user, $draw, $idempotencyKey);
 
-        // 2nd Attempt: Same idempotency key
-        $entry2 = $this->orderService->placeOrder(
-            userId: $user->id,
-            drawId: $draw->id,
-            ticketNumber: '592314',
-            betType: 'DIRECT_6D',
-            stakeAmount: '100.0000',
-            idempotencyKey: $idempotencyKey
-        );
+        // 2nd attempt with the same idempotency key: still refused
+        $this->assertPlacementRefused($user, $draw, $idempotencyKey);
 
-        $this->assertEquals($entry1->id, $entry2->id);
-        $this->assertEquals(1, LotteryEntry::where('idempotency_key', $idempotencyKey)->count());
+        // No entry was created and no money moved (500 THB untouched)
+        $this->assertSame(0, LotteryEntry::query()->count());
+        $this->assertEquals('500.0000', bcadd((string) $wallet->fresh()->balance, '0', 4));
+    }
 
-        // Balance should ONLY be deducted once (500 - 100 = 400 THB)
-        $this->assertEquals('400.0000', bcadd((string) $wallet->fresh()->balance, '0', 4));
+    private function assertPlacementRefused(User $user, Draw $draw, string $idempotencyKey): void
+    {
+        try {
+            $this->orderService->placeOrder(
+                userId: $user->id,
+                drawId: $draw->id,
+                ticketNumber: '592314',
+                betType: 'DIRECT_6D',
+                stakeAmount: '100.0000',
+                idempotencyKey: $idempotencyKey
+            );
+        } catch (LegacyLotteryEntryException $e) {
+            $this->assertStringContainsString('Legacy lottery-entry sales is unavailable', $e->getMessage());
+
+            return;
+        }
+
+        $this->fail('Legacy order placement must be refused, but it was accepted.');
     }
 }

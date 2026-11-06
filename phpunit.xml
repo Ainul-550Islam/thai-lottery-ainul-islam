@@ -26,6 +26,12 @@
         </include>
     </source>
     <php>
+        <env name="FINANCE_PLAYER_CURRENCIES" value="THB,USD,BDT" force="true"/>
+        <env name="FINANCE_DEFAULT_CURRENCY" value="THB" force="true"/>
+        <env name="FINANCE_MAX_WITHDRAWAL" value="500000.00" force="true"/>
+        <env name="FINANCE_MIN_WITHDRAWAL" value="100.00" force="true"/>
+        <env name="FINANCE_MAX_DEPOSIT" value="500000.00" force="true"/>
+        <env name="FINANCE_MIN_DEPOSIT" value="50.00" force="true"/>
         <env name="APP_ENV" value="testing"/>
         <env name="CONVERSION_ENABLED" value="true"/>
         <env name="CONVERSION_CASH_TO_WIN_ENABLED" value="true"/>

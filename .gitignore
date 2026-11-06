@@ -57,3 +57,5 @@ runtime/settlement-worker/target/
 /evidence/
 /uploads/SECURITY_MASTER_PROMPT_01-05.md
 /public/build/
+
+.test-results/

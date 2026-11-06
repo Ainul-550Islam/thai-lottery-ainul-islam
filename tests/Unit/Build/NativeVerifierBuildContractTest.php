@@ -9,6 +9,7 @@ use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
 
 /** Native tests must be provisioned, not skipped or pointed at a fake executable. */
+#[\PHPUnit\Framework\Attributes\RequiresOperatingSystem('Linux|Darwin')]
 final class NativeVerifierBuildContractTest extends TestCase
 {
     public function test_build_gate_is_valid_bash_and_rejects_arguments_before_tool_lookup(): void

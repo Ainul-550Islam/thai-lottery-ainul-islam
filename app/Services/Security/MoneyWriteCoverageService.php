@@ -240,6 +240,12 @@ final class MoneyWriteCoverageService
 
     private function relative(string $base, string $path): string
     {
+        $resolved = realpath($base);
+
+        $base = str_replace('\\', '/', $resolved !== false ? $resolved : $base);
+
+        $path = str_replace('\\', '/', $path);
+
         $prefix = rtrim($base, '/').'/';
 
         return str_starts_with($path, $prefix) ? substr($path, strlen($prefix)) : $path;

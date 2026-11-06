@@ -79,6 +79,11 @@
         <!-- Synthetic test-only credentials let mocked Stripe fixtures pass the real readiness gate. -->
         <env name="APP_COUNTRY" value="TH" force="true"/>
         <env name="FINANCE_DEFAULT_CURRENCY" value="THB" force="true"/>
+        <env name="FINANCE_PLAYER_CURRENCIES" value="THB,USD,BDT" force="true"/>
+        <env name="FINANCE_MAX_WITHDRAWAL" value="500000.00" force="true"/>
+        <env name="FINANCE_MIN_WITHDRAWAL" value="100.00" force="true"/>
+        <env name="FINANCE_MAX_DEPOSIT" value="500000.00" force="true"/>
+        <env name="FINANCE_MIN_DEPOSIT" value="50.00" force="true"/>
         <env name="STRIPE_ENABLED" value="true" force="true"/>
         <env name="STRIPE_KEY" value="pk_test_mock_publishable_key_12345" force="true"/>
         <env name="STRIPE_SECRET" value="sk_test_mock_secret_key_12345" force="true"/>

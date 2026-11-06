@@ -131,6 +131,7 @@ return array (
   'status_converted' => 'Converted. :net :currency arrived in your :wallet after a :fee :currency fee. Reference :reference.',
   'validation_amount_precision' => 'The :attribute cannot carry more than two decimal places; the smallest unit is 0.01.',
   'validation_currency_mismatch' => 'Conversion is only supported in the platform currency.',
+  'event_requested' => 'Conversion requested',
   'event_completed' => 'Completed',
   'event_reversed' => 'Reversed',
   'event_rejected' => 'Rejected',

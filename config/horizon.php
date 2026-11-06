@@ -78,7 +78,7 @@ return [
     ],
 
     'trim' => [
-        'recent' => intdiv(env('HORIZON_TRIM_RECENT_MINUTES', 60), 1),
+        'recent' => intdiv((int) env('HORIZON_TRIM_RECENT_MINUTES', 60), 1),
         'pending' => 60,
         'completed' => 60,
         'recent_failed' => 10080,

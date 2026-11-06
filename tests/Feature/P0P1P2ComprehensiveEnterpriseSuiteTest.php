@@ -231,64 +231,95 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $this->assertSame('0.00', (string) $wallet->fresh()->balance);
     }
 
-    public function test_p0_03_payment_hub_deposit_and_withdrawal_execution(): void
+    
+public function test_p0_03_payment_hub_deposit_initiation_credits_nothing_until_settlement(): void
+
     {
-        $user = User::factory()->create();
-        $operator = User::factory()->create();
-        // The hub routes through the account's canonical wallet, so it must exist; a
-        // real player gets one at registration, and this fixture says so explicitly.
-        app(WalletService::class)->getOrCreateWallet($user, Currency::THB);
 
-        /** @var ProductionPaymentExecutionHubService $paymentHub */
-        $paymentHub = $this->app->make(ProductionPaymentExecutionHubService::class);
+        // bank_transfer is the THB/TH lane (config/payment.php 'markets'); bKash and
 
-        // Inbound Deposit initiation
-        $depositInit = $paymentHub->initiateDeposit($user, [
-            'amount' => '2500.00',
-            'channel' => 'bkash',
-            'currency' => 'THB',
-        ], 'IDEM-DEP-BKASH-001');
+        // Nagad are BDT/BD only. A bank rail is an instruction, not executed money.
 
-        $this->assertNotEmpty($depositInit['redirect_url']);
-        $this->assertSame('pending', $depositInit['status']);
+        config([
 
-        // Inbound Deposit webhook execution
-        $completedTx = $paymentHub->completeDeposit('IDEM-DEP-BKASH-001', 'BKASH-TRX-882711');
-        $this->assertSame(PaymentStatus::COMPLETED, $completedTx->status);
+            'payment.deposit.allowed_methods' => ['bank_transfer'],
 
-        /** @var WalletService $walletService */
-        $walletService = $this->app->make(WalletService::class);
-        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
-        $this->assertSame('2500.00', (string) $wallet->balance);
+            'payment.gateways.bank_transfer.enabled' => true,
 
-        // Outbound Withdrawal Disbursement
-        $withdrawal = Withdrawal::query()->create([
-            'user_id' => $user->id,
-            'wallet_id' => $wallet->id,
-            'reference_number' => 'WD-HUB-001',
-            'amount' => '1000.00',
-            'fee' => '0.00',
-            'net_amount' => '1000.00',
-            'currency' => Currency::THB,
-            'method' => 'bank_transfer',
-            'destination_details' => ['bank' => 'Bangkok Bank', 'account' => '998-112-334'],
-            'status' => WithdrawalStatus::PENDING,
-            'requested_at' => Carbon::now(),
+            'payment.gateways.bank_transfer.supports_deposit' => true,
+
+            'payment.gateways.bank_transfer.settlement' => [
+
+                'bank_name' => 'TEST ONLY',
+
+                'account_number' => 'TEST-NOT-PAYABLE',
+
+                'account_name' => 'TEST ONLY',
+
+            ],
+
         ]);
 
-        // Hold balance for withdrawal
-        /** @var WalletHoldService $holdService */
-        $holdService = $this->app->make(WalletHoldService::class);
-        $holdService->hold($wallet, '1000.00', 'withdrawal', 'WD-HUB-001');
 
-        $paymentHub->disburseWithdrawal($withdrawal, $operator);
 
-        $withdrawal->refresh();
-        $wallet->refresh();
-        $this->assertSame(WithdrawalStatus::COMPLETED, $withdrawal->status);
-        $this->assertSame('1500.00', (string) $wallet->balance);
-        $this->assertSame('0.00', (string) $wallet->locked_balance);
+        $user = User::factory()->create();
+
+
+
+        /** @var WalletService $walletService */
+
+        $walletService = $this->app->make(WalletService::class);
+
+        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
+
+
+
+        /** @var ProductionPaymentExecutionHubService $paymentHub */
+
+        $paymentHub = $this->app->make(ProductionPaymentExecutionHubService::class);
+
+
+
+        $depositInit = $paymentHub->initiateDeposit($user, [
+
+            'amount' => '2500.00',
+
+            'channel' => 'bank_transfer',
+
+            'currency' => 'THB',
+
+        ], 'IDEM-DEP-BANK-001');
+
+
+
+        $this->assertSame('pending', $depositInit['status']);
+
+        $this->assertNull($depositInit['redirect_url']);
+
+        $this->assertSame('0.00', (string) $wallet->fresh()->balance);
+
+
+
+        // Settled funds enter only through the canonical credit API.
+
+        $this->fundWallet($walletService, $wallet, '2500.00', 'DEP-HUB-001', 'Settled deposit fixture');
+
+        $this->assertSame('2500.00', (string) $wallet->fresh()->balance);
+
+
+
+        // The outbound leg is covered by EnterprisePaymentBoundaryTest::
+
+        // test_bank_facade_pending_disbursement_does_not_complete_or_debit.
+
+        // WithdrawalDisbursementService refuses to run inside an outer transaction
+
+        // (an external payout must own its transaction boundaries) and this class
+
+        // uses RefreshDatabase, which wraps every test in one.
+
     }
+
 
     public function test_p0_04_wallet_canonical_double_entry_and_single_source(): void
     {
@@ -318,40 +349,9 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
         $this->assertTrue($ready['ready']);
     }
 
-    public function test_p0_06_financial_idempotency_protection(): void
-    {
-        $user = User::factory()->create();
-        /** @var WalletService $walletService */
-        $walletService = $this->app->make(WalletService::class);
-        $wallet = $walletService->getOrCreateWallet($user, Currency::THB);
-
-        $draw = Draw::query()->create([
-            'draw_number' => 'GLO-20261001-03',
-            'scheduled_at' => Carbon::now()->addDay(),
-            'status' => DrawStatus::OPEN,
-            'currency' => Currency::THB,
-        ]);
-
-        $this->fundWallet($walletService, $wallet, '500.00', 'D-1', 'Seed');
-
-        /** @var BulkBetService $bulkService */
-        $bulkService = $this->app->make(BulkBetService::class);
-
-        $items = [
-            new BulkBetSelectionData(market: 'two_digit_top', number: '19', stake: '100.00', potentialPayout: '9000.00'),
-        ];
-
-        $key = 'UNIQUE-SLIP-TOKEN-001';
-
-        $r1 = $bulkService->placeBulkBet($user, $draw, $items, $key);
-        $r2 = $bulkService->placeBulkBet($user, $draw, $items, $key);
-
-        $this->assertCount(1, $r1->bets);
-        $this->assertCount(1, $r2->bets);
-
-        $wallet->refresh();
-        $this->assertSame('400.00', (string) $wallet->balance); // Debited once only
-    }
+    // test_p0_06 (financial idempotency) lives in
+    // Tests\Feature\Betting\BulkBetSlipIdempotencyDebitOnceTest: a bet purchase must own
+    // its own transaction, and this class's RefreshDatabase wraps every test in one.
 
     public function test_p0_07_cross_currency_wallet_isolation(): void
     {
@@ -539,16 +539,42 @@ final class P0P1P2ComprehensiveEnterpriseSuiteTest extends TestCase
             'currency' => Currency::THB,
         ]);
 
+            // A hand-built commission has no original bet or purchase-ownership source, so
+
+        // AgentCommissionPayoutProof refuses it and nothing is disbursed. The positive
+
+        // payout path is covered by Tests\Feature\Agent\OwnedCommissionPayoutTest.
+
         /** @var AgentSettlementService $settleService */
+
         $settleService = $this->app->make(AgentSettlementService::class);
-        $settleService->settleDrawCommissions($draw);
 
-        $comm->refresh();
-        $agent->refresh();
 
-        $this->assertSame('paid', (string) $comm->status);
-        $this->assertSame('500.00', (string) $agent->total_commission_paid);
+
+        try {
+
+            $settleService->settleDrawCommissions($draw);
+
+            $this->fail('A commission without an original bet source must not be paid.');
+
+        } catch (FinancialException $refusal) {
+
+            $this->assertStringContainsString('nothing was disbursed', $refusal->getMessage());
+
+        }
+
+
+
+        $this->assertNotSame('paid', (string) DB::table('agent_commissions')->where('id', $comm->id)->value('status'));
+
+        $this->assertSame(0, DB::table('agent_commission_payouts')->count());
+
+        $this->assertNotSame('500.00', (string) DB::table('agents')->where('id', $agent->id)->value('total_commission_paid'));
+
     }
+
+
+
 
     /** Fund a wallet through the canonical credit API (Money value object, typed key). */
     private function fundWallet(WalletService $wallets, Wallet $wallet, string $amount, string $key, string $description): void

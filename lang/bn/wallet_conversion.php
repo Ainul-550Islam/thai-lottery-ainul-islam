@@ -131,6 +131,7 @@ return [
     'status_converted' => 'রূপান্তর হয়েছে। :fee :currency ফি কাটার পর :net :currency আপনার :wallet-এ পৌঁছেছে। রেফারেন্স :reference।',
     'validation_amount_precision' => ':attribute দশমিকের পর দুই ঘরের বেশি হতে পারবে না; ক্ষুদ্রতম একক 0.01।',
     'validation_currency_mismatch' => 'রূপান্তর শুধু প্ল্যাটফর্মের মুদ্রায় সমর্থিত।',
+    'event_requested' => 'অনুরোধ করা হয়েছে',
     'event_completed' => 'সম্পন্ন',
     'event_reversed' => 'ফেরত',
     'event_rejected' => 'প্রত্যাখ্যাত',
