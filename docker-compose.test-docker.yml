@@ -1,0 +1,69 @@
+# Whole test stack inside Docker (PHP + MariaDB on one Linux kernel).
+# WHY: the 290 skipped tests need MariaDB reached through a REAL Unix socket
+# (tests/Support/RunsServerFinancialRaces.php asserts filetype($socket) === 'socket').
+# A socket cannot cross from Windows into a container via a bind mount, so PHP itself
+# runs in a container and shares /run/mysqld with MariaDB through a named volume.
+name: thai-lottery-test
+
+services:
+  sockperm:
+    image: alpine:3.20
+    command: ["sh", "-c", "chmod 0777 /run/mysqld"]
+    volumes:
+      - dbsock:/run/mysqld
+    restart: "no"
+
+  db:
+    image: mariadb:11.4
+    depends_on:
+      sockperm:
+        condition: service_completed_successfully
+    environment:
+      MARIADB_DATABASE: thai_lottery_test
+      MARIADB_USER: lotto
+      MARIADB_PASSWORD: lotto_test_pw
+      MARIADB_ROOT_PASSWORD: root_test_pw
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=256M
+      - --transaction-isolation=READ-COMMITTED
+      - --innodb-lock-wait-timeout=15
+      - --max-connections=300
+    volumes:
+      - dbsock:/run/mysqld
+    tmpfs:
+      - /var/lib/mysql:rw,size=1g
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 45
+      start_period: 10s
+    restart: "no"
+
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile.test
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /app
+    environment:
+      COMPOSER_ALLOW_SUPERUSER: "1"
+      COMPOSER_MEMORY_LIMIT: "-1"
+    volumes:
+      - ./:/host:ro                 # your project, read-only (synced into /app on every run)
+      - ./.test-results:/out        # logs + junit + SUMMARY.txt come back here
+      - src:/app                    # Linux filesystem copy: fast, correct perms, no CRLF/NTFS quirks
+      - vendor:/app/vendor          # composer install cached between runs
+      - composer-cache:/root/.cache/composer
+      - dbsock:/run/mysqld
+    restart: "no"
+
+volumes:
+  dbsock:
+  src:
+  vendor:
+  composer-cache:
