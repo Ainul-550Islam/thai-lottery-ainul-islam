@@ -133,7 +133,7 @@ final class LedgerPostingEntryMoneyTest extends FinancialMasterTestCase
 
     public function test_native_store_preserves_exact_amount_and_signed_snapshot_column_boundaries(): void
     {
-        if (DB::getDriverName() !== 'mysql') {
+        if (! in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
             $this->markTestSkipped('Exact DECIMAL(20,2) amount and DECIMAL(24,2) snapshot persistence requires the native store.');
         }
         [$tx, $pairs] = LedgerPostingCurrentReadTest::bookFixture();
