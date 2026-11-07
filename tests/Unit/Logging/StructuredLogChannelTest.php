@@ -61,7 +61,11 @@ final class StructuredLogChannelTest extends TestCase
             $this->refreshApplication();
 
             /** @var array<string, array<string, mixed>> $channels */
-            $channels = $this->app['config']->get('logging.channels');
+            // $channels = $this->app['config']->get('logging.channels');
+                        // A cached config (config:cache in CI) freezes logging.channels, so the
+            // LOG_FORMAT set above would never be read. Evaluate the file itself.
+            $channels = (static fn (string $file): array => require $file)($this->app->configPath('logging.php'))['channels'];
+            $this->app['config']->set('logging.channels', $channels);
         } finally {
             if ($previous === false) {
                 putenv('LOG_FORMAT');
