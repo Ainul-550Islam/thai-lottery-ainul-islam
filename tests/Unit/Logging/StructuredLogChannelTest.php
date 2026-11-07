@@ -60,9 +60,16 @@ final class StructuredLogChannelTest extends TestCase
         try {
             $this->refreshApplication();
 
+            // refreshApplication() re-reads .env, which can carry its own LOG_FORMAT and
+            // replace the value set above. Re-assert it after the reboot, as a container
+            // that sets the variable before start would have it.
+            putenv('LOG_FORMAT='.$logFormat);
+            $_ENV['LOG_FORMAT'] = $logFormat;
+            $_SERVER['LOG_FORMAT'] = $logFormat;
+
             /** @var array<string, array<string, mixed>> $channels */
             // $channels = $this->app['config']->get('logging.channels');
-                        // A cached config (config:cache in CI) freezes logging.channels, so the
+            // A cached config (config:cache in CI) freezes logging.channels, so the
             // LOG_FORMAT set above would never be read. Evaluate the file itself.
             $channels = (static fn (string $file): array => require $file)($this->app->configPath('logging.php'))['channels'];
             $this->app['config']->set('logging.channels', $channels);

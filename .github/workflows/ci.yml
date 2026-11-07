@@ -712,7 +712,7 @@ jobs:
         run: |
           set -euo pipefail
           docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
-            mysql --user=root -e "CREATE DATABASE settlement_worker_destructive_test; CREATE USER 'settlement_worker_test'@'%' IDENTIFIED BY 'ci_settlement_worker_password'; GRANT ALL PRIVILEGES ON settlement_worker_destructive_test.* TO 'settlement_worker_test'@'%'; GRANT SELECT ON thai_lottery_test.* TO 'settlement_worker_test'@'%'; CREATE DATABASE thai_lottery_conc; CREATE USER 'concurrency_test'@'%' IDENTIFIED BY 'ci_concurrency_password'; GRANT ALL PRIVILEGES ON thai_lottery_conc.* TO 'concurrency_test'@'%';"
+            mysql --user=root -e "CREATE DATABASE settlement_worker_destructive_test; CREATE USER 'settlement_worker_test'@'%' IDENTIFIED BY 'ci_settlement_worker_password'; GRANT ALL PRIVILEGES ON settlement_worker_destructive_test.* TO 'settlement_worker_test'@'%'; GRANT SELECT ON thai_lottery_test.* TO 'settlement_worker_test'@'%'; CREATE DATABASE thai_lottery_conc; CREATE USER 'concurrency_test'@'%' IDENTIFIED WITH mysql_native_password BY 'ci_concurrency_password'; GRANT ALL PRIVILEGES ON thai_lottery_conc.* TO 'concurrency_test'@'%';"
 
           # Every ignored (real-database) worker test runs; a skipped one fails.
           MYSQL_TEST_ALLOW_DESTRUCTIVE=1 \
@@ -732,6 +732,13 @@ jobs:
           done
           WORKER_BIND=127.0.0.1:9101 runtime/settlement-worker/target/release/settlement-worker --healthcheck
 
+      - name: Preflight the real-engine login the way the test connects
+        run: |
+          if ! php -r '$p = new PDO("mysql:unix_socket=" . getenv("DB_SOCKET") . ";dbname=thai_lottery_conc", "concurrency_test", "ci_concurrency_password"); echo "concurrency_test login ok\n";'; then
+            docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+              mysql --user=root -e "SELECT user, host, plugin FROM mysql.user WHERE user = 'concurrency_test'"
+            exit 1
+          fi
       - name: Run the MySQL PHP lane (native, live-worker and real-engine cases)
         run: |
           set -euo pipefail
