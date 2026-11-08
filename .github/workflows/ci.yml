@@ -739,6 +739,11 @@ jobs:
               mysql --user=root -e "SELECT user, host, plugin FROM mysql.user WHERE user = 'concurrency_test'"
             exit 1
           fi
+      - name: Diagnose MySQL test latency (temporary)
+        continue-on-error: true
+        env:
+          MYSQL_CID: ${{ job.services.mysql.id }}
+        run: bash scripts/ci/diagnose-mysql-latency.sh
       - name: Run the MySQL PHP lane (native, live-worker and real-engine cases)
         run: |
           set -euo pipefail
