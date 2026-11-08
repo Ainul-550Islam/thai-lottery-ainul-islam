@@ -59,3 +59,4 @@ runtime/settlement-worker/target/
 /public/build/
 
 .test-results/
+.env.demo

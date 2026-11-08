@@ -77,7 +77,7 @@ return [
         'stripe' => ['currencies' => ['THB', 'USD'], 'countries' => ['TH', 'US']],
         'bkash' => ['currencies' => ['BDT'], 'countries' => ['BD']],
         'nagad' => ['currencies' => ['BDT'], 'countries' => ['BD']],
-        'bank_transfer' => ['currencies' => ['THB'], 'countries' => ['TH']],
+        'bank_transfer' => ['currencies' => ['THB', 'BDT'], 'countries' => ['TH', 'BD']],
         'promptpay' => ['currencies' => ['THB'], 'countries' => ['TH']],
         'thai_bank' => ['currencies' => ['THB'], 'countries' => ['TH']],
     ],
@@ -400,7 +400,7 @@ return [
             // the environment; otherwise BankTransferGateway fails closed.
             'enabled' => (bool) env('BANK_TRANSFER_ENABLED', false),
             'driver' => 'bank_transfer',
-            'supported_currencies' => ['THB'],
+            'supported_currencies' => ['THB', 'BDT'],
             'supports_deposit' => true,
             'supports_withdrawal' => true,
             'settlement' => [
