@@ -81,7 +81,18 @@ final class CiEnvironmentGuardTest extends TestCase
         $directory = sys_get_temp_dir().'/lottery-ci-guard-'.bin2hex(random_bytes(8));
         mkdir($directory.'/database', 0700, true);
         file_put_contents($directory.'/outside', 'not a database');
-        symlink($directory.'/outside', $directory.'/database/thai_lottery_test');
+        if (PHP_OS_FAMILY === 'Windows' && ! (\defined('SYMLINK_OK'))) {
+            unlink($directory.'/outside');
+            rmdir($directory.'/database');
+            rmdir($directory);
+            self::markTestSkipped('symlink() needs Developer Mode or admin on Windows; this case runs on Linux CI.');
+        }
+        if (! @symlink($directory.'/outside', $directory.'/database/thai_lottery_test') && PHP_OS_FAMILY === 'Windows') {
+            unlink($directory.'/outside');
+            rmdir($directory.'/database');
+            rmdir($directory);
+            self::markTestSkipped('symlink() needs Developer Mode or admin on Windows; this case runs on Linux CI.');
+        }
         try {
             self::assertNotEmpty(CiEnvironmentGuard::violations($this->facts(), $directory, true));
             self::assertSame('not a database', file_get_contents($directory.'/outside'));
