@@ -188,8 +188,7 @@ final class MoneyChainRealtimeTest extends TestCase
                 continue; // not ShouldBroadcast; the loop above already skipped them
             }
 
-            $out = shell_exec('grep -rl "new '.$stem.'(" '.escapeshellarg(app_path()).' 2>/dev/null | grep -v "/Events/'.$stem.'.php"');
-            $files = array_filter(explode("\n", trim((string) $out)));
+            $files = $this->filesThatInstantiate($stem);
 
             if ($files === []) {
                 $unreachable[] = $stem;
@@ -544,6 +543,42 @@ final class MoneyChainRealtimeTest extends TestCase
             'a page carrying a user id must not be publicly cacheable: '.$cache);
         $this->assertStringNotContainsString('s-maxage', $cache,
             'a shared cache must not hold a page that names its viewer: '.$cache);
+    }
+
+    /**
+     * Files under app/ that instantiate the event, other than the event's own file.
+     *
+     * Pure PHP on purpose: the old shell_exec(grep ... 2>/dev/null) cannot run under cmd.exe on
+     * Windows, so every publisher looked undispatched there.
+     *
+     * @return list<string>
+     */
+    private function filesThatInstantiate(string $stem): array
+    {
+        $needle = 'new '.$stem.'(';
+        $hits = [];
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(app_path(), \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $path = $file->getPathname();
+
+            if (str_ends_with(str_replace('\\', '/', $path), '/Events/'.$stem.'.php')) {
+                continue;
+            }
+
+            if (str_contains((string) file_get_contents($path), $needle)) {
+                $hits[] = $path;
+            }
+        }
+
+        return $hits;
     }
 
     private function wallet(): Wallet

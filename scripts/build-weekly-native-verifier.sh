@@ -11,9 +11,10 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 CRATE="$ROOT/security/weekly-result-integrity"
 MANIFEST="$CRATE/Cargo.toml"
 LOCK="$CRATE/Cargo.lock"
+EXE=""; case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) EXE=".exe" ;; esac
 TARGET="$CRATE/target"
 PERSISTENT_BIN_DIR="$CRATE/bin"
-DESTINATION="$TARGET/release/weekly-result-integrity"
+DESTINATION="$TARGET/release/weekly-result-integrity$EXE"
 
 if command -v cargo >/dev/null 2>&1 && command -v rustc >/dev/null 2>&1; then
     for tool in sha256sum install cmp; do
@@ -49,7 +50,7 @@ if command -v cargo >/dev/null 2>&1 && command -v rustc >/dev/null 2>&1; then
         exit 65
     fi
 
-    BUILT="$TARGET/$HOST/release/weekly-result-integrity"
+    BUILT="$TARGET/$HOST/release/weekly-result-integrity$EXE"
     if [[ ! -x "$BUILT" ]]; then
         printf '%s\n' 'The requested host executable was not produced.' >&2
         exit 70
@@ -76,10 +77,10 @@ mkdir -p -- "$TARGET/release" "$PERSISTENT_BIN_DIR"
 TEMP=$(mktemp "$TARGET/release/.weekly-result-integrity.XXXXXX")
 trap 'rm -f -- "$TEMP"' EXIT
 install -m 0755 -- "$BUILT" "$TEMP"
-cmp -s -- "$BUILT" "$TEMP"
+cmp -s -- "$BUILT" "$TEMP" || { echo "installed verifier differs from build" >&2; exit 70; }
 mv -f -- "$TEMP" "$DESTINATION"
-cp -f -- "$DESTINATION" "$PERSISTENT_BIN_DIR/weekly-result-integrity"
-chmod 0755 "$PERSISTENT_BIN_DIR/weekly-result-integrity"
+cp -f -- "$DESTINATION" "$PERSISTENT_BIN_DIR/weekly-result-integrity$EXE"
+chmod 0755 "$PERSISTENT_BIN_DIR/weekly-result-integrity$EXE"
 trap - EXIT
 printf 'NATIVE_VERIFIER_BUILD_READY %s\n' "$DESTINATION"
 sha256sum "$DESTINATION"
