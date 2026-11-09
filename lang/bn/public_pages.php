@@ -443,7 +443,7 @@ return array_replace($english, [
     'download_not_available' => 'যাচাইকৃত PDF এখনো উপলভ্য নয়। এই পৃষ্ঠার প্রিন্ট / সেভ নিয়ন্ত্রণ ব্যবহার করুন।',
     'download_not_configured' => 'এই পরিবেশে যাচাইকৃত PDF এক্সপোর্ট কনফিগার করা হয়নি।',
     'download_unsupported_locale' => 'নথির এই ভাষাটি ডাউনলোডের জন্য প্রকাশিত নয়।',
-    'download_failed' => 'নথিটি ডাউনলোด করা যায়নি। পরে আবার চেষ্টা করুন।',
+    'download_failed' => 'নথিটি ডাউনলোড করা যায়নি। পরে আবার চেষ্টা করুন।',
     'download_starting' => 'যাচাইকৃত PDF প্রস্তুত করা হচ্ছে…',
     'download_ready' => 'যাচাইকৃত PDF প্রস্তুত।',
     'download_version' => 'নথির সংস্করণ',
