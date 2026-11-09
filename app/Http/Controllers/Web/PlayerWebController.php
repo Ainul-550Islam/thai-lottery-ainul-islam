@@ -317,12 +317,55 @@ final class PlayerWebController
             ];
         }
 
+        // Read-only presentation data for the Last Draw Results and Live Feed
+        // panels. Nothing below feeds purchase, pricing or settlement.
+        $bottomTwoKey = (string) config('lottery.results.bottom_two_metadata_key', 'bottom_two');
+        $lastResults = Draw::query()
+            ->whereNotNull('result_published_at')
+            ->with('result')
+            ->orderByDesc('result_published_at')
+            ->limit(5)
+            ->get()
+            ->map(static function (Draw $draw) use ($bottomTwoKey): array {
+                $metadata = $draw->result?->metadata;
+                $bottomTwo = is_array($metadata) ? ($metadata[$bottomTwoKey] ?? null) : null;
+                $firstPrize = $draw->result?->first_prize;
+
+                return [
+                    'draw_number' => (string) $draw->draw_number,
+                    'first_prize' => $firstPrize !== null && $firstPrize !== '' ? (string) $firstPrize : null,
+                    'bottom_two' => is_scalar($bottomTwo) && (string) $bottomTwo !== '' ? (string) $bottomTwo : null,
+                    'published_at' => $draw->result_published_at?->format('d M Y'),
+                ];
+            })
+            ->all();
+
+        // Players are shown only as a one-way anonymous code; no name, e-mail
+        // or user id ever reaches the browser.
+        $liveFeed = $openDraw === null ? [] : Bet::query()
+            ->where('draw_id', $openDraw->id)
+            ->whereNotIn('status', [BetStatus::Cancelled->value, BetStatus::Refunded->value])
+            ->latest('id')
+            ->limit(10)
+            ->get()
+            ->map(static function (Bet $bet): array {
+                return [
+                    'player' => 'P-'.strtoupper(substr(hash('sha256', $bet->user_id.'|'.config('app.key')), 0, 5)),
+                    'type' => $bet->type instanceof \App\Enums\BetType ? strtoupper($bet->type->value) : '',
+                    'stake' => $bet->currency instanceof Currency ? $bet->currency->format((string) $bet->stake_amount) : '',
+                    'when' => $bet->created_at?->diffForHumans(),
+                ];
+            })
+            ->all();
+
         return view('player.bet', [
             'user' => $user,
             'wallet' => $wallet,
             'openDraw' => $openDraw,
             'marketOptions' => $marketOptions,
             'bettingCurrency' => $bettingCurrency,
+            'lastResults' => $lastResults,
+            'liveFeed' => $liveFeed,
         ]);
     }
 

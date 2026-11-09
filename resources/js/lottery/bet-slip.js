@@ -61,6 +61,19 @@
     }
 
     /**
+     * The currency symbol is published by the server on the slip container
+     * (data-currency-symbol) so the preview always matches the betting wallet.
+     * It is display-only; the server remains the only authority on money.
+     * Falls back to the baht sign when the attribute is absent.
+     */
+    function currencySymbol() {
+        var el = document.getElementById('bet-slip-container');
+        var symbol = el ? el.getAttribute('data-currency-symbol') : null;
+
+        return symbol && symbol !== '' ? symbol : '\u0E3F';
+    }
+
+    /**
      * A per-slip idempotency key. Matches BulkBetRequest's CLIENT_KEY_PATTERN
      * (`[A-Za-z0-9._:-]+`) and its configured length window.
      */
@@ -187,11 +200,11 @@
 
             var stake = document.createElement('div');
             stake.className = 'font-mono text-xs font-bold text-white';
-            stake.textContent = '฿' + money(fromMinorUnits(item.stakeMinor));
+            stake.textContent = currencySymbol() + money(fromMinorUnits(item.stakeMinor));
 
             var payout = document.createElement('div');
             payout.className = 'font-mono text-[11px] text-emerald-400';
-            payout.textContent = 'max ฿' + money(fromMinorUnits(Math.round(item.stakeMinor * item.multiplier)));
+            payout.textContent = 'max ' + currencySymbol() + money(fromMinorUnits(Math.round(item.stakeMinor * item.multiplier)));
 
             amounts.appendChild(stake);
             amounts.appendChild(payout);

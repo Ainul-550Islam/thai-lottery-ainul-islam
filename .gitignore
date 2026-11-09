@@ -60,3 +60,7 @@ runtime/settlement-worker/target/
 
 .test-results/
 .env.demo
+framework/views/
+test-results/
+__pycache__/
+*.log

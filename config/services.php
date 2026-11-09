@@ -150,4 +150,12 @@ return [
         ],
     ],
 
+    'google' => [
+        'enabled' => env('GOOGLE_SIGNIN_ENABLED', false),  // master switch, default OFF
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),    // server-side only, never rendered
+        'redirect' => env('GOOGLE_REDIRECT_URI'),          // https://<domain>/social/google/callback
+        'hosted_domain' => env('GOOGLE_HOSTED_DOMAIN'),    // optional: restrict to one Workspace domain
+    ],
+
 ];

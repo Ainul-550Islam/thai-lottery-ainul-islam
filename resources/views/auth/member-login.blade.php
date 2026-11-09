@@ -114,9 +114,13 @@
         </form>
 
         {{-- Social sign-in is not offered until account linking is verified. --}}
+        @if (config('services.google.enabled') && filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect')))
+            <div class="mt-8">@include('partials.google-button')</div>
+        @else
         <p class="mt-8 text-xs text-slate-400 text-center" role="status">
             {{ __('public_pages.social_unavailable_until_link_verified') }}
         </p>
+        @endif
 
         <div class="flex items-center justify-between text-sm">
             <a href="{{ route('register') }}" class="font-medium text-emerald-400 hover:text-emerald-300">

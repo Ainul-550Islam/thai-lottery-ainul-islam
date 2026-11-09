@@ -10,6 +10,8 @@
     $walletBalance = $wallet instanceof \App\Models\Wallet && $wallet->currency instanceof \App\Enums\Currency && $wallet->currency === $currency
         ? \App\Services\Finance\Money::of($wallet->getAvailableBalance(), $currency)->format()
         : null;
+    $lastResults = $lastResults ?? [];
+    $liveFeed = $liveFeed ?? [];
 @endphp
 
 <div class="space-y-8">
@@ -46,6 +48,11 @@
                     <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase text-emerald-300">{{ __('player.status_open') }}</span>
                 </div>
 
+                <div class="mt-5 rounded-2xl border border-amber-500/30 bg-slate-950/70 px-5 py-4 shadow-[0_0_28px_rgba(245,158,11,0.12)]">
+                    <p class="text-[11px] font-black uppercase tracking-[0.18em] text-amber-400">{{ __('player.betting_closes_in') }}</p>
+                    <div id="draw-countdown" class="mt-1 font-mono text-3xl font-extrabold tracking-tight text-emerald-400 sm:text-4xl" aria-live="polite" data-closes-at="{{ $openDraw->betting_close_at?->toIso8601String() ?? '' }}">-- : -- : --</div>
+                </div>
+
                 <div class="mt-6 grid gap-5 sm:grid-cols-2">
                     <div>
                         <label for="market" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">{{ __('player.select_market') }}</label>
@@ -62,7 +69,7 @@
                         <input id="selected-number-input" type="text" inputmode="numeric" autocomplete="off" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-lg tracking-[0.2em] text-white focus:border-amber-400 focus:outline-none" data-number maxlength="6" pattern="[0-9]+">
                     </div>
                     <div>
-                        <label for="stake" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">{{ __('player.stake_thb') }}</label>
+                        <label for="stake" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">{{ __('player.stake_currency', ['currency' => $currency->value]) }}</label>
                         <input id="stake-amount-input" type="text" inputmode="decimal" autocomplete="off" value="" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-lg text-white focus:border-amber-400 focus:outline-none" data-stake>
                     </div>
                     <div class="flex items-end">
@@ -83,7 +90,7 @@
                 <div class="mt-5 rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-200" role="status" aria-live="polite" data-selection-status></div>
             </section>
 
-            <aside id="bet-slip-container" class="rounded-3xl border border-amber-500/25 bg-slate-900/95 p-6 shadow-2xl" aria-labelledby="slip-heading" data-max-items="{{ min(50, max(1, (int) config('lottery.bulk.max_items', 50))) }}" data-draw-id="{{ $openDraw->id }}">
+            <aside id="bet-slip-container" class="rounded-3xl border border-amber-500/25 bg-slate-900/95 p-6 shadow-2xl" aria-labelledby="slip-heading" data-max-items="{{ min(50, max(1, (int) config('lottery.bulk.max_items', 50))) }}" data-draw-id="{{ $openDraw->id }}" data-currency-symbol="{{ $currency->symbol() }}">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <h2 id="slip-heading" class="text-lg font-black text-white">{{ __('player.bet_slip_basket') }}</h2>
                     <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-300" data-slip-count>0</span>
@@ -96,16 +103,84 @@
                 </div>
                 <div class="flex justify-between gap-3 text-sm text-slate-400"><span>Maximum payout preview</span><strong id="total-payout-amount" class="font-mono text-white">0.00</strong></div>
                 <div class="mt-3 text-sm text-slate-300" role="status" aria-live="polite" data-slip-status></div>
-                <button id="btn-place-bet" type="button" class="mt-5 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50" data-submit-slip disabled>
+                <button id="btn-place-bet" type="button" class="mt-5 w-full rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 px-4 py-3 text-sm font-black text-slate-950 shadow-[0_0_24px_rgba(245,158,11,0.45)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50" data-submit-slip disabled>
                     {{ __('player.confirm_place_bets') }}
                 </button>
                 <p class="mt-3 text-center text-[11px] leading-5 text-slate-500">{{ __('player.purchase_fail_closed_note') }}</p>
             </aside>
         </form>
     @endif
+
+    <section class="grid grid-cols-1 gap-6 lg:grid-cols-2" aria-label="{{ __('player.last_draw_results') }}">
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl">
+            <h2 class="text-lg font-black text-white">{{ __('player.last_draw_results') }}</h2>
+            @forelse ($lastResults as $row)
+                <div class="mt-4 border-t border-slate-800 pt-4">
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ $row['draw_number'] }} @if ($row['published_at']) · {{ $row['published_at'] }} @endif</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-bold uppercase text-slate-400">{{ __('player.first_prize_label') }}</span>
+                            @if ($row['first_prize'] !== null)
+                                @foreach (str_split($row['first_prize']) as $digit)
+                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-b from-amber-300 to-amber-600 font-mono text-sm font-black text-slate-950 shadow-inner ring-2 ring-amber-200/40">{{ $digit }}</span>
+                                @endforeach
+                            @else
+                                <span class="text-slate-500">—</span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-bold uppercase text-slate-400">{{ __('player.bottom_two_label') }}</span>
+                            @if ($row['bottom_two'] !== null)
+                                @foreach (str_split($row['bottom_two']) as $digit)
+                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-b from-sky-400 to-blue-700 font-mono text-sm font-black text-white shadow-inner ring-2 ring-sky-200/40">{{ $digit }}</span>
+                                @endforeach
+                            @else
+                                <span class="text-slate-500">—</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <p class="mt-4 rounded-xl border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500">{{ __('player.no_results_yet') }}</p>
+            @endforelse
+        </div>
+
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl">
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="text-lg font-black text-white">{{ __('player.live_bets_feed') }}</h2>
+                <span class="text-[11px] text-slate-500">{{ __('player.live_feed_privacy_note') }}</span>
+            </div>
+            @if (count($liveFeed) === 0)
+                <p class="mt-4 rounded-xl border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500">{{ __('player.no_live_bets') }}</p>
+            @else
+                <div class="mt-4 max-h-72 overflow-y-auto overflow-x-auto" role="region" tabindex="0">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-[11px] uppercase tracking-wider text-slate-500">
+                            <tr>
+                                <th scope="col" class="pb-2 pr-3">{{ __('player.feed_player') }}</th>
+                                <th scope="col" class="pb-2 pr-3">{{ __('player.feed_market') }}</th>
+                                <th scope="col" class="pb-2 pr-3 text-right">{{ __('player.feed_stake') }}</th>
+                                <th scope="col" class="pb-2 text-right">{{ __('player.feed_time') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800">
+                            @foreach ($liveFeed as $row)
+                                <tr>
+                                    <td class="py-2 pr-3 font-mono text-slate-300">{{ $row['player'] }}</td>
+                                    <td class="py-2 pr-3 font-bold text-amber-300">{{ $row['type'] }}</td>
+                                    <td class="py-2 pr-3 text-right font-mono text-white">{{ $row['stake'] }}</td>
+                                    <td class="py-2 text-right text-xs text-slate-500">{{ $row['when'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </section>
 </div>
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/lottery/ticket-selector.js', 'resources/js/lottery/bet-slip.js'])
+    @vite(['resources/js/lottery/ticket-selector.js', 'resources/js/lottery/bet-slip.js', 'resources/js/lottery/countdown.js'])
 @endpush

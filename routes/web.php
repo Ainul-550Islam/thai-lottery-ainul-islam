@@ -119,13 +119,22 @@ Route::middleware('guest')->group(function (): void {
         ->middleware('throttle:password-reset')
         ->name('password.reset.attempt');
 
-    // Social login (Facebook, Twitter/X, Google+) — OAuth2 authorize + callback.
+    // Social login: Google only (OIDC code flow + PKCE). facebook/twitter stay closed in the controller.
     Route::get('/social/{provider}/redirect', [SocialAuthController::class, 'redirectToProvider'])
         ->where('provider', 'facebook|twitter|google')
+        ->middleware('throttle:login')
         ->name('social.redirect');
     Route::get('/social/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])
         ->where('provider', 'facebook|twitter|google')
+        ->middleware('throttle:login')
         ->name('social.callback');
+
+    // New Google members: the minimum still required (referral, date of birth, 18+, Terms, Privacy).
+    Route::get('/social/google/confirm', [SocialAuthController::class, 'showGoogleConfirm'])
+        ->name('social.google.confirm');
+    Route::post('/social/google/confirm', [SocialAuthController::class, 'completeGoogleSignup'])
+        ->middleware(['throttle:register', 'ip-access', 'bot'])
+        ->name('social.google.complete');
 });
 
 Route::middleware(['auth', 'auth.session'])->group(function (): void {

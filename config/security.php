@@ -275,7 +275,7 @@ return [
                     'https://fonts.googleapis.com',
                 ],
                 'style-src-attr' => ["'unsafe-inline'"],
-                'img-src' => ["'self'", 'data:', 'blob:', 'https://images.unsplash.com'],
+                'img-src' => ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', 'https://lh3.googleusercontent.com'],
                 'font-src' => [
                     "'self'",
                     'data:',
