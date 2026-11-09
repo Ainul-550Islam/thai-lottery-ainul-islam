@@ -81,7 +81,7 @@ final class CiEnvironmentGuardTest extends TestCase
         $directory = sys_get_temp_dir().'/lottery-ci-guard-'.bin2hex(random_bytes(8));
         mkdir($directory.'/database', 0700, true);
         file_put_contents($directory.'/outside', 'not a database');
-        if (PHP_OS_FAMILY === 'Windows' && ! (\defined('SYMLINK_OK'))) {
+        if (PHP_OS_FAMILY === 'Windows') {
             unlink($directory.'/outside');
             rmdir($directory.'/database');
             rmdir($directory);
