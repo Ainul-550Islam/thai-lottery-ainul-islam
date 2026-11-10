@@ -585,14 +585,14 @@ return [
 
     /* Batch 08 frontend wiring: public_pages keys (English / Thai / Bangla parity). */
     'download_pdf' => 'Download verified PDF',
-    'download_title' => 'Verified document',
+    'download_pdf_title' => 'Verified document',
     'download_hint' => 'The PDF is generated from the published document revision, not from this page\'s text.',
     'download_not_available' => 'This verified PDF is not available yet. Use the print / save control on this page instead.',
-    'download_not_configured' => 'The verified PDF export is not configured for this environment.',
+    'download_pdf_not_configured' => 'The verified PDF export is not configured for this environment.',
     'download_unsupported_locale' => 'That document language is not published for download.',
     'download_failed' => 'The document could not be downloaded. Try again later.',
     'download_starting' => 'Preparing the verified PDF…',
-    'download_ready' => 'Verified PDF ready.',
+    'download_pdf_ready' => 'Verified PDF ready.',
     'download_version' => 'Document version',
     'download_cached' => 'You already have this document version.',
     'download_noscript' => 'Without JavaScript the download link opens the server\'s honest answer directly.',

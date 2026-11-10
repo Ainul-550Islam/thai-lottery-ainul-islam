@@ -219,11 +219,11 @@
 @php
     $legalL10n = [
         'notAvailable' => __('public_pages.download_not_available'),
-        'notConfigured' => __('public_pages.download_not_configured'),
+        'notConfigured' => __('public_pages.download_pdf_not_configured'),
         'unsupportedLocale' => __('public_pages.download_unsupported_locale'),
         'failed' => __('public_pages.download_failed'),
         'starting' => __('public_pages.download_starting'),
-        'ready' => __('public_pages.download_ready'),
+        'ready' => __('public_pages.download_pdf_ready'),
         'version' => __('public_pages.download_version'),
         'cached' => __('public_pages.download_cached'),
         'download' => __('public_pages.download_pdf'),
@@ -232,7 +232,7 @@
 <section id="legal-downloads" class="next-section tl-legal-downloads" aria-labelledby="legal-downloads-title">
     <div class="next-section__heading"><span class="next-section__number">PDF</span><div>
         <p class="next-eyebrow">{{trans('public_pages.download_terms_label')}}</p>
-        <h2 id="legal-downloads-title">{{ __('public_pages.download_title') }}</h2>
+        <h2 id="legal-downloads-title">{{ __('public_pages.download_pdf_title') }}</h2>
     </div></div>
     <div class="next-section__body">
         <p>{{ __('public_pages.download_hint') }}</p>
