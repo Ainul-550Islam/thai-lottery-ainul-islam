@@ -122,11 +122,11 @@ Route::middleware('guest')->group(function (): void {
     // Social login: Google only (OIDC code flow + PKCE). facebook/twitter stay closed in the controller.
     Route::get('/social/{provider}/redirect', [SocialAuthController::class, 'redirectToProvider'])
         ->where('provider', 'facebook|twitter|google')
-        ->middleware('throttle:login')
+        ->middleware('throttle:social')
         ->name('social.redirect');
     Route::get('/social/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])
         ->where('provider', 'facebook|twitter|google')
-        ->middleware('throttle:login')
+        ->middleware('throttle:social')
         ->name('social.callback');
 
     // New Google members: the minimum still required (referral, date of birth, 18+, Terms, Privacy).

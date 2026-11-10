@@ -152,6 +152,7 @@ class AppServiceProvider extends ServiceProvider
     private function registerRateLimiters(): void
     {
         $this->registerLoginLimiter();
+        $this->registerSocialLimiter();
         $this->registerRegistrationLimiter();
 
         $apiPerMinute = (int) config('security.rate_limits.api.max_per_minute', 60);
@@ -585,5 +586,18 @@ class AppServiceProvider extends ServiceProvider
                 $headers,
             );
         };
+    }
+
+    /**
+     * Google sign-in limiter, keyed on IP only (GET /social/* has no login field).
+     * One sign-in costs two requests: redirect and callback.
+     */
+    private function registerSocialLimiter(): void
+    {
+        RateLimiter::for("social", function (Request $request): Limit {
+            return Limit::perMinutes(5, 20)
+                ->by("social:ip:".$request->ip())
+                ->response($this->throttleResponse());
+        });
     }
 }
