@@ -41,6 +41,11 @@
             </div>
         @endif
 
+        <div class="mt-8">
+            @include('partials.google-button')
+            <div class="mt-6 h-px bg-slate-700" aria-hidden="true"></div>
+        </div>
+
         <form class="mt-8 space-y-10" action="{{ route('register.attempt') }}" method="POST" novalidate>
             @csrf
             <input type="hidden" name="terms_version" value="{{ $termsDocument['version'] ?? '' }}">

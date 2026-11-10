@@ -114,6 +114,8 @@
         </form>
 
         {{-- Social sign-in is not offered until account linking is verified. --}}
+
+
         @if (config('services.google.enabled') && filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect')))
             <div class="mt-8">@include('partials.google-button')</div>
         @else

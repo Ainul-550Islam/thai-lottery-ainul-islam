@@ -65,6 +65,11 @@
         @endif
 
         <!-- Registration Form -->
+        <div class="mb-6">
+            @include('partials.google-button')
+            <div class="mt-6 h-px bg-slate-700" aria-hidden="true"></div>
+        </div>
+
         <form class="space-y-4" action="{{ route('register.attempt') }}" method="POST" data-auth-form>
             @csrf
 
