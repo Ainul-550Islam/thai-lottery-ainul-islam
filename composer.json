@@ -14,6 +14,7 @@
     "require": {
         "php": "^8.4",
         "filament/filament": "^3.3",
+        "google/auth": "^1.55",
         "guzzlehttp/guzzle": "^7.8",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",

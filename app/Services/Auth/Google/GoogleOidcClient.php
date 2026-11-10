@@ -117,7 +117,8 @@ class GoogleOidcClient
 
         try {
             $claims = (new AccessToken)->verify($idToken, ['audience' => $clientId]);
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("google_idtoken_verify_failed", ["class" => $e::class, "message" => $e->getMessage()]);
             $claims = false;
         }
 

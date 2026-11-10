@@ -101,7 +101,7 @@ final class AuthAuditRecorder
                 'description' => $description,
                 'ip_address' => $request->ip(),
                 'user_agent' => mb_substr((string) $request->userAgent(), 0, 1000),
-                'url' => $request->fullUrl(),
+                'url' => mb_substr($request->url(), 0, 255),
                 'method' => $request->method(),
                 'metadata' => $metadata,
             ]);
