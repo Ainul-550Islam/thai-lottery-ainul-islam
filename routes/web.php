@@ -204,6 +204,10 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::post('/deposit', [PlayerWebController::class, 'storeDeposit'])
         ->middleware(['active', 'throttle:deposit', 'adult', 'legal.current'])
         ->name('player.deposit.store');
+    Route::post('/deposit/status/{deposit}/proof', [PlayerWebController::class, 'submitDepositProof'])
+        ->where('deposit', '[A-Za-z0-9_\\-]{1,80}')
+        ->middleware(['active', 'throttle:deposit', 'adult', 'legal.current'])
+        ->name('player.deposit.proof');
 
     Route::get('/withdraw', [PlayerWebController::class, 'withdraw'])->name('player.withdraw');
     Route::get('/withdrawal/status/{withdrawal}', [PlayerWebController::class, 'withdrawalStatus'])

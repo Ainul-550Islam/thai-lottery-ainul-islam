@@ -107,5 +107,9 @@
         <env name="NATIONAL_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
         <env name="PCSO_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
         <env name="BINGO_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
+        <env name="FEES_CURRENCY" value="THB" force="true"/>
+        <env name="FINANCE_MIN_WITHDRAWAL" value="100.00" force="true"/>
+        <env name="BKASH_MODE" value="api" force="true"/>
+        <env name="NAGAD_MODE" value="api" force="true"/>
     </php>
 </phpunit>

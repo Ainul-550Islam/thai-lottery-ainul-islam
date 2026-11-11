@@ -14,6 +14,7 @@ use App\Exceptions\FinancialException;
 use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\WithdrawalException;
 use App\Exceptions\WithdrawalKycException;
+use App\Http\Requests\Payment\SubmitManualDepositProofRequest;
 use App\Http\Requests\Web\DepositRequest;
 use App\Http\Requests\Web\UpdateResponsibleGamingLimitsRequest;
 use App\Http\Requests\Web\WithdrawalRequest;
@@ -556,6 +557,13 @@ final class PlayerWebController
             return redirect()->away($gatewayResponse->redirectUrl);
         }
 
+        // Manual bKash/Nagad: the status page shows where to pay and takes the
+        // sender number and TrxID. It records a claim; staff verify it later.
+        if (in_array($deposit->method, [PaymentMethod::Bkash, PaymentMethod::Nagad], true)
+            && strtolower(trim((string) config('payment.gateways.'.$deposit->method->value.'.mode', 'api'))) === 'manual') {
+            return redirect()->route('player.deposit.status', ['deposit' => (string) $deposit->reference_number]);
+        }
+
         // Manual settlement (operator-configured bank transfer): show the
         // operator's real settlement instructions for this reference.
         $instructions = $gatewayResponse->metadata['instructions'] ?? null;
@@ -589,7 +597,64 @@ final class PlayerWebController
             })
             ->firstOrFail();
 
-        return view('player.deposit-status', ['deposit' => $record]);
+        $manualWallet = null;
+        if (in_array($record->method, [PaymentMethod::Bkash, PaymentMethod::Nagad], true)
+            && $record->currency === \App\Enums\Currency::BDT
+            && strtolower(trim((string) config('payment.gateways.'.$record->method->value.'.mode', 'api'))) === 'manual') {
+            $proof = \Illuminate\Support\Facades\DB::table(\App\Services\Payment\ManualWalletDepositProofService::TABLE)
+                ->where('deposit_id', $record->id)
+                ->first();
+            $manualWallet = [
+                'merchant_number' => (string) config('payment.gateways.'.$record->method->value.'.merchant_number', ''),
+                'merchant_name' => (string) config('payment.gateways.'.$record->method->value.'.merchant_name', ''),
+                'proof' => $proof,
+                'can_submit' => $proof === null
+                    && $record->status === \App\Enums\DepositStatus::Pending
+                    && $record->financial_transaction_id === null,
+            ];
+        }
+
+        return view('player.deposit-status', ['deposit' => $record, 'manualWallet' => $manualWallet]);
+    }
+
+    /**
+     * Record the sender number and TrxID for a manual bKash/Nagad deposit.
+     * A claim only: staff verify it before any wallet credit.
+     */
+    public function submitDepositProof(
+        SubmitManualDepositProofRequest $request,
+        string $deposit,
+        \App\Services\Payment\ManualWalletDepositProofService $proofs,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = Auth::user();
+
+        try {
+            $record = $proofs->submit(
+                $user,
+                $deposit,
+                (string) $request->validated('sender_number'),
+                (string) $request->validated('trx_id'),
+            );
+        } catch (FinancialException $exception) {
+            $key = match ($exception->errorCode()) {
+                'deposit_not_found' => null,
+                'manual_proof_sender_invalid' => 'error_sender_invalid',
+                'manual_proof_trx_invalid' => 'error_trx_invalid',
+                'manual_proof_trx_used' => 'error_trx_used',
+                'manual_proof_already_submitted' => 'error_already_submitted',
+                'manual_proof_not_applicable', 'manual_proof_deposit_not_pending' => 'error_not_available',
+                default => 'error_generic',
+            };
+            abort_if($key === null, 404);
+
+            return redirect()->route('player.deposit.status', ['deposit' => $deposit])
+                ->withInput($request->only('sender_number', 'trx_id'))
+                ->with('error', trans('payment_ops.manual_wallet.'.$key));
+        }
+
+        return redirect()->route('player.deposit.status', ['deposit' => (string) $record->reference_number])
+            ->with('status', trans('payment_ops.manual_wallet.success_flash'));
     }
 
     /**

@@ -8,11 +8,13 @@ use App\Enums\Currency;
 use App\Enums\PaymentMethod;
 use App\Exceptions\FinancialException;
 use App\Http\Requests\Payment\DepositRequest;
+use App\Http\Requests\Payment\SubmitManualDepositProofRequest;
 use App\Http\Responses\ApiResponse;
 use App\Http\Controllers\Payment\DepositMethodsPageController;
 use App\Models\Deposit;
 use App\Models\Wallet;
 use App\Services\Finance\Money;
+use App\Services\Payment\ManualWalletDepositProofService;
 use App\Services\Payment\PaymentInitiationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -174,6 +176,49 @@ final class DepositController
             ],
             message: 'Deposit initiated successfully.',
             status: 201,
+        );
+    }
+
+    /**
+     * Submit the sender number and TrxID for a manual bKash/Nagad deposit.
+     *
+     * This records a claim only. No wallet is credited here: an administrator
+     * verifies the TrxID against the merchant account and credits separately.
+     */
+    public function submitProof(SubmitManualDepositProofRequest $request, string $depositId, ManualWalletDepositProofService $proofs): JsonResponse
+    {
+        try {
+            $deposit = $proofs->submit(
+                $request->user(),
+                $depositId,
+                (string) $request->validated('sender_number'),
+                (string) $request->validated('trx_id'),
+            );
+        } catch (FinancialException $exception) {
+            $code = $exception->errorCode() ?? 'manual_proof_refused';
+
+            return ApiResponse::error(
+                code: $code,
+                message: $exception->getMessage(),
+                status: $code === 'deposit_not_found' ? 404 : 422,
+            );
+        }
+
+        return ApiResponse::success(
+            data: [
+                'deposit' => [
+                    'reference_number' => $deposit->reference_number,
+                    'status' => $deposit->status->value,
+                    'amount' => (string) $deposit->amount,
+                    'currency' => $deposit->currency->value,
+                    'method' => $deposit->method->value,
+                ],
+                'proof' => [
+                    'sender_number' => (string) data_get($deposit->metadata, 'manual_proof.sender_number'),
+                    'trx_id' => (string) data_get($deposit->metadata, 'manual_proof.trx_id'),
+                ],
+            ],
+            message: 'Payment proof submitted. An operator will verify it before your wallet is credited.',
         );
     }
 

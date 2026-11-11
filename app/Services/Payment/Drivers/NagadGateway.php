@@ -43,7 +43,9 @@ class NagadGateway extends AbstractPaymentGateway
 
     public function status(): GatewayIntegrationStatus
     {
-        return GatewayIntegrationStatus::PartiallyImplemented;
+        return $this->isManualMode()
+            ? GatewayIntegrationStatus::ConfiguredOnly
+            : GatewayIntegrationStatus::PartiallyImplemented;
     }
 
     public function supportsCurrency(Currency $currency): bool
@@ -51,10 +53,59 @@ class NagadGateway extends AbstractPaymentGateway
         return $currency === Currency::BDT;
     }
 
+    public function supportsDeposit(): bool
+    {
+        if (! parent::supportsDeposit()) {
+            return false;
+        }
+
+        return ! $this->isManualMode() || $this->manualMerchantNumber() !== null;
+    }
+
+    /** True when this gateway runs the operator-verified manual rail. */
+    private function isManualMode(): bool
+    {
+        return strtolower(trim((string) $this->config->get('payment.gateways.nagad.mode', 'api'))) === 'manual';
+    }
+
+    private function manualMerchantNumber(): ?string
+    {
+        $number = $this->config->get('payment.gateways.nagad.merchant_number');
+
+        return is_string($number) && preg_match('/\A01[3-9][0-9]{8}\z/D', trim($number)) === 1 ? trim($number) : null;
+    }
+
+    private function manualDepositResponse(Deposit $deposit): GatewayDepositResponse
+    {
+        $number = $this->manualMerchantNumber();
+        if ($number === null) {
+            return GatewayDepositResponse::failed('Nagad manual deposit number is not configured.');
+        }
+
+        $name = trim((string) $this->config->get('payment.gateways.nagad.merchant_name', ''));
+
+        // No provider call is made and no callback is trusted: the deposit stays
+        // pending until an administrator verifies the TrxID and credits it.
+        return GatewayDepositResponse::manual(
+            providerReference: 'NAGAD-MANUAL-'.$deposit->reference_number,
+            instructions: [
+                'bank_name' => 'Nagad',
+                'account_number' => $number,
+                'account_name' => $name !== '' ? $name : null,
+                'instructions' => 'Send the exact amount to this Nagad number, then submit your sender number and the Nagad TrxID for this deposit.',
+                'reference' => $deposit->reference_number,
+            ],
+        );
+    }
+
     public function initiateDeposit(Deposit $deposit, array $options = []): GatewayDepositResponse
     {
         if ($deposit->currency !== Currency::BDT) {
             throw FinancialException::withCode('payment_gateway_currency_unsupported', trans('payment_ops.errors.payment_gateway_currency_unsupported'), ['gateway' => $this->name(), 'currency' => $deposit->currency->value]);
+        }
+
+        if ($this->isManualMode()) {
+            return $this->manualDepositResponse($deposit);
         }
 
         $merchantId = $this->merchantId();
@@ -133,6 +184,11 @@ class NagadGateway extends AbstractPaymentGateway
 
     public function verifyWebhookSignature(Request $request): bool
     {
+        if ($this->isManualMode()) {
+            // Manual rail: no provider callback is ever trusted or accepted.
+            return false;
+        }
+
         $secret = $this->webhookSecret() ?? $this->appSecret();
 
         if (empty($secret)) {

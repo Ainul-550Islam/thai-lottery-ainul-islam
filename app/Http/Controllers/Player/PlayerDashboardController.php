@@ -39,9 +39,10 @@ final class PlayerDashboardController extends Controller
             return $this->authenticationRequired();
         }
 
+        $siteCurrency = Currency::site();
         $wallet = Wallet::query()
             ->where('user_id', $user->id)
-            ->where('currency', Currency::THB->value)
+            ->where('currency', $siteCurrency->value)
             ->first();
         $draw = Draw::query()->where('status', DrawStatus::Open->value)->orderBy('scheduled_at')->first();
 
@@ -54,8 +55,8 @@ final class PlayerDashboardController extends Controller
                 'betting_close_at' => $draw->betting_close_at?->toIso8601String(),
             ] : null,
             'wallet' => $wallet instanceof Wallet ? [
-                'balance' => Money::of((string) $wallet->balance, Currency::THB)->toString(),
-                'currency' => Currency::THB->value,
+                'balance' => Money::of((string) $wallet->balance, $siteCurrency)->toString(),
+                'currency' => $siteCurrency->value,
             ] : null,
         ]);
     }
