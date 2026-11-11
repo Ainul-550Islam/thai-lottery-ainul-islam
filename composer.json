@@ -20,6 +20,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "mpdf/mpdf": "^8.2",
+        "phpseclib/phpseclib": "^3.0",
         "psr/clock": "^1.0",
         "spatie/laravel-permission": "^6.4",
         "spomky-labs/otphp": "^11.5",

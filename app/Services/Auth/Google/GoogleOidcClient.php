@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Auth\Google;
 
+use Firebase\JWT\JWT;
 use Google\Auth\AccessToken;
 use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -30,6 +32,13 @@ class GoogleOidcClient
     private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
     private const SESSION_KEY = 'google_oidc';
     private const TTL_SECONDS = 600;
+
+    /**
+     * Clock-skew tolerance (seconds) for the id_token iat / nbf / exp checks. google/auth runs them
+     * through firebase/php-jwt, whose default leeway is 0, so a server clock even 1 s behind Google's
+     * rejects a token that was issued a moment ago (BeforeValidException).
+     */
+    private const CLOCK_SKEW_LEEWAY_SECONDS = 60;
 
     public function __construct(private readonly Http $http) {}
 
@@ -115,11 +124,18 @@ class GoogleOidcClient
             throw new GoogleSignInException('token_rejected');
         }
 
+        // The leeway is raised only around this verify() call and always restored afterwards, so any
+        // other firebase/php-jwt use in the same process keeps its own (stricter) setting.
+        $previousLeeway = JWT::$leeway;
+        JWT::$leeway = self::CLOCK_SKEW_LEEWAY_SECONDS;
+
         try {
-            $claims = (new AccessToken)->verify($idToken, ['audience' => $clientId]);
+            $claims = (new AccessToken)->verify($idToken, ['audience' => $clientId, 'throwException' => true]);
         } catch (Throwable $e) {
-            \Illuminate\Support\Facades\Log::error("google_idtoken_verify_failed", ["class" => $e::class, "message" => $e->getMessage()]);
+            Log::error('google_idtoken_verify_failed', ['class' => $e::class, 'message' => $e->getMessage()]);
             $claims = false;
+        } finally {
+            JWT::$leeway = $previousLeeway;
         }
 
         if (! is_array($claims)) {
