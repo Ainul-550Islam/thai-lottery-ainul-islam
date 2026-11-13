@@ -11,6 +11,8 @@ use App\Services\Finance\DepositCompletionService;
 use App\Services\Payment\DepositCheckoutAccess;
 use App\Services\Payment\DepositCheckoutService;
 use App\Services\Payment\DepositSettlementAccess;
+use App\Services\Payment\ManualWalletDepositProofService;
+use App\Services\Payment\ManualWalletDepositSettlementService;
 use App\Services\Payment\StripeDepositSettlementService;
 use App\Support\Admin\AdminAccess;
 use App\Support\Admin\AdminFormat;
@@ -18,6 +20,7 @@ use App\Support\Admin\OperatorActionFactory;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The four decisions a deposit can need from a human.
@@ -161,6 +164,7 @@ final class DepositDecisionActions
                         ->helperText('Use the reference on the independently verified payment; a reference already attached to this deposit cannot be changed.'),
                 ],
                 'visible' => static fn (Deposit $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                    && ! ManualWalletDepositSettlementService::appliesTo($record)
                     && app(DepositCompletionService::class)->canComplete($record),
                 'action' => static function (Deposit $record, array $data): void {
                     OperatorActionFactory::run(static function () use ($record, $data): void {
@@ -183,6 +187,40 @@ final class DepositDecisionActions
                             ))
                             ->send();
                     });
+                },
+            ],
+            [
+                'name' => 'settleManualWallet',
+                'label' => 'Verify TrxID & credit (bKash/Nagad)',
+                'icon' => 'heroicon-o-check-badge',
+                'color' => 'primary',
+                'confirm' => true,
+                'heading' => 'Verify the TrxID in the merchant app, then credit the wallet',
+                'description' => 'Open the bKash/Nagad merchant app, find the payment from the sender number shown here, and confirm the amount and the TrxID. Typing that TrxID credits the wallet and cannot be undone from this panel.',
+                'submitLabel' => 'Credit the wallet',
+                'form' => [
+                    Forms\Components\Placeholder::make('claim')
+                        ->label('What the player submitted')
+                        ->content(static function (Deposit $record): string {
+                            $proof = DB::table(ManualWalletDepositProofService::TABLE)->where('deposit_id', $record->id)->first();
+
+                            return $proof === null
+                                ? 'No proof submitted yet.'
+                                : sprintf('%s %s — sender %s — TrxID %s', (string) $record->amount, $record->currency->value, $proof->sender_number, $proof->trx_id);
+                        }),
+                    Forms\Components\TextInput::make('trx_id')
+                        ->label('TrxID you verified in the merchant app')
+                        ->required()
+                        ->maxLength(32),
+                ],
+                'visible' => static fn (Deposit $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                    && ManualWalletDepositSettlementService::appliesTo($record),
+                'action' => static function (Deposit $record, array $data): void {
+                    abort_unless(AdminAccess::canAccessPanel(AdminAccess::operator()), 403);
+                    OperatorActionFactory::run(
+                        static fn () => app(ManualWalletDepositSettlementService::class)->settle($record, AdminAccess::operator(), (string) $data['trx_id']),
+                        $record->reference_number.' credited after TrxID verification.',
+                    );
                 },
             ],
             [

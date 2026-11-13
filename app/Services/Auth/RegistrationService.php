@@ -117,7 +117,7 @@ final class RegistrationService
             //    byte-for-byte the same provisioning as before.
             $wallet = new Wallet;
             $wallet->user_id = $user->id;
-            $wallet->currency = Currency::THB;
+            $wallet->currency = Currency::site();
             $wallet->status = WalletStatus::Active;
             $wallet->save();
 

@@ -821,6 +821,9 @@ Route::prefix('v1/deposits')
         Route::post('/', [DepositController::class, 'store'])
             ->middleware(['throttle:deposit', 'adult', 'legal.current'])
             ->name('store');
+        Route::post('/{deposit}/proof', [DepositController::class, 'submitProof'])
+            ->middleware(['throttle:deposit', 'adult', 'legal.current'])
+            ->name('proof');
         Route::get('/{deposit}', [DepositController::class, 'show'])->name('show');
     });
 

@@ -108,5 +108,12 @@
             every test that wants an ordered ladder states it explicitly.
         -->
         <env name="GLO_SOURCE_PRIORITY" value=""/>
+        <!-- The deployment .env may run another market; the suite pins its own. -->
+        <env name="APP_COUNTRY" value="TH" force="true"/>
+        <env name="FINANCE_DEFAULT_CURRENCY" value="THB" force="true"/>
+        <env name="FEES_CURRENCY" value="THB" force="true"/>
+        <env name="FINANCE_MIN_WITHDRAWAL" value="100.00" force="true"/>
+        <env name="BKASH_MODE" value="api" force="true"/>
+        <env name="NAGAD_MODE" value="api" force="true"/>
     </php>
 </phpunit>

@@ -38,7 +38,7 @@ final class CreateWithdrawalRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             // Amount stays a STRING of digits with at most two fractional
             // digits; a client that ships an exponent, a currency symbol or
             // thousands separators gets a 422, not silent float arithmetic.
@@ -83,6 +83,15 @@ final class CreateWithdrawalRequest extends FormRequest
             'provider_reference' => ['prohibited'],
             'approved_by' => ['prohibited'],
         ];
+
+        // A mobile-wallet payout goes to a phone number: refuse anything else
+        // before any money is held (same rule as the web withdrawal form).
+        if (in_array((string) $this->input('method', ''), [PaymentMethod::Bkash->value, PaymentMethod::Nagad->value], true)) {
+            $rules['payout_details'] = ['required', 'array'];
+            $rules['payout_details.account_number'] = ['required', 'string', 'regex:/\A01[3-9][0-9]{8}\z/D'];
+        }
+
+        return $rules;
     }
 
     /**

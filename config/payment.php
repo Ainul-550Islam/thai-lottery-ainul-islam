@@ -321,6 +321,12 @@ return [
         'bkash' => [
             'enabled' => (bool) env('BKASH_ENABLED', false),
             'driver' => 'bkash',
+            // 'api' (default) keeps the legacy prototype closed. 'manual' runs the
+            // operator-verified rail: the player pays the merchant number below and
+            // submits the TrxID; an administrator verifies it before any credit.
+            'mode' => (string) env('BKASH_MODE', 'api'),
+            'merchant_number' => env('BKASH_MERCHANT_NUMBER'),
+            'merchant_name' => env('BKASH_MERCHANT_NAME'),
             'app_key' => env('BKASH_APP_KEY'),
             'app_secret' => env('BKASH_APP_SECRET'),
             'username' => env('BKASH_USERNAME'),
@@ -338,6 +344,9 @@ return [
         'nagad' => [
             'enabled' => (bool) env('NAGAD_ENABLED', false),
             'driver' => 'nagad',
+            // See the bKash block: 'manual' is the operator-verified rail.
+            'mode' => (string) env('NAGAD_MODE', 'api'),
+            'merchant_name' => env('NAGAD_MERCHANT_NAME'),
             'merchant_id' => env('NAGAD_MERCHANT_ID'),
             'merchant_number' => env('NAGAD_MERCHANT_NUMBER'),
             'app_key' => env('NAGAD_APP_KEY'),
