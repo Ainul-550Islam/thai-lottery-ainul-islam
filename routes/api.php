@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\WalletConversionController;
 use App\Http\Controllers\Api\V1\WeeklyLotteryController;
 use App\Http\Controllers\Api\V1\WithdrawalController;
+use App\Http\Controllers\Auth\TotpMfaController;
 use App\Http\Controllers\Betting\ThaiLotteryBettingController;
 use App\Http\Controllers\GloResultsPageController;
 use App\Http\Controllers\HealthController;
@@ -664,6 +665,26 @@ Route::prefix('v1')
         // Account security lane (batch-15): MFA, sessions, devices, ledger.
         Route::post('/security/mfa/challenge', [SecurityController::class, 'challengeMfa'])->name('security.mfa.challenge');
         Route::post('/security/mfa/verify', [SecurityController::class, 'verifyMfa'])->name('security.mfa.verify');
+        // TOTP authenticator enrollment and step-up (Audit §E5). Backed by TotpMfaEnrollmentService
+        // (pending-enrollment row, replay-protected time steps, single-use recovery codes) and always
+        // scoped to the authenticated user. Per-route limiters because every code endpoint is a
+        // brute-force target. The quarantined legacy verifier is NOT mounted.
+        Route::get('/security/totp', [TotpMfaController::class, 'status'])->name('security.totp.status');
+        Route::post('/security/totp/enroll', [TotpMfaController::class, 'enroll'])
+            ->middleware('throttle:6,1')
+            ->name('security.totp.enroll');
+        Route::post('/security/totp/confirm', [TotpMfaController::class, 'confirm'])
+            ->middleware('throttle:10,1')
+            ->name('security.totp.confirm');
+        Route::post('/security/totp/verify', [TotpMfaController::class, 'verify'])
+            ->middleware('throttle:10,1')
+            ->name('security.totp.verify');
+        Route::post('/security/totp/recovery', [TotpMfaController::class, 'verifyRecoveryCode'])
+            ->middleware('throttle:5,1')
+            ->name('security.totp.recovery');
+        Route::post('/security/totp/disable', [TotpMfaController::class, 'destroy'])
+            ->middleware('throttle:5,1')
+            ->name('security.totp.disable');
         Route::get('/security/sessions', [SecurityController::class, 'sessions'])->name('security.sessions.index');
         Route::delete('/security/sessions/{reference}', [SecurityController::class, 'revokeSession'])->name('security.sessions.revoke');
         Route::post('/security/devices/trust', [SecurityController::class, 'trustDevice'])->name('security.devices.trust');

@@ -349,4 +349,20 @@ return [
         'require_shared_store_in_production' => true,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | security.txt (RFC 9116) — GET /.well-known/security.txt
+    |--------------------------------------------------------------------------
+    |
+    | NO default on purpose. With SECURITY_TXT_CONTACT unset the route answers 404
+    | instead of publishing a made-up address. Set it to a mailbox you actually
+    | monitor, e.g. mailto:security@your-domain.tld. SECURITY_TXT_POLICY is an
+    | optional https:// URL of your disclosure policy.
+    |
+    */
+
+    'security_txt' => [
+        'contact' => env('SECURITY_TXT_CONTACT'),
+        'policy' => env('SECURITY_TXT_POLICY'),
+    ],
 ];

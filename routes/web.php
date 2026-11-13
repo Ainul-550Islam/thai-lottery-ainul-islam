@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountGradeController;
+use App\Http\Controllers\Admin\IpAccessRuleController;
 use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
 use App\Http\Controllers\Admin\PayoutApprovalIntakeController;
 use App\Http\Controllers\Admin\PayoutEvidenceController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Legal\LegalConsentController;
 use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\LotteryHubController;
 use App\Http\Controllers\LotteryPurchasePageController;
+use App\Http\Controllers\MemberRewardsController;
 use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\NationalLotteryController;
 use App\Http\Controllers\NotificationCenterController;
@@ -41,7 +43,9 @@ use App\Http\Controllers\PublicPagesController;
 use App\Http\Controllers\PublicPrizeVerificationController;
 use App\Http\Controllers\PublicServicesPageController;
 use App\Http\Controllers\PublicVerificationController;
+use App\Http\Controllers\ReferralRedirectController;
 use App\Http\Controllers\ResultsController;
+use App\Http\Controllers\SecurityTxtController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Support\SupportPortalController;
 use App\Http\Controllers\Verification\AccountVerificationController as MemberAccountVerificationController;
@@ -93,6 +97,10 @@ Route::middleware(['auth', 'auth.session', 'can:access-metrics'])->group(functio
 Route::get('/up/health', [HealthController::class, 'health'])->name('health');
 Route::get('/up/ready', [HealthController::class, 'ready'])->name('health.ready');
 Route::get('/up/live', [HealthController::class, 'live'])->name('health.live');
+
+// RFC 9116 vulnerability-disclosure contact. Public, static text, no session data.
+// The web server must let `/.well-known/` through to PHP (no dotfile deny rule).
+Route::get('/.well-known/security.txt', SecurityTxtController::class)->name('security.txt');
 
 Route::middleware('guest')->group(function (): void {
     // PROMPT 3: the member auth surface (login / registration /
@@ -275,6 +283,37 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
 });
 
 /*
+|---------------------------------------------------------------------------
+| Member rewards hub: coupons, loyalty points, testimonials, push tokens
+|---------------------------------------------------------------------------
+| Session-scoped only: MemberRewardsController reads $request->user() and accepts
+| no user id or wallet id. Coupon and loyalty redemption credit the member's
+| wallet, so they carry the same 18+ attestation and current-legal-consent gates
+| as every other money-moving member action; self-exclusion, per-day caps, row
+| locks and idempotency keys are enforced inside the services. The index route
+| name `member.rewards` is the one the controller redirects back to.
+*/
+Route::middleware(['auth', 'auth.session'])->group(function (): void {
+    Route::get('/member/rewards', [MemberRewardsController::class, 'index'])
+        ->name('member.rewards');
+    Route::post('/member/rewards/coupons/redeem', [MemberRewardsController::class, 'redeemCoupon'])
+        ->middleware(['active', 'throttle:10,1', 'adult', 'legal.current'])
+        ->name('member.rewards.coupons.redeem');
+    Route::post('/member/rewards/loyalty/redeem', [MemberRewardsController::class, 'redeemLoyalty'])
+        ->middleware(['active', 'throttle:10,1', 'adult', 'legal.current'])
+        ->name('member.rewards.loyalty.redeem');
+    Route::post('/member/rewards/testimonials', [MemberRewardsController::class, 'submitTestimonial'])
+        ->middleware(['active', 'throttle:5,1'])
+        ->name('member.rewards.testimonials.submit');
+    Route::post('/member/rewards/push', [MemberRewardsController::class, 'registerPushToken'])
+        ->middleware(['active', 'throttle:20,1'])
+        ->name('member.rewards.push.register');
+    Route::delete('/member/rewards/push', [MemberRewardsController::class, 'revokePushToken'])
+        ->middleware(['active', 'throttle:20,1'])
+        ->name('member.rewards.push.revoke');
+});
+
+/*
 |--------------------------------------------------------------------------
 | Public Home + supporting public pages (anonymous by design)
 |--------------------------------------------------------------------------
@@ -283,6 +322,15 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
 */
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Agent referral landing (`/r/{code}`, the URL PublicReferralLinkService::publicUrlFor() builds).
+// Records one deduplicated visit, keeps the code in session + cookie and redirects to
+// /register?ref=CODE. Unknown, malformed or inactive codes redirect to a plain /register
+// inside the controller, so no error page and no open redirect. Throttled because every
+// accepted visit writes a row.
+Route::get('/r/{code}', ReferralRedirectController::class)
+    ->middleware('throttle:60,1')
+    ->name('referral.redirect');
 
 // Legacy aliases deliberately redirect into the authenticated canonical player
 // routes. They do not render a second wallet, deposit, withdrawal or dashboard
@@ -1264,6 +1312,20 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'auth.session'
         Route::get('/{payout}', [PlayerPrizeClaimReviewController::class, 'show'])->whereNumber('payout')->name('show');
         Route::post('/{payout}/decision', [PlayerPrizeClaimReviewController::class, 'decide'])->whereNumber('payout')->name('decide');
     });
+
+    // IP access rule inventory and lifecycle. URL/name contract comes from
+    // resources/views/admin/ip-access-rules.blade.php (admin.ip-access.rules.index|store|revoke)
+    // and tests/browser/ip-rule-management*.cjs (/admin/ip-access/rules[/manage|/{id}/revoke]).
+    // Default-deny: the controller answers 503 until ip_access.management_enabled is true and
+    // re-authorizes the actor against the dedicated `manage ip access rules` permission on every
+    // request, so the admin gate above is only the floor. Rules are revoked, never hard-deleted.
+    // POSTs are CSRF-protected by `web`.
+    Route::prefix('ip-access/rules')->name('ip-access.rules.')->middleware('throttle:admin-analytics')->group(function (): void {
+        Route::get('/manage', [IpAccessRuleController::class, 'manage'])->name('manage');
+        Route::get('/', [IpAccessRuleController::class, 'index'])->name('index');
+        Route::post('/', [IpAccessRuleController::class, 'store'])->name('store');
+        Route::post('/{ruleId}/revoke', [IpAccessRuleController::class, 'revoke'])->whereNumber('ruleId')->name('revoke');
+    });
 });
 
 /*
@@ -1389,3 +1451,6 @@ Route::prefix('admin/chat/canned')->name('admin.chat.canned.')->middleware(['aut
 Route::match(['get', 'post'], '/{legacyPath}', [LegacyRedirectController::class, 'resolve'])
     ->where('legacyPath', '.*\.php$')
     ->name('legacy.redirect');
+
+
+
