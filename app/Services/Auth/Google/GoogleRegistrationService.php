@@ -26,7 +26,7 @@ use Illuminate\Validation\ValidationException;
  * Name, email, avatar and Google id come from the verified id_token (session), NEVER from the
  * request body. Only referral, date of birth and the three declarations come from the member.
  *
- * Money: the wallet is created at 0.00 THB, exactly like RegistrationService ("no bonus money").
+ * Money: the wallet is created at 0.00 in the site currency, exactly like RegistrationService ("no bonus money").
  * Nothing here credits a balance.
  */
 final class GoogleRegistrationService
@@ -79,7 +79,7 @@ final class GoogleRegistrationService
 
             $wallet = new Wallet;
             $wallet->user_id = $user->id;
-            $wallet->currency = Currency::THB;
+            $wallet->currency = Currency::site();
             $wallet->status = WalletStatus::Active;
             $wallet->save();
 
