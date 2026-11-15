@@ -11,6 +11,7 @@ use App\Enums\FinancialTransactionType;
 use App\Enums\WalletType;
 use App\Models\Bet;
 use App\Models\CashbackAccrual;
+use App\Models\Draw;
 use App\Models\User;
 use App\Services\Cashback\CashbackAccrualService;
 use App\Services\Cashback\CashbackClaimService;
@@ -44,14 +45,22 @@ final class CashbackReversalTest extends TestCase
         parent::tearDown();
     }
 
-    private function lostBet(User $member, string $stake, string $updatedAt): Bet
+    /**
+     * A lost bet whose draw was settled (Completed) at $settledAt.
+     *
+     * The accrual period of a bet is decided by its draw's completed_at, so the
+     * settlement instant belongs on the draw, not on the bet's updated_at.
+     */
+    private function lostBet(User $member, string $stake, string $settledAt): Bet
     {
+        $draw = Draw::factory()->completed($settledAt)->create();
+
         return Bet::factory()->lost()->create([
             'user_id' => $member->getKey(),
+            'draw_id' => $draw->getKey(),
             'stake_amount' => $stake,
             'actual_payout' => '0.00',
             'placed_at' => Carbon::parse('2026-11-12 14:00:00'),
-            'updated_at' => Carbon::parse($updatedAt),
         ]);
     }
 
@@ -80,6 +89,34 @@ final class CashbackReversalTest extends TestCase
         $this->assertSame('2000.00', (string) $accrual->basis_amount);
         $this->assertSame($this->expected('2000.00', $accrual), (string) $accrual->accrual_amount);
         $this->assertNull($accrual->reversed_at);
+    }
+
+    public function test_reversal_finds_the_accrual_of_the_draw_period_even_when_the_bet_was_placed_earlier(): void
+    {
+        $member = User::factory()->create();
+        $this->lostBet($member, '2000.00', '2026-11-12 15:00:00');
+
+        // Placed the evening before, but its draw completed inside the period:
+        // the accrual counted it, so the reversal has to look in that period too.
+        $draw = Draw::factory()->completed('2026-11-12 16:00:00')->create();
+        $early = Bet::factory()->lost()->create([
+            'user_id' => $member->getKey(),
+            'draw_id' => $draw->getKey(),
+            'stake_amount' => '1000.00',
+            'actual_payout' => '0.00',
+            'placed_at' => Carbon::parse('2026-11-11 22:00:00'),
+        ]);
+
+        $accrual = app(CashbackAccrualService::class)->accrueForMember($member, $this->periodStart, $this->periodEnd, 'daily');
+        $this->assertNotNull($accrual);
+        $this->assertSame('3000.00', (string) $accrual->basis_amount);
+
+        $early->status = BetStatus::Cancelled;
+        $early->save();
+
+        $accrual->refresh();
+        $this->assertSame(CashbackAccrualStatus::Accrued, $accrual->status);
+        $this->assertSame('2000.00', (string) $accrual->basis_amount);
     }
 
     public function test_cancelling_a_bet_after_claim_claws_back_only_the_over_paid_difference(): void

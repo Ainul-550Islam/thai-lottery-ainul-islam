@@ -4,7 +4,9 @@ namespace Database\Factories;
 
 use App\Enums\DrawStatus;
 use App\Enums\DrawType;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
@@ -52,5 +54,22 @@ class DrawFactory extends Factory
             'opened_at' => now()->subHour(),
             'closed_at' => now(),
         ]);
+    }
+
+    /**
+     * A SETTLED draw: status Completed with the completed_at instant the
+     * lifecycle service stamps when a draw reaches Settled.
+     *
+     * Cashback windows a bet by this instant, so tests that need a settled bet
+     * inside a given period build its draw here and pass the settlement time.
+     */
+    public function completed(DateTimeInterface|string|null $completedAt = null): static
+    {
+        return $this->state(function (array $attributes) use ($completedAt) {
+            return [
+                'status' => DrawStatus::Completed,
+                'completed_at' => $completedAt === null ? now() : Carbon::parse($completedAt),
+            ];
+        });
     }
 }

@@ -70,6 +70,15 @@ final class CashbackClaimConcurrencyTest extends TestCase
 
     public function test_two_simultaneous_os_processes_claiming_cashback_credit_wallet_once(): void
     {
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Two PHP processes opening one SQLite file at the same instant collide on
+            // Windows file locking at connect time ("database is locked") before the
+            // claim is even reached, so a failure here says nothing about the claim.
+            // The test runs on Linux CI; SQLite is not row-lock proof in any case, and
+            // the real money-race proof is the InnoDB server race.
+            $this->markTestSkipped('Two-process SQLite race is unreliable on Windows file locking; run it on Linux CI.');
+        }
+
         $dbDir = sys_get_temp_dir().'/batch1_cb_race_'.bin2hex(random_bytes(8));
         mkdir($dbDir, 0700, true);
         $dbPath = $dbDir.'/thai_lottery_test';
@@ -119,7 +128,19 @@ require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 config(['real_money.enabled' => true]);
-Illuminate\Support\Facades\DB::statement('PRAGMA busy_timeout = 15000;');
+// Two workers opening the same SQLite file at the same instant can collide on the
+// connect-time journal PRAGMA before any busy timeout exists. That is a harness
+// artefact, not the claim path, so only the connect is retried; the claim itself
+// below is attempted exactly once.
+for ($attempt = 0; $attempt < 100; $attempt++) {
+    try {
+        Illuminate\Support\Facades\DB::statement('PRAGMA busy_timeout = 15000;');
+        break;
+    } catch (Throwable $e) {
+        Illuminate\Support\Facades\DB::purge();
+        usleep(50000);
+    }
+}
 $m = App\Models\User::query()->findOrFail(%d);
 try {
     $res = $app->make(App\Services\Cashback\CashbackClaimService::class)->claim($m, '%s');

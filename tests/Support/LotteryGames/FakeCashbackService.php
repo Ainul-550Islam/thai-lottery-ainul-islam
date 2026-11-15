@@ -11,10 +11,10 @@ namespace Tests\Support\LotteryGames;
 final class FakeCashbackService
 {
     /** @var list<array{user_id: int, bet_id: int, reason: string}> */
-    public static array $reversals = [];
+    public array $reversals = [];
 
     public function reverse(int $userId, int $betId, string $reason): void
     {
-        self::$reversals[] = ['user_id' => $userId, 'bet_id' => $betId, 'reason' => $reason];
+        $this->reversals[] = ['user_id' => $userId, 'bet_id' => $betId, 'reason' => $reason];
     }
 }

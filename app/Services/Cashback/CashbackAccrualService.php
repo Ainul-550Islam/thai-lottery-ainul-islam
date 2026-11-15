@@ -8,6 +8,7 @@ use App\Enums\AuditAction;
 use App\Enums\BetStatus;
 use App\Enums\CashbackAccrualStatus;
 use App\Enums\Currency;
+use App\Enums\DrawStatus;
 use App\Enums\FinancialTransactionType;
 use App\Enums\RiskLevel;
 use App\Enums\WalletType;
@@ -15,6 +16,7 @@ use App\Models\AuditLog;
 use App\Models\Bet;
 use App\Models\CashbackAccrual;
 use App\Models\CashbackPolicy;
+use App\Models\Draw;
 use App\Models\FinancialTransaction;
 use App\Models\RewardClaim;
 use App\Models\User;
@@ -158,6 +160,42 @@ final class CashbackAccrualService
         }
     }
 
+    /**
+     * THE single definition of "this bet settled inside this period".
+     *
+     * A bet counts when its draw reached Completed inside [start, end]. The
+     * accrual maths, the accrual job and the dry-run command all take this one
+     * constraint, so the set of members chosen for accrual can never differ from
+     * the set of bets that the accrual then counts.
+     *
+     * @return \Closure(QueryBuilder): void
+     */
+    public function drawCompletedWithin(CarbonInterface $periodStart, CarbonInterface $periodEnd): \Closure
+    {
+        return static function (QueryBuilder $draw) use ($periodStart, $periodEnd): void {
+            $draw->selectRaw('1')
+                ->from('draws')
+                ->whereColumn('draws.id', 'bets.draw_id')
+                ->where('draws.status', DrawStatus::Completed->value)
+                ->whereBetween('draws.completed_at', [$periodStart, $periodEnd]);
+        };
+    }
+
+    /**
+     * Net loss of the member's settled real-money bets in one period.
+     *
+     * THE PERIOD IS DECIDED BY THE DRAW, NOT BY THE BET.
+     * A bet belongs to the period in which its draw was completed
+     * (draws.completed_at, written once when the draw reaches Settled).
+     *
+     * The previous version windowed Won bets on bets.won_at and Lost bets on
+     * bets.updated_at. A Lost bet has no settlement timestamp of its own, and
+     * updated_at moves on every later save() (payout link, metadata, reversal),
+     * so a closed period's basis could change after the fact. A draw's
+     * completed_at never moves, and a draw only becomes Completed once every
+     * one of its bets has been settled, so a half-settled chunked run is never
+     * counted.
+     */
     public function settledRealMoneyNetLoss(
         User|int $member,
         CarbonInterface $periodStart,
@@ -166,20 +204,10 @@ final class CashbackAccrualService
         $memberId = $member instanceof User ? (int) $member->getKey() : $member;
 
         $bets = Bet::query()
-            ->where('user_id', $memberId)
-            ->whereIn('status', [BetStatus::Won->value, BetStatus::Lost->value])
-            ->whereNull('cancelled_at')
-            ->where(function ($query) use ($periodStart, $periodEnd): void {
-                $query
-                    ->where(function ($won) use ($periodStart, $periodEnd): void {
-                        $won->whereNotNull('won_at')
-                            ->whereBetween('won_at', [$periodStart, $periodEnd]);
-                    })
-                    ->orWhere(function ($settled) use ($periodStart, $periodEnd): void {
-                        $settled->whereNull('won_at')
-                            ->whereBetween('updated_at', [$periodStart, $periodEnd]);
-                    });
-            })
+            ->where('bets.user_id', $memberId)
+            ->whereIn('bets.status', [BetStatus::Won->value, BetStatus::Lost->value])
+            ->whereNull('bets.cancelled_at')
+            ->whereExists($this->drawCompletedWithin($periodStart, $periodEnd))
             ->whereNotExists(function (QueryBuilder $sub): void {
                 $sub->selectRaw('1')
                     ->from('free_bet_vouchers')
@@ -252,7 +280,7 @@ final class CashbackAccrualService
      */
     public function reverse(Bet $bet, string $reason = 'bet_cancelled_or_refunded'): int
     {
-        $referenceTime = $bet->won_at ?? $bet->placed_at ?? $bet->created_at ?? Carbon::now();
+        $referenceTime = $this->settlementReferenceTime($bet);
         $affectedStatuses = [CashbackAccrualStatus::Accrued->value, CashbackAccrualStatus::Claimed->value];
 
         return DB::transaction(function () use ($bet, $referenceTime, $reason, $affectedStatuses): int {
@@ -315,6 +343,33 @@ final class CashbackAccrualService
 
             return $affected;
         });
+    }
+
+    /**
+     * The instant that decides which accrual period a bet belongs to.
+     *
+     * Must be the same instant settledRealMoneyNetLoss() windows on, otherwise
+     * reverse() would look for the bet's contribution in a different period
+     * than the one that counted it: the completed_at of the bet's draw. When the
+     * draw never completed (the bet was cancelled before settlement) no accrual
+     * can contain it, so the older bet timestamps are only a harmless fallback;
+     * reverse() recomputes the basis and skips any accrual that does not change.
+     */
+    private function settlementReferenceTime(Bet $bet): CarbonInterface
+    {
+        if ($bet->draw_id !== null) {
+            $completedAt = Draw::query()->whereKey($bet->draw_id)->value('completed_at');
+
+            if ($completedAt instanceof CarbonInterface) {
+                return $completedAt;
+            }
+
+            if (is_string($completedAt) && $completedAt !== '') {
+                return Carbon::parse($completedAt);
+            }
+        }
+
+        return $bet->won_at ?? $bet->placed_at ?? $bet->created_at ?? Carbon::now();
     }
 
     private function repriceUnclaimed(

@@ -54,15 +54,12 @@ final class AccrueCashbackCommand extends Command
         $totalAccrued = '0.00';
 
         Bet::query()
-            ->whereIn('status', [BetStatus::Won->value, BetStatus::Lost->value])
-            ->where(function ($query) use ($periodStart, $periodEnd): void {
-                $query
-                    ->whereBetween('won_at', [$periodStart, $periodEnd])
-                    ->orWhereBetween('updated_at', [$periodStart, $periodEnd]);
-            })
-            ->select('user_id')
+            ->whereIn('bets.status', [BetStatus::Won->value, BetStatus::Lost->value])
+            ->whereNull('bets.cancelled_at')
+            ->whereExists($accrualService->drawCompletedWithin($periodStart, $periodEnd))
+            ->select('bets.user_id')
             ->distinct()
-            ->orderBy('user_id')
+            ->orderBy('bets.user_id')
             ->chunk(max(1, (int) config('rewards.cashback.accrual_chunk_size', 200)), function ($rows) use ($accrualService, $periodStart, $periodEnd, $period, &$processed, &$totalAccrued): void {
                 $ids = $rows->pluck('user_id')->map(static fn ($id): int => (int) $id)->all();
                 $members = User::query()->whereIn('id', $ids)->get()->keyBy('id');

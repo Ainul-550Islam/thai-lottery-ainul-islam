@@ -51,16 +51,13 @@ final class AccrueCashbackJob implements ShouldBeUnique, ShouldQueue
 
         /** @var list<int> $memberIds */
         $memberIds = Bet::query()
-            ->whereIn('status', [BetStatus::Won->value, BetStatus::Lost->value])
-            ->where('user_id', '>', $this->afterMemberId)
-            ->where(function ($query) use ($start, $end): void {
-                $query
-                    ->whereBetween('won_at', [$start, $end])
-                    ->orWhereBetween('updated_at', [$start, $end]);
-            })
-            ->select('user_id')
+            ->whereIn('bets.status', [BetStatus::Won->value, BetStatus::Lost->value])
+            ->whereNull('bets.cancelled_at')
+            ->where('bets.user_id', '>', $this->afterMemberId)
+            ->whereExists($accrualService->drawCompletedWithin($start, $end))
+            ->select('bets.user_id')
             ->distinct()
-            ->orderBy('user_id')
+            ->orderBy('bets.user_id')
             ->limit($resolvedChunk)
             ->pluck('user_id')
             ->map(static fn ($id): int => (int) $id)
