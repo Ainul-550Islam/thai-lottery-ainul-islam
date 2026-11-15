@@ -149,11 +149,14 @@ return [
                         'match_mode' => 'any_order',
                         'payout_multiplier' => '220',
                     ],
-                    // p = 1/1000   ->  0.0010 * 850  = 0.8500
+                    // p = 1/1000   ->  0.0010 * 900  = 0.9000
+                    // Settles through the platform's own 3d_direct market, which pays 900x
+                    // (config/lottery.markets). The quoted multiplier must be that same
+                    // number, or a player is quoted one payout and paid another.
                     '3d_direct' => [
                         'selection_digits' => 3,
                         'match_mode' => 'exact',
-                        'payout_multiplier' => '850',
+                        'payout_multiplier' => '900',
                     ],
                     // p = 1/100    ->  0.0100 * 85   = 0.8500
                     '2d_direct' => [
