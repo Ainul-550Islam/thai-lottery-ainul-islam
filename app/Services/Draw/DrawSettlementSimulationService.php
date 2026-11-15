@@ -135,6 +135,14 @@ class DrawSettlementSimulationService
      */
     public function settle(int $drawId): SettlementSimulationResult
     {
+        // The simulation closes the draw (Settled is terminal) without crediting a wallet or
+        // creating a payout row. The real prize settlement only replays a Settled draw, so
+        // running this against real bets would close the draw with nobody paid. Refuse before
+        // anything is read or locked; nothing here depends on configuration.
+        if (app()->environment('production')) {
+            throw SettlementSimulationException::forbiddenInProduction($drawId);
+        }
+
         if (DB::transactionLevel() > 0) {
             // The rollback guarantee must belong to this run. Inside a caller's
             // transaction a failure here could be swallowed by an outer catch and the
