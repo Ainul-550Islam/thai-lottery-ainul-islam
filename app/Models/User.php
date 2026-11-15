@@ -418,4 +418,44 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     {
         return $query->where('status', $status);
     }
+
+    /**
+     * @return HasMany<CashbackAccrual, self>
+     */
+    public function cashbackAccruals(): HasMany
+    {
+        return $this->hasMany(CashbackAccrual::class, 'member_id');
+    }
+
+    /**
+     * @return HasMany<RewardClaim, self>
+     */
+    public function rewardClaims(): HasMany
+    {
+        return $this->hasMany(RewardClaim::class, 'member_id');
+    }
+
+    /**
+     * @return HasMany<FreeBetVoucher, self>
+     */
+    public function freeBetVouchers(): HasMany
+    {
+        return $this->hasMany(FreeBetVoucher::class, 'member_id');
+    }
+
+    /**
+     * @return HasMany<MemberBankAccount, self>
+     */
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(MemberBankAccount::class, 'member_id');
+    }
+
+    /**
+     * @return HasMany<LoginEvent, self>
+     */
+    public function loginEvents(): HasMany
+    {
+        return $this->hasMany(LoginEvent::class, 'member_id');
+    }
 }

@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             // See ResultArchiveSeeder for why this is data-driven and not
             // an invented history.
             ResultArchiveSeeder::class,
+            CashbackPolicySeeder::class,
+            RewardCatalogSeeder::class,
         ]);
     }
 }

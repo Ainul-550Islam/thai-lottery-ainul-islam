@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WithdrawalRequest extends Model
 {
@@ -16,6 +17,7 @@ class WithdrawalRequest extends Model
     protected $fillable = [
         'id',
         'user_id',
+        'member_bank_account_id',
         'withdrawal_number',
         'payout_channel',
         'account_name',
@@ -42,4 +44,12 @@ class WithdrawalRequest extends Model
         'approved_at' => 'datetime',
         'disbursed_at' => 'datetime',
     ];
+
+    /**
+     * @return BelongsTo<MemberBankAccount, self>
+     */
+    public function memberBankAccount(): BelongsTo
+    {
+        return $this->belongsTo(MemberBankAccount::class, 'member_bank_account_id');
+    }
 }

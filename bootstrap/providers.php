@@ -8,6 +8,7 @@ use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\ProductionSafetyServiceProvider;
 use App\Providers\PaymentOpsServiceProvider;
 use App\Providers\QueueServiceProvider;
+use App\Providers\RewardsServiceProvider;
 use App\Providers\ThaiRailsServiceProvider;
 use App\Providers\WalletConversionServiceProvider;
 use App\Providers\FrontendOpsServiceProvider;
@@ -25,6 +26,7 @@ return [
     // The existing ops provider owns payment readiness boot refusal and routes.
     PaymentOpsServiceProvider::class,
     WalletConversionServiceProvider::class,
+    RewardsServiceProvider::class,
     AdminPanelProvider::class,
     FrontendOpsServiceProvider::class,
 ];

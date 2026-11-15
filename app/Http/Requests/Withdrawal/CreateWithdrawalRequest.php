@@ -64,6 +64,7 @@ final class CreateWithdrawalRequest extends FormRequest
             // Idempotency mirrors: body field OR header, never both
             // disagreeing. The header wins only when the body is absent.
             'idempotency_key' => ['nullable', 'string', 'min:16', 'max:128'],
+            'member_bank_account_id' => ['nullable', 'integer', 'min:1'],
 
             // Client-side claims the server expressly ignores — refusing
             // them loudly is kinder than silently dropping them when a

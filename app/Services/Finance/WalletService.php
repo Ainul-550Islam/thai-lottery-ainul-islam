@@ -93,7 +93,7 @@ final class WalletService
     /**
      * Resolve or create the canonical primary wallet for a user and currency.
      */
-    public function getOrCreateWallet(int|User $user, string|Currency $currency = 'THB'): Wallet
+    public function getOrCreateWallet(int|User $user, string|Currency $currency = 'THB', WalletType $type = WalletType::Primary): Wallet
     {
         // Validate the caller's identity set before any routing SQL: a model whose
         // key or routing context was tampered with must never reach a query.
@@ -105,7 +105,7 @@ final class WalletService
         return Wallet::query()->firstOrCreate([
             'user_id' => $userId,
             'currency' => $currencyEnum,
-            'type' => WalletType::Primary,
+            'type' => $type,
         ]);
     }
 

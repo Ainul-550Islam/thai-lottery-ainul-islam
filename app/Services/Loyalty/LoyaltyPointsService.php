@@ -318,4 +318,138 @@ final class LoyaltyPointsService
             ]);
         });
     }
+
+    /**
+     * Spend loyalty points inside an existing or new DB transaction for catalog redemption.
+     *
+     * @param  array<string, mixed>  $metadata
+     *
+     * @throws FinancialException
+     */
+    public function spendPoints(
+        User $user,
+        int $pointsCost,
+        string $sourceType,
+        string|int $sourceId,
+        string $idempotencyKey,
+        string $description,
+        array $metadata = [],
+    ): LoyaltyPointLedger {
+        if ($pointsCost <= 0) {
+            throw FinancialException::withCode(
+                'invalid_loyalty_points_cost',
+                'Points spent must be a positive integer.',
+            );
+        }
+
+        if (ResponsibleGamingGate::isSelfExcluded($user)) {
+            throw FinancialException::withCode(
+                'self_excluded_promotional_block',
+                'Loyalty rewards cannot be redeemed while a self-exclusion is active.',
+            );
+        }
+
+        return DB::transaction(function () use ($user, $pointsCost, $sourceType, $sourceId, $idempotencyKey, $description, $metadata): LoyaltyPointLedger {
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+
+            /** @var LoyaltyPointLedger|null $existing */
+            $existing = LoyaltyPointLedger::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+
+            if ($existing instanceof LoyaltyPointLedger) {
+                return $existing;
+            }
+
+            /** @var LoyaltyPointLedger|null $latest */
+            $latest = LoyaltyPointLedger::query()
+                ->where('user_id', $user->getKey())
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->first();
+
+            $currentBalance = $latest instanceof LoyaltyPointLedger ? (int) $latest->balance_after : 0;
+
+            if ($currentBalance < $pointsCost) {
+                throw FinancialException::withCode(
+                    'insufficient_loyalty_points',
+                    sprintf('You need %d points to redeem this reward (current balance: %d).', $pointsCost, $currentBalance),
+                    ['required' => $pointsCost, 'available' => $currentBalance],
+                );
+            }
+
+            return LoyaltyPointLedger::query()->create([
+                'user_id' => (int) $user->getKey(),
+                'entry_type' => self::ENTRY_REDEEM,
+                'points' => -$pointsCost,
+                'balance_after' => $currentBalance - $pointsCost,
+                'source_type' => $sourceType,
+                'source_id' => (string) $sourceId,
+                'idempotency_key' => $idempotencyKey,
+                'description' => $description,
+                'expires_at' => null,
+                'metadata' => $metadata,
+            ]);
+        });
+    }
+
+    /**
+     * Return previously spent points (e.g. a rejected reward claim) as a positive
+     * ADJUST ledger entry. Idempotent per key; the ledger stays append-only.
+     *
+     * @param  array<string, mixed>  $metadata
+     *
+     * @throws FinancialException
+     */
+    public function refundPoints(
+        User $user,
+        int $points,
+        string $sourceType,
+        string|int $sourceId,
+        string $idempotencyKey,
+        string $description,
+        array $metadata = [],
+    ): LoyaltyPointLedger {
+        if ($points <= 0) {
+            throw FinancialException::withCode(
+                'invalid_loyalty_points_refund',
+                'Refunded points must be a positive integer.',
+            );
+        }
+
+        return DB::transaction(function () use ($user, $points, $sourceType, $sourceId, $idempotencyKey, $description, $metadata): LoyaltyPointLedger {
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+
+            /** @var LoyaltyPointLedger|null $existing */
+            $existing = LoyaltyPointLedger::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+
+            if ($existing instanceof LoyaltyPointLedger) {
+                return $existing;
+            }
+
+            /** @var LoyaltyPointLedger|null $latest */
+            $latest = LoyaltyPointLedger::query()
+                ->where('user_id', $user->getKey())
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->first();
+
+            $currentBalance = $latest instanceof LoyaltyPointLedger ? (int) $latest->balance_after : 0;
+
+            return LoyaltyPointLedger::query()->create([
+                'user_id' => (int) $user->getKey(),
+                'entry_type' => self::ENTRY_ADJUST,
+                'points' => $points,
+                'balance_after' => $currentBalance + $points,
+                'source_type' => $sourceType,
+                'source_id' => (string) $sourceId,
+                'idempotency_key' => $idempotencyKey,
+                'description' => $description,
+                'expires_at' => null,
+                'metadata' => $metadata,
+            ]);
+        });
+    }
 }

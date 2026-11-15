@@ -11,6 +11,12 @@ use App\Http\Controllers\Api\V1\Admin\Security\FraudAlertController;
 use App\Http\Controllers\Api\V1\Admin\Security\MalwareReviewController;
 use App\Http\Controllers\Api\V1\Admin\Security\SecurityOverviewController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BankAccountController;
+use App\Http\Controllers\Api\V1\CashbackController;
+use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\LoginHistoryController;
+use App\Http\Controllers\Api\V1\ReferralCenterController;
+use App\Http\Controllers\Api\V1\RewardController;
 use App\Http\Controllers\Api\V1\BetAmendmentController;
 use App\Http\Controllers\Api\V1\BetCancellationController;
 use App\Http\Controllers\Api\V1\BetController;
@@ -640,6 +646,44 @@ Route::prefix('v1')
         // Wallet balance and transaction history.
         Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
         Route::get('/wallet/transactions', [WalletController::class, 'transactions'])->name('wallet.transactions');
+
+        // Batch 1 — Player-account self-service endpoints (/api/v1/me/*)
+        // Registered in the SAME middleware group as WalletController:
+        // GET  /me/cashback                              POST /me/cashback/claim
+        // GET  /me/rewards/catalog                       POST /me/rewards/{item}/claim
+        // GET  /me/rewards/history                       GET  /me/vip/progress
+        // GET  /me/security/login-history                GET  /me/security/login-summary
+        // GET/POST /me/bank-accounts  PATCH /me/bank-accounts/{id}/default  DELETE /me/bank-accounts/{id}
+        // GET  /me/referral-center                       POST /me/referral-center/payout-requests
+        // GET  /me/dashboard-summary
+        Route::get('/me/cashback', [CashbackController::class, 'show'])->name('me.cashback.show');
+        Route::post('/me/cashback/claim', [CashbackController::class, 'claim'])->name('me.cashback.claim');
+
+        Route::get('/me/rewards/catalog', [RewardController::class, 'catalog'])->name('me.rewards.catalog');
+        Route::post('/me/rewards/{item}/claim', [RewardController::class, 'claim'])
+            ->where('item', '[A-Za-z0-9_-]{1,64}')
+            ->name('me.rewards.claim');
+        Route::get('/me/rewards/history', [RewardController::class, 'history'])->name('me.rewards.history');
+        Route::get('/me/vip/progress', [RewardController::class, 'vipProgress'])->name('me.vip.progress');
+
+        Route::get('/me/security/login-history', [LoginHistoryController::class, 'index'])->name('me.security.login-history');
+        Route::get('/me/security/login-summary', [LoginHistoryController::class, 'summary'])->name('me.security.login-summary');
+
+        Route::get('/me/bank-accounts', [BankAccountController::class, 'index'])->name('me.bank-accounts.index');
+        Route::post('/me/bank-accounts', [BankAccountController::class, 'store'])->name('me.bank-accounts.store');
+        Route::patch('/me/bank-accounts/{id}/default', [BankAccountController::class, 'setDefault'])
+            ->whereNumber('id')
+            ->name('me.bank-accounts.default');
+        Route::delete('/me/bank-accounts/{id}', [BankAccountController::class, 'destroy'])
+            ->whereNumber('id')
+            ->name('me.bank-accounts.destroy');
+
+        Route::get('/me/referral-center', [ReferralCenterController::class, 'show'])->name('me.referral-center.show');
+        Route::post('/me/referral-center/payout-requests', [ReferralCenterController::class, 'requestPayout'])
+            ->middleware(['throttle:withdrawal', 'adult', 'legal.current'])
+            ->name('me.referral-center.payout-requests.store');
+
+        Route::get('/me/dashboard-summary', [DashboardSummaryController::class, 'show'])->name('me.dashboard.summary');
 
         // Profile and password.
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

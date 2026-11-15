@@ -74,6 +74,7 @@ class Withdrawal extends Model
         'reference_number',
         'user_id',
         'wallet_id',
+        'member_bank_account_id',
         'method',
         'provider',
         'provider_reference',
@@ -262,5 +263,13 @@ class Withdrawal extends Model
     public function scopeByReferenceNumber(Builder $query, string $reference): Builder
     {
         return $query->where('reference_number', $reference);
+    }
+
+    /**
+     * @return BelongsTo<MemberBankAccount, self>
+     */
+    public function memberBankAccount(): BelongsTo
+    {
+        return $this->belongsTo(MemberBankAccount::class, 'member_bank_account_id');
     }
 }

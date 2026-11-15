@@ -31,6 +31,7 @@ enum NotificationEventType: string
     // GLO-15/17 additive events (single notification system — no parallel stack).
     case GloResultAvailable = 'glo_result_available';
     case DealerRequestUpdate = 'dealer_request_update';
+    case NewDeviceLogin = 'new_device_login';
 
     /**
      * The default channel lane this phenomenon lands in; preferences
@@ -54,6 +55,7 @@ enum NotificationEventType: string
             self::ComplianceReleased,
             self::SelfExclusionStarted,
             self::SessionRevoked,
+            self::NewDeviceLogin,
             self::RealityCheck => true,
             default => false,
         };
