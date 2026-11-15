@@ -15,6 +15,8 @@ use App\Jobs\ExpireUnclaimedPrizesJob;
 use App\Jobs\ExpireWalletReservationsJob;
 use App\Jobs\GeneratePayoutBatchJob;
 use App\Jobs\GeneratePayoutStatementJob;
+use App\Jobs\LotteryGames\GenerateGameDrawsJob;
+use App\Jobs\LotteryGames\ImportGameResultsJob;
 use App\Jobs\ReassessAmlRiskJob;
 use App\Jobs\ReconcilePaymentProviderJob;
 use App\Jobs\ReconcileWalletLedgersJob;
@@ -331,3 +333,34 @@ Schedule::command('glo:fetch-official')
     ->name('glo-official-result-fetch')
     ->withoutOverlapping()
     ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| Batch 2 — digit-game lanes
+|--------------------------------------------------------------------------
+|
+| generate-draws runs once a day (draws are materialised ahead, so a missed run
+| is not a missed draw), and import-results polls every minute because a result
+| that arrives is worth having within the minute.
+|
+| BOTH ARE GATED ON THE FRAMEWORK MASTER SWITCH. With
+| config('lottery_games.master_enabled') false — the default — neither job is
+| registered at all, rather than registered-and-returning-early: a task that
+| exists but does nothing is indistinguishable in `schedule:list` from one that
+| is meant to be working, and that ambiguity is how an unconfigured lane looks
+| healthy for a week.
+|
+*/
+if ((bool) config('lottery_games.master_enabled', false) === true) {
+    Schedule::job(new GenerateGameDrawsJob(null, 7))
+        ->dailyAt('00:10')
+        ->name('lottery-games-generate-draws')
+        ->withoutOverlapping()
+        ->onOneServer();
+
+    Schedule::job(new ImportGameResultsJob(null))
+        ->everyMinute()
+        ->name('lottery-games-import-results')
+        ->withoutOverlapping()
+        ->onOneServer();
+}

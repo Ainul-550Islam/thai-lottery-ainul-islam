@@ -170,6 +170,18 @@ class EventServiceProvider extends ServiceProvider
         WithdrawalStatusUpdated::class => [
             SendWithdrawalStatusNotification::class,
         ],
+
+        // Batch 2 — digit-game cancellation seam (App\Events\BetCancelled) is deliberately
+        // NOT mapped here. Event discovery is enabled application-wide: Application::configure()
+        // calls withEvents(), and AppEventServiceProvider::getEvents() merges discoveredEvents()
+        // with listens(). App\Listeners\LotteryGames\ReleaseExposureOnBetCancelled and
+        // App\Listeners\Cashback\ReverseCashbackOnBetCancelled both live under the scanned
+        // app/Listeners tree and type-hint BetCancelled on handle(), so discovery registers them
+        // (as "Class@handle"). Adding them to this map as well registered a SECOND copy and the
+        // event dispatched twice — reserved liability was released twice and the cashback accrual
+        // was reversed twice on a single cancellation. One registration path per listener:
+        // discovery for this pair, this map for everything else. If either listener is ever moved
+        // out of app/Listeners, it must be added back to this map in the same change.
         PrizePayoutCompleted::class => [
             SendPrizePayoutNotification::class,
         ],

@@ -21,6 +21,11 @@ class DatabaseSeeder extends Seeder
             ResultArchiveSeeder::class,
             CashbackPolicySeeder::class,
             RewardCatalogSeeder::class,
+            // Batch 2: registers speed_88 and lao_hanoi_4d with the operator layer.
+            // Both are created rules_status=unverified and enabled=false, so this is
+            // a no-op for gameplay: no draw, no market and no payout path becomes
+            // reachable until an operator verifies the rules and enables the game.
+            LotteryGamesSeeder::class,
         ]);
     }
 }

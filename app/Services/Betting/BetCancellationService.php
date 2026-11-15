@@ -16,6 +16,7 @@ use App\Enums\RiskLevel;
 use App\Enums\TicketStatus;
 use App\Enums\WalletType;
 use App\Exceptions\BetAlreadySettledException;
+use App\Events\BetCancelled;
 use App\Exceptions\BetCancellationException;
 use App\Exceptions\BetCancellationWindowExpiredException;
 use App\Models\AgentCommission;
@@ -289,6 +290,32 @@ class BetCancellationService
         }, 3);
 
         /** @var BetCancellationResult $result */
+        // A COMMITTED CANCELLATION IS ANNOUNCED, ONCE.
+        //
+        // Batch 2's digit-game lane listens for this to give back the liability it
+        // reserved when the slip was sold, and (where a cashback lane is installed) to ask
+        // for the accrual the bet earned to be reversed. Without this dispatch a cancelled
+        // digit bet would keep its potential payout reserved against the operator's cap for
+        // ever, and the cashback a player no longer deserves would stand.
+        //
+        // WHY HERE AND NOT INSIDE THE TRANSACTION
+        // The listener must never be able to prevent a refund that already succeeded, and
+        // must never fire for a cancellation that rolled back. Both are satisfied by
+        // announcing AFTER the work is committed: a listener that throws cannot undo the
+        // player's money (and the lane's listeners log rather than throw for that reason),
+        // and nothing observes a cancellation that did not happen. A caller that wraps this
+        // in an outer transaction still gets correct behaviour: the listeners write through
+        // the same connection and roll back with it.
+        //
+        // REPLAYS NEVER REACH THIS LINE. An already-cancelled bet returns at the top of
+        // cancel(), and a racing second cancellation that discovers the committed
+        // cancellation inside the transaction returns from the closure - so a retried
+        // request cannot release the same reservation twice or reverse a cashback that is
+        // already reversed.
+        if ($result !== null) {
+            BetCancelled::dispatch($result->bet, $result->reason->value);
+        }
+
         return $result;
     }
 

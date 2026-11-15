@@ -598,6 +598,49 @@ Route::prefix('v1')
             ->middleware(['throttle:bet', 'adult', 'legal.current'])
             ->name('bets.amend');
 
+        /*
+        |------------------------------------------------------------------
+        | Digit games (Batch 2)
+        |------------------------------------------------------------------
+        |
+        | Registered in the SAME middleware group as the existing bet
+        | routes, so a game bet inherits the identical auth, active-user,
+        | throttle, adult and legal-consent floor as every other purchase.
+        | A new lane with a weaker floor is how a purchase bypass appears.
+        |
+        */
+        Route::get('/games', [\App\Http\Controllers\Api\V1\LotteryGameController::class, 'index'])
+            ->name('games.index');
+        Route::get('/games/{code}', [\App\Http\Controllers\Api\V1\LotteryGameController::class, 'show'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.show');
+        Route::get('/games/{code}/upcoming', [\App\Http\Controllers\Api\V1\LotteryGameController::class, 'upcoming'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.upcoming');
+
+        Route::post('/games/{code}/bets/quote', [\App\Http\Controllers\Api\V1\GameBetController::class, 'quote'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->middleware(['throttle:bet'])
+            ->name('games.bets.quote');
+        Route::post('/games/{code}/bets', [\App\Http\Controllers\Api\V1\GameBetController::class, 'store'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->middleware(['throttle:bet', 'adult', 'legal.current'])
+            ->name('games.bets.store');
+
+        Route::get('/games/{code}/results/latest', [\App\Http\Controllers\Api\V1\GameResultController::class, 'latest'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.results.latest');
+        Route::get('/games/{code}/results', [\App\Http\Controllers\Api\V1\GameResultController::class, 'history'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.results');
+        // The calendar is its own resource beside the results feed, not a filter of it: it
+        // answers "what is scheduled, and what is still owed a result", which the history
+        // endpoint deliberately cannot (it serves published results only).
+        Route::get('/games/{code}/calendar', [\App\Http\Controllers\Api\V1\GameResultController::class, 'calendar'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.calendar');
+
+
         // Ticket verification (owner-scoped detail) and share links.
         Route::post('/tickets/verify', [TicketVerificationController::class, 'verify'])
             ->name('tickets.verify');

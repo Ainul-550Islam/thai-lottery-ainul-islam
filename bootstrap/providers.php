@@ -12,6 +12,7 @@ use App\Providers\RewardsServiceProvider;
 use App\Providers\ThaiRailsServiceProvider;
 use App\Providers\WalletConversionServiceProvider;
 use App\Providers\FrontendOpsServiceProvider;
+use App\Providers\LotteryGamesServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -29,4 +30,6 @@ return [
     RewardsServiceProvider::class,
     AdminPanelProvider::class,
     FrontendOpsServiceProvider::class,
+    // Batch 2: digit-game framework (registry, providers, settlement adapter, listeners).
+    LotteryGamesServiceProvider::class,
 ];

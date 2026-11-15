@@ -7,6 +7,7 @@ namespace App\Services\Betting;
 use App\DTOs\BetPurchaseData;
 use App\DTOs\BetPurchaseResult;
 use App\Exceptions\BetPurchaseConcurrencyException;
+use App\Services\LotteryGames\FreeBetFundingAdapter;
 use App\Exceptions\BetPurchaseException;
 use App\Exceptions\BetPurchaseIdempotencyException;
 use App\Exceptions\BetPurchaseValidationException;
@@ -82,7 +83,7 @@ final class BetPurchaseService implements BetAmendmentReplacement
      * @throws BetPurchaseConcurrencyException when contention could not be resolved
      * @throws BetPurchaseException on any other refusal
      */
-    public function purchase(BetPurchaseData $data): BetPurchaseResult
+    public function purchase(BetPurchaseData $data, ?string $freeBetVoucherId = null): BetPurchaseResult
     {
         // Exact decimal arithmetic is a precondition, not a preference. Without bcmath
         // every amount in the pipeline would silently become approximate, so the
@@ -119,17 +120,96 @@ final class BetPurchaseService implements BetAmendmentReplacement
 
         $context = $this->validator->validate($data);
 
+        // BATCH 2 (ADDITIVE): OPTIONAL FREE-BET FUNDING.
+        //
+        // $freeBetVoucherId is null for every caller that existed before Batch 2, and when
+        // it is null this method behaves EXACTLY as it did - no extra query, no extra
+        // branch, no extra work. That is the whole contract of the addition: a deployment
+        // that never sells a digit game cannot tell the difference.
+        //
+        // When it is NOT null the voucher is spent HERE, once, keyed by this purchase's own
+        // idempotency key, so the spend and the bet share one identity: a retried request
+        // replays the bet and the voucher lane recognises the same key, and a failed
+        // purchase gives the spend back below. Funding therefore has ONE owner (this
+        // service) rather than one per caller, which is what stops a second money path
+        // appearing beside Batch 1's.
+        //
+        // The spend happens AFTER validation (a refused request must cost no voucher) and
+        // BEFORE the money transaction: the voucher lane may not share this database's
+        // transaction, so the compensation below - not a rollback - is what makes it safe.
+        $voucherSpend = $this->spendFreeBetVoucher($data, $freeBetVoucherId, $idempotencyKey);
+
         try {
             return $this->transaction->execute($context);
         } catch (BetPurchaseConcurrencyException $exception) {
             if (! $exception->isIdempotentRace()) {
+                $this->giveBackFreeBetVoucher($voucherSpend, $idempotencyKey, $exception->getMessage());
+
                 throw $exception;
             }
 
             // A concurrent identical request committed first. Its purchase is the one
             // that exists, so it is returned. Nothing this attempt did survived: the
             // transaction rolled back before any row was committed.
+            // The voucher is NOT given back here, because the identical request that won
+            // spent it under the same key and its bet is the one that stands.
             return $this->replayAfterLostRace($idempotencyKey, $data, $exception);
+        } catch (\Throwable $exception) {
+            $this->giveBackFreeBetVoucher($voucherSpend, $idempotencyKey, $exception->getMessage());
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Spend an optional free-bet voucher, or report that there was nothing to spend.
+     *
+     * @return array{voucher_id: string, user_id: int}|null
+     *
+     * @throws \App\Exceptions\LotteryGameException game_funding_unavailable
+     */
+    private function spendFreeBetVoucher(BetPurchaseData $data, ?string $freeBetVoucherId, string $idempotencyKey): ?array
+    {
+        if ($freeBetVoucherId === null || trim($freeBetVoucherId) === '') {
+            return null;
+        }
+
+        $userId = (int) $data->userId;
+
+        $adapter = app(FreeBetFundingAdapter::class);
+
+        // Read-only first: a voucher that cannot fund this bet must be refused before it is
+        // touched, and the refusal names the voucher lane's own reason.
+        $adapter->validateUsable($userId, $freeBetVoucherId);
+        $adapter->consume($userId, $freeBetVoucherId, $idempotencyKey);
+
+        return ['voucher_id' => $freeBetVoucherId, 'user_id' => $userId];
+    }
+
+    /**
+     * Give a spent voucher back when the bet it funded did not happen.
+     *
+     * A failure to give it back is LOGGED, not thrown: the purchase has already failed, and
+     * replacing that refusal with a different one would tell the caller nothing true. The
+     * unreversed voucher is an operator task, and the log line names both keys.
+     *
+     * @param  array{voucher_id: string, user_id: int}|null  $spend
+     */
+    private function giveBackFreeBetVoucher(?array $spend, string $idempotencyKey, string $reason): void
+    {
+        if ($spend === null) {
+            return;
+        }
+
+        try {
+            app(FreeBetFundingAdapter::class)->reverse($spend['user_id'], $spend['voucher_id'], $idempotencyKey);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('bet_purchase.free_bet_voucher_reverse_failed', [
+                'voucher_id' => $spend['voucher_id'],
+                'user_id' => $spend['user_id'],
+                'purchase_reason' => $reason,
+                'reverse_reason' => $e->getMessage(),
+            ]);
         }
     }
 
