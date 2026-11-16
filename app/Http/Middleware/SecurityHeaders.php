@@ -66,7 +66,7 @@ final class SecurityHeaders
 
             if ($request->is('admin', 'admin/*')) {
 
-                $csp = str_replace("script-src 'self'", "script-src 'self' 'unsafe-eval'", $csp);
+                $csp = str_replace(["script-src 'self'", " 'nonce-{$nonce}'"], ["script-src 'self' 'unsafe-inline' 'unsafe-eval'", ''], $csp);
 
                 $csp = (string) preg_replace_callback(
 
@@ -79,6 +79,7 @@ final class SecurityHeaders
                 );
 
                 $csp = str_replace("font-src 'self'", "font-src 'self' https://fonts.bunny.net", $csp);
+                $csp = str_replace("img-src 'self'", "img-src 'self' https://ui-avatars.com", $csp);
 
             }
 
