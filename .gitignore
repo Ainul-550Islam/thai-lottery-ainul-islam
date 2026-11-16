@@ -64,3 +64,11 @@ framework/views/
 test-results/
 __pycache__/
 *.log
+
+# delivery bundles
+/app.zip
+/bootstrap.zip
+/config.zip
+/public.zip
+/resources.zip
+/routes.zip

@@ -34,3 +34,11 @@ deployment
 .DS_Store
 .profile
 .sudo_as_admin_successful
+
+# delivery bundles
+/app.zip
+/bootstrap.zip
+/config.zip
+/public.zip
+/resources.zip
+/routes.zip
