@@ -11,6 +11,7 @@ use App\Providers\QueueServiceProvider;
 use App\Providers\ThaiRailsServiceProvider;
 use App\Providers\WalletConversionServiceProvider;
 use App\Providers\FrontendOpsServiceProvider;
+use App\Providers\PlayerExperienceServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -27,4 +28,6 @@ return [
     WalletConversionServiceProvider::class,
     AdminPanelProvider::class,
     FrontendOpsServiceProvider::class,
+    // Batch 3: FX display driver + the player-experience bindings.
+    PlayerExperienceServiceProvider::class,
 ];

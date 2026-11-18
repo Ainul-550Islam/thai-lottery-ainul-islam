@@ -23,9 +23,18 @@ use Illuminate\Support\Facades\DB;
  */
 final class NotificationDispatchService
 {
+    /**
+     * BATCH 3 (additive): the category preference guard, nullable and last.
+     *
+     * Optional so every existing construction site keeps working and so a
+     * deployment that has not run the Batch-3 migration behaves exactly as
+     * before. When present, it can only ever SUPPRESS an optional category —
+     * the mandatory floor is enforced inside the guard as well.
+     */
     public function __construct(
         private readonly NotificationSuppressionService $suppression,
         private readonly RecordNotificationAudit $audit,
+        private readonly ?\App\Services\Notifications\NotificationPreferenceGuardService $preferenceGuard = null,
     ) {}
 
     /**
@@ -35,6 +44,27 @@ final class NotificationDispatchService
      */
     public function pronounce(int $userId, NotificationMessageData $message): array
     {
+        // BATCH 3 (additive): the last word on a member's own preference.
+        //
+        // Suppression already handles quiet hours, duplicates and the mandatory
+        // floor; what it does not model is the member's CATEGORY switch
+        // (marketing off, results on). The preference guard answers that, and it
+        // is consulted BEFORE the transaction because a member who switched a
+        // category off should not open one.
+        //
+        // The guard returns true for every mandatory event without touching the
+        // database, so with no category switched off this branch is a no-op and
+        // the rest of the method is byte-for-byte what it was.
+        if ($this->preferenceGuard !== null
+            && ! $this->preferenceGuard->allows($userId, $message->eventType, $message->channel)) {
+            return [
+                'notification' => null,
+                'suppressed' => true,
+                'reason' => 'preference_disabled',
+                'replayed' => false,
+            ];
+        }
+
         return DB::transaction(function () use ($userId, $message): array {
             // Suppression knows first: asked at pronouncement time so
             // quiet hours count from now and duplicates are branded.

@@ -326,3 +326,54 @@ Schedule::command('glo:fetch-official')
     ->name('glo-official-result-fetch')
     ->withoutOverlapping()
     ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| BATCH 3 — PLAYER EXPERIENCE (additive schedule entries)
+|--------------------------------------------------------------------------
+|
+| Four entries, all idempotent, all safe to run more than once, all registered
+| here rather than in bootstrap/app.php because this file is already the place a
+| reader looks to answer "what runs and when". Adding them to the second
+| schedule source would deepen a duplication this repository already has.
+|
+| WHY THE HEARTBEAT IS EVERY MINUTE
+| /health/ready reports NOT_READY when the heartbeat is older than
+| config('player_experience.health.scheduler_stale_seconds'). A per-minute stamp
+| against a three-minute staleness window means a single missed tick is not an
+| outage alarm, but three consecutive misses are — which is the right sensitivity
+| for a cron that is supposed to run constantly.
+|
+*/
+
+// The liveness stamp the readiness probe reads. Silent on success.
+Schedule::command('ops:heartbeat')
+    ->everyMinute()
+    ->name('ops-heartbeat')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// One balance snapshot per wallet per day, after the day's money has settled.
+// Idempotent by unique key, so a retry or a manual run is harmless.
+Schedule::command('wallet:snapshot-balances')
+    ->dailyAt('00:35')
+    ->name('wallet-snapshot-balances')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Read-only ledger-vs-wallet sweep. Exit code 1 on a discrepancy, which is what an
+// alerting wrapper reads. It NEVER corrects anything: see
+// docs/ops/RUNBOOK_ledger_mismatch.md.
+Schedule::command('ledger:verify')
+    ->dailyAt('03:10')
+    ->name('ledger-verify')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Draft slips whose clock ran out. Keeps the status column agreeing with reality
+// for members who never came back to their basket.
+Schedule::command('bet-slips:expire')
+    ->hourly()
+    ->name('bet-slip-expiry')
+    ->withoutOverlapping()
+    ->onOneServer();
