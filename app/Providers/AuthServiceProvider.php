@@ -42,6 +42,17 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected array $policies = [
         AccountGradeSnapshot::class => AccountGradePolicy::class,
+        // BATCH 3 (additive): the draft slip is owner-only; the policy states that
+        // rule once instead of leaving it implicit in a scoped query.
+        //
+        // NOTE: ChatConversation is deliberately NOT registered here. The chat stack
+        // predates this batch and authorises its operator surface through
+        // GloEnsurePermission and the operator console's own role checks - a policy
+        // on the model would be a second, weaker door into a member's conversation
+        // and it changes what existing operator code resolves. The member side uses
+        // App\Policies\SupportConversationPolicy directly (the controller calls it),
+        // which gives the same guarantee without touching anyone else's authorisation.
+        \App\Models\BetSlip::class => \App\Policies\BetSlipPolicy::class,
         GradeDiscountSnapshot::class => AccountGradePolicy::class,
         Wallet::class => WalletPolicy::class,
         LedgerEntry::class => LedgerPolicy::class,

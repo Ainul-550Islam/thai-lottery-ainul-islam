@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api\V1;
 
 use App\Services\PublicPages\FeesPageService;
+use Illuminate\Contracts\Validation\Validator as ValidatorContract;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Validator;
 
 /**
@@ -93,6 +96,34 @@ final class FeePreviewRequest extends FormRequest
     }
 
     /**
+     * The 422 body this endpoint has always returned.
+     *
+     * Laravel's default failed-validation body is `{message, errors}`. The fee
+     * calculator is a public, unauthenticated, JS-driven form and its client reads
+     * `error` to pick a translated message, so the shape is preserved here rather
+     * than silently replaced by the framework default when this rule set moved
+     * out of the controller. Keeping the mapping next to the rules also means a
+     * new rule cannot be added without a place to decide its error code.
+     */
+    protected function failedValidation(ValidatorContract $validator): void
+    {
+        /** @var Validator $validator */
+        $errors = $validator->errors();
+
+        $errorCode = $errors->has('provider') || $errors->has('category')
+            ? ($errors->has('provider') ? 'UNKNOWN_PROVIDER' : 'INVALID_REQUEST')
+            : 'INVALID_REQUEST';
+
+        throw new HttpResponseException(
+            new JsonResponse([
+                'success' => false,
+                'error' => $errorCode,
+                'message' => (string) $errors->first(),
+            ], 422)
+        );
+    }
+
+    /**
      * @return array<string, string>
      */
     public function messages(): array
@@ -100,7 +131,7 @@ final class FeePreviewRequest extends FormRequest
         return [
             'category.in' => 'The selected fee category is not available.',
             'provider.in' => 'The selected fee provider is not available.',
-            'base_amount.regex' => 'The base amount must be a plain decimal string with at most two decimal places.',
+            'base_amount.regex' => 'Base amount must be a plain decimal string with at most two decimals.',
         ];
     }
 

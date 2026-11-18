@@ -102,6 +102,36 @@ Route::get('/up/live', [HealthController::class, 'live'])->name('health.live');
 // The web server must let `/.well-known/` through to PHP (no dotfile deny rule).
 Route::get('/.well-known/security.txt', SecurityTxtController::class)->name('security.txt');
 
+/*
+|--------------------------------------------------------------------------
+| BATCH 3 (additive): bare load-balancer probes
+|--------------------------------------------------------------------------
+|
+| GET /health/live and GET /health/ready, at the BARE path the deployment spec
+| names. They are registered here rather than in routes/api.php because that file
+| inherits the `api` prefix, which would produce /api/health/live — a URL that
+| looks right in a route:list and is wrong in a load-balancer config.
+|
+| WHY THE NAMES ARE `probe.*` AND NOT `health.*`
+| /up/live and /up/ready above already own `health.live` and `health.ready`. A
+| duplicate name does not error in Laravel; the later registration silently wins,
+| so url()->route('health.live') would start pointing at a different payload.
+| Naming them distinctly keeps the existing monitoring links pointing at the
+| payload they were written against.
+|
+| NO AUTH, THROTTLED
+| `throttle:api` only: a probe that needed a credential could not be called by the
+| load balancer, and an unthrottled public endpoint is a free amplification vector.
+| Neither probe writes anything (asserted in HealthCheckServiceTest).
+|
+*/
+Route::get('/health/live', [\App\Http\Controllers\Api\V1\PlayerHealthController::class, 'live'])
+    ->middleware('throttle:api')
+    ->name('probe.live');
+Route::get('/health/ready', [\App\Http\Controllers\Api\V1\PlayerHealthController::class, 'ready'])
+    ->middleware('throttle:api')
+    ->name('probe.ready');
+
 Route::middleware('guest')->group(function (): void {
     // PROMPT 3: the member auth surface (login / registration /
     // password recovery) is served by MemberAuthController — thin

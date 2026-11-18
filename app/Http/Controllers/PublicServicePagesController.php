@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\DTOs\Finance\FeeCalculationResult;
+use App\Http\Requests\Api\V1\FeePreviewRequest;
 use App\Services\PublicPages\FeesPageService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -100,26 +101,21 @@ final class PublicServicePagesController
      * the request. Any client-supplied fee figure is ignored wholesale;
      * the response carries exclusively the server's bcmath result.
      */
-    public function feesPreview(Request $request): JsonResponse
+    public function feesPreview(FeePreviewRequest $request): JsonResponse
     {
-        $category = (string) $request->input('category', '');
-        $provider = $request->input('provider');
-        $baseAmount = (string) $request->input('base_amount', '');
-
-        $provider = is_string($provider) && $provider !== ''
-            ? strtolower(trim($provider))
-            : null;
-
-        if ($provider !== null && ! $this->fees->isKnownProvider($provider)) {
-            return response()->json([
-                'success' => false,
-                'error' => 'UNKNOWN_PROVIDER',
-                'message' => 'The requested provider is not part of the public fee schedule.',
-            ], 422);
-        }
-
+        /*
+         * The category and provider whitelists and the decimal-only shape of
+         * base_amount are enforced by FeePreviewRequest, which answers 422 with
+         * this endpoint's own {success, error, message} body. What is left here is
+         * the calculation and its two failure modes, both of which are decisions
+         * about the fee schedule rather than about the shape of the request.
+         */
         try {
-            $result = $this->fees->calculateResult($category, $baseAmount, $provider);
+            $result = $this->fees->calculateResult(
+                $request->feeCategory(),
+                $request->baseAmount(),
+                $request->feeProvider(),
+            );
         } catch (InvalidArgumentException $exception) {
             return response()->json([
                 'success' => false,

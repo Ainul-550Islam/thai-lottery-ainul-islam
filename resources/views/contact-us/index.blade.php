@@ -291,7 +291,7 @@
                         <span class="text-xl font-black tracking-wider text-white uppercase font-['Cinzel']">Thai<span class="tl-gold-gradient">Lotto</span></span>
                     </div>
                     <p class="text-xs text-slate-400 leading-relaxed max-w-sm mb-6">
-                        Thailand's premier digital lottery platform. Officially licensed and regulated digital gateway providing transparent, instant, and high-security draw access for global players.
+                        Thailand's digital lottery platform. A regulated digital gateway providing transparent, instant, and high-security draw access for global players.
                     </p>
                     <div class="flex items-center gap-3">
                         <a href="#" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors"><i class="fa-brands fa-telegram"></i></a>
@@ -335,11 +335,11 @@
                         </div>
                         <div class="flex items-center gap-2 text-xs text-slate-300">
                             <i class="fa-solid fa-shield-halved text-amber-400"></i>
-                            <span>GLO Certified Results</span>
+                            <span>Official GLO result source</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs text-slate-300">
                             <i class="fa-solid fa-server text-blue-400"></i>
-                            <span>99.99% Server Uptime</span>
+                            <span>Continuous monitoring</span>
                         </div>
                     </div>
                 </div>
