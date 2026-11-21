@@ -1,0 +1,35 @@
+ার diff --git a/bootstrap/providers.php b/bootstrap/providers.php
+index 23f0869..1860009 100644
+--- a/bootstrap/providers.php
++++ b/bootstrap/providers.php
+@@ -12,6 +12,7 @@ use App\Providers\RewardsServiceProvider;
+ use App\Providers\ThaiRailsServiceProvider;
+ use App\Providers\WalletConversionServiceProvider;
+ use App\Providers\FrontendOpsServiceProvider;
++use App\Providers\LotteryGamesServiceProvider;
+ 
+ return [
+     AppServiceProvider::class,
+@@ -29,4 +30,6 @@ return [
+     RewardsServiceProvider::class,
+     AdminPanelProvider::class,
+     FrontendOpsServiceProvider::class,
++    // Batch 2: digit-game framework (registry, providers, settlement adapter, listeners).
++    LotteryGamesServiceProvider::class,
+ ];
+diff --git a/database/seeders/DatabaseSeeder.php b/database/seeders/DatabaseSeeder.php
+index f90c31e..7077740 100644
+--- a/database/seeders/DatabaseSeeder.php
++++ b/database/seeders/DatabaseSeeder.php
+@@ -21,6 +21,11 @@ class DatabaseSeeder extends Seeder
+             ResultArchiveSeeder::class,
+             CashbackPolicySeeder::class,
+             RewardCatalogSeeder::class,
++            // Batch 2: registers speed_88 and lao_hanoi_4d with the operator layer.
++            // Both are created rules_status=unverified and enabled=false, so this is
++            // a no-op for gameplay: no draw, no market and no payout path becomes
++            // reachable until an operator verifies the rules and enables the game.
++            LotteryGamesSeeder::class,
+         ]);
+     }
+ }

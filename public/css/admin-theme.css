@@ -1,0 +1,185 @@
+/* =============================================================================
+   Thai Lottery - Operations  |  Filament admin skin "LOTTOFIN dark"  (v1.1)
+
+   Direction: the project's own design system (resources/css/admin-lottofin.css),
+   carried over to the Filament panel. Not a new look.
+     canvas #0b1118 | sidebar #0d1520 | card #131c28 | border #1f2d3d
+     muted text #8492a6 | accent emerald #059669 (active) / #10b981
+   One memorable element: the solid emerald active menu item with its soft glow.
+   Everything else stays quiet: hairline borders, no drop shadows, no gradients.
+
+   Loaded by AdminPanelProvider through the panels::head.end render hook, i.e.
+   AFTER Filament's own CSS. Plain CSS on purpose: this project builds with
+   Tailwind v4 while Filament 3 expects v3, so a compiled Filament theme is avoided.
+   The palette itself (navy gray scale, emerald primary) is set in the provider
+   with ->colors(); this file only adds what a palette cannot.
+
+   Every rule is scoped to `html.dark`. If the panel is ever un-forced from dark
+   mode, this skin goes inert and plain Filament shows. Safe to delete.
+   ============================================================================= */
+
+:root {
+    --ta-canvas: #0b1118;
+    --ta-sidebar: #0d1520;
+    --ta-card: #131c28;
+    --ta-border: #1f2d3d;
+    --ta-border-subtle: #192534;
+    --ta-muted: #8492a6;
+    --ta-dim: #5c6b7d;
+    --ta-accent-strong: #059669;
+    --ta-glow: rgba(5, 150, 105, 0.35);
+    --ta-radius: 1rem;
+}
+
+html.dark {
+    color-scheme: dark;
+
+    /* LOTTOFIN's own font stack: nothing to download, and Bengali/Thai text falls
+       back to the operating system's fonts. Delete this line to get Inter back. */
+    --font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---- sidebar ----------------------------------------------------------------- */
+html.dark .fi-sidebar,
+html.dark .fi-sidebar-header {
+    background-color: var(--ta-sidebar);
+    --tw-ring-color: var(--ta-border-subtle);
+}
+
+html.dark .fi-logo {
+    font-weight: 800;
+}
+
+html.dark .fi-sidebar-group-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ta-dim);
+}
+
+/* upper-case section labels as in LOTTOFIN, but only for Latin text: letter-spacing
+   does not suit Bengali or Thai */
+html.dark:lang(en) .fi-sidebar-group-label {
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+html.dark .fi-sidebar-item-button {
+    border-radius: 0.75rem;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+html.dark .fi-sidebar-item-button:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+html.dark .fi-sidebar-item.fi-active > .fi-sidebar-item-button {
+    background-color: var(--ta-accent-strong);
+    box-shadow: 0 4px 12px var(--ta-glow);
+}
+
+html.dark .fi-sidebar-item.fi-active > .fi-sidebar-item-button .fi-sidebar-item-label,
+html.dark .fi-sidebar-item.fi-active > .fi-sidebar-item-button .fi-sidebar-item-icon {
+    color: #ffffff;
+}
+
+html.dark .fi-sidebar-item.fi-active > .fi-sidebar-item-button .fi-sidebar-item-label {
+    font-weight: 700;
+}
+
+/* ---- top bar: same canvas as the page, one hairline underneath ---------------- */
+html.dark .fi-topbar > nav {
+    background-color: var(--ta-canvas);
+    box-shadow: none;
+    border-bottom: 1px solid var(--ta-border-subtle);
+}
+
+/* ---- page header --------------------------------------------------------------- */
+html.dark .fi-header-heading {
+    font-weight: 800;
+}
+
+html.dark .fi-header-subheading {
+    color: var(--ta-muted);
+}
+
+/* ---- cards: hairline border instead of Filament's ring + shadow ---------------- */
+html.dark .fi-section,
+html.dark .fi-wi-stats-overview-stat,
+html.dark .fi-ta-ctn {
+    background-color: var(--ta-card);
+    border-radius: var(--ta-radius);
+    box-shadow: 0 0 0 1px var(--ta-border);
+}
+
+/* floating layers sit one step above the card colour and are a little tighter */
+html.dark .fi-dropdown-panel {
+    background-color: var(--ta-card);
+    border-radius: 0.75rem;
+    box-shadow: 0 0 0 1px var(--ta-border);
+}
+
+html.dark .fi-modal-window {
+    background-color: var(--ta-card);
+    border-radius: var(--ta-radius);
+    box-shadow: 0 0 0 1px var(--ta-border);
+}
+
+/* ---- dashboard stat tiles ------------------------------------------------------ */
+html.dark .fi-wi-stats-overview-stat {
+    transition: transform 0.2s ease;
+}
+
+html.dark .fi-wi-stats-overview-stat:hover {
+    transform: translateY(-2px);
+}
+
+html.dark .fi-wi-stats-overview-stat-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ta-muted);
+}
+
+html.dark .fi-wi-stats-overview-stat-value {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- tables ---------------------------------------------------------------------- */
+html.dark .fi-ta-content thead tr {
+    background-color: var(--ta-sidebar);
+}
+
+html.dark .fi-ta-header-cell-label {
+    font-weight: 700;
+    color: var(--ta-muted);
+}
+
+html.dark .fi-ta-cell {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- login page ------------------------------------------------------------------ */
+html.dark .fi-simple-layout {
+    background-color: var(--ta-canvas);
+}
+
+html.dark .fi-simple-main {
+    background-color: var(--ta-card);
+    border-radius: var(--ta-radius);
+    box-shadow: 0 0 0 1px var(--ta-border);
+}
+
+html.dark .fi-simple-header-heading {
+    font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.dark .fi-wi-stats-overview-stat,
+    html.dark .fi-sidebar-item-button {
+        transition: none;
+    }
+
+    html.dark .fi-wi-stats-overview-stat:hover {
+        transform: none;
+    }
+}

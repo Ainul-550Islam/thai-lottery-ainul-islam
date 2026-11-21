@@ -1,0 +1,37 @@
+
+services:
+
+  mysql:
+
+    image: mysql:8.0
+
+    command: --log-bin-trust-function-creators=1 --innodb-flush-log-at-trx-commit=0 --sync-binlog=0 --innodb-buffer-pool-size=512M
+
+    environment:
+
+      MYSQL_ROOT_PASSWORD: ci_root_password
+
+      MYSQL_DATABASE: thai_lottery_test
+
+      MYSQL_USER: thailotto_ci
+
+      MYSQL_PASSWORD: ci_database_password
+
+    ports:
+
+      - "3308:3306"
+
+    volumes:
+
+      - ./init:/docker-entrypoint-initdb.d:ro
+
+
+
+  redis:
+
+    image: redis:7-alpine
+
+    ports:
+
+      - "6380:6379"
+

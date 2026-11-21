@@ -149,49 +149,111 @@ final class PlayerWebController
         /** @var User $user */
         $user = Auth::user();
 
-        $wallet = Wallet::query()
-            ->where('user_id', $user->id)
-            ->first();
+        $wallet = Wallet::query()->where('user_id', $user->id)->first();
+        $currency = $wallet?->currency instanceof Currency ? $wallet->currency : null;
 
-        $openDraw = Draw::query()
-            ->where('status', DrawStatus::Open)
-            ->with(['result.winningNumbers', 'winningNumbers'])
-            ->first();
+        $openDraw = Draw::query()->where('status', DrawStatus::Open)->first();
 
-        $upcomingDraw = $openDraw ?? Draw::query()
-            ->where('status', DrawStatus::Scheduled)
+        $upcomingDraws = Draw::query()
+            ->whereIn('status', [DrawStatus::Open, DrawStatus::Scheduled])
             ->where('scheduled_at', '>=', now())
             ->orderBy('scheduled_at')
-            ->first();
-
-        $recentBets = Bet::query()
-            ->where('user_id', $user->id)
-            ->with(['draw', 'items'])
-            ->latest('id')
-            ->take(5)
+            ->take(4)
             ->get();
 
-        $latestCompletedDraw = Draw::query()
+        $liveDraw = $openDraw ?? $upcomingDraws->first();
+
+        $latest = Draw::query()
             ->whereIn('status', [DrawStatus::ResultPublished, DrawStatus::Completed])
-            ->with(['result.winningNumbers', 'winningNumbers'])
+            ->with('result')
             ->latest('completed_at')
             ->first();
 
-        $recentTransactions = FinancialTransaction::query()
-            ->where('user_id', $user->id)
-            ->latest('id')
-            ->take(5)
-            ->get();
+        $recentBets = Bet::query()->where('user_id', $user->id)->latest('id')->take(5)->get();
+        $recentTx = FinancialTransaction::query()->where('user_id', $user->id)->latest('id')->take(10)->get();
 
-        return view('player.dashboard', [
-            'user' => $user,
-            'wallet' => $wallet,
-            'openDraw' => $openDraw,
-            'upcomingDraw' => $upcomingDraw,
-            'recentBets' => $recentBets,
-            'latestCompletedDraw' => $latestCompletedDraw,
-            'recentTransactions' => $recentTransactions,
-        ]);
+        $name = (string) ($user->name ?? $user->username ?? '');
+
+        // Activity feed: bets plus deposits/wins found in the transaction log.
+        $activity = [];
+        foreach ($recentBets as $bet) {
+            $activity[] = ['at' => $bet->created_at, 'type' => 'bet', 'text' => 'Bet Placed', 'ref' => '#'.$bet->bet_number];
+        }
+        foreach ($recentTx as $tx) {
+            $t = strtolower($tx->type instanceof \BackedEnum ? (string) $tx->type->value : (string) $tx->type);
+            $kind = str_contains($t, 'deposit') ? 'deposit' : (str_contains($t, 'win') || str_contains($t, 'payout') ? 'win' : null);
+            $c = $tx->currency instanceof Currency ? $tx->currency : Currency::tryFrom((string) $tx->currency);
+            if ($kind === null || $c === null) {
+                continue;
+            }
+            $activity[] = [
+                'at' => $tx->created_at,
+                'type' => $kind,
+                'text' => $kind === 'deposit' ? 'Deposit Successful' : 'Win Credited',
+                'ref' => Money::fromDatabase((string) $tx->amount, $c)->format(),
+            ];
+        }
+        usort($activity, fn ($a, $b) => $b['at'] <=> $a['at']);
+        $activity = array_map(
+            fn ($a) => ['type' => $a['type'], 'text' => $a['text'], 'ref' => $a['ref'], 'ago' => $a['at']?->diffForHumans() ?? ''],
+            array_slice($activity, 0, 5),
+        );
+
+        $state = [
+            'user' => ['name' => $name, 'initials' => mb_strtoupper(mb_substr($name, 0, 1)), 'tier' => null, 'notifications' => 0],
+            'stats' => [
+                'balance' => $currency ? Money::of((string) $wallet->balance, $currency)->format() : null,
+                'balanceDelta' => null,
+                'winnings' => $currency ? $this->sumWonPayouts($user->id, $currency) : null,
+                'winningsDelta' => null,
+                'bets' => Bet::query()->where('user_id', $user->id)->count(),
+                'betsDelta' => null,
+                'points' => null,   // no rewards system in the database yet
+                'pointsDelta' => null,
+            ],
+            'live' => $liveDraw ? [
+                'game' => 'Thai',
+                'name' => 'Lottery',
+                'drawNo' => (string) $liveDraw->draw_number,
+                'drawAt' => $liveDraw->scheduled_at->toIso8601String(),
+            ] : null,
+            'results' => ($latest && $latest->result && $latest->result->first_prize) ? [[
+                'label' => 'Thai Lottery',
+                'drawNo' => (string) $latest->draw_number,
+                'date' => $latest->completed_at?->format('D, M d, Y') ?? '',
+                'balls' => str_split((string) $latest->result->first_prize),
+                'nextDraw' => $upcomingDraws->first()?->scheduled_at?->format('H:i') ?? '—',
+            ]] : [],
+            'upcoming' => $upcomingDraws->values()->map(fn ($d, $i) => [
+                'name' => (string) $d->draw_number,
+                'time' => $d->scheduled_at->format('H:i'),
+                'at' => $d->scheduled_at->toIso8601String(),
+                'tone' => ['green', 'blue', 'purple', 'gold'][$i % 4],
+            ])->all(),
+            'activity' => $activity,
+            'level' => ['tier' => null, 'pct' => null, 'next' => null], // no VIP levels in the database yet
+        ];
+
+        return view('player.dashboard-gold', ['state' => $state]);
+    }
+
+    /** Sum potential_payout of this user's won bets through Money (no float math). */
+    private function sumWonPayouts(int $userId, Currency $currency): string
+    {
+        $won = BetStatus::tryFrom('won');
+        $total = Money::zero($currency);
+        if ($won !== null) {
+            $amounts = Bet::query()
+                ->where('user_id', $userId)
+                ->where('status', $won)
+                ->where('currency', $currency->value)
+                ->pluck('potential_payout');
+            foreach ($amounts as $amount) {
+                $total = $total->plus(Money::fromDatabase((string) $amount, $currency));
+            }
+        }
+
+        return $total->format();
     }
 
     /**

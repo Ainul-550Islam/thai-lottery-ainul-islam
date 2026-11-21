@@ -5,7 +5,7 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/css/app.css',
+                'resources/css/app.css', 'resources/css/gold-dashboard.css', 'resources/js/gold-dashboard.js',
                 'resources/css/thailotto-theme.css',
                 'resources/css/lottery.css',
                 'resources/css/home.css',

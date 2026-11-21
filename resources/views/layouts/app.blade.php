@@ -130,7 +130,7 @@
                             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span class="text-slate-400 font-medium">Balance:</span>
                             <span id="player-balance-display" class="font-mono font-bold text-amber-400">
-                                {{ \App\Services\Finance\Money::of((string) (Auth::user()->wallet?->balance ?? '0'), \App\Enums\Currency::THB)->format() }}
+                                {{ \App\Services\Finance\Money::of((string) (Auth::user()->wallet?->balance ?? '0'), \App\Enums\Currency::site())->format() }}
                             </span>
                         </div>
 
@@ -196,8 +196,25 @@
         @yield('content')
     </main>
 
-    <!-- Global Platform Footer -->
-    <x-public-page.footer />
+    {{--
+        The shared public footer (lanes, information, legal links) belongs to the landing
+        page and the public pages. Routes behind the `auth` middleware are the signed-in
+        member area (dashboard, wallet, bets, profile) and keep their own navigation only.
+
+        The decision comes from the matched route, never from the viewer, so a publicly
+        cached page renders the same footer for every visitor.
+    --}}
+    @php
+        $inMemberArea = collect(request()->route()?->gatherMiddleware() ?? [])
+            ->contains(static fn ($middleware): bool => is_string($middleware)
+                && ($middleware === 'auth'
+                    || str_starts_with($middleware, 'auth:')
+                    || str_starts_with($middleware, \Illuminate\Auth\Middleware\Authenticate::class)));
+    @endphp
+    @unless ($inMemberArea)
+        <!-- Global Platform Footer -->
+        <x-public-page.footer />
+    @endunless
 
     <!-- Core Scripts -->
     @stack('scripts')
