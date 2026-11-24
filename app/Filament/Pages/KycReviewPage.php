@@ -7,6 +7,7 @@ namespace App\Filament\Pages;
 use App\Models\KycDocument;
 use App\Services\Security\KycVerificationService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -38,9 +39,10 @@ class KycReviewPage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::MANAGE_USERS,
-            AdminAccess::VIEW_AUDIT_LOGS,
+        return AdminAccess::permitsAny([
+            AdminPermission::KYC_VIEW,
+            AdminPermission::KYC_REVIEW,
+            AdminPermission::KYC_APPROVE,
         ]);
     }
 

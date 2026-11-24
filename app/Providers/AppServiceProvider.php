@@ -65,6 +65,36 @@ class AppServiceProvider extends ServiceProvider
             new \App\Services\License\LicenseService((array) $app['config']->get('real_money', []))
         );
 
+        /*
+         * The real-money control surface.
+         *
+         * Both classes autowire cleanly, so these bindings are not what makes them
+         * resolvable — they are here so the money-control surface is readable in the
+         * same place as the licence gate it composes with, and so the LIFETIME is
+         * stated explicitly rather than left to a reader's assumption.
+         *
+         * `bind`, never `singleton` or `scoped`. Both classes are deliberately
+         * uncached: a readiness answer must describe the configuration as it is NOW,
+         * not as it was when the process booted, and `config:cache`, `.env` edits and
+         * a runtime `config()` write inside a request all change the true answer. A
+         * shared instance would serve the first caller's answer to every later one,
+         * which for a fail-closed gate means one stale reading deciding money
+         * movement for the rest of the process.
+         *
+         * RealMoneyTechnicalReadinessService writes nothing and contacts no provider,
+         * so resolving it is safe from a boot path, from inside an open database
+         * transaction, and from `money:technical-readiness --json` in CI.
+         */
+        $this->app->bind(\App\Services\Compliance\RealMoneyTechnicalReadinessService::class);
+        // MoneyShutdownControlService holds the runtime halt latch. Bound, not
+        // a singleton: its state lives in the database and must be re-read on
+        // every consultation, so a cached instance would keep answering from
+        // the moment it was first resolved and would not see an administrator
+        // close the control mid-request.
+        $this->app->bind(\App\Services\Compliance\MoneyShutdownControlService::class);
+
+        $this->app->bind(\App\Services\Compliance\MoneyOperationControlService::class);
+
         // The amendment replacement leg is an ordinary purchase with a permit attached.
         // It is bound to the interface so the purchase pipeline is the only writer: a
         // mock can stand in for it in tests, but production always resolves to the real

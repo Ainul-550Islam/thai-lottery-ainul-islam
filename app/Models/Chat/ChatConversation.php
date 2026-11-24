@@ -113,6 +113,7 @@ class ChatConversation extends Model
 
     /**
      * The signed-in member, when this conversation has one.
+     * @return BelongsTo<\App\Models\User, $this>
      */
     public function user(): BelongsTo
     {
@@ -121,6 +122,7 @@ class ChatConversation extends Model
 
     /**
      * The agent currently holding this conversation.
+     * @return BelongsTo<\App\Models\User, $this>
      */
     public function assignedAgent(): BelongsTo
     {
@@ -129,6 +131,7 @@ class ChatConversation extends Model
 
     /**
      * The operator who closed it, when a person did.
+     * @return BelongsTo<\App\Models\User, $this>
      */
     public function closedBy(): BelongsTo
     {
@@ -141,6 +144,7 @@ class ChatConversation extends Model
      * Ordering is by primary key rather than created_at because two messages
      * written inside the same second would otherwise have an unstable order
      * that differs between the visitor's poll and the agent's console.
+     * @return HasMany<ChatMessage, $this>
      */
     public function messages(): HasMany
     {
@@ -153,6 +157,7 @@ class ChatConversation extends Model
      * The visibility rule lives on ChatMessageKind::isVisibleToVisitor();
      * this scope consults it rather than hard-coding an exclusion, so a new
      * message kind cannot be leaked by a query that forgot to exclude it.
+     * @return HasMany<ChatMessage, $this>
      */
     public function visibleMessages(): HasMany
     {
@@ -162,6 +167,7 @@ class ChatConversation extends Model
 
     /**
      * Internal notes only.
+     * @return HasMany<ChatMessage, $this>
      */
     public function notes(): HasMany
     {
@@ -172,6 +178,7 @@ class ChatConversation extends Model
 
     /**
      * The operational audit trail for this conversation.
+     * @return HasMany<ChatEvent, $this>
      */
     public function events(): HasMany
     {
@@ -184,6 +191,8 @@ class ChatConversation extends Model
 
     /**
      * Conversations that are still open (waiting or active).
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeOpen(Builder $query): Builder
     {
@@ -193,16 +202,28 @@ class ChatConversation extends Model
         ));
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeWaiting(Builder $query): Builder
     {
         return $query->where('status', ChatConversationStatus::Waiting->value);
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', ChatConversationStatus::Active->value);
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeClosed(Builder $query): Builder
     {
         return $query->where('status', ChatConversationStatus::Closed->value);
@@ -215,6 +236,8 @@ class ChatConversation extends Model
      * let a Normal conversation from this morning sit behind every Normal
      * conversation that arrived after it; the tiebreak is what makes the
      * queue fair inside a priority band.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeInQueueOrder(Builder $query): Builder
     {
@@ -232,6 +255,8 @@ class ChatConversation extends Model
 
     /**
      * The most recent conversation for a browser token, if any is still open.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeForGuestToken(Builder $query, string $tokenHash): Builder
     {
@@ -259,6 +284,8 @@ class ChatConversation extends Model
      * (falling back to `created_at`): without that branch a thread nobody ever
      * picked up would have two NULL clocks, fail every comparison, and sit in
      * the queue forever.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeIdleSince(Builder $query, Carbon $threshold): Builder
     {

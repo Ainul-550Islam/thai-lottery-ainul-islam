@@ -64,6 +64,7 @@ final class GradeDiscountSnapshot extends Model
 
     /**
      * The user whose discount was applied.
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -74,6 +75,7 @@ final class GradeDiscountSnapshot extends Model
      * The optional subject this snapshot was taken for (a bet, a
      * ticket, a quote...) — nullable morph so snapshots can exist
      * standalone.
+     * @return MorphTo<\Illuminate\Database\Eloquent\Model, $this>
      */
     public function subject(): MorphTo
     {

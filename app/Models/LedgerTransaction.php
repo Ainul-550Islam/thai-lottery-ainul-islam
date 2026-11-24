@@ -50,6 +50,7 @@ class LedgerTransaction extends Model
         });
     }
 
+    /** @return HasMany<LedgerEntry, $this> */
     public function entries(): HasMany
     {
         return $this->hasMany(LedgerEntry::class, 'ledger_transaction_id', 'id')->orderBy('sequence');

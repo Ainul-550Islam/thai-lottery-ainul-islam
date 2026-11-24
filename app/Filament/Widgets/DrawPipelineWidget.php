@@ -8,6 +8,7 @@ use App\Enums\DrawStatus;
 use App\Filament\Resources\DrawResource;
 use App\Models\Draw;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -31,7 +32,7 @@ class DrawPipelineWidget extends TableWidget
 
     public static function canView(): bool
     {
-        return AdminAccess::current(AdminAccess::VIEW_DRAWS);
+        return AdminAccess::permits(AdminPermission::GAMES_VIEW);
     }
 
     public function table(Table $table): Table

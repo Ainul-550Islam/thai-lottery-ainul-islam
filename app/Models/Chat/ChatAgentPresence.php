@@ -72,6 +72,7 @@ class ChatAgentPresence extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -88,6 +89,8 @@ class ChatAgentPresence extends Model
      * than against the cached status column, so a crashed process drops out
      * of the routing pool on time without any cleanup job being required to
      * have run.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeOnline(Builder $query, ?Carbon $now = null): Builder
     {
@@ -100,6 +103,8 @@ class ChatAgentPresence extends Model
 
     /**
      * An agent's own row, which may not exist yet for a first-time operator.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeForUser(Builder $query, int $userId): Builder
     {

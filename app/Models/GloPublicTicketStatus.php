@@ -57,16 +57,19 @@ class GloPublicTicketStatus extends Model
         ];
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<GloTicket, $this> */
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(GloTicket::class, 'ticket_id');
     }
 
+    /** @return BelongsTo<GloTicketFreeze, $this> */
     public function freeze(): BelongsTo
     {
         return $this->belongsTo(GloTicketFreeze::class, 'freeze_id');

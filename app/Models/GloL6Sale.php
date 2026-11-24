@@ -69,6 +69,7 @@ class GloL6Sale extends Model
         return $value === null ? '0.00' : bcadd((string) $value, '0.00', 2);
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);

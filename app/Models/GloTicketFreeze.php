@@ -104,31 +104,37 @@ class GloTicketFreeze extends Model
         ];
     }
 
+    /** @return BelongsTo<GloTicket, $this> */
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(GloTicket::class, 'ticket_id');
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewer_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
 
+    /** @return HasMany<GloPrizePaymentHold, $this> */
     public function paymentHolds(): HasMany
     {
         return $this->hasMany(GloPrizePaymentHold::class, 'freeze_id');
     }
 
+    /** @return HasOne<GloPrizePaymentHold, $this> */
     public function activePaymentHold(): HasOne
     {
         return $this->hasOne(GloPrizePaymentHold::class, 'freeze_id')

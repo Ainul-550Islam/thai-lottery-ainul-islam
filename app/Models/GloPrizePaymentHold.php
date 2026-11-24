@@ -66,21 +66,25 @@ class GloPrizePaymentHold extends Model
         ];
     }
 
+    /** @return BelongsTo<GloPrizeClaim, $this> */
     public function claim(): BelongsTo
     {
         return $this->belongsTo(GloPrizeClaim::class, 'claim_id');
     }
 
+    /** @return BelongsTo<GloTicketFreeze, $this> */
     public function freeze(): BelongsTo
     {
         return $this->belongsTo(GloTicketFreeze::class, 'freeze_id');
     }
 
+    /** @return BelongsTo<GloTicket, $this> */
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(GloTicket::class, 'ticket_id');
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);

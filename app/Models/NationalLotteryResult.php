@@ -45,6 +45,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class NationalLotteryResult extends Model
 {
+    /** @use HasFactory<\Database\Factories\NationalLotteryResultFactory> */
     use HasFactory;
 
     protected $table = 'national_lottery_results';

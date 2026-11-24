@@ -65,7 +65,7 @@ class ResponsibleGamingLimitOwnership extends Model
     }
 
     /**
-     * @return BelongsTo<ResponsibleGamingLimitVersion, self>
+     * @return BelongsTo<ResponsibleGamingLimitVersion, $this>
      */
     public function version(): BelongsTo
     {

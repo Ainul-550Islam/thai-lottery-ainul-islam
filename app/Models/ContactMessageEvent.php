@@ -38,6 +38,7 @@ use LogicException;
  */
 class ContactMessageEvent extends Model
 {
+    /** @use HasFactory<\Database\Factories\ContactMessageEventFactory> */
     use HasFactory;
 
     public const TYPE_STATUS_CHANGE = 'status_change';

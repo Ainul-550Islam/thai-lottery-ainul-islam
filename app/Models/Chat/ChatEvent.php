@@ -140,11 +140,13 @@ class ChatEvent extends Model
     // Relations
     // ========================================================================
 
+    /** @return BelongsTo<ChatConversation, $this> */
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(ChatConversation::class, 'chat_conversation_id');
     }
 
+    /** @return BelongsTo<\App\Models\User, $this> */
     public function actor(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class, 'actor_user_id');
@@ -154,11 +156,19 @@ class ChatEvent extends Model
     // Scopes
     // ========================================================================
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeOfEvent(Builder $query, string $event): Builder
     {
         return $query->where('event', $event);
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeBetween(Builder $query, Carbon $from, Carbon $to): Builder
     {
         return $query->whereBetween('occurred_at', [$from, $to]);
@@ -166,6 +176,8 @@ class ChatEvent extends Model
 
     /**
      * The canonical read order. See the ordering note in the class header.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeInRecordedOrder(Builder $query): Builder
     {

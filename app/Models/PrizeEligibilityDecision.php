@@ -24,11 +24,13 @@ class PrizeEligibilityDecision extends Model
         'snapshot' => 'array',
     ];
 
+    /** @return BelongsTo<Payout, $this> */
     public function payout(): BelongsTo
     {
         return $this->belongsTo(Payout::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

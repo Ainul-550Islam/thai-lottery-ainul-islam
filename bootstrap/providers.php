@@ -14,6 +14,7 @@ use App\Providers\WalletConversionServiceProvider;
 use App\Providers\FrontendOpsServiceProvider;
 use App\Providers\LotteryGamesServiceProvider;
 use App\Providers\PlayerExperienceServiceProvider;
+use App\Providers\SystemSettingsServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -29,6 +30,7 @@ return [
     PaymentOpsServiceProvider::class,
     WalletConversionServiceProvider::class,
     RewardsServiceProvider::class,
+    SystemSettingsServiceProvider::class,
     AdminPanelProvider::class,
     FrontendOpsServiceProvider::class,
     // Batch 2: digit-game framework (registry, providers, settlement adapter, listeners).

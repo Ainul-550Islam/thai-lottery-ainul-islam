@@ -7,7 +7,6 @@ namespace App\Filament\Resources\DepositResource;
 use App\Enums\DepositStatus;
 use App\Models\Deposit;
 use App\Services\Finance\DepositApprovalService;
-use App\Services\Finance\DepositCompletionService;
 use App\Services\Payment\DepositCheckoutAccess;
 use App\Services\Payment\DepositCheckoutService;
 use App\Services\Payment\DepositSettlementAccess;
@@ -15,33 +14,36 @@ use App\Services\Payment\ManualWalletDepositProofService;
 use App\Services\Payment\ManualWalletDepositSettlementService;
 use App\Services\Payment\StripeDepositSettlementService;
 use App\Support\Admin\AdminAccess;
-use App\Support\Admin\AdminFormat;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\OperatorActionFactory;
 use Filament\Actions\Action;
 use Filament\Forms;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The four decisions a deposit can need from a human.
+ * Human review and independently verified provider actions for a deposit.
  *
- * WHY APPROVAL AND COMPLETION ARE SEPARATE BUTTONS
+ * WHY APPROVAL NEVER IMPLIES COMPLETION
  * The domain splits them deliberately and this screen must not paper over it. Approving a
- * deposit moves no money: it records that an operator believes the payment arrived.
- * Completing it is the moment the wallet is credited and a balanced double entry is posted.
- * Merging them into one "confirm" button would let a mis-click credit a wallet against a
- * payment nobody had actually verified, and would leave no state in which a wrong approval
- * could still be rejected. So the operator makes two decisions, and the second one says in
- * its own confirmation text that it credits real balance.
+ * deposit moves no money: it records that an operator believes the payment merits review.
+ * Approval never credits money. Wallet credit is deliberately absent from the generic
+ * admin action set: only authenticated provider settlement, verified slip, or reviewed
+ * reconciliation evidence may call the completion service. A typed reference is not proof.
  *
- * Visibility is asked of the services themselves - canApprove/canReject/canComplete - so
+ * The one wallet-crediting action kept here is settleManualWallet for the manual bKash/Nagad
+ * rail: the operator types the TrxID read in the merchant app and
+ * ManualWalletDepositSettlementService credits only if it equals the TrxID the player
+ * submitted on file (plus a proven checkout record). The generic free-text `complete`
+ * action stays removed.
+ *
+ * Visibility is asked of the relevant approval and provider services, so
  * the buttons on screen agree with what the domain would accept. The permission gate is
  * separate and stricter: reading a deposit needs 'view transaction history', but deciding
  * one needs 'manage payouts', which is why an auditor sees this screen and no buttons.
  *
  * WHAT IS DELIBERATELY NOT DONE
  * - No status is written here. Every branch calls DepositApprovalService or
- *   DepositCompletionService and reports what it said.
+ *   authenticated provider settlement/reconciliation services and reports what they said.
  * - No un-approve and no un-complete. Taking back a credited deposit is a reversing
  *   transaction (FinancialReversalService), not a status edit, and that flow is not
  *   exposed in this phase - reported as a gap instead of half-built.
@@ -87,7 +89,7 @@ final class DepositDecisionActions
                         ->maxLength(500)
                         ->helperText('What did you check? A provider reference or statement line makes the next reconciliation cheap.'),
                 ],
-                'visible' => static fn (Deposit $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Deposit $record): bool => AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE)
                     && app(DepositApprovalService::class)->canApprove($record),
                 'action' => static function (Deposit $record, array $data): void {
                     OperatorActionFactory::run(
@@ -115,7 +117,7 @@ final class DepositDecisionActions
                         ->minLength(5)
                         ->maxLength(500),
                 ],
-                'visible' => static fn (Deposit $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Deposit $record): bool => AdminAccess::permits(AdminPermission::DEPOSITS_REJECT)
                     && app(DepositApprovalService::class)->canReject($record),
                 'action' => static function (Deposit $record, array $data): void {
                     OperatorActionFactory::run(
@@ -136,7 +138,7 @@ final class DepositDecisionActions
                 'confirm' => true,
                 'heading' => 'Mark this deposit as being settled',
                 'description' => 'Bookkeeping only: it makes a long-running settlement visible from the outside. No balance changes and completion still has to be run.',
-                'visible' => static fn (Deposit $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Deposit $record): bool => AdminAccess::permits(AdminPermission::DEPOSITS_REVIEW)
                     && $record->financial_transaction_id === null
                     && in_array($record->status, [DepositStatus::Pending, DepositStatus::Approved], true),
                 'action' => static function (Deposit $record): void {
@@ -144,49 +146,6 @@ final class DepositDecisionActions
                         static fn () => app(DepositApprovalService::class)->markProcessing($record),
                         $record->reference_number.' is marked processing.',
                     );
-                },
-            ],
-            [
-                'name' => 'complete',
-                'label' => 'Complete — credit the wallet',
-                'icon' => 'heroicon-o-banknotes',
-                'color' => 'primary',
-                'confirm' => true,
-                'heading' => 'Credit this deposit to the wallet',
-                'description' => 'This is the step that moves money: the wallet balance rises and a balanced double entry is posted to the ledger. It is idempotent, so a retry after a timeout cannot credit twice — but it cannot be undone from this panel either.',
-                'submitLabel' => 'Credit the wallet',
-                'form' => [
-                    Forms\Components\TextInput::make('provider_reference')
-                        ->label('Verified provider or statement reference')
-                        ->required()
-                        ->maxLength(255)
-                        ->default(static fn (Deposit $record): ?string => $record->provider_reference)
-                        ->helperText('Use the reference on the independently verified payment; a reference already attached to this deposit cannot be changed.'),
-                ],
-                'visible' => static fn (Deposit $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
-                    && ! ManualWalletDepositSettlementService::appliesTo($record)
-                    && app(DepositCompletionService::class)->canComplete($record),
-                'action' => static function (Deposit $record, array $data): void {
-                    OperatorActionFactory::run(static function () use ($record, $data): void {
-                        $outcome = app(DepositCompletionService::class)->complete($record, null, [
-                            'provider_reference' => (string) $data['provider_reference'],
-                            'description' => 'Deposit credited from the admin panel',
-                            'metadata' => ['completed_by' => AdminAccess::operator()?->getKey()],
-                        ]);
-
-                        $replayed = ($outcome['replayed'] ?? false) === true;
-
-                        Notification::make()
-                            ->success()
-                            ->title($replayed ? 'Already credited — nothing was written' : 'Deposit credited')
-                            ->body(sprintf(
-                                '%s: %s. Transaction %s.',
-                                $record->reference_number,
-                                AdminFormat::money($outcome['amount'] ?? null, $record->currency->value),
-                                (string) ($outcome['transaction']->reference_number ?? '—'),
-                            ))
-                            ->send();
-                    });
                 },
             ],
             [
@@ -213,7 +172,7 @@ final class DepositDecisionActions
                         ->required()
                         ->maxLength(32),
                 ],
-                'visible' => static fn (Deposit $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Deposit $record): bool => AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE)
                     && ManualWalletDepositSettlementService::appliesTo($record),
                 'action' => static function (Deposit $record, array $data): void {
                     abort_unless(AdminAccess::canAccessPanel(AdminAccess::operator()), 403);

@@ -56,7 +56,12 @@ class FraudDetectionService implements SecurityRiskEngine
             default => FraudDecision::ALLOW,
         };
 
-        $idempotencyKey = "FRAUD-{$eventType}-{$userId}-".($context['reference_id'] ?? Str::random(8));
+        $eventIdentity = $context['reference_id'] ?? $context['event_id'] ?? Str::random(32);
+        $idempotencyKey = 'FRAUD-'.hash('sha256', json_encode([
+            'event_type' => $eventType,
+            'user_id' => $userId,
+            'event_identity' => (string) $eventIdentity,
+        ], JSON_THROW_ON_ERROR));
 
         $decisionData = new FraudDecisionData(
             riskScore: $score,
@@ -86,10 +91,12 @@ class FraudDetectionService implements SecurityRiskEngine
                 evaluatedAt: date('c')
             );
 
-            if ($decision === FraudDecision::HOLD_FOR_REVIEW) {
-                event(new FraudReviewRequired($alert->id, $eventType, $userId, $amount, $decisionData));
-            } else {
-                event(new FraudSuspected($eventType, $userId, $amount, $currency, $decisionData));
+            if ($alert->wasRecentlyCreated) {
+                if ($decision === FraudDecision::HOLD_FOR_REVIEW) {
+                    event(new FraudReviewRequired($alert->id, $eventType, $userId, $amount, $decisionData));
+                } else {
+                    event(new FraudSuspected($eventType, $userId, $amount, $currency, $decisionData));
+                }
             }
         }
 

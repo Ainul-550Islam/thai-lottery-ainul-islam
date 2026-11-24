@@ -131,7 +131,7 @@ class Withdrawal extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -139,7 +139,7 @@ class Withdrawal extends Model
     }
 
     /**
-     * @return BelongsTo<Wallet, self>
+     * @return BelongsTo<Wallet, $this>
      */
     public function wallet(): BelongsTo
     {
@@ -147,7 +147,7 @@ class Withdrawal extends Model
     }
 
     /**
-     * @return BelongsTo<FinancialTransaction, self>
+     * @return BelongsTo<FinancialTransaction, $this>
      */
     public function financialTransaction(): BelongsTo
     {
@@ -157,7 +157,7 @@ class Withdrawal extends Model
     /**
      * The administrator who reviewed the request.
      *
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function reviewer(): BelongsTo
     {
@@ -167,7 +167,7 @@ class Withdrawal extends Model
     /**
      * The gateway attempt that sends the money out.
      *
-     * @return MorphOne<Payment>
+     * @return MorphOne<Payment, $this>
      */
     public function payment(): MorphOne
     {
@@ -175,7 +175,7 @@ class Withdrawal extends Model
     }
 
     /**
-     * @return MorphMany<Payment>
+     * @return MorphMany<Payment, $this>
      */
     public function payments(): MorphMany
     {
@@ -185,7 +185,7 @@ class Withdrawal extends Model
     /**
      * Ledger entries that reference this withdrawal polymorphically.
      *
-     * @return MorphMany<LedgerEntry>
+     * @return MorphMany<LedgerEntry, $this>
      */
     public function ledgerEntries(): MorphMany
     {

@@ -43,6 +43,7 @@ use Illuminate\Support\Carbon;
  */
 class PayoutBatch extends Model
 {
+    /** @use HasFactory<\Database\Factories\PayoutBatchFactory> */
     use HasFactory;
     use SoftDeletes;
 

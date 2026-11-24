@@ -56,7 +56,7 @@ class OperationalReportJob extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function requester(): BelongsTo
     {
@@ -64,7 +64,7 @@ class OperationalReportJob extends Model
     }
 
     /**
-     * @return HasMany<ReportExport>
+     * @return HasMany<ReportExport, $this>
      */
     public function exports(): HasMany
     {

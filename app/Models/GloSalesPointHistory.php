@@ -48,11 +48,13 @@ class GloSalesPointHistory extends Model
         ];
     }
 
+    /** @return BelongsTo<GloSalesPoint, $this> */
     public function salesPoint(): BelongsTo
     {
         return $this->belongsTo(GloSalesPoint::class, 'sales_point_id');
     }
 
+    /** @return BelongsTo<GloDealer, $this> */
     public function dealer(): BelongsTo
     {
         return $this->belongsTo(GloDealer::class, 'dealer_id');

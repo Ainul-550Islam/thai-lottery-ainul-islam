@@ -111,7 +111,7 @@ class Wallet extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -119,7 +119,7 @@ class Wallet extends Model
     }
 
     /**
-     * @return HasMany<LedgerEntry>
+     * @return HasMany<LedgerEntry, $this>
      */
     public function ledgerEntries(): HasMany
     {
@@ -127,7 +127,7 @@ class Wallet extends Model
     }
 
     /**
-     * @return HasMany<FinancialTransaction>
+     * @return HasMany<FinancialTransaction, $this>
      */
     public function financialTransactions(): HasMany
     {
@@ -135,7 +135,7 @@ class Wallet extends Model
     }
 
     /**
-     * @return HasMany<Deposit>
+     * @return HasMany<Deposit, $this>
      */
     public function deposits(): HasMany
     {
@@ -143,7 +143,7 @@ class Wallet extends Model
     }
 
     /**
-     * @return HasMany<Withdrawal>
+     * @return HasMany<Withdrawal, $this>
      */
     public function withdrawals(): HasMany
     {
@@ -151,7 +151,7 @@ class Wallet extends Model
     }
 
     /**
-     * @return HasMany<Payout>
+     * @return HasMany<Payout, $this>
      */
     public function payouts(): HasMany
     {

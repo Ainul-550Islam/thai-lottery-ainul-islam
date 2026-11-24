@@ -14,6 +14,7 @@ use App\Models\Withdrawal;
 use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Finance\WithdrawalCompletionService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -64,9 +65,9 @@ class WithdrawalResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::VIEW_TRANSACTION_HISTORY,
-            AdminAccess::MANAGE_PAYOUTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::WITHDRAWALS_VIEW,
+            AdminPermission::WITHDRAWALS_REVIEW,
         ]);
     }
 
@@ -237,7 +238,7 @@ class WithdrawalResource extends Resource
                     ->icon('heroicon-m-check-badge')
                     ->button()
                     ->outlined()
-                    ->visible(fn (): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)),
+                    ->visible(fn (): bool => AdminAccess::permitsAny([AdminPermission::WITHDRAWALS_REVIEW, AdminPermission::WITHDRAWALS_APPROVE, AdminPermission::WITHDRAWALS_EXECUTE])),
             ])
             ->bulkActions([])
             ->emptyStateHeading('No withdrawals')

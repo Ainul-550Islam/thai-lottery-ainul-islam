@@ -32,11 +32,13 @@ class ComplianceAction extends Model
         'metadata' => 'array',
     ];
 
+    /** @return BelongsTo<ComplianceCase, $this> */
     public function case(): BelongsTo
     {
         return $this->belongsTo(ComplianceCase::class, 'case_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function actor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actor_user_id');

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AgentCommission extends Model
 {
+    /** @use HasFactory<\Database\Factories\AgentCommissionFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -64,26 +65,31 @@ class AgentCommission extends Model
         ];
     }
 
+    /** @return BelongsTo<Agent, $this> */
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Bet, $this> */
     public function bet(): BelongsTo
     {
         return $this->belongsTo(Bet::class);
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<FinancialTransaction, $this> */
     public function financialTransaction(): BelongsTo
     {
         return $this->belongsTo(FinancialTransaction::class);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PaymentMethod;
+use App\Support\Config\StrictBoolean;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,7 +78,7 @@ return [
         'stripe' => ['currencies' => ['THB', 'USD'], 'countries' => ['TH', 'US']],
         'bkash' => ['currencies' => ['BDT'], 'countries' => ['BD']],
         'nagad' => ['currencies' => ['BDT'], 'countries' => ['BD']],
-        'bank_transfer' => ['currencies' => ['THB', 'BDT'], 'countries' => ['TH', 'BD']],
+        'bank_transfer' => ['currencies' => ['THB'], 'countries' => ['TH']],
         'promptpay' => ['currencies' => ['THB'], 'countries' => ['TH']],
         'thai_bank' => ['currencies' => ['THB'], 'countries' => ['TH']],
     ],
@@ -142,9 +143,9 @@ return [
 
     'deposit' => [
         'enabled' => true,
-        'min' => (string) env('FINANCE_MIN_DEPOSIT', '300.00'),
-        'max' => (string) env('FINANCE_MAX_DEPOSIT', '40000.00'),
-        'auto_confirm' => (bool) env('FINANCE_DEPOSIT_AUTO_CONFIRM', false),
+        'min' => (string) env('FINANCE_MIN_DEPOSIT', '50.00'),
+        'max' => (string) env('FINANCE_MAX_DEPOSIT', '500000.00'),
+        'auto_confirm' => StrictBoolean::orClosed(env('FINANCE_DEPOSIT_AUTO_CONFIRM')),
         'reference_prefix' => 'DP',
         'expire_unpaid_after_minutes' => 30,
         'allowed_methods' => [
@@ -164,8 +165,8 @@ return [
 
     'withdrawal' => [
         'enabled' => true,
-        'min' => (string) env('FINANCE_MIN_WITHDRAWAL', '1000.00'),
-        'max' => (string) env('FINANCE_MAX_WITHDRAWAL', '40000.00'),
+        'min' => (string) env('FINANCE_MIN_WITHDRAWAL', '100.00'),
+        'max' => (string) env('FINANCE_MAX_WITHDRAWAL', '500000.00'),
         'require_manual_approval' => true,
         'processing_hours' => (int) env('FINANCE_WITHDRAWAL_PROCESSING_HOURS', 24),
         'reference_prefix' => 'WD',
@@ -205,7 +206,7 @@ return [
     */
 
     'withdrawal_routing' => [
-        'prefer_automated_payout' => (bool) env('PAYMENT_WITHDRAWAL_ROUTING_PREFER_AUTOMATED', false),
+        'prefer_automated_payout' => StrictBoolean::orDefault(env('PAYMENT_WITHDRAWAL_ROUTING_PREFER_AUTOMATED'), true),
         'min_amount' => env('PAYMENT_WITHDRAWAL_ROUTING_MIN_AMOUNT'),
         'max_amount' => env('PAYMENT_WITHDRAWAL_ROUTING_MAX_AMOUNT'),
     ],
@@ -306,7 +307,7 @@ return [
     'gateways' => [
 
         'stripe' => [
-            'enabled' => (bool) env('STRIPE_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('STRIPE_ENABLED')),
             'driver' => 'stripe',
             'key' => env('STRIPE_KEY'),
             'secret' => env('STRIPE_SECRET'),
@@ -319,20 +320,19 @@ return [
         ],
 
         'bkash' => [
-            'enabled' => (bool) env('BKASH_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('BKASH_ENABLED')),
             'driver' => 'bkash',
-            // 'api' (default) keeps the legacy prototype closed. 'manual' runs the
-            // operator-verified rail: the player pays the merchant number below and
-            // submits the TrxID; an administrator verifies it before any credit.
-            'mode' => (string) env('BKASH_MODE', 'api'),
-            'merchant_number' => env('BKASH_MERCHANT_NUMBER'),
-            'merchant_name' => env('BKASH_MERCHANT_NAME'),
             'app_key' => env('BKASH_APP_KEY'),
             'app_secret' => env('BKASH_APP_SECRET'),
             'username' => env('BKASH_USERNAME'),
             'password' => env('BKASH_PASSWORD'),
+            // Manual rail (ManualWalletDepositSettlementService / BkashGateway): 'api' uses the provider API,
+            // 'manual' shows merchant_name/merchant_number to the player and credits only after staff verify the TrxID.
+            'mode' => env('BKASH_MODE', 'api'),
+            'merchant_name' => env('BKASH_MERCHANT_NAME'),
+            'merchant_number' => env('BKASH_MERCHANT_NUMBER'),
             'base_url' => env('BKASH_BASE_URL'),
-            'sandbox' => (bool) env('BKASH_SANDBOX', true),
+            'sandbox' => StrictBoolean::orDefault(env('BKASH_SANDBOX'), true),
             'webhook_secret' => env('BKASH_APP_SECRET'),
             'signature_header' => 'X-Bkash-Signature',
             'currency' => 'BDT',
@@ -342,19 +342,19 @@ return [
         ],
 
         'nagad' => [
-            'enabled' => (bool) env('NAGAD_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('NAGAD_ENABLED')),
             'driver' => 'nagad',
-            // See the bKash block: 'manual' is the operator-verified rail.
-            'mode' => (string) env('NAGAD_MODE', 'api'),
-            'merchant_name' => env('NAGAD_MERCHANT_NAME'),
             'merchant_id' => env('NAGAD_MERCHANT_ID'),
             'merchant_number' => env('NAGAD_MERCHANT_NUMBER'),
+            // Manual rail, same meaning as the bKash keys above.
+            'mode' => env('NAGAD_MODE', 'api'),
+            'merchant_name' => env('NAGAD_MERCHANT_NAME'),
             'app_key' => env('NAGAD_APP_KEY'),
             'app_secret' => env('NAGAD_APP_SECRET'),
             'public_key' => env('NAGAD_PUBLIC_KEY'),
             'private_key' => env('NAGAD_PRIVATE_KEY'),
             'base_url' => env('NAGAD_BASE_URL'),
-            'sandbox' => (bool) env('NAGAD_SANDBOX', true),
+            'sandbox' => StrictBoolean::orDefault(env('NAGAD_SANDBOX'), true),
             'webhook_secret' => env('NAGAD_APP_SECRET'),
             'signature_header' => 'X-Nagad-Signature',
             'currency' => 'BDT',
@@ -364,7 +364,7 @@ return [
         ],
 
         'crypto' => [
-            'enabled' => (bool) env('CRYPTO_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('CRYPTO_ENABLED')),
             'driver' => 'crypto',
             'provider' => env('CRYPTO_PROVIDER'),
             'api_key' => env('CRYPTO_GATEWAY_API_KEY'),
@@ -379,7 +379,7 @@ return [
         ],
 
         'promptpay' => [
-            'enabled' => (bool) env('PROMPTPAY_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('PROMPTPAY_ENABLED')),
             'driver' => 'promptpay',
             'merchant_id' => env('PROMPTPAY_MERCHANT_ID'),
             'merchant_name' => env('PROMPTPAY_MERCHANT_NAME', 'Thai Lottery'),
@@ -407,9 +407,9 @@ return [
             // Bank transfer settlement configuration. Requires valid operator
             // settlement details (bank_name, account_number, account_name) in
             // the environment; otherwise BankTransferGateway fails closed.
-            'enabled' => (bool) env('BANK_TRANSFER_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('BANK_TRANSFER_ENABLED')),
             'driver' => 'bank_transfer',
-            'supported_currencies' => ['THB', 'BDT'],
+            'supported_currencies' => ['THB'],
             'supports_deposit' => true,
             'supports_withdrawal' => true,
             'settlement' => [
@@ -440,7 +440,7 @@ return [
          * declares identity and direction only — deposits never arrive here.
          */
         'thai_bank' => [
-            'enabled' => (bool) env('THAI_PAYOUT_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('THAI_PAYOUT_ENABLED')),
             'driver' => 'thai_bank',
             'currency' => 'THB',
             'supported_currencies' => ['THB'],
@@ -455,39 +455,39 @@ return [
 
     'checkout_lookup' => [
         'stripe' => [
-            'enabled' => (bool) env('STRIPE_CHECKOUT_LOOKUP_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('STRIPE_CHECKOUT_LOOKUP_ENABLED')),
         ],
     ],
 
     'deposit_settlement' => [
         'stripe' => [
-            'enabled' => (bool) env('STRIPE_DEPOSIT_SETTLEMENT_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('STRIPE_DEPOSIT_SETTLEMENT_ENABLED')),
         ],
     ],
 
     'deposit_review' => [
         'stripe' => [
-            'enabled' => (bool) env('STRIPE_DEPOSIT_REVIEW_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('STRIPE_DEPOSIT_REVIEW_ENABLED')),
             'webhook_secret' => env('STRIPE_DEPOSIT_FOLLOWUP_WEBHOOK_SECRET'),
         ],
     ],
 
     'deposit_followup_routing' => [
         'stripe' => [
-            'enabled' => (bool) env('STRIPE_DEPOSIT_FOLLOWUP_ROUTING_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('STRIPE_DEPOSIT_FOLLOWUP_ROUTING_ENABLED')),
         ],
     ],
 
     'deposit_followup_sweep' => [
         'stripe' => [
-            'enabled' => (bool) env('STRIPE_DEPOSIT_FOLLOWUP_SWEEP_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('STRIPE_DEPOSIT_FOLLOWUP_SWEEP_ENABLED')),
             'actor_id' => env('STRIPE_DEPOSIT_FOLLOWUP_SWEEP_ACTOR_ID'),
         ],
     ],
 
     'refund_recovery' => [
         'stripe' => [
-            'enabled' => (bool) env('STRIPE_REFUND_RECOVERY_ENABLED', false),
+            'enabled' => StrictBoolean::orClosed(env('STRIPE_REFUND_RECOVERY_ENABLED')),
         ],
     ],
 

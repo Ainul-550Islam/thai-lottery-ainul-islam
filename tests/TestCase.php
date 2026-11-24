@@ -8,6 +8,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * The project test case.
@@ -167,6 +169,20 @@ abstract class TestCase extends BaseTestCase
             : 0;
 
         (new LedgerAccountSeeder)->run();
+        $this->ensureLedgerChainState();
+    }
+
+    /** Recreate migration-owned singleton state removed by DatabaseTruncation. */
+    private function ensureLedgerChainState(): void
+    {
+        if (Schema::hasTable('ledger_chain_state')) {
+            DB::table('ledger_chain_state')->insertOrIgnore([
+                'id' => 1,
+                'tip_hash' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     /**

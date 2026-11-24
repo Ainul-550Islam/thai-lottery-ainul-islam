@@ -11,6 +11,7 @@ use App\Filament\Resources\DataSubjectRequestResource\Pages;
 use App\Models\DataSubjectRequest;
 use App\Services\Privacy\PrivacyRequestService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -75,9 +76,10 @@ final class DataSubjectRequestResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::VIEW_AUDIT_LOGS,
-            AdminAccess::MANAGE_USERS,
+        return AdminAccess::permitsAny([
+            AdminPermission::PRIVACY_VIEW,
+            AdminPermission::PRIVACY_MANAGE,
+            AdminPermission::AUDIT_LOGS_VIEW,
         ]);
     }
 

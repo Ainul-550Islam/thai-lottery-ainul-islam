@@ -9,6 +9,7 @@ use App\Models\ContactMessage;
 use App\Models\User;
 use App\Services\Support\SupportTicketService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\OperatorActionFactory;
 use Filament\Actions\Action;
 use Filament\Forms;
@@ -255,6 +256,6 @@ final class ContactMessageActions
 
     private static function canWork(): bool
     {
-        return AdminAccess::allows(self::operator(), AdminAccess::MANAGE_USERS);
+        return AdminAccess::permits(AdminPermission::SUPPORT_MANAGE);
     }
 }

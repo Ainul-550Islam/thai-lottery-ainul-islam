@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\WalletConversionResource\Pages\ListWalletConversions;
 use App\Models\WalletConversion;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
@@ -27,7 +28,7 @@ final class WalletConversionResource extends Resource
     {
         $user = auth()->user();
 
-        return $user !== null && AdminAccess::allows($user, AdminAccess::VIEW_TRANSACTION_HISTORY);
+        return $user !== null && AdminAccess::permits(AdminPermission::PAYMENTS_VIEW, $user);
     }
 
     public static function canView(Model $record): bool

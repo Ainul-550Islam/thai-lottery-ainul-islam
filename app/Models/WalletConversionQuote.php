@@ -149,6 +149,10 @@ class WalletConversionQuote extends Model
             && $this->expires_at->isFuture();
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeOpen(Builder $query): Builder
     {
         // "Open" is not only the status word. A row that has been spent carries the
@@ -160,11 +164,13 @@ class WalletConversionQuote extends Model
             ->whereNull('consumed_at');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<WalletConversion, $this> */
     public function conversion(): BelongsTo
     {
         return $this->belongsTo(WalletConversion::class, 'converted_id');

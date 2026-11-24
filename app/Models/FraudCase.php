@@ -32,6 +32,7 @@ class FraudCase extends Model
         'decided_at' => 'datetime',
     ];
 
+    /** @return BelongsTo<FraudAlert, $this> */
     public function alert(): BelongsTo
     {
         return $this->belongsTo(FraudAlert::class, 'fraud_alert_id', 'id');

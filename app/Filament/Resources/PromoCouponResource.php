@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PromoCouponResource\Pages;
 use App\Models\PromoCoupon;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -39,7 +40,7 @@ final class PromoCouponResource extends Resource
      */
     public static function canViewAny(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+        return AdminAccess::permits(AdminPermission::SETTINGS_MANAGE);
     }
 
     public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
@@ -49,12 +50,12 @@ final class PromoCouponResource extends Resource
 
     public static function canCreate(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+        return AdminAccess::permits(AdminPermission::SETTINGS_MANAGE);
     }
 
     public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+        return AdminAccess::permits(AdminPermission::SETTINGS_MANAGE);
     }
 
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool

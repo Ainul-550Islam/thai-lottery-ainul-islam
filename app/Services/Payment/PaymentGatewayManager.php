@@ -32,6 +32,28 @@ use Illuminate\Contracts\Container\Container;
 class PaymentGatewayManager
 {
     /**
+     * Every driver name this application can actually construct.
+     *
+     * ONE LIST, THREE READERS. Before this constant there were three copies of the list — the
+     * `match` arms in `driver()`, the `in_array()` in `hasDriver()` and the loop in
+     * `availability()` — and they had already drifted (`manual` and `sandbox` were missing from
+     * `availability()`). A registry row naming a driver that no class implements is not a cosmetic
+     * problem: the provider looks configured and cannot carry traffic. `hasDriver()` is what the
+     * registry now consults before writing a row, so this list is the definition of "implemented".
+     *
+     * @var list<string>
+     */
+    public const DRIVERS = [
+        'stripe', 'bkash', 'nagad', 'crypto',
+        'bank_transfer', 'manual', 'promptpay', 'thai_bank', 'sandbox',
+    ];
+
+    /** Drivers an operator sees in the inventory (internal routing keys are not client methods). */
+    public const INVENTORY_DRIVERS = [
+        'stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'thai_bank',
+    ];
+
+    /**
      * @var array<string, PaymentGatewayInterface>
      */
     private array $drivers = [];
@@ -90,9 +112,17 @@ class PaymentGatewayManager
      */
     public function hasDriver(string $name): bool
     {
-        $key = strtolower(trim($name));
+        return in_array(strtolower(trim($name)), self::DRIVERS, true);
+    }
 
-        return in_array($key, ['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'thai_bank', 'manual', 'sandbox'], true);
+    /**
+     * The driver names this application can construct, for a form or a refusal message.
+     *
+     * @return list<string>
+     */
+    public static function supportedDrivers(): array
+    {
+        return self::DRIVERS;
     }
 
     /**
@@ -103,7 +133,7 @@ class PaymentGatewayManager
     public function availability(): array
     {
         $availability = [];
-        foreach (['stripe', 'bkash', 'nagad', 'crypto', 'bank_transfer', 'promptpay', 'thai_bank'] as $key) {
+        foreach (self::INVENTORY_DRIVERS as $key) {
             try {
                 $driver = $this->driver($key);
                 $availability[$key] = [

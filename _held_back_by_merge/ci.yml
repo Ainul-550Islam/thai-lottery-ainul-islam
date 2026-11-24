@@ -1,0 +1,865 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: PHP tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          # intl is required by filament/support (a transitive composer
+          # requirement) and by the Filament resource render assertions. It is
+          # already present on the runner image; naming it here makes that a
+          # declared dependency rather than a lucky default.
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd, pdo_mysql
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Prepare the CI environment
+        run: |
+          set -euo pipefail
+          cp .env.ci .env
+
+      - name: Check the PHP test runtime
+        run: |
+          set -euo pipefail
+          php scripts/check-test-runtime.php
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generate the application key
+        run: |
+          set -euo pipefail
+          php artisan key:generate --force
+
+      - name: Install front-end dependencies
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run security:dependencies
+
+      - name: Build front-end assets
+        run: npm run build
+
+      - name: Assert the Vite manifest and every registered entry were built
+        run: |
+          set -euo pipefail
+          test -f public/build/manifest.json
+          # Every input declared in vite.config.js must have produced an asset.
+          # An empty or missing module still "builds", so the manifest is
+          # checked entry by entry rather than as a whole.
+          node -e '
+            const fs = require("fs");
+            const manifest = JSON.parse(fs.readFileSync("public/build/manifest.json", "utf8"));
+            const config = fs.readFileSync("vite.config.js", "utf8");
+            const inputs = [...config.matchAll(/["'"'"'](resources\/(?:js|css)\/[^"'"'"']+)["'"'"']/g)].map(m => m[1]);
+            let failed = false;
+            for (const input of new Set(inputs)) {
+              const record = manifest[input];
+              if (!record || !record.file || !fs.existsSync("public/build/" + record.file)) {
+                console.error("::error::vite entry not built: " + input);
+                failed = true;
+                continue;
+              }
+              if (fs.statSync("resources/" + input.slice("resources/".length)).size === 0) {
+                console.error("::error::vite entry is an empty file: " + input);
+                failed = true;
+              }
+            }
+            process.exit(failed ? 1 : 0);
+          '
+
+      - name: PHP syntax check (php -l on all project PHP files)
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r -d '' f; do
+            if ! php -l "$f" > /dev/null; then
+              echo "::error file=$f::syntax error"
+              fail=1
+            fi
+          done < <(find app bootstrap config database routes tests -name '*.php' -print0)
+          # Required structural files — fail the build if any are missing
+          for req in \
+            app/Models/User.php \
+            app/Models/Agent.php \
+            app/Services/Draw/RealPrizeSettlementService.php \
+            app/Services/Finance/FinancialReconciliationService.php \
+            app/Services/Finance/WithdrawalService.php \
+            app/Console/Commands/GloPublicResultPublishCommand.php \
+            app/Console/Commands/Finance/ReconcileFinancialRecordsCommand.php \
+            app/Filament/Pages/KycReviewPage.php \
+            resources/views/filament/pages/kyc-review-page.blade.php \
+            resources/views/home.blade.php \
+            resources/views/results/index.blade.php \
+            routes/api.php \
+            routes/web.php \
+            config/finance.php \
+            .github/workflows/ci.yml
+          do
+            if [ ! -f "$req" ]; then
+              echo "::error::missing required file: $req"
+              fail=1
+            fi
+          done
+          # At least one test file and one migration must exist
+          if [ -z "$(find tests -name '*Test.php' -print -quit)" ]; then
+            echo "::error::no test files found"
+            fail=1
+          fi
+          if [ -z "$(find database/migrations -name '*.php' -print -quit)" ]; then
+            echo "::error::no migrations found"
+            fail=1
+          fi
+          exit $fail
+
+      - name: Assert the writable runtime directories are present in the checkout
+        run: |
+          set -euo pipefail
+          fail=0
+          # These are the directories Laravel writes to at runtime. Git does not
+          # track empty directories, so each one needs its own .gitignore marker
+          # to survive a clone. A missing marker only shows up as a confusing
+          # "Please provide a valid cache path" much later.
+          for dir in \
+            bootstrap/cache \
+            storage/app/private \
+            storage/app/public \
+            storage/framework/cache/data \
+            storage/framework/sessions \
+            storage/framework/testing \
+            storage/framework/views \
+            storage/logs
+          do
+            if [ ! -d "$dir" ]; then
+              echo "::error::missing runtime directory: $dir"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Assert every model with HasFactory has a factory
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r -d '' model; do
+            name="$(basename "$model" .php)"
+            if grep -q 'HasFactory' "$model" && [ ! -f "database/factories/${name}Factory.php" ]; then
+              echo "::error file=$model::model declares HasFactory but database/factories/${name}Factory.php is missing"
+              fail=1
+            fi
+          done < <(find app/Models -name '*.php' -print0)
+          exit $fail
+
+      - name: Route optimisation
+        run: |
+          set -euo pipefail
+          php artisan optimize:clear
+          php artisan config:cache
+          # Fail if config:cache did not produce a bootstrap cache
+          test -f bootstrap/cache/config.php
+
+      - name: Migrate fresh with seed
+        run: |
+          php artisan migrate:fresh --force --seed
+
+      - name: Route list (contract smoke)
+        run: |
+          php artisan route:list
+          php artisan route:list --path=/
+          php artisan route:list --path=results
+
+      # Helm is used by the Kubernetes/rollout contract tests. Pinning the version and verifying the
+      # published checksum keeps a supply-chain step honest: the bytes are checked, not trusted.
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build the weekly native verifier binary
+        run: |
+          set -euo pipefail
+
+          # The suite treats a missing verifier as a hard failure, not a skip, so the real
+          # executable has to exist before any PHP case runs.
+          bash scripts/build-weekly-native-verifier.sh
+
+      - name: Provision checksum-verified Helm
+        run: |
+          set -euo pipefail
+          curl -fsSLo /tmp/helm-v3.19.4-linux-amd64.tar.gz https://get.helm.sh/helm-v3.19.4-linux-amd64.tar.gz
+          echo "759c656fbd9c11e6a47784ecbeac6ad1eb16a9e76d202e51163ab78504848862  /tmp/helm-v3.19.4-linux-amd64.tar.gz" | sha256sum --check
+          tar -xzf /tmp/helm-v3.19.4-linux-amd64.tar.gz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
+
+      - name: Run test suite
+        env:
+          APP_ENV: testing
+        run: |
+          # A cached config file wins over phpunit.xml's <env> overrides, which
+          # points the suite at the development database and connection instead
+          # of the in-memory test one. The cache is proven above and discarded
+          # here, before the suite runs.
+          php artisan config:clear
+          test ! -f bootstrap/cache/config.php
+          # Tests must never be skipped to go green: the lane runner partitions every discovered
+          # case into a lane, fails on skipped/risky/incomplete, and writes a per-case plan next to
+          # the JUnit reports so the mysql lane and this one can be reconciled from the same commit.
+          mkdir -p evidence/php-suite
+          python3 scripts/run_php_test_lane.py --lane sqlite --output evidence/php-suite/sqlite
+
+      # ---------------------------------------------------------------------
+      # PROMPT 7: the seams between a result lane and the rest of the repo.
+      #
+      # The full suite above already runs these tests. This step exists
+      # because a seam failure is a DIFFERENT KIND of failure: the lane works,
+      # every unit passes, and the feature is still unreachable or its
+      # configuration undocumented. Naming the contract here means the CI log
+      # says which agreement broke instead of just "a test failed".
+      #
+      # Cheap greps first, so an obvious breach fails in a second rather than
+      # after the whole suite.
+      # ---------------------------------------------------------------------
+      - name: Upload the sqlite case census
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-case-census-sqlite
+          path: evidence/php-suite/sqlite
+          if-no-files-found: error
+
+      - name: Assert the result-lane seams are closed
+        run: |
+          set -euo pipefail
+
+          echo "--- robots.txt: search blocked, content crawlable ---"
+          test -f public/robots.txt
+          for lane in national-lottery weekly-lottery bingo-lottery pcso-lottery; do
+            grep -qx "Disallow: /${lane}/search" public/robots.txt \
+              || { echo "::error::robots.txt does not block /${lane}/search"; exit 1; }
+            # A bare prefix rule would deindex the entire lane.
+            if grep -qE "^Disallow:[[:space:]]*/${lane}/?[[:space:]]*$" public/robots.txt; then
+              echo "::error::robots.txt blocks the whole ${lane} lane, not just its search route"
+              exit 1
+            fi
+            if grep -qE "^Disallow:[[:space:]]*/${lane}/year" public/robots.txt; then
+              echo "::error::robots.txt blocks the ${lane} year archive"
+              exit 1
+            fi
+          done
+
+          echo "--- .env.example documents every key each lane config reads ---"
+          node -e '
+            const fs = require("fs");
+            const example = fs.readFileSync(".env.example", "utf8");
+            let failed = false;
+            for (const lane of ["national_lottery", "weekly_lottery", "bingo_lottery", "pcso_lottery", "contact"]) {
+              const config = fs.readFileSync("config/" + lane + ".php", "utf8");
+              const prefix = lane === "contact" ? "CONTACT" : lane.toUpperCase();
+              const keys = new Set(
+                [...config.matchAll(new RegExp("env\\(\\s*[\x27\"](" + prefix + "_[A-Z0-9_]+)[\x27\"]", "g"))]
+                  .map(m => m[1])
+              );
+              if (keys.size === 0) {
+                console.error("::error::no env keys parsed out of config/" + lane + ".php");
+                failed = true;
+                continue;
+              }
+              for (const key of keys) {
+                // A commented-out entry counts: credentials are named but valueless.
+                if (!new RegExp("^#?\\s*" + key + "=", "m").test(example)) {
+                  console.error("::error::" + key + " is read by config/" + lane + ".php but undocumented in .env.example");
+                  failed = true;
+                }
+                // A credential must never ship with a value.
+                if (/(TOKEN|SECRET|KEY)$/.test(key) && new RegExp("^" + key + "=.+", "m").test(example)) {
+                  console.error("::error::" + key + " has a value in .env.example");
+                  failed = true;
+                }
+              }
+            }
+            process.exit(failed ? 1 : 0);
+          '
+
+          echo "--- /contact must stay crawlable ---"
+          if grep -qE "^Disallow:[[:space:]]*/contact" public/robots.txt; then
+            echo "::error::robots.txt blocks /contact, which is ordinary public content"
+            exit 1
+          fi
+
+          echo "--- no competitor string in any public surface ---"
+          # The reference pages that motivated these lanes may be named in
+          # audit notes and prompts. They must never appear in anything that
+          # ships. Scoped to production source so a research note in a report
+          # file does not fail the build.
+          if grep -rniE "thailotto" \
+               app config routes lang public database \
+               resources/views resources/css resources/js \
+               2>/dev/null | grep -v "^resources/views/vendor/"; then
+            echo "::error::a competitor reference reached production source"
+            exit 1
+          fi
+
+          echo "--- guest navigation links both public lanes ---"
+          for name in national-lottery.index weekly-lottery.index bingo-lottery.index pcso-lottery.index contact; do
+            grep -q "route('${name}')" resources/views/layouts/app.blade.php \
+              || { echo "::error::guest navigation has no link to ${name}"; exit 1; }
+          done
+
+          echo "Seam contracts hold."
+
+      - name: Seam and lane test suites (named, so a failure says which)
+        env:
+          APP_ENV: testing
+        run: |
+          set -euo pipefail
+          php artisan test \
+            --filter='NationalLotteryIntegrationSeamTest|NationalLotteryPublicPageTest|WeeklyLotteryPublicPageTest|BingoLotteryPublicPageTest|PcsoLotteryPublicPageTest|ContactPageTest'
+
+      - name: Pint (if configured)
+        run: |
+          if [ -f vendor/bin/pint ]; then
+            vendor/bin/pint --test
+          else
+            echo "Pint not installed — skipping style gate"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # PROMPT 6: the Weekly Lottery integrity crate.
+  #
+  # A SEPARATE JOB, not extra steps on the PHP job, for two reasons. It needs a
+  # Rust toolchain the PHP job has no use for, and the two must be able to fail
+  # independently: a broken canonicalizer and a broken Blade template are
+  # different problems and should not hide behind one red cross.
+  #
+  # --locked everywhere. The lock file is committed, and a CI run that silently
+  # resolved a different dependency tree would not be testing what ships - which
+  # matters more than usual for a component whose whole job is producing a
+  # deterministic hash.
+  # ---------------------------------------------------------------------------
+  rust-integrity:
+    name: Rust integrity verifier
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: security/weekly-result-integrity
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache cargo registry and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            security/weekly-result-integrity/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('security/weekly-result-integrity/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      - name: Formatting
+        run: cargo fmt --check
+
+      - name: Type check
+        run: cargo check --locked --all-targets
+
+      - name: Tests
+        run: cargo test --locked
+
+      - name: Assert the crate cannot reach the network or a database
+        run: |
+          set -euo pipefail
+          # The "no network" property is enforced by ABSENCE of any such
+          # dependency. tests/integrity.rs already asserts this against
+          # Cargo.lock; this repeats it against the RESOLVED tree so a
+          # transitive addition cannot slip in behind a direct one.
+          tree=$(cargo tree --locked --edges normal --prefix none)
+          for crate in tokio reqwest hyper curl ureq socket2 mio rustls native-tls sqlx diesel postgres tokio-postgres; do
+            if printf '%s\n' "$tree" | grep -qE "^${crate} v"; then
+              echo "::error::forbidden dependency in the integrity crate: ${crate}"
+              exit 1
+            fi
+          done
+          echo "No networking or database crate is present."
+
+      - name: Release build (the binary Laravel invokes)
+        run: cargo build --release --locked
+
+      - name: Smoke test the stdin/stdout contract
+        run: |
+          set -euo pipefail
+          # Leading zeros must survive, and a malformed value must be refused
+          # with exit code 2 rather than repaired.
+          ok=$(printf '%s' '{"draw_reference":"WK-20260918","draw_date":"2026-09-18","first_6":"001234","three_ball":"049","two_ball":"09","source_identifier":"CI","parser_version":"1"}' \
+            | ./target/release/weekly-result-integrity)
+          echo "$ok"
+          printf '%s\n' "$ok" | grep -q '"status":"INTEGRITY_HASH_ONLY"'
+          printf '%s\n' "$ok" | grep -q '"acceptable":true'
+
+          set +e
+          printf '%s' '{"draw_reference":"WK-20260918","draw_date":"2026-09-18","first_6":"1234","parser_version":"1"}' \
+            | ./target/release/weekly-result-integrity
+          code=$?
+          set -e
+          test "$code" -eq 2
+          echo "Malformed payload refused with exit code 2."
+
+  runtime-and-rust-contracts:
+    name: Runtime and Rust contract gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd, pdo_mysql
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Validate Composer platform and dependencies
+        run: |
+          set -euo pipefail
+          composer validate --no-check-publish
+          composer install --prefer-dist --no-interaction --no-progress
+          composer check-platform-reqs
+          composer audit --no-interaction --locked --abandoned=fail
+
+      - name: Install and audit frontend dependencies
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run security:dependencies
+          npm audit --audit-level=high
+          npm run build
+
+      - name: Verify Rust integrity crate
+        working-directory: security/weekly-result-integrity
+        run: |
+          set -euo pipefail
+          cargo check --locked
+          cargo test --locked
+          cargo build --release --locked
+
+
+      - name: Prepare the isolated CI environment
+        run: |
+          set -euo pipefail
+
+          # .env.ci, not .env.example: the cross-language cases assert the CI limits, and the
+          # example file would quietly re-enable automatic payout.
+          cp .env.ci .env
+
+      - name: Build the weekly native verifier binary
+        run: |
+          set -euo pipefail
+
+          # The suite treats a missing verifier as a hard failure, not a skip, so the real
+          # executable has to exist before any PHP case runs.
+          bash scripts/build-weekly-native-verifier.sh
+
+      - name: Run the cross-language verifier cases
+        run: |
+          set -euo pipefail
+
+          # These two files are the contract between the PHP consumer and the real executable:
+          # one asserts the signatures, the other that a public page never renders an unverified
+          # draw. Neither may be skipped, so a missing binary fails here instead of passing.
+          php artisan test \
+            tests/Feature/WeeklyLottery/WeeklyNativeVerifierRuntimeTest.php \
+            tests/Feature/WeeklyLottery/WeeklyLotteryPublicPageTest.php \
+            --fail-on-skipped
+
+  full-runtime-release:
+    name: Full runtime release candidate
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: thailotto_test
+          MYSQL_USER: thailotto_ci
+          MYSQL_PASSWORD: ci_database_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci_root_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      APP_ENV: testing
+      # The live-worker cases are only meaningful against a real binary and a real database: the
+      # suite refuses to skip them, and this job refuses to pretend they ran.
+      SETTLEMENT_WORKER_LIVE_TEST: '1'
+      SETTLEMENT_WORKER_LIVE_URL: http://127.0.0.1:9101
+      CONCURRENCY_TEST_ALLOW_DESTRUCTIVE: '1'
+      CONCURRENCY_TEST_DSN: 'mysql://concurrency_test:ci_database_password@127.0.0.1:3306/thai_lottery_conc'
+      APP_DEBUG: false
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: thailotto_test
+      DB_USERNAME: thailotto_ci
+      DB_PASSWORD: ci_database_password
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: array
+      MAIL_MAILER: log
+      PAGES_451_550_DESTRUCTIVE_TESTS: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, mysqlnd, pdo_mysql, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd, redis
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install database client
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes mysql-client
+
+      - name: Prepare controlled Laravel environment
+        run: |
+          set -euo pipefail
+          cp .env.ci .env
+
+      - name: Install and verify Composer dependencies
+        run: |
+          set -euo pipefail
+          composer validate --no-check-publish
+          composer install --prefer-dist --no-interaction --no-progress
+          composer check-platform-reqs
+          composer audit --no-interaction --locked --abandoned=fail
+          composer dump-autoload --optimize
+
+      - name: Generate the application key
+        run: |
+          set -euo pipefail
+          php artisan key:generate --force
+
+      - name: Install, audit, and build frontend
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run security:dependencies
+          npm audit --audit-level=high
+          npm run build
+
+      - name: Boot, cache, route, and view gates
+        run: |
+          set -euo pipefail
+          php artisan about
+          php artisan optimize:clear
+          php artisan config:cache
+          php artisan route:list
+          php artisan route:cache
+          php artisan view:cache
+
+      - name: Controlled schema, seed, and migration gates
+        run: |
+          set -euo pipefail
+          php artisan migrate:status
+          php artisan migrate:fresh --force
+          php artisan db:seed --force
+          php artisan migrate:status
+
+      - name: Controlled queue and scheduler gates
+        run: |
+          set -euo pipefail
+          redis-cli ping
+          php artisan queue:failed
+          php artisan schedule:list
+
+      # ---------------------------------------------------------------------------------------
+      # MySQL lane prerequisites. The native row-lock cases must observe a REAL lock wait, so they
+      # need a unix socket into the same server, read access to performance_schema, and a server
+      # that can create triggers/functions without SUPER. Each is provisioned and then asserted:
+      # a step that "sets things up" without checking the result is a step that fails later, in a
+      # test, with a message about something else.
+      # ---------------------------------------------------------------------------------------
+      - name: Provision the MySQL unix socket for the lock-observation cases
+        run: |
+          set -euo pipefail
+          sudo apt-get install --yes socat >/dev/null
+          socket=/tmp/mysql-ci.sock
+          rm -f "$socket"
+          # The mysql service is port-mapped onto the runner; a unix socket in front of it is what
+          # the lock-observation suite connects through, so the socket path is real, not simulated.
+          socat UNIX-LISTEN:$socket,fork,reuseaddr TCP:127.0.0.1:3306 &
+          for _ in $(seq 1 30); do [ -S "$socket" ] && break; sleep 1; done
+          test -S "$socket"
+          mysql --protocol=SOCKET --socket=$socket --user=root --password=ci_root_password -e 'SELECT 1' >/dev/null
+          echo "DB_SOCKET=$socket" >> "$GITHUB_ENV"
+
+      - name: Grant performance_schema visibility without SUPER
+        run: |
+          set -euo pipefail
+          docker exec -i -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root <<'SQL'
+          GRANT PROCESS ON *.* TO 'thailotto_ci'@'%';
+          GRANT SELECT ON performance_schema.data_locks TO 'thailotto_ci'@'%';
+          GRANT SELECT ON performance_schema.data_lock_waits TO 'thailotto_ci'@'%';
+          GRANT SELECT ON performance_schema.threads TO 'thailotto_ci'@'%';
+          FLUSH PRIVILEGES;
+          SQL
+          docker exec -i -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root --batch --skip-column-names \
+            -e "SELECT COUNT(*) FROM performance_schema.data_locks" >/dev/null
+          echo "performance_schema read access verified for the CI user."
+
+      - name: Allow function creation for failure injection without granting SUPER
+        run: |
+          set -euo pipefail
+          docker exec -i -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root \
+            -e "SET GLOBAL log_bin_trust_function_creators=1"
+          value=$(docker exec -i -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root --batch --skip-column-names \
+            -e "SELECT @@GLOBAL.log_bin_trust_function_creators")
+          test "$value" = 1
+          echo "log_bin_trust_function_creators=$value (function creation allowed, SUPER not granted)."
+
+      - name: Build and run the live settlement worker against real databases
+        run: |
+          set -euo pipefail
+
+          # The destructive fixtures are opt-in at two levels: this flag, and the job env above.
+          export MYSQL_TEST_ALLOW_DESTRUCTIVE=1
+
+          # Dedicated databases, created by root: the worker fixture writes schema and rows, so it
+          # must never share the lane's own database, and the lane user must not be able to create
+          # them (a fixture that can rewrite its own evidence is not evidence).
+          docker exec -i -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} mysql --user=root <<'SQL'
+          CREATE DATABASE settlement_worker_destructive_test;
+          GRANT ALL PRIVILEGES ON settlement_worker_destructive_test.* TO 'thailotto_ci'@'%';
+          GRANT SELECT ON thai_lottery_test.* TO 'thailotto_ci'@'%';
+          GRANT SELECT ON thailotto_test.* TO 'thailotto_ci'@'%';
+          CREATE DATABASE thai_lottery_conc;
+          CREATE USER IF NOT EXISTS 'concurrency_test'@'%' IDENTIFIED BY 'ci_database_password';
+          GRANT ALL PRIVILEGES ON thai_lottery_conc.* TO 'concurrency_test'@'%';
+          FLUSH PRIVILEGES;
+          SQL
+
+          # The ignored native tests are the point of this step: they are the ones that need a real
+          # binary, a real HMAC secret and two connections that can genuinely block each other.
+          SETTLEMENT_WORKER_HMAC_SECRET="$(openssl rand -hex 32)" \
+            cargo test --locked --manifest-path runtime/settlement-worker/Cargo.toml -- --include-ignored \
+            | tee /tmp/settlement-worker-tests.log
+          grep -q '0 failed; 0 ignored;' /tmp/settlement-worker-tests.log
+
+          # A binary that builds but cannot answer its own healthcheck is not a working worker.
+          SETTLEMENT_WORKER_HMAC_SECRET="$(openssl rand -hex 32)" \
+            SETTLEMENT_WORKER_BIND=127.0.0.1:9101 \
+            ./runtime/settlement-worker/target/debug/settlement-worker --healthcheck
+
+      - name: Build the weekly native verifier binary
+        run: |
+          set -euo pipefail
+
+          # The suite treats a missing verifier as a hard failure, not a skip, so the real
+          # executable has to exist before any PHP case runs.
+          bash scripts/build-weekly-native-verifier.sh
+
+      - name: Full PHP test suite
+        run: |
+          set -euo pipefail
+          php artisan config:clear
+          mkdir -p evidence/php-suite
+          python3 scripts/run_php_test_lane.py --lane mysql --output evidence/php-suite/mysql
+
+      - name: Upload the mysql case census
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-case-census-mysql
+          path: evidence/php-suite/mysql
+          if-no-files-found: error
+
+      - name: Start application and run public browser smoke tests
+        run: |
+          set -euo pipefail
+          nohup php artisan serve --host=0.0.0.0 --port=8000 >/tmp/laravel-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          curl --fail --retry 20 --retry-delay 1 --retry-connrefused http://127.0.0.1:8000/up/live
+          npx playwright install --with-deps chromium
+          npm run e2e:public
+
+      # A dump that "restores without error" proves very little: the previous version of this step
+      # hashed the dump and then read it back in — it would have passed with half the tables
+      # missing. This one compares *data and schema* against the source, using the fingerprint query
+      # in scripts/mysql-roundtrip-fingerprint.sql for the structural half.
+      - name: Backup, restore, and compare controlled database
+        env:
+          MYSQL_PWD: ci_root_password
+        run: |
+          set -euo pipefail
+          # Snapshot paths keep the names the CI contract asserts (§ tests/Unit/Build/
+          # CiRuntimeContractTest); the database they hold is this lane's own.
+          SRC_DB=thailotto_test
+          SRC_ROWS=/tmp/thai_lottery_test.rows.sql
+          DST_ROWS=/tmp/thailotto_restore.rows.sql
+          SRC_SCHEMA=/tmp/thai_lottery_test.schema.txt
+          DST_SCHEMA=/tmp/thailotto_restore.schema.txt
+
+          # 1. Consistent, restorable dump: routines and events included, no tablespace clauses (the
+          #    CI user is not privileged to read them), single transaction so the dump is a snapshot.
+          mysqldump --host=127.0.0.1 --port=3306 --user=root \
+            --no-tablespaces --single-transaction --routines --events \
+            "$SRC_DB" > /tmp/thai_lottery_test.full.sql
+          test -s /tmp/thai_lottery_test.full.sql
+
+          # 2. The restore target is created by the container's root user, never by the lane user:
+          #    a test its own subject can rewrite is not evidence.
+          docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root -e "CREATE DATABASE thailotto_restore"
+          docker exec -e MYSQL_PWD=ci_root_password ${{ job.services.mysql.id }} \
+            mysql --user=root -e "GRANT ALL PRIVILEGES ON thailotto_restore.* TO 'thailotto_ci'@'%'"
+          mysql --host=127.0.0.1 --port=3306 --user=root thailotto_restore < /tmp/thai_lottery_test.full.sql
+
+          # 3. Schema fingerprint: information_schema, so a dropped index or changed collation shows
+          #    up even when every row survived.
+          mysql --host=127.0.0.1 --port=3306 --user=root --batch --skip-column-names \
+            -e "SET @db = '$SRC_DB'" < scripts/mysql-roundtrip-fingerprint.sql > $SRC_SCHEMA
+          mysql --host=127.0.0.1 --port=3306 --user=root --batch --skip-column-names \
+            -e "SET @db = 'thailotto_restore'" < scripts/mysql-roundtrip-fingerprint.sql > $DST_SCHEMA
+          test -s $SRC_SCHEMA
+          cmp /tmp/thai_lottery_test.schema.txt /tmp/thailotto_restore.schema.txt
+
+          # 4. Data comparison, table by table, with the schema statements left out so that only rows
+          #    are compared.
+          mysqldump --host=127.0.0.1 --port=3306 --user=root --no-create-info --skip-triggers \
+            "$SRC_DB" > /tmp/thai_lottery_test.rows.sql
+          mysqldump --host=127.0.0.1 --port=3306 --user=root --no-create-info --skip-triggers \
+            thailotto_restore > /tmp/thailotto_restore.rows.sql
+          cmp /tmp/thai_lottery_test.rows.sql /tmp/thailotto_restore.rows.sql
+
+          # 5. And the application agrees the restored copy is migrated.
+          DB_DATABASE=thailotto_restore php artisan migrate:status
+          echo "restore verified: rows and schema identical between $SRC_DB and thailotto_restore"
+
+      - name: Rust integrity gates
+        working-directory: security/weekly-result-integrity
+        run: |
+          set -euo pipefail
+          cargo fmt --check
+          cargo check --locked --all-targets
+          cargo test --locked
+          cargo build --release --locked
+
+      - name: Final source hygiene gate
+        run: |
+          set -euo pipefail
+          git diff --check
+
+  # Neither lane is allowed to quietly drop a case: sqlite-compatible cases run in `test`, the
+  # native row-lock / live-worker / real-engine cases run in `full-runtime-release`, and this job
+  # refuses the build unless the two plans together account for everything discovered and both
+  # lanes passed. It runs on `always()` so a failed lane is *reconciled*, not skipped.
+  php-case-census:
+    name: PHP case census
+    needs: [test, full-runtime-release]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip, intl, gd, pdo_mysql
+          coverage: none
+
+      - name: Download the sqlite case census
+        uses: actions/download-artifact@v4
+        with:
+          name: php-case-census-sqlite
+          path: evidence/php-suite/sqlite
+
+      - name: Download the mysql case census
+        uses: actions/download-artifact@v4
+        with:
+          name: php-case-census-mysql
+          path: evidence/php-suite/mysql
+
+      - name: Reconcile both lanes
+        env:
+          SQLITE_JOB_RESULT: ${{ needs.test.result }}
+          MYSQL_JOB_RESULT: ${{ needs.full-runtime-release.result }}
+        run: |
+          set -euo pipefail
+          test "$SQLITE_JOB_RESULT" = success
+          test "$MYSQL_JOB_RESULT" = success
+          python3 scripts/run_php_test_lane.py --reconcile evidence/php-suite/sqlite evidence/php-suite/mysql

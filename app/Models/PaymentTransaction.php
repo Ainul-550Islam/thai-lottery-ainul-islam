@@ -51,16 +51,19 @@ class PaymentTransaction extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Wallet, $this> */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
+    /** @return BelongsTo<FinancialTransaction, $this> */
     public function financialTransaction(): BelongsTo
     {
         return $this->belongsTo(FinancialTransaction::class);

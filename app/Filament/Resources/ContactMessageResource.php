@@ -9,6 +9,7 @@ use App\Models\ContactMessageEvent;
 use App\Filament\Resources\ContactMessageResource\Pages;
 use App\Models\ContactMessage;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -69,7 +70,7 @@ final class ContactMessageResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny([AdminAccess::MANAGE_USERS]);
+        return AdminAccess::permitsAny([AdminPermission::SUPPORT_VIEW, AdminPermission::SUPPORT_MANAGE]);
     }
 
     public static function canView(Model $record): bool

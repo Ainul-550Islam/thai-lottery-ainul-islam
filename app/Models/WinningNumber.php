@@ -81,7 +81,7 @@ class WinningNumber extends Model
     }
 
     /**
-     * @return BelongsTo<Draw, self>
+     * @return BelongsTo<Draw, $this>
      */
     public function draw(): BelongsTo
     {

@@ -6,6 +6,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\LedgerEntry;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -29,9 +30,10 @@ class LedgerBalanceWidget extends StatsOverviewWidget
 
     public static function canView(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::RECONCILE_LEDGER,
-            AdminAccess::VIEW_FINANCIAL_REPORTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::LEDGER_RECONCILE,
+            AdminPermission::LEDGER_VIEW,
+            AdminPermission::REPORTS_VIEW,
         ]);
     }
 

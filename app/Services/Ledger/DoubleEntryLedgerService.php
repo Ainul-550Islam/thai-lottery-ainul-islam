@@ -7,7 +7,6 @@ namespace App\Services\Ledger;
 use App\Enums\Currency;
 use App\Enums\LedgerAccountType;
 use App\Models\LedgerAccount;
-use App\Models\LedgerEntry;
 use App\Models\LedgerTransaction;
 use App\Services\Finance\Money;
 use Illuminate\Support\Facades\DB;
@@ -102,47 +101,22 @@ class DoubleEntryLedgerService
             );
         }
 
-        // 2. Fetch the unspent chain tip for cryptographic audit chain (clock-independent across UUID PKs)
-        /** @var LedgerTransaction|null $latestTx */
-        $latestTx = LedgerTransaction::query()
-            ->whereNotExists(static function ($query): void {
-                $query->selectRaw('1')
-                    ->from('ledger_transactions as child')
-                    ->whereColumn('child.previous_hash', 'ledger_transactions.hash');
-            })
+        // 2. Serialize every hash-chain append on one durable singleton row.
+        // Locking the row which was the tip when this statement began is not
+        // sufficient under real InnoDB contention: a waiter can retain its old
+        // anti-join result after the first writer commits and attempt the same
+        // previous_hash. The dedicated state row is stable even for an empty
+        // ledger and publishes the new tip in this same transaction.
+        $chainState = DB::table('ledger_chain_state')
+            ->where('id', 1)
             ->lockForUpdate()
             ->first();
-        // A locking scan follows primary-key order. A writer that waited on the old
-        // tip can resume after a peer committed a successor whose key sorts before the
-        // scan cursor: that successor is never visited, the old tip stops qualifying
-        // under the refreshed view, and the query returns null although the chain is
-        // not empty. Run the same statement again with the lock held and the view
-        // fixed. Posting with the genesis hash is never an acceptable guess, so a tip
-        // that is still missing on a non-empty ledger aborts the posting.
-        if ($latestTx === null) {
-            $latestTx = LedgerTransaction::query()
-                ->whereNotExists(static function ($query): void {
-                    $query->selectRaw('1')
-                        ->from('ledger_transactions as child')
-                        ->whereColumn('child.previous_hash', 'ledger_transactions.hash');
-                })
-                ->lockForUpdate()
-                ->first();
+        if ($chainState === null) {
+            throw new RuntimeException('Ledger chain state is not initialized. Run all database migrations.');
         }
-        if ($latestTx === null && LedgerTransaction::query()->lockForUpdate()->first() !== null) {
-            throw new RuntimeException('Ledger chain tip could not be located on a non-empty ledger.');
-        }
-        // The anti-join above reads child rows from the transaction snapshot, so a
-        // writer queued behind the tip lock can still see the pre-commit tip.
-        // Locking reads see the latest committed rows: walk forward to the real tip.
-        while ($latestTx !== null) {
-            $successor = LedgerTransaction::query()->where('previous_hash', $latestTx->hash)->lockForUpdate()->first();
-            if ($successor === null) {
-                break;
-            }
-            $latestTx = $successor;
-        }
-        $previousHash = $latestTx?->hash ?? str_repeat('0', 64);
+        $previousHash = is_string($chainState->tip_hash) && $chainState->tip_hash !== ''
+            ? $chainState->tip_hash
+            : str_repeat('0', 64);
 
         $txUuid = Str::uuid()->toString();
         $txNumber = 'TX-'.date('YmdHis').'-'.strtoupper(Str::random(8));
@@ -175,6 +149,10 @@ class DoubleEntryLedgerService
             'previous_hash' => $previousHash,
             'hash' => $currentHash,
             'posted_at' => $now,
+        ]);
+        DB::table('ledger_chain_state')->where('id', 1)->update([
+            'tip_hash' => $currentHash,
+            'updated_at' => $now,
         ]);
 
         // 5. Create parent financial_transactions row required by ledger_entries FK

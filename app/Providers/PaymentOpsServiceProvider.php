@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Console\Commands\MoneyTechnicalReadinessCommand;
 use App\Console\Commands\PaymentsManualDisbursementSweepCommand;
 use App\Console\Commands\PaymentsReadinessCommand;
 use App\Exceptions\FinancialException;
@@ -26,7 +27,25 @@ final class PaymentOpsServiceProvider extends ServiceProvider
 
         $this->loadRoutesFrom(base_path('routes/payment_ops.php'));
         if ($this->app->runningInConsole()) {
-            $this->commands([PaymentsManualDisbursementSweepCommand::class, PaymentsReadinessCommand::class]);
+            /*
+             * money:technical-readiness is registered here rather than left to the
+             * app/Console/Commands discovery in bootstrap/app.php, for the same
+             * reason payments:readiness is: the money-ops console surface should be
+             * readable in one place. It is a READ-ONLY audit — it writes nothing and
+             * contacts no provider — so registering it cannot change what the
+             * application does, only what an operator can ask it.
+             *
+             * It deliberately does NOT join the boot refusal below. That refusal asks
+             * ProductionPreflight, and the release gate an operator runs by hand must
+             * be the same set of questions the application enforces on itself. Adding
+             * a second, differently-scoped evaluator to the boot path would create the
+             * "two answers about one deployment" problem these commands exist to remove.
+             */
+            $this->commands([
+                PaymentsManualDisbursementSweepCommand::class,
+                PaymentsReadinessCommand::class,
+                MoneyTechnicalReadinessCommand::class,
+            ]);
         }
 
         /*

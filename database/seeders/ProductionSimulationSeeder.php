@@ -10,14 +10,28 @@ use App\Models\Draw;
 use App\Models\FraudAlert;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Support\Config\StrictBoolean;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class ProductionSimulationSeeder extends Seeder
 {
     public function run(): void
     {
+        // Fail closed. This seeder writes a known administrator and a funded wallet, so it must
+        // never touch a production database unless an operator opted in on purpose. The guard sits
+        // before any database work, and the switch is read strictly: only an exact `true` opens it
+        // (see StrictBoolean), never `1`, `yes` or a stray value.
+        if (app()->environment('production')
+            && ! StrictBoolean::orClosed(env('ALLOW_PRODUCTION_SIMULATION_SEEDER'))) {
+            throw new RuntimeException(
+                'ProductionSimulationSeeder refused to run in production. '
+                .'Set ALLOW_PRODUCTION_SIMULATION_SEEDER=true only for a deliberate simulation environment.'
+            );
+        }
+
         DB::transaction(function () {
             // 1. Seed System Chart of Accounts
             $this->call(SystemChartOfAccountsSeeder::class);

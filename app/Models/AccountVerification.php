@@ -166,7 +166,7 @@ class AccountVerification extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function owner(): BelongsTo
     {
@@ -174,7 +174,7 @@ class AccountVerification extends Model
     }
 
     /**
-     * @return BelongsTo<KycDocument, self>
+     * @return BelongsTo<KycDocument, $this>
      */
     public function frontDocument(): BelongsTo
     {
@@ -182,7 +182,7 @@ class AccountVerification extends Model
     }
 
     /**
-     * @return BelongsTo<KycDocument, self>
+     * @return BelongsTo<KycDocument, $this>
      */
     public function backDocument(): BelongsTo
     {
@@ -190,7 +190,7 @@ class AccountVerification extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function reviewer(): BelongsTo
     {

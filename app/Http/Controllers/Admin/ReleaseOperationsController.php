@@ -21,9 +21,23 @@ use Illuminate\View\View;
  */
 final class ReleaseOperationsController extends Controller
 {
-    public function show(Request $request, string $surface, ?string $reference = null): View
+    public function show(Request $request, string $surface, ?string $reference = null): View|\Illuminate\Http\RedirectResponse
     {
         $this->authorizeSurface($request, $surface);
+
+        // THE ONE SURFACE THAT IS NO LONGER A PLACEHOLDER
+        //
+        // This route used to answer /admin/compliance-cases with "Compliance case detail requires
+        // a policy-protected case projection" — true when it was written, false since the AML case
+        // console was built. A bookmark, a runbook link or an operator's muscle memory should not
+        // land on a page that says the thing does not exist while it does. The projection is kept
+        // for every other surface; this one hands over to the real console.
+        //
+        // The route itself is NOT removed: removing it would turn an operator's existing link into
+        // a 404 and break the static route-contract test that pins the surface list.
+        if ($surface === 'compliance-cases') {
+            return redirect()->to(\App\Filament\Resources\ComplianceCaseResource::getUrl('index'));
+        }
 
         return view('admin.release-operations', [
             'surface' => $surface,

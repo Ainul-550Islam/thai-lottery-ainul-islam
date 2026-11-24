@@ -10,6 +10,7 @@ use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Services\Lottery\GloPublicResultService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Pages\Page;
 
 /**
@@ -35,10 +36,10 @@ class GloResultDashboardPage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::VIEW_RESULTS,
-            AdminAccess::VIEW_AUDIT_LOGS,
-            AdminAccess::PUBLISH_GLO_PUBLIC_STATUS,
+        return AdminAccess::permitsAny([
+            AdminPermission::GAMES_VIEW,
+            AdminPermission::AUDIT_LOGS_VIEW,
+            AdminPermission::GLO_STATUS_PUBLISH,
         ]);
     }
 

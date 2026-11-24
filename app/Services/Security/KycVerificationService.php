@@ -6,6 +6,7 @@ namespace App\Services\Security;
 
 use App\Enums\AuditAction;
 use App\Enums\KycDocumentType;
+use App\Enums\KycDocumentVerificationStatus;
 use App\Enums\KycStatus;
 use App\Models\AuditLog;
 use App\Models\KycDocument;
@@ -105,7 +106,38 @@ final class KycVerificationService
 
         $newStatus = $approved ? KycStatus::Verified : KycStatus::Rejected;
 
+        /**
+         * EXPIRED EVIDENCE IS NEVER APPROVED — the same refusal the authoritative document lane
+         * makes. Approving a passport whose own validity date has passed would put a lapsed
+         * identity behind a live account.
+         */
+        if ($approved && $document->expires_at !== null && $document->expires_at->isPast()) {
+            throw new InvalidArgumentException(
+                'This identity document expired on '.$document->expires_at->toDateString().'; expired evidence cannot be approved.',
+            );
+        }
+
         $document->status = $newStatus;
+
+        /**
+         * BOTH COLUMNS, ALWAYS.
+         *
+         * This lane writes the legacy `status` word. The authoritative document lane
+         * (Compliance\KycDocumentService) writes `verification_status`, and
+         * KycVerificationService::pronounce() — the thing that decides whether an account is
+         * verified — reads `verification_status = 'verified'`. Writing only the legacy column
+         * meant a document approved here (or from the panel's KYC page, or from the account
+         * verification flow, which both call this method) never counted as evidence: the row
+         * said "verified" and the verdict stayed unverified.
+         *
+         * The two words are kept in correspondence exactly as the document lane keeps them, so
+         * no gate goes blind and no second approval path is invented.
+         */
+        if (Schema::hasColumn('kyc_documents', 'verification_status')) {
+            $document->verification_status = $approved
+                ? KycDocumentVerificationStatus::Verified
+                : KycDocumentVerificationStatus::Rejected;
+        }
         $document->verified_at = now();
         $document->verified_by = $reviewer->id;
         $document->rejection_reason = $approved ? null : $rejectionReason;

@@ -43,6 +43,7 @@ use Illuminate\Support\Str;
  */
 class ContactMessage extends Model
 {
+    /** @use HasFactory<\Database\Factories\ContactMessageFactory> */
     use HasFactory;
 
     /** The application has the message. It says nothing about email. */

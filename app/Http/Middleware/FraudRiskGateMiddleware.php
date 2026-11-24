@@ -20,9 +20,11 @@ use Symfony\Component\HttpFoundation\Response;
  *  - 'enforce' (default): DENY is refused, HOLD_FOR_REVIEW is parked, and STEP_UP
  *    is refused with TRANSACTION_STEP_UP_REQUIRED unless the request already
  *    carries a verified step-up (attributes['step_up_verified']).
- *  - 'observe': nothing is blocked. The verdict is attached to the request as
- *    fraud_decision_observed so telemetry and shadow runs can be measured before
- *    the policy is enforced.
+ *  - 'observe' (alias 'log_only'): nothing is blocked. The verdict is attached to
+ *    the request as fraud_decision_observed so telemetry and shadow runs can be
+ *    measured before the policy is enforced.
+ *  - ANY OTHER VALUE fails closed as 'enforce'. A misspelt or retired mode name
+ *    ('enfroce', 'review', a blank value) must never silently switch the gate off.
  *
  * STEP_UP AND OBSERVE WERE MISSING ENTIRELY
  * Only DENY and HOLD_FOR_REVIEW were handled, so a STEP_UP verdict - the engine's
@@ -59,7 +61,9 @@ class FraudRiskGateMiddleware
             ]
         );
 
-        $enforcing = strtolower((string) config('fraud.mode', 'enforce')) === 'enforce';
+        // Fail closed: only an explicit observe / log_only value turns interception off.
+        $mode = strtolower(trim((string) config('fraud.mode', 'enforce')));
+        $enforcing = ! in_array($mode, ['observe', 'log_only'], true);
 
         if (! $enforcing) {
             // Observe mode is telemetry only: attach the verdict, never intercept.

@@ -65,6 +65,7 @@ use Illuminate\Support\Str;
  */
 class NationalLotteryResultVersion extends Model implements ProvidesResultProvenance
 {
+    /** @use HasFactory<\Database\Factories\NationalLotteryResultVersionFactory> */
     use HasFactory;
 
     public const VALIDATION_PASSED = 'passed';

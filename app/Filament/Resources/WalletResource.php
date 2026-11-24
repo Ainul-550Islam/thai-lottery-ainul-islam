@@ -12,6 +12,7 @@ use App\Filament\Resources\WalletResource\WalletControlActions;
 use App\Models\Wallet;
 use App\Services\Finance\WalletService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -64,9 +65,9 @@ class WalletResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::MANAGE_WALLET,
-            AdminAccess::VIEW_FINANCIAL_REPORTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::WALLETS_VIEW,
+            AdminPermission::LEDGER_VIEW,
         ]);
     }
 
@@ -218,7 +219,7 @@ class WalletResource extends Resource
                     ->icon('heroicon-m-adjustments-horizontal')
                     ->button()
                     ->outlined()
-                    ->visible(fn (): bool => AdminAccess::current(AdminAccess::MANAGE_WALLET)),
+                    ->visible(fn (): bool => AdminAccess::permits(AdminPermission::WALLETS_ADJUST)),
             ])
             ->bulkActions([])
             ->emptyStateHeading('No wallets')

@@ -71,6 +71,49 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
         $this->assertSame(0, Withdrawal::query()->count());
     }
 
+    public function test_bkash_requires_mobile_format_and_prohibits_bank_name(): void
+    {
+        $player = $this->createAdmittedPlayer('5000.00');
+
+        // bKash is a BDT-only rail (WithdrawalRequest refuses it unless the site currency is BDT, and
+        // the gateway must be enabled and withdrawal-capable). This test site is THB with the gateway
+        // off, so, exactly like crypto below, a syntactically valid destination is not authority to
+        // open the rail: the method is refused. Destination validation still runs, so a malformed
+        // destination is never accepted merely because the rail is closed.
+        $valid = $this->actingAs($player['user'])->post('/withdraw', [
+            'amount' => '300.00',
+            'method' => 'bkash',
+            'account_number' => '01712345678',
+            'account_name' => 'Rahim Ahmed',
+            'idempotency_key' => 'wd-test-bkash-valid',
+        ]);
+        $valid->assertSessionHasErrors(['method']);
+        $valid->assertSessionDoesntHaveErrors(['account_number', 'bank_name']);
+
+        // Incompatible bank_name supplied to the bKash rail
+        $incompatible = $this->actingAs($player['user'])->post('/withdraw', [
+            'amount' => '300.00',
+            'method' => 'bkash',
+            'bank_name' => 'KBANK',
+            'account_number' => '01712345678',
+            'account_name' => 'Rahim Ahmed',
+            'idempotency_key' => 'wd-test-bkash-incompat',
+        ]);
+        $incompatible->assertSessionHasErrors(['bank_name']);
+
+        // Malformed Bangladeshi mobile number
+        $malformed = $this->actingAs($player['user'])->post('/withdraw', [
+            'amount' => '300.00',
+            'method' => 'bkash',
+            'account_number' => '12345',
+            'account_name' => 'Rahim Ahmed',
+            'idempotency_key' => 'wd-test-bkash-malformed',
+        ]);
+        $malformed->assertSessionHasErrors(['account_number']);
+
+        $this->assertDatabaseCount('withdrawals', 0);
+    }
+
     public function test_bkash_withdrawal_fails_closed_until_callback_authentication_is_verified(): void
     {
         config([
@@ -138,7 +181,6 @@ final class WithdrawalDestinationValidationTest extends PaymentTestCase
             'account_name' => 'USDT',
             'idempotency_key' => 'wd-test-crypto-invalid',
         ]);
-        $invalid->assertSessionHasErrors(['method']);
-        $this->assertDatabaseCount('withdrawals', 0);
+        $invalid->assertSessionHasErrors(['account_number']);
     }
 }

@@ -8,6 +8,7 @@ use App\Enums\WithdrawalStatus;
 use App\Filament\Resources\WithdrawalResource;
 use App\Models\Withdrawal;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -35,9 +36,11 @@ class PendingApprovalsWidget extends TableWidget
 
     public static function canView(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::MANAGE_PAYOUTS,
-            AdminAccess::VIEW_FINANCIAL_REPORTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::DEPOSITS_REVIEW,
+            AdminPermission::WITHDRAWALS_REVIEW,
+            AdminPermission::LEDGER_VIEW,
+            AdminPermission::REPORTS_VIEW,
         ]);
     }
 

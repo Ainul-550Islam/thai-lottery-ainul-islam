@@ -60,7 +60,7 @@ class PlayerProtectionAct extends Model
     }
 
     /**
-     * @return BelongsTo<PlayerProtectionCase, self>
+     * @return BelongsTo<PlayerProtectionCase, $this>
      */
     public function protectionCase(): BelongsTo
     {
@@ -68,7 +68,7 @@ class PlayerProtectionAct extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function actor(): BelongsTo
     {

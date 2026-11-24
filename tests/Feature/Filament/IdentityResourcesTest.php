@@ -634,9 +634,13 @@ final class IdentityResourcesTest extends TestCase
         $this->assertTrue(AgentResource::canViewCommissions());
 
         // A hand-built operator with 'manage agents' but not 'view commissions' must not.
+        //
+        // It is given a PANEL role ('auditor') rather than having every role stripped: a
+        // granular check now requires being an operator at all (AdminAccess::permits()), which
+        // a user with no panel role is not — otherwise the coarse phrases players share
+        // ('manage wallet', 'view transaction history') would pass resource checks for them.
         $restricted = User::factory()->create(['status' => UserStatus::Active]);
-        $restricted->assignRole('admin');
-        $restricted->roles()->detach();
+        $restricted->assignRole('auditor');
         $restricted->givePermissionTo(\App\Support\Admin\AdminAccess::VIEW_DASHBOARD);
         $restricted->givePermissionTo(\App\Support\Admin\AdminAccess::MANAGE_AGENTS);
         $restricted = $restricted->fresh();

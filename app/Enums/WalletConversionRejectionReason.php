@@ -110,7 +110,7 @@ enum WalletConversionRejectionReason: string
     /**
      * The translation key for the member-facing explanation, when one exists.
      */
-    public function messageKey(): ?string
+    public function messageKey(): string
     {
         // The `rejection_` keys are the ones the lang files actually carry (they are
         // also what the engine's refusal messages and the validation messages use), so

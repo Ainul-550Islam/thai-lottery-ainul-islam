@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 final class SupportMessage extends Model
 {
+    /** @use HasFactory<\Database\Factories\SupportMessageFactory> */
     use HasFactory;
 
     protected $fillable = [

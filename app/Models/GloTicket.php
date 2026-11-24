@@ -141,31 +141,37 @@ class GloTicket extends Model
         return $reference;
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_user_id');
     }
 
+    /** @return HasMany<GloTicketFreeze, $this> */
     public function freezes(): HasMany
     {
         return $this->hasMany(GloTicketFreeze::class, 'ticket_id');
     }
 
+    /** @return HasMany<GloPrizeClaim, $this> */
     public function claims(): HasMany
     {
         return $this->hasMany(GloPrizeClaim::class, 'ticket_id');
     }
 
+    /** @return HasMany<GloPrizePaymentHold, $this> */
     public function paymentHolds(): HasMany
     {
         return $this->hasMany(GloPrizePaymentHold::class, 'ticket_id');
     }
 
+    /** @return HasOne<GloPublicTicketStatus, $this> */
     public function publicStatus(): HasOne
     {
         return $this->hasOne(GloPublicTicketStatus::class, 'ticket_id');

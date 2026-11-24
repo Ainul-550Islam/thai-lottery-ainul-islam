@@ -20,6 +20,7 @@ use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
 use App\Services\Payment\PaymentLogSanitizer;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms\Form;
 use Filament\Infolists\Infolist;
@@ -50,10 +51,10 @@ final class DepositSlipVerificationResource extends Resource
     {
         $operator = AdminAccess::operator();
 
-        return AdminAccess::canAccessPanel($operator) && AdminAccess::allowsAny($operator, [
-            AdminAccess::VIEW_TRANSACTION_HISTORY,
-            AdminAccess::MANAGE_PAYOUTS,
-        ]);
+        return AdminAccess::canAccessPanel($operator) && AdminAccess::permitsAny([
+            AdminPermission::DEPOSITS_VIEW,
+            AdminPermission::DEPOSITS_REVIEW,
+        ], $operator);
     }
 
     public static function canView(Model $record): bool
@@ -139,7 +140,7 @@ final class DepositSlipVerificationResource extends Resource
                     self::approveAction(),
                     self::rejectAction(),
                 ])->label('Review')->visible(fn (DepositSlipVerification $record): bool => $record->status === SlipVerificationStatus::NeedsReview
-                    && AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)),
+                    && AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE)),
             ])
             ->bulkActions([])
             ->emptyStateHeading('No slip verifications');
@@ -183,7 +184,7 @@ final class DepositSlipVerificationResource extends Resource
             ->color('success')
             ->icon('heroicon-o-check-circle')
             ->visible(fn (DepositSlipVerification $record): bool => $record->status === SlipVerificationStatus::NeedsReview
-                && AdminAccess::current(AdminAccess::MANAGE_PAYOUTS))
+                && AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE))
             ->form([
                 \Filament\Forms\Components\Textarea::make('note')->required()->maxLength(120)
                     ->label('Approval note (required)'),
@@ -201,7 +202,7 @@ final class DepositSlipVerificationResource extends Resource
             ->color('danger')
             ->icon('heroicon-o-x-circle')
             ->visible(fn (DepositSlipVerification $record): bool => $record->status === SlipVerificationStatus::NeedsReview
-                && AdminAccess::current(AdminAccess::MANAGE_PAYOUTS))
+                && AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE))
             ->form([
                 \Filament\Forms\Components\Textarea::make('reason')->required()->minLength(3)->maxLength(120)
                     ->label('Rejection reason (required)'),
@@ -219,7 +220,7 @@ final class DepositSlipVerificationResource extends Resource
             ->color('success')
             ->icon('heroicon-o-check-circle')
             ->visible(fn (DepositSlipVerification $record): bool => $record->status === SlipVerificationStatus::NeedsReview
-                && AdminAccess::current(AdminAccess::MANAGE_PAYOUTS))
+                && AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE))
             ->form([
                 \Filament\Forms\Components\Textarea::make('note')->required()->maxLength(120)
                     ->label('Approval note (required)'),
@@ -237,7 +238,7 @@ final class DepositSlipVerificationResource extends Resource
             ->color('danger')
             ->icon('heroicon-o-x-circle')
             ->visible(fn (DepositSlipVerification $record): bool => $record->status === SlipVerificationStatus::NeedsReview
-                && AdminAccess::current(AdminAccess::MANAGE_PAYOUTS))
+                && AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE))
             ->form([
                 \Filament\Forms\Components\Textarea::make('reason')->required()->minLength(3)->maxLength(120)
                     ->label('Rejection reason (required)'),
@@ -254,13 +255,13 @@ final class DepositSlipVerificationResource extends Resource
             throw FinancialException::withCode('slip_review_note_required', 'A reviewer and a required approval note are needed.');
         }
         $operator = AdminAccess::operator();
-        if (! AdminAccess::canAccessPanel($operator) || ! AdminAccess::allows($operator, AdminAccess::MANAGE_PAYOUTS)) {
+        if (! AdminAccess::canAccessPanel($operator) || ! AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE, $operator)) {
             throw new AuthorizationException;
         }
         $verification = DepositSlipVerification::query()->findOrFail($verification->getKey());
         if ($verification->status === SlipVerificationStatus::Credited) {
             $operator = AdminAccess::operator();
-            if (! AdminAccess::current(AdminAccess::MANAGE_PAYOUTS) || ! AdminAccess::canAccessPanel($operator)) {
+            if (! AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE) || ! AdminAccess::canAccessPanel($operator)) {
                 Gate::authorize('approve', $verification);
             }
             if (! ($operator instanceof User) || (int) $operator->getKey() !== $reviewerId) {
@@ -280,7 +281,7 @@ final class DepositSlipVerificationResource extends Resource
         }
         if ($verification->status !== SlipVerificationStatus::NeedsReview) {
             $operator = AdminAccess::operator();
-            if (! AdminAccess::current(AdminAccess::MANAGE_PAYOUTS) || ! AdminAccess::canAccessPanel($operator)) {
+            if (! AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE) || ! AdminAccess::canAccessPanel($operator)) {
                 Gate::authorize('approve', $verification);
             }
             throw FinancialException::withCode('slip_review_state_conflict', 'This slip is no longer eligible for approval.');
@@ -402,7 +403,7 @@ final class DepositSlipVerificationResource extends Resource
             throw FinancialException::withCode('slip_review_reason_required', 'A reviewer and a required rejection reason are needed.');
         }
         $operator = AdminAccess::operator();
-        if (! AdminAccess::canAccessPanel($operator) || ! AdminAccess::allows($operator, AdminAccess::MANAGE_PAYOUTS)) {
+        if (! AdminAccess::canAccessPanel($operator) || ! AdminAccess::permits(AdminPermission::DEPOSITS_APPROVE, $operator)) {
             throw new AuthorizationException;
         }
         Gate::authorize('reject', $verification);

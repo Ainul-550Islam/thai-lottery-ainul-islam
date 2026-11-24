@@ -68,6 +68,7 @@ class ChatCannedResponse extends Model
         ];
     }
 
+    /** @return BelongsTo<\App\Models\User, $this> */
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class, 'updated_by_user_id');
@@ -77,6 +78,10 @@ class ChatCannedResponse extends Model
     // Scopes
     // ========================================================================
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeEnabled(Builder $query): Builder
     {
         return $query->where('enabled', true);
@@ -88,12 +93,18 @@ class ChatCannedResponse extends Model
      * Falls back to the platform's primary locale through the service, not
      * here — a scope that silently widened its own filter would make the
      * "no canned responses for this language" state impossible to observe.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeForLocale(Builder $query, string $locale): Builder
     {
         return $query->where('locale', $locale);
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeInDisplayOrder(Builder $query): Builder
     {
         return $query->orderBy('sort_order')->orderBy('title');

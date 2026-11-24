@@ -9,6 +9,7 @@ use App\Filament\Resources\DrawResource;
 use App\Models\Draw;
 use App\Services\Draw\DrawScheduleService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -29,7 +30,7 @@ class ListDraws extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label('New draw')
-                ->visible(fn (): bool => AdminAccess::current(AdminAccess::MANAGE_DRAWS)),
+                ->visible(fn (): bool => AdminAccess::permits(AdminPermission::GAMES_MANAGE)),
 
             Actions\Action::make('provision')
                 ->label('Provision from calendar')
@@ -38,7 +39,7 @@ class ListDraws extends ListRecords
                 ->requiresConfirmation()
                 ->modalHeading('Provision draws from the official calendar')
                 ->modalDescription('Creates any missing draw the configured calendar declares, out to the horizon. Existing draws are never touched — the draw number is derived from the draw moment, so running this twice creates nothing the second time.')
-                ->visible(fn (): bool => AdminAccess::current(AdminAccess::MANAGE_DRAWS))
+                ->visible(fn (): bool => AdminAccess::permits(AdminPermission::GAMES_MANAGE))
                 ->action(function (): void {
                     try {
                         $summary = app(DrawScheduleService::class)->provision();

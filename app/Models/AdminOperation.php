@@ -62,7 +62,7 @@ class AdminOperation extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function actor(): BelongsTo
     {
@@ -70,7 +70,7 @@ class AdminOperation extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function approver(): BelongsTo
     {

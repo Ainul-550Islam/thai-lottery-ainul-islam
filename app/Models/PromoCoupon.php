@@ -49,6 +49,7 @@ class PromoCoupon extends Model
         ];
     }
 
+    /** @return HasMany<PromoCouponRedemption, $this> */
     public function redemptions(): HasMany
     {
         return $this->hasMany(PromoCouponRedemption::class, 'coupon_id');

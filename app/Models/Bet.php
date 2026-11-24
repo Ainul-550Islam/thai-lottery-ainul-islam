@@ -98,7 +98,7 @@ class Bet extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -106,7 +106,7 @@ class Bet extends Model
     }
 
     /**
-     * @return BelongsTo<Draw, self>
+     * @return BelongsTo<Draw, $this>
      */
     public function draw(): BelongsTo
     {
@@ -114,7 +114,7 @@ class Bet extends Model
     }
 
     /**
-     * @return BelongsTo<Ticket, self>
+     * @return BelongsTo<Ticket, $this>
      */
     public function ticket(): BelongsTo
     {
@@ -124,7 +124,7 @@ class Bet extends Model
     /**
      * The selected numbers of this bet.
      *
-     * @return HasMany<BetItem>
+     * @return HasMany<BetItem, $this>
      */
     public function items(): HasMany
     {
@@ -134,7 +134,7 @@ class Bet extends Model
     /**
      * Alias of items(), named after the table for call sites that prefer it.
      *
-     * @return HasMany<BetItem>
+     * @return HasMany<BetItem, $this>
      */
     public function betItems(): HasMany
     {
@@ -142,7 +142,7 @@ class Bet extends Model
     }
 
     /**
-     * @return BelongsTo<Payout, self>
+     * @return BelongsTo<Payout, $this>
      */
     public function payout(): BelongsTo
     {
@@ -154,7 +154,7 @@ class Bet extends Model
      * no financial_transaction_id column, so the link to the money movement runs
      * through the polymorphic reference of the ledger entries.
      *
-     * @return MorphMany<LedgerEntry>
+     * @return MorphMany<LedgerEntry, $this>
      */
     public function ledgerEntries(): MorphMany
     {

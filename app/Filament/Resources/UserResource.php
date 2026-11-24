@@ -10,6 +10,7 @@ use App\Filament\Resources\UserResource\UserAccountActions;
 use App\Models\User;
 use App\Rules\StrongPasswordRule;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -67,7 +68,7 @@ class UserResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_USERS);
+        return AdminAccess::permits(AdminPermission::USERS_VIEW);
     }
 
     public static function canView(Model $record): bool
@@ -84,7 +85,7 @@ class UserResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_USERS);
+        return AdminAccess::permits(AdminPermission::USERS_UPDATE);
     }
 
     public static function canDelete(Model $record): bool

@@ -13,6 +13,7 @@ use App\Services\Draw\AdminDrawResultWorkflow;
 use App\Services\Lottery\OperatorResultEntryService;
 use App\Services\Draw\DrawSettlementSimulationService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Actions as PageActions;
 use Filament\Forms;
@@ -126,7 +127,7 @@ final class DrawLifecycleActions
                 'confirm' => true,
                 'heading' => 'Open this draw for betting',
                 'description' => 'Players will be able to place bets against it immediately. The scheduler normally does this when the betting window starts.',
-                'visible' => static fn (Draw $record): bool => AdminAccess::current(AdminAccess::PROCESS_DRAWS)
+                'visible' => static fn (Draw $record): bool => AdminAccess::permits(AdminPermission::GAMES_PUBLISH)
                     && $record->status === DrawStatus::Scheduled,
                 'action' => static function (Draw $record): void {
                     self::run(
@@ -143,7 +144,7 @@ final class DrawLifecycleActions
                 'confirm' => true,
                 'heading' => 'Close betting on this draw',
                 'description' => 'No further bets will be accepted. The scheduler closes a draw at its cut-off automatically; use this only to close early.',
-                'visible' => static fn (Draw $record): bool => AdminAccess::current(AdminAccess::PROCESS_DRAWS)
+                'visible' => static fn (Draw $record): bool => AdminAccess::permits(AdminPermission::GAMES_PUBLISH)
                     && $record->status === DrawStatus::Open,
                 'action' => static function (Draw $record): void {
                     self::run(
@@ -173,7 +174,7 @@ final class DrawLifecycleActions
                         ->rule('regex:/^\d{2}$/')
                         ->validationMessages(['regex' => 'The bottom two is exactly 2 digits.']),
                 ],
-                'visible' => static fn (Draw $record): bool => AdminAccess::current(AdminAccess::MANAGE_DRAWS)
+                'visible' => static fn (Draw $record): bool => AdminAccess::permits(AdminPermission::GAMES_MANAGE)
                     && app(AdminDrawResultWorkflow::class)->canIngest($record),
                 'action' => static function (Draw $record, array $data): void {
                     self::run(
@@ -201,7 +202,7 @@ final class DrawLifecycleActions
                         ->required()
                         ->default(static fn (Draw $record): ?string => app(AdminDrawResultWorkflow::class)->pendingFingerprint($record)),
                 ],
-                'visible' => static fn (Draw $record): bool => AdminAccess::current(AdminAccess::MANAGE_DRAWS)
+                'visible' => static fn (Draw $record): bool => AdminAccess::permits(AdminPermission::GAMES_MANAGE)
                     && app(AdminDrawResultWorkflow::class)->canConfirm($record),
                 'action' => static function (Draw $record, array $data): void {
                     self::run(
@@ -223,7 +224,7 @@ final class DrawLifecycleActions
                 'confirm' => true,
                 'heading' => 'Run the settlement simulation',
                 'description' => 'Every selection is evaluated and its simulated prize recorded. This is a SIMULATION: no wallet is credited, no payout row is written and no ledger entry is posted — real payouts are Phase 5.2 and are not built. The scheduler does this automatically after the configured delay.',
-                'visible' => static fn (Draw $record): bool => AdminAccess::current(AdminAccess::PROCESS_SETTLEMENTS)
+                'visible' => static fn (Draw $record): bool => AdminAccess::permits(AdminPermission::GAMES_PUBLISH)
                     && $record->status === DrawStatus::ResultPublished,
                 'action' => static function (Draw $record): void {
                     self::run(static function () use ($record): void {
@@ -259,7 +260,7 @@ final class DrawLifecycleActions
                         ->minLength(5)
                         ->maxLength(500),
                 ],
-                'visible' => static fn (Draw $record): bool => AdminAccess::current(AdminAccess::MANAGE_DRAWS)
+                'visible' => static fn (Draw $record): bool => AdminAccess::permits(AdminPermission::GAMES_MANAGE)
                     && app(DrawLifecycleService::class)->canTransition($record, DrawLifecycleState::Cancelled),
                 'action' => static function (Draw $record, array $data): void {
                     self::run(

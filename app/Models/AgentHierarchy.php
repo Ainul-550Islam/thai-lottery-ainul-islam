@@ -25,11 +25,13 @@ class AgentHierarchy extends Model
         'depth' => 'integer',
     ];
 
+    /** @return BelongsTo<Agent, $this> */
     public function ancestor(): BelongsTo
     {
         return $this->belongsTo(Agent::class, 'ancestor_id', 'id');
     }
 
+    /** @return BelongsTo<Agent, $this> */
     public function descendant(): BelongsTo
     {
         return $this->belongsTo(Agent::class, 'descendant_id', 'id');

@@ -37,6 +37,7 @@ enum PaymentMethod: string
         return in_array($this, [self::Stripe, self::Bkash, self::Nagad, self::Crypto, self::PromptPay]);
     }
 
+    /** @return list<Currency> */
     public function supportedCurrencies(): array
     {
         return match ($this) {
@@ -49,7 +50,11 @@ enum PaymentMethod: string
         };
     }
 
-    /** Market currencies for this payment method. */
+    /**
+     * Market currencies for this payment method.
+     *
+     * @return list<string>
+     */
     public function market(): array
     {
         return array_map(static fn (Currency $currency): string => $currency->value, $this->supportedCurrencies());

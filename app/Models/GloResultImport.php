@@ -101,11 +101,13 @@ class GloResultImport extends Model
         return $summary['draw_date'] ?? null;
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function importer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'imported_by');

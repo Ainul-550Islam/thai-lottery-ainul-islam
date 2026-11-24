@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DrawResult extends Model
 {
+    /** @use HasFactory<\Database\Factories\DrawResultFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -153,11 +154,13 @@ class DrawResult extends Model
         ];
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return HasMany<WinningNumber, $this> */
     public function winningNumbers(): HasMany
     {
         return $this->hasMany(WinningNumber::class, 'draw_id', 'draw_id');

@@ -33,6 +33,18 @@ enum NotificationEventType: string
     case DealerRequestUpdate = 'dealer_request_update';
     case NewDeviceLogin = 'new_device_login';
 
+    // Lifecycle marketing campaigns. Each campaign has its own event type — as
+    // LifecycleCampaign::eventType() has always claimed — so a player can opt out of "draw
+    // reminders" without silencing their deposit confirmations, and so the delivery log says
+    // which campaign a message belonged to. These five cases were missing, which made
+    // LifecycleCampaign::eventType() throw `Undefined constant` the first time any campaign
+    // tried to compose a message: the feature could never have sent one.
+    case LifecycleWelcome = 'lifecycle_welcome';
+    case LifecycleDepositNudge = 'lifecycle_deposit_nudge';
+    case LifecycleDrawReminder = 'lifecycle_draw_reminder';
+    case LifecycleWinback = 'lifecycle_winback';
+    case LifecycleGradePromotion = 'lifecycle_grade_promotion';
+
     /**
      * The default channel lane this phenomenon lands in; preferences
      * may demote from here (except for mandatory notices) but never

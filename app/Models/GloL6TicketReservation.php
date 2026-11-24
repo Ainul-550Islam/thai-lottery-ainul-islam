@@ -115,21 +115,25 @@ class GloL6TicketReservation extends Model
         return $snapshot;
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Wallet, $this> */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
     }
 
+    /** @return BelongsTo<GloTicket, $this> */
     public function gloTicket(): BelongsTo
     {
         return $this->belongsTo(GloTicket::class, 'glo_ticket_id');

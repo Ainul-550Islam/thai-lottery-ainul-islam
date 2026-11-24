@@ -28,11 +28,13 @@ class DrawPublication extends Model
         'metadata' => 'array',
     ];
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<DrawCertification, $this> */
     public function certification(): BelongsTo
     {
         return $this->belongsTo(DrawCertification::class, 'draw_certification_id');

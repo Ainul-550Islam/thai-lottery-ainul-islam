@@ -226,9 +226,10 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
         ->name('player.wallet.conversion.show');
 
     Route::get('/wallet/transfer/panel', [BalanceTransferController::class, 'panel'])->name('player.transfer.panel');
-    Route::match(['get', 'post'], '/wallet/transfer/quote', [BalanceTransferController::class, 'quote'])->name('player.transfer.quote');
+    Route::match(['get', 'post'], '/wallet/transfer/quote', [BalanceTransferController::class, 'quote'])->name('player.transfer.quote')
+        ->middleware('throttle:financial-critical');
     Route::post('/wallet/transfer', [BalanceTransferController::class, 'store'])
-        ->middleware(['active', 'adult', 'legal.current'])
+        ->middleware(['active', 'adult', 'legal.current', 'throttle:financial-critical'])
         ->name('player.transfer.store');
     Route::get('/wallet/transfers', [BalanceTransferController::class, 'index'])->name('player.transfer.index');
     Route::get('/wallet/transfers/{reference}', [BalanceTransferController::class, 'show'])

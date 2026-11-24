@@ -34,7 +34,7 @@ class ThaiBankPayoutAttempt extends Model
         ];
     }
 
-    /** @return BelongsTo<Withdrawal, self> */
+    /** @return BelongsTo<Withdrawal, $this> */
     public function withdrawal(): BelongsTo
     {
         return $this->belongsTo(Withdrawal::class);

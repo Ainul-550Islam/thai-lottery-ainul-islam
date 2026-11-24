@@ -8,6 +8,7 @@ use App\Enums\BetStatus;
 use App\Enums\BetType;
 use App\Models\Bet;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -38,9 +39,9 @@ class BetsRelationManager extends RelationManager
 
     public static function canViewForRecord($ownerRecord, string $pageClass): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::MANAGE_USERS,
-            AdminAccess::VIEW_DRAWS,
+        return AdminAccess::permitsAny([
+            AdminPermission::USERS_VIEW,
+            AdminPermission::BETS_VIEW,
         ]);
     }
 

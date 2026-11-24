@@ -29,6 +29,7 @@ use Illuminate\Support\Carbon;
  */
 class ContactMessageDelivery extends Model
 {
+    /** @use HasFactory<\Database\Factories\ContactMessageDeliveryFactory> */
     use HasFactory;
 
     protected $fillable = [

@@ -42,7 +42,7 @@ final class TicketInventoryItem extends Model
     }
 
     /**
-     * @return BelongsTo<TicketProduct, self>
+     * @return BelongsTo<TicketProduct, $this>
      */
     public function product(): BelongsTo
     {
@@ -50,7 +50,7 @@ final class TicketInventoryItem extends Model
     }
 
     /**
-     * @return BelongsTo<Draw, self>
+     * @return BelongsTo<Draw, $this>
      */
     public function draw(): BelongsTo
     {
@@ -58,7 +58,7 @@ final class TicketInventoryItem extends Model
     }
 
     /**
-     * @return BelongsTo<TicketAllocation, self>
+     * @return BelongsTo<TicketAllocation, $this>
      */
     public function allocation(): BelongsTo
     {
@@ -66,7 +66,7 @@ final class TicketInventoryItem extends Model
     }
 
     /**
-     * @return BelongsTo<RetailVendor, self>
+     * @return BelongsTo<RetailVendor, $this>
      */
     public function reservedBy(): BelongsTo
     {

@@ -61,6 +61,7 @@ final class AccountGradeSnapshot extends Model
 
     /**
      * The user this snapshot belongs to.
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {

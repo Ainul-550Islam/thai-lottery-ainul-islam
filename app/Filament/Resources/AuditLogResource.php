@@ -9,6 +9,7 @@ use App\Enums\RiskLevel;
 use App\Filament\Resources\AuditLogResource\Pages;
 use App\Models\AuditLog;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -71,7 +72,7 @@ class AuditLogResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::current(AdminAccess::VIEW_AUDIT_LOGS);
+        return AdminAccess::permits(AdminPermission::AUDIT_LOGS_VIEW);
     }
 
     public static function canView(Model $record): bool

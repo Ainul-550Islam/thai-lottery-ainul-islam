@@ -80,7 +80,7 @@ class LedgerAccount extends Model
     /**
      * All entries posted against this account.
      *
-     * @return HasMany<LedgerEntry>
+     * @return HasMany<LedgerEntry, $this>
      */
     public function entries(): HasMany
     {
@@ -90,7 +90,7 @@ class LedgerAccount extends Model
     /**
      * Alias kept for readability at call sites that speak in ledger terms.
      *
-     * @return HasMany<LedgerEntry>
+     * @return HasMany<LedgerEntry, $this>
      */
     public function ledgerEntries(): HasMany
     {
@@ -98,7 +98,7 @@ class LedgerAccount extends Model
     }
 
     /**
-     * @return BelongsTo<self, self>
+     * @return BelongsTo<self, $this>
      */
     public function parent(): BelongsTo
     {
@@ -106,7 +106,7 @@ class LedgerAccount extends Model
     }
 
     /**
-     * @return HasMany<self>
+     * @return HasMany<self, $this>
      */
     public function children(): HasMany
     {

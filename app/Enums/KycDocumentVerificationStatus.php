@@ -51,7 +51,7 @@ enum KycDocumentVerificationStatus: string
      * The legacy lane word for the same fact (kept in sync when the
      * authoritative lane moves).
      */
-    public function legacyStatus(): ?KycStatus
+    public function legacyStatus(): KycStatus
     {
         return match ($this) {
             self::Uploaded, self::Processing => KycStatus::UnderReview,

@@ -23,8 +23,19 @@ final class DependencyAuditBoundaryTest extends TestCase
         $yaml = array_values(array_filter($packages, fn (array $package): bool => $package['name'] === 'symfony/yaml'));
         $this->assertCount(1, $yaml);
         $version = ltrim($yaml[0]['version'], 'v');
-        $this->assertStringStartsWith('7.4.', $version);
-        $this->assertTrue(version_compare($version, '7.4.18', '>='));
+
+        // The advisory (PKSA-nktx-f1n1-b4yd: exponential/quadratic parse times) is fixed in
+        // 7.4.18 and in every 8.x. Pinning the major here tested the lock file's fashion rather
+        // than the fix — and failed the moment Composer resolved symfony/yaml 8.1.11, which is
+        // the *newer*, patched line. What matters is that the floor holds.
+        $this->assertTrue(
+            version_compare($version, '7.4.18', '>='),
+            'symfony/yaml must be at or above the recursion-patch floor (7.4.18); found '.$version,
+        );
+        $this->assertTrue(
+            version_compare($version, '9.0.0', '<'),
+            'symfony/yaml moved to a major this repository has never been verified against: '.$version,
+        );
     }
 
     public function test_deep_inline_input_is_rejected_by_the_real_parser_without_unbounded_recursion(): void

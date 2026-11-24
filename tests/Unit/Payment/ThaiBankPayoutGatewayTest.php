@@ -43,6 +43,13 @@ final class ThaiBankPayoutGatewayTest extends PaymentTestCase
         Config::set('thai_payout.min_amount', '1.00');
         Config::set('thai_payout.max_amount', '500000.00');
         Config::set('thai_payout.daily_limit', '1000000.00');
+        // The withdrawal limits this fixture builds against are also read from .env
+        // (FINANCE_MIN_WITHDRAWAL). Pinning them here keeps the test about the gateway rather than
+        // about whose environment happens to set a higher minimum than the fixture's 100.00.
+        Config::set('finance.withdrawal.min', '1.00');
+        Config::set('finance.withdrawal.max', '500000.00');
+        Config::set('payment.withdrawal.min', '1.00');
+        Config::set('payment.withdrawal.max', '500000.00');
         Config::set('thai_payout.banks.scb', [
             'enabled' => true,
             'contract_confirmed' => true,

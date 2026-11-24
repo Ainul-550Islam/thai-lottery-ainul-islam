@@ -44,7 +44,7 @@ class ReportExport extends Model
     }
 
     /**
-     * @return BelongsTo<OperationalReportJob, self>
+     * @return BelongsTo<OperationalReportJob, $this>
      */
     public function reportJob(): BelongsTo
     {

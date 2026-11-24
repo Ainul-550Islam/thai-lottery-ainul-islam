@@ -43,6 +43,8 @@ final class PaymentProviderException extends Exception
 
     public const CODE_SECRET_FORBIDDEN = 'PAYMENT_PROVIDER_SECRET_FORBIDDEN';
 
+    public const CODE_UNSUPPORTED_DRIVER = 'PAYMENT_PROVIDER_UNSUPPORTED_DRIVER';
+
     public function __construct(
         string $message,
         private readonly string $errorCode,
@@ -111,6 +113,25 @@ final class PaymentProviderException extends Exception
             sprintf('Payment provider refused: [%s] is already registered', $code),
             self::CODE_DUPLICATE,
             $context + ['provider' => $code],
+        );
+    }
+
+    /**
+     * A provider row naming a driver no class implements.
+     *
+     * Refused at registration rather than stored and reported: a stored row would look configured
+     * to anyone reading the table, and would only fail when a player tried to pay.
+     */
+    public static function unsupportedDriver(string $driver, array $context = []): self
+    {
+        return new self(
+            sprintf(
+                'Payment provider driver [%s] is not implemented by this application (known drivers: %s).',
+                $driver,
+                implode(', ', \App\Services\Payment\PaymentGatewayManager::supportedDrivers()),
+            ),
+            self::CODE_UNSUPPORTED_DRIVER,
+            $context + ['driver' => $driver],
         );
     }
 

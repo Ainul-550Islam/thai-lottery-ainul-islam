@@ -62,26 +62,31 @@ class GloDealer extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<RetailVendor, $this> */
     public function retailVendor(): BelongsTo
     {
         return $this->belongsTo(RetailVendor::class, 'retail_vendor_id');
     }
 
+    /** @return BelongsTo<Agent, $this> */
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class, 'agent_id');
     }
 
+    /** @return HasMany<GloDealerChangeRequest, $this> */
     public function changeRequests(): HasMany
     {
         return $this->hasMany(GloDealerChangeRequest::class, 'dealer_id');
     }
 
+    /** @return HasMany<GloSalesPoint, $this> */
     public function salesPoints(): HasMany
     {
         return $this->hasMany(GloSalesPoint::class, 'dealer_id');

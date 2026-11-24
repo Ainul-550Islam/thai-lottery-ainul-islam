@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  */
 class ResponsibleGamingLimit extends Model
 {
+    /** @use HasFactory<\Database\Factories\ResponsibleGamingLimitFactory> */
     use HasFactory;
     use SoftDeletes;
 
@@ -55,7 +56,7 @@ class ResponsibleGamingLimit extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {

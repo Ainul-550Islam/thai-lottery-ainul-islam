@@ -71,17 +71,24 @@ class WalletConversionAudit extends Model
      * The full trail for one conversion reference — the same reference a
      * member sees on their receipt, so the timeline can be pulled without
      * knowing any internal identifier.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeForReference(Builder $query, string $reference): Builder
     {
         return $query->where('reference', $reference);
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeBetween(Builder $query, Carbon $from, Carbon $to): Builder
     {
         return $query->whereBetween('recorded_at', [$from, $to]);
     }
 
+    /** @return BelongsTo<WalletConversion, $this> */
     public function conversion(): BelongsTo
     {
         return $this->belongsTo(WalletConversion::class, 'wallet_conversion_id');

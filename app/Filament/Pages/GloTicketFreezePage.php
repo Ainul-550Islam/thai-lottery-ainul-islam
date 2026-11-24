@@ -8,6 +8,7 @@ use App\Enums\GloFreezeStatus;
 use App\Models\GloTicketFreeze;
 use App\Services\Lottery\GloTicketFreezeService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -44,10 +45,10 @@ class GloTicketFreezePage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::REQUEST_GLO_FREEZES,
-            AdminAccess::REVIEW_GLO_FREEZES,
-            AdminAccess::VIEW_AUDIT_LOGS,
+        return AdminAccess::permitsAny([
+            AdminPermission::GLO_FREEZES_REQUEST,
+            AdminPermission::GLO_FREEZES_REVIEW,
+            AdminPermission::AUDIT_LOGS_VIEW,
         ]);
     }
 
@@ -112,11 +113,11 @@ class GloTicketFreezePage extends Page
                 'expiry_at' => $freeze->expiry_at?->toDateTimeString(),
                 'resolution_reason' => $freeze->resolution_reason,
                 'can_review' => in_array($freeze->status, [GloFreezeStatus::Requested, GloFreezeStatus::UnderReview], true)
-                    && AdminAccess::current(AdminAccess::REVIEW_GLO_FREEZES),
+                    && AdminAccess::permits(AdminPermission::GLO_FREEZES_REVIEW),
                 'can_approve' => $freeze->status === GloFreezeStatus::UnderReview
-                    && AdminAccess::current(AdminAccess::REVIEW_GLO_FREEZES),
+                    && AdminAccess::permits(AdminPermission::GLO_FREEZES_REVIEW),
                 'can_release' => $freeze->status === GloFreezeStatus::Frozen
-                    && AdminAccess::current(AdminAccess::REVIEW_GLO_FREEZES),
+                    && AdminAccess::permits(AdminPermission::GLO_FREEZES_REVIEW),
             ])
             ->toArray();
     }

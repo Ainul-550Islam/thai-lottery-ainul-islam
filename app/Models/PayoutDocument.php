@@ -41,6 +41,7 @@ use Illuminate\Support\Carbon;
  */
 class PayoutDocument extends Model
 {
+    /** @use HasFactory<\Database\Factories\PayoutDocumentFactory> */
     use HasFactory;
     use SoftDeletes;
 
@@ -91,7 +92,7 @@ class PayoutDocument extends Model
     }
 
     /**
-     * @return BelongsTo<Payout, self>
+     * @return BelongsTo<Payout, $this>
      */
     public function payout(): BelongsTo
     {
@@ -101,7 +102,7 @@ class PayoutDocument extends Model
     /**
      * The claimant the statement was issued to.
      *
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function claimant(): BelongsTo
     {

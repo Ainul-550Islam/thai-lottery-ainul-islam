@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
             // else: no user can act without a role, and no financial movement can be
             // posted without the chart of accounts LedgerPostingService resolves against.
             RolePermissionSeeder::class,
+            // Granular admin permission catalogue + operational roles (additive; runs after the coarse seeder).
+            AdminRbacSeeder::class,
             LedgerAccountSeeder::class,
             // Optional historical result archive: a no-op unless per-draw
             // payload files exist under database/seeders/data/results.
