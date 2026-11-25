@@ -11,12 +11,12 @@
     --lf-bg-input: #0b1118;
     --lf-border-main: #1f2d3d;
     --lf-border-subtle: #192534;
-    --lf-text-primary: #f8fafc;
+    --lf-text-primary: #fbf7ea;
     --lf-text-muted: #8492a6;
     --lf-text-dim: #5c6b7d;
-    --lf-accent-green: #10b981;
-    --lf-accent-green-glow: rgba(16, 185, 129, 0.25);
-    --lf-accent-green-dark: #064e3b;
+    --lf-accent-green: #e6ae26;
+    --lf-accent-green-glow: rgba(230, 174, 38, 0.25);
+    --lf-accent-green-dark: #46300b;
     --lf-accent-cyan: #06b6d4;
     --lf-font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
@@ -107,10 +107,10 @@ body.lf-admin-body {
 }
 
 .lf-nav-item.active {
-    background-color: #059669;
+    background-color: #c78f17;
     color: #ffffff;
     font-weight: 700;
-    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+    box-shadow: 0 4px 12px rgba(199, 143, 23, 0.35);
 }
 
 .lf-nav-item-content {
@@ -280,7 +280,7 @@ body.lf-admin-body {
 }
 
 .lf-kpi-card:hover {
-    border-color: rgba(16, 185, 129, 0.4);
+    border-color: rgba(230, 174, 38, 0.4);
 }
 
 .lf-kpi-label {
@@ -310,7 +310,7 @@ body.lf-admin-body {
 }
 
 .lf-kpi-trend--up {
-    color: #10b981;
+    color: #e6ae26;
 }
 
 .lf-kpi-trend--down {
@@ -374,9 +374,9 @@ body.lf-admin-body {
 }
 
 .lf-btn-solid-green {
-    background-color: #10b981;
-    border: 1px solid #10b981;
-    color: #020617;
+    background-color: #e6ae26;
+    border: 1px solid #e6ae26;
+    color: #080603;
     padding: 0.5rem 1.1rem;
     border-radius: 0.625rem;
     font-size: 0.8125rem;
@@ -385,12 +385,12 @@ body.lf-admin-body {
     align-items: center;
     gap: 0.4rem;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 12px rgba(230, 174, 38, 0.3);
     transition: all 0.2s ease;
 }
 
 .lf-btn-solid-green:hover {
-    background-color: #059669;
+    background-color: #c78f17;
     filter: brightness(1.05);
 }
 
@@ -463,7 +463,7 @@ body.lf-admin-body {
 
 .lf-icon-btn:hover {
     color: #ffffff;
-    border-color: #475569;
+    border-color: #6b5a2e;
 }
 
 /* Financial Ledger Table */
@@ -492,7 +492,7 @@ body.lf-admin-body {
 
 .lf-table td {
     padding: 0.85rem 1rem;
-    color: #e2e8f0;
+    color: #e4d9bc;
     border-bottom: 1px solid var(--lf-border-subtle);
     white-space: nowrap;
 }
@@ -515,8 +515,8 @@ body.lf-admin-body {
     font-size: 0.75rem;
     font-weight: 700;
     background-color: var(--lf-accent-green-dark);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #f6c744;
+    border: 1px solid rgba(230, 174, 38, 0.3);
 }
 
 /* Pagination Footer */
@@ -549,7 +549,7 @@ body.lf-admin-body {
 }
 
 .lf-page-btn.active {
-    background-color: #059669;
-    border-color: #059669;
+    background-color: #c78f17;
+    border-color: #c78f17;
     color: #ffffff;
 }

@@ -1,7 +1,7 @@
 /* Tailwind 3 design semantics retained while its unpatched braces chain is removed.
    Exact legacy theme values and MIT attribution live in tailwind-legacy-theme.json. */
 *, ::before, ::after, ::backdrop, ::file-selector-button {
-    border-color: #e5e7eb;
+    border-color: #e4d9bc;
 }
 
 @utility outline-none {

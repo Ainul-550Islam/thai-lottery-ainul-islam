@@ -10,12 +10,12 @@
     --pss-bg-card-subtle: #0d1624;
     --pss-border-main: #1f2d42;
     --pss-border-subtle: #172436;
-    --pss-text-primary: #f8fafc;
+    --pss-text-primary: #fbf7ea;
     --pss-text-muted: #8fa0b5;
     --pss-text-dim: #5a6c82;
-    --pss-green-primary: #10b981;
-    --pss-green-glow: rgba(16, 185, 129, 0.35);
-    --pss-green-dark: #064e3b;
+    --pss-green-primary: #e6ae26;
+    --pss-green-glow: rgba(230, 174, 38, 0.35);
+    --pss-green-dark: #46300b;
     --pss-blue-primary: #0284c7;
     --pss-blue-dark: #0369a1;
 }
@@ -269,15 +269,15 @@ body.pss-body {
 
 /* Left Card: KYC Verification */
 .pss-kyc-status-banner {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 78, 59, 0.4) 100%);
-    border: 1px solid rgba(16, 185, 129, 0.4);
+    background: linear-gradient(135deg, rgba(230, 174, 38, 0.15) 0%, rgba(70, 48, 11, 0.4) 100%);
+    border: 1px solid rgba(230, 174, 38, 0.4);
     border-radius: 0.75rem;
     padding: 0.75rem 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    color: #34d399;
+    color: #f6c744;
     font-weight: 900;
     font-size: 0.875rem;
     letter-spacing: 0.05em;
@@ -333,7 +333,7 @@ body.pss-body {
     height: 22px;
     border-radius: 50%;
     background-color: var(--pss-green-primary);
-    color: #020617;
+    color: #080603;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -380,8 +380,8 @@ body.pss-body {
     padding: 0.75rem 1rem;
     border-radius: 0.75rem;
     background-color: transparent;
-    border: 1px solid rgba(16, 185, 129, 0.5);
-    color: #34d399;
+    border: 1px solid rgba(230, 174, 38, 0.5);
+    color: #f6c744;
     font-weight: 700;
     font-size: 0.875rem;
     cursor: pointer;
@@ -392,8 +392,8 @@ body.pss-body {
 }
 
 .pss-reupload-btn:hover {
-    background-color: rgba(16, 185, 129, 0.1);
-    border-color: #10b981;
+    background-color: rgba(230, 174, 38, 0.1);
+    border-color: #e6ae26;
 }
 
 /* Right Card: Responsible Gaming Sliders */
@@ -427,7 +427,7 @@ body.pss-body {
     width: 100%;
     height: 6px;
     border-radius: 3px;
-    background: #1e293b;
+    background: #2b2312;
     outline: none;
     accent-color: var(--pss-green-primary);
 }
@@ -485,8 +485,8 @@ body.pss-body {
 
 .pss-edit-btn {
     background-color: transparent;
-    border: 1px solid rgba(16, 185, 129, 0.4);
-    color: #34d399;
+    border: 1px solid rgba(230, 174, 38, 0.4);
+    color: #f6c744;
     border-radius: 0.4rem;
     padding: 0.2rem 0.5rem;
     font-size: 0.6875rem;
@@ -496,7 +496,7 @@ body.pss-body {
 }
 
 .pss-edit-btn:hover {
-    background-color: rgba(16, 185, 129, 0.15);
+    background-color: rgba(230, 174, 38, 0.15);
 }
 
 .pss-max-hint {
@@ -544,7 +544,7 @@ body.pss-body {
     position: absolute;
     cursor: pointer;
     inset: 0;
-    background-color: #334155;
+    background-color: #4a3d1f;
     transition: .3s;
     border-radius: 22px;
 }
@@ -629,9 +629,9 @@ input:checked + .pss-toggle-slider:before {
 }
 
 .pss-break-pill-btn {
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    color: #e2e8f0;
+    background-color: #2b2312;
+    border: 1px solid #4a3d1f;
+    color: #e4d9bc;
     border-radius: 0.5rem;
     padding: 0.3rem 0.65rem;
     font-size: 0.75rem;
@@ -641,6 +641,6 @@ input:checked + .pss-toggle-slider:before {
 }
 
 .pss-break-pill-btn:hover {
-    background-color: #334155;
+    background-color: #4a3d1f;
     color: #38bdf8;
 }

@@ -88,8 +88,6 @@
                     </div>
                 </section>
             @endif
-
-            <x-public-page.footer />
         </main>
     </div>
 @endsection

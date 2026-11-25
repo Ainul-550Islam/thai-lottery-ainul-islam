@@ -14,14 +14,14 @@
 :root {
     --tl-surface: #0b1220;
     --tl-surface-raised: #111c2f;
-    --tl-border: #1e293b;
-    --tl-border-strong: #334155;
-    --tl-text: #e2e8f0;
-    --tl-muted: #94a3b8;
-    --tl-emerald: #34d399;
+    --tl-border: #2b2312;
+    --tl-border-strong: #4a3d1f;
+    --tl-text: #e4d9bc;
+    --tl-muted: #b3a37d;
+    --tl-emerald: #f6c744;
     --tl-amber: #fbbf24;
     --tl-rose: #fb7185;
-    --tl-focus: #5eead4;
+    --tl-focus: #ffd54f;
 }
 
 .tl-sr-only {
@@ -145,7 +145,7 @@
 }
 
 .tl-input::placeholder {
-    color: #64748b;
+    color: #968967;
 }
 
 .tl-input[aria-invalid='true'] {
@@ -248,7 +248,7 @@
 .tl-status-badge[data-status='approved'],
 .tl-status-badge[data-status='completed'],
 .tl-status-badge[data-status='credited'] {
-    border-color: rgba(52, 211, 153, 0.5);
+    border-color: rgba(246, 199, 68, 0.5);
     color: var(--tl-emerald);
 }
 
@@ -306,7 +306,7 @@
 }
 
 .tl-prefs-table tr[data-mandatory='true'] {
-    background: rgba(52, 211, 153, 0.04);
+    background: rgba(246, 199, 68, 0.04);
 }
 
 .tl-prefs-badge {

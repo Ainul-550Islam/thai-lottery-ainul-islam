@@ -54,6 +54,4 @@
         </nav>
     </main>
 </div>
-
-<x-public-page.footer />
 @endsection

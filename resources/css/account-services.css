@@ -13,7 +13,7 @@
     --as-border: #24304a;
     --as-text: #e6edf7;
     --as-muted: #9aa8c0;
-    --as-accent: #34d399;
+    --as-accent: #f6c744;
     --as-focus: #fbbf24;
     color: var(--as-text);
     min-height: 100%;
@@ -114,9 +114,9 @@
 }
 
 .acct-badge--approved {
-    background: rgba(16, 185, 129, 0.15);
-    border-color: rgba(16, 185, 129, 0.5);
-    color: #6ee7b7;
+    background: rgba(230, 174, 38, 0.15);
+    border-color: rgba(230, 174, 38, 0.5);
+    color: #f9d65e;
 }
 
 .acct-badge--pending,
@@ -249,8 +249,8 @@
 }
 
 .acct-alert--success {
-    background: rgba(16, 185, 129, 0.12);
-    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(230, 174, 38, 0.12);
+    border-color: rgba(230, 174, 38, 0.4);
 }
 
 .acct-alert--error {
@@ -336,7 +336,7 @@
 }
 
 .grade-badge--bronze { background: #3b2f2f; color: #fdba74; border-color: #c2410c; }
-.grade-badge--silver { background: #1f2937; color: #e5e7eb; border-color: #9ca3af; }
+.grade-badge--silver { background: #2b2312; color: #e4d9bc; border-color: #b3a37d; }
 .grade-badge--gold { background: #3b2f10; color: #fde68a; border-color: #d97706; }
 .grade-badge--platinum { background: #1e1b4b; color: #c4b5fd; border-color: #7c3aed; }
 
@@ -368,7 +368,7 @@
 .grade-progress__fill {
     display: block;
     height: 100%;
-    background: linear-gradient(90deg, #34d399, #fbbf24);
+    background: linear-gradient(90deg, #f6c744, #fbbf24);
 }
 
 .grade-progress__text {
@@ -461,7 +461,7 @@
     padding: 0.1rem 0.5rem;
     font-size: 0.75rem;
     letter-spacing: 0.03em;
-    border: 1px solid rgb(148 163 184 / 0.4);
+    border: 1px solid rgb(179 163 125 / 0.4);
 }
 
 .acct-tag--ok {
@@ -470,7 +470,7 @@
 }
 
 .acct-tag--muted {
-    color: rgb(148 163 184);
+    color: rgb(179 163 125);
     opacity: 0.85;
 }
 

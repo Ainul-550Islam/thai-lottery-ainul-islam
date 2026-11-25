@@ -46,7 +46,7 @@
 }
 
 .tl-metric-card__value--highlight {
-    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    background: linear-gradient(135deg, #e6ae26 0%, #f6c744 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }

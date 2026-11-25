@@ -3,7 +3,7 @@
  * Exact match to the official UI mockups:
  * Deep obsidian/navy (#070b12, #0b111c, #0e1626, #121d30, #18263d)
  * Metallic Gold & Amber Gradients (#ffd269, #f5a623, #d48310, #8c5305)
- * Glowing Emerald (#10b981), Diamond Cyan (#00d2ff), Vivid Ruby (#ff3366)
+ * Glowing Emerald (#e6ae26), Diamond Cyan (#00d2ff), Vivid Ruby (#ff3366)
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
@@ -25,13 +25,13 @@
     --tl-gold-dark: #d48310;
     --tl-gold-deep: #8c5305;
 
-    --tl-green-neon: #10b981;
+    --tl-green-neon: #e6ae26;
     --tl-cyan-neon: #00d2ff;
     --tl-red-neon: #ff3366;
     --tl-purple-neon: #a855f7;
 
     --tl-text-white: #ffffff;
-    --tl-text-main: #f1f5f9;
+    --tl-text-main: #f4ecd8;
     --tl-text-muted: #8e9eb5;
     --tl-text-gold: #f7b731;
 }
@@ -322,7 +322,7 @@ body.tl-body {
 }
 
 .tl-live-badge-green {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(230, 174, 38, 0.15);
     border: 1px solid var(--tl-green-neon);
     color: var(--tl-green-neon);
     font-size: 0.625rem;

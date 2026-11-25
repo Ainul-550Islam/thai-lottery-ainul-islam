@@ -10,14 +10,14 @@
     --dp-bg-card-sub: #172233;
     --dp-bg-input: #0c121d;
     --dp-border-main: #1f2b3e;
-    --dp-border-glow: #10b981;
-    --dp-green-accent: #10b981;
-    --dp-green-glow: rgba(16, 185, 129, 0.4);
+    --dp-border-glow: #e6ae26;
+    --dp-green-accent: #e6ae26;
+    --dp-green-glow: rgba(230, 174, 38, 0.4);
     --dp-gold-accent: #f59e0b;
     --dp-gold-glow: rgba(245, 158, 11, 0.4);
     --dp-blue-accent: #38bdf8;
     --dp-purple-accent: #a855f7;
-    --dp-text-main: #f1f5f9;
+    --dp-text-main: #f4ecd8;
     --dp-text-muted: #8e9bb0;
 }
 
@@ -55,13 +55,13 @@ body.dp-body {
     width: 40px;
     height: 40px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #e6ae26 0%, #c78f17 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.25rem;
     color: #ffffff;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 15px rgba(230, 174, 38, 0.4);
 }
 
 .dp-brand-title {
@@ -75,7 +75,7 @@ body.dp-body {
 .dp-brand-sub {
     font-size: 0.6875rem;
     font-weight: 700;
-    color: #10b981;
+    color: #e6ae26;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
@@ -88,7 +88,7 @@ body.dp-body {
 
 .dp-balance-badge {
     background: #08120e;
-    border: 1px solid #10b981;
+    border: 1px solid #e6ae26;
     border-radius: 9999px;
     padding: 0.4rem 1.25rem;
     display: flex;
@@ -96,8 +96,8 @@ body.dp-body {
     gap: 0.5rem;
     font-size: 0.875rem;
     font-weight: 800;
-    color: #34d399;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+    color: #f6c744;
+    box-shadow: 0 0 15px rgba(230, 174, 38, 0.25);
 }
 
 /* MAIN LAYOUT */
@@ -126,13 +126,13 @@ body.dp-body {
 /* HERO PROMO BANNER */
 .dp-promo-banner {
     background: linear-gradient(135deg, #06241a 0%, #0d1e2e 50%, #151128 100%);
-    border: 1px solid #10b981;
+    border: 1px solid #e6ae26;
     border-radius: 1.25rem;
     padding: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 25px rgba(230, 174, 38, 0.2);
     position: relative;
     overflow: hidden;
 }
@@ -150,7 +150,7 @@ body.dp-body {
 
 .dp-promo-desc {
     font-size: 0.8125rem;
-    color: #94a3b8;
+    color: #b3a37d;
     margin: 0;
 }
 
@@ -162,9 +162,9 @@ body.dp-body {
 }
 
 .dp-feature-pill {
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.4);
-    color: #34d399;
+    background: rgba(230, 174, 38, 0.15);
+    border: 1px solid rgba(230, 174, 38, 0.4);
+    color: #f6c744;
     font-size: 0.6875rem;
     font-weight: 800;
     padding: 0.25rem 0.65rem;
@@ -210,7 +210,7 @@ body.dp-body {
 }
 
 .dp-category-card.active {
-    border-color: #10b981;
+    border-color: #e6ae26;
     background: #0d1e19;
     box-shadow: 0 0 18px var(--dp-green-glow);
 }
@@ -229,8 +229,8 @@ body.dp-body {
 .dp-category-tag {
     font-size: 0.625rem;
     font-weight: 700;
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.15);
+    color: #e6ae26;
+    background: rgba(230, 174, 38, 0.15);
     padding: 0.15rem 0.45rem;
     border-radius: 0.375rem;
 }
@@ -276,7 +276,7 @@ body.dp-body {
     text-align: center;
     font-size: 0.9375rem;
     font-weight: 800;
-    color: #cbd5e1;
+    color: #cbbd98;
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -288,8 +288,8 @@ body.dp-body {
 
 .dp-amount-btn.active {
     background: #0d1e19;
-    border-color: #10b981;
-    color: #34d399;
+    border-color: #e6ae26;
+    color: #f6c744;
     box-shadow: 0 0 14px var(--dp-green-glow);
 }
 
@@ -304,14 +304,14 @@ body.dp-body {
 }
 
 .dp-custom-amount-box:focus-within {
-    border-color: #10b981;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+    border-color: #e6ae26;
+    box-shadow: 0 0 12px rgba(230, 174, 38, 0.3);
 }
 
 .dp-currency-prefix {
     font-size: 1.125rem;
     font-weight: 900;
-    color: #10b981;
+    color: #e6ae26;
 }
 
 .dp-amount-input {
@@ -340,14 +340,14 @@ body.dp-body {
 /* PROMPTPAY QR DISPLAY */
 .dp-qr-card {
     background: #0c121d;
-    border: 1.5px solid #10b981;
+    border: 1.5px solid #e6ae26;
     border-radius: 1.25rem;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 1rem;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 20px rgba(230, 174, 38, 0.25);
     text-align: center;
 }
 
@@ -409,8 +409,8 @@ body.dp-body {
 
 .dp-copy-btn {
     background: #1f2b3e;
-    border: 1px solid #334155;
-    color: #cbd5e1;
+    border: 1px solid #4a3d1f;
+    color: #cbbd98;
     border-radius: 0.5rem;
     padding: 0.35rem 0.75rem;
     font-size: 0.75rem;
@@ -420,13 +420,13 @@ body.dp-body {
 }
 
 .dp-copy-btn:hover {
-    background: #334155;
+    background: #4a3d1f;
     color: #ffffff;
 }
 
 /* SLIP UPLOAD DROPZONE */
 .dp-dropzone {
-    border: 2px dashed #334155;
+    border: 2px dashed #4a3d1f;
     border-radius: 1rem;
     padding: 1.5rem;
     display: flex;
@@ -440,7 +440,7 @@ body.dp-body {
 }
 
 .dp-dropzone:hover {
-    border-color: #10b981;
+    border-color: #e6ae26;
     background: #0d1e19;
 }
 
@@ -477,7 +477,7 @@ body.dp-body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: #94a3b8;
+    color: #b3a37d;
 }
 
 .dp-summary-row.total {
@@ -490,21 +490,21 @@ body.dp-body {
 
 .dp-confirm-btn {
     width: 100%;
-    background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #10b981 100%);
+    background: linear-gradient(90deg, #e6ae26 0%, #f6c744 50%, #e6ae26 100%);
     border: none;
     border-radius: 0.875rem;
     padding: 0.95rem;
     font-size: 0.9375rem;
     font-weight: 900;
-    color: #064e3b;
+    color: #46300b;
     cursor: pointer;
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.45);
+    box-shadow: 0 0 25px rgba(230, 174, 38, 0.45);
     transition: all 0.2s ease;
     user-select: none;
     text-align: center;
 }
 
 .dp-confirm-btn:hover {
-    box-shadow: 0 0 35px rgba(52, 211, 153, 0.6);
+    box-shadow: 0 0 35px rgba(246, 199, 68, 0.6);
     transform: translateY(-1px);
 }

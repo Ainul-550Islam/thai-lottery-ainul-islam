@@ -9,6 +9,11 @@
  *  level:{tier:string,pct:number,next:string}}} DashboardState
  * API: set #gd-root[data-endpoint]; it must return DashboardState JSON (times in ISO 8601).
  * Realtime: call window.TLGoldDashboard.render(state) from an Echo listener.
+ *
+ * Two kinds of page load this file (layouts/shells/member.blade.php):
+ *   - the dashboard: has #gd-tabs and the widget grid; everything below runs.
+ *   - every other signed-in page: same shell, no widgets. Only the shell behaviour runs there
+ *     (menu toggle, fullscreen, clock); render()/refresh() do nothing because there is no data to bind.
  */
 (() => {
     'use strict';
@@ -31,6 +36,9 @@
         text: String,
     };
 
+    // The widgets below exist only on the dashboard page; everything widget-related is gated on this.
+    const dash = Boolean($('#gd-tabs'));
+
     let results = [];
     const get = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
 
@@ -44,6 +52,7 @@
 
     /** @param {DashboardState} s */
     function render(s) {
+        if (!dash) return;
         const d = new Date(s.live.drawAt), view = { ...s, live: { ...s.live, label: fDate.format(d) + ' | ' + fHM.format(d) } };
         $$('[data-bind]').forEach((n) => {
             const v = get(view, n.dataset.bind); if (v == null) return;
@@ -79,7 +88,9 @@
     function tick() {
         $$('.gd-tm[data-at]').forEach((n) => { n.textContent = parts(n.dataset.at).map(pad).join(':'); });
         const cd = $('#gd-cd'); if (cd && cd.dataset.at) { const p = parts(cd.dataset.at); $$('[data-p]', cd).forEach((n, i) => { n.firstChild.nodeValue = pad(p[i]); }); }
-        const now = new Date(); $('#gd-date').textContent = fDate.format(now); $('#gd-time').textContent = fTime.format(now) + ' (ICT)';
+        const now = new Date(), d = $('#gd-date'), t = $('#gd-time');
+        if (d) d.textContent = fDate.format(now);
+        if (t) t.textContent = fTime.format(now) + ' (ICT)';
     }
 
     async function load() {
@@ -92,13 +103,15 @@
         return r.json();
     }
     async function refresh() {
+        if (!dash) return;
         try { root.dataset.state = 'ready'; render(await load()); }
         catch (e) { root.dataset.state = 'error'; console.error('[gold-dashboard]', e); } // never show mock money after a failed API call
     }
 
-    $('#gd-tabs').addEventListener('click', (e) => { const t = e.target.closest('.gd-tab'); if (t) showResult(+t.dataset.i); });
-    $('#gd-menu').addEventListener('click', () => root.classList.toggle('nav'));
-    $('#gd-fs').addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.()));
+    $('#gd-tabs')?.addEventListener('click', (e) => { const t = e.target.closest('.gd-tab'); if (t) showResult(+t.dataset.i); });
+    $('#gd-menu')?.addEventListener('click', () => root.classList.toggle('nav'));
+    $('#gd-fs')?.addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.()));
+    tick();
     setInterval(tick, 1000);
     window.TLGoldDashboard = { render, refresh };
     refresh();

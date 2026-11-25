@@ -15,12 +15,12 @@
     --tlb-border-dark: #232e42;
     --tlb-border-glow: #8b5cf6;
     --tlb-border-glow-rgb: 139, 92, 246;
-    --tlb-text-main: #f1f5f9;
+    --tlb-text-main: #f4ecd8;
     --tlb-text-muted: #8e9bb0;
     --tlb-purple-accent: #a855f7;
     --tlb-purple-glow: rgba(168, 85, 247, 0.4);
-    --tlb-green-cta: #10b981;
-    --tlb-green-glow: #059669;
+    --tlb-green-cta: #e6ae26;
+    --tlb-green-glow: #c78f17;
 }
 
 body.tlb-body {
@@ -90,7 +90,7 @@ body.tlb-body {
 .tlb-clock-display {
     font-size: 0.875rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: #b3a37d;
     letter-spacing: 0.05em;
 }
 
@@ -159,7 +159,7 @@ body.tlb-body {
 .tlb-section-label {
     font-size: 0.875rem;
     font-weight: 700;
-    color: #cbd5e1;
+    color: #cbbd98;
     margin-bottom: 0.5rem;
     display: block;
 }
@@ -183,7 +183,7 @@ body.tlb-body {
     gap: 0.35rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #94a3b8;
+    color: #b3a37d;
     user-select: none;
 }
 
@@ -203,7 +203,7 @@ body.tlb-body {
 .tlb-game-btn-icon {
     font-size: 1.125rem;
     font-weight: 900;
-    color: #cbd5e1;
+    color: #cbbd98;
 }
 
 .tlb-game-btn.active .tlb-game-btn-icon {
@@ -240,7 +240,7 @@ body.tlb-body {
 }
 
 .tlb-lcd-display.placeholder {
-    color: #475569;
+    color: #6b5a2e;
 }
 
 /* KEYPAD GRID */
@@ -266,7 +266,7 @@ body.tlb-body {
     justify-content: center;
     font-size: 1.25rem;
     font-weight: 800;
-    color: #f1f5f9;
+    color: #f4ecd8;
     cursor: pointer;
     transition: all 0.12s ease;
     user-select: none;
@@ -292,7 +292,7 @@ body.tlb-body {
 
 .tlb-key-btn.del-btn {
     background-color: #263145;
-    color: #cbd5e1;
+    color: #cbbd98;
     font-size: 0.8125rem;
     font-weight: 800;
     gap: 0.25rem;
@@ -319,7 +319,7 @@ body.tlb-body {
     text-align: center;
     font-size: 0.875rem;
     font-weight: 800;
-    color: #cbd5e1;
+    color: #cbbd98;
     cursor: pointer;
     transition: all 0.15s ease;
     user-select: none;
@@ -364,7 +364,7 @@ body.tlb-body {
 }
 
 .tlb-slip-close-btn {
-    color: #64748b;
+    color: #968967;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -376,14 +376,14 @@ body.tlb-body {
 }
 
 .tlb-slip-close-btn:hover {
-    color: #f1f5f9;
+    color: #f4ecd8;
     background: rgba(255, 255, 255, 0.05);
 }
 
 .tlb-slip-count {
     font-size: 0.8125rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: #b3a37d;
     margin: 0.75rem 0 0.5rem 0;
 }
 
@@ -421,7 +421,7 @@ body.tlb-body {
 }
 
 .tlb-bet-remove-btn {
-    color: #64748b;
+    color: #968967;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -446,12 +446,12 @@ body.tlb-body {
 }
 
 .tlb-bet-label {
-    color: #64748b;
+    color: #968967;
     font-weight: 600;
 }
 
 .tlb-bet-val {
-    color: #cbd5e1;
+    color: #cbbd98;
     font-weight: 700;
 }
 
@@ -461,7 +461,7 @@ body.tlb-body {
 }
 
 .tlb-bet-val.win {
-    color: #34d399;
+    color: #f6c744;
 }
 
 /* SLIP SUMMARY */
@@ -479,7 +479,7 @@ body.tlb-body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: #94a3b8;
+    color: #b3a37d;
 }
 
 .tlb-summary-total-row {
@@ -507,7 +507,7 @@ body.tlb-body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: #cbd5e1;
+    color: #cbbd98;
     font-size: 0.75rem;
     margin-top: 0.2rem;
 }
@@ -520,7 +520,7 @@ body.tlb-body {
 
 .tlb-confirm-btn {
     width: 100%;
-    background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #10b981 100%);
+    background: linear-gradient(90deg, #e6ae26 0%, #f6c744 50%, #e6ae26 100%);
     border: none;
     border-radius: 0.875rem;
     padding: 0.85rem 1rem;
@@ -530,9 +530,9 @@ body.tlb-body {
     gap: 0.5rem;
     font-size: 0.9375rem;
     font-weight: 800;
-    color: #064e3b;
+    color: #46300b;
     cursor: pointer;
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 25px rgba(230, 174, 38, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
     user-select: none;
     position: relative;
@@ -540,14 +540,14 @@ body.tlb-body {
 }
 
 .tlb-confirm-btn:hover {
-    background: linear-gradient(90deg, #34d399 0%, #6ee7b7 50%, #34d399 100%);
-    box-shadow: 0 0 35px rgba(52, 211, 153, 0.6), 0 6px 16px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(90deg, #f6c744 0%, #f9d65e 50%, #f6c744 100%);
+    box-shadow: 0 0 35px rgba(246, 199, 68, 0.6), 0 6px 16px rgba(0, 0, 0, 0.4);
     transform: translateY(-1px);
 }
 
 .tlb-confirm-btn:active {
     transform: translateY(1px);
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 15px rgba(230, 174, 38, 0.3);
 }
 
 /* Heartbeat / Soundwave effect at the flanks of button */
@@ -571,8 +571,8 @@ body.tlb-body {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #064e3b;
-    color: #34d399;
+    background: #46300b;
+    color: #f6c744;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -131,12 +131,6 @@
         </main>
     </div>
 
-        {{-- The shared public footer, the same one About, Vision, Terms, Fees,
-             Prize Verification and Discounts already carry. Without it a
-             visitor who arrived on a lane page from a search engine had no
-             way out of it except the browser's back button. --}}
-        <x-public-page.footer />
-
 @endsection
 
 @push('scripts')

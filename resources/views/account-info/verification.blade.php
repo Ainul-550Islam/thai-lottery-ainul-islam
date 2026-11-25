@@ -45,7 +45,5 @@
                 @endif
             </div>
         </section>
-
-        <x-public-page.footer />
     </div>
 @endsection

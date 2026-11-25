@@ -41,24 +41,6 @@
 <div class="next-public-page next-public-page--blog" data-next-public-page="blog">
     <a class="pp-skip-link" href="#blog-main">{{ __('blog.skip_to_content') }}</a>
 
-    <header class="next-page-header"><div class="next-page-header__inner next-shell">
-        <a class="next-brand" href="{{ route('home') }}" aria-label="Home">
-            <span class="next-brand__mark">TL</span>
-            <span>{{ config('app.name') }}<small>{{ __('blog.brand_tagline') }}</small></span>
-        </a>
-        <nav class="next-nav" aria-label="Primary navigation">
-            <a href="{{ route('home') }}">{{ __('blog.nav_home') }}</a>
-            <a href="{{ route('results.index') }}">{{ __('blog.nav_results') }}</a>
-            <a href="{{ route('how-to-play') }}">{{ __('blog.nav_how_to_play') }}</a>
-            <a href="{{ route('faq') }}">{{ __('blog.nav_faq') }}</a>
-            <a class="is-active" href="{{ route('blog.index', ['locale' => $locale]) }}" aria-current="page">{{ __('blog.nav_blog') }}</a>
-        </nav>
-        @guest
-            <a class="next-button next-button--gold" href="{{ route('login') }}">{{ __('blog.nav_login') }}</a>
-        @else
-            <a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">{{ __('blog.nav_dashboard') }}</a>
-        @endguest
-    </div></header>
 
     <main id="blog-main" class="next-shell next-content" tabindex="-1">
         <section class="next-hero" aria-labelledby="blog-title">

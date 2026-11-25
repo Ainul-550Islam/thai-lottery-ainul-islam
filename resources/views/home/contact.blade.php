@@ -10,10 +10,5 @@
             :text="$home['text']"
             :support="$home['support']"
         />
-
-        <x-home.footer
-            :text="$home['text']"
-            :appName="$home['hero']['app_name'] ?? config('app.name')"
-        />
     </div>
 @endsection
