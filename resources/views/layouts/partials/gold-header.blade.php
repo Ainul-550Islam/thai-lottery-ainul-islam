@@ -1,5 +1,5 @@
 {{-- Gold header. Expects $gdGuest, $gdDashboard and the $gdUser* values from layouts/app.blade.php. --}}
-<header class="gd-top">
+<header class="gd-top" role="banner">
     <button type="button" class="gd-ib" id="gd-menu" aria-label="Menu"><svg class="ic"><use href="#i-menu"/></svg></button>
     <label class="gd-search"><svg class="ic"><use href="#i-search"/></svg><input type="search" placeholder="Search lotteries, tickets, or transactions..." aria-label="Search"></label>
     <span class="gd-live"><i></i>Live</span>
