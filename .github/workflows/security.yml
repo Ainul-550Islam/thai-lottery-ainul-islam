@@ -100,7 +100,7 @@ jobs:
           set -euo pipefail
           echo "Verifying absence of unescaped raw shell injection vectors..."
           # Exclude vendor and tests from dangerous runtime function checks
-          if grep -rnE "\b(eval|passthru|shell_exec)\(" app/ config/ routes/; then
+          if grep -rnP '(?<![\w:>$])(eval|passthru|shell_exec)\s*\(' app/ config/ routes/; then
             echo "::error::Dangerous execution functions detected in production app source."
             exit 1
           fi
