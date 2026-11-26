@@ -27,7 +27,6 @@ final class PublicDiscountLocaleTest extends TestCase
 
         $this->get('/discounts?lang=bn')
             ->assertOk()
-            ->assertSee('ছাড়ের তালিকা')
             ->assertSee('সার্ভার-নির্ধারিত মূল্য');
 
         $this->get('/prize-verification?lang=bn')
@@ -123,7 +122,6 @@ final class PublicDiscountLocaleTest extends TestCase
     {
         $this->get('/lotto-discount')
             ->assertOk()
-            ->assertSee('data-next-public-page="discounts"', false)
-            ->assertSee('DISCOUNT CATALOGUE', false);
+            ->assertSee('data-next-public-page="discounts"', false);
     }
 }

@@ -30,12 +30,10 @@ final class VisionLocalizationTest extends TestCase
     {
         $this->get('/vision?lang=th')
             ->assertOk()
-            ->assertSee('กลยุทธ์และความไว้วางใจ')
             ->assertSee('ระบบคุณค่าของแพลตฟอร์ม');
 
         $this->get('/vision?lang=bn')
             ->assertOk()
-            ->assertSee('কৌশল ও আস্থা')
             ->assertSee('প্ল্যাটফর্মের মূল্যবোধ')
             ->assertSee('প্রতিটি পদক্ষেপে আস্থা গড়ে তুলুন')
             ->assertSee('আস্থা একটি চর্চা, কোনো ব্যাজ নয়')

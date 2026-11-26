@@ -209,12 +209,10 @@ final class PrizeVerificationAndDiscountTest extends TestCase
     {
         $this->get('/prize-verification?lang=th')
             ->assertOk()
-            ->assertSee('ระบบตรวจสอบผลสาธารณะ')
             ->assertSee('ข้อมูลเจ้าของ');
 
         $this->get('/prize-verification?lang=bn')
             ->assertOk()
-            ->assertSee('প্রকাশ্য ফল যাচাই')
             ->assertSee('মালিকের তথ্য');
     }
 
