@@ -307,7 +307,7 @@ return [
 
     'health' => [
         'scheduler_stale_seconds' => (int) env('PLAYER_HEALTH_SCHEDULER_STALE', 180),
-        'heartbeat_cache_key' => env('PLAYER_HEALTH_HEARTBEAT_KEY', 'ops:scheduler:heartbeat'),
+        'heartbeat_cache_key' => env('PLAYER_HEALTH_HEARTBEAT_KEY') ?: 'ops:scheduler:heartbeat',
         'heartbeat_ttl_seconds' => (int) env('PLAYER_HEALTH_HEARTBEAT_TTL', 900),
         'ledger_check_chunk' => (int) env('PLAYER_LEDGER_CHECK_CHUNK', 500),
     ],
