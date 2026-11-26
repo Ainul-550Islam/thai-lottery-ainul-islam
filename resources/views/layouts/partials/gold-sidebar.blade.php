@@ -59,7 +59,7 @@
     @if (\Illuminate\Support\Facades\Route::has('locale.switch'))
         <div class="gd-lang" role="group" aria-label="{{ $gdLabel('player.language_label', 'Language') }}">
             @foreach (['en' => 'EN', 'th' => 'TH', 'bn' => 'বাংলা'] as $gdCode => $gdText)
-                <a href="{{ route('locale.switch', $gdCode) }}"{!! $gdCode === 'bn' ? ' lang="bn"' : '' !!}{!! app()->getLocale() === $gdCode ? ' class="on" aria-current="true"' : '' !!}>{{ $gdText }}</a>
+                <a href="{{ route('locale.switch', $gdCode) }}"@if ($gdCode === 'bn') lang="bn"@endif @if (app()->getLocale() === $gdCode) class="on" aria-current="true"@endif>{{ $gdText }}</a>
             @endforeach
         </div>
     @endif

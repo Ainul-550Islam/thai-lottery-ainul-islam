@@ -18,7 +18,7 @@
 --}}
 @php
     $gdDashboard = trim($__env->yieldContent('gd_mode')) === 'dashboard';
-    $gdEndpoint = trim($__env->yieldContent('gd_endpoint'));
+    $gdEndpoint = trim(html_entity_decode($__env->yieldContent('gd_endpoint'), ENT_QUOTES));
     $gdGuest = ! auth()->check();
 
     // ONE footer per page, and this layout is its only owner: a page never renders a footer of its
@@ -80,7 +80,7 @@
 <body class="gd-body">
 @include('layouts.partials.gold-icons')
 
-<div class="gd{{ $gdDashboard ? '' : ' gd--page' }}{{ $gdGuest ? ' gd--guest' : '' }}{{ $gdPublicFooter ? ' gd--nofoot' : '' }}" id="gd-root" data-state="ready" data-img="{{ asset('images/gd') }}"@if ($gdEndpoint !== '') data-endpoint="{!! $gdEndpoint !!}"@endif>
+<div class="gd{{ $gdDashboard ? '' : ' gd--page' }}{{ $gdGuest ? ' gd--guest' : '' }}{{ $gdPublicFooter ? ' gd--nofoot' : '' }}" id="gd-root" data-state="ready" data-img="{{ asset('images/gd') }}"@if ($gdEndpoint !== '') data-endpoint="{{ $gdEndpoint }}"@endif>
     @if ($gdDashboard)
         <script type="application/json" id="gd-state">@json($state ?? null)</script>
     @endif
